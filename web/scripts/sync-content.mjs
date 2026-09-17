@@ -43,7 +43,12 @@ const content = {
   about: String(listing.about ?? "").trim().split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
   testimonialsHeading: listing.testimonials_heading ?? "",
   testimonials: (listing.testimonials ?? []).map((t) => ({ quote: String(t.quote), name: String(t.name) })),
-  otherFeatures: listing.other_features ?? { heading: "", items: [] },
+  otherFeatures: {
+    heading: listing.other_features?.heading ?? "",
+    items: (listing.other_features?.items ?? []).map((i) =>
+      typeof i === "string" ? { emoji: "", text: i } : { emoji: String(i.emoji ?? ""), text: String(i.text ?? "") },
+    ),
+  },
   website: listing.website ?? {},
   screenshots: (listing.screenshots ?? []).map((s) => ({
     src: `/generated/screens/${s.file}`,

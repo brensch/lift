@@ -12,7 +12,7 @@ export interface Column {
 }
 
 const PAD = { top: 12, right: 8, bottom: 26, left: 44 };
-const HEIGHT = 240;
+const DEFAULT_HEIGHT = 240;
 const MAX_BAR_W = 24;
 
 /**
@@ -24,11 +24,13 @@ export function ColumnChart({
   color,
   yFormat,
   tooltipValue,
+  height: HEIGHT = DEFAULT_HEIGHT,
 }: {
   data: Column[];
   color: string;
   yFormat: (v: number) => string;
   tooltipValue: (c: Column) => string;
+  height?: number;
 }) {
   const { ref, width } = useMeasuredWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);

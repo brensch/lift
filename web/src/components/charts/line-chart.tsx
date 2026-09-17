@@ -23,7 +23,7 @@ interface TooltipRow {
 }
 
 const PAD = { top: 12, right: 16, bottom: 26, left: 44 };
-const HEIGHT = 260;
+const DEFAULT_HEIGHT = 260;
 
 /**
  * Time-series line chart: hairline grid, 2px lines, crosshair that snaps to
@@ -34,11 +34,13 @@ export function LineChart({
   series,
   yFormat,
   tooltipExtra,
+  height: HEIGHT = DEFAULT_HEIGHT,
 }: {
   series: LineSeries[];
   yFormat: (v: number) => string;
   /** Extra tooltip line for a given x (e.g. "5 reps @ 225 lb") */
   tooltipExtra?: (x: number) => string | null;
+  height?: number;
 }) {
   const { ref, width } = useMeasuredWidth<HTMLDivElement>();
   const [hoverX, setHoverX] = useState<number | null>(null);
