@@ -1,9 +1,12 @@
+// tonic's `Status` is what every gRPC handler returns; newer clippy flags it
+// as a large `Err` variant. Boxing it would touch every handler for no gain.
+#![allow(clippy::result_large_err)]
+
 use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
-    settings_service_server::SettingsServiceServer,
-    training_service_server::TrainingServiceServer, user_service_server::UserServiceServer,
+    settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
     workout_service_server::WorkoutServiceServer,
 };
 use std::net::SocketAddr;
@@ -11,27 +14,24 @@ use tower_http::cors::{Any, CorsLayer};
 
 mod auth;
 mod db;
-mod program_state;
-mod progress;
+mod exercise_catalog;
+mod exercise_progress;
+mod history;
 mod onboarding;
+mod progress;
 mod recovery;
-mod regimes;
-#[cfg(test)]
-mod scenario_tests;
-mod schplanner;
-#[cfg(test)]
-mod schplanner_tests;
 mod server;
 mod state;
 mod time;
+mod volume;
 mod weight_units;
 mod workout;
 
 use auth::AuthState;
 use db::ServerDb;
 use server::{
-    ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerTrainingService,
-    ServerUserService, ServerWorkoutService,
+    ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
+    ServerWorkoutService,
 };
 use tracing::{error, info};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -116,11 +116,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )))
         .add_service(tonic_web::enable(SettingsServiceServer::new(
             ServerSettingsService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(TrainingServiceServer::new(
-            ServerTrainingService {
                 db: server_db.clone(),
             },
         )))

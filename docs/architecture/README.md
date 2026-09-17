@@ -9,25 +9,22 @@ built, it is called out explicitly under "Not implemented".
 | [overview.md](overview.md) | System map, components, a request end to end, deployment |
 | [backend.md](backend.md) | Rust module layout, DB access model, RPC surface |
 | [data-model.md](data-model.md) | SQLite schema, entity relationships, blob columns |
-| [workout-lifecycle.md](workout-lifecycle.md) | Proposal → active → completed, the set state machine, optimistic mutations |
-| [regimes.md](regimes.md) | Training program state machine, the `WorkoutRegime` trait, progression |
+| [workout-lifecycle.md](workout-lifecycle.md) | Template → active → completed, the set state machine, optimistic mutations |
 | [multiplayer.md](multiplayer.md) | Sessions, invites, participant fan-out |
 | [app.md](app.md) | Flutter layer boundaries, providers, polling and refresh |
 | [wearable.md](wearable.md) | Watch ↔ phone ↔ server protocol for Wear OS and watchOS |
 | [auth.md](auth.md) | Passkey registration and login, session tokens |
-| [testing.md](testing.md) | The five test layers, the API invariant harness, known gaps |
-| [training-model.md](training-model.md) | The v2 workout/progression model: three-facet sets, append-only entries, one mutation endpoint |
+| [testing.md](testing.md) | The test layers, the API invariant harness, known gaps |
 
-An interactive walkthrough of how the programs progress — including what happens
-after time off — is generated from the engine itself at
-[`docs/regime-explorer.html`](../regime-explorer.html).
+Progression, templates and volume are specified in
+[`docs/plans/composable-workouts.md`](../plans/composable-workouts.md), which
+this refactor implemented; the code lives in `src/exercise_catalog.rs`,
+`src/exercise_progress.rs` and `src/volume.rs`.
 
 ## Conventions used here
 
 - Diagrams are [Mermaid](https://mermaid.js.org/); they render on GitHub.
 - File references are repo-relative, e.g. `src/server/workout.rs:850`.
-- "Slot" means a progression slot key (an exercise's identity for progression
-  purposes), not a set.
 
 ## Reading order
 

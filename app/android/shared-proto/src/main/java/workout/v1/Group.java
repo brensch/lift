@@ -7307,6 +7307,4682 @@ public final class Group {
     }
   }
 
+  public interface TrainingPartnerOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.TrainingPartner)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     * @return Whether the user field is set.
+     */
+    boolean hasUser();
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     * @return The user.
+     */
+    workout.v1.WorkoutOuterClass.User getUser();
+
+    /**
+     * <pre>
+     * how many distinct sessions they shared
+     * </pre>
+     *
+     * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+     * @return The sessionsTogether.
+     */
+    int getSessionsTogether();
+
+    /**
+     * <pre>
+     * unix seconds of the most recent shared session
+     * </pre>
+     *
+     * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+     * @return The lastTrainedAt.
+     */
+    long getLastTrainedAt();
+  }
+  /**
+   * <pre>
+   * Someone the caller has shared at least one session with.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.TrainingPartner}
+   */
+  public  static final class TrainingPartner extends
+      com.google.protobuf.GeneratedMessageLite<
+          TrainingPartner, TrainingPartner.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.TrainingPartner)
+      TrainingPartnerOrBuilder {
+    private TrainingPartner() {
+    }
+    public static final int USER_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.User user_;
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    @java.lang.Override
+    public boolean hasUser() {
+      return user_ != null;
+    }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.User getUser() {
+      return user_ == null ? workout.v1.WorkoutOuterClass.User.getDefaultInstance() : user_;
+    }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    private void setUser(workout.v1.WorkoutOuterClass.User value) {
+      value.getClass();
+  user_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeUser(workout.v1.WorkoutOuterClass.User value) {
+      value.getClass();
+  if (user_ != null &&
+          user_ != workout.v1.WorkoutOuterClass.User.getDefaultInstance()) {
+        user_ =
+          workout.v1.WorkoutOuterClass.User.newBuilder(user_).mergeFrom(value).buildPartial();
+      } else {
+        user_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+     */
+    private void clearUser() {  user_ = null;
+      
+    }
+
+    public static final int SESSIONS_TOGETHER_FIELD_NUMBER = 2;
+    private int sessionsTogether_;
+    /**
+     * <pre>
+     * how many distinct sessions they shared
+     * </pre>
+     *
+     * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+     * @return The sessionsTogether.
+     */
+    @java.lang.Override
+    public int getSessionsTogether() {
+      return sessionsTogether_;
+    }
+    /**
+     * <pre>
+     * how many distinct sessions they shared
+     * </pre>
+     *
+     * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+     * @param value The sessionsTogether to set.
+     */
+    private void setSessionsTogether(int value) {
+      
+      sessionsTogether_ = value;
+    }
+    /**
+     * <pre>
+     * how many distinct sessions they shared
+     * </pre>
+     *
+     * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+     */
+    private void clearSessionsTogether() {
+      
+      sessionsTogether_ = 0;
+    }
+
+    public static final int LAST_TRAINED_AT_FIELD_NUMBER = 3;
+    private long lastTrainedAt_;
+    /**
+     * <pre>
+     * unix seconds of the most recent shared session
+     * </pre>
+     *
+     * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+     * @return The lastTrainedAt.
+     */
+    @java.lang.Override
+    public long getLastTrainedAt() {
+      return lastTrainedAt_;
+    }
+    /**
+     * <pre>
+     * unix seconds of the most recent shared session
+     * </pre>
+     *
+     * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+     * @param value The lastTrainedAt to set.
+     */
+    private void setLastTrainedAt(long value) {
+      
+      lastTrainedAt_ = value;
+    }
+    /**
+     * <pre>
+     * unix seconds of the most recent shared session
+     * </pre>
+     *
+     * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+     */
+    private void clearLastTrainedAt() {
+      
+      lastTrainedAt_ = 0L;
+    }
+
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.TrainingPartner parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.TrainingPartner parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.TrainingPartner parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.TrainingPartner prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Someone the caller has shared at least one session with.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.TrainingPartner}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.TrainingPartner, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.TrainingPartner)
+        workout.v1.Group.TrainingPartnerOrBuilder {
+      // Construct using workout.v1.Group.TrainingPartner.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      @java.lang.Override
+      public boolean hasUser() {
+        return instance.hasUser();
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.User getUser() {
+        return instance.getUser();
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder setUser(workout.v1.WorkoutOuterClass.User value) {
+        copyOnWrite();
+        instance.setUser(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder setUser(
+          workout.v1.WorkoutOuterClass.User.Builder builderForValue) {
+        copyOnWrite();
+        instance.setUser(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder mergeUser(workout.v1.WorkoutOuterClass.User value) {
+        copyOnWrite();
+        instance.mergeUser(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.User user = 1 [json_name = "user"];</code>
+       */
+      public Builder clearUser() {  copyOnWrite();
+        instance.clearUser();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * how many distinct sessions they shared
+       * </pre>
+       *
+       * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+       * @return The sessionsTogether.
+       */
+      @java.lang.Override
+      public int getSessionsTogether() {
+        return instance.getSessionsTogether();
+      }
+      /**
+       * <pre>
+       * how many distinct sessions they shared
+       * </pre>
+       *
+       * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+       * @param value The sessionsTogether to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionsTogether(int value) {
+        copyOnWrite();
+        instance.setSessionsTogether(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * how many distinct sessions they shared
+       * </pre>
+       *
+       * <code>int32 sessions_together = 2 [json_name = "sessionsTogether"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSessionsTogether() {
+        copyOnWrite();
+        instance.clearSessionsTogether();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * unix seconds of the most recent shared session
+       * </pre>
+       *
+       * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+       * @return The lastTrainedAt.
+       */
+      @java.lang.Override
+      public long getLastTrainedAt() {
+        return instance.getLastTrainedAt();
+      }
+      /**
+       * <pre>
+       * unix seconds of the most recent shared session
+       * </pre>
+       *
+       * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+       * @param value The lastTrainedAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLastTrainedAt(long value) {
+        copyOnWrite();
+        instance.setLastTrainedAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * unix seconds of the most recent shared session
+       * </pre>
+       *
+       * <code>int64 last_trained_at = 3 [json_name = "lastTrainedAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearLastTrainedAt() {
+        copyOnWrite();
+        instance.clearLastTrainedAt();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.TrainingPartner)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.TrainingPartner();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "user_",
+              "sessionsTogether_",
+              "lastTrainedAt_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\t\u0002\u0004" +
+                "\u0003\u0002";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.TrainingPartner> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.TrainingPartner.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.TrainingPartner>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.TrainingPartner)
+    private static final workout.v1.Group.TrainingPartner DEFAULT_INSTANCE;
+    static {
+      TrainingPartner defaultInstance = new TrainingPartner();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        TrainingPartner.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.TrainingPartner getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<TrainingPartner> PARSER;
+
+    public static com.google.protobuf.Parser<TrainingPartner> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetTrainingPartnersRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetTrainingPartnersRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetTrainingPartnersRequest}
+   */
+  public  static final class GetTrainingPartnersRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetTrainingPartnersRequest, GetTrainingPartnersRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetTrainingPartnersRequest)
+      GetTrainingPartnersRequestOrBuilder {
+    private GetTrainingPartnersRequest() {
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetTrainingPartnersRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetTrainingPartnersRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetTrainingPartnersRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetTrainingPartnersRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetTrainingPartnersRequest)
+        workout.v1.Group.GetTrainingPartnersRequestOrBuilder {
+      // Construct using workout.v1.Group.GetTrainingPartnersRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetTrainingPartnersRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetTrainingPartnersRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetTrainingPartnersRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetTrainingPartnersRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetTrainingPartnersRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetTrainingPartnersRequest)
+    private static final workout.v1.Group.GetTrainingPartnersRequest DEFAULT_INSTANCE;
+    static {
+      GetTrainingPartnersRequest defaultInstance = new GetTrainingPartnersRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetTrainingPartnersRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetTrainingPartnersRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetTrainingPartnersRequest> PARSER;
+
+    public static com.google.protobuf.Parser<GetTrainingPartnersRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetTrainingPartnersResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetTrainingPartnersResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    java.util.List<workout.v1.Group.TrainingPartner> 
+        getPartnersList();
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    workout.v1.Group.TrainingPartner getPartners(int index);
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    int getPartnersCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetTrainingPartnersResponse}
+   */
+  public  static final class GetTrainingPartnersResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetTrainingPartnersResponse, GetTrainingPartnersResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetTrainingPartnersResponse)
+      GetTrainingPartnersResponseOrBuilder {
+    private GetTrainingPartnersResponse() {
+      partners_ = emptyProtobufList();
+    }
+    public static final int PARTNERS_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.Group.TrainingPartner> partners_;
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Group.TrainingPartner> getPartnersList() {
+      return partners_;
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    public java.util.List<? extends workout.v1.Group.TrainingPartnerOrBuilder> 
+        getPartnersOrBuilderList() {
+      return partners_;
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    @java.lang.Override
+    public int getPartnersCount() {
+      return partners_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Group.TrainingPartner getPartners(int index) {
+      return partners_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    public workout.v1.Group.TrainingPartnerOrBuilder getPartnersOrBuilder(
+        int index) {
+      return partners_.get(index);
+    }
+    private void ensurePartnersIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.Group.TrainingPartner> tmp = partners_;
+      if (!tmp.isModifiable()) {
+        partners_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    private void setPartners(
+        int index, workout.v1.Group.TrainingPartner value) {
+      value.getClass();
+  ensurePartnersIsMutable();
+      partners_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    private void addPartners(workout.v1.Group.TrainingPartner value) {
+      value.getClass();
+  ensurePartnersIsMutable();
+      partners_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    private void addPartners(
+        int index, workout.v1.Group.TrainingPartner value) {
+      value.getClass();
+  ensurePartnersIsMutable();
+      partners_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    private void addAllPartners(
+        java.lang.Iterable<? extends workout.v1.Group.TrainingPartner> values) {
+      ensurePartnersIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, partners_);
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    private void clearPartners() {
+      partners_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+     */
+    private void removePartners(int index) {
+      ensurePartnersIsMutable();
+      partners_.remove(index);
+    }
+
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetTrainingPartnersResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetTrainingPartnersResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetTrainingPartnersResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetTrainingPartnersResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetTrainingPartnersResponse)
+        workout.v1.Group.GetTrainingPartnersResponseOrBuilder {
+      // Construct using workout.v1.Group.GetTrainingPartnersResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Group.TrainingPartner> getPartnersList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getPartnersList());
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      @java.lang.Override
+      public int getPartnersCount() {
+        return instance.getPartnersCount();
+      }/**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Group.TrainingPartner getPartners(int index) {
+        return instance.getPartners(index);
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder setPartners(
+          int index, workout.v1.Group.TrainingPartner value) {
+        copyOnWrite();
+        instance.setPartners(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder setPartners(
+          int index, workout.v1.Group.TrainingPartner.Builder builderForValue) {
+        copyOnWrite();
+        instance.setPartners(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder addPartners(workout.v1.Group.TrainingPartner value) {
+        copyOnWrite();
+        instance.addPartners(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder addPartners(
+          int index, workout.v1.Group.TrainingPartner value) {
+        copyOnWrite();
+        instance.addPartners(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder addPartners(
+          workout.v1.Group.TrainingPartner.Builder builderForValue) {
+        copyOnWrite();
+        instance.addPartners(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder addPartners(
+          int index, workout.v1.Group.TrainingPartner.Builder builderForValue) {
+        copyOnWrite();
+        instance.addPartners(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder addAllPartners(
+          java.lang.Iterable<? extends workout.v1.Group.TrainingPartner> values) {
+        copyOnWrite();
+        instance.addAllPartners(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder clearPartners() {
+        copyOnWrite();
+        instance.clearPartners();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.TrainingPartner partners = 1 [json_name = "partners"];</code>
+       */
+      public Builder removePartners(int index) {
+        copyOnWrite();
+        instance.removePartners(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetTrainingPartnersResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetTrainingPartnersResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "partners_",
+              workout.v1.Group.TrainingPartner.class,
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0001\u0000\u0001\u001b";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetTrainingPartnersResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetTrainingPartnersResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetTrainingPartnersResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetTrainingPartnersResponse)
+    private static final workout.v1.Group.GetTrainingPartnersResponse DEFAULT_INSTANCE;
+    static {
+      GetTrainingPartnersResponse defaultInstance = new GetTrainingPartnersResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetTrainingPartnersResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetTrainingPartnersResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetTrainingPartnersResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetTrainingPartnersResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SharedSessionOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SharedSession)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    java.lang.String getSessionId();
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    com.google.protobuf.ByteString
+        getSessionIdBytes();
+
+    /**
+     * <pre>
+     * when the shared session started (earliest join)
+     * </pre>
+     *
+     * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+     * @return The trainedAt.
+     */
+    long getTrainedAt();
+
+    /**
+     * <pre>
+     * did the caller log a workout in it
+     * </pre>
+     *
+     * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+     * @return The callerWorkedOut.
+     */
+    boolean getCallerWorkedOut();
+
+    /**
+     * <pre>
+     * did the partner log a workout in it
+     * </pre>
+     *
+     * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+     * @return The partnerWorkedOut.
+     */
+    boolean getPartnerWorkedOut();
+  }
+  /**
+   * <pre>
+   * One session the caller and a partner were both in.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.SharedSession}
+   */
+  public  static final class SharedSession extends
+      com.google.protobuf.GeneratedMessageLite<
+          SharedSession, SharedSession.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SharedSession)
+      SharedSessionOrBuilder {
+    private SharedSession() {
+      sessionId_ = "";
+    }
+    public static final int SESSION_ID_FIELD_NUMBER = 1;
+    private java.lang.String sessionId_;
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    @java.lang.Override
+    public java.lang.String getSessionId() {
+      return sessionId_;
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSessionIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(sessionId_);
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The sessionId to set.
+     */
+    private void setSessionId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      sessionId_ = value;
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     */
+    private void clearSessionId() {
+      
+      sessionId_ = getDefaultInstance().getSessionId();
+    }
+    /**
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The bytes for sessionId to set.
+     */
+    private void setSessionIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      sessionId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int TRAINED_AT_FIELD_NUMBER = 2;
+    private long trainedAt_;
+    /**
+     * <pre>
+     * when the shared session started (earliest join)
+     * </pre>
+     *
+     * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+     * @return The trainedAt.
+     */
+    @java.lang.Override
+    public long getTrainedAt() {
+      return trainedAt_;
+    }
+    /**
+     * <pre>
+     * when the shared session started (earliest join)
+     * </pre>
+     *
+     * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+     * @param value The trainedAt to set.
+     */
+    private void setTrainedAt(long value) {
+      
+      trainedAt_ = value;
+    }
+    /**
+     * <pre>
+     * when the shared session started (earliest join)
+     * </pre>
+     *
+     * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+     */
+    private void clearTrainedAt() {
+      
+      trainedAt_ = 0L;
+    }
+
+    public static final int CALLER_WORKED_OUT_FIELD_NUMBER = 3;
+    private boolean callerWorkedOut_;
+    /**
+     * <pre>
+     * did the caller log a workout in it
+     * </pre>
+     *
+     * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+     * @return The callerWorkedOut.
+     */
+    @java.lang.Override
+    public boolean getCallerWorkedOut() {
+      return callerWorkedOut_;
+    }
+    /**
+     * <pre>
+     * did the caller log a workout in it
+     * </pre>
+     *
+     * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+     * @param value The callerWorkedOut to set.
+     */
+    private void setCallerWorkedOut(boolean value) {
+      
+      callerWorkedOut_ = value;
+    }
+    /**
+     * <pre>
+     * did the caller log a workout in it
+     * </pre>
+     *
+     * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+     */
+    private void clearCallerWorkedOut() {
+      
+      callerWorkedOut_ = false;
+    }
+
+    public static final int PARTNER_WORKED_OUT_FIELD_NUMBER = 4;
+    private boolean partnerWorkedOut_;
+    /**
+     * <pre>
+     * did the partner log a workout in it
+     * </pre>
+     *
+     * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+     * @return The partnerWorkedOut.
+     */
+    @java.lang.Override
+    public boolean getPartnerWorkedOut() {
+      return partnerWorkedOut_;
+    }
+    /**
+     * <pre>
+     * did the partner log a workout in it
+     * </pre>
+     *
+     * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+     * @param value The partnerWorkedOut to set.
+     */
+    private void setPartnerWorkedOut(boolean value) {
+      
+      partnerWorkedOut_ = value;
+    }
+    /**
+     * <pre>
+     * did the partner log a workout in it
+     * </pre>
+     *
+     * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+     */
+    private void clearPartnerWorkedOut() {
+      
+      partnerWorkedOut_ = false;
+    }
+
+    public static workout.v1.Group.SharedSession parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.SharedSession parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.SharedSession parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.SharedSession parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.SharedSession prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * One session the caller and a partner were both in.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.SharedSession}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.SharedSession, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SharedSession)
+        workout.v1.Group.SharedSessionOrBuilder {
+      // Construct using workout.v1.Group.SharedSession.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The sessionId.
+       */
+      @java.lang.Override
+      public java.lang.String getSessionId() {
+        return instance.getSessionId();
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The bytes for sessionId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSessionIdBytes() {
+        return instance.getSessionIdBytes();
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSessionId(value);
+        return this;
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSessionId() {
+        copyOnWrite();
+        instance.clearSessionId();
+        return this;
+      }
+      /**
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The bytes for sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSessionIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * when the shared session started (earliest join)
+       * </pre>
+       *
+       * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+       * @return The trainedAt.
+       */
+      @java.lang.Override
+      public long getTrainedAt() {
+        return instance.getTrainedAt();
+      }
+      /**
+       * <pre>
+       * when the shared session started (earliest join)
+       * </pre>
+       *
+       * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+       * @param value The trainedAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTrainedAt(long value) {
+        copyOnWrite();
+        instance.setTrainedAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * when the shared session started (earliest join)
+       * </pre>
+       *
+       * <code>int64 trained_at = 2 [json_name = "trainedAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTrainedAt() {
+        copyOnWrite();
+        instance.clearTrainedAt();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * did the caller log a workout in it
+       * </pre>
+       *
+       * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+       * @return The callerWorkedOut.
+       */
+      @java.lang.Override
+      public boolean getCallerWorkedOut() {
+        return instance.getCallerWorkedOut();
+      }
+      /**
+       * <pre>
+       * did the caller log a workout in it
+       * </pre>
+       *
+       * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+       * @param value The callerWorkedOut to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCallerWorkedOut(boolean value) {
+        copyOnWrite();
+        instance.setCallerWorkedOut(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * did the caller log a workout in it
+       * </pre>
+       *
+       * <code>bool caller_worked_out = 3 [json_name = "callerWorkedOut"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCallerWorkedOut() {
+        copyOnWrite();
+        instance.clearCallerWorkedOut();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * did the partner log a workout in it
+       * </pre>
+       *
+       * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+       * @return The partnerWorkedOut.
+       */
+      @java.lang.Override
+      public boolean getPartnerWorkedOut() {
+        return instance.getPartnerWorkedOut();
+      }
+      /**
+       * <pre>
+       * did the partner log a workout in it
+       * </pre>
+       *
+       * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+       * @param value The partnerWorkedOut to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPartnerWorkedOut(boolean value) {
+        copyOnWrite();
+        instance.setPartnerWorkedOut(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * did the partner log a workout in it
+       * </pre>
+       *
+       * <code>bool partner_worked_out = 4 [json_name = "partnerWorkedOut"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPartnerWorkedOut() {
+        copyOnWrite();
+        instance.clearPartnerWorkedOut();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SharedSession)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.SharedSession();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "sessionId_",
+              "trainedAt_",
+              "callerWorkedOut_",
+              "partnerWorkedOut_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\u0002" +
+                "\u0003\u0007\u0004\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.SharedSession> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.SharedSession.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.SharedSession>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SharedSession)
+    private static final workout.v1.Group.SharedSession DEFAULT_INSTANCE;
+    static {
+      SharedSession defaultInstance = new SharedSession();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SharedSession.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.SharedSession getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SharedSession> PARSER;
+
+    public static com.google.protobuf.Parser<SharedSession> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetSharedSessionsRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetSharedSessionsRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The partnerUserId.
+     */
+    java.lang.String getPartnerUserId();
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The bytes for partnerUserId.
+     */
+    com.google.protobuf.ByteString
+        getPartnerUserIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetSharedSessionsRequest}
+   */
+  public  static final class GetSharedSessionsRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetSharedSessionsRequest, GetSharedSessionsRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetSharedSessionsRequest)
+      GetSharedSessionsRequestOrBuilder {
+    private GetSharedSessionsRequest() {
+      partnerUserId_ = "";
+    }
+    public static final int PARTNER_USER_ID_FIELD_NUMBER = 1;
+    private java.lang.String partnerUserId_;
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The partnerUserId.
+     */
+    @java.lang.Override
+    public java.lang.String getPartnerUserId() {
+      return partnerUserId_;
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The bytes for partnerUserId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPartnerUserIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(partnerUserId_);
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @param value The partnerUserId to set.
+     */
+    private void setPartnerUserId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      partnerUserId_ = value;
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     */
+    private void clearPartnerUserId() {
+      
+      partnerUserId_ = getDefaultInstance().getPartnerUserId();
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @param value The bytes for partnerUserId to set.
+     */
+    private void setPartnerUserIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      partnerUserId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSharedSessionsRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetSharedSessionsRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetSharedSessionsRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetSharedSessionsRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetSharedSessionsRequest)
+        workout.v1.Group.GetSharedSessionsRequestOrBuilder {
+      // Construct using workout.v1.Group.GetSharedSessionsRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @return The partnerUserId.
+       */
+      @java.lang.Override
+      public java.lang.String getPartnerUserId() {
+        return instance.getPartnerUserId();
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @return The bytes for partnerUserId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPartnerUserIdBytes() {
+        return instance.getPartnerUserIdBytes();
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @param value The partnerUserId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPartnerUserId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPartnerUserId(value);
+        return this;
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPartnerUserId() {
+        copyOnWrite();
+        instance.clearPartnerUserId();
+        return this;
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @param value The bytes for partnerUserId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPartnerUserIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPartnerUserIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetSharedSessionsRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetSharedSessionsRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "partnerUserId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetSharedSessionsRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetSharedSessionsRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetSharedSessionsRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetSharedSessionsRequest)
+    private static final workout.v1.Group.GetSharedSessionsRequest DEFAULT_INSTANCE;
+    static {
+      GetSharedSessionsRequest defaultInstance = new GetSharedSessionsRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetSharedSessionsRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetSharedSessionsRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetSharedSessionsRequest> PARSER;
+
+    public static com.google.protobuf.Parser<GetSharedSessionsRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetSharedSessionsResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetSharedSessionsResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    java.util.List<workout.v1.Group.SharedSession> 
+        getSessionsList();
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    workout.v1.Group.SharedSession getSessions(int index);
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    int getSessionsCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetSharedSessionsResponse}
+   */
+  public  static final class GetSharedSessionsResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetSharedSessionsResponse, GetSharedSessionsResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetSharedSessionsResponse)
+      GetSharedSessionsResponseOrBuilder {
+    private GetSharedSessionsResponse() {
+      sessions_ = emptyProtobufList();
+    }
+    public static final int SESSIONS_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.Group.SharedSession> sessions_;
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Group.SharedSession> getSessionsList() {
+      return sessions_;
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    public java.util.List<? extends workout.v1.Group.SharedSessionOrBuilder> 
+        getSessionsOrBuilderList() {
+      return sessions_;
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    @java.lang.Override
+    public int getSessionsCount() {
+      return sessions_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Group.SharedSession getSessions(int index) {
+      return sessions_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    public workout.v1.Group.SharedSessionOrBuilder getSessionsOrBuilder(
+        int index) {
+      return sessions_.get(index);
+    }
+    private void ensureSessionsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.Group.SharedSession> tmp = sessions_;
+      if (!tmp.isModifiable()) {
+        sessions_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    private void setSessions(
+        int index, workout.v1.Group.SharedSession value) {
+      value.getClass();
+  ensureSessionsIsMutable();
+      sessions_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    private void addSessions(workout.v1.Group.SharedSession value) {
+      value.getClass();
+  ensureSessionsIsMutable();
+      sessions_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    private void addSessions(
+        int index, workout.v1.Group.SharedSession value) {
+      value.getClass();
+  ensureSessionsIsMutable();
+      sessions_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    private void addAllSessions(
+        java.lang.Iterable<? extends workout.v1.Group.SharedSession> values) {
+      ensureSessionsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, sessions_);
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    private void clearSessions() {
+      sessions_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+     */
+    private void removeSessions(int index) {
+      ensureSessionsIsMutable();
+      sessions_.remove(index);
+    }
+
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetSharedSessionsResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetSharedSessionsResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetSharedSessionsResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetSharedSessionsResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetSharedSessionsResponse)
+        workout.v1.Group.GetSharedSessionsResponseOrBuilder {
+      // Construct using workout.v1.Group.GetSharedSessionsResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Group.SharedSession> getSessionsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getSessionsList());
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      @java.lang.Override
+      public int getSessionsCount() {
+        return instance.getSessionsCount();
+      }/**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Group.SharedSession getSessions(int index) {
+        return instance.getSessions(index);
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder setSessions(
+          int index, workout.v1.Group.SharedSession value) {
+        copyOnWrite();
+        instance.setSessions(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder setSessions(
+          int index, workout.v1.Group.SharedSession.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSessions(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder addSessions(workout.v1.Group.SharedSession value) {
+        copyOnWrite();
+        instance.addSessions(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder addSessions(
+          int index, workout.v1.Group.SharedSession value) {
+        copyOnWrite();
+        instance.addSessions(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder addSessions(
+          workout.v1.Group.SharedSession.Builder builderForValue) {
+        copyOnWrite();
+        instance.addSessions(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder addSessions(
+          int index, workout.v1.Group.SharedSession.Builder builderForValue) {
+        copyOnWrite();
+        instance.addSessions(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder addAllSessions(
+          java.lang.Iterable<? extends workout.v1.Group.SharedSession> values) {
+        copyOnWrite();
+        instance.addAllSessions(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder clearSessions() {
+        copyOnWrite();
+        instance.clearSessions();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SharedSession sessions = 1 [json_name = "sessions"];</code>
+       */
+      public Builder removeSessions(int index) {
+        copyOnWrite();
+        instance.removeSessions(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetSharedSessionsResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetSharedSessionsResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "sessions_",
+              workout.v1.Group.SharedSession.class,
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0001\u0000\u0001\u001b";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetSharedSessionsResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetSharedSessionsResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetSharedSessionsResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetSharedSessionsResponse)
+    private static final workout.v1.Group.GetSharedSessionsResponse DEFAULT_INSTANCE;
+    static {
+      GetSharedSessionsResponse defaultInstance = new GetSharedSessionsResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetSharedSessionsResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetSharedSessionsResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetSharedSessionsResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetSharedSessionsResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RequestJoinPartnerRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RequestJoinPartnerRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The partnerUserId.
+     */
+    java.lang.String getPartnerUserId();
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The bytes for partnerUserId.
+     */
+    com.google.protobuf.ByteString
+        getPartnerUserIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RequestJoinPartnerRequest}
+   */
+  public  static final class RequestJoinPartnerRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          RequestJoinPartnerRequest, RequestJoinPartnerRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RequestJoinPartnerRequest)
+      RequestJoinPartnerRequestOrBuilder {
+    private RequestJoinPartnerRequest() {
+      partnerUserId_ = "";
+    }
+    public static final int PARTNER_USER_ID_FIELD_NUMBER = 1;
+    private java.lang.String partnerUserId_;
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The partnerUserId.
+     */
+    @java.lang.Override
+    public java.lang.String getPartnerUserId() {
+      return partnerUserId_;
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @return The bytes for partnerUserId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPartnerUserIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(partnerUserId_);
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @param value The partnerUserId to set.
+     */
+    private void setPartnerUserId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      partnerUserId_ = value;
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     */
+    private void clearPartnerUserId() {
+      
+      partnerUserId_ = getDefaultInstance().getPartnerUserId();
+    }
+    /**
+     * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+     * @param value The bytes for partnerUserId to set.
+     */
+    private void setPartnerUserIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      partnerUserId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RequestJoinPartnerRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.RequestJoinPartnerRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RequestJoinPartnerRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.RequestJoinPartnerRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RequestJoinPartnerRequest)
+        workout.v1.Group.RequestJoinPartnerRequestOrBuilder {
+      // Construct using workout.v1.Group.RequestJoinPartnerRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @return The partnerUserId.
+       */
+      @java.lang.Override
+      public java.lang.String getPartnerUserId() {
+        return instance.getPartnerUserId();
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @return The bytes for partnerUserId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPartnerUserIdBytes() {
+        return instance.getPartnerUserIdBytes();
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @param value The partnerUserId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPartnerUserId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPartnerUserId(value);
+        return this;
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPartnerUserId() {
+        copyOnWrite();
+        instance.clearPartnerUserId();
+        return this;
+      }
+      /**
+       * <code>string partner_user_id = 1 [json_name = "partnerUserId"];</code>
+       * @param value The bytes for partnerUserId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPartnerUserIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPartnerUserIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RequestJoinPartnerRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.RequestJoinPartnerRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "partnerUserId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.RequestJoinPartnerRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.RequestJoinPartnerRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.RequestJoinPartnerRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RequestJoinPartnerRequest)
+    private static final workout.v1.Group.RequestJoinPartnerRequest DEFAULT_INSTANCE;
+    static {
+      RequestJoinPartnerRequest defaultInstance = new RequestJoinPartnerRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RequestJoinPartnerRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.RequestJoinPartnerRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RequestJoinPartnerRequest> PARSER;
+
+    public static com.google.protobuf.Parser<RequestJoinPartnerRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RequestJoinPartnerResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RequestJoinPartnerResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The requestId.
+     */
+    java.lang.String getRequestId();
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The bytes for requestId.
+     */
+    com.google.protobuf.ByteString
+        getRequestIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RequestJoinPartnerResponse}
+   */
+  public  static final class RequestJoinPartnerResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          RequestJoinPartnerResponse, RequestJoinPartnerResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RequestJoinPartnerResponse)
+      RequestJoinPartnerResponseOrBuilder {
+    private RequestJoinPartnerResponse() {
+      requestId_ = "";
+    }
+    public static final int REQUEST_ID_FIELD_NUMBER = 1;
+    private java.lang.String requestId_;
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The requestId.
+     */
+    @java.lang.Override
+    public java.lang.String getRequestId() {
+      return requestId_;
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The bytes for requestId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRequestIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(requestId_);
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @param value The requestId to set.
+     */
+    private void setRequestId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      requestId_ = value;
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     */
+    private void clearRequestId() {
+      
+      requestId_ = getDefaultInstance().getRequestId();
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @param value The bytes for requestId to set.
+     */
+    private void setRequestIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      requestId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RequestJoinPartnerResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.RequestJoinPartnerResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RequestJoinPartnerResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.RequestJoinPartnerResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RequestJoinPartnerResponse)
+        workout.v1.Group.RequestJoinPartnerResponseOrBuilder {
+      // Construct using workout.v1.Group.RequestJoinPartnerResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return The requestId.
+       */
+      @java.lang.Override
+      public java.lang.String getRequestId() {
+        return instance.getRequestId();
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return The bytes for requestId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRequestIdBytes() {
+        return instance.getRequestIdBytes();
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @param value The requestId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRequestId(value);
+        return this;
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRequestId() {
+        copyOnWrite();
+        instance.clearRequestId();
+        return this;
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @param value The bytes for requestId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRequestIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RequestJoinPartnerResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.RequestJoinPartnerResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "requestId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.RequestJoinPartnerResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.RequestJoinPartnerResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.RequestJoinPartnerResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RequestJoinPartnerResponse)
+    private static final workout.v1.Group.RequestJoinPartnerResponse DEFAULT_INSTANCE;
+    static {
+      RequestJoinPartnerResponse defaultInstance = new RequestJoinPartnerResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RequestJoinPartnerResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.RequestJoinPartnerResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RequestJoinPartnerResponse> PARSER;
+
+    public static com.google.protobuf.Parser<RequestJoinPartnerResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface JoinRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.JoinRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The requestId.
+     */
+    java.lang.String getRequestId();
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The bytes for requestId.
+     */
+    com.google.protobuf.ByteString
+        getRequestIdBytes();
+
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     * @return Whether the fromUser field is set.
+     */
+    boolean hasFromUser();
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     * @return The fromUser.
+     */
+    workout.v1.WorkoutOuterClass.User getFromUser();
+
+    /**
+     * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+     * @return The createdAt.
+     */
+    long getCreatedAt();
+  }
+  /**
+   * <pre>
+   * A pending "train together" request, shown to the recipient.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.JoinRequest}
+   */
+  public  static final class JoinRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          JoinRequest, JoinRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.JoinRequest)
+      JoinRequestOrBuilder {
+    private JoinRequest() {
+      requestId_ = "";
+    }
+    public static final int REQUEST_ID_FIELD_NUMBER = 1;
+    private java.lang.String requestId_;
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The requestId.
+     */
+    @java.lang.Override
+    public java.lang.String getRequestId() {
+      return requestId_;
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The bytes for requestId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRequestIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(requestId_);
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @param value The requestId to set.
+     */
+    private void setRequestId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      requestId_ = value;
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     */
+    private void clearRequestId() {
+      
+      requestId_ = getDefaultInstance().getRequestId();
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @param value The bytes for requestId to set.
+     */
+    private void setRequestIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      requestId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int FROM_USER_FIELD_NUMBER = 2;
+    private workout.v1.WorkoutOuterClass.User fromUser_;
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     */
+    @java.lang.Override
+    public boolean hasFromUser() {
+      return fromUser_ != null;
+    }
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.User getFromUser() {
+      return fromUser_ == null ? workout.v1.WorkoutOuterClass.User.getDefaultInstance() : fromUser_;
+    }
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     */
+    private void setFromUser(workout.v1.WorkoutOuterClass.User value) {
+      value.getClass();
+  fromUser_ = value;
+      
+      }
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeFromUser(workout.v1.WorkoutOuterClass.User value) {
+      value.getClass();
+  if (fromUser_ != null &&
+          fromUser_ != workout.v1.WorkoutOuterClass.User.getDefaultInstance()) {
+        fromUser_ =
+          workout.v1.WorkoutOuterClass.User.newBuilder(fromUser_).mergeFrom(value).buildPartial();
+      } else {
+        fromUser_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * who wants to train
+     * </pre>
+     *
+     * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+     */
+    private void clearFromUser() {  fromUser_ = null;
+      
+    }
+
+    public static final int CREATED_AT_FIELD_NUMBER = 3;
+    private long createdAt_;
+    /**
+     * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+     * @return The createdAt.
+     */
+    @java.lang.Override
+    public long getCreatedAt() {
+      return createdAt_;
+    }
+    /**
+     * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+     * @param value The createdAt to set.
+     */
+    private void setCreatedAt(long value) {
+      
+      createdAt_ = value;
+    }
+    /**
+     * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+     */
+    private void clearCreatedAt() {
+      
+      createdAt_ = 0L;
+    }
+
+    public static workout.v1.Group.JoinRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.JoinRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.JoinRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.JoinRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.JoinRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * A pending "train together" request, shown to the recipient.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.JoinRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.JoinRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.JoinRequest)
+        workout.v1.Group.JoinRequestOrBuilder {
+      // Construct using workout.v1.Group.JoinRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return The requestId.
+       */
+      @java.lang.Override
+      public java.lang.String getRequestId() {
+        return instance.getRequestId();
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return The bytes for requestId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRequestIdBytes() {
+        return instance.getRequestIdBytes();
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @param value The requestId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRequestId(value);
+        return this;
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRequestId() {
+        copyOnWrite();
+        instance.clearRequestId();
+        return this;
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @param value The bytes for requestId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRequestIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * who wants to train
+       * </pre>
+       *
+       * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+       */
+      @java.lang.Override
+      public boolean hasFromUser() {
+        return instance.hasFromUser();
+      }
+      /**
+       * <pre>
+       * who wants to train
+       * </pre>
+       *
+       * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.User getFromUser() {
+        return instance.getFromUser();
+      }
+      /**
+       * <pre>
+       * who wants to train
+       * </pre>
+       *
+       * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+       */
+      public Builder setFromUser(workout.v1.WorkoutOuterClass.User value) {
+        copyOnWrite();
+        instance.setFromUser(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * who wants to train
+       * </pre>
+       *
+       * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+       */
+      public Builder setFromUser(
+          workout.v1.WorkoutOuterClass.User.Builder builderForValue) {
+        copyOnWrite();
+        instance.setFromUser(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * who wants to train
+       * </pre>
+       *
+       * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+       */
+      public Builder mergeFromUser(workout.v1.WorkoutOuterClass.User value) {
+        copyOnWrite();
+        instance.mergeFromUser(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * who wants to train
+       * </pre>
+       *
+       * <code>.workout.v1.User from_user = 2 [json_name = "fromUser"];</code>
+       */
+      public Builder clearFromUser() {  copyOnWrite();
+        instance.clearFromUser();
+        return this;
+      }
+
+      /**
+       * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+       * @return The createdAt.
+       */
+      @java.lang.Override
+      public long getCreatedAt() {
+        return instance.getCreatedAt();
+      }
+      /**
+       * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+       * @param value The createdAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCreatedAt(long value) {
+        copyOnWrite();
+        instance.setCreatedAt(value);
+        return this;
+      }
+      /**
+       * <code>int64 created_at = 3 [json_name = "createdAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCreatedAt() {
+        copyOnWrite();
+        instance.clearCreatedAt();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.JoinRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.JoinRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "requestId_",
+              "fromUser_",
+              "createdAt_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\t" +
+                "\u0003\u0002";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.JoinRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.JoinRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.JoinRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.JoinRequest)
+    private static final workout.v1.Group.JoinRequest DEFAULT_INSTANCE;
+    static {
+      JoinRequest defaultInstance = new JoinRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        JoinRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.JoinRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<JoinRequest> PARSER;
+
+    public static com.google.protobuf.Parser<JoinRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetJoinRequestsRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetJoinRequestsRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetJoinRequestsRequest}
+   */
+  public  static final class GetJoinRequestsRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetJoinRequestsRequest, GetJoinRequestsRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetJoinRequestsRequest)
+      GetJoinRequestsRequestOrBuilder {
+    private GetJoinRequestsRequest() {
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetJoinRequestsRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetJoinRequestsRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetJoinRequestsRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetJoinRequestsRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetJoinRequestsRequest)
+        workout.v1.Group.GetJoinRequestsRequestOrBuilder {
+      // Construct using workout.v1.Group.GetJoinRequestsRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetJoinRequestsRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetJoinRequestsRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetJoinRequestsRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetJoinRequestsRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetJoinRequestsRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetJoinRequestsRequest)
+    private static final workout.v1.Group.GetJoinRequestsRequest DEFAULT_INSTANCE;
+    static {
+      GetJoinRequestsRequest defaultInstance = new GetJoinRequestsRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetJoinRequestsRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetJoinRequestsRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetJoinRequestsRequest> PARSER;
+
+    public static com.google.protobuf.Parser<GetJoinRequestsRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetJoinRequestsResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetJoinRequestsResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    java.util.List<workout.v1.Group.JoinRequest> 
+        getRequestsList();
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    workout.v1.Group.JoinRequest getRequests(int index);
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    int getRequestsCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetJoinRequestsResponse}
+   */
+  public  static final class GetJoinRequestsResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetJoinRequestsResponse, GetJoinRequestsResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetJoinRequestsResponse)
+      GetJoinRequestsResponseOrBuilder {
+    private GetJoinRequestsResponse() {
+      requests_ = emptyProtobufList();
+    }
+    public static final int REQUESTS_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.Group.JoinRequest> requests_;
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Group.JoinRequest> getRequestsList() {
+      return requests_;
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    public java.util.List<? extends workout.v1.Group.JoinRequestOrBuilder> 
+        getRequestsOrBuilderList() {
+      return requests_;
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    @java.lang.Override
+    public int getRequestsCount() {
+      return requests_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Group.JoinRequest getRequests(int index) {
+      return requests_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    public workout.v1.Group.JoinRequestOrBuilder getRequestsOrBuilder(
+        int index) {
+      return requests_.get(index);
+    }
+    private void ensureRequestsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.Group.JoinRequest> tmp = requests_;
+      if (!tmp.isModifiable()) {
+        requests_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    private void setRequests(
+        int index, workout.v1.Group.JoinRequest value) {
+      value.getClass();
+  ensureRequestsIsMutable();
+      requests_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    private void addRequests(workout.v1.Group.JoinRequest value) {
+      value.getClass();
+  ensureRequestsIsMutable();
+      requests_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    private void addRequests(
+        int index, workout.v1.Group.JoinRequest value) {
+      value.getClass();
+  ensureRequestsIsMutable();
+      requests_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    private void addAllRequests(
+        java.lang.Iterable<? extends workout.v1.Group.JoinRequest> values) {
+      ensureRequestsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, requests_);
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    private void clearRequests() {
+      requests_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+     */
+    private void removeRequests(int index) {
+      ensureRequestsIsMutable();
+      requests_.remove(index);
+    }
+
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.GetJoinRequestsResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.GetJoinRequestsResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetJoinRequestsResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.GetJoinRequestsResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetJoinRequestsResponse)
+        workout.v1.Group.GetJoinRequestsResponseOrBuilder {
+      // Construct using workout.v1.Group.GetJoinRequestsResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Group.JoinRequest> getRequestsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getRequestsList());
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      @java.lang.Override
+      public int getRequestsCount() {
+        return instance.getRequestsCount();
+      }/**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Group.JoinRequest getRequests(int index) {
+        return instance.getRequests(index);
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder setRequests(
+          int index, workout.v1.Group.JoinRequest value) {
+        copyOnWrite();
+        instance.setRequests(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder setRequests(
+          int index, workout.v1.Group.JoinRequest.Builder builderForValue) {
+        copyOnWrite();
+        instance.setRequests(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder addRequests(workout.v1.Group.JoinRequest value) {
+        copyOnWrite();
+        instance.addRequests(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder addRequests(
+          int index, workout.v1.Group.JoinRequest value) {
+        copyOnWrite();
+        instance.addRequests(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder addRequests(
+          workout.v1.Group.JoinRequest.Builder builderForValue) {
+        copyOnWrite();
+        instance.addRequests(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder addRequests(
+          int index, workout.v1.Group.JoinRequest.Builder builderForValue) {
+        copyOnWrite();
+        instance.addRequests(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder addAllRequests(
+          java.lang.Iterable<? extends workout.v1.Group.JoinRequest> values) {
+        copyOnWrite();
+        instance.addAllRequests(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder clearRequests() {
+        copyOnWrite();
+        instance.clearRequests();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.JoinRequest requests = 1 [json_name = "requests"];</code>
+       */
+      public Builder removeRequests(int index) {
+        copyOnWrite();
+        instance.removeRequests(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetJoinRequestsResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.GetJoinRequestsResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "requests_",
+              workout.v1.Group.JoinRequest.class,
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0001\u0000\u0001\u001b";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.GetJoinRequestsResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.GetJoinRequestsResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.GetJoinRequestsResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetJoinRequestsResponse)
+    private static final workout.v1.Group.GetJoinRequestsResponse DEFAULT_INSTANCE;
+    static {
+      GetJoinRequestsResponse defaultInstance = new GetJoinRequestsResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetJoinRequestsResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.GetJoinRequestsResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetJoinRequestsResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetJoinRequestsResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RespondJoinRequestRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RespondJoinRequestRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The requestId.
+     */
+    java.lang.String getRequestId();
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The bytes for requestId.
+     */
+    com.google.protobuf.ByteString
+        getRequestIdBytes();
+
+    /**
+     * <code>bool accept = 2 [json_name = "accept"];</code>
+     * @return The accept.
+     */
+    boolean getAccept();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RespondJoinRequestRequest}
+   */
+  public  static final class RespondJoinRequestRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          RespondJoinRequestRequest, RespondJoinRequestRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RespondJoinRequestRequest)
+      RespondJoinRequestRequestOrBuilder {
+    private RespondJoinRequestRequest() {
+      requestId_ = "";
+    }
+    public static final int REQUEST_ID_FIELD_NUMBER = 1;
+    private java.lang.String requestId_;
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The requestId.
+     */
+    @java.lang.Override
+    public java.lang.String getRequestId() {
+      return requestId_;
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @return The bytes for requestId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRequestIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(requestId_);
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @param value The requestId to set.
+     */
+    private void setRequestId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      requestId_ = value;
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     */
+    private void clearRequestId() {
+      
+      requestId_ = getDefaultInstance().getRequestId();
+    }
+    /**
+     * <code>string request_id = 1 [json_name = "requestId"];</code>
+     * @param value The bytes for requestId to set.
+     */
+    private void setRequestIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      requestId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int ACCEPT_FIELD_NUMBER = 2;
+    private boolean accept_;
+    /**
+     * <code>bool accept = 2 [json_name = "accept"];</code>
+     * @return The accept.
+     */
+    @java.lang.Override
+    public boolean getAccept() {
+      return accept_;
+    }
+    /**
+     * <code>bool accept = 2 [json_name = "accept"];</code>
+     * @param value The accept to set.
+     */
+    private void setAccept(boolean value) {
+      
+      accept_ = value;
+    }
+    /**
+     * <code>bool accept = 2 [json_name = "accept"];</code>
+     */
+    private void clearAccept() {
+      
+      accept_ = false;
+    }
+
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RespondJoinRequestRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.RespondJoinRequestRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RespondJoinRequestRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.RespondJoinRequestRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RespondJoinRequestRequest)
+        workout.v1.Group.RespondJoinRequestRequestOrBuilder {
+      // Construct using workout.v1.Group.RespondJoinRequestRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return The requestId.
+       */
+      @java.lang.Override
+      public java.lang.String getRequestId() {
+        return instance.getRequestId();
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return The bytes for requestId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRequestIdBytes() {
+        return instance.getRequestIdBytes();
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @param value The requestId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRequestId(value);
+        return this;
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRequestId() {
+        copyOnWrite();
+        instance.clearRequestId();
+        return this;
+      }
+      /**
+       * <code>string request_id = 1 [json_name = "requestId"];</code>
+       * @param value The bytes for requestId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRequestIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRequestIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>bool accept = 2 [json_name = "accept"];</code>
+       * @return The accept.
+       */
+      @java.lang.Override
+      public boolean getAccept() {
+        return instance.getAccept();
+      }
+      /**
+       * <code>bool accept = 2 [json_name = "accept"];</code>
+       * @param value The accept to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAccept(boolean value) {
+        copyOnWrite();
+        instance.setAccept(value);
+        return this;
+      }
+      /**
+       * <code>bool accept = 2 [json_name = "accept"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAccept() {
+        copyOnWrite();
+        instance.clearAccept();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RespondJoinRequestRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.RespondJoinRequestRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "requestId_",
+              "accept_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0007" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.RespondJoinRequestRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.RespondJoinRequestRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.RespondJoinRequestRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RespondJoinRequestRequest)
+    private static final workout.v1.Group.RespondJoinRequestRequest DEFAULT_INSTANCE;
+    static {
+      RespondJoinRequestRequest defaultInstance = new RespondJoinRequestRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RespondJoinRequestRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.RespondJoinRequestRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RespondJoinRequestRequest> PARSER;
+
+    public static com.google.protobuf.Parser<RespondJoinRequestRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RespondJoinRequestResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RespondJoinRequestResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    java.lang.String getSessionId();
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    com.google.protobuf.ByteString
+        getSessionIdBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RespondJoinRequestResponse}
+   */
+  public  static final class RespondJoinRequestResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          RespondJoinRequestResponse, RespondJoinRequestResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RespondJoinRequestResponse)
+      RespondJoinRequestResponseOrBuilder {
+    private RespondJoinRequestResponse() {
+      sessionId_ = "";
+    }
+    public static final int SESSION_ID_FIELD_NUMBER = 1;
+    private java.lang.String sessionId_;
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The sessionId.
+     */
+    @java.lang.Override
+    public java.lang.String getSessionId() {
+      return sessionId_;
+    }
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @return The bytes for sessionId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSessionIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(sessionId_);
+    }
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The sessionId to set.
+     */
+    private void setSessionId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      sessionId_ = value;
+    }
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     */
+    private void clearSessionId() {
+      
+      sessionId_ = getDefaultInstance().getSessionId();
+    }
+    /**
+     * <pre>
+     * set when accepted
+     * </pre>
+     *
+     * <code>string session_id = 1 [json_name = "sessionId"];</code>
+     * @param value The bytes for sessionId to set.
+     */
+    private void setSessionIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      sessionId_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Group.RespondJoinRequestResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Group.RespondJoinRequestResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RespondJoinRequestResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Group.RespondJoinRequestResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RespondJoinRequestResponse)
+        workout.v1.Group.RespondJoinRequestResponseOrBuilder {
+      // Construct using workout.v1.Group.RespondJoinRequestResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * set when accepted
+       * </pre>
+       *
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The sessionId.
+       */
+      @java.lang.Override
+      public java.lang.String getSessionId() {
+        return instance.getSessionId();
+      }
+      /**
+       * <pre>
+       * set when accepted
+       * </pre>
+       *
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return The bytes for sessionId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSessionIdBytes() {
+        return instance.getSessionIdBytes();
+      }
+      /**
+       * <pre>
+       * set when accepted
+       * </pre>
+       *
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSessionId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * set when accepted
+       * </pre>
+       *
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSessionId() {
+        copyOnWrite();
+        instance.clearSessionId();
+        return this;
+      }
+      /**
+       * <pre>
+       * set when accepted
+       * </pre>
+       *
+       * <code>string session_id = 1 [json_name = "sessionId"];</code>
+       * @param value The bytes for sessionId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessionIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSessionIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RespondJoinRequestResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Group.RespondJoinRequestResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "sessionId_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Group.RespondJoinRequestResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Group.RespondJoinRequestResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Group.RespondJoinRequestResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RespondJoinRequestResponse)
+    private static final workout.v1.Group.RespondJoinRequestResponse DEFAULT_INSTANCE;
+    static {
+      RespondJoinRequestResponse defaultInstance = new RespondJoinRequestResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RespondJoinRequestResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Group.RespondJoinRequestResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RespondJoinRequestResponse> PARSER;
+
+    public static com.google.protobuf.Parser<RespondJoinRequestResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
 
   static {
   }

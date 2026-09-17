@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/exercise_groups.dart';
+import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
 import '../../logic/user_profile.dart';
 import '../../providers/auth_provider.dart';
@@ -12,11 +13,11 @@ import '../../providers/workout_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../widgets/set_log.dart';
 import '../../widgets/dialogs/end_workout_dialog.dart';
-import '../../widgets/exercise_editor/exercise_editor_dialogs.dart';
+import '../../widgets/dialogs/weight_adjust_sheet.dart';
+import '../../widgets/exercise_picker.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
 import 'current_exercise_card.dart';
 import 'exercise_list_card.dart';
-import 'exschplanation_page.dart';
 import 'workout_panels.dart';
 
 class WorkoutScreen extends StatefulWidget {
@@ -50,17 +51,17 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final groups = wp.exerciseGroups;
+    final blocks = wp.exerciseBlocks;
     final activeSetId = wp.activeSetId;
     final isEnded = wp.isWorkoutEnded;
-    final focusedGroup = _focusedGroup(wp, groups);
-    // Completed groups stay pinned (green) at the top of the list; only the
+    final focusedBlock = _focusedBlock(wp, blocks);
+    // Completed blocks stay pinned (green) at the top of the list; only the
     // unfinished ones below them can be dragged/reordered.
-    final completedGroups = groups
-        .where((group) => _isGroupCompleted(group, wp.completedSets))
+    final completedBlocks = blocks
+        .where((block) => _isBlockCompleted(block, wp.completedSets))
         .toList(growable: false);
-    final unfinishedGroups = groups
-        .where((group) => !_isGroupCompleted(group, wp.completedSets))
+    final unfinishedBlocks = blocks
+        .where((block) => !_isBlockCompleted(block, wp.completedSets))
         .toList(growable: false);
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
@@ -89,17 +90,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final logProposedSets = sessionLedgerProposed;
     final logCompletedSets = sessionLedgerCompleted;
 
-    final exschplanationSections = _buildExschplanationSections(wp);
-    // Show the Schplan tab when there are per-lift notes OR a cycle-phase
-    // explanation to surface.
-    final hasExschplanation =
-        exschplanationSections.isNotEmpty || wp.regimeContext != null;
     final hasHeartRate = wp.wearHeartRateSamples.isNotEmpty;
 
     // Overall progress across every working set, for the session strip's bar.
     var totalWorking = 0;
     var doneWorking = 0;
-    for (final g in groups) {
+    for (final g in blocks) {
       final working = g.sets.where((s) => !s.warmup);
       totalWorking += working.length;
       doneWorking += working
@@ -131,14 +127,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
     final seenExercises = <int>{};
     final exerciseShort = <String>[];
-    for (final g in groups) {
-      final exs = g.exercises.isNotEmpty ? g.exercises : [g.exercise];
-      for (final ex in exs) {
-        if (ex == Exercise.EXERCISE_UNSPECIFIED) continue;
-        if (seenExercises.add(ex.value)) {
-          final s = shortNames[ex] ?? exerciseNames[ex];
-          if (s != null && s.isNotEmpty) exerciseShort.add(s);
-        }
+    for (final g in blocks) {
+      final ex = g.exercise;
+      if (ex == Exercise.EXERCISE_UNSPECIFIED) continue;
+      if (seenExercises.add(ex.value)) {
+        final s = shortNames[ex] ?? exerciseNames[ex];
+        if (s != null && s.isNotEmpty) exerciseShort.add(s);
       }
     }
     final sessionSubtitle = exerciseShort.join(' · ');
@@ -150,7 +144,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       const PageTabItem('Workout'),
       PageTabItem('Log', count: loggedCount > 0 ? loggedCount : null),
       const PageTabItem('Heart'),
-      if (hasExschplanation) const PageTabItem('Schplan'),
     ];
 
     final workout = wp.workout!;
@@ -201,7 +194,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         final leftWidth = available * 0.6;
                         final rightWidth = available * 0.4;
                         final showBracket =
-                            focusedGroup != null && unfinishedGroups.isNotEmpty;
+                            focusedBlock != null && unfinishedBlocks.isNotEmpty;
 
                         return Stack(
                           children: [
@@ -217,15 +210,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                     children: [
                                       const ColumnLabel('Current'),
                                       const SizedBox(height: 8),
-                                      if (focusedGroup != null)
+                                      if (focusedBlock != null)
                                         CurrentExerciseCard(
-                                          group: focusedGroup,
+                                          block: focusedBlock,
                                           completedSets: wp.completedSets,
                                           activeSetId: activeSetId,
-                                          onEdit: () => _editCurrentGroup(
+                                          onEdit: () => _editBlock(
                                             context,
                                             wp,
-                                            focusedGroup,
+                                            focusedBlock,
                                           ),
                                         )
                                       else
@@ -249,52 +242,49 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       // Completed — pinned at the top, green, static.
-                                      for (final group in completedGroups)
+                                      for (final block in completedBlocks)
                                         Padding(
                                           padding: const EdgeInsets.only(
                                             bottom: 8,
                                           ),
                                           child: ExerciseListCard(
-                                            group: group,
+                                            block: block,
                                             completedSets: wp.completedSets,
                                             completed: true,
                                             draggable: false,
                                           ),
                                         ),
                                       // Unfinished — draggable.
-                                      if (unfinishedGroups.isNotEmpty)
+                                      if (unfinishedBlocks.isNotEmpty)
                                         ReorderableListView.builder(
                                           shrinkWrap: true,
                                           physics:
                                               const NeverScrollableScrollPhysics(),
                                           buildDefaultDragHandles: false,
-                                          itemCount: unfinishedGroups.length,
+                                          itemCount: unfinishedBlocks.length,
                                           // onReorderItem hands back a newIndex
                                           // already adjusted for the removed item,
                                           // so no manual `newIndex -= 1`.
                                           onReorderItem: (oldIndex, newIndex) {
                                             if (isEnded ||
-                                                unfinishedGroups.length < 2) {
+                                                unfinishedBlocks.length < 2) {
                                               return;
                                             }
                                             HapticFeedback.mediumImpact();
                                             final items =
-                                                List<ExerciseGroupData>.from(
-                                                  unfinishedGroups,
+                                                List<ExerciseBlock>.from(
+                                                  unfinishedBlocks,
                                                 );
                                             final item = items.removeAt(
                                               oldIndex,
                                             );
                                             items.insert(newIndex, item);
-                                            final groupIds = <String>[
-                                              ...completedGroups
-                                                  .where((g) => g.group != null)
-                                                  .map((g) => g.group!.id),
-                                              ...items
-                                                  .where((g) => g.group != null)
-                                                  .map((g) => g.group!.id),
-                                            ];
-                                            wp.reorderExerciseGroups(groupIds);
+                                            wp.reorderExercises([
+                                              ...completedBlocks.map(
+                                                (b) => b.exercise,
+                                              ),
+                                              ...items.map((b) => b.exercise),
+                                            ]);
                                           },
                                           proxyDecorator:
                                               (child, index, animation) {
@@ -326,30 +316,30 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                                 );
                                               },
                                           itemBuilder: (context, idx) {
-                                            final group = unfinishedGroups[idx];
+                                            final block = unfinishedBlocks[idx];
                                             return Padding(
                                               key: ValueKey(
-                                                'reorder-${group.stableId}',
+                                                'reorder-${block.stableId}',
                                               ),
                                               padding: const EdgeInsets.only(
                                                 bottom: 8,
                                               ),
                                               child: ExerciseListCard(
-                                                group: group,
+                                                block: block,
                                                 completedSets: wp.completedSets,
                                                 completed: false,
                                                 draggable: true,
                                                 dragIndex: idx,
-                                                onEdit: () => _editCurrentGroup(
+                                                onEdit: () => _editBlock(
                                                   context,
                                                   wp,
-                                                  group,
+                                                  block,
                                                 ),
                                               ),
                                             );
                                           },
                                         )
-                                      else if (completedGroups.isEmpty)
+                                      else if (completedBlocks.isEmpty)
                                         const EmptyPanel(
                                           text: 'No exercises remaining.',
                                         ),
@@ -376,7 +366,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                 width: gutter + 2,
                                 top: 21.0 +
                                     ExerciseListCard.height / 2 +
-                                    completedGroups.length *
+                                    completedBlocks.length *
                                         (ExerciseListCard.height + 8.0),
                                 height: 1.5,
                                 child: BracketConnector(
@@ -466,12 +456,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 )
               else
                 const NoHeartRateMonitor(),
-              // ════ PAGE 4 — exschplanation ════
-              if (hasExschplanation)
-                ExschplanationPage(
-                  sections: exschplanationSections,
-                  regimeContext: wp.regimeContext,
-                ),
             ],
           ),
         ),
@@ -479,11 +463,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  static bool _isGroupCompleted(
-    ExerciseGroupData group,
+  static bool _isBlockCompleted(
+    ExerciseBlock block,
     List<CompletedSet> completedSets,
   ) {
-    final workingSets = group.sets.where((s) => !s.warmup).toList();
+    final workingSets = block.workingSets.toList();
     if (workingSets.isEmpty) return false;
     final completedCount = workingSets
         .where(
@@ -495,153 +479,66 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return completedCount == workingSets.length;
   }
 
-  static ExerciseGroupData? _focusedGroup(
+  static ExerciseBlock? _focusedBlock(
     WorkoutProvider wp,
-    List<ExerciseGroupData> groups,
+    List<ExerciseBlock> blocks,
   ) {
     final focusedSet = wp.stateSnapshot?.hasDisplaySet() == true
         ? wp.stateSnapshot!.displaySet
         : wp.nextPendingSet;
     if (focusedSet == null) return null;
-    return groups.cast<ExerciseGroupData?>().firstWhere(
-      (group) => group!.sets.any((set) => set.id == focusedSet.id),
+    return blocks.cast<ExerciseBlock?>().firstWhere(
+      (block) => block!.sets.any((set) => set.id == focusedSet.id),
       orElse: () => null,
     );
   }
 
-  Future<void> _confirmDeleteGroup(
+  Future<void> _confirmRemoveExercise(
     BuildContext context,
     WorkoutProvider wp,
-    ExerciseGroupData group,
+    ExerciseBlock block,
   ) async {
-    final confirmed = await showDeleteGroupDialog(
+    final confirmed = await showDeleteExerciseDialog(
       context,
-      group.group?.name ?? exerciseNames[group.exercise] ?? '?',
+      exerciseNames[block.exercise] ?? '?',
     );
     if (confirmed != true || !context.mounted) return;
-
-    final deleteIndex = wp.exerciseGroups.indexWhere(
-      (candidate) => candidate.stableId == group.stableId,
-    );
-    if (deleteIndex == -1) return;
-    wp.deleteExerciseGroup(deleteIndex);
+    unawaited(wp.removeExercise(block.exercise));
   }
 
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {
-    showAddExerciseDialog(
-      context,
-      exerciseStatuses: wp.exerciseStatuses,
-      onAdd: (name, sets, interleaveWarmups, exerciseConfigs, restConfig) {
-        final finalName = name.isNotEmpty
-            ? name
-            : exerciseConfigs
-                  .map(
-                    (c) =>
-                        exerciseNames[Exercise.valueOf(c.exercise.value)] ??
-                        '?',
-                  )
-                  .join(' / ');
-
-        wp.addExerciseGroup(
-          name: finalName,
-          sets: sets,
-          interleaveWarmups: interleaveWarmups,
-          exerciseConfigs: exerciseConfigs,
-          restConfig: restConfig,
-        );
+    // Pick movements only — the app prescribes weight, sets, reps, rest
+    // and warmups from each exercise's tracker, same as a template start.
+    // Nothing lands until SAVE; adjusting numbers is a separate flow.
+    showExercisePicker(
+      context: context,
+      trackers: wp.trackers,
+      initialSelected: const {},
+      onSave: (selected) {
+        if (selected.isEmpty) return;
+        // Catalog order keeps the additions deterministic.
+        final ordered = [
+          for (final info in exerciseCatalog)
+            if (selected.contains(info.exercise)) info.exercise,
+        ];
+        unawaited(wp.addPrescribedExercises(ordered));
       },
     );
   }
 
-  void _editCurrentGroup(
+  void _editBlock(
     BuildContext context,
     WorkoutProvider wp,
-    ExerciseGroupData group,
+    ExerciseBlock block,
   ) {
-    final groupIndex = wp.exerciseGroups.indexWhere(
-      (candidate) => candidate.stableId == group.stableId,
-    );
-    if (groupIndex == -1) return;
-
-    showEditExerciseDialog(
+    showWeightAdjustSheet(
       context,
-      group: group,
-      groupIndex: groupIndex,
-      exerciseStatuses: wp.exerciseStatuses,
-      isSetDone: wp.isSetDone,
-      onSave:
-          (
-            groupIndex, {
-            required int sets,
-            required bool interleaveWarmups,
-            required List<ExerciseTypeConfig> exerciseConfigs,
-            RestConfig? restConfig,
-          }) {
-            wp.updateGroup(
-              groupIndex,
-              sets: sets,
-              interleaveWarmups: interleaveWarmups,
-              exerciseConfigs: exerciseConfigs,
-              restConfig: restConfig,
-            );
-          },
-      onDelete: () => _confirmDeleteGroup(context, wp, group),
+      block: block,
+      provider: wp,
+      onDelete: () => _confirmRemoveExercise(context, wp, block),
     );
   }
 
-  List<ExschplanationSection> _buildExschplanationSections(
-    WorkoutProvider wp,
-  ) {
-    final all = wp.workoutMessages;
-    final seen = <String>{};
-    final sections = <ExschplanationSection>[];
-
-    final sessionMessages = all
-        .where(
-          (m) =>
-              m.exerciseGroupId.isEmpty &&
-              m.exercise == Exercise.EXERCISE_UNSPECIFIED,
-        )
-        .where((m) => seen.add(m.messageKey))
-        .toList(growable: false);
-    if (sessionMessages.isNotEmpty) {
-      sections.add(ExschplanationSection('This session', sessionMessages));
-    }
-
-    for (final group in wp.exerciseGroups) {
-      final groupMessages = _messagesForWorkoutGroup(
-        group,
-        all,
-      ).where((m) => seen.add(m.messageKey)).toList(growable: false);
-      if (groupMessages.isEmpty) continue;
-      final title =
-          group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
-      sections.add(ExschplanationSection(title, groupMessages));
-    }
-
-    return sections;
-  }
 }
 
-List<UserMessage> _messagesForWorkoutGroup(
-  ExerciseGroupData group,
-  List<UserMessage> messages,
-) {
-  final groupId = group.group?.id ?? '';
-  final exercises = <Exercise>{group.exercise, ...group.exercises};
-  final seen = <String>{};
-  final out = <UserMessage>[];
-  for (final message in messages) {
-    final matchesGroupId =
-        groupId.isNotEmpty && message.exerciseGroupId == groupId;
-    final matchesExercise =
-        message.exerciseGroupId.isEmpty &&
-        message.exercise != Exercise.EXERCISE_UNSPECIFIED &&
-        exercises.contains(message.exercise);
-    if (!matchesGroupId && !matchesExercise) continue;
-    if (!seen.add(message.messageKey)) continue;
-    out.add(message);
-  }
-  return out;
-}
 

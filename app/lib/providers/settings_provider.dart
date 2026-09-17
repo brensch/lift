@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:fixnum/fixnum.dart' as fixnum;
 import 'package:flutter/material.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/settings.pbgrpc.dart';
@@ -34,8 +33,6 @@ class SettingsProvider extends ChangeNotifier {
 
   Map<double, Color> _plateColors = defaultPlateColors();
   WeightUnit _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
-  List<TrainingProgramDefinition> _trainingPrograms = const [];
-  TrainingProgramState? _programState;
   bool _loaded = false;
 
   bool _loadRetryScheduled = false;
@@ -45,58 +42,17 @@ class SettingsProvider extends ChangeNotifier {
   Map<double, Color> get plateColors => _plateColors;
   WeightUnit get weightUnit => _weightUnit;
   bool get loaded => _loaded;
-  TrainingProgramState? get programState => _programState;
-
-  /// True once the user has saved a training program state (i.e. completed onboarding).
-  bool get hasProgramState =>
-      _programState != null && _programState!.updatedAt > 0;
-
-  List<TrainingProgramDefinition> get trainingPrograms =>
-      List.unmodifiable(_trainingPrograms);
-  bool get hasTrainingProgramCatalog => _trainingPrograms.isNotEmpty;
-
-  TrainingProgramDefinition? trainingProgramFor(RegimeType type) {
-    try {
-      return _trainingPrograms.firstWhere((p) => p.regimeType == type);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  TrainingProgramDefinition? trainingProgramForInt(int regimeTypeValue) {
-    try {
-      return _trainingPrograms.firstWhere(
-        (p) => p.regimeType.value == regimeTypeValue,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
 
   Color plateColor(double weight) {
     return _plateColors[weight] ?? Colors.purple;
   }
 
   Future<void> load() async {
-    _programState = null;
-    _trainingPrograms = const [];
     _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
     _plateColors = defaultPlateColors(_weightUnit);
     _loaded = false;
     notifyListeners();
     try {
-      // Load catalog
-      final catalog = await retryReadAfterReconnect(
-        operation: 'GetTrainingProgramCatalog',
-        resetChannel: _grpcClient.resetChannel,
-        rpc: () => _grpcClient.settingsService.getTrainingProgramCatalog(
-          GetTrainingProgramCatalogRequest(),
-        ),
-      );
-      _trainingPrograms = [...catalog.programs]
-        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-
-      // Load user settings (plate colors)
       final response = await retryReadAfterReconnect(
         operation: 'GetSettings',
         resetChannel: _grpcClient.resetChannel,
@@ -113,16 +69,6 @@ class SettingsProvider extends ChangeNotifier {
       if (_plateColors.isEmpty) {
         _plateColors = defaultPlateColors(_weightUnit);
       }
-
-      // Load training program state
-      final stateRes = await retryReadAfterReconnect(
-        operation: 'GetActiveTrainingProgramState',
-        resetChannel: _grpcClient.resetChannel,
-        rpc: () => _grpcClient.settingsService.getActiveTrainingProgramState(
-          GetActiveTrainingProgramStateRequest(),
-        ),
-      );
-      if (stateRes.hasState()) _programState = stateRes.state;
 
       _loadRetryScheduled = false;
       _loaded = true;
@@ -146,47 +92,16 @@ class SettingsProvider extends ChangeNotifier {
     });
   }
 
-  bool _refreshStateRetryScheduled = false;
-
-  Future<void> refreshActiveTrainingProgramState() async {
-    try {
-      final stateRes = await retryReadAfterReconnect(
-        operation: 'GetActiveTrainingProgramState',
-        resetChannel: _grpcClient.resetChannel,
-        rpc: () => _grpcClient.settingsService.getActiveTrainingProgramState(
-          GetActiveTrainingProgramStateRequest(),
-        ),
-      );
-      _programState = stateRes.hasState() ? stateRes.state : null;
-      _refreshStateRetryScheduled = false;
-      notifyListeners();
-    } catch (e) {
-      AppLogger.instance.warn('Settings', 'refreshState failed, will retry', {
-        'error': e.toString(),
-      });
-      _scheduleRefreshStateRetry();
-    }
-  }
-
-  void _scheduleRefreshStateRetry() {
-    if (_refreshStateRetryScheduled) return;
-    _refreshStateRetryScheduled = true;
-    Timer(const Duration(seconds: 5), () {
-      _refreshStateRetryScheduled = false;
-      refreshActiveTrainingProgramState();
-    });
-  }
-
   void clear() {
     _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
     _plateColors = defaultPlateColors(_weightUnit);
-    _programState = null;
-    _trainingPrograms = const [];
     _loaded = false;
     notifyListeners();
   }
 
-  Future<void> updateWeightUnit(WeightUnit unit) async {
+  /// Applied locally right away (onboarding uses this before the server
+  /// round-trips through CompleteOnboarding).
+  void applyWeightUnitLocally(WeightUnit unit) {
     if (_weightUnit == unit) return;
     _weightUnit = unit;
     if (_plateColors.isEmpty ||
@@ -196,6 +111,11 @@ class SettingsProvider extends ChangeNotifier {
       _plateColors = defaultPlateColors(unit);
     }
     notifyListeners();
+  }
+
+  Future<void> updateWeightUnit(WeightUnit unit) async {
+    if (_weightUnit == unit) return;
+    applyWeightUnitLocally(unit);
 
     try {
       await _grpcClient.settingsService.updateSetting(
@@ -206,25 +126,6 @@ class SettingsProvider extends ChangeNotifier {
     } catch (_) {
       // Optimistic update already applied.
     }
-  }
-
-  /// Save a new training program state (onboarding or manual edit).
-  Future<List<String>> setActiveTrainingProgramState({
-    required RegimeType regimeType,
-    required Map<String, StateFieldValue> fields,
-    String source = 'manual_edit',
-  }) async {
-    final req = SetActiveTrainingProgramStateRequest(
-      regimeType: regimeType,
-      fields: fields.entries,
-      source: source,
-    );
-    final res = await _grpcClient.settingsService.setActiveTrainingProgramState(
-      req,
-    );
-    if (res.hasState()) _programState = res.state;
-    notifyListeners();
-    return res.validationWarnings;
   }
 
   Future<void> updatePlateColors(Map<double, Color> colors) async {
@@ -283,78 +184,5 @@ class SettingsProvider extends ChangeNotifier {
     return '#${r.toRadixString(16).padLeft(2, '0')}'
         '${g.toRadixString(16).padLeft(2, '0')}'
         '${b.toRadixString(16).padLeft(2, '0')}';
-  }
-
-  /// Build a [StateFieldValue] from a text controller value based on field kind.
-  static StateFieldValue? fieldValueFromText(
-    TrainingProgramStateFieldSchema field,
-    String text, {
-    WeightUnit unit = WeightUnit.WEIGHT_UNIT_LB,
-  }) {
-    final kind = field.kind;
-    if (kind == StateFieldKind.STATE_FIELD_KIND_FLOAT) {
-      final v = double.tryParse(text);
-      if (v == null) return null;
-      return StateFieldValue(
-        floatVal: isWeightField(field) ? poundsFromDisplayWeight(v, unit) : v,
-      );
-    } else if (kind == StateFieldKind.STATE_FIELD_KIND_INT) {
-      final v = int.tryParse(text);
-      if (v == null) return null;
-      return StateFieldValue(intVal: fixnum.Int64(v));
-    } else if (kind == StateFieldKind.STATE_FIELD_KIND_BOOL) {
-      return StateFieldValue(boolVal: text.toLowerCase() == 'true');
-    } else {
-      // STRING or ENUM
-      if (text.isEmpty) return null;
-      return StateFieldValue(stringVal: text);
-    }
-  }
-
-  static bool isWeightField(TrainingProgramStateFieldSchema field) {
-    final key = field.key.toLowerCase();
-    final label = field.label.toLowerCase();
-    return key.contains('weight') ||
-        key.contains('training_max') ||
-        label.contains('weight') ||
-        label.contains('training max');
-  }
-
-  static double displayStepForField(
-    TrainingProgramStateFieldSchema field,
-    WeightUnit unit,
-  ) {
-    if (!isWeightField(field)) return field.step;
-    if (!isMetricUnit(unit)) return field.step;
-    if (field.step >= 10) return 5;
-    if (field.step >= 5) return 2.5;
-    if (field.step >= 2.5) return 1.25;
-    return field.step;
-  }
-
-  /// Get the display string for a [StateFieldValue].
-  static String fieldValueToText(
-    TrainingProgramStateFieldSchema field,
-    StateFieldValue? v, {
-    WeightUnit unit = WeightUnit.WEIGHT_UNIT_LB,
-  }) {
-    if (v == null) return '';
-    switch (v.whichValue()) {
-      case StateFieldValue_Value.floatVal:
-        final value = isWeightField(field)
-            ? displayWeightFromPounds(v.floatVal, unit)
-            : v.floatVal;
-        return value % 1 == 0
-            ? value.toStringAsFixed(0)
-            : value.toStringAsFixed(1);
-      case StateFieldValue_Value.intVal:
-        return v.intVal.toString();
-      case StateFieldValue_Value.boolVal:
-        return v.boolVal ? 'true' : 'false';
-      case StateFieldValue_Value.stringVal:
-        return v.stringVal;
-      default:
-        return '';
-    }
   }
 }

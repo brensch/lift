@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../screens/maths_screen.dart';
+import '../screens/science_screen.dart';
+import '../screens/tutorial_screen.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +50,6 @@ class MainLayout extends StatelessWidget {
         currentPath == '/' ||
         currentPath == '/progress' ||
         currentPath == '/history' ||
-        currentPath == '/training-program' ||
         currentPath == '/settings';
 
     return PopScope(
@@ -135,10 +137,45 @@ class MainLayout extends StatelessWidget {
                       ),
                       Divider(height: 32, color: colorScheme.outline),
                       _MenuButton(
+                        icon: Icons.school_outlined,
+                        label: 'Tutorial',
+                        onTap: () {
+                          Navigator.pop(context); // close the menu
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const TutorialScreen(),
+                            ),
+                          );
+                        },
+                        isActive: false,
+                      ),
+                      const SizedBox(height: 4),
+                      _MenuButton(
                         icon: Icons.psychology_outlined,
-                        label: 'Schplanner',
-                        onTap: () => goToTopLevel('/training-program'),
-                        isActive: currentPath == '/training-program',
+                        label: 'Papers',
+                        onTap: () {
+                          Navigator.pop(context); // close the menu
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ScienceScreen(),
+                            ),
+                          );
+                        },
+                        isActive: false,
+                      ),
+                      const SizedBox(height: 4),
+                      _MenuButton(
+                        icon: Icons.functions_outlined,
+                        label: 'Maths',
+                        onTap: () {
+                          Navigator.pop(context); // close the menu
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const MathsScreen(),
+                            ),
+                          );
+                        },
+                        isActive: false,
                       ),
                       const SizedBox(height: 4),
                       _MenuButton(
