@@ -30,6 +30,11 @@ on:
         required: false
         default: ""
         type: string
+      text_only:
+        description: "push: listing text only, leave screenshots and graphics as they are"
+        required: true
+        default: false
+        type: boolean
       ios_remove_from_review:
         description: "push: if ios_version is waiting for review, remove it from review first (loses the queue place; re-promote afterwards)"
         required: true
@@ -90,7 +95,8 @@ jobs:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
-          python3 scripts/store_listing_google_play.py push --package-name com.brensch.schlift $DRY_RUN
+          TEXT=""; [ "${{ inputs.text_only }}" = "true" ] && TEXT="--skip-images"
+          python3 scripts/store_listing_google_play.py push --package-name com.brensch.schlift $TEXT $DRY_RUN
 
   ios:
     needs: render
@@ -114,7 +120,8 @@ jobs:
           DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
           VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
           REMOVE=""; [ "${{ inputs.ios_remove_from_review }}" = "true" ] && REMOVE="--remove-from-review"
-          python3 scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift $VERSION $REMOVE $DRY_RUN
+          TEXT=""; [ "${{ inputs.text_only }}" = "true" ] && TEXT="--skip-images"
+          python3 scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift $VERSION $REMOVE $TEXT $DRY_RUN
 
   pull:
     needs: check
