@@ -79,17 +79,15 @@ class WearableSnapshotBuilder {
       final proposed = liftingSnapshot.displaySet;
       final activeStartedAt = liftingSnapshot.activeStartedAt.toInt();
       final elapsed = activeStartedAt > 0 ? nowUnix - activeStartedAt : 0;
-      final liftLabel = proposed.warmup
-          ? 'Warmup'
-          : (proposed.isAmrap ? 'AMRAP' : 'Lifting');
+      final liftLabel = proposed.warmup ? 'Warmup' : 'Lifting';
       youCard = WearStatusCard(
         sideLabel: 'YOU',
         stateLabel: liftLabel,
         timerText: _fmt(elapsed),
         displaySet: proposed,
       );
-      _applyGroupProgress(youCard, proposed, proposedSets);
-      final maxReps = proposed.isAmrap ? 30 : proposed.targetReps;
+      _applyExerciseProgress(youCard, proposed, proposedSets);
+      final maxReps = proposed.targetReps;
       for (var reps = 0; reps <= maxReps; reps++) {
         actions.add(
           WearAction(
@@ -118,7 +116,7 @@ class WearableSnapshotBuilder {
           timerText: _fmt(nowUnix - restUntil),
           displaySet: actionSet,
         );
-        _applyGroupProgress(youCard, actionSet, proposedSets);
+        _applyExerciseProgress(youCard, actionSet, proposedSets);
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_START_SET,
@@ -137,7 +135,7 @@ class WearableSnapshotBuilder {
           timerText: _fmt(restSeconds),
           displaySet: actionSet,
         );
-        _applyGroupProgress(youCard, actionSet, proposedSets);
+        _applyExerciseProgress(youCard, actionSet, proposedSets);
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_START_SET,
@@ -170,7 +168,7 @@ class WearableSnapshotBuilder {
         timerText: isYapping ? _fmt(nowUnix - lastRestEnd) : '',
         displaySet: displaySet,
       );
-      _applyGroupProgress(youCard, displaySet, proposedSets);
+      _applyExerciseProgress(youCard, displaySet, proposedSets);
       actions.add(
         WearAction(
           type: WearActionType.WEAR_ACTION_TYPE_START_SET,
@@ -214,30 +212,28 @@ class WearableSnapshotBuilder {
     return snapshot;
   }
 
-  static void _applyGroupProgress(
+  static void _applyExerciseProgress(
     WearStatusCard card,
     ProposedSet displaySet,
     List<ProposedSet> proposedSets,
   ) {
-    final progress = _groupProgressForDisplaySet(displaySet, proposedSets);
+    final progress = _exerciseProgressForDisplaySet(displaySet, proposedSets);
     if (progress == null) return;
     card
       ..currentGroupSet = progress.$1
       ..totalGroupSets = progress.$2;
   }
 
-  static (int, int)? _groupProgressForDisplaySet(
+  static (int, int)? _exerciseProgressForDisplaySet(
     ProposedSet displaySet,
     List<ProposedSet> proposedSets,
   ) {
-    final groupId = displaySet.exerciseGroupId;
-    if (groupId.isEmpty) return null;
     final groupSets =
         proposedSets
             .where(
               (set) =>
                   !set.cancelled &&
-                  set.exerciseGroupId == groupId &&
+                  set.exercise == displaySet.exercise &&
                   set.warmup == displaySet.warmup,
             )
             .toList()

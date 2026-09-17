@@ -17,8 +17,6 @@ import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/heart_rate/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
-import '../widgets/user_message_chip.dart';
-import '../services/notification_service.dart';
 
 class CompletedWorkoutScreen extends StatefulWidget {
   final String workoutId;
@@ -40,8 +38,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   WorkoutSummary? _summary;
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
-  List<UserMessage> _messages = [];
-  bool _showingNextSessionChanges = false;
   bool _isLoading = true;
   String? _loadError;
   List<String> _sessionFriends = [];
@@ -64,13 +60,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     try {
       _loadError = null;
       final response = await _getWorkoutWithRetry(service);
-      final providerCompletionMessages =
-          workoutProvider.workout?.id == response.workout.id
-          ? List<UserMessage>.from(workoutProvider.workoutMessages)
-          : const <UserMessage>[];
-      final persistedWorkoutMessages = List<UserMessage>.from(
-        response.userMessages,
-      );
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
@@ -78,14 +67,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           _summary = response.summary;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
-          _messages = providerCompletionMessages.isNotEmpty
-              ? providerCompletionMessages
-              : persistedWorkoutMessages.isNotEmpty
-              ? persistedWorkoutMessages
-              : const <UserMessage>[];
-          _showingNextSessionChanges =
-              providerCompletionMessages.isNotEmpty ||
-              persistedWorkoutMessages.isNotEmpty;
           _heartRateSamples = workoutProvider.workout?.id == response.workout.id
               ? workoutProvider.wearHeartRateSamples
               : const [];
@@ -102,7 +83,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       }
 
       if (!widget.isHistory && userId != null && userId.isNotEmpty) {
-        _scheduleNextWorkoutNotification(userId, service);
       }
     } catch (e, st) {
       debugPrint(
@@ -142,27 +122,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       Error.throwWithStackTrace(lastError!, lastStack);
     }
     throw lastError ?? StateError('Failed to load finalized workout summary.');
-  }
-
-  Future<void> _scheduleNextWorkoutNotification(
-    String userId,
-    WorkoutServiceWrapper service,
-  ) async {
-    try {
-      final scheduleRes = await service.getProposedWorkoutSchedule(userId);
-      if (!scheduleRes.hasTrainingStatus()) return;
-      final ts = scheduleRes.trainingStatus;
-      if (ts.nextSessionAt.toInt() <= 0) return;
-      final regimeName = scheduleRes.hasRegimeContext()
-          ? scheduleRes.regimeContext.regimeDisplayName
-          : 'your';
-      await NotificationService.scheduleNextWorkout(
-        nextSessionAtUnix: ts.nextSessionAt.toInt(),
-        regimeName: regimeName.isNotEmpty ? regimeName : 'your',
-      );
-    } catch (_) {
-      // Fail silently — notification is best-effort
-    }
   }
 
   Future<void> _loadSessionFriends(
@@ -339,22 +298,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             ),
             const SizedBox(height: 6),
             _buildFriendChips(context),
-            if (_messages.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Text(
-                _showingNextSessionChanges ? 'Updates' : 'Workout notes',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 10),
-              ..._messages.map(
-                (message) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: UserMessageChip(message: message),
-                ),
-              ),
-            ],
             const SizedBox(height: 28),
             Text(
               'Exercise totals',

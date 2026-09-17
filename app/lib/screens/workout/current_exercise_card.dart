@@ -5,7 +5,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/exercise_groups.dart';
+import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
@@ -16,13 +16,13 @@ import '../../theme/app_theme.dart';
 const double _kChipWidth = 84;
 
 class CurrentExerciseCard extends StatelessWidget {
-  final ExerciseGroupData group;
+  final ExerciseBlock block;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
   final VoidCallback onEdit;
 
   const CurrentExerciseCard({super.key, 
-    required this.group,
+    required this.block,
     required this.completedSets,
     required this.activeSetId,
     required this.onEdit,
@@ -32,7 +32,7 @@ class CurrentExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final title =
-        group.group?.name ?? exerciseNames[group.exercise] ?? 'Exercise';
+        exerciseNames[block.exercise] ?? 'Exercise';
 
     return Container(
       width: double.infinity,
@@ -88,34 +88,32 @@ class CurrentExerciseCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          if (group.sets.any((set) => set.warmup)) ...[
+          if (block.sets.any((set) => set.warmup)) ...[
             SetProgressSection(
               label: 'Warmup',
-              children: group.sets
+              children: block.sets
                   .where((set) => set.warmup)
                   .map(
                     (set) => CurrentSetChip(
                       set: set,
                       completedSets: completedSets,
                       activeSetId: activeSetId,
-                      isSuperset: group.exercises.length > 1,
                     ),
                   )
                   .toList(),
             ),
             const SizedBox(height: 10),
           ],
-          if (group.sets.any((set) => !set.warmup))
+          if (block.sets.any((set) => !set.warmup))
             SetProgressSection(
               label: 'Working Sets',
-              children: group.sets
+              children: block.sets
                   .where((set) => !set.warmup)
                   .map(
                     (set) => CurrentSetChip(
                       set: set,
                       completedSets: completedSets,
                       activeSetId: activeSetId,
-                      isSuperset: group.exercises.length > 1,
                     ),
                   )
                   .toList(),
@@ -158,37 +156,32 @@ class CurrentSetChip extends StatelessWidget {
   final ProposedSet set;
   final List<CompletedSet> completedSets;
   final String? activeSetId;
-  final bool isSuperset;
 
-  const CurrentSetChip({super.key, 
+  const CurrentSetChip({
+    super.key,
     required this.set,
     required this.completedSets,
     required this.activeSetId,
-    required this.isSuperset,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final exerciseName = exerciseNames[set.exercise] ?? '?';
-    final exerciseMarker = exerciseName.isNotEmpty ? exerciseName[0] : '?';
     final completed = completedSets.cast<CompletedSet?>().firstWhere(
       (c) => c!.proposedSetId == set.id && c.endedAt != Int64.ZERO,
       orElse: () => null,
     );
     final isActive = set.id == activeSetId;
     final weight = formatWeight(set.targetWeight.toDouble(), unit);
-    final targetText = set.isAmrap ? '${set.targetReps}+' : '${set.targetReps}';
+    final targetText = '${set.targetReps}';
 
     // The set you're currently lifting shimmers through a rainbow.
     if (isActive && completed == null) {
       final base = '$weight × $targetText';
       return SizedBox(
         width: _kChipWidth,
-        child: RainbowSetChip(
-          text: isSuperset ? '$exerciseMarker $base' : base,
-        ),
+        child: RainbowSetChip(text: base),
       );
     }
 
@@ -235,7 +228,7 @@ class CurrentSetChip extends StatelessWidget {
         border: Border.all(color: borderColor),
       ),
       child: Text(
-        isSuperset ? '$exerciseMarker $mainText' : mainText,
+        mainText,
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w900,

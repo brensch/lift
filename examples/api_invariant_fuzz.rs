@@ -23,11 +23,13 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, workout_service_client::WorkoutServiceClient,
-    CancelProposedSetRequest, CompleteSetRequest, DeleteCompletedSetRequest, EndWorkoutRequest,
-    Exercise, ExerciseGroup, ExerciseTypeConfig, GetActiveWorkoutRequest,
-    GetProposedWorkoutScheduleRequest, GetWorkoutRequest, GetWorkoutResponse, PlannedGroupSet,
-    ReorderExerciseGroupsRequest, ReplaceExerciseGroupPlanRequest, StartSetRequest,
+    CancelProposedSetRequest, CompleteOnboardingRequest, CompleteSetRequest,
+    AddExercisesRequest, AdjustExerciseWeightRequest, DeleteCompletedSetRequest,
+    EndWorkoutRequest, Exercise,
+    ExperienceLevel, GetActiveWorkoutRequest, GetHomeRequest, GetWorkoutRequest,
+    GetWorkoutResponse, RemoveExerciseRequest, ReorderExercisesRequest, StartSetRequest,
     StartWorkoutRequest, TestLoginRequest,
+    WeightUnit,
 };
 use tonic::transport::Channel;
 use tonic::Request;
@@ -144,9 +146,46 @@ async fn run_user(
         }
     };
 
+    // Onboard as the app does: seeds the default templates and trackers.
+    let templates = match wk
+        .complete_onboarding(authed(
+            &token,
+            CompleteOnboardingRequest {
+                body_weight_kg: if rng.gen_bool(0.5) {
+                    rng.gen_range(50..120) as f32
+                } else {
+                    0.0
+                },
+                experience: ExperienceLevel::Beginner as i32,
+                unit: if rng.gen_bool(0.3) {
+                    WeightUnit::Kg as i32
+                } else {
+                    WeightUnit::Lb as i32
+                },
+                gender: rng.gen_range(0..3),
+            },
+        ))
+        .await
+    {
+        Ok(r) => r
+            .into_inner()
+            .home
+            .map(|h| h.templates)
+            .unwrap_or_default(),
+        Err(e) => {
+            violations.push(Violation {
+                user: username.clone(),
+                workout_id: String::new(),
+                step: "complete_onboarding".into(),
+                invariant: "CompleteOnboarding returned an error",
+                detail: e.to_string(),
+            });
+            Vec::new()
+        }
+    };
+
     for session_idx in 0..sessions {
-        // Ask for a proposal roughly as the app does, sometimes far in the
-        // future so the layoff deload path is exercised.
+        // Sometimes far in the future so the layoff deload path is exercised.
         let at_time = 1_700_000_000
             + (session_idx as i64) * 2 * 86_400
             + if rng.gen_bool(0.15) {
@@ -155,32 +194,31 @@ async fn run_user(
                 0
             };
 
-        let _ = wk
-            .get_proposed_workout_schedule(authed(
-                &token,
-                GetProposedWorkoutScheduleRequest {
-                    user_id: String::new(),
-                    at_time,
-                },
-            ))
-            .await;
+        let _ = wk.get_home(authed(&token, GetHomeRequest {})).await;
 
-        let group_count = rng.gen_range(1..4);
-        let groups: Vec<ExerciseGroup> = (0..group_count)
-            .map(|i| random_group(&mut rng, i))
-            .collect();
+        // Half the sessions start from a template (the app's main path);
+        // the rest send explicit exercises (the "empty workout" path).
+        let request = if !templates.is_empty() && rng.gen_bool(0.5) {
+            let template = &templates[rng.gen_range(0..templates.len())];
+            StartWorkoutRequest {
+                name: String::new(),
+                exercises: vec![],
+                started_at: at_time,
+                template_id: template.id.clone(),
+            }
+        } else {
+            let exercise_count = rng.gen_range(1..4);
+            StartWorkoutRequest {
+                name: format!("Fuzz {session_idx}"),
+                exercises: (0..exercise_count)
+                    .map(|_| random_exercise(&mut rng) as i32)
+                    .collect(),
+                started_at: at_time,
+                template_id: String::new(),
+            }
+        };
 
-        let started = match wk
-            .start_workout(authed(
-                &token,
-                StartWorkoutRequest {
-                    name: format!("Fuzz {session_idx}"),
-                    exercise_groups: groups,
-                    started_at: at_time,
-                },
-            ))
-            .await
-        {
+        let started = match wk.start_workout(authed(&token, request)).await {
             Ok(r) => r.into_inner(),
             Err(e) => {
                 violations.push(Violation {
@@ -296,60 +334,67 @@ async fn run_user(
                         },
                     ))
                     .await;
-            } else if action < 88 && !state.exercise_groups.is_empty() {
-                // Edit a group's plan mid-workout, as the app does.
-                let g = &state.exercise_groups[rng.gen_range(0..state.exercise_groups.len())];
-                let exercise = g
-                    .exercise_configs
-                    .first()
-                    .map(|c| c.exercise)
-                    .unwrap_or(Exercise::Squat as i32);
+            } else if action < 80 && !state.proposed_sets.is_empty() {
+                // Adjust a weight mid-workout, as the app does.
+                let s = &state.proposed_sets[rng.gen_range(0..state.proposed_sets.len())];
                 let weight = (rng.gen_range(9..60) * 5) as f32;
-                let n = rng.gen_range(1..6);
-                step_name = format!("replace_plan({})", g.id);
+                step_name = format!("adjust_weight({})", s.exercise);
                 let _ = wk
-                    .replace_exercise_group_plan(authed(
+                    .adjust_exercise_weight(authed(
                         &token,
-                        ReplaceExerciseGroupPlanRequest {
+                        AdjustExerciseWeightRequest {
                             workout_id: workout_id.clone(),
-                            exercise_group_id: g.id.clone(),
-                            name: g.name.clone(),
-                            interleave_warmups: rng.gen_bool(0.3),
-                            sets: (0..n)
-                                .map(|_| PlannedGroupSet {
-                                    exercise,
-                                    target_reps: rng.gen_range(1..12),
-                                    target_weight: weight,
-                                    warmup: false,
-                                    rest_after_success: 180,
-                                    rest_after_failure: 300,
-                                    is_amrap: false,
-                                    instruction: String::new(),
-                                    progression_hint: None,
-                                    client_set_id: String::new(),
-                                })
-                                .collect(),
-                            rest_config: None,
-                            delete_group_if_empty: false,
-                            instruction: String::new(),
-                            create_if_missing: false,
+                            exercise: s.exercise,
+                            working_weight: weight,
                         },
                     ))
                     .await;
-            } else if state.exercise_groups.len() > 1 {
-                // Reorder groups.
-                let mut ids: Vec<String> =
-                    state.exercise_groups.iter().map(|g| g.id.clone()).collect();
-                for i in (1..ids.len()).rev() {
-                    ids.swap(i, rng.gen_range(0..=i));
+            } else if action < 88 {
+                // Add or remove an exercise mid-workout.
+                if rng.gen_bool(0.5) || state.proposed_sets.is_empty() {
+                    let exercise = random_exercise(&mut rng) as i32;
+                    step_name = format!("add_exercises({exercise})");
+                    let _ = wk
+                        .add_exercises(authed(
+                            &token,
+                            AddExercisesRequest {
+                                workout_id: workout_id.clone(),
+                                exercises: vec![exercise],
+                                client_working_set_ids: vec![],
+                            },
+                        ))
+                        .await;
+                } else {
+                    let s = &state.proposed_sets[rng.gen_range(0..state.proposed_sets.len())];
+                    step_name = format!("remove_exercise({})", s.exercise);
+                    let _ = wk
+                        .remove_exercise(authed(
+                            &token,
+                            RemoveExerciseRequest {
+                                workout_id: workout_id.clone(),
+                                exercise: s.exercise,
+                            },
+                        ))
+                        .await;
                 }
-                step_name = "reorder_groups".to_string();
+            } else if !state.proposed_sets.is_empty() {
+                // Reorder the exercise blocks.
+                let mut exercises: Vec<i32> = Vec::new();
+                for s in &state.proposed_sets {
+                    if !exercises.contains(&s.exercise) {
+                        exercises.push(s.exercise);
+                    }
+                }
+                for i in (1..exercises.len()).rev() {
+                    exercises.swap(i, rng.gen_range(0..=i));
+                }
+                step_name = "reorder_exercises".to_string();
                 let _ = wk
-                    .reorder_exercise_groups(authed(
+                    .reorder_exercises(authed(
                         &token,
-                        ReorderExerciseGroupsRequest {
+                        ReorderExercisesRequest {
                             workout_id: workout_id.clone(),
-                            exercise_group_ids: ids,
+                            exercises,
                         },
                     ))
                     .await;
@@ -370,7 +415,8 @@ async fn run_user(
             }
         }
 
-        // End the workout, sometimes twice — EndWorkout must be idempotent.
+        // End the workout, sometimes twice — EndWorkout must be idempotent,
+        // and a re-fire must not advance a tracker a second time.
         let _ = wk
             .end_workout(authed(
                 &token,
@@ -381,6 +427,7 @@ async fn run_user(
             ))
             .await;
         if rng.gen_bool(0.25) {
+            let before: HashMap<i32, (f32, i32)> = home_trackers(&mut wk, &token).await;
             let _ = wk
                 .end_workout(authed(
                     &token,
@@ -390,6 +437,22 @@ async fn run_user(
                     },
                 ))
                 .await;
+            let after = home_trackers(&mut wk, &token).await;
+            for (exercise, (weight, reps)) in &before {
+                if let Some((weight_after, reps_after)) = after.get(exercise) {
+                    if (weight_after - weight).abs() > 0.01 || reps_after != reps {
+                        violations.push(Violation {
+                            user: username.clone(),
+                            workout_id: workout_id.clone(),
+                            step: "end_workout(again)".into(),
+                            invariant: "a re-fired EndWorkout moved a tracker",
+                            detail: format!(
+                                "exercise {exercise}: {weight}@{reps} -> {weight_after}@{reps_after}"
+                            ),
+                        });
+                    }
+                }
+            }
         }
 
         // After ending, there must be no active workout left behind.
@@ -427,6 +490,22 @@ async fn wait_for_backend(endpoint: &str) -> Result<Channel, Box<dyn std::error:
         }
     }
     Err("backend never became reachable".into())
+}
+
+/// (exercise -> (working weight, target reps)) from GetHome.
+async fn home_trackers(
+    wk: &mut WorkoutServiceClient<Channel>,
+    token: &str,
+) -> HashMap<i32, (f32, i32)> {
+    match wk.get_home(authed(token, GetHomeRequest {})).await {
+        Ok(response) => response
+            .into_inner()
+            .trackers
+            .into_iter()
+            .map(|t| (t.exercise, (t.working_weight, t.target_reps)))
+            .collect(),
+        Err(_) => HashMap::new(),
+    }
 }
 
 fn authed<T>(token: &str, msg: T) -> Request<T> {
@@ -494,17 +573,6 @@ fn check_invariants(
         );
     }
 
-    // Every live set must belong to a group that exists.
-    let group_ids: HashSet<&str> = state.exercise_groups.iter().map(|g| g.id.as_str()).collect();
-    for s in state.proposed_sets.iter().filter(|s| !s.cancelled) {
-        if !s.exercise_group_id.is_empty() && !group_ids.contains(s.exercise_group_id.as_str()) {
-            push(
-                "proposed set belongs to a group that does not exist",
-                format!("set {} -> group {}", s.id, s.exercise_group_id),
-            );
-        }
-    }
-
     // next_up must be a live, not-yet-completed set.
     if let Some(next) = state.next_up_set.as_ref() {
         let completed: HashSet<&str> = state
@@ -558,7 +626,7 @@ fn check_invariants(
     }
 }
 
-fn random_group(rng: &mut StdRng, order: i32) -> ExerciseGroup {
+fn random_exercise(rng: &mut StdRng) -> Exercise {
     const LIFTS: [Exercise; 5] = [
         Exercise::Squat,
         Exercise::BenchPress,
@@ -566,31 +634,7 @@ fn random_group(rng: &mut StdRng, order: i32) -> ExerciseGroup {
         Exercise::OverheadPress,
         Exercise::BarbellRow,
     ];
-    let exercise = LIFTS[rng.gen_range(0..LIFTS.len())];
-    let weight = (rng.gen_range(9..60) * 5) as f32;
-    let sets = rng.gen_range(1..6);
-    ExerciseGroup {
-        id: String::new(),
-        workout_id: String::new(),
-        name: format!("{exercise:?}"),
-        sets,
-        interleave_warmups: rng.gen_bool(0.3),
-        workout_order: order,
-        exercise_configs: vec![ExerciseTypeConfig {
-            exercise: exercise as i32,
-            start_weight: weight,
-            end_weight: weight,
-            reps: rng.gen_range(1..12),
-            include_warmup: rng.gen_bool(0.6),
-            rest_config: None,
-            last_set_amrap: rng.gen_bool(0.2),
-            working_sets: Vec::new(),
-        }],
-        rest_config: None,
-        instruction: String::new(),
-        prescribed_by_regime: false,
-            materialized_sets: Vec::new(),
-    }
+    LIFTS[rng.gen_range(0..LIFTS.len())]
 }
 
 #[tokio::main]

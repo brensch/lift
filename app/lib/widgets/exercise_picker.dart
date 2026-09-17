@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../gen/workout/v1/workout.pb.dart' show ExerciseTracker;
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
@@ -25,47 +28,71 @@ Color bodyPartColor(BodyPart part) {
   }
 }
 
-/// Opens the full-height exercise picker. Reflects the currently-selected
-/// exercises via [isSelected] and reports add/remove through [onToggle] as the
-/// user taps, so the host sheet updates live.
+/// Opens the full-height exercise picker as a staged selection: the user
+/// picks freely, nothing applies until SAVE, and dismissing with changes
+/// asks first. Presented on the root navigator so it covers the workout
+/// bottom bar. [onSave] receives the final selection.
 Future<void> showExercisePicker({
   required BuildContext context,
-  required bool Function(Exercise) isSelected,
-  required void Function(Exercise exercise, bool selected) onToggle,
+  required Set<Exercise> initialSelected,
+  required void Function(Set<Exercise> selected) onSave,
+  List<ExerciseTracker> trackers = const [],
 }) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
+    // Dismissal goes through the X so unsaved changes can ask first.
+    isDismissible: false,
+    enableDrag: false,
     backgroundColor: Colors.transparent,
     builder: (ctx) => _ExercisePickerSheet(
-      isSelected: isSelected,
-      onToggle: onToggle,
+      initialSelected: initialSelected,
+      onSave: onSave,
+      trackers: trackers,
     ),
   );
 }
 
 class _ExercisePickerSheet extends StatefulWidget {
-  final bool Function(Exercise) isSelected;
-  final void Function(Exercise exercise, bool selected) onToggle;
+  final Set<Exercise> initialSelected;
+  final void Function(Set<Exercise> selected) onSave;
+  final List<ExerciseTracker> trackers;
 
-  const _ExercisePickerSheet({required this.isSelected, required this.onToggle});
+  const _ExercisePickerSheet({
+    required this.initialSelected,
+    required this.onSave,
+    required this.trackers,
+  });
 
   @override
   State<_ExercisePickerSheet> createState() => _ExercisePickerSheetState();
 }
 
 class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
+  static const _machinesPrefKey = 'picker_show_machines';
+
   final TextEditingController _searchController = TextEditingController();
   final Set<Exercise> _selected = {};
   String _query = '';
   BodyPart? _filter; // null = All
+  // Default to rack-and-dumbbell exercises: at the squat rack you should
+  // not have to scroll past machines you would have to go hunting for.
+  // The toggle persists.
+  bool _showMachines = false;
+  Map<int, EquipmentKind>? _equipment;
 
   @override
   void initState() {
     super.initState();
-    for (final info in exerciseCatalog) {
-      if (widget.isSelected(info.exercise)) _selected.add(info.exercise);
+    if (widget.trackers.isNotEmpty) {
+      _equipment = {
+        for (final tracker in widget.trackers)
+          tracker.exercise.value: tracker.equipment,
+      };
     }
+    unawaited(_loadMachinesPref());
+    _selected.addAll(widget.initialSelected);
     _searchController.addListener(() {
       if (_query != _searchController.text) {
         setState(() => _query = _searchController.text);
@@ -79,25 +106,84 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     super.dispose();
   }
 
+  Future<void> _loadMachinesPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _showMachines = prefs.getBool(_machinesPrefKey) ?? false);
+  }
+
+  Future<void> _setShowMachines(bool value) async {
+    setState(() => _showMachines = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_machinesPrefKey, value);
+  }
+
+  bool _isMachineOrCable(Exercise exercise) {
+    final kind = _equipment?[exercise.value];
+    return kind == EquipmentKind.EQUIPMENT_KIND_MACHINE ||
+        kind == EquipmentKind.EQUIPMENT_KIND_CABLE;
+  }
+
   List<ExerciseInfo> get _filtered {
     final q = _query.trim().toLowerCase();
     return exerciseCatalog.where((info) {
       if (_filter != null && !info.bodyParts.contains(_filter)) return false;
+      // Searching overrides the equipment filter — a typed name always wins.
+      if (_equipment != null &&
+          !_showMachines &&
+          q.isEmpty &&
+          _isMachineOrCable(info.exercise) &&
+          !_selected.contains(info.exercise)) {
+        return false;
+      }
       if (q.isEmpty) return true;
       return info.name.toLowerCase().contains(q);
     }).toList();
   }
 
   void _toggle(Exercise exercise) {
-    final nowSelected = !_selected.contains(exercise);
     setState(() {
-      if (nowSelected) {
+      if (!_selected.remove(exercise)) {
         _selected.add(exercise);
-      } else {
-        _selected.remove(exercise);
       }
     });
-    widget.onToggle(exercise, nowSelected);
+  }
+
+  bool get _dirty =>
+      _selected.length != widget.initialSelected.length ||
+      !_selected.containsAll(widget.initialSelected);
+
+  void _save() {
+    widget.onSave(Set.of(_selected));
+    Navigator.pop(context);
+  }
+
+  Future<void> _close() async {
+    if (!_dirty) {
+      Navigator.pop(context);
+      return;
+    }
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Discard changes?',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        content: const Text('Your selection has not been saved.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) Navigator.pop(context);
   }
 
   @override
@@ -129,7 +215,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Add exercise',
+                        'Select exercises',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -137,8 +223,15 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                         ),
                       ),
                     ),
+                    TextButton(
+                      onPressed: _dirty ? _save : null,
+                      child: const Text(
+                        'SAVE',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _close,
                       icon: const Icon(Icons.close),
                     ),
                   ],
@@ -190,6 +283,15 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                         onTap: () => setState(
                           () => _filter = _filter == part ? null : part,
                         ),
+                      ),
+                    if (_equipment != null)
+                      _FilterChip(
+                        label: _showMachines
+                            ? 'HIDE MACHINES'
+                            : 'SHOW MACHINES',
+                        color: colorScheme.tertiary,
+                        selected: _showMachines,
+                        onTap: () => _setShowMachines(!_showMachines),
                       ),
                   ],
                 ),

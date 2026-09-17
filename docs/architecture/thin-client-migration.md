@@ -53,7 +53,7 @@ These are hand-maintained line-by-line ports, kept in sync only by golden tests.
 |---|---|---|
 | `logic/weight_units.dart` plate math (`snapLoadable`, `simplestLoadableNear`, `platesForSide`, …) | ~106 | `src/weight_units.rs` |
 | `logic/warmup.dart` (`generateWarmupDefs`, `rebuildExerciseSets`) | ~140 | `src/workout/planning.rs:31` / `:364` |
-| `logic/workout_plan_builder.dart` (materialize sets, interleave, rest, → ProposedSets) | ~265 | `src/workout/planning.rs` (`generate_sets_for_group`, `materialized_working_sets_for_config`) |
+| `logic/workout_plan_builder.dart` (deleted with the group model) | ~265 | `src/workout/planning.rs` (`generate_sets_for_exercise` + the four plan ops) |
 | `logic/plate_calculator.dart` | ~27 | `src/weight_units.rs:82` (`plates_per_side`) |
 | `logic/session_state.dart` next-to-lift / participant ordering | ~90 | `src/progress.rs` (`compute_next_up_set`), `src/server/support.rs` (`build_participant_status`) |
 | `screens/home/group_grid.dart` set/warmup materialization for the preview | ~70 | same planner |
@@ -68,8 +68,9 @@ does plate math. Then delete every row above.
 
 `logic/workout_reducer.dart` (~139) + the reducer methods in
 `providers/workout_provider.dart` (`_computeNextUpSet` `:408`, `_computeStateSnapshot`
-`:419`, `_applyLocalReplaceExerciseGroupPlan`, `_applyLocalReorderExerciseGroups`,
-`_rebuildExerciseGroupsCache`) re-implement `src/workout/reducer.rs` to update the
+`:419`, `_applyLocalAddExercises`, `_applyLocalAdjustExerciseWeight`,
+`_applyLocalRemoveExercise`, `_applyLocalReorderExercises`,
+`_rebuildBlocksCache`) re-implement `src/workout/reducer.rs` to update the
 UI **before** the server confirms.
 
 Crucially, **the server already returns `state_snapshot` + `next_up_set` on every
@@ -108,7 +109,7 @@ No Rust implementation exists for any of these today.
 | `progress_screen.dart:49–105`, `exercise_detail_screen.dart:42–94` | N+1 `getWorkout` loop → per-exercise trend, gains, 1RM/volume series | a per-exercise **progress/analytics RPC** (series precomputed) |
 | `history_screen.dart:35–88` | N+1 loop → per-workout volume, working sets, exercise list | `ListWorkoutSummaries` RPC (or summary embedded in `ListWorkouts`) |
 | `home_screen.dart:359–406` `_estimatedWorkoutMinutes` | hard-coded per-set/warmup/rest seconds heuristic | `estimated_duration_seconds` on the schedule response |
-| `onboarding_screen.dart:253–324` | bodyweight × per-lift ratio × experience multiplier → recommended starts | recommended-starting-weights RPC in the regime layer (`src/regimes/`) |
+| `onboarding_screen.dart:253–324` | bodyweight × per-lift ratio × experience multiplier → recommended starts | onboarding seeds in `src/onboarding.rs` (now via `CompleteOnboarding`) |
 
 Est-1RM (`w*(1+reps/30)`) is implemented in **three** client spots and nowhere
 in Rust — it should be computed once, server-side, per completed set / summary.
@@ -147,8 +148,7 @@ Rendering and device concerns, no backend involvement:
   time-estimate. (~1,000+ lines.)
 - **Tests/fixtures:** `test/logic/{warmup_golden,plate_math,plate_calculator,weight_units,workout_reducer}_test.dart`,
   `testdata/warmup_golden.json` (190 KB), and the `LIFT_SNAPSHOT_*` snapshot
-  harness in `planning.rs` / `simulator_tests.rs`. (`regime_timelines.json` stays —
-  it pins regime progression, which is server-only.)
+  harness in `planning.rs`.
 - **Whole concept:** the "mirror this in both places / regenerate the golden"
   workflow disappears.
 

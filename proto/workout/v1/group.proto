@@ -137,7 +137,9 @@ message ParticipantStatus {
 
   Workout active_workout = 3;
 
-  repeated ExerciseGroup exercise_groups = 4;
+  reserved 4;
+
+  reserved "exercise_groups";
 
   repeated ProposedSet proposed_sets = 5;
 

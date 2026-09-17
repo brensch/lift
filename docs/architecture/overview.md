@@ -1,8 +1,9 @@
 # System Overview
 
-Schlift is a strength-training app. A user follows an adaptive program, logs
-sets, and can share a live session with other lifters. The phone is the source
-of truth for the in-progress workout; the watch is a remote control and sensor.
+Schlift is a strength-training app. A user composes workout templates, logs
+sets against server-prescribed targets, and can share a live session with
+other lifters. The phone is the source of truth for the in-progress workout;
+the watch is a remote control and sensor.
 
 ## Components
 
@@ -18,8 +19,7 @@ graph TB
     subgraph server["Backend — single Rust binary"]
         grpc["tonic gRPC<br/>+ tonic-web"]
         handlers["RPC handlers<br/>src/server/"]
-        sched["Scheduler<br/>src/schplanner.rs"]
-        regimes["Regimes<br/>src/regimes/"]
+        engine["Prescription + progression<br/>src/exercise_catalog.rs<br/>src/exercise_progress.rs<br/>src/volume.rs"]
         dbl["DB layer<br/>src/db/"]
     end
 
@@ -30,10 +30,8 @@ graph TB
     phone -->|gRPC| grpc
     webapp -->|gRPC-Web| grpc
     grpc --> handlers
-    handlers --> sched
-    sched --> regimes
+    handlers --> engine
     handlers --> dbl
-    sched --> dbl
     dbl --> sqlite
 ```
 
@@ -46,10 +44,11 @@ means a watch works whenever the phone is reachable, regardless of network.
 ```
 src/                Rust backend
   server/           gRPC handlers, one module per service
-  db/               SQLite access
-  regimes/          Training programs (Linear 5×5, GZCLP, Wendler 5/3/1)
+  db/               SQLite access (+ the one-time cutover migration)
   workout/          Workout planning + state reduction
-  schplanner.rs     Scheduler — proposes the next workout
+  exercise_catalog.rs  Muscles, equipment, the prescription table
+  exercise_progress.rs Trackers + double progression
+  volume.rs         Weekly sets per muscle + the template suggestion
 app/                Flutter app
   lib/screens/      Full-page UI
   lib/widgets/      Reusable UI

@@ -1,49 +1,42 @@
 # Workout Lifecycle
 
 This is where most of the system's complexity lives. A workout goes from a
-*proposal* (what the program thinks you should do) to an *active workout* (what
-you're actually doing) to a *completed workout* (which feeds the program's next
-proposal).
+*template* (an ordered exercise list) to an *active workout* (what you're
+actually doing) to a *completed workout* (which advances the trackers).
 
 ## The loop
 
 ```mermaid
 graph LR
-    hist[("Workout history")] -->|"schplanner<br/>summarises"| state["Program state<br/>(latest snapshot)"]
-    state -->|"regime.propose_from_state"| prop["ProposedExerciseGroups"]
-    prop -->|"user edits + StartWorkout"| active["Active workout"]
+    tmpl["Template<br/>exercises only"] -->|"StartWorkout resolves<br/>trackers + prescription"| active["Active workout"]
     active -->|"StartSet / CompleteSet"| active
     active -->|"EndWorkout"| done["Completed workout"]
-    done -->|"transition_state_on_workout_completed"| state
-    done --> hist
+    done -->|"advance_tracker<br/>(double progression)"| trk["Exercise trackers<br/>one per exercise"]
+    trk --> tmpl
 ```
 
-The cycle closes on `EndWorkout`: the finished workout is fed back through the
-regime to produce the next program state, which drives the next proposal.
+The cycle closes on `EndWorkout`: each exercise's outcome advances its
+tracker, and the next start from any template resolves the new numbers.
 
 ## Objects
 
 ```mermaid
 graph TD
     W["Workout<br/>id, name, start_time, end_time, session_id"]
-    EG["ExerciseGroup<br/>a block you do together"]
-    ETC["ExerciseTypeConfig<br/>one exercise within the group"]
     PS["ProposedSet<br/>what you should lift"]
     CS["CompletedSet<br/>what you did lift"]
 
-    W -->|"ordered by workout_order"| EG
-    EG -->|"1..n (supersets have >1)"| ETC
-    EG -->|"generate_sets_for_group"| PS
+    W -->|"ordered by workout_order"| PS
     PS -->|"0..1"| CS
 ```
 
-An **ExerciseGroup** is a block performed together — usually one exercise, but
-more than one `ExerciseTypeConfig` makes it a superset. Warmups can be
-*interleaved* across the group's exercises or run per-exercise, controlled by
-`interleave_warmups`.
+A workout is an ordered flat list of `ProposedSet`s; each set carries its
+exercise. "The sets for one exercise" is a *derived* block (grouped by
+exercise), computed where a card or sheet needs it — never stored. There is
+no group or superset structure.
 
-`generate_sets_for_group` (`src/workout/planning.rs`) expands a group into a flat
-ordered list of `ProposedSet`s: warmup sets first (or interleaved), then working
+`generate_sets_for_exercise` (`src/workout/planning.rs`) prescribes one
+exercise's block: the warmup ladder (where prescribed) then the working
 sets.
 
 ## Set state machine
@@ -78,32 +71,25 @@ row exists before the user has lifted anything, holding only `started_at`.
 sequenceDiagram
     participant App
     participant WS as ServerWorkoutService
-    participant SP as schplanner
-    participant R as regime
     participant DB
 
-    App->>WS: GetProposedWorkoutSchedule
-    WS->>SP: get_proposed_schedule(user_id, now)
-    SP->>DB: recent workouts + program state
-    SP->>SP: summarize_history_window<br/>summarize_recent_insights
-    SP->>R: propose_from_state(state, insights)
-    R-->>SP: ProposedExerciseGroups + RegimeContext<br/>+ suggested_workout_name
-    SP-->>WS: ProposeResult
-    WS-->>App: proposal + schedule messages
+    App->>WS: GetHome
+    WS->>DB: templates + trackers + recent history
+    WS-->>App: templates, resolved trackers,<br/>volume, recovery, suggestion
 
-    Note over App: user edits groups,<br/>weights, adds/removes exercises
-
-    App->>WS: StartWorkout(name, exercise_groups)
-    WS->>WS: generate_sets_for_group per group
-    WS->>DB: insert_workout + groups + proposed_sets
+    App->>WS: StartWorkout(template_id)
+    WS->>DB: template + trackers
+    WS->>WS: one plan per exercise:<br/>tracker weight, prescription sets/reps/rest,<br/>layoff deload at resolution time
+    WS->>WS: generate_sets_for_exercise per plan<br/>(warmup ladders for barbell compounds)
+    WS->>DB: insert_workout (+ template_id) + proposed_sets
     WS->>DB: stamp session_id from user_current_session
     WS-->>App: StartWorkoutResponse (full state)
 ```
 
-The proposal is **advisory**. The client sends back whatever groups the user
-actually wants; the server regenerates sets from those groups. `prescribed_by_regime`
-on the group records whether it came from the program, which matters later for
-progression matching.
+A start with an explicit `exercises` list (the "empty workout" path) runs
+through the same prescription; mid-workout changes go through the four
+per-exercise ops: `AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`,
+`ReorderExercises`.
 
 ## Optimistic mutations
 
@@ -147,19 +133,15 @@ graph LR
     m --> t3["DeleteCompletedSet → apply_delete_completed_set_to_active"]
     m --> t4["CancelProposedSet → apply_cancel_proposed_set_to_active"]
     m --> t5["EndWorkout → set end_time"]
-    m --> t6["ReplaceExerciseGroupPlan → apply_replace_exercise_group_plan"]
-    m --> t7["ReorderExerciseGroups → apply_reorder_exercise_groups"]
+    m --> t6["AddExercises → apply_add_exercises"]
+    m --> t7["AdjustExerciseWeight → apply_adjust_exercise_weight"]
+    m --> t8["RemoveExercise → apply_remove_exercise"]
+    m --> t9["ReorderExercises → apply_reorder_exercises"]
 ```
 
 Each mutation carries a client-generated `event_id` for dedupe and an optional
 `client_created_at` so a queued action keeps its original timestamp rather than
 the time it was flushed.
-
-Every mutation is written to `workout_events` with an integer `event_type`
-(`StartSet = 2` … `ReorderExerciseGroups = 8`). These are **bare magic numbers in
-the handler**, not a named enum, and nothing reads the table back —
-`RehydrateWorkoutFromEvents` is unimplemented. See
-[backend.md](backend.md#not-implemented).
 
 After applying mutations the server calls `persist_workout_state`, which writes
 the whole workout back rather than diffing. Simple, and it means a partial
@@ -173,19 +155,17 @@ sequenceDiagram
     participant App
     participant WS as ServerWorkoutService
     participant DB
-    participant R as regime
 
     App->>WS: EndWorkout(workout_id, ended_at)
     WS->>DB: get_session_id_for_user
     Note over WS: captured first — end_workout clears<br/>active_workout_current, losing the link
     WS->>DB: end_workout (set end_time)
     WS->>DB: load workout, groups, proposed, completed
-    WS->>WS: build SchplannerWorkoutRecord
-
-    WS->>R: transition_state_on_workout_completed
-    R-->>WS: new program state + completion messages
-    WS->>DB: apply_program_state_for_workout(workout_id, state)
-    Note over DB: INSERT OR IGNORE into<br/>program_progression_applied.<br/>0 rows → already applied → rollback
+    WS->>DB: claim_progression(workout_id)
+    Note over DB: INSERT OR IGNORE into progression_applied.<br/>0 rows → already applied → no tracker moves
+    WS->>WS: session_outcomes per exercise
+    WS->>WS: advance_tracker (double progression)
+    WS->>DB: upsert trackers + progression messages
 
     alt in a session
         WS->>DB: refresh_participant_for_user (final snapshot)
@@ -201,10 +181,10 @@ Two ordering constraints worth knowing, both already commented in the source:
 2. **The participant blob is refreshed before leaving the session**, so peers
    still polling see your finished workout rather than a cleared slot.
 
-Progression is idempotent via the `program_progression_applied` ledger — a
-retried `EndWorkout` cannot advance your program twice. This is covered by
-`end_workout_is_idempotent_and_does_not_double_progress` in
-`src/server/workout.rs`.
+Progression is idempotent via the `progression_applied` ledger — a retried
+`EndWorkout` cannot move a tracker twice. Covered by
+`end_workout_is_idempotent` in `src/server/workout_tests.rs` and a fuzz
+invariant.
 
 ## Crash recovery
 
@@ -213,14 +193,7 @@ looks up `active_workout_current` and reloads the full workout with
 `load_workout_full`. State survives because every mutation persists a complete
 snapshot.
 
-Fields that are **not persisted** and are therefore lost on recovery:
-
-- `ProposedSet.is_amrap` and `ProposedSet.instruction`
-- `ExerciseGroup.instruction` (regime coaching text)
-
-These are populated when a proposal is converted into a workout and exist only
-in memory. After a crash, AMRAP markers and coaching text disappear from an
-in-progress workout even though the sets themselves are intact.
+Every `ProposedSet` field is persisted, so recovery is lossless.
 
 ## Where the logic lives
 
@@ -229,5 +202,5 @@ in-progress workout even though the sets themselves are intact.
 | Warmup generation, plate snapping | `src/workout/planning.rs` |
 | State transitions | `src/workout/reducer.rs` |
 | Next-up-set derivation | `src/progress.rs` |
-| History summarisation | `src/schplanner.rs` |
+| Prescription + progression + volume | `src/exercise_catalog.rs`, `src/exercise_progress.rs`, `src/volume.rs` |
 | Client-side mirror of all the above | `app/lib/providers/workout_provider.dart`, `app/lib/logic/` |

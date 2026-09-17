@@ -93,43 +93,40 @@ class Peer {
         .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
   }
 
-  /// The regime's current program state (weights, stall counts, …).
-  Future<TrainingProgramState?> programState() async {
-    final r = await _api.settings.getActiveTrainingProgramState(
-        GetActiveTrainingProgramStateRequest(),
-        options: _opts);
-    return r.hasState() ? r.state : null;
+  /// The home payload: templates, resolved trackers, volume, suggestion.
+  Future<GetHomeResponse> home() async {
+    return _api.workout.getHome(GetHomeRequest(), options: _opts);
   }
 
-  /// The proposed next workout the home screen renders (groups + weights).
-  Future<List<ProposedExerciseGroup>> proposedGroups() async {
-    final r = await _api.workout.getProposedWorkoutSchedule(
-        GetProposedWorkoutScheduleRequest(),
-        options: _opts);
-    return r.proposedGroups;
+  /// The resolved tracker for one exercise (weight the next workout uses).
+  Future<ExerciseTracker?> trackerFor(Exercise exercise) async {
+    final response = await home();
+    for (final tracker in response.trackers) {
+      if (tracker.exercise == exercise) return tracker;
+    }
+    return null;
   }
 
-  /// Start a simple one-exercise workout (used to give a peer visible activity).
+  /// Start a simple one-exercise workout (used to give a peer visible
+  /// activity). The server prescribes everything from the tracker, so the
+  /// weight is planted there first.
   Future<void> startWorkout(
     String name,
     Exercise exercise,
     double weight,
     int sets,
   ) async {
-    final group = ExerciseGroup()
-      ..name = name
-      ..sets = sets
-      ..workoutOrder = 0
-      ..exerciseConfigs.add(ExerciseTypeConfig()
+    await _api.workout.setExerciseTracker(
+      SetExerciseTrackerRequest()
         ..exercise = exercise
-        ..startWeight = weight
-        ..endWeight = weight
-        ..reps = 5
-        ..includeWarmup = false);
+        ..workingWeight = weight
+        ..overrideSets = sets,
+      options: _opts,
+    );
     final resp = await _api.workout.startWorkout(
       StartWorkoutRequest()
         ..name = name
-        ..exerciseGroups.add(group),
+        ..exercises.add(exercise),
       options: _opts,
     );
     workoutId = resp.workout.id;
@@ -155,16 +152,16 @@ class Peer {
   }) async {
     final req = StartWorkoutRequest()..name = name;
     for (var i = 0; i < lifts.length; i++) {
-      req.exerciseGroups.add(ExerciseGroup()
-        ..name = name
-        ..sets = sets
-        ..workoutOrder = i
-        ..exerciseConfigs.add(ExerciseTypeConfig()
+      await _api.workout.setExerciseTracker(
+        SetExerciseTrackerRequest()
           ..exercise = lifts[i].key
-          ..startWeight = lifts[i].value
-          ..endWeight = lifts[i].value
-          ..reps = reps
-          ..includeWarmup = false));
+          ..workingWeight = lifts[i].value
+          ..overrideSets = sets
+          ..overrideRepLow = reps
+          ..overrideRepHigh = reps,
+        options: _opts,
+      );
+      req.exercises.add(lifts[i].key);
     }
     final resp = await _api.workout.startWorkout(req, options: _opts);
     workoutId = resp.workout.id;

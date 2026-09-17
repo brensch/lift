@@ -21,8 +21,7 @@ graph TD
     subgraph domain["Domain logic"]
         plan["workout/planning.rs<br/>warmups, set generation"]
         red["workout/reducer.rs<br/>apply mutations to state"]
-        sched["schplanner.rs<br/>history → proposal"]
-        reg["regimes/<br/>program state machines"]
+        engine["exercise_catalog.rs / exercise_progress.rs / volume.rs<br/>prescription → progression → volume"]
         ps["program_state.rs<br/>typed KV state"]
     end
 
@@ -62,10 +61,12 @@ graph TD
 | `server/user.rs` | User CRUD, profile |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/support.rs` | `.well-known` / app-association endpoints |
-| `workout/planning.rs` | Turning an `ExerciseGroup` into concrete `ProposedSet`s (warmups, plate snapping) |
+| `workout/planning.rs` | Plan shaping: prescribe an exercise's block of `ProposedSet`s (warmups, plate snapping) and the four mid-workout ops (add / adjust weight / remove / reorder) |
 | `workout/reducer.rs` | Pure state transitions on an `ActiveWorkout` |
-| `schplanner.rs` | Reads workout history, summarises it, asks the regime what's next |
-| `regimes/` | Per-program state machines behind the `WorkoutRegime` trait |
+| `exercise_catalog.rs` | Muscles, equipment, roles and the prescription table |
+| `exercise_progress.rs` | Per-exercise trackers and the double-progression rule |
+| `volume.rs` | Weekly sets per muscle and the template suggestion |
+| `history.rs` | The hydrated workout record derived computations read |
 | `db/` | All SQL. No SQL exists outside this directory. |
 
 ## Database access model
@@ -92,7 +93,7 @@ Defined in `src/db/mod.rs:251`.
   `apply_program_state_for_workout` (`src/db/cache.rs:82`) for the pattern.
 
 > **Read-modify-write is not atomic across the two pools.** The structural
-> mutation handlers (`ReplaceExerciseGroupPlan`, `ReorderExerciseGroups`,
+> mutation handlers (`AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`, `ReorderExercises`,
 > `AppendWorkoutMutations`) load a workout on the read pool, apply the change in
 > memory, then `persist_workout_state` — a full delete-and-reinsert — on the
 > write pool. Two mutations to the *same workout* that interleave read→read→
@@ -177,7 +178,6 @@ Three RPCs exist in the proto and return `Status::unimplemented`:
 | RPC | Note |
 |---|---|
 | `MultiplayerService.SubscribeSession` | Multiplayer uses 1 Hz polling, not streaming (`multiplayer.rs:247`) |
-| `SettingsService.GetTrainingProgramStateHistory` | No state history is stored — see [regimes.md](regimes.md#no-history) (`settings.rs:126`) |
 | `WorkoutService.RehydrateWorkoutFromEvents` | Events are appended to `workout_events` but never replayed (`workout.rs:1847`) |
 
 The `workout_events` table is therefore **write-only**: `AppendWorkoutMutations`
@@ -210,9 +210,7 @@ user id. A panic hook logs location and message before unwinding.
 ## Tests
 
 - `src/scenario_tests.rs` — drives an in-memory DB through the real scheduler and
-  regime state machines using JSON fixtures in `src/regimes/scenarios/`.
-- `src/schplanner.rs` — inline unit tests for history summarisation and replay.
+  the progression, volume and migration logic inline in their modules.
 - `src/server/workout.rs` — `live_progression_tests` covering progression messages.
 
-Run with `cargo test`. See [regimes.md](regimes.md#scenario-tests) for how to add
-a scenario.
+Run with `cargo test`.
