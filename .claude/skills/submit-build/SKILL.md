@@ -71,6 +71,13 @@ builds. Leave it alone.
    ```
    Full detail: `docs/releasing.md` → "Promote to production".
 
+5. **Store listing text / screenshots** are separate from builds: text in
+   `store/listing.yaml`, raw screenshots in `store/screenshots/raw/`
+   (`make store-capture` regenerates them on the emulator), pushed by the
+   Store Assets workflow (`gh workflow run store-assets.yml -f action=push
+   -f dry_run=true` first). See `docs/releasing.md` → "Store listing and
+   screenshots".
+
 ## Notes
 
 - Workflows: `.github/workflows/ios-build.yml`, `android-release.yml`. Both

@@ -43,3 +43,6 @@ apple-signing/
 *.p12
 *.mobileprovision
 *.certSigningRequest
+
+# Framed store screenshots are rendered by scripts/frame_store_screenshots.py
+store/screenshots/out/

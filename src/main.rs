@@ -10,6 +10,8 @@ use tower_http::cors::{Any, CorsLayer};
 
 mod auth;
 mod db;
+#[cfg(feature = "test-auth")]
+mod demo_seed;
 mod exercise_catalog;
 mod exercise_progress;
 mod history;
@@ -63,6 +65,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let server_db = ServerDb::new_in_dir(data_dir).await?;
+    // Dev/demo only: SEED_DEMO_USER=<name> writes a lifter with weeks of
+    // history (store screenshots, local demos). Compiled out of prod.
+    #[cfg(feature = "test-auth")]
+    if let Ok(name) = std::env::var("SEED_DEMO_USER") {
+        demo_seed::seed_demo_user(&server_db, &name).await?;
+    }
     let auth_state = std::sync::Arc::new(AuthState::new(server_db.clone()));
 
     // PORT lets a throwaway instance (the API invariant harness, a second dev
