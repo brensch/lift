@@ -11,7 +11,7 @@ ExerciseArt singleLegHipThrustArt() => const ExerciseArt([
       arms: [Limb(95, 95)], // arm resting down (not relevant)
       legs: [
         Limb(-15, 100), // planted leg bent, foot on floor
-        Limb(-5, 0),    // extended leg: thigh angled slightly up, shin forward
+        Limb(-5, 0), // extended leg: thigh angled slightly up, shin forward
       ],
     ),
     props: [
@@ -27,8 +27,8 @@ ExerciseArt singleLegHipThrustArt() => const ExerciseArt([
       torso: 160,
       arms: [Limb(95, 95)],
       legs: [
-        Limb(5, 95),   // planted leg extended, foot on floor
-        Limb(-20, 0),  // other leg extended straight forward and slightly up
+        Limb(5, 95), // planted leg extended, foot on floor
+        Limb(-20, 0), // other leg extended straight forward and slightly up
       ],
     ),
     props: [

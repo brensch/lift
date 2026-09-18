@@ -119,8 +119,7 @@ pub fn suggest_template(
         let better = match &best {
             None => true,
             Some(candidate) => {
-                score > candidate.score
-                    || (score == candidate.score && started < candidate.started)
+                score > candidate.score || (score == candidate.score && started < candidate.started)
             }
         };
         if better {
@@ -146,11 +145,7 @@ pub fn suggest_template(
     let names: Vec<&str> = hit
         .iter()
         .take(2)
-        .filter_map(|(muscle, _)| {
-            MuscleGroup::try_from(*muscle)
-                .ok()
-                .map(muscle_label)
-        })
+        .filter_map(|(muscle, _)| MuscleGroup::try_from(*muscle).ok().map(muscle_label))
         .collect();
     let behind: f32 = hit.iter().take(2).map(|(_, d)| d).sum();
     let reason = match names.as_slice() {
@@ -232,8 +227,14 @@ mod tests {
     fn warmups_and_old_sets_are_excluded() {
         let now = 1_000_000;
         let history = vec![
-            record_with_sets(now - 3600, &[(Exercise::Squat, true), (Exercise::Squat, false)]),
-            record_with_sets(now - VOLUME_WINDOW_SECONDS - 100, &[(Exercise::Squat, false)]),
+            record_with_sets(
+                now - 3600,
+                &[(Exercise::Squat, true), (Exercise::Squat, false)],
+            ),
+            record_with_sets(
+                now - VOLUME_WINDOW_SECONDS - 100,
+                &[(Exercise::Squat, false)],
+            ),
         ];
         let volume = muscle_volume_7d(&history, now);
         assert_eq!(volume_for(&volume, MuscleGroup::Quads), 1.0);

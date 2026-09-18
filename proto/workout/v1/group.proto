@@ -130,7 +130,6 @@ message SessionStatus {
 }
 
 message ParticipantStatus {
-
   User user = 1;
 
   string active_workout_id = 2;
@@ -150,7 +149,6 @@ message ParticipantStatus {
   int64 rest_until = 8;
 
   bool has_active_set = 9;
-
 }
 
 // ── Training-together history ──
@@ -159,7 +157,7 @@ message ParticipantStatus {
 message TrainingPartner {
   User user = 1;
   int32 sessions_together = 2; // how many distinct sessions they shared
-  int64 last_trained_at = 3;   // unix seconds of the most recent shared session
+  int64 last_trained_at = 3; // unix seconds of the most recent shared session
 }
 
 message GetTrainingPartnersRequest {}
@@ -170,9 +168,9 @@ message GetTrainingPartnersResponse {
 // One session the caller and a partner were both in.
 message SharedSession {
   string session_id = 1;
-  int64 trained_at = 2;          // when the shared session started (earliest join)
-  bool caller_worked_out = 3;    // did the caller log a workout in it
-  bool partner_worked_out = 4;   // did the partner log a workout in it
+  int64 trained_at = 2; // when the shared session started (earliest join)
+  bool caller_worked_out = 3; // did the caller log a workout in it
+  bool partner_worked_out = 4; // did the partner log a workout in it
 }
 
 message GetSharedSessionsRequest {
@@ -192,7 +190,7 @@ message RequestJoinPartnerResponse {
 // A pending "train together" request, shown to the recipient.
 message JoinRequest {
   string request_id = 1;
-  User from_user = 2;   // who wants to train
+  User from_user = 2; // who wants to train
   int64 created_at = 3;
 }
 

@@ -52,9 +52,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: widget.template?.name ?? '',
-    );
+    _nameController = TextEditingController(text: widget.template?.name ?? '');
     _exercises = List.of(widget.template?.exercises ?? const <Exercise>[]);
   }
 
@@ -444,9 +442,7 @@ class _TrackerSheetState extends State<_TrackerSheet> {
           const SizedBox(height: 16),
           TextField(
             controller: _weightController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Working weight',
               suffixText: weightUnitSuffix(widget.unit),

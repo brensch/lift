@@ -135,7 +135,13 @@ fn generate_sets_for_exercise(
                 WARMUP_REST_SECONDS
             };
             sets.push(make_set(
-                workout_id, plan.exercise, reps, weight, true, rest, rest,
+                workout_id,
+                plan.exercise,
+                reps,
+                weight,
+                true,
+                rest,
+                rest,
             ));
         }
     }
@@ -154,10 +160,7 @@ fn generate_sets_for_exercise(
 }
 
 /// Plan ops only make sense on a live workout that the request names.
-fn require_open_workout(
-    workout_ref: &ActiveWorkout,
-    workout_id: &str,
-) -> Result<(), WorkoutError> {
+fn require_open_workout(workout_ref: &ActiveWorkout, workout_id: &str) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
@@ -226,18 +229,18 @@ pub(crate) fn apply_adjust_exercise_weight(
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
     if !(0.0..=2000.0).contains(&req.working_weight) {
-        return Err(WorkoutError::failed_precondition(
-            "Weight out of range",
-        ));
+        return Err(WorkoutError::failed_precondition("Weight out of range"));
     }
     let exercise = req.exercise;
     let done = completed_proposed_ids(workout_ref);
 
     // Working sets move in place — same count, same reps, same rest.
     let mut rest_s = DEFAULT_SUCCESS_REST_SECONDS;
-    for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
-        s.exercise == exercise && !s.warmup && !s.cancelled
-    }) {
+    for set in workout_ref
+        .proposed_sets
+        .iter_mut()
+        .filter(|s| s.exercise == exercise && !s.warmup && !s.cancelled)
+    {
         rest_s = set.rest_after_success;
         if !done.contains(&set.id) {
             set.target_weight = req.working_weight;
@@ -277,9 +280,7 @@ pub(crate) fn apply_adjust_exercise_weight(
         .into_iter()
         .enumerate()
         .skip(rung_count.saturating_sub(pending_warmups))
-        .filter(|(_, (weight, _))| {
-            !has_done_warmup || *weight > max_done_weight + 1e-3
-        })
+        .filter(|(_, (weight, _))| !has_done_warmup || *weight > max_done_weight + 1e-3)
         .map(|(idx, (weight, reps))| {
             let rest = if idx + 1 == rung_count {
                 rest_s
@@ -386,8 +387,14 @@ mod warmup_tests {
 
                 let mut prev = 0.0_f32;
                 for (weight_lb, reps) in defs {
-                    assert!(weight_lb >= prev, "warmups must not decrease at {w} ({unit:?})");
-                    assert!(weight_lb < w + 1e-3, "warmup {weight_lb} must be under {w} ({unit:?})");
+                    assert!(
+                        weight_lb >= prev,
+                        "warmups must not decrease at {w} ({unit:?})"
+                    );
+                    assert!(
+                        weight_lb < w + 1e-3,
+                        "warmup {weight_lb} must be under {w} ({unit:?})"
+                    );
                     assert!(reps > 0, "warmup reps must be positive at {w} ({unit:?})");
                     prev = weight_lb;
                 }
@@ -519,9 +526,10 @@ mod plan_op_tests {
         assert_eq!(sets.len(), 7, "4 warmups + 3 working");
         assert!(sets.iter().take(4).all(|s| s.warmup));
         assert!(sets.iter().skip(4).all(|s| !s.warmup));
-        assert!(sets.iter().filter(|s| !s.warmup).all(|s| {
-            (s.target_weight - 200.0).abs() < 1e-3 && s.target_reps == 6
-        }));
+        assert!(sets
+            .iter()
+            .filter(|s| !s.warmup)
+            .all(|s| { (s.target_weight - 200.0).abs() < 1e-3 && s.target_reps == 6 }));
         // Warmups climb and stay under the working weight.
         let warmups: Vec<f32> = sets
             .iter()
@@ -535,7 +543,10 @@ mod plan_op_tests {
         assert_eq!(last_warmup.rest_after_success, 180);
         assert_eq!(sets[0].rest_after_success, WARMUP_REST_SECONDS);
         // Orders are sequential.
-        assert!(sets.iter().enumerate().all(|(i, s)| s.workout_order == i as i32));
+        assert!(sets
+            .iter()
+            .enumerate()
+            .all(|(i, s)| s.workout_order == i as i32));
     }
 
     #[test]
@@ -548,8 +559,14 @@ mod plan_op_tests {
     #[test]
     fn add_appends_after_the_existing_plan() {
         let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
-        apply_add_exercises(&mut active, "w1", &[plan(BENCH, 135.0, false)], &[], AppWeightUnit::Lb)
-            .unwrap();
+        apply_add_exercises(
+            &mut active,
+            "w1",
+            &[plan(BENCH, 135.0, false)],
+            &[],
+            AppWeightUnit::Lb,
+        )
+        .unwrap();
         let exercises: Vec<i32> = active.proposed_sets.iter().map(|s| s.exercise).collect();
         assert_eq!(exercises, vec![SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]);
     }
@@ -568,11 +585,20 @@ mod plan_op_tests {
             existing_id.clone(),
             "fresh".to_string(),
         ];
-        apply_add_exercises(&mut active, "w1", &[plan(BENCH, 135.0, false)], &ids, AppWeightUnit::Lb)
-            .unwrap();
+        apply_add_exercises(
+            &mut active,
+            "w1",
+            &[plan(BENCH, 135.0, false)],
+            &ids,
+            AppWeightUnit::Lb,
+        )
+        .unwrap();
         let mut seen = std::collections::HashSet::new();
         assert!(
-            active.proposed_sets.iter().all(|s| seen.insert(s.id.clone())),
+            active
+                .proposed_sets
+                .iter()
+                .all(|s| seen.insert(s.id.clone())),
             "every proposed set id must be unique"
         );
         let bench_ids: Vec<&str> = active
@@ -589,10 +615,14 @@ mod plan_op_tests {
     fn every_op_rejects_a_finished_workout() {
         let mut active = workout_with(&[plan(SQUAT, 200.0, true)]);
         active.workout.end_time = 9_999;
-        assert!(
-            apply_add_exercises(&mut active, "w1", &[plan(BENCH, 135.0, false)], &[], AppWeightUnit::Lb)
-                .is_err()
-        );
+        assert!(apply_add_exercises(
+            &mut active,
+            "w1",
+            &[plan(BENCH, 135.0, false)],
+            &[],
+            AppWeightUnit::Lb
+        )
+        .is_err());
         assert!(apply_adjust_exercise_weight(
             &mut active,
             &AdjustExerciseWeightRequest {
@@ -625,8 +655,14 @@ mod plan_op_tests {
     fn add_adopts_client_working_set_ids_in_order() {
         let mut active = empty_workout();
         let ids = vec!["c1".to_string(), "c2".to_string(), "c3".to_string()];
-        apply_add_exercises(&mut active, "w1", &[plan(SQUAT, 200.0, true)], &ids, AppWeightUnit::Lb)
-            .unwrap();
+        apply_add_exercises(
+            &mut active,
+            "w1",
+            &[plan(SQUAT, 200.0, true)],
+            &ids,
+            AppWeightUnit::Lb,
+        )
+        .unwrap();
         let working: Vec<&str> = active
             .proposed_sets
             .iter()
@@ -664,7 +700,10 @@ mod plan_op_tests {
         // Warmups still precede working sets, orders sequential.
         let sets = visible(&active);
         assert!(sets.iter().take(4).all(|s| s.warmup));
-        assert!(sets.iter().enumerate().all(|(i, s)| s.workout_order == i as i32));
+        assert!(sets
+            .iter()
+            .enumerate()
+            .all(|(i, s)| s.workout_order == i as i32));
     }
 
     #[test]
@@ -753,8 +792,14 @@ mod plan_op_tests {
             },
         )
         .unwrap();
-        apply_add_exercises(&mut active, "w1", &[plan(SQUAT, 200.0, true)], &[], AppWeightUnit::Lb)
-            .unwrap();
+        apply_add_exercises(
+            &mut active,
+            "w1",
+            &[plan(SQUAT, 200.0, true)],
+            &[],
+            AppWeightUnit::Lb,
+        )
+        .unwrap();
         adjust(&mut active, SQUAT, 400.0);
 
         let pending = pending_warmup_weights(&active, SQUAT);
@@ -783,7 +828,11 @@ mod plan_op_tests {
         let count_before = active.proposed_sets.len();
         adjust(&mut active, SQUAT, 250.0);
 
-        assert_eq!(active.proposed_sets.len(), count_before, "no new rungs mid-lift");
+        assert_eq!(
+            active.proposed_sets.len(),
+            count_before,
+            "no new rungs mid-lift"
+        );
         assert!(active
             .proposed_sets
             .iter()
@@ -803,7 +852,10 @@ mod plan_op_tests {
             .iter()
             .find(|s| s.id == first_working)
             .unwrap();
-        assert!((done_set.target_weight - 200.0).abs() < 1e-3, "history is history");
+        assert!(
+            (done_set.target_weight - 200.0).abs() < 1e-3,
+            "history is history"
+        );
         assert!(active
             .proposed_sets
             .iter()
@@ -843,8 +895,17 @@ mod plan_op_tests {
             .iter()
             .filter(|s| s.exercise == SQUAT)
             .collect();
-        assert!(squat_sets.iter().filter(|s| s.id != first_squat).all(|s| s.cancelled));
-        assert!(!squat_sets.iter().find(|s| s.id == first_squat).unwrap().cancelled);
+        assert!(squat_sets
+            .iter()
+            .filter(|s| s.id != first_squat)
+            .all(|s| s.cancelled));
+        assert!(
+            !squat_sets
+                .iter()
+                .find(|s| s.id == first_squat)
+                .unwrap()
+                .cancelled
+        );
         assert!(active
             .proposed_sets
             .iter()
@@ -889,12 +950,11 @@ mod plan_op_tests {
             },
         )
         .unwrap();
-        let exercises: Vec<i32> = active
-            .proposed_sets
-            .iter()
-            .map(|s| s.exercise)
-            .collect();
-        assert_eq!(exercises, vec![3, 3, 3, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]);
+        let exercises: Vec<i32> = active.proposed_sets.iter().map(|s| s.exercise).collect();
+        assert_eq!(
+            exercises,
+            vec![3, 3, 3, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
+        );
     }
 
     #[test]

@@ -40,7 +40,8 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
         switch call.method {
         case "publishSnapshot":
             guard let args = call.arguments as? [String: Any],
-                  let payload = args["payload"] as? FlutterStandardTypedData else {
+                  let payload = args["payload"] as? FlutterStandardTypedData
+            else {
                 result(FlutterError(code: "invalid_args", message: "Missing payload", details: nil))
                 return
             }
@@ -54,7 +55,8 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
 
         case "endWatchWorkout":
             guard let args = call.arguments as? [String: Any],
-                  let workoutId = args["workoutId"] as? String else {
+                  let workoutId = args["workoutId"] as? String
+            else {
                 result(FlutterError(code: "invalid_args", message: "Missing workoutId", details: nil))
                 return
             }
@@ -81,24 +83,24 @@ public class WatchBridgePlugin: NSObject, FlutterPlugin {
 // MARK: - Stream handlers
 
 private class IntentStreamHandler: NSObject, FlutterStreamHandler {
-    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    func onListen(withArguments _: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         WatchBridgeManager.shared.setIntentSink(events)
         return nil
     }
 
-    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    func onCancel(withArguments _: Any?) -> FlutterError? {
         WatchBridgeManager.shared.setIntentSink(nil)
         return nil
     }
 }
 
 private class SensorStreamHandler: NSObject, FlutterStreamHandler {
-    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    func onListen(withArguments _: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
         WatchBridgeManager.shared.setSensorSink(events)
         return nil
     }
 
-    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    func onCancel(withArguments _: Any?) -> FlutterError? {
         WatchBridgeManager.shared.setSensorSink(nil)
         return nil
     }

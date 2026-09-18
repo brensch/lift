@@ -11,7 +11,9 @@ ExerciseArt romanianDeadliftArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(91, 91), Limb(89, 89)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Hinge — hips back, flat back, slight knee bend, bar at the shins.
   Pose(
@@ -21,6 +23,8 @@ ExerciseArt romanianDeadliftArt() => const ExerciseArt([
       arms: [Limb(115, 115)],
       legs: [Limb(85, 92), Limb(82, 95)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

@@ -7,10 +7,10 @@ use schlift::workout::v1::{
     settings_service_client::SettingsServiceClient, workout_mutation,
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
     AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise,
-    GetActiveWorkoutRequest, GetCurrentSessionRequest, GetHomeRequest,
-    GetMyInviteTokenRequest, GetSettingsRequest, GetWorkoutRequest, JoinViaInviteRequest,
-    StartSetRequest, StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest,
-    WorkoutHeartRatePoint, WorkoutMutation,
+    GetActiveWorkoutRequest, GetCurrentSessionRequest, GetHomeRequest, GetMyInviteTokenRequest,
+    GetSettingsRequest, GetWorkoutRequest, JoinViaInviteRequest, StartSetRequest,
+    StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint,
+    WorkoutMutation,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -483,7 +483,10 @@ async fn run_user_simulation(
         let template_id = if !home.suggested_template_id.is_empty() {
             home.suggested_template_id.clone()
         } else {
-            home.templates.first().map(|t| t.id.clone()).unwrap_or_default()
+            home.templates
+                .first()
+                .map(|t| t.id.clone())
+                .unwrap_or_default()
         };
         let start_exercises = if template_id.is_empty() {
             vec![Exercise::Squat as i32, Exercise::BenchPress as i32]

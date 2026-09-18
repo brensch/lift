@@ -1,12 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  GRID,
-  SURFACE,
-  niceTicks,
-  scaleLinear,
-  timeTicks,
-  useMeasuredSize,
-} from "./chart-utils";
+import { GRID, SURFACE, niceTicks, scaleLinear, timeTicks, useMeasuredSize } from "./chart-utils";
 
 export interface LineSeries {
   label: string;
@@ -51,7 +44,7 @@ export function LineChart({
   const allPoints = useMemo(() => series.flatMap((s) => s.points), [series]);
   const xValues = useMemo(
     () => [...new Set(allPoints.map((p) => p.x))].sort((a, b) => a - b),
-    [allPoints]
+    [allPoints],
   );
 
   const plotW = Math.max(width - PAD.left - PAD.right, 0);
@@ -96,9 +89,7 @@ export function LineChart({
           rows: series
             .map((s) => {
               const pt = s.points.find((p) => p.x === hoverX);
-              return pt
-                ? { label: s.label, color: s.color, value: yFormat(pt.y) }
-                : null;
+              return pt ? { label: s.label, color: s.color, value: yFormat(pt.y) } : null;
             })
             .filter((r): r is TooltipRow => r !== null),
         }
@@ -119,9 +110,7 @@ export function LineChart({
     setHoverX(best);
   }
 
-  const tooltipLeft = hover
-    ? Math.min(Math.max(hover.px - 70, 4), width - 150)
-    : 0;
+  const tooltipLeft = hover ? Math.min(Math.max(hover.px - 70, 4), width - 150) : 0;
 
   return (
     <div ref={ref} className="relative" style={boxStyle}>
@@ -198,18 +187,8 @@ export function LineChart({
                 {/* End dot with surface ring; direct label on emphasis only */}
                 {last && !s.context && (
                   <>
-                    <circle
-                      cx={xScale(last.x)}
-                      cy={yScale(last.y)}
-                      r={6}
-                      fill={SURFACE}
-                    />
-                    <circle
-                      cx={xScale(last.x)}
-                      cy={yScale(last.y)}
-                      r={4}
-                      fill={s.color}
-                    />
+                    <circle cx={xScale(last.x)} cy={yScale(last.y)} r={6} fill={SURFACE} />
+                    <circle cx={xScale(last.x)} cy={yScale(last.y)} r={4} fill={s.color} />
                     <text
                       x={xScale(last.x) - 10}
                       y={yScale(last.y) - 9}

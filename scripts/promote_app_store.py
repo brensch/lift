@@ -77,7 +77,12 @@ class AppStoreConnect:
         if self._token is None or now > self._token_expires - 60:
             expires = now + 15 * 60  # Apple caps tokens at 20 minutes
             self._token = jwt.encode(
-                {"iss": self.creds.issuer_id, "iat": int(now), "exp": int(expires), "aud": "appstoreconnect-v1"},
+                {
+                    "iss": self.creds.issuer_id,
+                    "iat": int(now),
+                    "exp": int(expires),
+                    "aud": "appstoreconnect-v1",
+                },
                 self.creds.private_key,
                 algorithm="ES256",
                 headers={"kid": self.creds.key_id, "typ": "JWT"},
@@ -85,7 +90,9 @@ class AppStoreConnect:
             self._token_expires = expires
         return self._token
 
-    def request(self, method: str, path: str, params: dict | None = None, body: dict | None = None) -> dict:
+    def request(
+        self, method: str, path: str, params: dict | None = None, body: dict | None = None
+    ) -> dict:
         url = path if path.startswith("http") else f"{API}{path}"
         if params:
             url += "?" + urllib.parse.urlencode(params)
@@ -115,25 +122,37 @@ class AppStoreConnect:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--bundle-id", required=True)
-    parser.add_argument("--version", required=True, help="Marketing version, e.g. 0.10.1 (the v* tag without the v)")
+    parser.add_argument(
+        "--version", required=True, help="Marketing version, e.g. 0.10.1 (the v* tag without the v)"
+    )
     parser.add_argument("--release-notes-file", required=True, type=Path)
-    parser.add_argument("--phased-release", action="store_true", help="Roll out over 7 days after approval")
+    parser.add_argument(
+        "--phased-release", action="store_true", help="Roll out over 7 days after approval"
+    )
     parser.add_argument(
         "--wait-minutes",
         type=int,
         default=30,
         help="How long to wait for App Store Connect to finish processing the build",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Look everything up, print the plan, write nothing")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Look everything up, print the plan, write nothing"
+    )
     return parser.parse_args()
 
 
 def load_credentials() -> Credentials:
     missing = [
         name
-        for name in ("APP_STORE_CONNECT_KEY_ID", "APP_STORE_CONNECT_ISSUER_ID", "APP_STORE_CONNECT_PRIVATE_KEY_BASE64")
+        for name in (
+            "APP_STORE_CONNECT_KEY_ID",
+            "APP_STORE_CONNECT_ISSUER_ID",
+            "APP_STORE_CONNECT_PRIVATE_KEY_BASE64",
+        )
         if not os.environ.get(name)
     ]
     if missing:
@@ -149,18 +168,23 @@ def load_credentials() -> Credentials:
 def load_release_notes(path: Path) -> str:
     if not path.is_file():
         raise SystemExit(
-            f"Release notes not found: {path}\nEvery production promotion needs release-notes/<version>.md."
+            f"Release notes not found: {path}\n"
+            "Every production promotion needs release-notes/<version>.md."
         )
     text = path.read_text(encoding="utf-8").strip()
     if not text:
         raise SystemExit(f"Release notes are empty: {path}")
     if len(text) > WHATS_NEW_LIMIT:
-        raise SystemExit(f"Release notes are {len(text)} characters; App Store allows {WHATS_NEW_LIMIT}.")
+        raise SystemExit(
+            f"Release notes are {len(text)} characters; App Store allows {WHATS_NEW_LIMIT}."
+        )
     return text
 
 
 def find_app(asc: AppStoreConnect, bundle_id: str) -> str:
-    apps = asc.get("/apps", {"filter[bundleId]": bundle_id, "fields[apps]": "bundleId,name"}).get("data", [])
+    apps = asc.get("/apps", {"filter[bundleId]": bundle_id, "fields[apps]": "bundleId,name"}).get(
+        "data", []
+    )
     if len(apps) != 1:
         raise SystemExit(f"Expected one app with bundle id {bundle_id}, found {len(apps)}")
     print(f"App {apps[0]['attributes']['name']} ({apps[0]['id']})")
@@ -183,10 +207,16 @@ def find_build(asc: AppStoreConnect, app_id: str, version: str, wait_minutes: in
         ).get("data", [])
         builds = [b for b in builds if not b["attributes"].get("expired")]
         if not builds:
-            raise SystemExit(f"No build for version {version} in App Store Connect. Has the v{version} upload finished?")
+            raise SystemExit(
+                f"No build for version {version} in App Store Connect. "
+                f"Has the v{version} upload finished?"
+            )
         build = max(builds, key=lambda b: int(b["attributes"]["version"]))
         state = build["attributes"]["processingState"]
-        label = f"build {build['attributes']['version']} ({build['id']}, uploaded {build['attributes']['uploadedDate']})"
+        label = (
+            f"build {build['attributes']['version']} "
+            f"({build['id']}, uploaded {build['attributes']['uploadedDate']})"
+        )
         if state == "VALID":
             print(f"Using {label}")
             return build
@@ -230,10 +260,19 @@ def find_or_create_version(asc: AppStoreConnect, app_id: str, version: str) -> d
         state = version_state(record)
         current = record["attributes"].get("versionString")
         if state in EDITABLE_STATES and current != version:
-            print(f"Renaming editable App Store version {current} ({record['id']}, {state}) to {version}")
+            print(
+                f"Renaming editable App Store version {current} "
+                f"({record['id']}, {state}) to {version}"
+            )
             asc.patch(
                 f"/appStoreVersions/{record['id']}",
-                {"data": {"type": "appStoreVersions", "id": record["id"], "attributes": {"versionString": version}}},
+                {
+                    "data": {
+                        "type": "appStoreVersions",
+                        "id": record["id"],
+                        "attributes": {"versionString": version},
+                    }
+                },
             )
             record["attributes"]["versionString"] = version
             return record
@@ -244,7 +283,11 @@ def find_or_create_version(asc: AppStoreConnect, app_id: str, version: str) -> d
         {
             "data": {
                 "type": "appStoreVersions",
-                "attributes": {"platform": "IOS", "versionString": version, "releaseType": "AFTER_APPROVAL"},
+                "attributes": {
+                    "platform": "IOS",
+                    "versionString": version,
+                    "releaseType": "AFTER_APPROVAL",
+                },
                 "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
             }
         },
@@ -277,7 +320,9 @@ def set_whats_new(asc: AppStoreConnect, version_id: str, notes: str) -> None:
                 "data": {
                     "type": "appStoreVersionLocalizations",
                     "attributes": {"locale": DEFAULT_LOCALE, "whatsNew": notes},
-                    "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}},
+                    "relationships": {
+                        "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}
+                    },
                 }
             },
         )
@@ -287,15 +332,26 @@ def set_whats_new(asc: AppStoreConnect, version_id: str, notes: str) -> None:
         print(f"Setting What's New for {locale}")
         asc.patch(
             f"/appStoreVersionLocalizations/{localization['id']}",
-            {"data": {"type": "appStoreVersionLocalizations", "id": localization["id"], "attributes": {"whatsNew": notes}}},
+            {
+                "data": {
+                    "type": "appStoreVersionLocalizations",
+                    "id": localization["id"],
+                    "attributes": {"whatsNew": notes},
+                }
+            },
         )
 
 
 def enable_phased_release(asc: AppStoreConnect, version_id: str) -> None:
     if version_id != "<new>":
-        current = asc.get(f"/appStoreVersions/{version_id}/appStoreVersionPhasedRelease").get("data")
+        current = asc.get(f"/appStoreVersions/{version_id}/appStoreVersionPhasedRelease").get(
+            "data"
+        )
         if current:
-            print(f"Phased release already configured ({current['attributes'].get('phasedReleaseState')})")
+            print(
+                "Phased release already configured "
+                f"({current['attributes'].get('phasedReleaseState')})"
+            )
             return
     print("Enabling phased release (7 days after approval)")
     asc.post(
@@ -304,7 +360,9 @@ def enable_phased_release(asc: AppStoreConnect, version_id: str) -> None:
             "data": {
                 "type": "appStoreVersionPhasedReleases",
                 "attributes": {"phasedReleaseState": "INACTIVE"},
-                "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}},
+                "relationships": {
+                    "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}
+                },
             }
         },
     )
@@ -313,7 +371,11 @@ def enable_phased_release(asc: AppStoreConnect, version_id: str) -> None:
 def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> None:
     open_submissions = asc.get(
         f"/apps/{app_id}/reviewSubmissions",
-        {"filter[platform]": "IOS", "filter[state]": "READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES", "limit": 10},
+        {
+            "filter[platform]": "IOS",
+            "filter[state]": "READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES",
+            "limit": 10,
+        },
     ).get("data", [])
     submission = None
     for record in open_submissions:
@@ -322,7 +384,10 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
             print(f"Reusing draft review submission {record['id']}")
             submission = record
             break
-        raise SystemExit(f"A review submission is already {state} ({record['id']}); resolve it in App Store Connect first")
+        raise SystemExit(
+            f"A review submission is already {state} ({record['id']}); "
+            "resolve it in App Store Connect first"
+        )
 
     if submission is None:
         print("Creating review submission")
@@ -342,10 +407,15 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
     if submission_id != "<new-submission>":
         items = asc.get(
             f"/reviewSubmissions/{submission_id}/items",
-            {"limit": 10, "fields[reviewSubmissionItems]": "appStoreVersion", "include": "appStoreVersion"},
+            {
+                "limit": 10,
+                "fields[reviewSubmissionItems]": "appStoreVersion",
+                "include": "appStoreVersion",
+            },
         ).get("data", [])
         already_attached = any(
-            (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id") == version_id
+            (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id")
+            == version_id
             for item in items
         )
     if not already_attached:
@@ -356,7 +426,9 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
                 "data": {
                     "type": "reviewSubmissionItems",
                     "relationships": {
-                        "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": submission_id}},
+                        "reviewSubmission": {
+                            "data": {"type": "reviewSubmissions", "id": submission_id}
+                        },
                         "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}},
                     },
                 }
@@ -366,7 +438,13 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
     print(f"Submitting {submission_id} for review")
     asc.patch(
         f"/reviewSubmissions/{submission_id}",
-        {"data": {"type": "reviewSubmissions", "id": submission_id, "attributes": {"submitted": True}}},
+        {
+            "data": {
+                "type": "reviewSubmissions",
+                "id": submission_id,
+                "attributes": {"submitted": True},
+            }
+        },
     )
 
 
@@ -389,7 +467,10 @@ def main() -> int:
     if args.dry_run:
         print("Dry run: nothing was written")
     else:
-        print(f"Submitted {args.version} (build {build['attributes']['version']}) for App Store review")
+        print(
+            f"Submitted {args.version} (build {build['attributes']['version']}) "
+            "for App Store review"
+        )
     return 0
 
 

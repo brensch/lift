@@ -15,8 +15,9 @@ Usage:
 Output:
   app/test_screenshots/report.html
 """
+
 import base64
-import glob
+import contextlib
 import html
 import json
 import sys
@@ -51,10 +52,8 @@ def parse_logs(paths):
                 current = payload.strip()
                 scenarios.setdefault(current, [])
             elif tag == "step" and current is not None:
-                try:
+                with contextlib.suppress(json.JSONDecodeError):
                     scenarios[current].append(json.loads(payload))
-                except json.JSONDecodeError:
-                    pass
             elif tag == "end":
                 current = None
     return scenarios
@@ -65,8 +64,9 @@ def _img_data_uri(png: Path) -> str:
     enough to open (full-res base64 PNGs pushed it past 16 MB). Falls back to the
     raw PNG if Pillow isn't available."""
     try:
-        from PIL import Image
         import io
+
+        from PIL import Image
 
         im = Image.open(png).convert("RGB")
         im.thumbnail((420, 900))
@@ -95,44 +95,50 @@ def _section(name, steps) -> str:
         rows.append(f"""
       <div class="step">
         <div class="meta">
-          <span class="idx">{st.get('index', ''):>2}</span>
+          <span class="idx">{st.get("index", ""):>2}</span>
           <span class="tag" style="--tag:{color}">{label}</span>
           <span class="title">{title}</span>
         </div>
-        {f'<p class="note">{note}</p>' if note else ''}
-        {f'<div class="shot">{img}</div>' if img else ''}
+        {f'<p class="note">{note}</p>' if note else ""}
+        {f'<div class="shot">{img}</div>' if img else ""}
       </div>""")
     return f"""
     <section>
       <h2>{html.escape(name)} <span class="count">{len(steps)} steps</span></h2>
-      <div class="steps">{''.join(rows)}</div>
+      <div class="steps">{"".join(rows)}</div>
     </section>"""
 
 
 def main(argv) -> int:
-    paths = argv[1:] or sorted(glob.glob(str(SHOTS / "*.drive.log")))
+    # Hidden files are skipped, as glob.glob did before this moved to pathlib.
+    paths = argv[1:] or sorted(
+        str(p) for p in SHOTS.glob("*.drive.log") if not p.name.startswith(".")
+    )
     scenarios = parse_logs(paths) if paths else {}
     sections = [_section(n, s) for n, s in scenarios.items()]
 
+    palette = "--bg:#0b0f14; --panel:#111827; --ink:#e5e7eb; --dim:#94a3b8; --line:#1f2937"
+    column = "display:flex; flex-direction:column"
+    rule = "1px solid var(--line)"
     out = SHOTS / "report.html"
     out.write_text(f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lift — e2e scenarios</title>
 <style>
-  :root {{ color-scheme: dark; --bg:#0b0f14; --panel:#111827; --ink:#e5e7eb; --dim:#94a3b8; --line:#1f2937; }}
+  :root {{ color-scheme: dark; {palette}; }}
   * {{ box-sizing: border-box; }}
   body {{ margin:0; background:var(--bg); color:var(--ink);
     font:15px/1.55 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }}
-  header {{ padding:28px 32px; border-bottom:1px solid var(--line); }}
+  header {{ padding:28px 32px; border-bottom:{rule}; }}
   h1 {{ margin:0; font-size:20px; letter-spacing:.02em; }}
   header p {{ margin:6px 0 0; color:var(--dim); }}
-  main {{ padding:24px 32px; display:flex; flex-direction:column; gap:40px; max-width:1200px; }}
-  section h2 {{ font-size:16px; margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--line);
+  main {{ padding:24px 32px; {column}; gap:40px; max-width:1200px; }}
+  section h2 {{ font-size:16px; margin:0 0 14px; padding-bottom:8px; border-bottom:{rule};
     color:#fff; letter-spacing:.01em; display:flex; align-items:baseline; gap:10px; }}
   .count {{ font-size:12px; color:var(--dim); font-weight:400; }}
   .steps {{ display:flex; flex-direction:column; gap:18px; }}
-  .step {{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }}
+  .step {{ background:var(--panel); border:{rule}; border-radius:12px; padding:14px 16px; }}
   .meta {{ display:flex; align-items:center; gap:10px; }}
   .idx {{ font-variant-numeric:tabular-nums; color:var(--dim); font-size:13px; }}
   .tag {{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#0b0f14;
@@ -140,7 +146,7 @@ def main(argv) -> int:
   .title {{ font-weight:600; }}
   .note {{ margin:8px 0 0; color:var(--dim); }}
   .shot {{ margin-top:12px; }}
-  .shot img {{ max-width:300px; width:100%; border:1px solid var(--line); border-radius:8px; display:block; }}
+  .shot img {{ max-width:300px; width:100%; border:{rule}; border-radius:8px; display:block; }}
   .missing {{ color:#fca5a5; font-size:13px; }}
 </style></head>
 <body>
@@ -148,10 +154,11 @@ def main(argv) -> int:
     <h1>Lift — end-to-end scenarios</h1>
     <p>{len(sections)} scenario(s), captured on the Android emulator against the real backend.</p>
   </header>
-  <main>{''.join(sections) if sections else '<p class=note>No scenarios captured.</p>'}</main>
+  <main>{"".join(sections) if sections else "<p class=note>No scenarios captured.</p>"}</main>
 </body></html>""")
-    print(f"wrote {out} ({len(sections)} scenarios, "
-          f"{sum(len(s) for s in scenarios.values())} steps)")
+    print(
+        f"wrote {out} ({len(sections)} scenarios, {sum(len(s) for s in scenarios.values())} steps)"
+    )
     return 0
 
 

@@ -1,5 +1,5 @@
-import SwiftUI
 import HealthKit
+import SwiftUI
 import WatchKit
 
 @main
@@ -24,7 +24,7 @@ struct SchliftWatchApp: App {
 /// to the phone). We reach it through the singleton because on a cold background launch
 /// the SwiftUI @StateObject may not have been created yet.
 final class WatchAppDelegate: NSObject, WKApplicationDelegate {
-    func handle(_ workoutConfiguration: HKWorkoutConfiguration) {
+    func handle(_: HKWorkoutConfiguration) {
         print("SchliftWatch: launched by phone to handle workout configuration")
         PhoneConnector.shared.startCompanionSessionFromLaunch()
     }

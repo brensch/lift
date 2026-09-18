@@ -31,7 +31,8 @@ class TimerHeartBox extends StatelessWidget {
   final String elapsedText;
   final String heartRateText;
   final bool heartRateDetected;
-  const TimerHeartBox({super.key, 
+  const TimerHeartBox({
+    super.key,
     required this.elapsedText,
     required this.heartRateText,
     required this.heartRateDetected,
@@ -120,7 +121,8 @@ class BigButton extends StatelessWidget {
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
 
-  const BigButton({super.key, 
+  const BigButton({
+    super.key,
     required this.label,
     required this.onPressed,
     this.secondaryLabel,

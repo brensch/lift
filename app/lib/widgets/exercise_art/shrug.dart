@@ -10,7 +10,9 @@ ExerciseArt shrugArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(91, 91), Limb(89, 89)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Shrug — whole figure rises ~3 units, shoulders pulled up.
   Pose(
@@ -20,6 +22,8 @@ ExerciseArt shrugArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(91, 91), Limb(89, 89)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

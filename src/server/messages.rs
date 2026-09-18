@@ -179,4 +179,3 @@ pub(super) fn session_messages_for_completed_set(
     out.push(message);
     out
 }
-

@@ -34,14 +34,14 @@ class AppTheme {
 
   /// Standard grab handle for bottom sheets (36×4, outlineVariant).
   static Widget sheetHandle(BuildContext context) => Container(
-        width: 36,
-        height: 4,
-        margin: const EdgeInsets.only(top: 8, bottom: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      );
+    width: 36,
+    height: 4,
+    margin: const EdgeInsets.only(top: 8, bottom: 12),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.outlineVariant,
+      borderRadius: BorderRadius.circular(4),
+    ),
+  );
 
   /// Translucent card fill used on the dark ground (white @ ~4%).
   static Color cardFill(BuildContext context) =>

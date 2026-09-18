@@ -196,7 +196,11 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
                 exercise,
                 SessionOutcome {
                     at,
-                    min_reps: if a.min_reps == i32::MAX { 0 } else { a.min_reps },
+                    min_reps: if a.min_reps == i32::MAX {
+                        0
+                    } else {
+                        a.min_reps
+                    },
                     performed_weight: a.last_done.1,
                     top_weight: a.top_weight,
                     bailed: bailed.contains(&exercise),
@@ -246,8 +250,7 @@ pub fn advance_tracker(
             // Range topped out on every set: add one equipment step and
             // drop back to the bottom of the range.
             let step = progression_increment_lb(ex, unit);
-            next.working_weight =
-                snap_weight_lb(ex, outcome.performed_weight + step, unit);
+            next.working_weight = snap_weight_lb(ex, outcome.performed_weight + step, unit);
             next.current_reps = p.rep_low;
         } else {
             // Progress by reps: next target follows the worst set + 1, so
@@ -364,7 +367,12 @@ mod tests {
         for (i, actual) in actuals.iter().enumerate() {
             let set_id = format!("{id}_s{i}");
             proposed_sets.push(proposed(&set_id, ex, weight, target, false));
-            completed_sets.push(completed(&set_id, *actual, weight, at - (actuals.len() - i) as i64));
+            completed_sets.push(completed(
+                &set_id,
+                *actual,
+                weight,
+                at - (actuals.len() - i) as i64,
+            ));
         }
         WorkoutRecord {
             workout: Workout {
@@ -408,7 +416,10 @@ mod tests {
         assert_eq!(next.working_weight, 200.0);
         assert_eq!(next.current_reps, 6, "no rep advance on a bail");
         assert_eq!(next.consecutive_misses, 1, "no miss counted on a bail");
-        assert_eq!(next.last_performed_at, 1000, "the session still counts as training");
+        assert_eq!(
+            next.last_performed_at, 1000,
+            "the session still counts as training"
+        );
     }
 
     /// The everyday case: clear the target below the top of the range and
@@ -551,7 +562,14 @@ mod tests {
         assert_eq!((resolved.rep_low, resolved.rep_high), (6, 8));
         assert!(resolved.overridden);
 
-        let record = session("w1", 1000, Exercise::LateralRaise, 20.0, 8, &[8, 8, 8, 8, 8]);
+        let record = session(
+            "w1",
+            1000,
+            Exercise::LateralRaise,
+            20.0,
+            8,
+            &[8, 8, 8, 8, 8],
+        );
         let next = advance(Exercise::LateralRaise, state, &record);
         assert_eq!(next.working_weight, 25.0, "topped the overridden range");
         assert_eq!(next.current_reps, 6, "reset to the overridden bottom");

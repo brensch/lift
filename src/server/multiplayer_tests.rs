@@ -325,8 +325,18 @@ mod session_history_tests {
             .unwrap()
             .into_inner();
         assert!(resp.session_id.is_empty());
-        assert!(svc.db.get_user_current_session(&alice_id).await.unwrap().is_none());
-        assert!(svc.db.get_user_current_session(&bob_id).await.unwrap().is_none());
+        assert!(svc
+            .db
+            .get_user_current_session(&alice_id)
+            .await
+            .unwrap()
+            .is_none());
+        assert!(svc
+            .db
+            .get_user_current_session(&bob_id)
+            .await
+            .unwrap()
+            .is_none());
     }
 
     /// Two people joining the same inviter's link at the same time must both land
@@ -344,11 +354,15 @@ mod session_history_tests {
         let (r1, r2) = tokio::join!(
             svc.join_via_invite(authed(
                 &bob_tok,
-                JoinViaInviteRequest { invite_token: invite.clone() },
+                JoinViaInviteRequest {
+                    invite_token: invite.clone()
+                },
             )),
             svc.join_via_invite(authed(
                 &carol_tok,
-                JoinViaInviteRequest { invite_token: invite.clone() },
+                JoinViaInviteRequest {
+                    invite_token: invite.clone()
+                },
             )),
         );
         r1.unwrap();
@@ -368,7 +382,10 @@ mod session_history_tests {
         let a = svc.db.get_user_current_session(&alice_id).await.unwrap();
         let b = svc.db.get_user_current_session(&bob_id).await.unwrap();
         let c = svc.db.get_user_current_session(&carol_id).await.unwrap();
-        assert!(a.is_some() && a == b && b == c, "all three in one session: {a:?} {b:?} {c:?}");
+        assert!(
+            a.is_some() && a == b && b == c,
+            "all three in one session: {a:?} {b:?} {c:?}"
+        );
     }
 
     /// Asking several people via the request/accept flow gathers them all into the
@@ -386,7 +403,9 @@ mod session_history_tests {
         for tok in [&bob_tok, &carol_tok] {
             svc.join_via_invite(authed(
                 tok,
-                JoinViaInviteRequest { invite_token: alice_invite.clone() },
+                JoinViaInviteRequest {
+                    invite_token: alice_invite.clone(),
+                },
             ))
             .await
             .unwrap();
@@ -403,7 +422,9 @@ mod session_history_tests {
             let req = svc
                 .request_join_partner(authed(
                     &alice_tok,
-                    RequestJoinPartnerRequest { partner_user_id: id.clone() },
+                    RequestJoinPartnerRequest {
+                        partner_user_id: id.clone(),
+                    },
                 ))
                 .await
                 .unwrap()
@@ -411,7 +432,10 @@ mod session_history_tests {
                 .request_id;
             svc.respond_join_request(authed(
                 tok,
-                RespondJoinRequestRequest { request_id: req, accept: true },
+                RespondJoinRequestRequest {
+                    request_id: req,
+                    accept: true,
+                },
             ))
             .await
             .unwrap();
@@ -421,7 +445,10 @@ mod session_history_tests {
         let a = svc.db.get_user_current_session(&alice_id).await.unwrap();
         let b = svc.db.get_user_current_session(&bob_id).await.unwrap();
         let c = svc.db.get_user_current_session(&carol_id).await.unwrap();
-        assert!(a.is_some() && a == b && b == c, "all three in one session: {a:?} {b:?} {c:?}");
+        assert!(
+            a.is_some() && a == b && b == c,
+            "all three in one session: {a:?} {b:?} {c:?}"
+        );
 
         let sess = svc
             .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))

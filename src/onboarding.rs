@@ -85,8 +85,7 @@ pub fn starting_tracker_weights(
                     * multiplier
                     * gender_multiplier(gender, *exercise);
                 // Never below the empty bar — these are barbell lifts.
-                snap_weight_lb(*exercise, raw, unit)
-                    .max(starting_weight_lb(*exercise, unit))
+                snap_weight_lb(*exercise, raw, unit).max(starting_weight_lb(*exercise, unit))
             } else {
                 starting_weight_lb(*exercise, unit)
             };
@@ -97,11 +96,19 @@ pub fn starting_tracker_weights(
 
 /// Tracker seeds for the main lifts from the slider alone. Bodyweight
 /// plays no part: the ends are fixed weights.
-pub fn starting_tracker_weights_for_strength(strength: f32, unit: AppWeightUnit) -> Vec<(Exercise, f32)> {
+pub fn starting_tracker_weights_for_strength(
+    strength: f32,
+    unit: AppWeightUnit,
+) -> Vec<(Exercise, f32)> {
     let s = strength.clamp(0.0, 1.0);
     STRENGTH_RANGE_LB
         .iter()
-        .map(|(exercise, lo, hi)| (*exercise, snap_weight_lb(*exercise, lo + (hi - lo) * s, unit)))
+        .map(|(exercise, lo, hi)| {
+            (
+                *exercise,
+                snap_weight_lb(*exercise, lo + (hi - lo) * s, unit),
+            )
+        })
         .collect()
 }
 
@@ -124,7 +131,10 @@ mod tests {
             .unwrap()
             .1;
         let raw = kg_to_pounds(100.0) * 0.95;
-        assert!((squat - raw).abs() <= 5.0, "snapped near the ratio: {squat}");
+        assert!(
+            (squat - raw).abs() <= 5.0,
+            "snapped near the ratio: {squat}"
+        );
 
         let cute = starting_tracker_weights(
             100.0,
@@ -166,14 +176,12 @@ mod tests {
             Gender::Male,
             AppWeightUnit::Lb,
         );
-        let get = |list: &[(Exercise, f32)], ex: Exercise| {
-            list.iter().find(|(e, _)| *e == ex).unwrap().1
-        };
+        let get =
+            |list: &[(Exercise, f32)], ex: Exercise| list.iter().find(|(e, _)| *e == ex).unwrap().1;
         assert!(get(&female, Exercise::BenchPress) < get(&male, Exercise::BenchPress));
         assert!(get(&female, Exercise::Squat) < get(&male, Exercise::Squat));
         // Upper body scales down further than lower body.
-        let bench_ratio =
-            get(&female, Exercise::BenchPress) / get(&male, Exercise::BenchPress);
+        let bench_ratio = get(&female, Exercise::BenchPress) / get(&male, Exercise::BenchPress);
         let squat_ratio = get(&female, Exercise::Squat) / get(&male, Exercise::Squat);
         assert!(bench_ratio < squat_ratio);
     }
@@ -203,7 +211,8 @@ mod tests {
         assert_eq!(get(Exercise::BarbellRow), 145.0);
         let chick = starting_tracker_weights_for_strength(0.0, AppWeightUnit::Lb);
         let gorilla = starting_tracker_weights_for_strength(1.0, AppWeightUnit::Lb);
-        let at = |v: &Vec<(Exercise, f32)>, ex: Exercise| v.iter().find(|(e, _)| *e == ex).unwrap().1;
+        let at =
+            |v: &Vec<(Exercise, f32)>, ex: Exercise| v.iter().find(|(e, _)| *e == ex).unwrap().1;
         assert_eq!(at(&chick, Exercise::Squat), 45.0);
         assert_eq!(at(&chick, Exercise::BenchPress), 35.0);
         assert_eq!(at(&gorilla, Exercise::Squat), 315.0);

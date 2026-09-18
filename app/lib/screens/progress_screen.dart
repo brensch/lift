@@ -49,8 +49,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
     for (final s in all) {
       final pts = s.points.where((p) => p.date.isAfter(cutoff)).toList();
       if (pts.isEmpty) continue;
-      out.add(_ExerciseProgress(
-          exercise: s.exercise, points: pts, color: s.color));
+      out.add(
+        _ExerciseProgress(exercise: s.exercise, points: pts, color: s.color),
+      );
     }
     return out;
   }
@@ -82,17 +83,21 @@ class _ProgressScreenState extends State<ProgressScreen> {
       final series = <_ExerciseProgress>[];
       for (var i = 0; i < resp.exercises.length; i++) {
         final ep = resp.exercises[i];
-        series.add(_ExerciseProgress(
-          exercise: ep.exercise,
-          points: ep.points
-              .map((p) => _Point(
+        series.add(
+          _ExerciseProgress(
+            exercise: ep.exercise,
+            points: ep.points
+                .map(
+                  (p) => _Point(
                     DateTime.fromMillisecondsSinceEpoch(p.date.toInt() * 1000),
                     p.topWeight,
                     p.bestOneRepMax,
-                  ))
-              .toList(),
-          color: _palette[i % _palette.length],
-        ));
+                  ),
+                )
+                .toList(),
+            color: _palette[i % _palette.length],
+          ),
+        );
       }
       setState(() {
         _series = series;
@@ -112,19 +117,20 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     Widget scaffold(Widget body) => TopLevelBackScope(
-          child: Scaffold(
-            appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/'),
-              ),
-              title: const Text('Progress',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-            ),
-            body: body,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
           ),
-        );
+          title: const Text(
+            'Progress',
+            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
+        ),
+        body: body,
+      ),
+    );
 
     if (_isLoading) {
       return scaffold(const Center(child: CircularProgressIndicator()));
@@ -161,8 +167,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 40),
               child: Center(
-                child: Text('No lifts in the last ${_windows[_windowIdx].label}.',
-                    style: TextStyle(color: cs.tertiary, fontSize: 14)),
+                child: Text(
+                  'No lifts in the last ${_windows[_windowIdx].label}.',
+                  style: TextStyle(color: cs.tertiary, fontSize: 14),
+                ),
               ),
             )
           else
@@ -197,12 +205,18 @@ class _SummaryHeader extends StatelessWidget {
       children: [
         _headStat('$workoutCount', 'workouts', cs),
         const SizedBox(width: 24),
-        _headStat(_compactVolume(totalVolume), '${weightUnitSuffix(unit)} lifted', cs),
+        _headStat(
+          _compactVolume(totalVolume),
+          '${weightUnitSuffix(unit)} lifted',
+          cs,
+        ),
         const Spacer(),
         Padding(
           padding: const EdgeInsets.only(bottom: 2),
-          child: Text('since ${_shortDate(since)}',
-              style: TextStyle(color: cs.tertiary, fontSize: 12)),
+          child: Text(
+            'since ${_shortDate(since)}',
+            style: TextStyle(color: cs.tertiary, fontSize: 12),
+          ),
         ),
       ],
     );
@@ -215,14 +229,19 @@ class _SummaryHeader extends StatelessWidget {
   }
 
   Widget _headStat(String value, String label, ColorScheme cs) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 26, fontWeight: FontWeight.w900, height: 1)),
-          Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+    ],
+  );
 }
 
 /// Segmented control for the chart time-scale (1M / 3M / 6M / 1Y / All).
@@ -275,8 +294,9 @@ class _WindowSelector extends StatelessWidget {
                       labels[i],
                       style: TextStyle(
                         fontSize: 12.5,
-                        fontWeight:
-                            i == selected ? FontWeight.w900 : FontWeight.w700,
+                        fontWeight: i == selected
+                            ? FontWeight.w900
+                            : FontWeight.w700,
                         color: i == selected
                             ? cs.onSurface
                             : cs.onSurfaceVariant,
@@ -296,8 +316,11 @@ class _ExerciseCard extends StatelessWidget {
   final _ExerciseProgress series;
   final WeightUnit unit;
   final ColorScheme cs;
-  const _ExerciseCard(
-      {required this.series, required this.unit, required this.cs});
+  const _ExerciseCard({
+    required this.series,
+    required this.unit,
+    required this.cs,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -335,13 +358,16 @@ class _ExerciseCard extends StatelessWidget {
                         Text(emoji, style: const TextStyle(fontSize: 14)),
                         const SizedBox(width: 5),
                         Expanded(
-                          child: Text(name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13.5,
-                                  letterSpacing: -0.2)),
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13.5,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -351,25 +377,31 @@ class _ExerciseCard extends StatelessWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Flexible(
-                          child: Text(formatWeight(series.current, unit),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 15,
-                                  letterSpacing: -0.3,
-                                  color: series.color,
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures()
-                                  ])),
+                          child: Text(
+                            formatWeight(series.current, unit),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                              letterSpacing: -0.3,
+                              color: series.color,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
                         ),
                         if (gainText.isNotEmpty) ...[
                           const SizedBox(width: 5),
-                          Text(gainText,
-                              style: TextStyle(
-                                  color: gainColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800)),
+                          Text(
+                            gainText,
+                            style: TextStyle(
+                              color: gainColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -383,12 +415,17 @@ class _ExerciseCard extends StatelessWidget {
                   height: 38,
                   child: series.points.length >= 2
                       ? _Chart(
-                          series: series, unit: unit, cs: cs, compact: true)
+                          series: series,
+                          unit: unit,
+                          cs: cs,
+                          compact: true,
+                        )
                       : Align(
                           alignment: Alignment.centerLeft,
-                          child: Text('1 session',
-                              style:
-                                  TextStyle(color: cs.tertiary, fontSize: 11)),
+                          child: Text(
+                            '1 session',
+                            style: TextStyle(color: cs.tertiary, fontSize: 11),
+                          ),
                         ),
                 ),
               ),
@@ -411,25 +448,30 @@ class _ExerciseCard extends StatelessWidget {
   }
 
   Widget _rightStat(String label, String value, ColorScheme cs) => Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                  color: cs.tertiary)),
-          const SizedBox(width: 6),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  fontFeatures: [FontFeature.tabularFigures()])),
-        ],
-      );
-
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.baseline,
+    textBaseline: TextBaseline.alphabetic,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+          color: cs.tertiary,
+        ),
+      ),
+      const SizedBox(width: 6),
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          fontFeatures: [FontFeature.tabularFigures()],
+        ),
+      ),
+    ],
+  );
 }
 
 class _Chart extends StatelessWidget {
@@ -451,8 +493,7 @@ class _Chart extends StatelessWidget {
   Widget build(BuildContext context) {
     final pts = series.points;
     final spots = [
-      for (var i = 0; i < pts.length; i++)
-        FlSpot(i.toDouble(), pts[i].weight),
+      for (var i = 0; i < pts.length; i++) FlSpot(i.toDouble(), pts[i].weight),
     ];
     final minW = pts.map((p) => p.weight).reduce((a, b) => a < b ? a : b);
     final maxW = pts.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
@@ -518,14 +559,18 @@ class _Chart extends StatelessWidget {
               showTitles: true,
               reservedSize: 34,
               interval: ((maxW - minW) / 2).clamp(1, double.infinity),
-              getTitlesWidget: (v, meta) => Text(formatWeight(v, unit),
-                  style: TextStyle(fontSize: 10, color: cs.tertiary)),
+              getTitlesWidget: (v, meta) => Text(
+                formatWeight(v, unit),
+                style: TextStyle(fontSize: 10, color: cs.tertiary),
+              ),
             ),
           ),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -536,8 +581,10 @@ class _Chart extends StatelessWidget {
                 if (i != 0 && i != pts.length - 1) return const SizedBox();
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(_shortDate(pts[i].date),
-                      style: TextStyle(fontSize: 10, color: cs.tertiary)),
+                  child: Text(
+                    _shortDate(pts[i].date),
+                    style: TextStyle(fontSize: 10, color: cs.tertiary),
+                  ),
                 );
               },
             ),
@@ -552,9 +599,10 @@ class _Chart extends StatelessWidget {
               return LineTooltipItem(
                 '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${_shortDate(p.date)}',
                 TextStyle(
-                    color: cs.onInverseSurface,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11),
+                  color: cs.onInverseSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
               );
             }).toList(),
           ),
@@ -599,26 +647,39 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.cs});
   @override
   Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('📈', style: const TextStyle(fontSize: 40)),
-            const SizedBox(height: 12),
-            Text('No workout history yet',
-                style: TextStyle(
-                    color: cs.onSurface, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text('Finish a workout and your progress shows up here.',
-                style: TextStyle(color: cs.tertiary, fontSize: 13)),
-          ],
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('📈', style: const TextStyle(fontSize: 40)),
+        const SizedBox(height: 12),
+        Text(
+          'No workout history yet',
+          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w800),
         ),
-      );
+        const SizedBox(height: 4),
+        Text(
+          'Finish a workout and your progress shows up here.',
+          style: TextStyle(color: cs.tertiary, fontSize: 13),
+        ),
+      ],
+    ),
+  );
 }
 
 String _shortDate(DateTime d) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   return '${months[d.month - 1]} ${d.day}';
 }
@@ -634,12 +695,16 @@ class _ExerciseProgress {
   final Exercise exercise;
   final List<_Point> points;
   final Color color;
-  _ExerciseProgress(
-      {required this.exercise, required this.points, required this.color});
+  _ExerciseProgress({
+    required this.exercise,
+    required this.points,
+    required this.color,
+  });
 
   double get start => points.first.weight;
   double get current => points.last.weight;
-  double get best => points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
+  double get best =>
+      points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
   double get bestOneRm =>
       points.map((p) => p.oneRm).reduce((a, b) => a > b ? a : b);
   double get gain => current - start;

@@ -1,0 +1,16 @@
+# Python here is build, release and store tooling under scripts/.
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = [
+    "E", "W",  # pycodestyle
+    "F",       # pyflakes
+    "I",       # import order
+    "UP",      # modern syntax for the target version
+    "B",       # bugbear: likely bugs
+    "SIM",     # needless complexity
+    "C4",      # comprehensions
+    "PTH",     # pathlib over os.path
+    "RUF",     # ruff's own
+]

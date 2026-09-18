@@ -28,7 +28,11 @@ class WorkoutForegroundService : Service() {
         exerciseSessionManager = WearExerciseSessionManager(applicationContext)
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         when (intent?.action) {
             ACTION_STOP -> {
                 stopWorkoutTracking()
@@ -47,7 +51,9 @@ class WorkoutForegroundService : Service() {
                 return START_STICKY
             }
 
-            else -> return START_NOT_STICKY
+            else -> {
+                return START_NOT_STICKY
+            }
         }
     }
 
@@ -73,56 +79,69 @@ class WorkoutForegroundService : Service() {
         }
     }
 
-    private fun buildNotification(workoutLabel: String, stateLabel: String): Notification {
-        val launchIntent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }
-        val launchPendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    private fun buildNotification(
+        workoutLabel: String,
+        stateLabel: String,
+    ): Notification {
+        val launchIntent =
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+        val launchPendingIntent =
+            PendingIntent.getActivity(
+                this,
+                0,
+                launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
         val title = if (workoutLabel.isNotBlank()) workoutLabel else "Workout in progress"
-        val content = when {
-            stateLabel.isNotBlank() -> stateLabel
-            else -> "Tracking workout and heart rate"
-        }
-        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(content)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setCategory(NotificationCompat.CATEGORY_WORKOUT)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(launchPendingIntent)
-        val ongoingStatus = Status.Builder()
-            .addTemplate(content)
-            .build()
-        OngoingActivity.Builder(
-            this,
-            NOTIFICATION_ID,
-            notificationBuilder,
-        ).apply {
-            setAnimatedIcon(Icon.createWithResource(this@WorkoutForegroundService, R.drawable.ic_ongoing_workout))
-            setStaticIcon(Icon.createWithResource(this@WorkoutForegroundService, R.drawable.ic_ongoing_workout))
-            setTouchIntent(launchPendingIntent)
-            setStatus(ongoingStatus)
-        }.build().apply(this)
+        val content =
+            when {
+                stateLabel.isNotBlank() -> stateLabel
+                else -> "Tracking workout and heart rate"
+            }
+        val notificationBuilder =
+            NotificationCompat
+                .Builder(this, CHANNEL_ID)
+                .setContentTitle(title)
+                .setContentText(content)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setCategory(NotificationCompat.CATEGORY_WORKOUT)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setContentIntent(launchPendingIntent)
+        val ongoingStatus =
+            Status
+                .Builder()
+                .addTemplate(content)
+                .build()
+        OngoingActivity
+            .Builder(
+                this,
+                NOTIFICATION_ID,
+                notificationBuilder,
+            ).apply {
+                setAnimatedIcon(Icon.createWithResource(this@WorkoutForegroundService, R.drawable.ic_ongoing_workout))
+                setStaticIcon(Icon.createWithResource(this@WorkoutForegroundService, R.drawable.ic_ongoing_workout))
+                setTouchIntent(launchPendingIntent)
+                setStatus(ongoingStatus)
+            }.build()
+            .apply(this)
         return notificationBuilder.build()
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Workout tracking",
-            NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            description = "Ongoing workout tracking on Wear OS"
-        }
+        val channel =
+            NotificationChannel(
+                CHANNEL_ID,
+                "Workout tracking",
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply {
+                description = "Ongoing workout tracking on Wear OS"
+            }
         manager.createNotificationChannel(channel)
     }
 
@@ -136,6 +155,7 @@ class WorkoutForegroundService : Service() {
         private const val ACTION_START = "com.brensch.schlift.wear.action.START_WORKOUT_FOREGROUND"
         private const val ACTION_UPDATE = "com.brensch.schlift.wear.action.UPDATE_WORKOUT_FOREGROUND"
         private const val ACTION_STOP = "com.brensch.schlift.wear.action.STOP_WORKOUT_FOREGROUND"
+
         @Volatile
         private var running = false
 
@@ -153,13 +173,14 @@ class WorkoutForegroundService : Service() {
             workoutId: String,
             activeWorkout: Boolean,
         ): Boolean {
-            val intent = Intent(context, WorkoutForegroundService::class.java).apply {
-                action = if (activeWorkout && !running) ACTION_START else ACTION_UPDATE
-                putExtra(EXTRA_WORKOUT_LABEL, workoutLabel)
-                putExtra(EXTRA_STATE_LABEL, stateLabel)
-                putExtra(EXTRA_WORKOUT_ID, workoutId)
-                putExtra(EXTRA_ACTIVE_WORKOUT, activeWorkout)
-            }
+            val intent =
+                Intent(context, WorkoutForegroundService::class.java).apply {
+                    action = if (activeWorkout && !running) ACTION_START else ACTION_UPDATE
+                    putExtra(EXTRA_WORKOUT_LABEL, workoutLabel)
+                    putExtra(EXTRA_STATE_LABEL, stateLabel)
+                    putExtra(EXTRA_WORKOUT_ID, workoutId)
+                    putExtra(EXTRA_ACTIVE_WORKOUT, activeWorkout)
+                }
             return try {
                 if (activeWorkout && !running) {
                     context.startForegroundService(intent)
@@ -176,14 +197,18 @@ class WorkoutForegroundService : Service() {
         }
 
         fun stop(context: Context) {
-            val intent = Intent(context, WorkoutForegroundService::class.java).apply {
-                action = ACTION_STOP
-            }
+            val intent =
+                Intent(context, WorkoutForegroundService::class.java).apply {
+                    action = ACTION_STOP
+                }
             context.startService(intent)
         }
     }
 
-    private fun syncWorkoutTracking(workoutId: String, activeWorkout: Boolean) {
+    private fun syncWorkoutTracking(
+        workoutId: String,
+        activeWorkout: Boolean,
+    ) {
         if (!activeWorkout || workoutId.isBlank()) {
             Log.i("SchliftWear", "Stopping workout tracking active=$activeWorkout workoutId=$workoutId")
             stopWorkoutTracking()

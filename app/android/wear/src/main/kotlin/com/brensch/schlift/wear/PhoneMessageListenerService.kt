@@ -17,9 +17,10 @@ class PhoneMessageListenerService : WearableListenerService() {
         Log.d("SchliftWear", "Wear message received path=${messageEvent.path} bytes=${messageEvent.data.size}")
         if (messageEvent.path == WearTransport.PHONE_TO_WEAR_LAUNCH_PATH) {
             Log.i("SchliftWear", "Phone requested watch activity launch")
-            val intent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
+            val intent =
+                Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                }
             runCatching { startActivity(intent) }
                 .onFailure { Log.e("SchliftWear", "Failed to launch watch activity from phone request", it) }
             return
@@ -57,11 +58,13 @@ class PhoneMessageListenerService : WearableListenerService() {
                 "Parsed phone snapshot workoutId=${snapshot.workoutId} state=${snapshot.state} actions=${snapshot.actionsList.size}",
             )
             WearDataRepository.updateSnapshot(this, snapshot)
-            val hasEndWorkoutAction = snapshot.actionsList.any {
-                it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
-            }
-            val activeWorkout = snapshot.workoutId.isNotBlank() &&
-                (snapshot.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
+            val hasEndWorkoutAction =
+                snapshot.actionsList.any {
+                    it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+                }
+            val activeWorkout =
+                snapshot.workoutId.isNotBlank() &&
+                    (snapshot.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
             if (activeWorkout) {
                 // Only push label updates when the FGS is already tracking.
                 // Cold-start of the FGS only happens when the user opens the
@@ -82,7 +85,6 @@ class PhoneMessageListenerService : WearableListenerService() {
                 WorkoutForegroundService.stop(this)
             }
             WearSensorBatchOutbox.flush(this)
-        }
-            .onFailure { Log.e("SchliftWear", "Failed to parse phone snapshot", it) }
+        }.onFailure { Log.e("SchliftWear", "Failed to parse phone snapshot", it) }
     }
 }

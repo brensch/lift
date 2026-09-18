@@ -16,7 +16,9 @@ ExerciseArt inclineBenchPressArt() => const ExerciseArt([
       [P(55, 70), P(58, 85)], // bench leg (back)
       [P(20, 70), P(55, 50)], // bench backrest incline
     ],
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Lockout — arm extended upward.
   Pose(
@@ -32,6 +34,8 @@ ExerciseArt inclineBenchPressArt() => const ExerciseArt([
       [P(55, 70), P(58, 85)],
       [P(20, 70), P(55, 50)],
     ],
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

@@ -21,10 +21,8 @@ pub fn compute_workout_summary(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> WorkoutSummary {
-    let proposed_by_id: HashMap<&str, &ProposedSet> = proposed_sets
-        .iter()
-        .map(|p| (p.id.as_str(), p))
-        .collect();
+    let proposed_by_id: HashMap<&str, &ProposedSet> =
+        proposed_sets.iter().map(|p| (p.id.as_str(), p)).collect();
 
     // Chronological completed sets that actually started, so rest can be capped
     // at when the next set began.

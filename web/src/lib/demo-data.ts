@@ -1,9 +1,4 @@
-import type {
-  DashboardData,
-  ExerciseSeries,
-  ProgressPoint,
-  WorkoutRow,
-} from "./dashboard-data";
+import type { DashboardData, ExerciseSeries, ProgressPoint, WorkoutRow } from "./dashboard-data";
 
 // Deterministic sample data for the public demo dashboard: ~7 months of an
 // A/B linear progression with occasional failed sessions and deloads, so the
@@ -30,11 +25,56 @@ interface DemoLift {
 }
 
 const LIFTS: DemoLift[] = [
-  { key: "squat", name: "Squat", startLb: 135, incrementLb: 5, ceilingLb: 295, sets: 5, reps: 5, day: "AB" },
-  { key: "bench", name: "Bench Press", startLb: 95, incrementLb: 5, ceilingLb: 200, sets: 5, reps: 5, day: "A" },
-  { key: "row", name: "Barbell Row", startLb: 95, incrementLb: 5, ceilingLb: 175, sets: 5, reps: 5, day: "A" },
-  { key: "ohp", name: "Overhead Press", startLb: 65, incrementLb: 5, ceilingLb: 130, sets: 5, reps: 5, day: "B" },
-  { key: "deadlift", name: "Deadlift", startLb: 185, incrementLb: 10, ceilingLb: 365, sets: 1, reps: 5, day: "B" },
+  {
+    key: "squat",
+    name: "Squat",
+    startLb: 135,
+    incrementLb: 5,
+    ceilingLb: 295,
+    sets: 5,
+    reps: 5,
+    day: "AB",
+  },
+  {
+    key: "bench",
+    name: "Bench Press",
+    startLb: 95,
+    incrementLb: 5,
+    ceilingLb: 200,
+    sets: 5,
+    reps: 5,
+    day: "A",
+  },
+  {
+    key: "row",
+    name: "Barbell Row",
+    startLb: 95,
+    incrementLb: 5,
+    ceilingLb: 175,
+    sets: 5,
+    reps: 5,
+    day: "A",
+  },
+  {
+    key: "ohp",
+    name: "Overhead Press",
+    startLb: 65,
+    incrementLb: 5,
+    ceilingLb: 130,
+    sets: 5,
+    reps: 5,
+    day: "B",
+  },
+  {
+    key: "deadlift",
+    name: "Deadlift",
+    startLb: 185,
+    incrementLb: 10,
+    ceilingLb: 365,
+    sets: 1,
+    reps: 5,
+    day: "B",
+  },
 ];
 
 const DAY_MS = 86_400_000;
@@ -54,9 +94,7 @@ export function generateDemoData(): DashboardData {
     fails[l.key] = 0;
   }
 
-  const series: Record<string, ProgressPoint[]> = Object.fromEntries(
-    LIFTS.map((l) => [l.key, []])
-  );
+  const series: Record<string, ProgressPoint[]> = Object.fromEntries(LIFTS.map((l) => [l.key, []]));
   const workouts: WorkoutRow[] = [];
   let totalVolumeLb = 0;
   let isDayA = true;

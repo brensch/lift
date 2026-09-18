@@ -34,7 +34,11 @@ export interface ExerciseInRange {
   lastDateS: number;
 }
 
-export function exercisesInRange(data: DashboardData, startS: number, endS = Infinity): ExerciseInRange[] {
+export function exercisesInRange(
+  data: DashboardData,
+  startS: number,
+  endS = Infinity,
+): ExerciseInRange[] {
   const out: ExerciseInRange[] = [];
   for (const series of data.exercises) {
     const points = series.points.filter((p) => p.dateS >= startS && p.dateS <= endS);
@@ -57,14 +61,22 @@ export function exercisesInRange(data: DashboardData, startS: number, endS = Inf
   return out.sort((a, b) => b.deltaLb - a.deltaLb || b.lastDateS - a.lastDateS);
 }
 
-export function workoutsInRange(data: DashboardData, startS: number, endS = Infinity): WorkoutRow[] {
+export function workoutsInRange(
+  data: DashboardData,
+  startS: number,
+  endS = Infinity,
+): WorkoutRow[] {
   return data.workouts.filter((w) => w.startS >= startS && w.startS <= endS);
 }
 
 /** A preset or a custom window; resolved against now and the first workout. */
 export type RangeState = { preset: RangeKey } | { preset: "custom"; fromS: number; toS: number };
 
-export function resolveRange(state: RangeState, nowS: number, sinceS: number): { startS: number; endS: number; label: string } {
+export function resolveRange(
+  state: RangeState,
+  nowS: number,
+  sinceS: number,
+): { startS: number; endS: number; label: string } {
   if (state.preset === "custom") {
     return { startS: state.fromS, endS: state.toS + DAY_S - 1, label: "custom" };
   }

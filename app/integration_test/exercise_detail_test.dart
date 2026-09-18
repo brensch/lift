@@ -36,10 +36,16 @@ void main() {
 
     // Open the Squat detail.
     await s.tapText('Squat');
-    expect(await s.waitForText('best est. 1RM', seconds: 6), isTrue,
-        reason: 'the exercise detail view should open');
-    expect(s.isVisible('EVERY SESSION'), isTrue,
-        reason: 'the per-session breakdown should render');
+    expect(
+      await s.waitForText('best est. 1RM', seconds: 6),
+      isTrue,
+      reason: 'the exercise detail view should open',
+    );
+    expect(
+      s.isVisible('EVERY SESSION'),
+      isTrue,
+      reason: 'the per-session breakdown should render',
+    );
     await s.shot('Exercise detail — top weight trend');
 
     // Toggle to the estimated-1RM trend.

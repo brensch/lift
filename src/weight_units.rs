@@ -126,13 +126,7 @@ fn candidate_is_better(a: (f32, f32, f32), b: (f32, f32, f32)) -> bool {
 /// A loadable weight near `target` (within one loadable step) that uses the
 /// fewest plates per side — i.e. opts for one big plate over several small ones.
 /// Clamped to `[min, max]`. This is the generic "simplest step up in plates".
-pub fn simplest_loadable_near(
-    target: f32,
-    bar: f32,
-    plates: &[f32],
-    min: f32,
-    max: f32,
-) -> f32 {
+pub fn simplest_loadable_near(target: f32, bar: f32, plates: &[f32], min: f32, max: f32) -> f32 {
     let step = loadable_step(plates);
     let base = snap_loadable(target, bar, plates).clamp(min, max);
     let mut best = base;
@@ -233,7 +227,10 @@ mod plate_math_tests {
                     (loaded + rem * 2.0 - w).abs() < 1e-3,
                     "unit={unit:?} w={w} loaded={loaded} rem={rem}"
                 );
-                assert!(rem < 1e-3, "loadable weight {w} left a remainder ({unit:?})");
+                assert!(
+                    rem < 1e-3,
+                    "loadable weight {w} left a remainder ({unit:?})"
+                );
             }
         }
     }

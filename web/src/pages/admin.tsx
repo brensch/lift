@@ -40,17 +40,28 @@ function formatWhen(ms: number): string {
 
 /** "2026-09-05" → "Sep 5". Short enough for the chart's label stride. */
 function shortDay(day: string): string {
-  return new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 /**
  * Every UTC day in the window, oldest first. The server only returns days
  * that had activity; a quiet day has to show as a gap, not vanish.
  */
-function fillDays(daily: DailyStat[], days: number): { day: string; views: number; users: number }[] {
+function fillDays(
+  daily: DailyStat[],
+  days: number,
+): { day: string; views: number; users: number }[] {
   const byDay = new Map(daily.map((d) => [d.day, d]));
   const out = [];
-  const today = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+  const today = Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+  );
   for (let i = days - 1; i >= 0; i--) {
     const day = new Date(today - i * 86_400_000).toISOString().slice(0, 10);
     const d = byDay.get(day);
@@ -63,7 +74,15 @@ function pct(n: number, of: number): string {
   return of > 0 ? `${Math.round((n / of) * 100)}%` : "–";
 }
 
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Card({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="border border-border rounded-xl bg-surface p-4 sm:p-5 min-w-0">
       <h3 className="font-display text-base font-bold tracking-tight m-0">{title}</h3>
@@ -114,12 +133,18 @@ function Funnel({ steps, color }: { steps: FunnelStep[]; color: string }) {
           <span className="h-5 rounded bg-background overflow-hidden">
             <span
               className="block h-full rounded"
-              style={{ width: `${(step.count / top) * 100}%`, background: color, minWidth: step.count > 0 ? 2 : 0 }}
+              style={{
+                width: `${(step.count / top) * 100}%`,
+                background: color,
+                minWidth: step.count > 0 ? 2 : 0,
+              }}
             />
           </span>
           <span className="[font-variant-numeric:tabular-nums] text-text whitespace-nowrap text-right">
             {formatNumber(step.count, 0)}
-            <span className="text-muted ml-2 inline-block w-9 text-right">{i === 0 ? "" : pct(step.count, first)}</span>
+            <span className="text-muted ml-2 inline-block w-9 text-right">
+              {i === 0 ? "" : pct(step.count, first)}
+            </span>
           </span>
           <span className="[font-variant-numeric:tabular-nums] text-muted whitespace-nowrap text-right">
             {step.avgMs === undefined ? "" : formatMs(step.avgMs)}
@@ -146,7 +171,8 @@ function DataTable({
   onRowClick?: (index: number) => void;
   activeRow?: number;
 }) {
-  if (rows.length === 0) return <p className="text-sm text-muted m-0">Nothing recorded in this window yet.</p>;
+  if (rows.length === 0)
+    return <p className="text-sm text-muted m-0">Nothing recorded in this window yet.</p>;
   return (
     <div className="overflow-x-auto -mx-1">
       <table className="w-full text-sm border-collapse">
@@ -157,7 +183,7 @@ function DataTable({
                 key={h}
                 className={cn(
                   "px-2 py-1.5 text-xs uppercase tracking-wider text-muted font-medium border-b border-border whitespace-nowrap",
-                  numeric.includes(i) ? "text-right" : "text-left"
+                  numeric.includes(i) ? "text-right" : "text-left",
                 )}
               >
                 {h}
@@ -173,7 +199,7 @@ function DataTable({
               className={cn(
                 "border-b border-border/50 last:border-0",
                 onRowClick && "cursor-pointer hover:bg-background",
-                activeRow === r && "bg-background"
+                activeRow === r && "bg-background",
               )}
             >
               {row.map((cell, c) => (
@@ -182,7 +208,9 @@ function DataTable({
                   className={cn(
                     "px-2 py-1.5",
                     wrap.includes(c) ? "whitespace-normal text-muted" : "whitespace-nowrap",
-                    numeric.includes(c) ? "text-right [font-variant-numeric:tabular-nums]" : "text-left"
+                    numeric.includes(c)
+                      ? "text-right [font-variant-numeric:tabular-nums]"
+                      : "text-left",
                   )}
                 >
                   {cell}
@@ -234,7 +262,8 @@ function passkeyRows(attempts: AuthAttemptStat[]): PasskeyRow[] {
     if (a.outcome === "ok") row.ok += n;
     else if (a.outcome === "rejected") row.rejected += n;
     else if (a.outcome === "started") row.abandoned += n;
-    else if ((REASONS as readonly string[]).includes(a.reason)) row.reasons[a.reason] = (row.reasons[a.reason] ?? 0) + n;
+    else if ((REASONS as readonly string[]).includes(a.reason))
+      row.reasons[a.reason] = (row.reasons[a.reason] ?? 0) + n;
     else row.otherErrors += n;
     rows.set(key, row);
   }
@@ -251,7 +280,9 @@ const FAILURE_LABELS: [string, string][] = [
 
 /** "9 cancelled · 4 no passkey" — only the reasons that happened. */
 function failureSummary(r: PasskeyRow): string {
-  const parts = FAILURE_LABELS.filter(([key]) => r.reasons[key]).map(([key, label]) => `${r.reasons[key]} ${label}`);
+  const parts = FAILURE_LABELS.filter(([key]) => r.reasons[key]).map(
+    ([key, label]) => `${r.reasons[key]} ${label}`,
+  );
   if (r.rejected) parts.push(`${r.rejected} rejected by server`);
   if (r.otherErrors) parts.push(`${r.otherErrors} other`);
   return parts.length ? parts.join(" · ") : "–";
@@ -259,7 +290,15 @@ function failureSummary(r: PasskeyRow): string {
 
 // ── Trail ──
 
-function Trail({ username, entries, onClose }: { username: string; entries: TrailEntry[]; onClose: () => void }) {
+function Trail({
+  username,
+  entries,
+  onClose,
+}: {
+  username: string;
+  entries: TrailEntry[];
+  onClose: () => void;
+}) {
   // Newest sitting first; within a sitting, in the order it happened.
   const sittings = useMemo(() => {
     const bySession = new Map<string, TrailEntry[]>();
@@ -272,7 +311,10 @@ function Trail({ username, entries, onClose }: { username: string; entries: Trai
   }, [entries]);
 
   return (
-    <Card title={`${username}'s trail`} subtitle="Most recent 500 page views, grouped by app launch.">
+    <Card
+      title={`${username}'s trail`}
+      subtitle="Most recent 500 page views, grouped by app launch."
+    >
       <button
         onClick={onClose}
         aria-label="Close trail"
@@ -316,7 +358,8 @@ export function AdminPage() {
   // ?user=<name> holds the open trail, so a trail can be linked to.
   const [params, setParams] = useSearchParams();
   const trailUser = params.get("user") ?? "";
-  const setTrailUser = (username: string) => setParams(username ? { user: username } : {}, { replace: true });
+  const setTrailUser = (username: string) =>
+    setParams(username ? { user: username } : {}, { replace: true });
   const [stats, setStats] = useState<GetStatsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
@@ -359,7 +402,9 @@ export function AdminPage() {
   const attempts = stats?.authAttempts ?? [];
   const registers = attempts.filter((a) => a.kind === "register");
   const registerStarted = registers.reduce((n, a) => n + Number(a.count), 0);
-  const registerOk = registers.filter((a) => a.outcome === "ok").reduce((n, a) => n + Number(a.count), 0);
+  const registerOk = registers
+    .filter((a) => a.outcome === "ok")
+    .reduce((n, a) => n + Number(a.count), 0);
   const users = (p: PageStat) => Number(p.uniqueUsers);
 
   const signupFunnel: FunnelStep[] = [
@@ -391,8 +436,12 @@ export function AdminPage() {
     <div className="max-w-5xl mx-auto px-5 py-8 flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold tracking-tight m-0">Stats</h2>
-          <p className="text-sm text-muted mt-1 mb-0">Page views and sign-in attempts. First-party; kept until the account is deleted.</p>
+          <h2 className="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold tracking-tight m-0">
+            Stats
+          </h2>
+          <p className="text-sm text-muted mt-1 mb-0">
+            Page views and sign-in attempts. First-party; kept until the account is deleted.
+          </p>
         </div>
         <span className="relative inline-flex">
           <select
@@ -407,7 +456,10 @@ export function AdminPage() {
               </option>
             ))}
           </select>
-          <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" />
+          <ChevronDown
+            size={14}
+            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted"
+          />
         </span>
       </div>
 
@@ -417,17 +469,39 @@ export function AdminPage() {
       {stats && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatTile label="Accounts" value={formatNumber(Number(stats.totalUsers), 0)} sub="all time" />
-            <StatTile label="New accounts" value={formatNumber(Number(stats.newUsers), 0)} sub={`last ${stats.days} days`} />
-            <StatTile label="Active users" value={formatNumber(stats.users.length, 0)} sub="opened the app" />
-            <StatTile label="Page views" value={formatNumber(totalViews, 0)} sub={`last ${stats.days} days`} />
+            <StatTile
+              label="Accounts"
+              value={formatNumber(Number(stats.totalUsers), 0)}
+              sub="all time"
+            />
+            <StatTile
+              label="New accounts"
+              value={formatNumber(Number(stats.newUsers), 0)}
+              sub={`last ${stats.days} days`}
+            />
+            <StatTile
+              label="Active users"
+              value={formatNumber(stats.users.length, 0)}
+              sub="opened the app"
+            />
+            <StatTile
+              label="Page views"
+              value={formatNumber(totalViews, 0)}
+              sub={`last ${stats.days} days`}
+            />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <Card title="Sign-up funnel" subtitle="Sign-up attempts, then distinct users reaching each step. Time is the average per visit.">
+            <Card
+              title="Sign-up funnel"
+              subtitle="Sign-up attempts, then distinct users reaching each step. Time is the average per visit."
+            >
               <Funnel steps={signupFunnel} color={SERIES_1} />
             </Card>
-            <Card title="Tutorial" subtitle="Distinct users who saw each step, and the average time on it.">
+            <Card
+              title="Tutorial"
+              subtitle="Distinct users who saw each step, and the average time on it."
+            >
               <Funnel steps={tutorialFunnel} color={SERIES_3} />
             </Card>
           </div>
@@ -437,7 +511,16 @@ export function AdminPage() {
             subtitle="Every sign-up and sign-in ceremony the server started. Abandoned = the device never came back and never said why."
           >
             <DataTable
-              head={["Flow", "Platform", "Version", "Attempts", "OK", "Success", "Abandoned", "Reported failures"]}
+              head={[
+                "Flow",
+                "Platform",
+                "Version",
+                "Attempts",
+                "OK",
+                "Success",
+                "Abandoned",
+                "Reported failures",
+              ]}
               numeric={[3, 4, 5, 6]}
               wrap={[7]}
               rows={passkeys.map((r) => [
@@ -467,7 +550,9 @@ export function AdminPage() {
                 data={daily.map((d) => ({ label: shortDay(d.day), value: d.users }))}
                 color={SERIES_1}
                 yFormat={(v) => formatNumber(v, 0)}
-                tooltipValue={(c) => `${formatNumber(c.value, 0)} ${c.value === 1 ? "user" : "users"}`}
+                tooltipValue={(c) =>
+                  `${formatNumber(c.value, 0)} ${c.value === 1 ? "user" : "users"}`
+                }
               />
             </ChartCard>
             <ChartCard
@@ -503,18 +588,29 @@ export function AdminPage() {
           </Card>
 
           <div className="grid md:grid-cols-2 gap-4 items-start">
-            <Card title="Users" subtitle="Most recently active first. Pick one to follow their trail.">
+            <Card
+              title="Users"
+              subtitle="Most recently active first. Pick one to follow their trail."
+            >
               <DataTable
                 head={["User", "Views", "Last seen"]}
                 numeric={[1]}
-                rows={stats.users.map((u) => [u.username, formatNumber(Number(u.views), 0), formatWhen(Number(u.lastSeenMs))])}
+                rows={stats.users.map((u) => [
+                  u.username,
+                  formatNumber(Number(u.views), 0),
+                  formatWhen(Number(u.lastSeenMs)),
+                ])}
                 onRowClick={(i) => setTrailUser(stats.users[i].username)}
                 activeRow={stats.users.findIndex((u) => u.username === trailUser)}
               />
             </Card>
             {trailUser && (
               <div className="relative">
-                <Trail username={trailUser} entries={stats.trail} onClose={() => setTrailUser("")} />
+                <Trail
+                  username={trailUser}
+                  entries={stats.trail}
+                  onClose={() => setTrailUser("")}
+                />
               </div>
             )}
           </div>

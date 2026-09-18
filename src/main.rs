@@ -30,8 +30,8 @@ mod workout;
 use auth::AuthState;
 use db::ServerDb;
 use server::{
-    ServerAdminService, ServerAnalyticsService, ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
-    ServerWorkoutService,
+    ServerAdminService, ServerAnalyticsService, ServerAuthService, ServerMultiplayerService,
+    ServerSettingsService, ServerUserService, ServerWorkoutService,
 };
 use tracing::{error, info};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -267,7 +267,9 @@ async fn admin_command(
     match args.as_slice() {
         ["add", username] => match db.grant_admin(username).await? {
             Some(user_id) => println!("{username} ({user_id}) is an admin"),
-            None => return Err(format!("no user named {username:?}; they must sign up first").into()),
+            None => {
+                return Err(format!("no user named {username:?}; they must sign up first").into())
+            }
         },
         ["remove", username] => {
             if db.revoke_admin(username).await? {

@@ -41,13 +41,21 @@ const versions = readdirSync(notesDir)
   .filter((f) => /^\d+\.\d+\.\d+\.md$/.test(f))
   .map((f) => f.replace(/\.md$/, ""))
   .sort((a, b) => {
-    const pa = a.split(".").map(Number), pb = b.split(".").map(Number);
+    const pa = a.split(".").map(Number),
+      pb = b.split(".").map(Number);
     for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pb[i] - pa[i];
     return 0;
   });
 const latest = versions[0];
 const whatsNew = latest
-  ? { version: latest, lines: readFileSync(resolve(notesDir, `${latest}.md`), "utf8").trim().split("\n").map((l) => l.trim()).filter(Boolean) }
+  ? {
+      version: latest,
+      lines: readFileSync(resolve(notesDir, `${latest}.md`), "utf8")
+        .trim()
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean),
+    }
   : null;
 
 const content = {
@@ -56,13 +64,22 @@ const content = {
   promotionalText: listing.promotional_text,
   // Typed pieces, straight from the YAML. The stores get them composed into
   // one description (scripts/check_store_text.py); the site gets them as is.
-  about: String(listing.about ?? "").trim().split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
+  about: String(listing.about ?? "")
+    .trim()
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean),
   testimonialsHeading: listing.testimonials_heading ?? "",
-  testimonials: (listing.testimonials ?? []).map((t) => ({ quote: String(t.quote), name: String(t.name) })),
+  testimonials: (listing.testimonials ?? []).map((t) => ({
+    quote: String(t.quote),
+    name: String(t.name),
+  })),
   otherFeatures: {
     heading: listing.other_features?.heading ?? "",
     items: (listing.other_features?.items ?? []).map((i) =>
-      typeof i === "string" ? { emoji: "", text: i } : { emoji: String(i.emoji ?? ""), text: String(i.text ?? "") },
+      typeof i === "string"
+        ? { emoji: "", text: i }
+        : { emoji: String(i.emoji ?? ""), text: String(i.text ?? "") },
     ),
   },
   website: listing.website ?? {},
@@ -97,4 +114,6 @@ ${bar(30, 50, 78, 58)}${bar(14, 33, 20, 75, 1.2)}${bar(21, 33, 27, 75, 1.2)}${ba
 `;
 writeFileSync(resolve(gen, "favicon.svg"), favicon);
 copyFileSync(resolve(repo, "marketing/feature_graphic.png"), resolve(gen, "og.png"));
-console.log(`synced listing (${content.screenshots.length} slides, notes ${latest ?? "none"}, ${library.templates.length} library templates) into web/src/generated + web/public/generated`);
+console.log(
+  `synced listing (${content.screenshots.length} slides, notes ${latest ?? "none"}, ${library.templates.length} library templates) into web/src/generated + web/public/generated`,
+);

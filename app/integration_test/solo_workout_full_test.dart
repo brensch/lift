@@ -43,8 +43,9 @@ void main() {
         throw StateError('backend has no active workout after Start Workout');
       }
       final startDetail = await peer.workoutDetail();
-      final totalSets =
-          startDetail!.proposedSets.where((p) => !p.cancelled).length;
+      final totalSets = startDetail!.proposedSets
+          .where((p) => !p.cancelled)
+          .length;
       if (totalSets <= 1) {
         throw StateError('expected a multi-set workout, got $totalSets sets');
       }
@@ -79,9 +80,11 @@ void main() {
       }
 
       if (!reachedEnd) {
-        throw StateError('workout never reached "All sets complete" within $cap '
-            'steps ($completes completes of $totalSets sets) — stuck repeating a '
-            'set. On screen: ${s.visibleTexts().join(" | ")}');
+        throw StateError(
+          'workout never reached "All sets complete" within $cap '
+          'steps ($completes completes of $totalSets sets) — stuck repeating a '
+          'set. On screen: ${s.visibleTexts().join(" | ")}',
+        );
       }
       await s.shot('All sets complete');
 
@@ -101,18 +104,25 @@ void main() {
         await s.settle(seconds: 1);
       }
       if (distinctDone != proposed) {
-        throw StateError('not every set completed on the backend: '
-            '$distinctDone/$proposed distinct done');
+        throw StateError(
+          'not every set completed on the backend: '
+          '$distinctDone/$proposed distinct done',
+        );
       }
       if (completedRows != proposed) {
-        throw StateError('duplicate completions: $completedRows rows for '
-            '$proposed sets (a set re-opened itself)');
+        throw StateError(
+          'duplicate completions: $completedRows rows for '
+          '$proposed sets (a set re-opened itself)',
+        );
       }
 
-      s.note('Full workout completed',
-          detail: 'Played all $proposed sets through the UI to "All sets '
-              'complete"; backend holds exactly one completion per set.',
-          kind: 'assert');
+      s.note(
+        'Full workout completed',
+        detail:
+            'Played all $proposed sets through the UI to "All sets '
+            'complete"; backend holds exactly one completion per set.',
+        kind: 'assert',
+      );
 
       // End the workout and land back home.
       await s.tapText('End Workout');

@@ -19,13 +19,18 @@ object WearSensorBatchOutbox {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val flushMutex = Mutex()
 
-    fun enqueue(context: Context, batch: Wearable.WearSensorBatch): Boolean {
+    fun enqueue(
+        context: Context,
+        batch: Wearable.WearSensorBatch,
+    ): Boolean {
         val appContext = context.applicationContext
         synchronized(this) {
             val encodedBatches = loadEncodedBatches(appContext).toMutableList()
-            val updated = encodedBatches.filterNot { encoded ->
-                decodeBatch(encoded)?.batchId == batch.batchId
-            }.toMutableList()
+            val updated =
+                encodedBatches
+                    .filterNot { encoded ->
+                        decodeBatch(encoded)?.batchId == batch.batchId
+                    }.toMutableList()
             updated.add(encodeBatch(batch))
             persistEncodedBatches(appContext, updated)
             Log.d("SchliftWear", "Enqueued HR batch id=${batch.batchId} samples=${batch.heartRateSamplesCount}")
@@ -33,12 +38,16 @@ object WearSensorBatchOutbox {
         }
     }
 
-    fun acknowledge(context: Context, ack: Wearable.WearSensorBatchAck) {
+    fun acknowledge(
+        context: Context,
+        ack: Wearable.WearSensorBatchAck,
+    ) {
         val appContext = context.applicationContext
         synchronized(this) {
-            val updated = loadEncodedBatches(appContext).filterNot { encoded ->
-                decodeBatch(encoded)?.batchId == ack.batchId
-            }
+            val updated =
+                loadEncodedBatches(appContext).filterNot { encoded ->
+                    decodeBatch(encoded)?.batchId == ack.batchId
+                }
             persistEncodedBatches(appContext, updated)
         }
         Log.d("SchliftWear", "Acked HR batch id=${ack.batchId}")
@@ -48,18 +57,20 @@ object WearSensorBatchOutbox {
         val appContext = context.applicationContext
         scope.launch {
             flushMutex.withLock {
-                val encodedBatches = synchronized(this@WearSensorBatchOutbox) {
-                    loadEncodedBatches(appContext)
-                }
+                val encodedBatches =
+                    synchronized(this@WearSensorBatchOutbox) {
+                        loadEncodedBatches(appContext)
+                    }
                 if (encodedBatches.isEmpty()) return@withLock
                 for (encoded in encodedBatches) {
                     val batch = decodeBatch(encoded) ?: continue
                     runCatching {
-                        val sent = WearTransport.sendToPhone(
-                            appContext,
-                            WearTransport.WEAR_TO_PHONE_SENSOR_BATCH_PATH,
-                            batch.toByteArray(),
-                        )
+                        val sent =
+                            WearTransport.sendToPhone(
+                                appContext,
+                                WearTransport.WEAR_TO_PHONE_SENSOR_BATCH_PATH,
+                                batch.toByteArray(),
+                            )
                         if (sent == 0) {
                             throw IllegalStateException("No connected phone node")
                         }
@@ -73,8 +84,7 @@ object WearSensorBatchOutbox {
         }
     }
 
-    private fun prefs(context: Context) =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private fun loadEncodedBatches(context: Context): List<String> {
         val raw = prefs(context).getString(KEY_BATCHES, null) ?: return emptyList()
@@ -88,14 +98,16 @@ object WearSensorBatchOutbox {
         }
     }
 
-    private fun persistEncodedBatches(context: Context, encodedBatches: List<String>) {
+    private fun persistEncodedBatches(
+        context: Context,
+        encodedBatches: List<String>,
+    ) {
         val json = JSONArray()
         encodedBatches.forEach(json::put)
         prefs(context).edit().putString(KEY_BATCHES, json.toString()).apply()
     }
 
-    private fun encodeBatch(batch: Wearable.WearSensorBatch): String =
-        Base64.encodeToString(batch.toByteArray(), Base64.NO_WRAP)
+    private fun encodeBatch(batch: Wearable.WearSensorBatch): String = Base64.encodeToString(batch.toByteArray(), Base64.NO_WRAP)
 
     private fun decodeBatch(encoded: String): Wearable.WearSensorBatch? =
         runCatching {

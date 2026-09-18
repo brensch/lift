@@ -8,8 +8,13 @@ ExerciseArt plankArt() => const ExerciseArt([
     figure: Figure(
       pelvis: P(42, 56),
       torso: 0, // horizontal, neck/head to the right
-      arms: [Limb(130, 90)], // upper arm goes back-down, forearm straight down to floor
-      legs: [Limb(178, 92), Limb(175, 89)], // legs extend left (backward), nearly horizontal
+      arms: [
+        Limb(130, 90),
+      ], // upper arm goes back-down, forearm straight down to floor
+      legs: [
+        Limb(178, 92),
+        Limb(175, 89),
+      ], // legs extend left (backward), nearly horizontal
     ),
     props: [
       [P(10, 82), P(90, 82)], // floor line

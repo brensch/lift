@@ -32,9 +32,8 @@ export function RoutinesPage() {
           <WobblyText text="ROUTINES" seed={91} />
         </h1>
         <p className="mt-6 text-muted leading-relaxed">
-          Every routine in the app. Tick the ones you want when you sign up,
-          add more any time from the Add chip. They're yours to edit once
-          added.
+          Every routine in the app. Tick the ones you want when you sign up, add more any time from
+          the Add chip. They're yours to edit once added.
         </p>
 
         {groups.map((group) => {
@@ -71,9 +70,7 @@ function TemplateRow({ template }: { template: LibraryTemplate }) {
           )}
         </div>
         {template.blurb && (
-          <p className="m-0 mt-0.5 text-sm text-muted leading-snug">
-            {template.blurb}
-          </p>
+          <p className="m-0 mt-0.5 text-sm text-muted leading-snug">{template.blurb}</p>
         )}
       </div>
       {/* content-start/items-start: the grid stretches this cell to the height

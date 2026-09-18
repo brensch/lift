@@ -75,7 +75,8 @@ class Gen:
                             keys.append(k)
                 self.emit_class(name, [(camel(k), "String") for k in keys])
                 items = ", ".join(
-                    f"{name}({', '.join(f'{camel(k)}: {dart_str(item.get(k, ''))}' for k in keys)})" for item in node
+                    f"{name}({', '.join(f'{camel(k)}: {dart_str(item.get(k, ""))}' for k in keys)})"
+                    for item in node
                 )
                 return f"List<{name}>", f"[{items}]"
             return "List<String>", "[" + ", ".join(dart_str(i) for i in node) + "]"

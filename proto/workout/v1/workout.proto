@@ -288,13 +288,14 @@ message StartWorkoutResponse {
 message GetWorkoutRequest {
   string workout_id = 1;
 }
+
 // Server-computed rollup for one exercise within a workout (working sets only).
 message ExerciseSummary {
   Exercise exercise = 1;
   int32 total_sets = 2;
   int32 total_reps = 3;
-  float total_volume = 4;        // lb (reps * weight, summed)
-  float best_one_rep_max = 5;    // lb, Epley estimate
+  float total_volume = 4; // lb (reps * weight, summed)
+  float best_one_rep_max = 5; // lb, Epley estimate
   float heaviest_set_weight = 6; // lb
 }
 
@@ -302,12 +303,12 @@ message ExerciseSummary {
 // instead of aggregating raw sets. Volume/per-exercise cover working sets only;
 // the time breakdown covers every completed set (warmups included).
 message WorkoutSummary {
-  float total_volume = 1;         // lb
+  float total_volume = 1; // lb
   int64 duration_seconds = 2;
   int64 lifting_seconds = 3;
   int64 resting_seconds = 4;
-  int64 yapping_seconds = 5;      // between-set time that isn't lifting or resting
-  float volume_per_minute = 6;    // lb per lifting-minute
+  int64 yapping_seconds = 5; // between-set time that isn't lifting or resting
+  float volume_per_minute = 6; // lb per lifting-minute
   float work_rest_ratio = 7;
   repeated ExerciseSummary exercises = 8; // sorted by volume, heaviest first
 }
@@ -365,21 +366,22 @@ message ListWorkoutSummariesResponse {
 
 // One session's data point for one exercise (working sets only).
 message ExerciseProgressPoint {
-  int64 date = 1;             // workout start_time, unix seconds
+  int64 date = 1; // workout start_time, unix seconds
   string workout_id = 2;
-  float top_weight = 3;       // heaviest working set, lb
-  int32 top_reps = 4;         // reps at that heaviest set
+  float top_weight = 3; // heaviest working set, lb
+  int32 top_reps = 4; // reps at that heaviest set
   float best_one_rep_max = 5; // lb, Epley
-  float volume = 6;           // lb
+  float volume = 6; // lb
   int32 sets = 7;
 }
 message ExerciseProgress {
   Exercise exercise = 1;
   repeated ExerciseProgressPoint points = 2; // oldest first
 }
+
 // Used only to scale the seeded starting weights at onboarding.
 enum Gender {
-  GENDER_UNSPECIFIED = 0;  // skipped — neutral defaults
+  GENDER_UNSPECIFIED = 0; // skipped — neutral defaults
   GENDER_FEMALE = 1;
   GENDER_MALE = 2;
 }
@@ -387,7 +389,7 @@ enum Gender {
 // Lifting experience, used to scale recommended starting weights.
 enum ExperienceLevel {
   EXPERIENCE_LEVEL_UNSPECIFIED = 0;
-  EXPERIENCE_LEVEL_CUTE = 1;         // brand new
+  EXPERIENCE_LEVEL_CUTE = 1; // brand new
   EXPERIENCE_LEVEL_BEGINNER = 2;
   EXPERIENCE_LEVEL_INTERMEDIATE = 3;
   EXPERIENCE_LEVEL_EXPERT = 4;
@@ -397,8 +399,8 @@ message GetExerciseProgressRequest {}
 message GetExerciseProgressResponse {
   repeated ExerciseProgress exercises = 1; // most-improved first
   int32 workout_count = 2;
-  float total_volume = 3;  // lb, all working sets ever
-  int64 since = 4;         // earliest workout start_time (unix seconds)
+  float total_volume = 3; // lb, all working sets ever
+  int64 since = 4; // earliest workout start_time (unix seconds)
 }
 
 // Shared response for plan-shaping operations: the full visible plan
@@ -444,17 +446,14 @@ message ReorderExercisesRequest {
 }
 
 message StartSetRequest {
-
   string workout_id = 1;
 
   string proposed_set_id = 2;
 
   int64 started_at = 3; // Unix seconds; if 0, server uses current time
-
 }
 
 message StartSetResponse {
-
   CompletedSet completed_set = 1;
 
   ProposedSet next_up_set = 2;
@@ -462,13 +461,9 @@ message StartSetResponse {
   WorkoutStateSnapshot state_snapshot = 3;
 
   repeated UserMessage user_messages = 4;
-
 }
 
-
-
 message CompleteSetRequest {
-
   string workout_id = 1;
 
   string proposed_set_id = 2;
@@ -478,11 +473,9 @@ message CompleteSetRequest {
   float actual_weight = 4;
 
   int64 completed_at = 5; // Unix seconds; if 0, server uses current time
-
 }
 
 message CompleteSetResponse {
-
   CompletedSet completed_set = 1;
 
   ProposedSet next_up_set = 2;
@@ -490,17 +483,12 @@ message CompleteSetResponse {
   WorkoutStateSnapshot state_snapshot = 3;
 
   repeated UserMessage user_messages = 4;
-
 }
 
-
-
 message DeleteCompletedSetRequest {
-
   string workout_id = 1;
 
   string completed_set_id = 2;
-
 }
 
 message DeleteCompletedSetResponse {
@@ -520,25 +508,17 @@ message CancelProposedSetResponse {
   repeated UserMessage user_messages = 3;
 }
 
-
-
 message EndWorkoutRequest {
-
   string workout_id = 1;
 
   int64 ended_at = 2; // Unix seconds; if 0, server uses current time
-
 }
 
 message EndWorkoutResponse {
-
   Workout workout = 1;
 
   repeated UserMessage user_messages = 2;
-
 }
-
-
 
 // ── Templates, trackers, and the home screen ──
 
@@ -566,7 +546,7 @@ message LibraryTemplate {
   string group_key = 4;
   string group_label = 5;
   repeated Exercise exercises = 6;
-  bool is_default = 7;             // ticked by default during onboarding
+  bool is_default = 7; // ticked by default during onboarding
 }
 
 // Public: the library is the same for everyone.
@@ -589,9 +569,9 @@ message AddLibraryTemplatesResponse {
 // exercise in the catalog, so the client never needs a fallback table.
 message ExerciseTracker {
   Exercise exercise = 1;
-  float working_weight = 2;        // lb, snapped for the user's unit
-  int32 sets = 3;                  // resolved (override or derived)
-  int32 target_reps = 4;           // current position in the rep range
+  float working_weight = 2; // lb, snapped for the user's unit
+  int32 sets = 3; // resolved (override or derived)
+  int32 target_reps = 4; // current position in the rep range
   int32 rep_range_low = 5;
   int32 rep_range_high = 6;
   int32 rest_seconds = 7;
@@ -599,7 +579,7 @@ message ExerciseTracker {
   bool include_warmup = 9;
   int64 last_performed_at = 10;
   repeated float weight_history = 11; // top working weight per session, oldest first
-  bool overridden = 12;            // the user has set sets or the rep range by hand
+  bool overridden = 12; // the user has set sets or the rep range by hand
   MuscleGroup primary_muscle = 13;
   ExerciseCategory category = 14;
   EquipmentKind equipment = 15;
@@ -611,17 +591,17 @@ message ExerciseTracker {
 message MuscleVolume {
   MuscleGroup muscle = 1;
   float completed_sets_7d = 2;
-  int32 target_low = 3;            // 10
-  int32 target_high = 4;           // 20
+  int32 target_low = 3; // 10
+  int32 target_high = 4; // 20
 }
 
 message MuscleRecoveryStatus {
-  string muscle_key = 1;      // "chest", "quads", ...
-  string label = 2;           // "Chest"
-  int64 last_trained_at = 3;  // 0 = never
-  int64 recovered_at = 4;     // last_trained_at + window (0 = never trained)
-  float fraction = 5;         // 0.0 (just trained) → 1.0 (recovered)
-  int64 hours_remaining = 6;  // hours until recovered (0 if recovered)
+  string muscle_key = 1; // "chest", "quads", ...
+  string label = 2; // "Chest"
+  int64 last_trained_at = 3; // 0 = never
+  int64 recovered_at = 4; // last_trained_at + window (0 = never trained)
+  float fraction = 5; // 0.0 (just trained) → 1.0 (recovered)
+  int64 hours_remaining = 6; // hours until recovered (0 if recovered)
   bool recovered = 7;
   reserved 8;
   reserved "in_next_workout";
@@ -630,8 +610,8 @@ message MuscleRecoveryStatus {
 message GetHomeRequest {}
 
 message GetHomeResponse {
-  repeated WorkoutTemplate templates = 1;   // in user order
-  repeated ExerciseTracker trackers = 2;    // every exercise, resolved
+  repeated WorkoutTemplate templates = 1; // in user order
+  repeated ExerciseTracker trackers = 2; // every exercise, resolved
   string active_workout_id = 3;
   repeated UserMessage user_messages = 4;
   repeated MuscleVolume volume = 5;
@@ -640,8 +620,8 @@ message GetHomeResponse {
   // below the volume band, ties broken toward the least recently
   // started. Never a gate — any template can be started.
   string suggested_template_id = 7;
-  string suggestion_reason = 8;             // "Back and biceps are 6 sets behind"
-  bool onboarded = 9;                       // templates or workouts exist
+  string suggestion_reason = 8; // "Back and biceps are 6 sets behind"
+  bool onboarded = 9; // templates or workouts exist
 }
 
 // Create when id is empty; update when it exists.
@@ -667,10 +647,10 @@ message ReorderTemplatesResponse {}
 // "derived". current_reps resets to the resolved range bottom.
 message SetExerciseTrackerRequest {
   Exercise exercise = 1;
-  float working_weight = 2;        // lb
-  int32 override_sets = 3;         // 0 = derived
-  int32 override_rep_low = 4;      // 0 = derived
-  int32 override_rep_high = 5;     // 0 = derived
+  float working_weight = 2; // lb
+  int32 override_sets = 3; // 0 = derived
+  int32 override_rep_low = 4; // 0 = derived
+  int32 override_rep_high = 5; // 0 = derived
 }
 message SetExerciseTrackerResponse {
   ExerciseTracker tracker = 1;
@@ -680,10 +660,10 @@ message SetExerciseTrackerResponse {
 // bodyweight and experience (catalog openers when skipped), and copies
 // the default templates. Does nothing when templates already exist.
 message CompleteOnboardingRequest {
-  float body_weight_kg = 1;        // 0 = skipped
-  ExperienceLevel experience = 2;  // unspecified = skipped
+  float body_weight_kg = 1; // 0 = skipped
+  ExperienceLevel experience = 2; // unspecified = skipped
   WeightUnit unit = 3;
-  Gender gender = 4;               // unspecified = skipped
+  Gender gender = 4; // unspecified = skipped
   // The library entries to copy in. Empty means the library's defaults
   // (also what clients from before the library send).
   repeated string library_ids = 5;
@@ -696,21 +676,11 @@ message CompleteOnboardingResponse {
   GetHomeResponse home = 1;
 }
 
-
-
 message GetActiveWorkoutRequest {}
 
 message GetActiveWorkoutResponse {
-
   Workout workout = 1;
-
 }
-
-
-
-
-
-
 
 message WorkoutHeartRatePoint {
   int64 sampled_at = 1; // Unix milliseconds
@@ -768,8 +738,6 @@ message DismissUserMessagesRequest {
 message DismissUserMessagesResponse {
   repeated string dismissed_message_keys = 1;
 }
-
-
 
 // --- Service Definition ---
 

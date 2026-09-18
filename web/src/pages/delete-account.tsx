@@ -43,10 +43,7 @@ export function DeleteAccountPage() {
 
       setStatus({ text: "Deleting your account data...", type: "info" });
 
-      const resp = await authClient.deleteAccount(
-        {},
-        authHeaders(token)
-      );
+      const resp = await authClient.deleteAccount({}, authHeaders(token));
 
       // Clear local session since account is gone
       await logout();
@@ -75,8 +72,8 @@ export function DeleteAccountPage() {
 
         <div className="border border-danger-border bg-danger-bg rounded-[10px] p-4">
           <p className="text-danger-text font-semibold text-[0.95rem] leading-relaxed m-0">
-            This action permanently deletes your account, passkeys, workout
-            history, heart-rate data, and active sessions.
+            This action permanently deletes your account, passkeys, workout history, heart-rate
+            data, and active sessions.
           </p>
         </div>
 
@@ -113,13 +110,12 @@ export function DeleteAccountPage() {
           onCancel={() => setConfirming(false)}
         >
           <p className="m-0">
-            This permanently deletes the account, its passkeys, workout history
-            and heart-rate data. It cannot be undone.
+            This permanently deletes the account, its passkeys, workout history and heart-rate data.
+            It cannot be undone.
           </p>
           {!user && (
             <p className="m-0 mt-2">
-              You'll be asked for your passkey first, to prove the account is
-              yours.
+              You'll be asked for your passkey first, to prove the account is yours.
             </p>
           )}
         </ConfirmDialog>
@@ -139,8 +135,7 @@ export function DeleteAccountPage() {
         )}
 
         <p className="text-sm text-muted">
-          If passkeys are unsupported, open this page in a modern browser with
-          WebAuthn support.
+          If passkeys are unsupported, open this page in a modern browser with WebAuthn support.
         </p>
       </div>
     </div>

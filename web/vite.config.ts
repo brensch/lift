@@ -10,8 +10,11 @@ function listingHtml() {
   return {
     name: "listing-html",
     transformIndexHtml(html: string) {
-      const c = JSON.parse(readFileSync(path.resolve(__dirname, "src/generated/content.json"), "utf8"));
-      const esc = (s: string) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      const c = JSON.parse(
+        readFileSync(path.resolve(__dirname, "src/generated/content.json"), "utf8"),
+      );
+      const esc = (s: string) =>
+        String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
       return html
         .replace(/%NAME%/g, esc(c.name))
         .replace(/%TAGLINE%/g, esc(c.tagline))
