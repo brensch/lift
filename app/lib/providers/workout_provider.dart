@@ -105,22 +105,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   late final UnmodifiableListView<HeartRateSample> _wearHeartRateSamplesView =
       UnmodifiableListView(_wearHeartRateSamples);
 
-  /// [persistLocally] false keeps this provider out of the on-device cache
-  /// (the tutorial's sandbox provider must never be "restored" as the
-  /// user's real workout on the next launch).
-  WorkoutProvider(
-    this._service,
-    this._settingsProvider, {
-    bool persistLocally = true,
-  }) : _persistLocally = persistLocally {
+  /// [sandbox] is the tutorial's provider: a mock backend behind it and
+  /// nothing real in front. It never touches the on-device cache, never
+  /// schedules or cancels OS notifications, plays no sound, writes nothing
+  /// to the health platform and leaves the notification tap handler to
+  /// the real provider.
+  WorkoutProvider(this._service, this._settingsProvider, {bool sandbox = false})
+    : _sandbox = sandbox {
     WidgetsBinding.instance.addObserver(this);
-    NotificationService.onStartNextSet = _onStartNextSet;
-    _restoreLocalCacheFuture = persistLocally
-        ? _restoreLocalCache()
-        : Future<void>.value();
+    if (!sandbox) NotificationService.onStartNextSet = _onStartNextSet;
+    _restoreLocalCacheFuture = sandbox
+        ? Future<void>.value()
+        : _restoreLocalCache();
   }
 
-  final bool _persistLocally;
+  final bool _sandbox;
 
   void _onStartNextSet() {
     final next = nextPendingSet;
@@ -260,7 +259,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
         snapshot.restUntil.toInt() > nowUnix;
 
-    if (_wasResting && !isCurrentlyResting) {
+    if (_wasResting && !isCurrentlyResting && !_sandbox) {
       await NotificationService.cancelRest();
       _soundProvider?.playCurrentSound();
       unawaited(NotificationService.playRestCompletionHaptic());
@@ -463,7 +462,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _persistLocalCache() async {
-    if (!_persistLocally) return;
+    if (_sandbox) return;
     final prefs = await SharedPreferences.getInstance();
     if (_activeWorkout == null) {
       await prefs.remove(_localWorkoutCacheKey);
@@ -717,6 +716,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final oldState = _stateSnapshot?.state;
 
     _stateSnapshot = snapshot;
+
+    if (_sandbox) {
+      _wasResting =
+          snapshot?.state == WorkoutState.WORKOUT_STATE_RESTING &&
+          (snapshot?.restUntil.toInt() ?? 0) > _nowSecs;
+      return;
+    }
 
     if (snapshot == null) {
       if (oldState == WorkoutState.WORKOUT_STATE_RESTING) {
@@ -973,7 +979,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     List<Exercise> exercises = const [],
   }) async {
     try {
-      await NotificationService.cancelAll();
+      if (!_sandbox) await NotificationService.cancelAll();
       _wasResting = false;
       final response = await _service.startWorkout(
         name,
@@ -1444,7 +1450,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_activeWorkout == null) return;
     try {
       await _flushPendingWearHeartRateUploads(force: true);
-      await NotificationService.cancelAll();
+      if (!_sandbox) await NotificationService.cancelAll();
       _wasResting = false;
       final response = await _service.endWorkout(_activeWorkout!.id);
       final ended = response.workout;
@@ -1456,7 +1462,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
 
       // Fire-and-forget: never blocks workout completion
-      _writeToHealthPlatform(ended);
+      if (!_sandbox) _writeToHealthPlatform(ended);
       // The trackers just advanced server-side; pull the new numbers so
       // home shows them the moment the user lands back on it.
       unawaited(refreshHome());
@@ -1545,7 +1551,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> clear() async {
-    await NotificationService.cancelAll();
+    if (!_sandbox) await NotificationService.cancelAll();
     _wasResting = false;
     _activeWorkout = null;
     _activeProposedSets = [];
@@ -1636,12 +1642,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     try {
       await _service.appendWorkoutHeartRate(workout.id, batch);
-      unawaited(
-        HealthService.writeHeartRateSamples(
-          workoutId: workout.id,
-          samples: batch,
-        ),
-      );
+      if (!_sandbox) {
+        unawaited(
+          HealthService.writeHeartRateSamples(
+            workoutId: workout.id,
+            samples: batch,
+          ),
+        );
+      }
     } catch (e) {
       _pendingWearHeartRateUploads.insertAll(0, batch);
       debugPrint('Heart rate upload failed: $e');
