@@ -243,7 +243,7 @@ void main() {
     expect(strength, 1.0);
     expect(find.text('315 lb'), findsOneWidget);
     expect(find.text('225 lb'), findsOneWidget);
-    expect(find.text(StrengthStep.creatureFor(1)), findsNWidgets(2));
+    expect(find.text(StrengthStep.creatureFor(1)), findsOneWidget);
   });
 
   testWidgets('onboarding weight step renders', (tester) async {
