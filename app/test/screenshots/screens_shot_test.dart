@@ -18,6 +18,7 @@ import 'package:schlift/providers/settings_provider.dart';
 import 'package:schlift/providers/theme_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
+import 'package:schlift/screens/onboarding/steps/marker_step.dart';
 import 'package:schlift/screens/onboarding/steps/strength_step.dart';
 import 'package:schlift/screens/onboarding/steps/templates_step.dart';
 import 'package:schlift/screens/onboarding/steps/weight_step.dart';
@@ -193,6 +194,27 @@ void main() {
     expect(find.text(copy.lostPasskey.body), findsOneWidget);
   });
 
+  testWidgets('onboarding marker step renders the chosen marker', (
+    tester,
+  ) async {
+    await pumpAtPhoneSize(
+      tester,
+      Scaffold(
+        body: MarkerStep(
+          selectedEmoji: '🦍',
+          selectedColorHex: '#FF6B6B',
+          emojiChoices: const ['🦍', '🐣', '🐔', '🐇', '🐕', '🐒'],
+          onSelectEmoji: (_) {},
+          onSelectColor: (_) {},
+          onRefreshEmojis: () {},
+          onNext: () {},
+        ),
+      ),
+    );
+    await shoot(tester, 'onboarding_marker');
+    expect(find.text(copy.onboarding.marker.title), findsOneWidget);
+  });
+
   testWidgets('onboarding strength slider: weights follow the slider', (
     tester,
   ) async {
@@ -204,7 +226,6 @@ void main() {
           body: StrengthStep(
             unit: WeightUnit.WEIGHT_UNIT_LB,
             strength: strength,
-            bodyweightKg: 0,
             onChanged: (v) => setState(() => strength = v),
             onBack: () {},
             onNext: () {},
@@ -214,13 +235,15 @@ void main() {
     );
     await shoot(tester, 'onboarding_strength');
     // The parity numbers from test/logic/starting_weights_test.dart.
+    expect(find.text('180 lb'), findsOneWidget);
     expect(find.text('130 lb'), findsOneWidget);
-    expect(find.text('85 lb'), findsOneWidget);
-    // Drag to the gorilla end: heavier.
-    await tester.drag(find.byType(Slider), const Offset(400, 0));
+    // Drag up to the gorilla end: the bar maxes out at 315 / 225.
+    await tester.drag(find.byType(Slider), const Offset(0, -600));
     await tester.pumpAndSettle();
     expect(strength, 1.0);
-    expect(find.text('130 lb'), findsNothing);
+    expect(find.text('315 lb'), findsOneWidget);
+    expect(find.text('225 lb'), findsOneWidget);
+    expect(find.text(StrengthStep.creatureFor(1)), findsNWidgets(2));
   });
 
   testWidgets('onboarding weight step renders', (tester) async {

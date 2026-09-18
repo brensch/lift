@@ -125,7 +125,7 @@ onboarding:
   back: BACK
   marker:
     title: Which emoji do you identify as
-    body: The hardest question in 
+    body: The hardest question in the whole signup.
     refresh: These ones suck
   unit:
     title: Favourite unit?
@@ -140,6 +140,9 @@ onboarding:
     title: How huge are you
     body: This does not reflect on who you are as a person, just helps me get your starting weight right.
     note: Snapped to what fits on a bar. Every lift adjusts itself after your first session.
+    # Bottom of the scale to the top. Any number of them; the slider picks
+    # the nearest.
+    emojis: [🐣, 🐥, 🐤, 🐔, 🐇, 🐕, 🐒, 🐎, 🐂, 🦍]
     lifts:
       - id: squat
         label: Squat

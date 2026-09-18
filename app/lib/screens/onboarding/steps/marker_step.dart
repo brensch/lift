@@ -49,7 +49,23 @@ class MarkerStep extends StatelessWidget {
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          Center(
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: profileColorFromHex(selectedColorHex),
+                borderRadius: BorderRadius.circular(28),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                selectedEmoji,
+                style: const TextStyle(fontSize: 64, height: 1.1),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
