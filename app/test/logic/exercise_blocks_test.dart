@@ -70,7 +70,10 @@ void main() {
 
     test('stableId is keyed by exercise', () {
       final blocks = blocksFromSets([set('s1', Exercise.EXERCISE_SQUAT)]);
-      expect(blocks.single.stableId, 'exercise-${Exercise.EXERCISE_SQUAT.value}');
+      expect(
+        blocks.single.stableId,
+        'exercise-${Exercise.EXERCISE_SQUAT.value}',
+      );
     });
   });
 }

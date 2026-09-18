@@ -68,8 +68,11 @@ void main() {
       for (final unit in [lb, kg]) {
         for (final w in [37.0, 100.0, 183.5, 271.0]) {
           final once = snapPoundsForUnit(w, unit);
-          expect(snapPoundsForUnit(once, unit), closeTo(once, 1e-6),
-              reason: 'unit=$unit weight=$w');
+          expect(
+            snapPoundsForUnit(once, unit),
+            closeTo(once, 1e-6),
+            reason: 'unit=$unit weight=$w',
+          );
         }
       }
     });
@@ -105,8 +108,11 @@ void main() {
         final plates = standardPlates(unit);
         expect(plates, isNotEmpty);
         for (var i = 1; i < plates.length; i++) {
-          expect(plates[i], lessThan(plates[i - 1]),
-              reason: 'plates must descend so the greedy loader works');
+          expect(
+            plates[i],
+            lessThan(plates[i - 1]),
+            reason: 'plates must descend so the greedy loader works',
+          );
         }
       }
     });

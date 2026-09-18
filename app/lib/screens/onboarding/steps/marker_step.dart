@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
-import '../widgets/profile_marker_widgets.dart';
+import '../widgets/profile_marker_widgets.dart'
+    show EmojiChoiceChip, ColorChoiceDot;
 
 class MarkerStep extends StatelessWidget {
   final String selectedEmoji;
@@ -48,27 +49,14 @@ class MarkerStep extends StatelessWidget {
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 20),
-          ProfilePreviewCard(emoji: selectedEmoji, colorHex: selectedColorHex),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Text(
-                copy.onboarding.marker.emojisHeading,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                  color: cs.tertiary,
-                ),
-              ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: onRefreshEmojis,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: Text(copy.onboarding.marker.refresh),
-              ),
-            ],
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: onRefreshEmojis,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: Text(copy.onboarding.marker.refresh),
+            ),
           ),
           const SizedBox(height: 8),
           Expanded(
@@ -90,16 +78,6 @@ class MarkerStep extends StatelessWidget {
                         .toList(),
                   ),
                   const SizedBox(height: 18),
-                  Text(
-                    copy.onboarding.marker.colourHeading,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                      color: cs.tertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,

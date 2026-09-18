@@ -687,6 +687,10 @@ message CompleteOnboardingRequest {
   // The library entries to copy in. Empty means the library's defaults
   // (also what clients from before the library send).
   repeated string library_ids = 5;
+  // Chick to gorilla, 0..1, from the setup slider. When set it replaces
+  // experience and gender for seeding the main lifts, and a missing
+  // bodyweight seeds from an average instead of the empty bar.
+  optional float strength = 6;
 }
 message CompleteOnboardingResponse {
   GetHomeResponse home = 1;
