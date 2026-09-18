@@ -238,7 +238,14 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         _workoutProvider,
       ]),
       redirect: (context, state) {
+        // Hold on a blank page until the saved session has been read (a few
+        // milliseconds), rather than sending someone who is signed in to the
+        // login screen and then yanking them home.
+        final isStarting = state.matchedLocation == '/starting';
+        if (!_authProvider.sessionLoaded) return isStarting ? null : '/starting';
+
         final loggedIn = _authProvider.isLoggedIn;
+        if (isStarting) return loggedIn ? '/' : '/login';
         final isLogin = state.matchedLocation == '/login';
         final isOnboarding = state.matchedLocation == '/onboarding';
 
@@ -255,6 +262,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         return null;
       },
       routes: [
+        GoRoute(path: '/starting', builder: (_, __) => const Scaffold()),
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
         GoRoute(
           path: '/onboarding',
