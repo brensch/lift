@@ -122,6 +122,7 @@ docs/       Architecture reference and runbooks
 |---|---|
 | [`docs/architecture/`](docs/architecture/) | How the system works, with diagrams |
 | [`docs/plans/composable-workouts.md`](docs/plans/composable-workouts.md) | The composable-workouts design: templates, trackers, double progression |
+| [`docs/makefile.md`](docs/makefile.md) | Every `make` target; how to get a build onto a phone |
 | [`docs/android_dev.md`](docs/android_dev.md) | Emulator and device workflow |
 | [`docs/releasing.md`](docs/releasing.md) | Signing, secrets, store checklists |
 | [`docs/calorie_maths.md`](docs/calorie_maths.md) | How the calorie estimate works |
