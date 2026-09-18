@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
+
+import '../gen/copy.dart';
+import 'lost_passkey_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -93,10 +95,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
     final auth = context.read<AuthProvider>();
     await auth.passkeyRegister(username);
-    if (!mounted) return;
-    if (auth.isLoggedIn && auth.needsPasskeyNotice) {
-      context.go('/passkey-notice');
-    }
   }
 
   void _devLogin() {
@@ -388,6 +386,30 @@ class _LoginScreenState extends State<LoginScreen>
           icon: Icons.fingerprint,
           loading: auth.isLoading,
           onPressed: auth.isLoading ? null : _passkeyLogin,
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const LostPasskeyScreen(),
+              ),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: colorScheme.onSurface.withValues(alpha: 0.6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              copy.lostPasskey.button,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
         ),
       ],
     );

@@ -18,6 +18,7 @@ import 'package:schlift/providers/theme_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
 import 'package:schlift/screens/onboarding/steps/templates_step.dart';
+import 'package:schlift/screens/lost_passkey_screen.dart';
 import 'package:schlift/screens/tutorial_screen.dart';
 import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/services/grpc_client.dart';
@@ -181,6 +182,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(finished, 1);
     rebuild(() {});
+  });
+
+  testWidgets('lost passkey page renders', (tester) async {
+    await pumpAtPhoneSize(tester, const LostPasskeyScreen());
+    await shoot(tester, 'lost_passkey');
+    expect(find.text(copy.lostPasskey.body), findsOneWidget);
   });
 
   testWidgets('papers screen renders and scrolls to the bottom', (
