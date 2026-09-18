@@ -28,7 +28,7 @@ export type Content = {
   website: Record<string, string>;
   screenshots: Screenshot[];
   whatsNew: { version: string; lines: string[] } | null;
-  /** templates/library.yaml, for the /templates page. */
+  /** templates/library.yaml, for the /routines page. */
   library: { groups: LibraryGroup[]; templates: LibraryTemplate[] };
 };
 

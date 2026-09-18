@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import { Layout } from "@/components/layout";
 import { HomePage } from "@/pages/home";
 import { PrivacyPage } from "@/pages/privacy";
-import { TemplatesPage } from "@/pages/templates";
+import { RoutinesPage } from "@/pages/routines";
 import { DeleteAccountPage } from "@/pages/delete-account";
 import { LoginPage } from "@/pages/login";
 import { DashboardPage } from "@/pages/dashboard";
@@ -16,7 +16,9 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
-            <Route path="/templates" element={<TemplatesPage />} />
+            <Route path="/routines" element={<RoutinesPage />} />
+            {/* The page's old address; links to it are still out there. */}
+            <Route path="/templates" element={<Navigate to="/routines" replace />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/login" element={<LoginPage />} />
