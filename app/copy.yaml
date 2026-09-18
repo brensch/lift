@@ -124,39 +124,35 @@ onboarding:
   next: NEXT
   back: BACK
   marker:
-    title: Choose your colour and creature
-    body: In group workouts this becomes your side stripe and emoji badge.
-    preview_heading: Group workout preview
-    preview_body: Your emoji replaces the vertical name and your colour owns the sidebar.
-    emojis_heading: WHIMSICAL EMOJIS
-    refresh: Refresh
-    colour_heading: COLOUR
+    title: Which emoji do you identify as
+    body: The hardest question in 
+    refresh: These ones suck
   unit:
-    title: What plates are you lifting with?
+    title: Favourite unit?
     body: Ie are you in America
     pounds: Pounds
     pounds_body: Best for making you think you lift more because the number is larger.
     kilograms: Kilograms
     kilograms_body: Best for science and everywhere except America
-  body:
-    title: A little about you
-    body: All optional. These only scale your starting weights. Skip everything and the big lifts open at the empty bar.
-    gender_heading: GENDER
-    female: Female
-    male: Male
-    bodyweight: Bodyweight
-    experience_heading: HOW LONG HAVE YOU LIFTED?
-    # In order: cute, a few months, a while, years.
-    levels:
-      - emoji: 🐣
-        label: Cute
-      - emoji: 🌱
-        label: A few months
-      - emoji: 💪
-        label: A while
-      - emoji: 🦍
-        label: Years
-    papers_link: Why these questions? Read the papers
+  # The chick-to-gorilla slider. The lifts underneath show the first
+  # working weights that setting gives (the server seeds the same numbers).
+  strength:
+    title: How huge are you
+    body: This does not reflect on who you are as a person, just helps me get your starting weight right.
+    note: Snapped to what fits on a bar. Every lift adjusts itself after your first session.
+    lifts:
+      - id: squat
+        label: Squat
+      - id: bench_press
+        label: Bench press
+      - id: deadlift
+        label: Deadlift
+      - id: overhead_press
+        label: Overhead press
+  weight:
+    title: Weight
+    body: we log calories burned for you into your fitness tracker because that's the only reason to go to the gym. calories burned is proportional to weight. leave it blank and we use an average.
+    field: Bodyweight
     failed: "Setup failed: {error}. Try again."
   templates:
     title: Pick your workouts

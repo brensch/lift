@@ -11,13 +11,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:schlift/gen/copy.dart';
+import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/providers/settings_provider.dart';
 import 'package:schlift/providers/theme_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
+import 'package:schlift/screens/onboarding/steps/strength_step.dart';
 import 'package:schlift/screens/onboarding/steps/templates_step.dart';
+import 'package:schlift/screens/onboarding/steps/weight_step.dart';
 import 'package:schlift/screens/lost_passkey_screen.dart';
 import 'package:schlift/screens/tutorial_screen.dart';
 import 'package:schlift/services/auth_service.dart';
@@ -188,6 +191,55 @@ void main() {
     await pumpAtPhoneSize(tester, const LostPasskeyScreen());
     await shoot(tester, 'lost_passkey');
     expect(find.text(copy.lostPasskey.body), findsOneWidget);
+  });
+
+  testWidgets('onboarding strength slider: weights follow the slider', (
+    tester,
+  ) async {
+    var strength = 0.5;
+    await pumpAtPhoneSize(
+      tester,
+      StatefulBuilder(
+        builder: (context, setState) => Scaffold(
+          body: StrengthStep(
+            unit: WeightUnit.WEIGHT_UNIT_LB,
+            strength: strength,
+            bodyweightKg: 0,
+            onChanged: (v) => setState(() => strength = v),
+            onBack: () {},
+            onNext: () {},
+          ),
+        ),
+      ),
+    );
+    await shoot(tester, 'onboarding_strength');
+    // The parity numbers from test/logic/starting_weights_test.dart.
+    expect(find.text('130 lb'), findsOneWidget);
+    expect(find.text('85 lb'), findsOneWidget);
+    // Drag to the gorilla end: heavier.
+    await tester.drag(find.byType(Slider), const Offset(400, 0));
+    await tester.pumpAndSettle();
+    expect(strength, 1.0);
+    expect(find.text('130 lb'), findsNothing);
+  });
+
+  testWidgets('onboarding weight step renders', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await pumpAtPhoneSize(
+      tester,
+      Scaffold(
+        body: WeightStep(
+          unit: WeightUnit.WEIGHT_UNIT_KG,
+          controller: controller,
+          onBack: () {},
+          onNext: () {},
+        ),
+      ),
+    );
+    await shoot(tester, 'onboarding_weight');
+    expect(find.text(copy.onboarding.weight.body), findsOneWidget);
+    expect(find.text('kg'), findsOneWidget);
   });
 
   testWidgets('papers screen renders and scrolls to the bottom', (

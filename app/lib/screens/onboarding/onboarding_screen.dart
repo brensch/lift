@@ -1,5 +1,5 @@
-/// Setup, four steps long: your marker, your unit, (optionally) your
-/// bodyweight and experience so the first weights aren't the empty bar,
+/// Setup, five steps long: your marker, your unit, how strong you are
+/// (a slider that sets the first weights), your bodyweight for calories,
 /// and the library templates you want to start with. Finishing calls
 /// CompleteOnboarding, which seeds the trackers and copies the chosen
 /// templates — after that the app is usable and nothing else is required,
@@ -15,7 +15,7 @@ import 'dart:math';
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart'
-    show ExperienceLevel, Gender, LibraryTemplate;
+    show ExperienceLevel, LibraryTemplate;
 import '../../logic/user_profile.dart';
 import '../../logic/whimsical_emojis.dart';
 import '../../logic/weight_units.dart';
@@ -25,10 +25,11 @@ import '../../providers/workout_provider.dart';
 import '../../services/grpc_client.dart';
 import '../../services/user_service.dart';
 import '../../services/workout_service.dart';
-import '../science_screen.dart';
 import 'steps/marker_step.dart';
+import 'steps/strength_step.dart';
 import 'steps/templates_step.dart';
 import 'steps/unit_step.dart';
+import 'steps/weight_step.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -46,8 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late String _selectedEmoji;
   late String _selectedColorHex;
   WeightUnit _unit = WeightUnit.WEIGHT_UNIT_LB;
-  ExperienceLevel _experience = ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE;
-  Gender _gender = Gender.GENDER_UNSPECIFIED;
+  double _strength = 0.5; // chick 0 .. gorilla 1
   final TextEditingController _bodyWeightController = TextEditingController();
   late List<String> _emojiChoices;
   List<LibraryTemplate>? _library;
@@ -175,11 +175,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final service = WorkoutServiceWrapper(context.read<GrpcClient>());
       await service.completeOnboarding(
         bodyWeightKg: bodyWeightKg,
-        experience: bodyWeightKg > 0
-            ? _experience
-            : ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
+        experience: ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
         unit: _unit,
-        gender: _gender,
+        strength: _strength,
         libraryIds: _selectedLibraryIds.toList(),
       );
 
@@ -196,7 +194,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              copy.onboarding.body.failed.replaceAll('{error}', '$e'),
+              copy.onboarding.weight.failed.replaceAll('{error}', '$e'),
             ),
           ),
         );
@@ -230,24 +228,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         onBack: () => setState(() => _step = 0),
         onNext: () => setState(() => _step = 2),
       ),
-      _BodyStep(
+      StrengthStep(
+        unit: _unit,
+        strength: _strength,
+        bodyweightKg: _parsedBodyWeightKg(),
+        onChanged: (v) => setState(() => _strength = v),
+        onBack: () => setState(() => _step = 1),
+        onNext: () => setState(() => _step = 3),
+      ),
+      WeightStep(
         unit: _unit,
         controller: _bodyWeightController,
-        experience: _experience,
-        onExperienceChanged: (level) => setState(() => _experience = level),
-        gender: _gender,
-        onGenderChanged: (gender) => setState(() => _gender = gender),
-        onOpenScience: () => Navigator.of(
-          context,
-          rootNavigator: true,
-        ).push(MaterialPageRoute<void>(builder: (_) => const ScienceScreen())),
-        isSaving: false,
-        onBack: () => setState(() => _step = 1),
-        onFinish: () {
+        onBack: () => setState(() => _step = 2),
+        onNext: () {
           if (_library == null && _libraryError == null) {
             unawaited(_loadLibrary());
           }
-          setState(() => _step = 3);
+          setState(() => _step = 4);
         },
       ),
       TemplatesStep(
@@ -258,7 +255,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           if (!_selectedLibraryIds.remove(id)) _selectedLibraryIds.add(id);
         }),
         isSaving: _isSaving,
-        onBack: () => setState(() => _step = 2),
+        onBack: () => setState(() => _step = 3),
         onFinish: _finish,
       ),
     ];
@@ -298,186 +295,6 @@ class _StepDots extends StatelessWidget {
           ),
         );
       }),
-    );
-  }
-}
-
-/// Step 3: gender, bodyweight and experience — all skippable. They only
-/// scale the seeded starting weights; skip everything and the bar is the
-/// starting weight.
-class _BodyStep extends StatelessWidget {
-  final WeightUnit unit;
-  final TextEditingController controller;
-  final ExperienceLevel experience;
-  final ValueChanged<ExperienceLevel> onExperienceChanged;
-  final Gender gender;
-  final ValueChanged<Gender> onGenderChanged;
-  final VoidCallback onOpenScience;
-  final bool isSaving;
-  final VoidCallback onBack;
-  final VoidCallback onFinish;
-
-  const _BodyStep({
-    required this.unit,
-    required this.controller,
-    required this.experience,
-    required this.onExperienceChanged,
-    required this.gender,
-    required this.onGenderChanged,
-    required this.onOpenScience,
-    required this.isSaving,
-    required this.onBack,
-    required this.onFinish,
-  });
-
-  // Levels in the order copy.yaml lists them.
-  static const _levelValues = [
-    ExperienceLevel.EXPERIENCE_LEVEL_CUTE,
-    ExperienceLevel.EXPERIENCE_LEVEL_BEGINNER,
-    ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE,
-    ExperienceLevel.EXPERIENCE_LEVEL_EXPERT,
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final t = copy.onboarding.body;
-    final genders = [
-      (Gender.GENDER_FEMALE, t.female, '♀'),
-      (Gender.GENDER_MALE, t.male, '♂'),
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.title,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            t.body,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            t.genderHeading,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: genders.map((entry) {
-              final selected = gender == entry.$1;
-              return ChoiceChip(
-                label: Text('${entry.$3} ${entry.$2}'),
-                selected: selected,
-                onSelected: (_) => onGenderChanged(
-                  selected ? Gender.GENDER_UNSPECIFIED : entry.$1,
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: controller,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t.bodyweight,
-              suffixText: weightUnitSuffix(unit),
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            t.experienceHeading,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (var i = 0; i < _levelValues.length; i++)
-                ChoiceChip(
-                  label: Text('${t.levels[i].emoji} ${t.levels[i].label}'),
-                  selected: experience == _levelValues[i],
-                  onSelected: (_) => onExperienceChanged(_levelValues[i]),
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          InkWell(
-            onTap: onOpenScience,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🧠', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 5),
-                Text(
-                  t.papersLink,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    decoration: TextDecoration.underline,
-                    decorationColor: cs.tertiary,
-                    color: cs.onSurface.withValues(alpha: 0.75),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: isSaving ? null : onBack,
-                    child: Text(copy.onboarding.back),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: isSaving ? null : onFinish,
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            copy.onboarding.next,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

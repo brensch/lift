@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter/material.dart';
 
-import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
 
 class ProfilePreviewCard extends StatelessWidget {
@@ -47,7 +46,7 @@ class ProfilePreviewCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    copy.onboarding.marker.previewHeading,
+                    'Group workout preview',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
@@ -56,7 +55,7 @@ class ProfilePreviewCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    copy.onboarding.marker.previewBody,
+                    'Your emoji replaces the vertical name and your colour owns the sidebar.',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,

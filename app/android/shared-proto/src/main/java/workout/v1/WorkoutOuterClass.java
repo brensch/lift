@@ -38737,6 +38737,29 @@ public final class WorkoutOuterClass {
      */
     com.google.protobuf.ByteString
         getLibraryIdsBytes(int index);
+
+    /**
+     * <pre>
+     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+     * experience and gender for seeding the main lifts, and a missing
+     * bodyweight seeds from an average instead of the empty bar.
+     * </pre>
+     *
+     * <code>optional float strength = 6 [json_name = "strength"];</code>
+     * @return Whether the strength field is set.
+     */
+    boolean hasStrength();
+    /**
+     * <pre>
+     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+     * experience and gender for seeding the main lifts, and a missing
+     * bodyweight seeds from an average instead of the empty bar.
+     * </pre>
+     *
+     * <code>optional float strength = 6 [json_name = "strength"];</code>
+     * @return The strength.
+     */
+    float getStrength();
   }
   /**
    * <pre>
@@ -38755,6 +38778,7 @@ public final class WorkoutOuterClass {
     private CompleteOnboardingRequest() {
       libraryIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
+    private int bitField0_;
     public static final int BODY_WEIGHT_KG_FIELD_NUMBER = 1;
     private float bodyWeightKg_;
     /**
@@ -39095,6 +39119,64 @@ public final class WorkoutOuterClass {
       checkByteStringIsUtf8(value);
       ensureLibraryIdsIsMutable();
       libraryIds_.add(value.toStringUtf8());
+    }
+
+    public static final int STRENGTH_FIELD_NUMBER = 6;
+    private float strength_;
+    /**
+     * <pre>
+     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+     * experience and gender for seeding the main lifts, and a missing
+     * bodyweight seeds from an average instead of the empty bar.
+     * </pre>
+     *
+     * <code>optional float strength = 6 [json_name = "strength"];</code>
+     * @return Whether the strength field is set.
+     */
+    @java.lang.Override
+    public boolean hasStrength() {
+      return ((bitField0_ & 0x00000001) != 0);
+    }
+    /**
+     * <pre>
+     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+     * experience and gender for seeding the main lifts, and a missing
+     * bodyweight seeds from an average instead of the empty bar.
+     * </pre>
+     *
+     * <code>optional float strength = 6 [json_name = "strength"];</code>
+     * @return The strength.
+     */
+    @java.lang.Override
+    public float getStrength() {
+      return strength_;
+    }
+    /**
+     * <pre>
+     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+     * experience and gender for seeding the main lifts, and a missing
+     * bodyweight seeds from an average instead of the empty bar.
+     * </pre>
+     *
+     * <code>optional float strength = 6 [json_name = "strength"];</code>
+     * @param value The strength to set.
+     */
+    private void setStrength(float value) {
+      bitField0_ |= 0x00000001;
+      strength_ = value;
+    }
+    /**
+     * <pre>
+     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+     * experience and gender for seeding the main lifts, and a missing
+     * bodyweight seeds from an average instead of the empty bar.
+     * </pre>
+     *
+     * <code>optional float strength = 6 [json_name = "strength"];</code>
+     */
+    private void clearStrength() {
+      bitField0_ = (bitField0_ & ~0x00000001);
+      strength_ = 0F;
     }
 
     public static workout.v1.WorkoutOuterClass.CompleteOnboardingRequest parseFrom(
@@ -39553,6 +39635,66 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+       * experience and gender for seeding the main lifts, and a missing
+       * bodyweight seeds from an average instead of the empty bar.
+       * </pre>
+       *
+       * <code>optional float strength = 6 [json_name = "strength"];</code>
+       * @return Whether the strength field is set.
+       */
+      @java.lang.Override
+      public boolean hasStrength() {
+        return instance.hasStrength();
+      }
+      /**
+       * <pre>
+       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+       * experience and gender for seeding the main lifts, and a missing
+       * bodyweight seeds from an average instead of the empty bar.
+       * </pre>
+       *
+       * <code>optional float strength = 6 [json_name = "strength"];</code>
+       * @return The strength.
+       */
+      @java.lang.Override
+      public float getStrength() {
+        return instance.getStrength();
+      }
+      /**
+       * <pre>
+       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+       * experience and gender for seeding the main lifts, and a missing
+       * bodyweight seeds from an average instead of the empty bar.
+       * </pre>
+       *
+       * <code>optional float strength = 6 [json_name = "strength"];</code>
+       * @param value The strength to set.
+       * @return This builder for chaining.
+       */
+      public Builder setStrength(float value) {
+        copyOnWrite();
+        instance.setStrength(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
+       * experience and gender for seeding the main lifts, and a missing
+       * bodyweight seeds from an average instead of the empty bar.
+       * </pre>
+       *
+       * <code>optional float strength = 6 [json_name = "strength"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearStrength() {
+        copyOnWrite();
+        instance.clearStrength();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.CompleteOnboardingRequest)
     }
     @java.lang.Override
@@ -39569,15 +39711,17 @@ public final class WorkoutOuterClass {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
+              "bitField0_",
               "bodyWeightKg_",
               "experience_",
               "unit_",
               "gender_",
               "libraryIds_",
+              "strength_",
             };
             java.lang.String info =
-                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0001\u0000\u0001\u0001\u0002\f" +
-                "\u0003\f\u0004\f\u0005\u021a";
+                "\u0000\u0006\u0000\u0001\u0001\u0006\u0006\u0000\u0001\u0000\u0001\u0001\u0002\f" +
+                "\u0003\f\u0004\f\u0005\u021a\u0006\u1001\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

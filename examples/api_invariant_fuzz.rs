@@ -164,6 +164,7 @@ async fn run_user(
                 },
                 gender: rng.gen_range(0..3),
                 library_ids: vec![],
+                    strength: None,
             },
         ))
         .await
