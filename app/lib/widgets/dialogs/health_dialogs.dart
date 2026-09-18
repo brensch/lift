@@ -46,7 +46,7 @@ Future<void> showHeartRateHelpDialog(BuildContext context) async {
         ]
       : const <String>[
           'Pair your Apple Watch and install the Schlift watch app on it.',
-          'Start the workout from your iPhone — the watch app launches automatically.',
+          'Start the workout from your iPhone. The watch app launches automatically.',
           'Tap Allow on the Health permission sheet, making sure Heart Rate is turned on.',
         ];
 
