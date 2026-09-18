@@ -1,6 +1,7 @@
 use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
+    admin_service_server::AdminServiceServer, analytics_service_server::AnalyticsServiceServer,
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
     settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
     workout_service_server::WorkoutServiceServer,
@@ -29,7 +30,7 @@ mod workout;
 use auth::AuthState;
 use db::ServerDb;
 use server::{
-    ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
+    ServerAdminService, ServerAnalyticsService, ServerAuthService, ServerMultiplayerService, ServerSettingsService, ServerUserService,
     ServerWorkoutService,
 };
 use tracing::{error, info};
@@ -66,6 +67,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let data_dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
     let server_db = ServerDb::new_in_dir(data_dir).await?;
+
+    // `schlift admin add|remove|list [username]` manages who may read the
+    // stats page, then exits. It opens the same DATA_DIR, and is safe to run
+    // beside a live server (WAL + busy timeout).
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("admin") {
+        return admin_command(&server_db, &args[1..]).await;
+    }
+    if let Err(e) = server_db.prune_analytics().await {
+        error!("failed to prune analytics: {}", e);
+    }
     // The template library is part of the build; refuse to boot on a bad
     // file rather than serve a stale table.
     let library = template_library::load()?;
@@ -125,6 +137,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )))
         .add_service(tonic_web::enable(SettingsServiceServer::new(
             ServerSettingsService {
+                db: server_db.clone(),
+            },
+        )))
+        .add_service(tonic_web::enable(AnalyticsServiceServer::new(
+            ServerAnalyticsService {
+                db: server_db.clone(),
+            },
+        )))
+        .add_service(tonic_web::enable(AdminServiceServer::new(
+            ServerAdminService {
                 db: server_db.clone(),
             },
         )))
@@ -236,4 +258,33 @@ async fn apple_app_site_association_handler() -> Json<serde_json::Value> {
             "apps": apps
         }
     }))
+}
+
+/// Admins are granted by username but stored by user id, so the name has to
+/// belong to a real account at the moment of the grant.
+async fn admin_command(
+    db: &ServerDb,
+    args: &[String],
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    match args.as_slice() {
+        ["add", username] => match db.grant_admin(username).await? {
+            Some(user_id) => println!("{username} ({user_id}) is an admin"),
+            None => return Err(format!("no user named {username:?}; they must sign up first").into()),
+        },
+        ["remove", username] => {
+            if db.revoke_admin(username).await? {
+                println!("{username} is no longer an admin");
+            } else {
+                println!("{username} was not an admin");
+            }
+        }
+        ["list"] => {
+            for (username, user_id, granted_at) in db.list_admins().await? {
+                println!("{username}\t{user_id}\tgranted_at={granted_at}");
+            }
+        }
+        _ => return Err("usage: schlift admin add <username> | remove <username> | list".into()),
+    }
+    Ok(())
 }

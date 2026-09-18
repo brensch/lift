@@ -20,6 +20,7 @@ Future<void> showTemplateLibrary(
 }) {
   return showModalBottomSheet(
     context: context,
+    routeSettings: const RouteSettings(name: 'sheet/template-library'),
     isScrollControlled: true,
     useRootNavigator: true,
     backgroundColor: Colors.transparent,

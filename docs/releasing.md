@@ -64,6 +64,7 @@ In Play Console, create an app and fill:
 Then complete:
 - `Store presence > Main store listing`
 - `Dashboard > App content` (Data safety, ads, permissions declarations)
+  - Data safety must declare **App interactions: collected, not shared** (first-party page views — see `docs/architecture/analytics.md`). The App Store equivalent is App Privacy → Usage Data → Product Interaction, linked to identity, not used for tracking.
 - `Testing > Internal testing` (first upload track)
 
 ## 2) Choose Package Name (Application ID)

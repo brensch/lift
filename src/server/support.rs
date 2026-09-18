@@ -99,6 +99,43 @@ pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> Se
         })
 }
 
+/// The admin gate. Like `authed_user_id` this is not middleware: every admin
+/// handler calls it at the top. Admins are stored by user id (see the
+/// `admins` table), so a re-registered username never inherits the grant.
+pub(super) async fn authed_admin_id<T>(
+    request: &Request<T>,
+    db: &ServerDb,
+) -> ServerResult<String> {
+    let user_id = authed_user_id(request, db).await?;
+    if !db.is_admin(&user_id).await.map_err(internal_error)? {
+        tracing::warn!(rpc_auth = "not_admin", %user_id, "admin call from a non-admin");
+        return Err(Status::permission_denied("admin only").into());
+    }
+    Ok(user_id)
+}
+
+/// (platform, app_version) as the client describes itself. Analytics labels
+/// only — never trusted for anything. Bounded and restricted to a tame
+/// charset because the auth RPCs store them from unauthenticated callers.
+pub(super) fn client_labels<T>(request: &Request<T>) -> (String, String) {
+    let header = |name: &str| -> String {
+        request
+            .metadata()
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_' | '+'))
+            .take(32)
+            .collect()
+    };
+    let mut platform = header("x-platform");
+    if platform.is_empty() && request.metadata().get("x-grpc-web").is_some() {
+        platform = "web".to_string();
+    }
+    (platform, header("x-app-version"))
+}
+
 pub(super) fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {
     match &setting.setting {
         Some(user_setting::Setting::PlateColors(_)) => Some("plate_colors"),

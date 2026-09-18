@@ -25,6 +25,7 @@ import '../../providers/workout_provider.dart';
 import '../../services/grpc_client.dart';
 import '../../services/user_service.dart';
 import '../../services/workout_service.dart';
+import '../../services/page_tracker.dart';
 import 'steps/marker_step.dart';
 import 'steps/strength_step.dart';
 import 'steps/templates_step.dart';
@@ -41,6 +42,16 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   static const int _emojiWindowSize = 18;
   int _step = 0;
+
+  // Page-view names for the steps, in the order build() lists them. Numbered
+  // so the stats page sorts them as a funnel.
+  static const _stepSlugs = [
+    '1-marker',
+    '2-unit',
+    '3-strength',
+    '4-weight',
+    '5-templates',
+  ];
   bool _isSaving = false;
   bool _profileLoaded = false;
   bool _profileTouched = false;
@@ -265,7 +276,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             const SizedBox(height: 8),
             _StepDots(step: _step, count: steps.length),
-            Expanded(child: steps[_step]),
+            Expanded(
+              child: TrackedPage(
+                name: 'onboarding/${_stepSlugs[_step]}',
+                child: steps[_step],
+              ),
+            ),
           ],
         ),
       ),

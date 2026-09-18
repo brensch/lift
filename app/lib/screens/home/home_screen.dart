@@ -53,10 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (prefs.getBool(_tutorialSeenKey) ?? false) return;
     await prefs.setBool(_tutorialSeenKey, true);
     if (!mounted) return;
-    await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push(MaterialPageRoute<void>(builder: (_) => const TutorialScreen()));
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'tutorial'),
+        builder: (_) => const TutorialScreen(),
+      ),
+    );
   }
 
   Future<void> _refresh() async {

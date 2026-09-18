@@ -1,0 +1,110 @@
+syntax = "proto3";
+package workout.v1;
+
+// First-party usage analytics: which screens a signed-in user opened and for
+// how long, plus the admin-only read side. Nothing here leaves the server.
+
+// One screen visit. `page` is a stable slug — a go_router path template
+// ("/settings", "/exercise/:ex") or an in-screen step ("onboarding/2-unit") —
+// never a concrete id. Platform and app version ride on the request metadata
+// (`x-platform`, `x-app-version`), not on each row.
+message PageView {
+  // One id per app launch, so a trail can be split into sittings.
+  string app_session_id = 1;
+  // Monotonic per app_session_id. (user, session, seq) is the row's identity,
+  // so a retried batch is ignored rather than double counted.
+  int32 seq = 2;
+  string page = 3;
+  int64 entered_at_ms = 4; // client clock, Unix millis
+  int64 duration_ms = 5;   // foreground time on the page
+}
+
+message RecordPageViewsRequest {
+  repeated PageView views = 1;
+}
+
+message RecordPageViewsResponse {
+  int32 accepted = 1;
+}
+
+service AnalyticsService {
+  // Batched upload from the app's page tracker. Authenticated like every
+  // other write: views seen before login are held on-device until a session
+  // exists.
+  rpc RecordPageViews(RecordPageViewsRequest) returns (RecordPageViewsResponse);
+}
+
+// ── Admin ──
+
+message GetAdminStatusRequest {}
+message GetAdminStatusResponse {
+  bool is_admin = 1;
+}
+
+message GetStatsRequest {
+  // Look-back window in days. 0 = 30. Capped at the retention window.
+  int32 days = 1;
+  // When set, `trail` holds this user's most recent page views.
+  string trail_username = 2;
+}
+
+message PageStat {
+  string page = 1;
+  int64 views = 2;
+  int64 unique_users = 3;
+  int64 median_duration_ms = 4;
+  int64 total_duration_ms = 5;
+}
+
+message DailyStat {
+  string day = 1; // YYYY-MM-DD, UTC
+  int64 views = 2;
+  int64 unique_users = 3;
+}
+
+// Sign-in / sign-up attempts grouped by everything worth slicing on.
+// outcome: "started" (never finished — the passkey sheet failed or was
+// dismissed on the device), "ok", "rejected" (server refused the credential),
+// "client_error" (the app reported why; see `reason`).
+message AuthAttemptStat {
+  string kind = 1; // "register" | "login"
+  string platform = 2;
+  string app_version = 3;
+  string outcome = 4;
+  string reason = 5;
+  int64 count = 6;
+}
+
+message UserActivity {
+  string username = 1;
+  int64 views = 2;
+  int64 last_seen_ms = 3;
+}
+
+message TrailEntry {
+  string page = 1;
+  int64 entered_at_ms = 2;
+  int64 duration_ms = 3;
+  string app_session_id = 4;
+  string platform = 5;
+  string app_version = 6;
+}
+
+message GetStatsResponse {
+  int32 days = 1;
+  repeated PageStat pages = 2;
+  repeated DailyStat daily = 3;
+  repeated AuthAttemptStat auth_attempts = 4;
+  repeated UserActivity users = 5;
+  repeated TrailEntry trail = 6;
+  int64 total_users = 7;
+  int64 new_users = 8; // accounts created inside the window
+}
+
+service AdminService {
+  // Whether the caller is an admin. Lets the website decide whether to show
+  // the stats link; the real gate is on GetStats.
+  rpc GetAdminStatus(GetAdminStatusRequest) returns (GetAdminStatusResponse);
+  // Admin only: PERMISSION_DENIED for everyone else.
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}

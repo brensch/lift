@@ -14,12 +14,15 @@ use uuid::Uuid;
 
 use crate::time::now_unix;
 
+mod analytics;
 mod auth;
 mod cache;
 mod library;
 mod migration;
 mod session;
 mod workout;
+
+pub use analytics::ANALYTICS_RETENTION_DAYS;
 
 
 const SERVER_SCHEMA: &str = r#"
@@ -238,6 +241,48 @@ CREATE TABLE IF NOT EXISTS template_library (
     library_order INTEGER NOT NULL DEFAULT 0,
     template_blob BLOB NOT NULL,
     updated_at INTEGER NOT NULL
+);
+
+-- First-party usage analytics: one row per screen visit. (user, session, seq)
+-- is the identity so a retried upload is ignored, not double counted.
+CREATE TABLE IF NOT EXISTS page_views (
+    user_id TEXT NOT NULL,
+    app_session_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    page TEXT NOT NULL,
+    entered_at_ms INTEGER NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    platform TEXT NOT NULL DEFAULT '',
+    app_version TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY(user_id, app_session_id, seq)
+);
+CREATE INDEX IF NOT EXISTS idx_page_views_user_entered
+    ON page_views(user_id, entered_at_ms DESC);
+CREATE INDEX IF NOT EXISTS idx_page_views_entered
+    ON page_views(entered_at_ms);
+
+-- One row per passkey ceremony the server started. attempt_id is the
+-- pre-allocated user id for a registration and the challenge id for a login.
+-- A row still 'started' long after started_at is a ceremony that died on the
+-- device. Deliberately no username: most of these people never got an account.
+CREATE TABLE IF NOT EXISTS auth_attempts (
+    attempt_id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    started_at INTEGER NOT NULL,
+    finished_at INTEGER NOT NULL DEFAULT 0,
+    outcome TEXT NOT NULL DEFAULT 'started',
+    reason TEXT NOT NULL DEFAULT '',
+    platform TEXT NOT NULL DEFAULT '',
+    app_version TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_auth_attempts_started
+    ON auth_attempts(started_at);
+
+-- Keyed by user_id, never by name: a name is freed by account deletion and
+-- could be re-registered by someone else. Granted with `schlift admin add`.
+CREATE TABLE IF NOT EXISTS admins (
+    user_id TEXT PRIMARY KEY,
+    granted_at INTEGER NOT NULL
 );
 "#;
 

@@ -40,6 +40,7 @@ Future<void> showExercisePicker({
 }) {
   return showModalBottomSheet(
     context: context,
+    routeSettings: const RouteSettings(name: 'sheet/exercise-picker'),
     isScrollControlled: true,
     useRootNavigator: true,
     // Dismissal goes through the X so unsaved changes can ask first.
