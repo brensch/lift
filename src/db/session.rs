@@ -122,11 +122,7 @@ impl ServerDb {
 
     /// Remove a member's live participant snapshot (on leave). Their durable
     /// `session_members` row is untouched, so history is preserved.
-    pub async fn prune_session_participant(
-        &self,
-        session_id: &str,
-        user_id: &str,
-    ) -> DbResult<()> {
+    pub async fn prune_session_participant(&self, session_id: &str, user_id: &str) -> DbResult<()> {
         sqlx::query(
             "DELETE FROM session_participants_current WHERE session_id = ? AND user_id = ?",
         )
@@ -186,15 +182,15 @@ impl ServerDb {
         .bind(session_id)
         .fetch_all(&self.read_pool)
         .await?;
-        Ok(rows.into_iter().map(|r| r.get::<String, _>("user_id")).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| r.get::<String, _>("user_id"))
+            .collect())
     }
 
     /// Everyone the user has shared a session with, aggregated: (partner_id,
     /// distinct sessions together, most-recent shared-session time). Most recent first.
-    pub async fn list_training_partners(
-        &self,
-        user_id: &str,
-    ) -> DbResult<Vec<(String, i64, i64)>> {
+    pub async fn list_training_partners(&self, user_id: &str) -> DbResult<Vec<(String, i64, i64)>> {
         let rows = sqlx::query(
             "SELECT m2.user_id AS partner_id,
                     COUNT(DISTINCT m1.session_id) AS sessions_together,
@@ -317,16 +313,12 @@ impl ServerDb {
     }
 
     /// Look up a request's (from_user_id, to_user_id) for authorization/routing.
-    pub async fn get_join_request(
-        &self,
-        request_id: &str,
-    ) -> DbResult<Option<(String, String)>> {
-        let row = sqlx::query(
-            "SELECT from_user_id, to_user_id FROM join_requests WHERE request_id = ?",
-        )
-        .bind(request_id)
-        .fetch_optional(&self.read_pool)
-        .await?;
+    pub async fn get_join_request(&self, request_id: &str) -> DbResult<Option<(String, String)>> {
+        let row =
+            sqlx::query("SELECT from_user_id, to_user_id FROM join_requests WHERE request_id = ?")
+                .bind(request_id)
+                .fetch_optional(&self.read_pool)
+                .await?;
         Ok(row.map(|r| {
             (
                 r.get::<String, _>("from_user_id"),

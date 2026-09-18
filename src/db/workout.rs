@@ -121,12 +121,10 @@ impl ServerDb {
         set_id: &str,
         workout_id: &str,
     ) -> DbResult<()> {
-        sqlx::query(
-            "DELETE FROM completed_sets WHERE id = ? AND workout_id = ? AND user_id = ?",
-        )
-        .bind(set_id)
-        .bind(workout_id)
-        .bind(user_id)
+        sqlx::query("DELETE FROM completed_sets WHERE id = ? AND workout_id = ? AND user_id = ?")
+            .bind(set_id)
+            .bind(workout_id)
+            .bind(user_id)
             .execute(&self.write_pool)
             .await?;
         Ok(())
@@ -286,11 +284,7 @@ impl ServerDb {
     /// The `limit` most recent workouts, returned oldest-first so callers can iterate chronologically. Uses the `idx_workouts_user_time` index. Bounds the scheduler's
     /// history load, which would otherwise grow without limit as a user's
     /// training history accumulates.
-    pub async fn list_recent_workouts(
-        &self,
-        user_id: &str,
-        limit: i64,
-    ) -> DbResult<Vec<Workout>> {
+    pub async fn list_recent_workouts(&self, user_id: &str, limit: i64) -> DbResult<Vec<Workout>> {
         let rows = sqlx::query(
             "SELECT id, name, start_time, end_time, session_id, template_id
              FROM workouts
@@ -439,19 +433,17 @@ impl ServerDb {
         .bind(user_id)
         .fetch_optional(&self.read_pool)
         .await?;
-        Ok(row.map(|r| {
-            ProposedSet {
-                id: r.get("id"),
-                workout_id: r.get("workout_id"),
-                workout_order: r.get("workout_order"),
-                exercise: r.get("exercise"),
-                target_reps: r.get("target_reps"),
-                target_weight: r.get::<f64, _>("target_weight") as f32,
-                warmup: r.get::<i32, _>("warmup") != 0,
-                cancelled: r.get::<i32, _>("cancelled") != 0,
-                rest_after_success: r.get("rest_after_success"),
-                rest_after_failure: r.get("rest_after_failure"),
-            }
+        Ok(row.map(|r| ProposedSet {
+            id: r.get("id"),
+            workout_id: r.get("workout_id"),
+            workout_order: r.get("workout_order"),
+            exercise: r.get("exercise"),
+            target_reps: r.get("target_reps"),
+            target_weight: r.get::<f64, _>("target_weight") as f32,
+            warmup: r.get::<i32, _>("warmup") != 0,
+            cancelled: r.get::<i32, _>("cancelled") != 0,
+            rest_after_success: r.get("rest_after_success"),
+            rest_after_failure: r.get("rest_after_failure"),
         }))
     }
 

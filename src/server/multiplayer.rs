@@ -339,7 +339,12 @@ impl MultiplayerService for ServerMultiplayerService {
             .map_err(internal_error)?;
         let mut partners = Vec::with_capacity(rows.len());
         for (partner_id, sessions_together, last_trained_at) in rows {
-            if let Some(user) = self.db.get_user(&partner_id).await.map_err(internal_error)? {
+            if let Some(user) = self
+                .db
+                .get_user(&partner_id)
+                .await
+                .map_err(internal_error)?
+            {
                 partners.push(TrainingPartner {
                     user: Some(user),
                     sessions_together: sessions_together as i32,

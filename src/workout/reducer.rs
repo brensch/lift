@@ -45,9 +45,7 @@ pub(crate) fn is_final_set_of_exercise_after_completion(
 
     !proposed_sets
         .iter()
-        .filter(|set| {
-            set.exercise == exercise && !set.cancelled && set.id != proposed_set_id
-        })
+        .filter(|set| set.exercise == exercise && !set.cancelled && set.id != proposed_set_id)
         .any(|set| {
             !completed_sets
                 .iter()
@@ -540,7 +538,8 @@ mod tests {
         .unwrap();
 
         assert!(active.completed_sets.is_empty());
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 3_000);
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 3_000);
         assert_eq!(snap.state, STATE_READY, "the set should be up again");
         assert_eq!(snap.display_set.unwrap().id, "s1");
     }
@@ -584,7 +583,10 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(active.proposed_sets[0].cancelled, "soft delete, not removal");
+        assert!(
+            active.proposed_sets[0].cancelled,
+            "soft delete, not removal"
+        );
         assert_eq!(active.proposed_sets.len(), 2, "the row is retained");
     }
 
@@ -597,14 +599,10 @@ mod tests {
         // Start button acts on. Pointing it back at the finished set restarts it
         // in an infinite loop (dev regression: a warmup completed 6× in 40s and
         // the workout never advanced past set 0).
-        let mut active =
-            active_with(vec![proposed("s1", 0, true), proposed("s2", 1, false)]);
+        let mut active = active_with(vec![proposed("s1", 0, true), proposed("s2", 1, false)]);
         complete(&mut active, "s1", 5, 2_000);
-        let snap = workout_state_snapshot_from_state(
-            &active.proposed_sets,
-            &active.completed_sets,
-            2_050,
-        );
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_050);
         assert_eq!(snap.state, STATE_RESTING);
         assert_eq!(
             snap.display_set.unwrap().id,
@@ -620,8 +618,7 @@ mod tests {
         // "yapping" count-up. Dropping it to 0 (as it did) made the state revert
         // from "Yapping 0:12" to a bare "Next up" whenever state was reloaded
         // (e.g. on app focus-regain).
-        let mut active =
-            active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
+        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
         complete(&mut active, "s1", 5, 2_000);
         let rest_until = active.completed_sets[0].rest_until;
         assert!(rest_until > 2_000, "the completed set should carry a rest");
@@ -633,8 +630,10 @@ mod tests {
         );
         assert_eq!(snap.state, STATE_READY);
         assert_eq!(snap.display_set.unwrap().id, "s2");
-        assert_eq!(snap.last_rest_end, rest_until,
-            "READY must carry the rest-end so yapping persists across reloads");
+        assert_eq!(
+            snap.last_rest_end, rest_until,
+            "READY must carry the rest-end so yapping persists across reloads"
+        );
     }
 
     #[test]
@@ -642,26 +641,29 @@ mod tests {
         // Two sets so RESTING is genuinely reachable (rest happens *before* the
         // next set). A single-set workout would jump straight to ALL_DONE after
         // the last set — there is nothing to rest for.
-        let mut active =
-            active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
+        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
 
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 1_000);
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 1_000);
         assert_eq!(snap.state, STATE_READY);
         assert_eq!(snap.display_set.unwrap().id, "s1");
 
         start(&mut active, "s1", 2_000);
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_010);
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_010);
         assert_eq!(snap.state, STATE_LIFTING);
         assert_eq!(snap.active_started_at, 2_000);
 
         // Finish set 1: resting before set 2, focused on set 2.
         complete(&mut active, "s1", 5, 2_040);
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_050);
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 2_050);
         assert_eq!(snap.state, STATE_RESTING);
         assert_eq!(snap.display_set.unwrap().id, "s2");
 
         // Rest expires: set 2 is ready.
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_000);
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_000);
         assert_eq!(snap.state, STATE_READY);
         assert_eq!(snap.display_set.unwrap().id, "s2");
 
@@ -670,8 +672,12 @@ mod tests {
         // logged 10× because rest fell back to it).
         start(&mut active, "s2", 9_100);
         complete(&mut active, "s2", 5, 9_140);
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_150);
-        assert_eq!(snap.state, STATE_ALL_DONE, "after the final set there is nothing to rest for");
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_150);
+        assert_eq!(
+            snap.state, STATE_ALL_DONE,
+            "after the final set there is nothing to rest for"
+        );
         assert!(snap.display_set.is_none());
     }
 
@@ -682,7 +688,8 @@ mod tests {
         let mut active = active_with(sets);
         complete(&mut active, "s2", 5, 2_000);
 
-        let snap = workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_000);
+        let snap =
+            workout_state_snapshot_from_state(&active.proposed_sets, &active.completed_sets, 9_000);
         assert_eq!(
             snap.state, STATE_ALL_DONE,
             "a cancelled warmup must not keep the workout in READY"

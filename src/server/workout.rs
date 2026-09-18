@@ -26,10 +26,7 @@ impl ServerWorkoutService {
 
     /// Recent history: enough for volume (7 days), recovery, weight
     /// sparklines and the suggestion tie-break.
-    async fn load_recent_history(
-        &self,
-        user_id: &str,
-    ) -> ServerResult<Vec<WorkoutRecord>> {
+    async fn load_recent_history(&self, user_id: &str) -> ServerResult<Vec<WorkoutRecord>> {
         let workouts = self
             .db
             .list_recent_workouts(user_id, Self::RECENT_HISTORY_LIMIT)
@@ -241,8 +238,7 @@ impl ServerWorkoutService {
 
         let session_id = self.get_session_id_for_user(user_id).await?;
         if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, user_id, &session_id, Some(workout_id))
-                .await?;
+            refresh_participant_for_user(&self.db, user_id, &session_id, Some(workout_id)).await?;
         }
 
         Ok(WorkoutPlanResponse {
@@ -435,7 +431,9 @@ impl WorkoutService for ServerWorkoutService {
             };
             (req.exercises, name)
         };
-        let plans = self.exercise_plans(&user_id, &exercises, started_at).await?;
+        let plans = self
+            .exercise_plans(&user_id, &exercises, started_at)
+            .await?;
 
         let workout = Workout {
             id: workout_id.clone(),
@@ -672,7 +670,6 @@ impl WorkoutService for ServerWorkoutService {
             since,
         }))
     }
-
 
     // ── Individual Set RPCs (targeted single-row SQL operations) ──
 
@@ -1331,8 +1328,6 @@ impl WorkoutService for ServerWorkoutService {
 
     // ── Schedule / Drafts ──
 
-
-
     // ── Home, templates, trackers ──
 
     async fn get_home(
@@ -1506,8 +1501,8 @@ impl WorkoutService for ServerWorkoutService {
                 .get_tracker_states(&user_id)
                 .await
                 .map_err(internal_error)?;
-            let experience = ExperienceLevel::try_from(req.experience)
-                .unwrap_or(ExperienceLevel::Unspecified);
+            let experience =
+                ExperienceLevel::try_from(req.experience).unwrap_or(ExperienceLevel::Unspecified);
             let gender = Gender::try_from(req.gender).unwrap_or(Gender::Unspecified);
             // The slider replaces the experience and gender questions (and
             // bodyweight plays no part); older clients still send those.
@@ -1626,11 +1621,6 @@ impl WorkoutService for ServerWorkoutService {
             dismissed_message_keys: dismissed,
         }))
     }
-
-
-
-
-
 }
 
 /// The layoff deload: 90% after 14 days away from this exercise, 80% after

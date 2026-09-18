@@ -41,5 +41,4 @@ impl SettingsService for ServerSettingsService {
             .map_err(internal_error)?;
         Ok(Response::new(GetSettingsResponse { settings }))
     }
-
 }
