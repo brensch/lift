@@ -18,7 +18,7 @@ on:
         required: true
         default: render
         type: choice
-        options: [render, push, pull]
+        options: [render, push, pull, inspect]
       platforms:
         description: "Which stores (push/pull)"
         required: true
@@ -125,7 +125,7 @@ jobs:
 
   pull:
     needs: check
-    if: inputs.action == 'pull'
+    if: inputs.action == 'pull' || inputs.action == 'inspect'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -147,7 +147,7 @@ jobs:
         run: |
           mkdir -p pulled
           VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
-          python3 scripts/store_listing_app_store.py pull --bundle-id com.brensch.schlift $VERSION | tee pulled/app-store.yaml
+          python3 scripts/store_listing_app_store.py ${{ inputs.action }} --bundle-id com.brensch.schlift $VERSION | tee pulled/app-store.yaml
       - uses: actions/upload-artifact@v4
         with:
           name: store-listing-pull
