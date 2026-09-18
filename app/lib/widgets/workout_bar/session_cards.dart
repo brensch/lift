@@ -17,7 +17,8 @@ class SessionMemberCard extends StatelessWidget {
   final bool shakeActive;
   final VoidCallback? onTap;
 
-  const SessionMemberCard({super.key, 
+  const SessionMemberCard({
+    super.key,
     required this.name,
     this.emoji,
     required this.profileColor,
@@ -52,11 +53,7 @@ class SessionMemberCard extends StatelessWidget {
     if (onTap == null) return shaking;
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        borderRadius: AppTheme.brMd,
-        onTap: onTap,
-        child: shaking,
-      ),
+      child: InkWell(borderRadius: AppTheme.brMd, onTap: onTap, child: shaking),
     );
   }
 }
@@ -65,7 +62,11 @@ class MoreParticipantsCard extends StatelessWidget {
   final int hiddenCount;
   final VoidCallback? onTap;
 
-  const MoreParticipantsCard({super.key, required this.hiddenCount, this.onTap});
+  const MoreParticipantsCard({
+    super.key,
+    required this.hiddenCount,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -111,11 +112,7 @@ class MoreParticipantsCard extends StatelessWidget {
     if (onTap == null) return content;
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        borderRadius: AppTheme.brMd,
-        onTap: onTap,
-        child: content,
-      ),
+      child: InkWell(borderRadius: AppTheme.brMd, onTap: onTap, child: content),
     );
   }
 }

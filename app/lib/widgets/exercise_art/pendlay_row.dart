@@ -10,7 +10,9 @@ ExerciseArt pendlayRowArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(98, 90), Limb(95, 93)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Bar pulled to the chest — elbows drive back past the torso.
   Pose(
@@ -20,6 +22,8 @@ ExerciseArt pendlayRowArt() => const ExerciseArt([
       arms: [Limb(170, -90)],
       legs: [Limb(98, 90), Limb(95, 93)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

@@ -10,7 +10,9 @@ ExerciseArt barbellRowArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(95, 92), Limb(91, 95)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Bar pulled to the torso.
   Pose(
@@ -20,6 +22,8 @@ ExerciseArt barbellRowArt() => const ExerciseArt([
       arms: [Limb(150, 40)],
       legs: [Limb(95, 92), Limb(91, 95)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

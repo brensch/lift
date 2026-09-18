@@ -42,12 +42,17 @@ pub fn load() -> Result<Vec<LibraryTemplate>, String> {
 }
 
 fn parse(text: &str) -> Result<Vec<LibraryTemplate>, String> {
-    let file: File = serde_yaml::from_str(text).map_err(|e| format!("templates/library.yaml: {e}"))?;
+    let file: File =
+        serde_yaml::from_str(text).map_err(|e| format!("templates/library.yaml: {e}"))?;
     let mut seen = HashSet::new();
     let mut out = Vec::with_capacity(file.templates.len());
     for entry in file.templates {
         let id = entry.id.trim();
-        if id.is_empty() || id.chars().any(|c| !(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')) {
+        if id.is_empty()
+            || id
+                .chars()
+                .any(|c| !(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
+        {
             return Err(format!("template id {id:?} must be lower_snake_case"));
         }
         if !seen.insert(id.to_string()) {

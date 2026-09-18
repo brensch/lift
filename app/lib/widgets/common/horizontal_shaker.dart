@@ -6,7 +6,11 @@ import 'package:flutter/material.dart';
 class HorizontalShaker extends StatefulWidget {
   final Widget child;
   final bool active;
-  const HorizontalShaker({super.key, required this.child, required this.active});
+  const HorizontalShaker({
+    super.key,
+    required this.child,
+    required this.active,
+  });
 
   @override
   State<HorizontalShaker> createState() => HorizontalShakerState();

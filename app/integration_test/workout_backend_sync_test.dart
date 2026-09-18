@@ -10,8 +10,9 @@ import 'support/scenario.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('workout — a UI-logged set persists to the backend',
-      (tester) async {
+  testWidgets('workout — a UI-logged set persists to the backend', (
+    tester,
+  ) async {
     final s = Scenario(binding, tester, 'workout_backend_sync');
     final username = 'sync_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -36,15 +37,24 @@ void main() {
     final hasWorkout = await api.adoptActiveWorkout();
     final detail = await api.workoutDetail();
     final completed = detail?.completedSets.length ?? 0;
-    s.note('Backend active workout',
-        detail: 'workout=${detail?.workout.id ?? "none"}, '
-            'completedSets=$completed',
-        kind: 'api');
+    s.note(
+      'Backend active workout',
+      detail:
+          'workout=${detail?.workout.id ?? "none"}, '
+          'completedSets=$completed',
+      kind: 'api',
+    );
 
-    expect(hasWorkout, isTrue,
-        reason: 'the backend should have an active workout for this user');
-    expect(completed, greaterThanOrEqualTo(1),
-        reason: 'the set completed in the UI should be persisted in the backend');
+    expect(
+      hasWorkout,
+      isTrue,
+      reason: 'the backend should have an active workout for this user',
+    );
+    expect(
+      completed,
+      greaterThanOrEqualTo(1),
+      reason: 'the set completed in the UI should be persisted in the backend',
+    );
 
     s.note('UI→backend sync verified', kind: 'assert');
     await s.report();

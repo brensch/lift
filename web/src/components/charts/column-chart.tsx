@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  GRID,
-  niceTicks,
-  scaleLinear,
-  useMeasuredSize,
-} from "./chart-utils";
+import { GRID, niceTicks, scaleLinear, useMeasuredSize } from "./chart-utils";
 
 export interface Column {
   label: string; // x label / tooltip title

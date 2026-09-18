@@ -39,15 +39,23 @@
 		4BFA56509017551A55367603 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
 		51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */; };
 		5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9240986A58A7473DBCC0828C /* PhoneConnector.swift */; };
+		F0DE9D8C7390869308E2DB16 /* PhoneConnector+RestAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BBAC73CD8E3D91F57078005 /* PhoneConnector+RestAlerts.swift */; };
+		3897E08613EFB2354FC6ED77 /* PhoneConnector+HeartRate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BBB2E9A14BAE5FEED1C4BD /* PhoneConnector+HeartRate.swift */; };
+		F947BE4719B29D55082D0277 /* PhoneConnector+Messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */; };
 		5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2369EE1B891E190DF2D26271 /* SceneDelegate.swift */; };
 		6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */; };
 		7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */; };
+		DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */; };
 		79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
 		86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */; };
 		96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */; };
 		9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C0B02B8A3792430DE97AC0B /* Assets.xcassets */; };
 		A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */; };
 		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
+		118AC1A05598FCE8A9DFCFDB /* ContentView+ActionButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */; };
+		464448B5D5D77E3331A589FA /* ContentView+MainLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11D9410141672EB4995757A /* ContentView+MainLayout.swift */; };
+		DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */; };
+		7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */; };
 		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
 		C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A421681FD4BE14DDF968D0D /* AppDelegate.swift */; };
 		D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
@@ -133,6 +141,9 @@
 		7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		8675EB0B800687D68D206C6C /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		9240986A58A7473DBCC0828C /* PhoneConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneConnector.swift; sourceTree = "<group>"; };
+		0BBAC73CD8E3D91F57078005 /* PhoneConnector+RestAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhoneConnector+RestAlerts.swift"; sourceTree = "<group>"; };
+		A4BBB2E9A14BAE5FEED1C4BD /* PhoneConnector+HeartRate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhoneConnector+HeartRate.swift"; sourceTree = "<group>"; };
+		E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhoneConnector+Messaging.swift"; sourceTree = "<group>"; };
 		9A421681FD4BE14DDF968D0D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9BFFD28DDBB97D71080156CC /* wearable.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wearable.pb.swift; sourceTree = "<group>"; };
 		ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = auth.pb.swift; sourceTree = "<group>"; };
@@ -142,9 +153,14 @@
 		B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Variable.ttf"; sourceTree = "<group>"; };
 		C129A9FB18F81555600E71B3 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		C791F424CC08582321BD3041 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+ActionButtons.swift"; sourceTree = "<group>"; };
+		F11D9410141672EB4995757A /* ContentView+MainLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MainLayout.swift"; sourceTree = "<group>"; };
+		77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+WorkoutComplete.swift"; sourceTree = "<group>"; };
+		47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Formatting.swift"; sourceTree = "<group>"; };
 		DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		E0856CC1A3E00E1DFC68F89A /* group.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = group.pb.swift; sourceTree = "<group>"; };
 		E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgeManager.swift; sourceTree = "<group>"; };
+		033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchBridgeManager+Incoming.swift"; sourceTree = "<group>"; };
 		F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchliftWatchApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -227,6 +243,7 @@
 			isa = PBXGroup;
 			children = (
 				E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */,
+				033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */,
 				6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */,
 			);
 			path = WearBridge;
@@ -257,7 +274,14 @@
 			children = (
 				1C0B02B8A3792430DE97AC0B /* Assets.xcassets */,
 				C791F424CC08582321BD3041 /* ContentView.swift */,
+				95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */,
+				F11D9410141672EB4995757A /* ContentView+MainLayout.swift */,
+				77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */,
+				47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */,
 				9240986A58A7473DBCC0828C /* PhoneConnector.swift */,
+				0BBAC73CD8E3D91F57078005 /* PhoneConnector+RestAlerts.swift */,
+				A4BBB2E9A14BAE5FEED1C4BD /* PhoneConnector+HeartRate.swift */,
+				E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */,
 				F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */,
 				B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */,
 				68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */,
@@ -530,7 +554,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */,
+				118AC1A05598FCE8A9DFCFDB /* ContentView+ActionButtons.swift in Sources */,
+				464448B5D5D77E3331A589FA /* ContentView+MainLayout.swift in Sources */,
+				DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */,
+				7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */,
 				5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */,
+				F0DE9D8C7390869308E2DB16 /* PhoneConnector+RestAlerts.swift in Sources */,
+				3897E08613EFB2354FC6ED77 /* PhoneConnector+HeartRate.swift in Sources */,
+				F947BE4719B29D55082D0277 /* PhoneConnector+Messaging.swift in Sources */,
 				E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */,
 				51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */,
 				96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */,
@@ -558,6 +589,7 @@
 				A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */,
 				5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */,
 				7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */,
+				DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */,
 				E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */,
 				EB8A841700E4A23E90DAF1DE /* auth.pb.swift in Sources */,
 				2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */,

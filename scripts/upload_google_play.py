@@ -12,16 +12,15 @@ import json
 import os
 import sys
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
+import httplib2
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
-
-import httplib2
 
 ANDROID_PUBLISHER_SCOPE = "https://www.googleapis.com/auth/androidpublisher"
 
@@ -58,15 +57,13 @@ def parse_args() -> argparse.Namespace:
     if any((args.wear_aab, args.wear_release_name, args.wear_tracks)) and not all(
         (args.wear_aab, args.wear_release_name, args.wear_tracks)
     ):
-        parser.error(
-            "--wear-aab, --wear-release-name and --wear-tracks must be given together"
-        )
+        parser.error("--wear-aab, --wear-release-name and --wear-tracks must be given together")
     return args
 
 
 def load_service_account_info(args: argparse.Namespace) -> dict:
-    service_account_json = (
-        args.service_account_json or os.environ.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")
+    service_account_json = args.service_account_json or os.environ.get(
+        "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"
     )
     if service_account_json:
         return json.loads(service_account_json)
@@ -75,7 +72,7 @@ def load_service_account_info(args: argparse.Namespace) -> dict:
         "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_FILE"
     )
     if service_account_json_file:
-        with open(service_account_json_file, "r", encoding="utf-8") as handle:
+        with Path(service_account_json_file).open(encoding="utf-8") as handle:
             return json.load(handle)
 
     raise SystemExit(
@@ -138,10 +135,7 @@ def update_tracks(
     status: str,
 ) -> None:
     for track in artifact.tracks:
-        print(
-            f"Assigning {artifact.label} version code {version_code} "
-            f"to track {track!r}"
-        )
+        print(f"Assigning {artifact.label} version code {version_code} to track {track!r}")
         body = {
             "track": track,
             "releases": [
@@ -187,7 +181,8 @@ def commit_edit(androidpublisher, package_name: str, edit_id: str) -> None:
         if not should_retry_commit_with_changes_not_sent(error):
             raise
         print(
-            "Google Play requires changesNotSentForReview for this edit; retrying commit with it set"
+            "Google Play requires changesNotSentForReview for this edit; "
+            "retrying commit with it set"
         )
         (
             androidpublisher.edits()
@@ -238,11 +233,7 @@ def main() -> int:
         cache_discovery=False,
     )
 
-    edit = (
-        androidpublisher.edits()
-        .insert(packageName=args.package_name, body={})
-        .execute()
-    )
+    edit = androidpublisher.edits().insert(packageName=args.package_name, body={}).execute()
     edit_id = edit["id"]
     print(f"Created Google Play edit {edit_id}")
 
@@ -284,6 +275,7 @@ def main() -> int:
 def google_auth_httplib2_request(credentials, http):
     """Wrap an httplib2.Http with google-auth credentials."""
     import google_auth_httplib2
+
     return google_auth_httplib2.AuthorizedHttp(credentials, http=http)
 
 

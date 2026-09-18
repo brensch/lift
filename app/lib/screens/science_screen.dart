@@ -264,11 +264,7 @@ class _Section extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.open_in_new,
-                      size: 14,
-                      color: cs.tertiary,
-                    ),
+                    Icon(Icons.open_in_new, size: 14, color: cs.tertiary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(

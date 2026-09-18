@@ -21,7 +21,8 @@ class CurrentExerciseCard extends StatelessWidget {
   final String? activeSetId;
   final VoidCallback onEdit;
 
-  const CurrentExerciseCard({super.key, 
+  const CurrentExerciseCard({
+    super.key,
     required this.block,
     required this.completedSets,
     required this.activeSetId,
@@ -31,8 +32,7 @@ class CurrentExerciseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final title =
-        exerciseNames[block.exercise] ?? 'Exercise';
+    final title = exerciseNames[block.exercise] ?? 'Exercise';
 
     return Container(
       width: double.infinity,
@@ -128,7 +128,11 @@ class SetProgressSection extends StatelessWidget {
   final String label;
   final List<Widget> children;
 
-  const SetProgressSection({super.key, required this.label, required this.children});
+  const SetProgressSection({
+    super.key,
+    required this.label,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {

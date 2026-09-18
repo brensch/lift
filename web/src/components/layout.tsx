@@ -44,7 +44,7 @@ export function Layout() {
                   "px-3 py-2 rounded-lg text-sm font-medium no-underline transition-colors",
                   location.pathname === item.to
                     ? "text-text bg-surface"
-                    : "text-muted hover:text-text"
+                    : "text-muted hover:text-text",
                 )}
               >
                 {item.label}
@@ -79,7 +79,7 @@ export function Layout() {
                   "px-3 py-2 rounded-lg text-sm font-medium no-underline transition-colors",
                   location.pathname === item.to
                     ? "text-text bg-surface"
-                    : "text-muted hover:text-text"
+                    : "text-muted hover:text-text",
                 )}
               >
                 {item.label}
@@ -102,9 +102,7 @@ export function Layout() {
 
       <footer className="border-t border-border/50 py-8 px-5">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
-          <span className="font-display font-bold tracking-[-0.04em]">
-            SCHLIFT
-          </span>
+          <span className="font-display font-bold tracking-[-0.04em]">SCHLIFT</span>
           <div className="flex gap-4">
             <Link
               to="/privacy"

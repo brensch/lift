@@ -46,16 +46,22 @@ def compose_description(listing: dict) -> str:
             parts.append(f'"{str(t.get("quote", "")).strip()}"\n- {str(t.get("name", "")).strip()}')
     other = listing.get("other_features") or {}
     if other.get("items"):
-        lines = [str(other.get("heading", "")).strip()] + [f"- {feature_text(i)}" for i in other["items"]]
-        parts.append("\n".join(l for l in lines if l))
+        lines = [str(other.get("heading", "")).strip()] + [
+            f"- {feature_text(i)}" for i in other["items"]
+        ]
+        parts.append("\n".join(line for line in lines if line))
     return "\n\n".join(p for p in parts if p)
+
+
 CAPTION_TITLE_LIMIT = 28
 CAPTION_SUBTITLE_LIMIT = 80
 
 
 def play_short_description(listing: dict) -> str:
     """Play's one-liner: the tagline and the promotional text, one sentence after the other."""
-    return f"{str(listing.get('tagline', '')).strip()} {str(listing.get('promotional_text', '')).strip()}".strip()
+    tagline = str(listing.get("tagline", "")).strip()
+    promo = str(listing.get("promotional_text", "")).strip()
+    return f"{tagline} {promo}".strip()
 
 
 def load_listing(path: Path = LISTING) -> dict:
@@ -78,26 +84,44 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
 
     for field in RETIRED:
         if field in listing:
-            problems.append(f"{field}: retired; see the comments in store/listing.yaml for what replaced it")
+            problems.append(
+                f"{field}: retired; see the comments in store/listing.yaml for what replaced it"
+            )
     for i, t in enumerate(listing.get("testimonials") or []):
-        if not isinstance(t, dict) or not str(t.get("quote", "")).strip() or not str(t.get("name", "")).strip():
+        if (
+            not isinstance(t, dict)
+            or not str(t.get("quote", "")).strip()
+            or not str(t.get("name", "")).strip()
+        ):
             problems.append(f"testimonials[{i}]: needs a quote and a name")
     other = listing.get("other_features") or {}
-    if not isinstance(other, dict) or not str(other.get("heading", "")).strip() or not other.get("items"):
+    if (
+        not isinstance(other, dict)
+        or not str(other.get("heading", "")).strip()
+        or not other.get("items")
+    ):
         problems.append("other_features: needs a heading and at least one item")
     for i, item in enumerate((other.get("items") if isinstance(other, dict) else None) or []):
         if not feature_text(item):
             problems.append(f"other_features.items[{i}]: needs text")
     description = compose_description(listing)
     if len(description) > DESCRIPTION_LIMIT:
-        problems.append(f"composed description: {len(description)} characters, the stores allow {DESCRIPTION_LIMIT}")
+        problems.append(
+            f"composed description: {len(description)} characters, "
+            f"the stores allow {DESCRIPTION_LIMIT}"
+        )
     short = play_short_description(listing)
     if len(short) > PLAY_SHORT_LIMIT:
-        problems.append(f"tagline + promotional_text: {len(short)} characters; Play's one-liner allows {PLAY_SHORT_LIMIT}")
+        problems.append(
+            f"tagline + promotional_text: {len(short)} characters; "
+            f"Play's one-liner allows {PLAY_SHORT_LIMIT}"
+        )
 
     slides = listing.get("screenshots") or []
     if not 2 <= len(slides) <= 8:
-        problems.append(f"screenshots: {len(slides)} slides; Play wants 2–8 (App Store 1–10)")
+        problems.append(
+            f"screenshots: {len(slides)} slides; Play wants 2\u20138 (App Store 1\u201310)"
+        )
     for i, slide in enumerate(slides):
         where = f"screenshots[{i}]"
         if not isinstance(slide, dict) or not slide.get("file"):
@@ -108,9 +132,15 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
         if not title:
             problems.append(f"{where}: needs a title")
         elif len(title) > CAPTION_TITLE_LIMIT:
-            problems.append(f"{where}: title is {len(title)} characters; keep it under {CAPTION_TITLE_LIMIT} so it fits on one line")
+            problems.append(
+                f"{where}: title is {len(title)} characters; "
+                f"keep it under {CAPTION_TITLE_LIMIT} so it fits on one line"
+            )
         if len(subtitle) > CAPTION_SUBTITLE_LIMIT:
-            problems.append(f"{where}: subtitle is {len(subtitle)} characters; keep it under {CAPTION_SUBTITLE_LIMIT}")
+            problems.append(
+                f"{where}: subtitle is {len(subtitle)} characters; "
+                f"keep it under {CAPTION_SUBTITLE_LIMIT}"
+            )
         if raw_dir.is_dir() and not (raw_dir / slide["file"]).is_file():
             problems.append(f"{where}: {slide['file']} is not in {raw_dir.relative_to(ROOT)}")
 
@@ -119,7 +149,9 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
         if len(shots) > limit:
             problems.append(f"{key}: {len(shots)} shots, limit {limit}")
         for i, shot in enumerate(shots):
-            if raw_dir.is_dir() and (not isinstance(shot, dict) or not (raw_dir / str(shot.get("file"))).is_file()):
+            if raw_dir.is_dir() and (
+                not isinstance(shot, dict) or not (raw_dir / str(shot.get("file"))).is_file()
+            ):
                 problems.append(f"{key}[{i}]: file missing from {raw_dir.relative_to(ROOT)}")
     return problems
 
@@ -136,7 +168,12 @@ def main() -> int:
         for field, (limit, store) in LIMITS.items():
             print(f"ok  {field}: {len(listing[field].strip())}/{limit} ({store})")
         print(f"ok  Play one-liner: {len(play_short_description(listing))}/{PLAY_SHORT_LIMIT}")
-        print(f"ok  composed description: {len(compose_description(listing))}/{DESCRIPTION_LIMIT} ({len(listing.get('testimonials') or [])} testimonials, {len((listing.get('other_features') or {}).get('items') or [])} other features)")
+        testimonials = listing.get("testimonials") or []
+        other_items = (listing.get("other_features") or {}).get("items") or []
+        print(
+            f"ok  composed description: {len(compose_description(listing))}/{DESCRIPTION_LIMIT} "
+            f"({len(testimonials)} testimonials, {len(other_items)} other features)"
+        )
         print(f"ok  {len(listing.get('screenshots') or [])} screenshot slides")
     return 1 if problems else 0
 

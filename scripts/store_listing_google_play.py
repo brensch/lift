@@ -23,15 +23,19 @@ import argparse
 import sys
 from pathlib import Path
 
+import httplib2
 import yaml
+from check_store_text import (
+    LIMITS,
+    check,
+    compose_description,
+    load_listing,
+    play_short_description,
+)
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-
-import httplib2
-
-from check_store_text import LIMITS, check, compose_description, load_listing, play_short_description  # noqa: E402  (sibling script)
-from upload_google_play import (  # noqa: E402
+from upload_google_play import (
     ANDROID_PUBLISHER_SCOPE,
     commit_edit,
     google_auth_httplib2_request,
@@ -52,7 +56,9 @@ IMAGE_SOURCES = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("action", choices=["pull", "push"])
     parser.add_argument("--package-name", required=True)
     parser.add_argument("--listing", type=Path, default=ROOT / "store" / "listing.yaml")
@@ -85,7 +91,12 @@ def pull(publisher, package: str, edit_id: str) -> None:
             result = (
                 publisher.edits()
                 .images()
-                .list(packageName=package, editId=edit_id, language=listing["language"], imageType=image_type)
+                .list(
+                    packageName=package,
+                    editId=edit_id,
+                    language=listing["language"],
+                    imageType=image_type,
+                )
                 .execute()
             )
             images[image_type] = len(result.get("images", []))
@@ -94,9 +105,18 @@ def pull(publisher, package: str, edit_id: str) -> None:
 
 
 def push(publisher, package: str, edit_id: str, listing: dict, skip_images: bool) -> None:
-    languages = [l["language"] for l in publisher.edits().listings().list(packageName=package, editId=edit_id).execute().get("listings", [])]
+    languages = [
+        entry["language"]
+        for entry in publisher.edits()
+        .listings()
+        .list(packageName=package, editId=edit_id)
+        .execute()
+        .get("listings", [])
+    ]
     if not languages:
-        raise SystemExit("The Play listing has no languages yet; create the default one in Play Console first")
+        raise SystemExit(
+            "The Play listing has no languages yet; create the default one in Play Console first"
+        )
     for language in languages:
         print(f"[{language}] title / short / full description")
         publisher.edits().listings().update(
@@ -162,7 +182,7 @@ def main() -> int:
         print(f"Failed before commit; deleting edit {edit_id}", file=sys.stderr)
         try:
             publisher.edits().delete(packageName=args.package_name, editId=edit_id).execute()
-        except Exception as delete_error:  # noqa: BLE001
+        except Exception as delete_error:
             print(f"Failed to delete edit {edit_id}: {delete_error}", file=sys.stderr)
         raise
 

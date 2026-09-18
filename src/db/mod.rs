@@ -1,8 +1,7 @@
 use prost::Message;
 use schlift::workout::v1::{
-    CompletedSet, GetWorkoutResponse, ParticipantStatus,
-    ProposedSet, UserMessage, UserSetting, Workout, WorkoutHeartRatePoint,
-    WorkoutTemplate,
+    CompletedSet, GetWorkoutResponse, ParticipantStatus, ProposedSet, UserMessage, UserSetting,
+    Workout, WorkoutHeartRatePoint, WorkoutTemplate,
 };
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -23,7 +22,6 @@ mod session;
 mod workout;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
-
 
 const SERVER_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS users_current (

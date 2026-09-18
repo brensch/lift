@@ -21,12 +21,9 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) {
-        if (mounted) setState(() {});
-      },
-    );
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -42,9 +39,9 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
   void _shareLogs() {
     final text = AppLogger.instance.export(minLevel: _minLevel);
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No logs to share')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No logs to share')));
       return;
     }
     SharePlus.instance.share(ShareParams(text: text));
@@ -53,9 +50,9 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
   void _copyLogs() {
     final text = AppLogger.instance.export(minLevel: _minLevel);
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No logs to copy')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No logs to copy')));
       return;
     }
     Clipboard.setData(ClipboardData(text: text));
@@ -75,15 +72,14 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Collect unique tags for the filter.
-    final allTags = AppLogger.instance.entries.map((e) => e.tag).toSet().toList()
-      ..sort();
+    final allTags =
+        AppLogger.instance.entries.map((e) => e.tag).toSet().toList()..sort();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_autoScroll &&
           _scrollController.hasClients &&
           _scrollController.position.maxScrollExtent > 0) {
-        _scrollController
-            .jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
 

@@ -1,11 +1,11 @@
 package com.brensch.schlift.wear
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -16,10 +16,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.util.UUID
 import workout.v1.Wearable
+import java.util.UUID
 
-class HeartRateStreamer(private val context: Context) : SensorEventListener {
+class HeartRateStreamer(
+    private val context: Context,
+) : SensorEventListener {
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val heartRateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -44,12 +46,13 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
             return
         }
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-        flushJob = scope.launch {
-            while (isActive) {
-                delay(5000)
-                flushPending()
+        flushJob =
+            scope.launch {
+                while (isActive) {
+                    delay(5000)
+                    flushPending()
+                }
             }
-        }
     }
 
     fun stop() {
@@ -64,46 +67,56 @@ class HeartRateStreamer(private val context: Context) : SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         workoutId ?: return
         val bpm = event?.values?.firstOrNull() ?: return
-        val sample = Wearable.HeartRateSample.newBuilder()
-            .setSampledAt(System.currentTimeMillis())
-            .setBpm(bpm)
-            .setAvailability(Wearable.HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE)
-            .build()
+        val sample =
+            Wearable.HeartRateSample
+                .newBuilder()
+                .setSampledAt(System.currentTimeMillis())
+                .setBpm(bpm)
+                .setAvailability(Wearable.HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE)
+                .build()
         synchronized(pendingLock) {
             pendingSamples.add(sample)
         }
         WearDataRepository.updateLatestBpm(bpm)
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+    override fun onAccuracyChanged(
+        sensor: Sensor?,
+        accuracy: Int,
+    ) = Unit
 
     private fun hasRequiredPermissions(): Boolean {
-        val bodySensorsGranted = ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.BODY_SENSORS,
-        ) == PackageManager.PERMISSION_GRANTED
-        val readHeartRateGranted = ContextCompat.checkSelfPermission(
-            context,
-            "android.permission.health.READ_HEART_RATE",
-        ) == PackageManager.PERMISSION_GRANTED
+        val bodySensorsGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.BODY_SENSORS,
+            ) == PackageManager.PERMISSION_GRANTED
+        val readHeartRateGranted =
+            ContextCompat.checkSelfPermission(
+                context,
+                "android.permission.health.READ_HEART_RATE",
+            ) == PackageManager.PERMISSION_GRANTED
         return bodySensorsGranted || readHeartRateGranted
     }
 
     private fun flushPending() {
         val activeWorkoutId = workoutId ?: return
-        val samples = synchronized(pendingLock) {
-            if (pendingSamples.isEmpty()) {
-                return
+        val samples =
+            synchronized(pendingLock) {
+                if (pendingSamples.isEmpty()) {
+                    return
+                }
+                pendingSamples.toList().also { pendingSamples.clear() }
             }
-            pendingSamples.toList().also { pendingSamples.clear() }
-        }
 
-        val batch = Wearable.WearSensorBatch.newBuilder()
-            .setBatchId(UUID.randomUUID().toString())
-            .setWorkoutId(activeWorkoutId)
-            .setSentAt(System.currentTimeMillis())
-            .addAllHeartRateSamples(samples)
-            .build()
+        val batch =
+            Wearable.WearSensorBatch
+                .newBuilder()
+                .setBatchId(UUID.randomUUID().toString())
+                .setWorkoutId(activeWorkoutId)
+                .setSentAt(System.currentTimeMillis())
+                .addAllHeartRateSamples(samples)
+                .build()
 
         val enqueued = WearSensorBatchOutbox.enqueue(context, batch)
         if (!enqueued) {

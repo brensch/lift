@@ -11,7 +11,9 @@ ExerciseArt deadliftArt() => const ExerciseArt([
       arms: [Limb(90, 90)], // hanging straight to the bar
       legs: [Limb(38, 115), Limb(35, 118)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Lockout.
   Pose(
@@ -21,6 +23,8 @@ ExerciseArt deadliftArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(91, 91), Limb(89, 89)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

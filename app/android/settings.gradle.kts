@@ -26,9 +26,10 @@ plugins {
 
 include(":app")
 
-val includeWearModule = gradle.startParameter.taskNames.any { task ->
-    task.contains("wear", ignoreCase = true)
-}
+val includeWearModule =
+    gradle.startParameter.taskNames.any { task ->
+        task.contains("wear", ignoreCase = true)
+    }
 if (includeWearModule) {
     include(":wear")
 }

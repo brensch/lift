@@ -78,8 +78,14 @@ fn windows_scale_with_the_muscle() {
     let t0 = 1_700_000_000i64;
     let history = vec![workout(t0, &[Exercise::BarbellCurl, Exercise::Crunch])];
     let rec = per_muscle_recovery(&history, t0 + HOUR);
-    assert_eq!(recovery_for(&rec, MuscleGroup::Biceps).recovered_at, t0 + 36 * HOUR);
-    assert_eq!(recovery_for(&rec, MuscleGroup::Core).recovered_at, t0 + 24 * HOUR);
+    assert_eq!(
+        recovery_for(&rec, MuscleGroup::Biceps).recovered_at,
+        t0 + 36 * HOUR
+    );
+    assert_eq!(
+        recovery_for(&rec, MuscleGroup::Core).recovered_at,
+        t0 + 24 * HOUR
+    );
 }
 
 /// The most recent session that trained a muscle wins, and the fraction
@@ -94,7 +100,10 @@ fn the_latest_session_sets_the_clock() {
     let rec = per_muscle_recovery(&history, t0 + 24 * HOUR);
     let chest = recovery_for(&rec, MuscleGroup::Chest);
     assert_eq!(chest.last_trained_at, t0);
-    assert!((chest.fraction - 0.5).abs() < 0.01, "24 of 48 hours elapsed");
+    assert!(
+        (chest.fraction - 0.5).abs() < 0.01,
+        "24 of 48 hours elapsed"
+    );
     assert_eq!(chest.hours_remaining(t0 + 24 * HOUR), 24);
 }
 

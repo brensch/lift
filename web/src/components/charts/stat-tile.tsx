@@ -1,12 +1,4 @@
-export function StatTile({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-}) {
+export function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="border border-border rounded-xl bg-surface p-5">
       <p className="text-sm text-muted font-medium m-0">{label}</p>

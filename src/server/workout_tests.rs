@@ -7,9 +7,9 @@ use super::*;
 use crate::db::ServerDb;
 use schlift::workout::v1::{
     AddExercisesRequest, AddLibraryTemplatesRequest, AdjustExerciseWeightRequest,
-    AppendWorkoutMutationsRequest, CompleteOnboardingRequest, CompleteSetRequest, DeleteTemplateRequest, EndWorkoutRequest,
-    ExperienceLevel, Gender, GetHomeRequest, ListTemplateLibraryRequest, ReorderTemplatesRequest,
-    SaveTemplateRequest,
+    AppendWorkoutMutationsRequest, CompleteOnboardingRequest, CompleteSetRequest,
+    DeleteTemplateRequest, EndWorkoutRequest, ExperienceLevel, Gender, GetHomeRequest,
+    ListTemplateLibraryRequest, ReorderTemplatesRequest, SaveTemplateRequest,
     SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutTemplate,
 };
 
@@ -39,7 +39,7 @@ async fn onboard(svc: &ServerWorkoutService, token: &str, unit: WeightUnit) -> G
             unit: unit as i32,
             gender: 0,
             library_ids: vec![],
-                    strength: None,
+            strength: None,
         },
     ))
     .await
@@ -158,7 +158,11 @@ mod home_and_onboarding {
             .home
             .unwrap();
         assert!(home.onboarded);
-        let ids: Vec<&str> = home.templates.iter().map(|t| t.library_id.as_str()).collect();
+        let ids: Vec<&str> = home
+            .templates
+            .iter()
+            .map(|t| t.library_id.as_str())
+            .collect();
         assert_eq!(ids, vec!["stronglifts_a", "butt_stuff"]);
         assert_eq!(home.templates[0].name, "StrongLifts 5×5 A");
         assert_eq!(
@@ -232,11 +236,20 @@ mod home_and_onboarding {
         // The copy is the user's: rename it, and it stays theirs.
         let mut mine = added.clone();
         mine.name = "Cake Day".into();
-        svc.save_template(authed(&token, SaveTemplateRequest { template: Some(mine) }))
-            .await
-            .unwrap();
+        svc.save_template(authed(
+            &token,
+            SaveTemplateRequest {
+                template: Some(mine),
+            },
+        ))
+        .await
+        .unwrap();
         let home = self::home(&svc, &token).await;
-        let renamed = home.templates.iter().find(|t| t.library_id == "butt_stuff").unwrap();
+        let renamed = home
+            .templates
+            .iter()
+            .find(|t| t.library_id == "butt_stuff")
+            .unwrap();
         assert_eq!(renamed.name, "Cake Day");
         // Still counts as present, so adding again does nothing.
         let home = svc
@@ -294,11 +307,7 @@ mod home_and_onboarding {
 
         assert!(response.onboarded);
         assert_eq!(response.templates.len(), 6);
-        let names: Vec<&str> = response
-            .templates
-            .iter()
-            .map(|t| t.name.as_str())
-            .collect();
+        let names: Vec<&str> = response.templates.iter().map(|t| t.name.as_str()).collect();
         assert!(names.contains(&"Full Body") && names.contains(&"Push"));
 
         // 100 kg ≈ 220 lb × 0.95 squat ratio ≈ 210, snapped loadable.
@@ -364,7 +373,10 @@ mod templates {
             .save_template(authed(
                 &token,
                 SaveTemplateRequest {
-                    template: Some(template("Arms", &[Exercise::BarbellCurl, Exercise::SkullCrusher])),
+                    template: Some(template(
+                        "Arms",
+                        &[Exercise::BarbellCurl, Exercise::SkullCrusher],
+                    )),
                 },
             ))
             .await
@@ -378,7 +390,12 @@ mod templates {
         let mut edited = saved.clone();
         edited.exercises.push(Exercise::HammerCurl as i32);
         let edited = svc
-            .save_template(authed(&token, SaveTemplateRequest { template: Some(edited) }))
+            .save_template(authed(
+                &token,
+                SaveTemplateRequest {
+                    template: Some(edited),
+                },
+            ))
             .await
             .unwrap()
             .into_inner()
@@ -483,8 +500,7 @@ mod template_workout_loop {
             .filter(|s| s.exercise == Exercise::Squat as i32)
             .collect();
         assert_eq!(squat_sets.iter().filter(|s| s.warmup).count(), 4);
-        let squat_working: Vec<&&ProposedSet> =
-            squat_sets.iter().filter(|s| !s.warmup).collect();
+        let squat_working: Vec<&&ProposedSet> = squat_sets.iter().filter(|s| !s.warmup).collect();
         assert_eq!(squat_working.len(), 3);
         assert!(squat_working
             .iter()
@@ -533,7 +549,10 @@ mod template_workout_loop {
             "one barbell step up"
         );
         assert_eq!(squat_after.target_reps, 6, "reps reset to the bottom");
-        assert_eq!(squat_after.last_performed_at, ts, "stamped with the end time");
+        assert_eq!(
+            squat_after.last_performed_at, ts,
+            "stamped with the end time"
+        );
 
         // Bodyweight-free check on a dumbbell move from the same session:
         // calf raise topped its range too, so it took a dumbbell step.
@@ -852,7 +871,6 @@ mod template_workout_loop {
     }
 }
 
-
 mod offline_queue {
     use super::*;
 
@@ -1044,11 +1062,13 @@ mod offline_queue {
                 AppendWorkoutMutationsRequest {
                     mutations: vec![
                         // Rejected by the weight range check.
-                        mutation(Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
-                            workout_id: workout_id.clone(),
-                            exercise: Exercise::LateralRaise as i32,
-                            working_weight: -50.0,
-                        })),
+                        mutation(Mutation::AdjustExerciseWeight(
+                            AdjustExerciseWeightRequest {
+                                workout_id: workout_id.clone(),
+                                exercise: Exercise::LateralRaise as i32,
+                                working_weight: -50.0,
+                            },
+                        )),
                         mutation(Mutation::CompleteSet(CompleteSetRequest {
                             workout_id: workout_id.clone(),
                             proposed_set_id: first_set.clone(),
@@ -1075,10 +1095,7 @@ mod offline_queue {
             "the completion behind the poison mutation still applied"
         );
         assert!(
-            state
-                .proposed_sets
-                .iter()
-                .all(|s| s.target_weight >= 0.0),
+            state.proposed_sets.iter().all(|s| s.target_weight >= 0.0),
             "the rejected weight never landed"
         );
     }

@@ -5,7 +5,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-
 class ChartViewport {
   final double startSec;
   final double endSec;

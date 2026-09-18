@@ -11,8 +11,9 @@ import 'support/scenario.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('history — a group workout shows who you trained with',
-      (tester) async {
+  testWidgets('history — a group workout shows who you trained with', (
+    tester,
+  ) async {
     final s = Scenario(binding, tester, 'history_with_partner');
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final username = 'alice_$stamp';
@@ -27,20 +28,23 @@ void main() {
     final invite = await me.inviteToken();
     final bob = await s.api.login('bob_$stamp');
     await bob.joinViaInvite(invite);
-    await me.doWorkout('Squat day', [
-      MapEntry(Exercise.EXERCISE_SQUAT, 45.0),
-    ]);
+    await me.doWorkout('Squat day', [MapEntry(Exercise.EXERCISE_SQUAT, 45.0)]);
 
     // History should list the workout with "with bob_...".
     await s.tap(find.byIcon(Icons.menu));
     await s.tapText('History');
     final sawPartner = await s.waitForText('👥 with bob_$stamp', seconds: 10);
-    await s.shot('History shows the training partner',
-        note: sawPartner
-            ? 'The group workout is tagged with who you trained with.'
-            : 'WARNING: partner not shown on the history card.');
-    expect(sawPartner, isTrue,
-        reason: 'history should show who you trained with on a group workout');
+    await s.shot(
+      'History shows the training partner',
+      note: sawPartner
+          ? 'The group workout is tagged with who you trained with.'
+          : 'WARNING: partner not shown on the history card.',
+    );
+    expect(
+      sawPartner,
+      isTrue,
+      reason: 'history should show who you trained with on a group workout',
+    );
 
     s.note('Training-together surfaced in history', kind: 'assert');
     await s.report();

@@ -38,7 +38,7 @@ def source_files() -> list[Path]:
 
 
 def preset_ids(files: list[Path]) -> list[str]:
-    return [f.stem[len("sound_"):] for f in files]
+    return [f.stem[len("sound_") :] for f in files]
 
 
 def render_gen(files: list[Path]) -> str:
@@ -67,15 +67,19 @@ def render_pbxproj(text: str, files: list[Path]) -> str:
     places Xcode wants: build file, file reference, the `sounds` group, and
     the Runner target's resources phase."""
     # Which resources phase held the sounds (there is one per target).
-    phases = list(re.finditer(r"isa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = \d+;\n\t\t\tfiles = \(\n", text))
+    phases = list(
+        re.finditer(
+            r"isa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = \d+;\n\t\t\tfiles = \(\n", text
+        )
+    )
     holder = None
     for i, m in enumerate(phases):
         end = text.index("\t\t\t);", m.end())
-        if "sound_" in text[m.end():end]:
+        if "sound_" in text[m.end() : end]:
             holder = i
     if holder is None:
         holder = 0
-    lines = [l for l in text.split("\n") if "sound_" not in l or ".wav" not in l]
+    lines = [line for line in text.split("\n") if "sound_" not in line or ".wav" not in line]
     text = "\n".join(lines)
 
     build, refs, group, res = [], [], [], []
@@ -83,20 +87,38 @@ def render_pbxproj(text: str, files: list[Path]) -> str:
         name = f.name
         fid = pbx_id(f"ref:{name}")
         bid = pbx_id(f"build:{name}")
-        build.append(f"\t\t{bid} /* {name} in Resources */ = {{isa = PBXBuildFile; fileRef = {fid} /* {name} */; }};")
-        refs.append(f"\t\t{fid} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = audio.wav; path = {name}; sourceTree = \"<group>\"; }};")
+        build.append(
+            f"\t\t{bid} /* {name} in Resources */ = "
+            f"{{isa = PBXBuildFile; fileRef = {fid} /* {name} */; }};"
+        )
+        refs.append(
+            f"\t\t{fid} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = audio.wav; "
+            f'path = {name}; sourceTree = "<group>"; }};'
+        )
         group.append(f"\t\t\t\t{fid} /* {name} */,")
         res.append(f"\t\t\t\t{bid} /* {name} in Resources */,")
 
-    text = text.replace("/* Begin PBXBuildFile section */\n", "/* Begin PBXBuildFile section */\n" + "\n".join(build) + "\n", 1)
-    text = text.replace("/* Begin PBXFileReference section */\n", "/* Begin PBXFileReference section */\n" + "\n".join(refs) + "\n", 1)
+    text = text.replace(
+        "/* Begin PBXBuildFile section */\n",
+        "/* Begin PBXBuildFile section */\n" + "\n".join(build) + "\n",
+        1,
+    )
+    text = text.replace(
+        "/* Begin PBXFileReference section */\n",
+        "/* Begin PBXFileReference section */\n" + "\n".join(refs) + "\n",
+        1,
+    )
     m = re.search(r"(/\* sounds \*/ = \{\n\t\t\tisa = PBXGroup;\n\t\t\tchildren = \(\n)", text)
     if not m:
         raise SystemExit("project.pbxproj: no `sounds` group")
-    text = text[: m.end()] + "\n".join(group) + "\n" + text[m.end():]
-    phases = list(re.finditer(r"isa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = \d+;\n\t\t\tfiles = \(\n", text))
+    text = text[: m.end()] + "\n".join(group) + "\n" + text[m.end() :]
+    phases = list(
+        re.finditer(
+            r"isa = PBXResourcesBuildPhase;\n\t\t\tbuildActionMask = \d+;\n\t\t\tfiles = \(\n", text
+        )
+    )
     m = phases[holder]
-    text = text[: m.end()] + "\n".join(res) + "\n" + text[m.end():]
+    text = text[: m.end()] + "\n".join(res) + "\n" + text[m.end() :]
     return text
 
 
@@ -110,9 +132,14 @@ def main() -> int:
     missing = sorted(set(listed) - set(have))
     extra = sorted(set(have) - set(listed))
     if missing or extra:
-        raise SystemExit(f"copy.yaml sounds and assets/sounds disagree: missing files {missing}, unlisted files {extra}")
+        raise SystemExit(
+            "copy.yaml sounds and assets/sounds disagree: "
+            f"missing files {missing}, unlisted files {extra}"
+        )
 
-    want = {RAW / f.name: f.read_bytes() for f in files} | {IOS / f.name: f.read_bytes() for f in files}
+    want = {RAW / f.name: f.read_bytes() for f in files} | {
+        IOS / f.name: f.read_bytes() for f in files
+    }
     stale = []
     for target_dir in (RAW, IOS):
         for old in target_dir.glob("sound_*.wav"):

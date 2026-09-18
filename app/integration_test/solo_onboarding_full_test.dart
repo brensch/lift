@@ -17,9 +17,11 @@ void main() {
     await s.devLogin('e2e_full_${DateTime.now().millisecondsSinceEpoch}');
 
     // Step 1 — marker (colour + creature). Defaults are valid, so just advance.
-    expect(await s.waitForText('Choose your colour and creature', seconds: 10),
-        isTrue,
-        reason: 'onboarding should open on the marker step');
+    expect(
+      await s.waitForText('Choose your colour and creature', seconds: 10),
+      isTrue,
+      reason: 'onboarding should open on the marker step',
+    );
     await s.shot('Onboarding 1/5 — pick your marker');
     await s.tapText('NEXT');
 
@@ -45,15 +47,19 @@ void main() {
 
     // Landed on home, ready to train.
     final onHome = await s.waitForText('START WORKOUT', seconds: 12);
-    await s.shot('Home — ready to train',
-        note: onHome
-            ? 'Onboarding persisted a program; home offers START WORKOUT.'
-            : 'WARNING: did not reach the home screen.');
+    await s.shot(
+      'Home — ready to train',
+      note: onHome
+          ? 'Onboarding persisted a program; home offers START WORKOUT.'
+          : 'WARNING: did not reach the home screen.',
+    );
     expect(onHome, isTrue, reason: 'onboarding should land on home');
 
-    s.note('Onboarding completed end to end',
-        detail: 'marker → units → program → weights → confirm → home',
-        kind: 'assert');
+    s.note(
+      'Onboarding completed end to end',
+      detail: 'marker → units → program → weights → confirm → home',
+      kind: 'assert',
+    );
     await s.report();
   });
 }

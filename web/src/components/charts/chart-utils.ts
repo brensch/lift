@@ -40,7 +40,7 @@ export function useMeasuredSize<T extends HTMLElement>() {
       setSize((prev) =>
         Math.abs(prev.width - r.width) < 1 && Math.abs(prev.height - r.height) < 1
           ? prev
-          : { width: r.width, height: r.height }
+          : { width: r.width, height: r.height },
       );
     });
     ro.observe(el);
@@ -78,22 +78,19 @@ export function scaleLinear(
   domainMin: number,
   domainMax: number,
   rangeMin: number,
-  rangeMax: number
+  rangeMax: number,
 ) {
   const d = domainMax - domainMin || 1;
   return (v: number) => rangeMin + ((v - domainMin) / d) * (rangeMax - rangeMin);
 }
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Month-boundary ticks across a unix-seconds domain, thinned to maxTicks. */
 export function timeTicks(
   minS: number,
   maxS: number,
-  maxTicks = 6
+  maxTicks = 6,
 ): { value: number; label: string }[] {
   const start = new Date(minS * 1000);
   const end = new Date(maxS * 1000);

@@ -1,0 +1,12 @@
+# Build output and dependencies
+dist
+node_modules
+
+# Generated: protobuf (buf) and the synced store/library content
+src/gen
+src/generated
+public/generated
+
+# Lockfiles
+bun.lock
+package-lock.json

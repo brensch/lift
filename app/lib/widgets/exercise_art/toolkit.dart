@@ -230,7 +230,11 @@ class Dumbbell {
   final int hand;
   final Offset nudge;
   final double angle;
-  const Dumbbell({required this.hand, this.nudge = Offset.zero, this.angle = 0});
+  const Dumbbell({
+    required this.hand,
+    this.nudge = Offset.zero,
+    this.angle = 0,
+  });
 
   Offset center(Figure fig) => fig.armPoints(fig.arms[hand]).last + nudge;
 

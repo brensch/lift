@@ -1,7 +1,7 @@
-import Foundation
-import WatchConnectivity
 import Flutter
+import Foundation
 import HealthKit
+import WatchConnectivity
 
 /// Singleton that manages WatchConnectivity on the phone side.
 /// Mirrors the Android `WearBridgeManager` — publishes snapshots to watch,
@@ -9,34 +9,34 @@ import HealthKit
 class WatchBridgeManager: NSObject, WCSessionDelegate {
     static let shared = WatchBridgeManager()
 
-    private static let watchUiHeartbeatTtlMs: Int64 = 8_000
-    private static let phoneToWearSnapshotPath = "/schlift/phone/snapshot"
+    private static let watchUiHeartbeatTtlMs: Int64 = 8000
+    static let phoneToWearSnapshotPath = "/schlift/phone/snapshot"
     private static let phoneToWearLaunchPath = "/schlift/phone/launch"
     private static let phoneToWearEndWorkoutPath = "/schlift/phone/end_workout"
     private static let phoneToWearClockSyncPath = "/schlift/phone/clock_sync"
-    private static let phoneToWearSensorBatchAckPath = "/schlift/phone/sensor_batch_ack"
-    private static let wearToPhoneIntentPath = "/schlift/wear/intent"
-    private static let wearToPhoneSensorBatchPath = "/schlift/wear/sensor_batch"
-    private static let wearToPhoneUiHeartbeatPath = "/schlift/wear/ui_heartbeat"
-    private static let wearToPhoneClockSyncPath = "/schlift/wear/clock_sync"
-    private static let wearToPhoneSnapshotRequestPath = "/schlift/wear/snapshot_request"
+    static let phoneToWearSensorBatchAckPath = "/schlift/phone/sensor_batch_ack"
+    static let wearToPhoneIntentPath = "/schlift/wear/intent"
+    static let wearToPhoneSensorBatchPath = "/schlift/wear/sensor_batch"
+    static let wearToPhoneUiHeartbeatPath = "/schlift/wear/ui_heartbeat"
+    static let wearToPhoneClockSyncPath = "/schlift/wear/clock_sync"
+    static let wearToPhoneSnapshotRequestPath = "/schlift/wear/snapshot_request"
 
-    private var intentSink: FlutterEventSink?
-    private var sensorSink: FlutterEventSink?
-    private var pendingIntentPayloads: [Data] = []
-    private var pendingSensorPayloads: [Data] = []
-    private var pendingClockSyncs: [String: (Int64) -> Void] = [:]
-    private var lastWatchUiHeartbeatAtMs: Int64 = 0
-    private var lastSnapshotBytes: Data?
+    var intentSink: FlutterEventSink?
+    var sensorSink: FlutterEventSink?
+    var pendingIntentPayloads: [Data] = []
+    var pendingSensorPayloads: [Data] = []
+    var pendingClockSyncs: [String: (Int64) -> Void] = [:]
+    var lastWatchUiHeartbeatAtMs: Int64 = 0
+    var lastSnapshotBytes: Data?
     private let healthStore = HKHealthStore()
     // The watch mirrors its HKWorkoutSession here (iOS 17+). Holding the mirror lets us end
     // the workout directly from the phone, which propagates to the watch — Apple's supported
     // way to end a watch workout from the phone. Stored untyped because HKWorkoutSession does
     // not exist on iOS < 17 (deployment target is 15.5); cast behind #available at use sites.
     private var mirroredSession: Any?
-    private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
+    let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
-    private override init() {
+    override private init() {
         super.init()
         if WCSession.isSupported() {
             let session = WCSession.default
@@ -152,7 +152,8 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         let session = WCSession.default
         guard session.activationState == .activated,
               session.isPaired,
-              session.isWatchAppInstalled else {
+              session.isWatchAppInstalled
+        else {
             completion(false)
             return
         }
@@ -197,11 +198,11 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         if session.isReachable {
             session.sendMessage(message, replyHandler: { _ in
                 completion(true)
-            }) { error in
+            }, errorHandler: { error in
                 print("SchliftWearBridge: sendMessage launch failed, falling back to transferUserInfo: \(error)")
                 session.transferUserInfo(message)
                 completion(true)
-            }
+            })
         } else {
             session.transferUserInfo(message)
             completion(true)
@@ -211,7 +212,8 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     func requestWatchClockSync(completion: @escaping ([String: Int64]?) -> Void) {
         guard WCSession.default.activationState == .activated,
               WCSession.default.isPaired,
-              WCSession.default.isReachable else {
+              WCSession.default.isReachable
+        else {
             completion(nil)
             return
         }
@@ -249,24 +251,28 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
     // MARK: - WCSessionDelegate
 
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    func session(_: WCSession, activationDidCompleteWith _: WCSessionActivationState, error: Error?) {
         if let error = error {
             print("SchliftWearBridge: WCSession activation failed: \(error)")
         }
     }
 
-    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidBecomeInactive(_: WCSession) {}
 
-    func sessionDidDeactivate(_ session: WCSession) {
+    func sessionDidDeactivate(_: WCSession) {
         // Re-activate for multi-watch support
         WCSession.default.activate()
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         handleIncomingMessage(message)
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+    func session(
+        _: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
         // Snapshot request with a reply handler (the watch's watchdog poll): reply with the
         // latest snapshot bytes on this channel. This reaches the watch even when its app is
         // backgrounded, so a phone-initiated end propagates to the watch within ~10s.
@@ -287,140 +293,11 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         replyHandler([:])
     }
 
-    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         handleIncomingMessage(userInfo)
     }
 
     // MARK: - Private
-
-    private func handleIncomingMessage(_ message: [String: Any]) {
-        guard let path = message["path"] as? String else { return }
-
-        if path == WatchBridgeManager.wearToPhoneUiHeartbeatPath {
-            lastWatchUiHeartbeatAtMs = Int64(Date().timeIntervalSince1970 * 1000)
-            return
-        }
-
-        if path == WatchBridgeManager.wearToPhoneSnapshotRequestPath {
-            queue.async {
-                guard let bytes = self.lastSnapshotBytes else { return }
-                let replyMessage: [String: Any] = [
-                    "path": WatchBridgeManager.phoneToWearSnapshotPath,
-                    "data": bytes,
-                ]
-                let session = WCSession.default
-                guard session.activationState == .activated, session.isPaired, session.isReachable else { return }
-                session.sendMessage(replyMessage, replyHandler: nil) { error in
-                    print("SchliftWearBridge: Failed to send snapshot on request: \(error)")
-                }
-            }
-            return
-        }
-
-        if path == WatchBridgeManager.wearToPhoneClockSyncPath {
-            guard let data = message["data"] as? Data,
-                  let payload = String(data: data, encoding: .utf8),
-                  let separator = payload.firstIndex(of: ":") else {
-                return
-            }
-            let requestId = String(payload[..<separator])
-            guard let watchTimeMs = Int64(String(payload[payload.index(after: separator)...])) else {
-                return
-            }
-            completeClockSync(requestId: requestId, watchTimeMs: watchTimeMs, completion: nil)
-            return
-        }
-
-        guard let data = message["data"] as? Data else { return }
-
-        if path == WatchBridgeManager.wearToPhoneIntentPath {
-            do {
-                _ = try Workout_V1_WearIntent(serializedData: data)
-                emitIntent(data)
-            } catch {
-                print("SchliftWearBridge: Failed to parse wear intent: \(error)")
-            }
-            return
-        }
-
-        if path == WatchBridgeManager.wearToPhoneSensorBatchPath {
-            do {
-                let batch = try Workout_V1_WearSensorBatch(serializedData: data)
-                emitSensor(data)
-                sendSensorBatchAck(batch)
-            } catch {
-                print("SchliftWearBridge: Failed to parse wear sensor batch: \(error)")
-            }
-        }
-    }
-
-    private func sendSensorBatchAck(_ batch: Workout_V1_WearSensorBatch) {
-        guard !batch.batchID.isEmpty else { return }
-        var ack = Workout_V1_WearSensorBatchAck()
-        ack.batchID = batch.batchID
-        ack.workoutID = batch.workoutID
-        ack.receivedAt = Int64(Date().timeIntervalSince1970 * 1000)
-        guard let data = try? ack.serializedData() else { return }
-
-        let message: [String: Any] = [
-            "path": WatchBridgeManager.phoneToWearSensorBatchAckPath,
-            "data": data,
-        ]
-
-        let session = WCSession.default
-        guard session.activationState == .activated, session.isPaired else { return }
-
-        if session.isReachable {
-            session.sendMessage(message, replyHandler: nil) { error in
-                print("SchliftWearBridge: Failed sensor batch ack id=\(batch.batchID): \(error)")
-            }
-        } else {
-            session.transferUserInfo(message)
-        }
-    }
-
-    private func completeClockSync(
-        requestId: String,
-        watchTimeMs: Int64?,
-        completion fallbackCompletion: (([String: Int64]?) -> Void)?
-    ) {
-        queue.async {
-            let pending = self.pendingClockSyncs.removeValue(forKey: requestId)
-            guard let pending = pending else {
-                if watchTimeMs == nil, let fallbackCompletion = fallbackCompletion {
-                    DispatchQueue.main.async { fallbackCompletion(nil) }
-                }
-                return
-            }
-            DispatchQueue.main.async {
-                if let watchTimeMs = watchTimeMs {
-                    pending(watchTimeMs)
-                } else {
-                    fallbackCompletion?(nil)
-                }
-            }
-        }
-    }
-
-    private func emitIntent(_ bytes: Data) {
-        queue.async {
-            if let sink = self.intentSink {
-                DispatchQueue.main.async { sink(FlutterStandardTypedData(bytes: bytes)) }
-            } else {
-                self.pendingIntentPayloads.append(bytes)
-            }
-        }
-    }
-
-    private func emitSensor(_ bytes: Data) {
-        queue.async {
-            if let sink = self.sensorSink {
-                DispatchQueue.main.async { sink(FlutterStandardTypedData(bytes: bytes)) }
-            } else {
-                self.pendingSensorPayloads.append(bytes)
-            }
-        }
-    }
 
     private func flushPendingIntentPayloads(_ sink: @escaping FlutterEventSink) {
         let payloads = pendingIntentPayloads

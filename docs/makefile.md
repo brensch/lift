@@ -74,9 +74,21 @@ The binary is also the admin CLI: `schlift admin add|remove|list <username>`
 | `make copy` | `app/copy.yaml` → `app/lib/gen/copy.dart` |
 | `make sounds`, `make icons`, `make brand` | Sound manifest, launcher icons, brand renders |
 
-Generated code is committed. Neither `app/lib` nor `src/` is formatter-clean and
-CI does not check formatting, so **do not run `dart format` or `cargo fmt` across
-the repo** — format only files you created.
+Generated code is committed, and is the only code exempt from formatting and
+linting.
+
+## Formatting and linting
+
+| Target | |
+|---|---|
+| `make fmt` | Format every language in place. |
+| `make lint-check` | **Run before pushing.** Format check + lint for every language — exactly what CI enforces. |
+| `make fmt-check`, `make lint` | The two halves of `lint-check`. |
+| `make lint-tools` | Install the pinned ruff, shellcheck, shfmt, ktlint, swiftformat and swiftlint into `.tools/bin`. The targets above run it for you. |
+
+All of them take `LANGS="dart rust web python shell kotlin swift proto"` to
+limit the run. Full reference, tool versions and the no-suppressions rule:
+[`linting.md`](linting.md).
 
 ## Emulator
 

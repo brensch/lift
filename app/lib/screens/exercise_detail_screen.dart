@@ -49,15 +49,16 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         orElse: () => ExerciseProgress(),
       );
       final sessions = ep.points
-          .map((p) => _Session(
-                date: DateTime.fromMillisecondsSinceEpoch(
-                    p.date.toInt() * 1000),
-                topWeight: p.topWeight,
-                topReps: p.topReps,
-                bestOneRm: p.bestOneRepMax,
-                volume: p.volume,
-                sets: p.sets,
-              ))
+          .map(
+            (p) => _Session(
+              date: DateTime.fromMillisecondsSinceEpoch(p.date.toInt() * 1000),
+              topWeight: p.topWeight,
+              topReps: p.topReps,
+              bestOneRm: p.bestOneRepMax,
+              volume: p.volume,
+              sets: p.sets,
+            ),
+          )
           .toList();
       setState(() {
         _sessions = sessions;
@@ -77,38 +78,49 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final emoji = exerciseEmojis[widget.exercise] ?? '🏋️';
 
     Widget scaffold(Widget body) => TopLevelBackScope(
-          child: Scaffold(
-            appBar: AppBar(
-              title: Row(
-                children: [
-                  Text(emoji, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 8),
-                  Text(name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            body: body,
+            ],
           ),
-        );
+        ),
+        body: body,
+      ),
+    );
 
     if (_isLoading) {
       return scaffold(const Center(child: CircularProgressIndicator()));
     }
     final sessions = _sessions ?? [];
     if (sessions.isEmpty) {
-      return scaffold(Center(
-        child: Text('No completed sets for this lift yet.',
-            style: TextStyle(color: cs.tertiary)),
-      ));
+      return scaffold(
+        Center(
+          child: Text(
+            'No completed sets for this lift yet.',
+            style: TextStyle(color: cs.tertiary),
+          ),
+        ),
+      );
     }
 
     final suffix = weightUnitSuffix(unit);
     final current = sessions.last.topWeight;
-    final best = sessions.map((s) => s.topWeight).reduce((a, b) => a > b ? a : b);
-    final bestOneRm =
-        sessions.map((s) => s.bestOneRm).reduce((a, b) => a > b ? a : b);
+    final best = sessions
+        .map((s) => s.topWeight)
+        .reduce((a, b) => a > b ? a : b);
+    final bestOneRm = sessions
+        .map((s) => s.bestOneRm)
+        .reduce((a, b) => a > b ? a : b);
     final totalVolume = sessions.fold<double>(0, (a, s) => a + s.volume);
     final totalSets = sessions.fold<int>(0, (a, s) => a + s.sets);
 
@@ -120,10 +132,19 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _headStat('${formatWeight(current, unit)} $suffix', 'current top set',
-                  cs, big: true, color: _accent),
+              _headStat(
+                '${formatWeight(current, unit)} $suffix',
+                'current top set',
+                cs,
+                big: true,
+                color: _accent,
+              ),
               const Spacer(),
-              _headStat('${formatWeight(bestOneRm, unit)} $suffix', 'best est. 1RM', cs),
+              _headStat(
+                '${formatWeight(bestOneRm, unit)} $suffix',
+                'best est. 1RM',
+                cs,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -147,8 +168,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           else
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Text('One session so far. The trend appears next time.',
-                  style: TextStyle(color: cs.tertiary)),
+              child: Text(
+                'One session so far. The trend appears next time.',
+                style: TextStyle(color: cs.tertiary),
+              ),
             ),
           const SizedBox(height: 20),
           // Bests / totals.
@@ -164,14 +187,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          Text('EVERY SESSION',
-              style: TextStyle(
-                  color: cs.tertiary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8)),
+          Text(
+            'EVERY SESSION',
+            style: TextStyle(
+              color: cs.tertiary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
+          ),
           const SizedBox(height: 8),
-          for (final s in sessions.reversed) _SessionRow(session: s, unit: unit, cs: cs),
+          for (final s in sessions.reversed)
+            _SessionRow(session: s, unit: unit, cs: cs),
         ],
       ),
     );
@@ -183,43 +210,58 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     return v.round().toString();
   }
 
-  Widget _headStat(String value, String label, ColorScheme cs,
-          {bool big = false, Color? color}) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value,
-              style: TextStyle(
-                  fontSize: big ? 30 : 18,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                  color: color)),
-          Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
-        ],
-      );
+  Widget _headStat(
+    String value,
+    String label,
+    ColorScheme cs, {
+    bool big = false,
+    Color? color,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        value,
+        style: TextStyle(
+          fontSize: big ? 30 : 18,
+          fontWeight: FontWeight.w900,
+          height: 1,
+          color: color,
+        ),
+      ),
+      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+    ],
+  );
 
   Widget _footStat(String label, String value, ColorScheme cs) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label.toUpperCase(),
-              style: TextStyle(
-                  color: cs.tertiary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        value,
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+      ),
+    ],
+  );
 }
 
 class _MetricToggle extends StatelessWidget {
   final _Metric metric;
   final ValueChanged<_Metric> onChanged;
   final ColorScheme cs;
-  const _MetricToggle(
-      {required this.metric, required this.onChanged, required this.cs});
+  const _MetricToggle({
+    required this.metric,
+    required this.onChanged,
+    required this.cs,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -237,11 +279,14 @@ class _MetricToggle extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,
-            child: Text(label,
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                    color: active ? cs.primary : cs.tertiary)),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                color: active ? cs.primary : cs.tertiary,
+              ),
+            ),
           ),
         ),
       );
@@ -253,10 +298,12 @@ class _MetricToggle extends StatelessWidget {
         color: cs.surfaceContainerHighest.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(children: [
-        seg('Top weight', _Metric.weight),
-        seg('Est. 1RM', _Metric.oneRm),
-      ]),
+      child: Row(
+        children: [
+          seg('Top weight', _Metric.weight),
+          seg('Est. 1RM', _Metric.oneRm),
+        ],
+      ),
     );
   }
 }
@@ -307,26 +354,35 @@ class _TrendChart extends StatelessWidget {
               showTitles: true,
               reservedSize: 36,
               interval: interval,
-              getTitlesWidget: (v, meta) => Text(formatWeight(v, unit),
-                  style: TextStyle(fontSize: 10, color: cs.tertiary)),
+              getTitlesWidget: (v, meta) => Text(
+                formatWeight(v, unit),
+                style: TextStyle(fontSize: 10, color: cs.tertiary),
+              ),
             ),
           ),
-          rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 20,
-              interval: (sessions.length - 1).toDouble().clamp(1, double.infinity),
+              interval: (sessions.length - 1).toDouble().clamp(
+                1,
+                double.infinity,
+              ),
               getTitlesWidget: (v, meta) {
                 final i = v.round();
                 if (i != 0 && i != sessions.length - 1) return const SizedBox();
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(_shortDate(sessions[i].date),
-                      style: TextStyle(fontSize: 10, color: cs.tertiary)),
+                  child: Text(
+                    _shortDate(sessions[i].date),
+                    style: TextStyle(fontSize: 10, color: cs.tertiary),
+                  ),
                 );
               },
             ),
@@ -341,9 +397,10 @@ class _TrendChart extends StatelessWidget {
               return LineTooltipItem(
                 '${formatWeight(_value(ses), unit)} ${weightUnitSuffix(unit)}\n${_shortDate(ses.date)}',
                 TextStyle(
-                    color: cs.onInverseSurface,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11),
+                  color: cs.onInverseSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
               );
             }).toList(),
           ),
@@ -387,8 +444,11 @@ class _SessionRow extends StatelessWidget {
   final _Session session;
   final WeightUnit unit;
   final ColorScheme cs;
-  const _SessionRow(
-      {required this.session, required this.unit, required this.cs});
+  const _SessionRow({
+    required this.session,
+    required this.unit,
+    required this.cs,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -399,19 +459,26 @@ class _SessionRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 52,
-            child: Text(_shortDate(session.date),
-                style: TextStyle(
-                    color: cs.tertiary, fontSize: 12, fontWeight: FontWeight.w700)),
+            child: Text(
+              _shortDate(session.date),
+              style: TextStyle(
+                color: cs.tertiary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-                '${formatWeight(session.topWeight, unit)} $suffix × ${session.topReps}',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 14)),
+              '${formatWeight(session.topWeight, unit)} $suffix × ${session.topReps}',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+            ),
           ),
-          Text('${session.sets} sets · ${_compactVol(session.volume)} $suffix',
-              style: TextStyle(color: cs.tertiary, fontSize: 12)),
+          Text(
+            '${session.sets} sets · ${_compactVol(session.volume)} $suffix',
+            style: TextStyle(color: cs.tertiary, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -425,8 +492,18 @@ class _SessionRow extends StatelessWidget {
 
 String _shortDate(DateTime d) {
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   return '${months[d.month - 1]} ${d.day}';
 }

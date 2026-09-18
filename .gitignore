@@ -50,3 +50,6 @@ store/screenshots/out/
 # Generated from store/listing.yaml at web build time (web/scripts/sync-content.mjs)
 web/src/generated/
 web/public/generated/
+
+# Pinned formatters and linters (scripts/install_lint_tools.sh)
+.tools/

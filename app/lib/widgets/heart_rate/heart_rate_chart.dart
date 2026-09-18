@@ -1060,8 +1060,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return 900;
   }
 
-
-
   Color _zoneColorForBpm(double bpm, List<HeartRateZone> zones) {
     final zone = zoneFor(bpm, zones);
     if (zone == null) return const Color(0xFF22C55E);
@@ -1117,7 +1115,4 @@ class _HeartRateChartState extends State<HeartRateChart> {
   /// the chart's y-range and repeats the colour at both ends for a sharp edge.
 
   // ── Full-view summary: avg/max/min + time in zone ──
-
-
 }
-

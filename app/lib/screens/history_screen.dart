@@ -57,13 +57,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
             }
           } catch (_) {}
         }
-        items.add(_HistoryItem(
-          workout: w,
-          volume: s.totalVolume,
-          workingSets: s.exercises.fold(0, (a, e) => a + e.totalSets),
-          exercises: s.exercises.map((e) => e.exercise).toList(),
-          partners: partners,
-        ));
+        items.add(
+          _HistoryItem(
+            workout: w,
+            volume: s.totalVolume,
+            workingSets: s.exercises.fold(0, (a, e) => a + e.totalSets),
+            exercises: s.exercises.map((e) => e.exercise).toList(),
+            partners: partners,
+          ),
+        );
       }
       setState(() {
         _items = items;
@@ -81,36 +83,43 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     Widget scaffold(Widget body) => TopLevelBackScope(
-          child: Scaffold(
-            appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/'),
-              ),
-              title: const Text('History',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-            ),
-            body: body,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
           ),
-        );
+          title: const Text(
+            'History',
+            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
+        ),
+        body: body,
+      ),
+    );
 
     if (_isLoading) {
       return scaffold(const Center(child: CircularProgressIndicator()));
     }
     if (_items == null || _items!.isEmpty) {
-      return scaffold(Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🗒️', style: TextStyle(fontSize: 40)),
-            const SizedBox(height: 12),
-            Text('No completed workouts yet',
+      return scaffold(
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🗒️', style: TextStyle(fontSize: 40)),
+              const SizedBox(height: 12),
+              Text(
+                'No completed workouts yet',
                 style: TextStyle(
-                    color: cs.onSurface, fontWeight: FontWeight.w800)),
-          ],
+                  color: cs.onSurface,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
-      ));
+      );
     }
 
     final now = DateTime.now();
@@ -140,8 +149,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// Cards grouped under a month header so a long history stays scannable.
   List<Widget> _grouped(ColorScheme cs, WeightUnit unit) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     final out = <Widget>[];
     String? currentMonth;
@@ -149,15 +168,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
       final label = '${months[item.date.month - 1]} ${item.date.year}';
       if (label != currentMonth) {
         if (out.isNotEmpty) out.add(const SizedBox(height: 8));
-        out.add(Padding(
-          padding: const EdgeInsets.only(bottom: 8, left: 2),
-          child: Text(label.toUpperCase(),
+        out.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, left: 2),
+            child: Text(
+              label.toUpperCase(),
               style: TextStyle(
-                  color: cs.tertiary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8)),
-        ));
+                color: cs.tertiary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+        );
         currentMonth = label;
       }
       out.add(_HistoryCard(item: item, unit: unit, cs: cs));
@@ -167,31 +191,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _headStat(String value, String label, ColorScheme cs) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 26, fontWeight: FontWeight.w900, height: 1)),
-          Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+    ],
+  );
 }
 
 class _HistoryCard extends StatelessWidget {
   final _HistoryItem item;
   final WeightUnit unit;
   final ColorScheme cs;
-  const _HistoryCard(
-      {required this.item, required this.unit, required this.cs});
+  const _HistoryCard({
+    required this.item,
+    required this.unit,
+    required this.cs,
+  });
 
   @override
   Widget build(BuildContext context) {
     final date = item.date;
     final title = item.exercises.isNotEmpty
-        ? item.exercises
-            .take(3)
-            .map((e) => exerciseNames[e] ?? '?')
-            .join(' · ')
+        ? item.exercises.take(3).map((e) => exerciseNames[e] ?? '?').join(' · ')
         : (item.workout.name.isNotEmpty ? item.workout.name : 'Workout');
     final more = item.exercises.length > 3
         ? ' +${item.exercises.length - 3}'
@@ -202,8 +231,9 @@ class _HistoryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => context
-            .push('/workout/${item.workout.id}/completed?isHistory=true'),
+        onTap: () => context.push(
+          '/workout/${item.workout.id}/completed?isHistory=true',
+        ),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -215,14 +245,20 @@ class _HistoryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('$title$more',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 15)),
+                    Text(
+                      '$title$more',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text('${_relativeDay(date)} · ${_formatDuration(item.duration)}',
-                        style: TextStyle(color: cs.tertiary, fontSize: 12)),
+                    Text(
+                      '${_relativeDay(date)} · ${_formatDuration(item.duration)}',
+                      style: TextStyle(color: cs.tertiary, fontSize: 12),
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 6,
@@ -230,8 +266,9 @@ class _HistoryCard extends StatelessWidget {
                       children: [
                         if (item.volume > 0)
                           _chip(
-                              '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
-                              cs),
+                            '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
+                            cs,
+                          ),
                         if (item.workingSets > 0)
                           _chip('${item.workingSets} sets', cs),
                         if (item.partners.isNotEmpty)
@@ -250,17 +287,20 @@ class _HistoryCard extends StatelessWidget {
   }
 
   Widget _chip(String text, ColorScheme cs) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(text,
-            style: TextStyle(
-                color: cs.onSurface.withValues(alpha: 0.85),
-                fontSize: 11,
-                fontWeight: FontWeight.w700)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: cs.onSurface.withValues(alpha: 0.85),
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 
   String _thousands(double v) {
     final n = v.round();
@@ -290,8 +330,18 @@ class _DateBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     return Container(
       width: 52,
@@ -303,15 +353,23 @@ class _DateBadge extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(months[date.month - 1],
-              style: TextStyle(
-                  color: cs.primary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5)),
-          Text('${date.day}',
-              style: const TextStyle(
-                  fontSize: 20, fontWeight: FontWeight.w900, height: 1)),
+          Text(
+            months[date.month - 1],
+            style: TextStyle(
+              color: cs.primary,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            '${date.day}',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
         ],
       ),
     );
@@ -328,9 +386,11 @@ String _names(List<String> names) {
 
 String _relativeDay(DateTime d) {
   final now = DateTime.now();
-  final days = DateTime(now.year, now.month, now.day)
-      .difference(DateTime(d.year, d.month, d.day))
-      .inDays;
+  final days = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).difference(DateTime(d.year, d.month, d.day)).inDays;
   if (days == 0) return 'Today';
   if (days == 1) return 'Yesterday';
   if (days < 7) return '$days days ago';
