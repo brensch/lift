@@ -18,22 +18,26 @@ ADB="${ADB:-$HOME/android-sdk/platform-tools/adb}"
 DEVICE="${DEVICE:-emulator-5554}"
 SHOTS="$APP/test_screenshots"
 
-cd "$APP"
+cd "$APP" || exit 1
 mkdir -p "$SHOTS"
 
 # Pick scenarios: integration_test/*_test.dart, minus the support/ dir.
-mapfile -t ALL < <(ls integration_test/*_test.dart 2>/dev/null | xargs -n1 basename)
+ALL=()
+for path in integration_test/*_test.dart; do
+	[ -e "$path" ] && ALL+=("$(basename "$path")")
+done
 SCENARIOS=()
 if [ "$#" -gt 0 ]; then
-  for f in "${ALL[@]}"; do
-    for pat in "$@"; do [[ "$f" == *"$pat"* ]] && SCENARIOS+=("$f"); done
-  done
+	for f in "${ALL[@]}"; do
+		for pat in "$@"; do [[ "$f" == *"$pat"* ]] && SCENARIOS+=("$f"); done
+	done
 else
-  SCENARIOS=("${ALL[@]}")
+	SCENARIOS=("${ALL[@]}")
 fi
 
 if [ "${#SCENARIOS[@]}" -eq 0 ]; then
-  echo "no scenarios matched" >&2; exit 1
+	echo "no scenarios matched" >&2
+	exit 1
 fi
 
 echo "=> ${#SCENARIOS[@]} scenario(s): ${SCENARIOS[*]}"
@@ -45,32 +49,34 @@ echo "=> ${#SCENARIOS[@]} scenario(s): ${SCENARIOS[*]}"
 fail=0
 flake=0
 for f in "${SCENARIOS[@]}"; do
-  name="${f%_test.dart}"
-  log="$SHOTS/$name.drive.log"
-  echo "== running $name =="
-  # The emulator can drop offline during a long run (WSL2 flake). Skip rather
-  # than report a bogus test failure if it's already gone.
-  if [ "$("$ADB" -s "$DEVICE" get-state 2>/dev/null)" != "device" ]; then
-    echo "   SKIP ($name) — $DEVICE is offline; run 'make e2e-up' and retry"; flake=1
-    continue
-  fi
-  # Clear this scenario's old screenshots so a rename can't leave stale PNGs.
-  rm -f "$SHOTS/${name}_"*.png 2>/dev/null
-  flutter drive \
-    --driver test_driver/integration_test.dart \
-    --target "integration_test/$f" \
-    -d "$DEVICE" > "$log" 2>&1
-  rc=$?
-  if grep -q 'All tests passed' "$log"; then
-    echo "   ok ($name)"
-  elif grep -q 'device offline' "$log"; then
-    # The emulator died mid-scenario — an infra flake, not a test failure.
-    echo "   FLAKE ($name) — emulator went offline mid-run; re-run after 'make e2e-up'"
-    flake=1
-  else
-    echo "   FAIL ($name) rc=$rc — see $log"; fail=1
-    grep -E 'Test failed|Exception|Error:|EXCEPTION|failed to' "$log" | head -5 | sed 's/^/     /'
-  fi
+	name="${f%_test.dart}"
+	log="$SHOTS/$name.drive.log"
+	echo "== running $name =="
+	# The emulator can drop offline during a long run (WSL2 flake). Skip rather
+	# than report a bogus test failure if it's already gone.
+	if [ "$("$ADB" -s "$DEVICE" get-state 2>/dev/null)" != "device" ]; then
+		echo "   SKIP ($name) — $DEVICE is offline; run 'make e2e-up' and retry"
+		flake=1
+		continue
+	fi
+	# Clear this scenario's old screenshots so a rename can't leave stale PNGs.
+	rm -f "$SHOTS/${name}_"*.png 2>/dev/null
+	flutter drive \
+		--driver test_driver/integration_test.dart \
+		--target "integration_test/$f" \
+		-d "$DEVICE" >"$log" 2>&1
+	rc=$?
+	if grep -q 'All tests passed' "$log"; then
+		echo "   ok ($name)"
+	elif grep -q 'device offline' "$log"; then
+		# The emulator died mid-scenario — an infra flake, not a test failure.
+		echo "   FLAKE ($name) — emulator went offline mid-run; re-run after 'make e2e-up'"
+		flake=1
+	else
+		echo "   FAIL ($name) rc=$rc — see $log"
+		fail=1
+		grep -E 'Test failed|Exception|Error:|EXCEPTION|failed to' "$log" | head -5 | sed 's/^/     /'
+	fi
 done
 
 [ "$flake" -eq 1 ] && echo "NOTE: one or more scenarios were skipped/flaked on emulator health, not test logic."
