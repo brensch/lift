@@ -536,7 +536,7 @@ class WorkoutSummaryData {
       '${_formatDecimal(displayWeightFromPounds(_s.volumePerMinute, unit))} ${weightUnitSuffix(unit)}/min';
   String get workRestRatioLabel => _s.restingSeconds > 0
       ? '${_formatDecimal(_s.workRestRatio, fractionDigits: 2)}x'
-      : '—';
+      : '-';
   List<ExerciseSummaryView> get exerciseSummaries =>
       _s.exercises.map((e) => ExerciseSummaryView(e, unit)).toList();
 
@@ -575,8 +575,8 @@ class ExerciseSummaryView {
       '${formatWeight(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get formattedOneRm => _e.bestOneRepMax > 0
       ? '${formatWeight(_e.bestOneRepMax, unit)} ${weightUnitSuffix(unit)}'
-      : '—';
+      : '-';
   String get heaviestSetWeightLabel => _e.heaviestSetWeight > 0
       ? '${formatWeight(_e.heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
-      : '—';
+      : '-';
 }

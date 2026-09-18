@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         content: const Text(
-          'Your weights are safe — they live on the exercises, not the '
+          'Your weights are safe. They live on the exercises, not the '
           'template.',
         ),
         actions: [
@@ -884,7 +884,7 @@ class SelectedTemplateCard extends StatelessWidget {
                         child: Text(
                           suggestionReason.isEmpty
                               ? 'Recommended next'
-                              : 'Recommended — $suggestionReason',
+                              : 'Recommended: $suggestionReason',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,

@@ -221,7 +221,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                         final timeStr = diff > 0
                             ? '${diff}s from now'
                             : '${-diff}s ago';
-                        return '${n.title} — fires $timeStr (unix=$scheduledUnix)';
+                        return '${n.title}: fires $timeStr (unix=$scheduledUnix)';
                       }
                       return '${n.title}: ${n.body}';
                     }()),
