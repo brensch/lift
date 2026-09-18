@@ -214,6 +214,11 @@ icons:
 copy:
 	python3 scripts/gen_copy.py
 
+# sounds: mirror app/assets/sounds into the Android raw resources, the iOS
+# bundle and the Xcode project. CI checks nothing is stale.
+sounds:
+	python3 scripts/sync_sounds.py
+
 # brand: render the icon and feature-graphic candidates from
 # scripts/render_brand.py into marketing/. Pick one, then
 #   make icons ICON_SOURCE=marketing/icons/candidates/<name>.png

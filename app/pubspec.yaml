@@ -53,3 +53,6 @@ flutter:
     # Lets google_fonts load them offline — no first-run network flash in the
     # app, and deterministic rendering in the e2e screenshot harness.
     - assets/google_fonts/
+    # Rest-over notification sounds (previews); `make sounds` mirrors them
+    # into the Android and iOS notification folders.
+    - assets/sounds/

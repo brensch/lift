@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
+import '../logic/audio.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
@@ -732,7 +733,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _wasResting = true;
         if (restUntil != oldRestUntil ||
             oldState != WorkoutState.WORKOUT_STATE_RESTING) {
-          final presetId = _soundProvider?.currentPreset ?? 'chord_strum';
+          final presetId = knownSoundPreset(_soundProvider?.currentPreset);
           unawaited(
             NotificationService.scheduleRest(
               restUntilUnix: restUntil,

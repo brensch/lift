@@ -88,3 +88,55 @@ onboarding:
     none_selected: Pick at least one. Or one hundred.
     back: BACK
     finish: START LIFTING
+
+# Rest-over notification sounds, in the order the picker shows them. The
+# id names the file app/assets/sounds/sound_<id>.wav (sources in
+# assets/sounds/SOURCES.md); `make sounds` mirrors the files to Android and
+# iOS. The first one is the default.
+sounds:
+  - id: microwave_ding
+    name: Microwave ding
+  - id: referee_whistle
+    name: Referee whistle
+  - id: you_died
+    name: You died
+  - id: notification
+    name: Notification
+  - id: police_whistle
+    name: Police whistle
+  - id: slide_whistle
+    name: Slide whistle
+  - id: wolf_whistle
+    name: Wolf whistle
+  - id: nature_whistle
+    name: Whistle
+  - id: metallic_clang
+    name: Metallic clang
+  - id: opening_bell
+    name: Opening bell
+  - id: bell_ring
+    name: Bell ring
+  - id: winner_bell
+    name: Winner bell
+  - id: creepy_bell
+    name: Creepy bell
+  - id: big_bell
+    name: Big bell
+  - id: big_ben
+    name: Big Ben
+  - id: dirty_siren
+    name: Dirty siren
+  - id: mega_horn
+    name: Mega horn
+  - id: kamata_grito
+    name: Kamata grito
+  - id: angry_siren
+    name: Angry siren
+  - id: car_horn
+    name: Vintage car horn
+  - id: air_horn
+    name: Air horn
+  - id: truck_horn
+    name: Truck horn
+  - id: tada
+    name: Ta-da
