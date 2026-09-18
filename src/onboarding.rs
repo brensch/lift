@@ -45,20 +45,17 @@ fn gender_multiplier(gender: Gender, ex: Exercise) -> f32 {
     }
 }
 
-/// What a blank bodyweight seeds from when the slider is used: an average
-/// adult, so the first session is a barbell with something on it. Mirrored
-/// in app/lib/logic/starting_weights.dart.
-pub const AVERAGE_BODYWEIGHT_KG: f32 = 75.0;
-
-/// The setup slider, chick (0) to gorilla (1), through the old four
-/// levels' multipliers so the ends match what they used to seed.
-pub fn strength_multiplier(strength: f32) -> f32 {
-    const STOPS: [f32; 4] = [0.40, 0.85, 1.0, 1.15];
-    let s = strength.clamp(0.0, 1.0) * 3.0;
-    let i = (s.floor() as usize).min(2);
-    let t = s - i as f32;
-    STOPS[i] + (STOPS[i + 1] - STOPS[i]) * t
-}
+/// The setup slider's range per lift, in pounds: chick (0) is the bar
+/// (a little under for bench), gorilla (1) is truly huge. Linear between,
+/// snapped loadable in the user's unit. Mirrored in
+/// app/lib/logic/starting_weights.dart, which shows the same numbers.
+pub const STRENGTH_RANGE_LB: [(Exercise, f32, f32); 5] = [
+    (Exercise::Squat, 45.0, 315.0),
+    (Exercise::BenchPress, 35.0, 225.0),
+    (Exercise::BarbellRow, 45.0, 245.0),
+    (Exercise::OverheadPress, 45.0, 165.0),
+    (Exercise::Deadlift, 45.0, 385.0),
+];
 
 /// (exercise, fraction of bodyweight) for a sane first working weight.
 const RATIOS: [(Exercise, f32); 5] = [
@@ -98,28 +95,13 @@ pub fn starting_tracker_weights(
         .collect()
 }
 
-/// Tracker seeds for the main lifts from the slider alone: no gender
-/// question (the unspecified multipliers), and an average bodyweight when
-/// none was given. Snapped loadable in the user's unit, never below the
-/// bar. Mirrored in app/lib/logic/starting_weights.dart, which shows the
-/// same numbers under the slider.
-pub fn starting_tracker_weights_for_strength(
-    bodyweight_kg: f32,
-    strength: f32,
-    unit: AppWeightUnit,
-) -> Vec<(Exercise, f32)> {
-    let bodyweight = if bodyweight_kg > 0.0 { bodyweight_kg } else { AVERAGE_BODYWEIGHT_KG };
-    let multiplier = strength_multiplier(strength);
-    RATIOS
+/// Tracker seeds for the main lifts from the slider alone. Bodyweight
+/// plays no part: the ends are fixed weights.
+pub fn starting_tracker_weights_for_strength(strength: f32, unit: AppWeightUnit) -> Vec<(Exercise, f32)> {
+    let s = strength.clamp(0.0, 1.0);
+    STRENGTH_RANGE_LB
         .iter()
-        .map(|(exercise, ratio)| {
-            let raw = kg_to_pounds(bodyweight)
-                * ratio
-                * multiplier
-                * gender_multiplier(Gender::Unspecified, *exercise);
-            let weight = snap_weight_lb(*exercise, raw, unit).max(starting_weight_lb(*exercise, unit));
-            (*exercise, weight)
-        })
+        .map(|(exercise, lo, hi)| (*exercise, snap_weight_lb(*exercise, lo + (hi - lo) * s, unit)))
         .collect()
 }
 
@@ -212,18 +194,23 @@ mod tests {
     /// the slider preview and the seeds must agree.
     #[test]
     fn slider_seeds_match_the_app_mirror() {
-        let w = starting_tracker_weights_for_strength(0.0, 0.5, AppWeightUnit::Lb);
+        let w = starting_tracker_weights_for_strength(0.5, AppWeightUnit::Lb);
         let get = |ex: Exercise| w.iter().find(|(e, _)| *e == ex).unwrap().1;
-        assert_eq!(get(Exercise::Squat), 130.0);
-        assert_eq!(get(Exercise::BenchPress), 85.0);
-        assert_eq!(get(Exercise::Deadlift), 155.0);
-        assert_eq!(get(Exercise::OverheadPress), 60.0);
-        assert_eq!(get(Exercise::BarbellRow), 90.0);
-        // Chick never goes below the bar; gorilla at 100 kg is heavy.
-        let chick = starting_tracker_weights_for_strength(50.0, 0.0, AppWeightUnit::Kg);
-        assert!(chick.iter().all(|(_, w)| *w >= kg_to_pounds(20.0) - 0.01));
-        let gorilla = starting_tracker_weights_for_strength(100.0, 1.0, AppWeightUnit::Lb);
-        assert!(get(Exercise::Squat) < gorilla.iter().find(|(e, _)| *e == Exercise::Squat).unwrap().1);
-        assert!((strength_multiplier(1.0 / 3.0) - 0.85).abs() < 1e-5);
+        assert_eq!(get(Exercise::Squat), 180.0);
+        assert_eq!(get(Exercise::BenchPress), 130.0);
+        assert_eq!(get(Exercise::Deadlift), 215.0);
+        assert_eq!(get(Exercise::OverheadPress), 105.0);
+        assert_eq!(get(Exercise::BarbellRow), 145.0);
+        let chick = starting_tracker_weights_for_strength(0.0, AppWeightUnit::Lb);
+        let gorilla = starting_tracker_weights_for_strength(1.0, AppWeightUnit::Lb);
+        let at = |v: &Vec<(Exercise, f32)>, ex: Exercise| v.iter().find(|(e, _)| *e == ex).unwrap().1;
+        assert_eq!(at(&chick, Exercise::Squat), 45.0);
+        assert_eq!(at(&chick, Exercise::BenchPress), 35.0);
+        assert_eq!(at(&gorilla, Exercise::Squat), 315.0);
+        assert_eq!(at(&gorilla, Exercise::BenchPress), 225.0);
+        // Kilograms snap to the 2.5 kg grid: 180 lb -> 82.5 kg.
+        let kg = starting_tracker_weights_for_strength(0.5, AppWeightUnit::Kg);
+        let squat_kg = crate::weight_units::pounds_to_kg(at(&kg, Exercise::Squat));
+        assert!((squat_kg - 82.5).abs() < 0.01, "{squat_kg}");
     }
 }

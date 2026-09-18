@@ -1,6 +1,6 @@
 /// The first working weights for the main lifts, from the setup slider
-/// (chick 0 .. gorilla 1) and bodyweight. A mirror of src/onboarding.rs:
-/// the slider shows these numbers and the server seeds the same ones, and
+/// (chick 0 .. gorilla 1). A mirror of src/onboarding.rs: the slider shows
+/// these numbers and the server seeds the same ones, and
 /// test/logic/starting_weights_test.dart pins both to the same values.
 library;
 
@@ -8,68 +8,40 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import 'weight_units.dart';
 
-/// What a blank bodyweight seeds from.
-const double averageBodyweightKg = 75;
-
-/// (exercise, fraction of bodyweight) for a sane first working weight.
-const List<(Exercise, double)> startingRatios = [
-  (Exercise.EXERCISE_SQUAT, 0.95),
-  (Exercise.EXERCISE_BENCH_PRESS, 0.70),
-  (Exercise.EXERCISE_BARBELL_ROW, 0.75),
-  (Exercise.EXERCISE_OVERHEAD_PRESS, 0.50),
-  (Exercise.EXERCISE_DEADLIFT, 1.15),
+/// (exercise, chick lb, gorilla lb): the bar (a little under for bench)
+/// up to truly huge. Linear between.
+const List<(Exercise, double, double)> strengthRangeLb = [
+  (Exercise.EXERCISE_SQUAT, 45, 315),
+  (Exercise.EXERCISE_BENCH_PRESS, 35, 225),
+  (Exercise.EXERCISE_BARBELL_ROW, 45, 245),
+  (Exercise.EXERCISE_OVERHEAD_PRESS, 45, 165),
+  (Exercise.EXERCISE_DEADLIFT, 45, 385),
 ];
 
-/// Chick to gorilla through the old four levels' multipliers.
-double strengthMultiplier(double strength) {
-  const stops = [0.40, 0.85, 1.0, 1.15];
-  final s = strength.clamp(0.0, 1.0) * 3.0;
-  final i = s.floor().clamp(0, 2);
-  final t = s - i;
-  return stops[i] + (stops[i + 1] - stops[i]) * t;
-}
-
-/// No gender question any more: the "unspecified" multipliers, which sit
-/// between the population averages so nobody gets a bar they can't lift.
-double _bodyPartMultiplier(Exercise ex) {
-  const upper = {
-    Exercise.EXERCISE_BENCH_PRESS,
-    Exercise.EXERCISE_OVERHEAD_PRESS,
-    Exercise.EXERCISE_BARBELL_ROW,
-  };
-  return upper.contains(ex) ? 0.80 : 0.88;
-}
-
-/// Snapped to what fits on a bar in [unit], never below the bar.
+/// Snapped to what fits on a bar in [unit]: the bar plus whole pairs of
+/// the smallest plate; under the bar, the smallest plate's grid.
 double _snapBarbellLb(double lb, WeightUnit unit) {
   final bar = standardBarWeight(unit);
   final step = barbellIncrement(unit);
   final display = displayWeightFromPounds(lb, unit);
-  final snapped = display < bar
-      ? bar
-      : bar + ((display - bar) / step).round() * step;
+  final double snapped;
+  if (display < bar) {
+    final grid = step / 2;
+    snapped = ((display / grid).round() * grid).clamp(0, double.infinity);
+  } else {
+    snapped = bar + ((display - bar) / step).round() * step;
+  }
   return poundsFromDisplayWeight(snapped, unit);
 }
 
-/// Seeds in pounds, in [startingRatios] order.
+/// Seeds in pounds, in [strengthRangeLb] order.
 List<(Exercise, double)> startingWeightsLb({
-  required double bodyweightKg,
   required double strength,
   required WeightUnit unit,
 }) {
-  final bodyweight = bodyweightKg > 0 ? bodyweightKg : averageBodyweightKg;
-  final multiplier = strengthMultiplier(strength);
+  final s = strength.clamp(0.0, 1.0);
   return [
-    for (final (exercise, ratio) in startingRatios)
-      (
-        exercise,
-        _snapBarbellLb(
-          kilogramsToPounds(bodyweight) *
-              ratio *
-              multiplier *
-              _bodyPartMultiplier(exercise),
-          unit,
-        ),
-      ),
+    for (final (exercise, lo, hi) in strengthRangeLb)
+      (exercise, _snapBarbellLb(lo + (hi - lo) * s, unit)),
   ];
 }
