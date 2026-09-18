@@ -76,7 +76,10 @@ function TemplateRow({ template }: { template: LibraryTemplate }) {
           </p>
         )}
       </div>
-      <ol className="m-0 mt-2 sm:mt-0 p-0 list-none flex flex-wrap gap-1.5 text-[0.85rem] text-muted">
+      {/* content-start/items-start: the grid stretches this cell to the height
+          of the blurb beside it, and a wrapping flex row would otherwise
+          stretch its chips to fill that. */}
+      <ol className="m-0 mt-2 sm:mt-0 p-0 list-none flex flex-wrap content-start items-start gap-1.5 text-[0.85rem] text-muted">
         {template.exercises.map((e, i) => (
           <li
             key={`${e}-${i}`}
