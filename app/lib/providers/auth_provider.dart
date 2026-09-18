@@ -16,8 +16,6 @@ class AuthProvider extends ChangeNotifier {
   static const _sessionTokenKey = 'liftSessionToken';
   static const _userIdKey = 'liftUserId';
   static const _usernameKey = 'liftUsername';
-  static const _passkeyNoticePendingUserIdKey =
-      'liftPasskeyNoticePendingUserId';
 
   final AuthService _authService;
   final GrpcClient _grpcClient;
@@ -28,7 +26,6 @@ class AuthProvider extends ChangeNotifier {
   String _profileEmoji = defaultProfileEmoji;
   String _profileColorHex = defaultProfileColorHex;
   double _bodyWeightKg = 0;
-  bool _needsPasskeyNotice = false;
   bool _isLoading = false;
   bool _bodyWeightHealthSyncInFlight = false;
   String? _error;
@@ -45,7 +42,6 @@ class AuthProvider extends ChangeNotifier {
   String get profileEmoji => _profileEmoji;
   String get profileColorHex => _profileColorHex;
   double get bodyWeightKg => _bodyWeightKg;
-  bool get needsPasskeyNotice => _needsPasskeyNotice;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _sessionToken != null;
@@ -55,9 +51,6 @@ class AuthProvider extends ChangeNotifier {
     _sessionToken = prefs.getString(_sessionTokenKey);
     _userId = prefs.getString(_userIdKey);
     _username = prefs.getString(_usernameKey);
-    _needsPasskeyNotice =
-        _userId != null &&
-        prefs.getString(_passkeyNoticePendingUserIdKey) == _userId;
     if (_sessionToken != null) {
       _grpcClient.setToken(_sessionToken);
       await refreshProfile(notify: false);
@@ -73,7 +66,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final response = await _authService.passkeyRegister(username);
-      await _saveSession(response, needsPasskeyNotice: true);
+      await _saveSession(response);
     } catch (e) {
       if (e is! PasskeyAuthCancelledException) {
         _error = _formatError(e);
@@ -92,7 +85,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final response = await _authService.testLogin(username);
-      await _saveSession(response, needsPasskeyNotice: true);
+      await _saveSession(response);
     } catch (e) {
       _error = _formatError(e);
     } finally {
@@ -133,7 +126,6 @@ class AuthProvider extends ChangeNotifier {
     _username = null;
     _profileEmoji = defaultProfileEmoji;
     _profileColorHex = defaultProfileColorHex;
-    _needsPasskeyNotice = false;
     _grpcClient.setToken(null);
 
     final prefs = await SharedPreferences.getInstance();
@@ -149,7 +141,6 @@ class AuthProvider extends ChangeNotifier {
     _username = null;
     _profileEmoji = defaultProfileEmoji;
     _profileColorHex = defaultProfileColorHex;
-    _needsPasskeyNotice = false;
     _grpcClient.setToken(null);
     _isLoading = false;
     _error = message;
@@ -161,23 +152,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _saveSession(
-    AuthResponse response, {
-    bool needsPasskeyNotice = false,
-  }) async {
+  Future<void> _saveSession(AuthResponse response) async {
     _sessionToken = response.sessionToken;
     _userId = response.userId;
     _username = response.username;
-    _needsPasskeyNotice = needsPasskeyNotice;
     _grpcClient.setToken(_sessionToken);
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_sessionTokenKey, response.sessionToken);
     await prefs.setString(_userIdKey, response.userId);
     await prefs.setString(_usernameKey, response.username);
-    if (needsPasskeyNotice) {
-      await prefs.setString(_passkeyNoticePendingUserIdKey, response.userId);
-    }
     await refreshProfile(notify: false);
   }
 
@@ -268,15 +252,6 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _bodyWeightHealthSyncInFlight = false;
     }
-  }
-
-  Future<void> acknowledgePasskeyNotice() async {
-    _needsPasskeyNotice = false;
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(_passkeyNoticePendingUserIdKey) == _userId) {
-      await prefs.remove(_passkeyNoticePendingUserIdKey);
-    }
-    notifyListeners();
   }
 
   void clearError() {
