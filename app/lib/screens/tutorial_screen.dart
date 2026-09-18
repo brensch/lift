@@ -158,11 +158,18 @@ class _TutorialScreenState extends State<TutorialScreen>
       child: TutorialScope(
         registry: _registry,
         // The sandbox's layout guards the back button for the real app;
-        // here back means leave the tutorial.
+        // here it is ours.
         child: PopScope(
           canPop: false,
+          // The system back button steps back; on the first step it
+          // leaves the tutorial.
           onPopInvokedWithResult: (didPop, _) {
-            if (!didPop && mounted) Navigator.pop(context);
+            if (didPop || !mounted) return;
+            if (_step > 0) {
+              _previous();
+            } else {
+              Navigator.pop(context);
+            }
           },
           child: LayoutBuilder(
             key: _stageKey,
@@ -409,17 +416,7 @@ class _Popover extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                Expanded(
-                  child: Text(
-                    '${index + 1} / $count',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: muted,
-                    ),
-                  ),
-                ),
+                const Spacer(),
                 SizedBox(
                   height: 40,
                   child: OutlinedButton(
