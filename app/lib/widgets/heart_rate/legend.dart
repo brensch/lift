@@ -7,7 +7,11 @@ class HeartRateLegendItem extends StatelessWidget {
   final String label;
   final Color color;
 
-  const HeartRateLegendItem({super.key, required this.label, required this.color});
+  const HeartRateLegendItem({
+    super.key,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

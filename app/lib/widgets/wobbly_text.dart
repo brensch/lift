@@ -29,11 +29,7 @@ class WobblyText extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           for (final ch in letters)
-            _WobblyLetter(
-              char: ch,
-              fontSize: fontSize,
-              rng: rng,
-            ),
+            _WobblyLetter(char: ch, fontSize: fontSize, rng: rng),
         ],
       ),
     );

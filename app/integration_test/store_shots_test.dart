@@ -42,7 +42,8 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
       HeartRateSample()
         ..sampledAt = Int64(t)
         ..bpm = bpm + math.sin(secs / 7) * 2
-        ..availability = HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE,
+        ..availability =
+            HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE,
     );
   }
   wp.ingestWearHeartRateBatch(
@@ -81,8 +82,20 @@ void main() {
 
       // 02 — one exercise in detail: whichever big lift is on screen first
       // (the list is ordered by recent progress, so it varies with the seed).
-      const lifts = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press', 'Barbell Row', 'Lat Pulldown'];
-      await s.tapText(lifts.firstWhere(s.isVisible, orElse: () => s.visibleTexts().firstWhere((t) => t.contains('Press'))));
+      const lifts = [
+        'Bench Press',
+        'Squat',
+        'Deadlift',
+        'Overhead Press',
+        'Barbell Row',
+        'Lat Pulldown',
+      ];
+      await s.tapText(
+        lifts.firstWhere(
+          s.isVisible,
+          orElse: () => s.visibleTexts().firstWhere((t) => t.contains('Press')),
+        ),
+      );
       await s.settle(seconds: 3);
       await s.shot('Exercise detail');
 
@@ -116,19 +129,28 @@ void main() {
       // 05 — a set in progress.
       await s.tapText(s.isVisible('Start Early') ? 'Start Early' : 'Start Set');
       await s.settle(seconds: 2);
-      await feedHeartRate(tester, sinceMs: DateTime.now().millisecondsSinceEpoch - 20000);
+      await feedHeartRate(
+        tester,
+        sinceMs: DateTime.now().millisecondsSinceEpoch - 20000,
+      );
       await s.shot('Set in progress');
 
       // 06 — rest timer after completing a set.
       await s.tapText('Complete Set');
       await s.settle(seconds: 2);
-      await feedHeartRate(tester, sinceMs: DateTime.now().millisecondsSinceEpoch - 20000);
+      await feedHeartRate(
+        tester,
+        sinceMs: DateTime.now().millisecondsSinceEpoch - 20000,
+      );
       await s.shot('Resting');
 
       // 07 — the Heart tab: the trace over the session.
       await s.tapText('Heart');
       await s.settle(seconds: 2);
-      await feedHeartRate(tester, sinceMs: DateTime.now().millisecondsSinceEpoch - 20000);
+      await feedHeartRate(
+        tester,
+        sinceMs: DateTime.now().millisecondsSinceEpoch - 20000,
+      );
       await s.shot('Heart rate');
 
       // Leave the account clean for the next capture: end the open workout

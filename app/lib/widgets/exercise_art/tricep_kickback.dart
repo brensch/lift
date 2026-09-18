@@ -18,7 +18,9 @@ ExerciseArt tricepKickbackArt() => const ExerciseArt([
     figure: Figure(
       pelvis: P(46, 58),
       torso: -45,
-      arms: [Limb(180, 180)], // upper arm horizontal back, forearm also extends back
+      arms: [
+        Limb(180, 180),
+      ], // upper arm horizontal back, forearm also extends back
       legs: [Limb(91, 91), Limb(89, 89)],
     ),
     dumbbells: [Dumbbell(hand: 0)],

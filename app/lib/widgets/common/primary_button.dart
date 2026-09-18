@@ -44,8 +44,9 @@ class PrimaryButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: bg,
           foregroundColor: fg,
-          disabledBackgroundColor:
-              cs.surfaceContainerHighest.withValues(alpha: 0.4),
+          disabledBackgroundColor: cs.surfaceContainerHighest.withValues(
+            alpha: 0.4,
+          ),
           disabledForegroundColor: cs.onSurfaceVariant,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: AppTheme.brMd),

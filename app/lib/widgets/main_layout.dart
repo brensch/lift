@@ -346,9 +346,9 @@ class MainLayout extends StatelessWidget {
         } else {
           message = 'Open Schlift on your wrist to connect';
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       },
     );
   }

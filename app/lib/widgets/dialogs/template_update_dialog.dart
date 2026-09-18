@@ -17,10 +17,8 @@ Future<void> showTemplateUpdateDialog(
 }) {
   return showDialog(
     context: context,
-    builder: (_) => _TemplateUpdateDialog(
-      suggestion: suggestion,
-      provider: provider,
-    ),
+    builder: (_) =>
+        _TemplateUpdateDialog(suggestion: suggestion, provider: provider),
   );
 }
 

@@ -9,7 +9,10 @@ ExerciseArt nordicCurlArt() => const ExerciseArt([
       pelvis: P(50, 58),
       torso: -90,
       arms: [Limb(91, 91), Limb(89, 89)],
-      legs: [Limb(90, 180), Limb(88, 180)], // thighs straight down, shins point back
+      legs: [
+        Limb(90, 180),
+        Limb(88, 180),
+      ], // thighs straight down, shins point back
     ),
     props: [
       [P(36, 82), P(64, 82)], // anchor bar

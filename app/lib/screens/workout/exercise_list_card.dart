@@ -202,7 +202,13 @@ class _GrabRail extends StatelessWidget {
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [pair(), const SizedBox(height: 3), pair(), const SizedBox(height: 3), pair()],
+          children: [
+            pair(),
+            const SizedBox(height: 3),
+            pair(),
+            const SizedBox(height: 3),
+            pair(),
+          ],
         ),
       ),
     );
@@ -365,9 +371,9 @@ class ReorderHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onSurface.withValues(
-      alpha: 0.32,
-    );
+    final color = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.32);
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 2),
       child: Row(

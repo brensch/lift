@@ -13,10 +13,12 @@ import 'package:integration_test/integration_test_driver_extended.dart';
 Future<void> main() async {
   Directory('test_screenshots').createSync(recursive: true);
   await integrationDriver(
-    onScreenshot: (String name, List<int> bytes, [Map<String, Object?>? args]) async {
-      final f = File('test_screenshots/$name.png')..parent.createSync(recursive: true);
-      await f.writeAsBytes(bytes);
-      return true;
-    },
+    onScreenshot:
+        (String name, List<int> bytes, [Map<String, Object?>? args]) async {
+          final f = File('test_screenshots/$name.png')
+            ..parent.createSync(recursive: true);
+          await f.writeAsBytes(bytes);
+          return true;
+        },
   );
 }

@@ -10,7 +10,9 @@ ExerciseArt tBarRowArt() => const ExerciseArt([
       arms: [Limb(90, 90)],
       legs: [Limb(95, 92), Limb(91, 95)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Bar pulled up to chest.
   Pose(
@@ -20,6 +22,8 @@ ExerciseArt tBarRowArt() => const ExerciseArt([
       arms: [Limb(145, 35)],
       legs: [Limb(95, 92), Limb(91, 95)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

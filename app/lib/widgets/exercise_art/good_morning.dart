@@ -11,7 +11,9 @@ ExerciseArt goodMorningArt() => const ExerciseArt([
       arms: [Limb(180, 90)], // arm reaches back/up to bar on shoulders
       legs: [Limb(91, 91), Limb(89, 89)],
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Hinge forward — torso ~60° forward from vertical, legs near-straight.
   Pose(
@@ -21,6 +23,8 @@ ExerciseArt goodMorningArt() => const ExerciseArt([
       arms: [Limb(240, 150)], // arm follows to keep bar on shoulders
       legs: [Limb(88, 94), Limb(85, 97)], // slight knee bend
     ),
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

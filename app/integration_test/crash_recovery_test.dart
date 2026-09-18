@@ -39,22 +39,33 @@ void main() {
 
     // The app should recover into the live workout, not back to home/onboarding.
     final recovered = await s.waitForText('End Workout', seconds: 12);
-    await s.shot('After restart',
-        note: recovered
-            ? 'Recovered into the in-progress workout.'
-            : 'WARNING: did not recover the active workout.');
-    expect(recovered, isTrue,
-        reason: 'a cold restart should resume the in-progress workout');
+    await s.shot(
+      'After restart',
+      note: recovered
+          ? 'Recovered into the in-progress workout.'
+          : 'WARNING: did not recover the active workout.',
+    );
+    expect(
+      recovered,
+      isTrue,
+      reason: 'a cold restart should resume the in-progress workout',
+    );
 
     // And the completed set should still be recorded (via the backend).
     final api = await s.api.login(username);
     await api.adoptActiveWorkout();
     final detail = await api.workoutDetail();
     final completed = detail?.completedSets.length ?? 0;
-    s.note('Backend after restart',
-        detail: 'completedSets=$completed', kind: 'api');
-    expect(completed, greaterThanOrEqualTo(1),
-        reason: 'the pre-restart set should still be recorded');
+    s.note(
+      'Backend after restart',
+      detail: 'completedSets=$completed',
+      kind: 'api',
+    );
+    expect(
+      completed,
+      greaterThanOrEqualTo(1),
+      reason: 'the pre-restart set should still be recorded',
+    );
 
     s.note('Crash recovery verified', kind: 'assert');
     await s.report();

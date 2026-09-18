@@ -19,8 +19,9 @@ class Api {
   final ClientChannel _channel;
   late final AuthServiceClient auth = AuthServiceClient(_channel);
   late final WorkoutServiceClient workout = WorkoutServiceClient(_channel);
-  late final MultiplayerServiceClient multiplayer =
-      MultiplayerServiceClient(_channel);
+  late final MultiplayerServiceClient multiplayer = MultiplayerServiceClient(
+    _channel,
+  );
   late final SettingsServiceClient settings = SettingsServiceClient(_channel);
 
   static Api connect({String host = '127.0.0.1', int port = 50051}) {
@@ -61,8 +62,10 @@ class Peer {
   CallOptions get _opts => _api._authed(token);
 
   Future<String> inviteToken() async {
-    final r = await _api.multiplayer
-        .getMyInviteToken(GetMyInviteTokenRequest(), options: _opts);
+    final r = await _api.multiplayer.getMyInviteToken(
+      GetMyInviteTokenRequest(),
+      options: _opts,
+    );
     return r.inviteToken;
   }
 
@@ -80,8 +83,10 @@ class Peer {
   /// The user's active workout as the backend sees it — used to cross-check that
   /// UI actions (starting sets, completing them) actually persist.
   Future<Workout?> activeWorkout() async {
-    final r = await _api.workout
-        .getActiveWorkout(GetActiveWorkoutRequest(), options: _opts);
+    final r = await _api.workout.getActiveWorkout(
+      GetActiveWorkoutRequest(),
+      options: _opts,
+    );
     return r.hasWorkout() ? r.workout : null;
   }
 
@@ -89,8 +94,10 @@ class Peer {
   /// [activeWorkout] Workout carries only ids; GetWorkout carries the sets.
   Future<GetWorkoutResponse?> workoutDetail() async {
     if (workoutId == null) return null;
-    return _api.workout
-        .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
+    return _api.workout.getWorkout(
+      GetWorkoutRequest(workoutId: workoutId),
+      options: _opts,
+    );
   }
 
   /// The home payload: templates, resolved trackers, volume, suggestion.
@@ -175,12 +182,16 @@ class Peer {
     if (workoutId == null) return 0;
     var done = 0;
     for (var i = 0; i < 50; i++) {
-      final w = await _api.workout
-          .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
-      final pending = w.proposedSets.where((set) =>
-          !set.warmup &&
-          !set.cancelled &&
-          !w.completedSets.any((c) => c.proposedSetId == set.id));
+      final w = await _api.workout.getWorkout(
+        GetWorkoutRequest(workoutId: workoutId),
+        options: _opts,
+      );
+      final pending = w.proposedSets.where(
+        (set) =>
+            !set.warmup &&
+            !set.cancelled &&
+            !w.completedSets.any((c) => c.proposedSetId == set.id),
+      );
       if (pending.isEmpty) break;
       final set = pending.first;
       await _api.workout.completeSet(
@@ -199,12 +210,16 @@ class Peer {
   /// Complete the next pending working set of the peer's workout.
   Future<void> completeNextSet(int reps) async {
     if (workoutId == null) return;
-    final w = await _api.workout
-        .getWorkout(GetWorkoutRequest(workoutId: workoutId), options: _opts);
-    final pending = w.proposedSets.where((s) =>
-        !s.warmup &&
-        !s.cancelled &&
-        !w.completedSets.any((c) => c.proposedSetId == s.id));
+    final w = await _api.workout.getWorkout(
+      GetWorkoutRequest(workoutId: workoutId),
+      options: _opts,
+    );
+    final pending = w.proposedSets.where(
+      (s) =>
+          !s.warmup &&
+          !s.cancelled &&
+          !w.completedSets.any((c) => c.proposedSetId == s.id),
+    );
     if (pending.isEmpty) return;
     final set = pending.first;
     await _api.workout.completeSet(
@@ -226,14 +241,18 @@ class Peer {
   }
 
   Future<void> leaveSession() async {
-    await _api.multiplayer
-        .leaveCurrentSession(LeaveCurrentSessionRequest(), options: _opts);
+    await _api.multiplayer.leaveCurrentSession(
+      LeaveCurrentSessionRequest(),
+      options: _opts,
+    );
   }
 
   /// People this user has trained with (durable session history).
   Future<List<TrainingPartner>> trainingPartners() async {
-    final r = await _api.multiplayer
-        .getTrainingPartners(GetTrainingPartnersRequest(), options: _opts);
+    final r = await _api.multiplayer.getTrainingPartners(
+      GetTrainingPartnersRequest(),
+      options: _opts,
+    );
     return r.partners;
   }
 
@@ -248,8 +267,10 @@ class Peer {
 
   /// Incoming pending join requests for this user.
   Future<List<JoinRequest>> joinRequests() async {
-    final r = await _api.multiplayer
-        .getJoinRequests(GetJoinRequestsRequest(), options: _opts);
+    final r = await _api.multiplayer.getJoinRequests(
+      GetJoinRequestsRequest(),
+      options: _opts,
+    );
     return r.requests;
   }
 

@@ -31,8 +31,7 @@ bool isLiftingState(int state) =>
 bool isRestingState(int state) =>
     state == WorkoutState.WORKOUT_STATE_RESTING.value;
 
-bool isReadyState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_READY.value;
+bool isReadyState(int state) => state == WorkoutState.WORKOUT_STATE_READY.value;
 
 int compareParticipantsByNextWorkout(
   ParticipantStatus a,

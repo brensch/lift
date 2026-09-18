@@ -21,7 +21,10 @@ ExerciseArt mountainClimberArt() => const ExerciseArt([
       pelvis: P(50, 48),
       torso: 10,
       arms: [Limb(170, 90)],
-      legs: [Limb(-40, 80), Limb(8, 87)], // front leg: thigh up-forward, shin down
+      legs: [
+        Limb(-40, 80),
+        Limb(8, 87),
+      ], // front leg: thigh up-forward, shin down
     ),
     props: [
       [P(10, 80), P(90, 80)],
