@@ -22,17 +22,17 @@ function displayName(key: string): string {
     .join(" ");
 }
 
-export function TemplatesPage() {
+export function RoutinesPage() {
   const { groups, templates } = CONTENT.library;
 
   return (
     <div className="max-w-3xl mx-auto px-5 py-12">
       <div className="border border-border rounded-xl bg-surface p-6 md:p-10">
         <h1 className="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold tracking-tight m-0">
-          <WobblyText text="TEMPLATES" seed={91} />
+          <WobblyText text="ROUTINES" seed={91} />
         </h1>
         <p className="mt-6 text-muted leading-relaxed">
-          Every template in the app. Tick the ones you want when you sign up,
+          Every routine in the app. Tick the ones you want when you sign up,
           add more any time from the Add chip. They're yours to edit once
           added.
         </p>

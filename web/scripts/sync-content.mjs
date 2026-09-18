@@ -2,7 +2,7 @@
 // site can never drift from the store listing. Nothing is parsed out of
 // prose: the YAML holds typed pieces and this passes them through.
 //   store/listing.yaml           -> src/generated/content.json
-//   templates/library.yaml       -> content.json (library, the /templates page)
+//   templates/library.yaml       -> content.json (library, the /routines page)
 //   release-notes/<latest>.md    -> content.json (whatsNew)
 //   store/screenshots/raw/*.png  -> public/generated/screens/
 //   marketing/schlift-square-512 -> public/generated/icon-512.png (favicon)
