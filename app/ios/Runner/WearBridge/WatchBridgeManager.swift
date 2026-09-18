@@ -1,7 +1,7 @@
-import Foundation
-import WatchConnectivity
 import Flutter
+import Foundation
 import HealthKit
+import WatchConnectivity
 
 /// Singleton that manages WatchConnectivity on the phone side.
 /// Mirrors the Android `WearBridgeManager` — publishes snapshots to watch,
@@ -9,7 +9,7 @@ import HealthKit
 class WatchBridgeManager: NSObject, WCSessionDelegate {
     static let shared = WatchBridgeManager()
 
-    private static let watchUiHeartbeatTtlMs: Int64 = 8_000
+    private static let watchUiHeartbeatTtlMs: Int64 = 8000
     private static let phoneToWearSnapshotPath = "/schlift/phone/snapshot"
     private static let phoneToWearLaunchPath = "/schlift/phone/launch"
     private static let phoneToWearEndWorkoutPath = "/schlift/phone/end_workout"
@@ -36,7 +36,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     private var mirroredSession: Any?
     private let queue = DispatchQueue(label: "com.brensch.schlift.watchbridge", qos: .userInitiated)
 
-    private override init() {
+    override private init() {
         super.init()
         if WCSession.isSupported() {
             let session = WCSession.default
@@ -152,7 +152,8 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         let session = WCSession.default
         guard session.activationState == .activated,
               session.isPaired,
-              session.isWatchAppInstalled else {
+              session.isWatchAppInstalled
+        else {
             completion(false)
             return
         }
@@ -197,11 +198,11 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         if session.isReachable {
             session.sendMessage(message, replyHandler: { _ in
                 completion(true)
-            }) { error in
+            }, errorHandler: { error in
                 print("SchliftWearBridge: sendMessage launch failed, falling back to transferUserInfo: \(error)")
                 session.transferUserInfo(message)
                 completion(true)
-            }
+            })
         } else {
             session.transferUserInfo(message)
             completion(true)
@@ -211,7 +212,8 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
     func requestWatchClockSync(completion: @escaping ([String: Int64]?) -> Void) {
         guard WCSession.default.activationState == .activated,
               WCSession.default.isPaired,
-              WCSession.default.isReachable else {
+              WCSession.default.isReachable
+        else {
             completion(nil)
             return
         }
@@ -249,24 +251,28 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
 
     // MARK: - WCSessionDelegate
 
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    func session(_: WCSession, activationDidCompleteWith _: WCSessionActivationState, error: Error?) {
         if let error = error {
             print("SchliftWearBridge: WCSession activation failed: \(error)")
         }
     }
 
-    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidBecomeInactive(_: WCSession) {}
 
-    func sessionDidDeactivate(_ session: WCSession) {
+    func sessionDidDeactivate(_: WCSession) {
         // Re-activate for multi-watch support
         WCSession.default.activate()
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         handleIncomingMessage(message)
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+    func session(
+        _: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
         // Snapshot request with a reply handler (the watch's watchdog poll): reply with the
         // latest snapshot bytes on this channel. This reaches the watch even when its app is
         // backgrounded, so a phone-initiated end propagates to the watch within ~10s.
@@ -287,7 +293,7 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         replyHandler([:])
     }
 
-    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+    func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
         handleIncomingMessage(userInfo)
     }
 
@@ -320,7 +326,8 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
         if path == WatchBridgeManager.wearToPhoneClockSyncPath {
             guard let data = message["data"] as? Data,
                   let payload = String(data: data, encoding: .utf8),
-                  let separator = payload.firstIndex(of: ":") else {
+                  let separator = payload.firstIndex(of: ":")
+            else {
                 return
             }
             let requestId = String(payload[..<separator])

@@ -1,20 +1,20 @@
 import Foundation
-import WatchKit
 import WatchConnectivity
+import WatchKit
 
 class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
-    // Shared so the WKApplicationDelegate (which handles the phone-initiated launch) and
-    // the SwiftUI view tree both talk to the same connector — and so a cold background
-    // launch can reach it before any view, and therefore any @StateObject, exists.
+    /// Shared so the WKApplicationDelegate (which handles the phone-initiated launch) and
+    /// the SwiftUI view tree both talk to the same connector — and so a cold background
+    /// launch can reach it before any view, and therefore any @StateObject, exists.
     static let shared = PhoneConnector()
 
-    private static let restCompletionCatchUpWindowMs: Int64 = 15_000
+    private static let restCompletionCatchUpWindowMs: Int64 = 15000
 
     @Published var snapshot: Workout_V1_WearWorkoutSnapshot?
     @Published private(set) var latestBpm: Double?
     @Published private(set) var isActionPending = false
-    // Live HK workout-session state, surfaced on the watch UI so we can see exactly what the
-    // session is doing (running / stopped / ended) rather than guessing.
+    /// Live HK workout-session state, surfaced on the watch UI so we can see exactly what the
+    /// session is doing (running / stopped / ended) rather than guessing.
     @Published private(set) var sessionStateLabel: String = "—"
 
     private var heartbeatTimer: Timer?
@@ -58,7 +58,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    // Maps HKWorkoutSessionState raw values to a short label for the on-watch readout.
+    /// Maps HKWorkoutSessionState raw values to a short label for the on-watch readout.
     private static func sessionStateName(_ raw: Int) -> String {
         switch raw {
         case 1: return "notStarted"
@@ -168,7 +168,11 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     // MARK: - WCSessionDelegate
 
-    func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+    func session(
+        _ session: WCSession,
+        activationDidCompleteWith activationState: WCSessionActivationState,
+        error: Error?
+    ) {
         if let error = error {
             print("SchliftWatch: WCSession activation failed: \(error)")
         }
@@ -190,20 +194,24 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+    func session(_: WCSession, didReceiveMessage message: [String: Any]) {
         handleIncomingMessage(message)
     }
 
-    func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
+    func session(
+        _: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
         handleIncomingMessage(message)
         replyHandler([:])
     }
 
-    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+    func session(_: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         handleIncomingMessage(applicationContext)
     }
 
-    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+    func session(_: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
         handleIncomingMessage(userInfo)
     }
 
@@ -233,7 +241,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
         if path == WatchPaths.phoneToWearClockSync {
             guard let data = message["data"] as? Data,
-                  let requestId = String(data: data, encoding: .utf8) else {
+                  let requestId = String(data: data, encoding: .utf8)
+            else {
                 return
             }
             let payload = "\(requestId):\(Int64(Date().timeIntervalSince1970 * 1000))"
@@ -243,7 +252,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
         if path == WatchPaths.phoneToWearSensorBatchAck {
             guard let data = message["data"] as? Data,
-                  let ack = try? Workout_V1_WearSensorBatchAck(serializedBytes: data) else {
+                  let ack = try? Workout_V1_WearSensorBatchAck(serializedBytes: data)
+            else {
                 return
             }
             sensorBatchOutbox.acknowledge(ack)
@@ -337,11 +347,11 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    // The phone always mirrors the latest snapshot into updateApplicationContext, which the
-    // system delivers to the watch without requiring reachability and caches in
-    // receivedApplicationContext. Reading it here lets the watch converge on the true state
-    // (including workout-ended → tear the session down) even when neither app can do live
-    // messaging — the gap that left the HK session (and the watch-face indicator) stuck on.
+    /// The phone always mirrors the latest snapshot into updateApplicationContext, which the
+    /// system delivers to the watch without requiring reachability and caches in
+    /// receivedApplicationContext. Reading it here lets the watch converge on the true state
+    /// (including workout-ended → tear the session down) even when neither app can do live
+    /// messaging — the gap that left the HK session (and the watch-face indicator) stuck on.
     private func ingestLatestApplicationContext() {
         let ctx = WCSession.default.receivedApplicationContext
         guard !ctx.isEmpty else { return }
@@ -376,7 +386,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         if let existing = self.snapshot,
            existing.workoutID == snapshot.workoutID,
            snapshot.emittedAt > 0,
-           snapshot.emittedAt < existing.emittedAt {
+           snapshot.emittedAt < existing.emittedAt
+        {
             return
         }
         let snapshotKey = meaningfulSnapshotKey(snapshot)
@@ -390,9 +401,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         reconcileRestCompletionAlert()
     }
 
-    // Schedule a snapshot request to fire exactly when the rest timer expires so the
-    // button re-enables at the precise phase boundary rather than waiting up to 3 s
-    // for the next heartbeat.
+    /// Schedule a snapshot request to fire exactly when the rest timer expires so the
+    /// button re-enables at the precise phase boundary rather than waiting up to 3 s
+    /// for the next heartbeat.
     private func scheduleRestExpiryRequest(for snapshot: Workout_V1_WearWorkoutSnapshot) {
         restExpiryRequest?.cancel()
         restExpiryRequest = nil
@@ -434,7 +445,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     private func manageCompanionSession(for snapshot: Workout_V1_WearWorkoutSnapshot) {
         // A new/different workout clears any prior watch-initiated end.
-        if !endedWorkoutID.isEmpty && snapshot.workoutID != endedWorkoutID {
+        if !endedWorkoutID.isEmpty, snapshot.workoutID != endedWorkoutID {
             endedWorkoutID = ""
         }
         // Finishing the planned sets (ALL_DONE) keeps the session alive while an End action
@@ -464,9 +475,10 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             // left endedWorkoutID empty, so the very next snapshot could flip activeWorkout
             // back true and RESTART the HK session — the intermittent "hk: running after
             // finishing". (The watch-button/dedicated-command paths already set it.)
-            if !snapshot.workoutID.isEmpty
-                && snapshot.state == .allDone
-                && !hasEndWorkoutAction {
+            if !snapshot.workoutID.isEmpty,
+               snapshot.state == .allDone,
+               !hasEndWorkoutAction
+            {
                 endedWorkoutID = snapshot.workoutID
             }
             hrLock.lock()
@@ -478,10 +490,10 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
-    // Periodic safety net: while a workout is active, re-assert that the HK session is
-    // running and that HR samples have arrived recently. If either check fails we ask
-    // WorkoutSessionManager to (re)start. This covers ambient-mode drops, transient HK
-    // errors, and silent HR streams.
+    /// Periodic safety net: while a workout is active, re-assert that the HK session is
+    /// running and that HR samples have arrived recently. If either check fails we ask
+    /// WorkoutSessionManager to (re)start. This covers ambient-mode drops, transient HK
+    /// errors, and silent HR streams.
     private func startHRWatchdog() {
         guard hrWatchdogTimer == nil else { return }
         hrWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
@@ -563,10 +575,10 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         heartbeatTimer = nil
     }
 
-    // The watch owns the rest-end alert locally once it has a `restUntil`.
-    // If the exact deadline was missed while the UI was dimmed or suspended, fire
-    // once immediately on wake / next snapshot rather than depending on a new push
-    // from the phone to tell us the timer already expired.
+    /// The watch owns the rest-end alert locally once it has a `restUntil`.
+    /// If the exact deadline was missed while the UI was dimmed or suspended, fire
+    /// once immediately on wake / next snapshot rather than depending on a new push
+    /// from the phone to tell us the timer already expired.
     private func reconcileRestCompletionAlert() {
         guard let snapshot else {
             cancelRestCompletionAlert()
@@ -644,7 +656,7 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
 
     private func playRestCompletionHaptic() {
         let device = WKInterfaceDevice.current()
-        for index in 0..<5 {
+        for index in 0 ..< 5 {
             DispatchQueue.main.asyncAfter(deadline: .now() + (Double(index) * 0.3)) {
                 device.play(.notification)
             }
