@@ -158,7 +158,8 @@ impl AuthService for ServerAuthService {
         {
             Ok(username) => username,
             Err(e) => {
-                self.track_attempt_finish(&req.user_id, "rejected", &e).await;
+                self.track_attempt_finish(&req.user_id, "rejected", &e)
+                    .await;
                 return Err(Status::invalid_argument(e));
             }
         };
@@ -478,11 +479,13 @@ mod auth_attempt_tests {
         let started = service(&db).await.login_start(request).await.unwrap();
         let challenge_id = started.into_inner().challenge_id;
 
-        let row = sqlx::query("SELECT kind, outcome, platform, app_version FROM auth_attempts WHERE attempt_id = ?")
-            .bind(&challenge_id)
-            .fetch_one(&db.read_pool)
-            .await
-            .unwrap();
+        let row = sqlx::query(
+            "SELECT kind, outcome, platform, app_version FROM auth_attempts WHERE attempt_id = ?",
+        )
+        .bind(&challenge_id)
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
         assert_eq!(row.get::<String, _>("kind"), "login");
         assert_eq!(row.get::<String, _>("outcome"), "started");
         assert_eq!(row.get::<String, _>("platform"), "android");
@@ -505,8 +508,12 @@ mod auth_attempt_tests {
     async fn a_failure_report_lands_once_and_never_rewrites_a_verdict() {
         let db = temp_db().await;
         let auth = service(&db).await;
-        db.start_auth_attempt("open", "login", "ios", "1.0.0").await.unwrap();
-        db.start_auth_attempt("settled", "login", "ios", "1.0.0").await.unwrap();
+        db.start_auth_attempt("open", "login", "ios", "1.0.0")
+            .await
+            .unwrap();
+        db.start_auth_attempt("settled", "login", "ios", "1.0.0")
+            .await
+            .unwrap();
         db.finish_auth_attempt("settled", "ok", "").await.unwrap();
 
         for id in ["open", "settled"] {
@@ -522,7 +529,11 @@ mod auth_attempt_tests {
         assert_eq!(
             attempts(&db).await,
             vec![
-                ("open".to_string(), "client_error".to_string(), "cancelled".to_string()),
+                (
+                    "open".to_string(),
+                    "client_error".to_string(),
+                    "cancelled".to_string()
+                ),
                 ("settled".to_string(), "ok".to_string(), String::new()),
             ]
         );

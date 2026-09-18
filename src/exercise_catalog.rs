@@ -495,14 +495,18 @@ mod tests {
     #[test]
     fn the_catalogue_covers_every_exercise() {
         let all = all_exercises();
-        assert!(all.len() >= 76, "expected the full catalogue, got {}", all.len());
+        assert!(
+            all.len() >= 76,
+            "expected the full catalogue, got {}",
+            all.len()
+        );
         for ex in &all {
-            assert!(
-                !muscles(*ex).is_empty(),
-                "{ex:?} has no muscle mapping"
-            );
+            assert!(!muscles(*ex).is_empty(), "{ex:?} has no muscle mapping");
             let p = prescription(*ex);
-            assert!(p.sets > 0 && p.rep_low > 0 && p.rep_high > p.rep_low, "{ex:?}: {p:?}");
+            assert!(
+                p.sets > 0 && p.rep_low > 0 && p.rep_high > p.rep_low,
+                "{ex:?}: {p:?}"
+            );
             assert!(p.rest_seconds > 0 && p.rest_seconds_failure >= p.rest_seconds);
         }
     }
@@ -513,7 +517,10 @@ mod tests {
     fn primary_muscles_are_sane() {
         assert_eq!(primary_muscle(Exercise::Squat), MuscleGroup::Quads);
         assert_eq!(primary_muscle(Exercise::BenchPress), MuscleGroup::Chest);
-        assert_eq!(primary_muscle(Exercise::RomanianDeadlift), MuscleGroup::Hamstrings);
+        assert_eq!(
+            primary_muscle(Exercise::RomanianDeadlift),
+            MuscleGroup::Hamstrings
+        );
         assert_eq!(primary_muscle(Exercise::BarbellCurl), MuscleGroup::Biceps);
         assert_eq!(primary_muscle(Exercise::CalfRaise), MuscleGroup::Calves);
         assert_eq!(primary_muscle(Exercise::Plank), MuscleGroup::Core);
@@ -569,7 +576,10 @@ mod tests {
     #[test]
     fn bodyweight_moves_have_no_weight_and_no_increment() {
         assert_eq!(starting_weight_lb(Exercise::PushUp, AppWeightUnit::Lb), 0.0);
-        assert_eq!(progression_increment_lb(Exercise::PullUp, AppWeightUnit::Lb), 0.0);
+        assert_eq!(
+            progression_increment_lb(Exercise::PullUp, AppWeightUnit::Lb),
+            0.0
+        );
     }
 
     #[test]

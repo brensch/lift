@@ -447,12 +447,11 @@ async fn load_legacy_state(
     pool: &Pool<Sqlite>,
     user_id: &str,
 ) -> DbResult<Option<LegacyProgramState>> {
-    let row: Option<(Vec<u8>,)> = sqlx::query_as(
-        "SELECT response_blob FROM training_program_state_latest WHERE user_id = ?",
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
+    let row: Option<(Vec<u8>,)> =
+        sqlx::query_as("SELECT response_blob FROM training_program_state_latest WHERE user_id = ?")
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
     Ok(row
         .and_then(|(blob,)| LegacyStateResponse::decode(blob.as_slice()).ok())
         .and_then(|response| response.state))
@@ -774,7 +773,11 @@ mod tests {
 
         let db = ServerDb::new_in_dir(&dir).await.unwrap();
         let first = backups(&dir);
-        assert_eq!(first.len(), 1, "one backup for the pending migration: {first:?}");
+        assert_eq!(
+            first.len(),
+            1,
+            "one backup for the pending migration: {first:?}"
+        );
         // The backup is a readable database holding the pre-migration data.
         let backup_pool = SqlitePoolOptions::new()
             .max_connections(1)
@@ -914,7 +917,10 @@ mod tests {
             .await;
         })
         .await;
-        assert_eq!(tracker_weight(&db, "u1", Exercise::Squat).await, Some(175.0));
+        assert_eq!(
+            tracker_weight(&db, "u1", Exercise::Squat).await,
+            Some(175.0)
+        );
         assert_eq!(
             tracker_weight(&db, "u1", Exercise::BenchPress).await,
             Some(135.0)
@@ -929,11 +935,8 @@ mod tests {
             seed_state(&pool, "u1", legacy_state_blob(3, &[("squat_tm", 200.0)])).await;
         })
         .await;
-        let expected = crate::exercise_catalog::snap_weight_lb(
-            Exercise::Squat,
-            170.0,
-            AppWeightUnit::Lb,
-        );
+        let expected =
+            crate::exercise_catalog::snap_weight_lb(Exercise::Squat, 170.0, AppWeightUnit::Lb);
         assert_eq!(
             tracker_weight(&db, "u1", Exercise::Squat).await,
             Some(expected)
@@ -950,16 +953,16 @@ mod tests {
                 "u1",
                 legacy_state_blob(
                     2,
-                    &[
-                        ("squat_t1_weight", 185.0),
-                        ("bench_press_t2_weight", 115.0),
-                    ],
+                    &[("squat_t1_weight", 185.0), ("bench_press_t2_weight", 115.0)],
                 ),
             )
             .await;
         })
         .await;
-        assert_eq!(tracker_weight(&db, "u1", Exercise::Squat).await, Some(185.0));
+        assert_eq!(
+            tracker_weight(&db, "u1", Exercise::Squat).await,
+            Some(185.0)
+        );
         assert_eq!(
             tracker_weight(&db, "u1", Exercise::BenchPress).await,
             Some(115.0)
@@ -973,14 +976,23 @@ mod tests {
     async fn history_wins_over_program_state() {
         let db = migrate_fixture(|pool| async move {
             seed_user(&pool, "u1").await;
-            seed_state(&pool, "u1", legacy_state_blob(1, &[("squat_weight", 175.0)])).await;
+            seed_state(
+                &pool,
+                "u1",
+                legacy_state_blob(1, &[("squat_weight", 175.0)]),
+            )
+            .await;
             let squat = Exercise::Squat as i32;
             seed_workout(
                 &pool,
                 "u1",
                 "w1",
                 1_000_000,
-                &[(squat, 5, 5, 185.0), (squat, 5, 5, 185.0), (squat, 5, 5, 185.0)],
+                &[
+                    (squat, 5, 5, 185.0),
+                    (squat, 5, 5, 185.0),
+                    (squat, 5, 5, 185.0),
+                ],
             )
             .await;
         })
@@ -988,7 +1000,10 @@ mod tests {
         // 5-rep target is below the squat range top (10), so the session
         // clears mid-range: the weight holds at the performed 185 and reps
         // advance instead.
-        assert_eq!(tracker_weight(&db, "u1", Exercise::Squat).await, Some(185.0));
+        assert_eq!(
+            tracker_weight(&db, "u1", Exercise::Squat).await,
+            Some(185.0)
+        );
     }
 
     /// Templates: saved groups first, then the last workout, then the six
@@ -1054,7 +1069,12 @@ mod tests {
     async fn schema_cutover_is_complete_and_idempotent() {
         let db = migrate_fixture(|pool| async move {
             seed_user(&pool, "u1").await;
-            seed_state(&pool, "u1", legacy_state_blob(1, &[("squat_weight", 175.0)])).await;
+            seed_state(
+                &pool,
+                "u1",
+                legacy_state_blob(1, &[("squat_weight", 175.0)]),
+            )
+            .await;
             seed_workout(&pool, "u1", "w1", 1_000_000, &[(1, 5, 5, 175.0)]).await;
             sqlx::query(
                 "INSERT INTO program_progression_applied (workout_id, user_id, applied_at)
@@ -1112,7 +1132,12 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(group_table, 0, "exercise_groups should be dropped");
-        for column in ["exercise_group_id", "is_amrap", "instruction", "progression_blob"] {
+        for column in [
+            "exercise_group_id",
+            "is_amrap",
+            "instruction",
+            "progression_blob",
+        ] {
             let cols: i64 = sqlx::query_scalar(
                 "SELECT COUNT(*) FROM pragma_table_info('proposed_sets') WHERE name = ?",
             )
@@ -1130,20 +1155,18 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(msg_cols, 0);
-        let messages: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM user_message_events WHERE user_id = 'u1'",
-        )
-        .fetch_one(&db.read_pool)
-        .await
-        .unwrap();
+        let messages: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM user_message_events WHERE user_id = 'u1'")
+                .fetch_one(&db.read_pool)
+                .await
+                .unwrap();
         assert_eq!(messages, 1, "the message row survives the column drop");
         // The kept proposed_sets rows survived the column drops.
-        let sets: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM proposed_sets WHERE workout_id = 'w1'",
-        )
-        .fetch_one(&db.read_pool)
-        .await
-        .unwrap();
+        let sets: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM proposed_sets WHERE workout_id = 'w1'")
+                .fetch_one(&db.read_pool)
+                .await
+                .unwrap();
         assert_eq!(sets, 1);
 
         // Second run: the marker short-circuits; nothing re-seeds. Simulate

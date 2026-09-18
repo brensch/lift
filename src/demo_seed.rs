@@ -160,7 +160,14 @@ impl Lift {
 
     /// Reps actually logged on a set, given the outcome. A miss loses one to
     /// three reps on the final set and sometimes one on the set before.
-    fn logged_reps(&self, ex: Exercise, session: usize, set_no: i32, sets: i32, outcome: Outcome) -> i32 {
+    fn logged_reps(
+        &self,
+        ex: Exercise,
+        session: usize,
+        set_no: i32,
+        sets: i32,
+        outcome: Outcome,
+    ) -> i32 {
         if outcome == Outcome::Made {
             return self.reps;
         }

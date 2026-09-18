@@ -39,7 +39,6 @@ impl ServerDb {
         Ok(out)
     }
 
-
     /// Claim that `workout_id` has advanced the trackers. Returns false if a
     /// previous EndWorkout already claimed it — the PRIMARY KEY on
     /// `progression_applied` makes progression idempotent at the storage

@@ -23,13 +23,11 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use schlift::workout::v1::{
     auth_service_client::AuthServiceClient, workout_service_client::WorkoutServiceClient,
-    CancelProposedSetRequest, CompleteOnboardingRequest, CompleteSetRequest,
-    AddExercisesRequest, AdjustExerciseWeightRequest, DeleteCompletedSetRequest,
-    EndWorkoutRequest, Exercise,
-    ExperienceLevel, GetActiveWorkoutRequest, GetHomeRequest, GetWorkoutRequest,
+    AddExercisesRequest, AdjustExerciseWeightRequest, CancelProposedSetRequest,
+    CompleteOnboardingRequest, CompleteSetRequest, DeleteCompletedSetRequest, EndWorkoutRequest,
+    Exercise, ExperienceLevel, GetActiveWorkoutRequest, GetHomeRequest, GetWorkoutRequest,
     GetWorkoutResponse, RemoveExerciseRequest, ReorderExercisesRequest, StartSetRequest,
-    StartWorkoutRequest, TestLoginRequest,
-    WeightUnit,
+    StartWorkoutRequest, TestLoginRequest, WeightUnit,
 };
 use tonic::transport::Channel;
 use tonic::Request;
@@ -164,16 +162,12 @@ async fn run_user(
                 },
                 gender: rng.gen_range(0..3),
                 library_ids: vec![],
-                    strength: None,
+                strength: None,
             },
         ))
         .await
     {
-        Ok(r) => r
-            .into_inner()
-            .home
-            .map(|h| h.templates)
-            .unwrap_or_default(),
+        Ok(r) => r.into_inner().home.map(|h| h.templates).unwrap_or_default(),
         Err(e) => {
             violations.push(Violation {
                 user: username.clone(),
@@ -477,7 +471,6 @@ async fn run_user(
         }
     }
 
-
     (violations, steps)
 }
 
@@ -518,12 +511,7 @@ fn authed<T>(token: &str, msg: T) -> Request<T> {
 }
 
 /// Everything we assert about a workout's state, checked after every mutation.
-fn check_invariants(
-    state: &GetWorkoutResponse,
-    user: &str,
-    step: &str,
-    out: &mut Vec<Violation>,
-) {
+fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mut Vec<Violation>) {
     let workout_id = state
         .workout
         .as_ref()
@@ -646,7 +634,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (_backend, endpoint) = match &args.connect {
         Some(endpoint) => (None, endpoint.clone()),
         None => {
-            println!("building and starting a throwaway backend on :{}", args.port);
+            println!(
+                "building and starting a throwaway backend on :{}",
+                args.port
+            );
             let b = spawn_backend(args.port)?;
             (Some(b), format!("http://127.0.0.1:{}", args.port))
         }
