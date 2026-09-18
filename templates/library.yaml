@@ -6,7 +6,7 @@
 #
 # The backend embeds this file at build time and mirrors it into the
 # template_library table on startup (ListTemplateLibrary serves that table).
-# The website's /templates page is rendered from it at build time. Exercises
+# The website's /routines page is rendered from it at build time. Exercises
 # are the Exercise enum names from proto/workout/v1/workout.proto without
 # the EXERCISE_ prefix; `cargo test` fails on an unknown one. Ids are
 # stable keys: users' copies remember which entry they came from, so rename

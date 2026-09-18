@@ -198,7 +198,7 @@ never edited by hand and the YAML wins on every restart.
   set to the entry it came from. It is editable like any other template
   (rename, reorder, change exercises); `library_id` only marks what is
   already added. Never reuse or rename an id in the YAML.
-- The website's `/templates` page is rendered from the same YAML at build
+- The website's `/routines` page is rendered from the same YAML at build
   time (`web/scripts/sync-content.mjs`), not from the RPC.
 
 ## Everything else
