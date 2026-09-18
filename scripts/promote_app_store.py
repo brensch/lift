@@ -219,6 +219,25 @@ def find_or_create_version(asc: AppStoreConnect, app_id: str, version: str) -> d
             raise SystemExit(f"App Store version {version} is already {state}")
         print(f"Ignoring App Store version record {record['id']} in state {state}")
 
+    # Apple allows one unreleased version at a time: a leftover editable one
+    # (say 0.10.1 pulled from review) makes creating 0.10.2 fail with "cannot
+    # create a new version in the current state". Its version string can be
+    # changed though, so take it over.
+    leftovers = asc.get(
+        f"/apps/{app_id}/appStoreVersions", {"filter[platform]": "IOS", "limit": 20}
+    ).get("data", [])
+    for record in leftovers:
+        state = version_state(record)
+        current = record["attributes"].get("versionString")
+        if state in EDITABLE_STATES and current != version:
+            print(f"Renaming editable App Store version {current} ({record['id']}, {state}) to {version}")
+            asc.patch(
+                f"/appStoreVersions/{record['id']}",
+                {"data": {"type": "appStoreVersions", "id": record["id"], "attributes": {"versionString": version}}},
+            )
+            record["attributes"]["versionString"] = version
+            return record
+
     print(f"Creating App Store version {version}")
     created = asc.post(
         "/appStoreVersions",
