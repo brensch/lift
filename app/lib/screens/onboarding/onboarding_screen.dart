@@ -231,7 +231,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       StrengthStep(
         unit: _unit,
         strength: _strength,
-        bodyweightKg: _parsedBodyWeightKg(),
         onChanged: (v) => setState(() => _strength = v),
         onBack: () => setState(() => _step = 1),
         onNext: () => setState(() => _step = 3),

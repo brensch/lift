@@ -9,41 +9,37 @@ void main() {
       w.firstWhere((e) => e.$1 == ex).$2;
 
   test('slider preview matches the server seeds (src/onboarding.rs)', () {
-    final w = startingWeightsLb(
-      bodyweightKg: 0,
-      strength: 0.5,
-      unit: WeightUnit.WEIGHT_UNIT_LB,
-    );
-    expect(lift(w, Exercise.EXERCISE_SQUAT), 130);
-    expect(lift(w, Exercise.EXERCISE_BENCH_PRESS), 85);
-    expect(lift(w, Exercise.EXERCISE_DEADLIFT), 155);
-    expect(lift(w, Exercise.EXERCISE_OVERHEAD_PRESS), 60);
-    expect(lift(w, Exercise.EXERCISE_BARBELL_ROW), 90);
+    final w = startingWeightsLb(strength: 0.5, unit: WeightUnit.WEIGHT_UNIT_LB);
+    expect(lift(w, Exercise.EXERCISE_SQUAT), 180);
+    expect(lift(w, Exercise.EXERCISE_BENCH_PRESS), 130);
+    expect(lift(w, Exercise.EXERCISE_DEADLIFT), 215);
+    expect(lift(w, Exercise.EXERCISE_OVERHEAD_PRESS), 105);
+    expect(lift(w, Exercise.EXERCISE_BARBELL_ROW), 145);
   });
 
-  test(
-    'chick never goes below the bar, gorilla is heavier, kg snaps to 2.5',
-    () {
-      final chick = startingWeightsLb(
-        bodyweightKg: 50,
-        strength: 0,
-        unit: WeightUnit.WEIGHT_UNIT_KG,
-      );
-      for (final (_, lb) in chick) {
-        expect(lb, greaterThanOrEqualTo(kilogramsToPounds(20) - 0.01));
-        final kg = displayWeightFromPounds(lb, WeightUnit.WEIGHT_UNIT_KG);
-        expect((kg * 10).round() % 25, 0, reason: 'loadable in kg: $kg');
-      }
-      final gorilla = startingWeightsLb(
-        bodyweightKg: 100,
-        strength: 1,
-        unit: WeightUnit.WEIGHT_UNIT_LB,
-      );
-      expect(
-        lift(gorilla, Exercise.EXERCISE_SQUAT),
-        greaterThan(lift(chick, Exercise.EXERCISE_SQUAT)),
-      );
-      expect(strengthMultiplier(1 / 3), closeTo(0.85, 1e-6));
-    },
-  );
+  test('chick is the bar, gorilla is huge, kg snaps to the 2.5 kg grid', () {
+    final chick = startingWeightsLb(
+      strength: 0,
+      unit: WeightUnit.WEIGHT_UNIT_LB,
+    );
+    expect(lift(chick, Exercise.EXERCISE_SQUAT), 45);
+    expect(lift(chick, Exercise.EXERCISE_BENCH_PRESS), 35);
+    final gorilla = startingWeightsLb(
+      strength: 1,
+      unit: WeightUnit.WEIGHT_UNIT_LB,
+    );
+    expect(lift(gorilla, Exercise.EXERCISE_SQUAT), 315);
+    expect(lift(gorilla, Exercise.EXERCISE_BENCH_PRESS), 225);
+    final kg = startingWeightsLb(
+      strength: 0.5,
+      unit: WeightUnit.WEIGHT_UNIT_KG,
+    );
+    expect(
+      displayWeightFromPounds(
+        lift(kg, Exercise.EXERCISE_SQUAT),
+        WeightUnit.WEIGHT_UNIT_KG,
+      ),
+      closeTo(82.5, 0.01),
+    );
+  });
 }
