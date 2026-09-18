@@ -16,7 +16,7 @@ name: Schlift
 # both — one line, used three ways: the App Store subtitle under the name (30),
 # the byline under the wordmark on the Play feature graphic, and the first
 # half of Play's one-liner
-tagline: The best way to Schlift.
+tagline: Free weightlifting tracker.
 
 # both — App Store promotional text above the description (170). Play's
 # one-liner on the listing card is tagline + a space + this, and must fit 80.
@@ -32,13 +32,13 @@ keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tra
 
 # both — the opening paragraphs. Blank lines separate paragraphs.
 about: |
-  Schlift tracks which muscles you've worked out recently, and suggests workouts based on what hasn't been trained that week. It tracks each exercise and slowly (and scientifically) increases reps and weight until you are huge.
-
-  If you are trying to work in with friends, or just want to work out your butt for the fourth time this week, picking your own workout is quick and easy.
+  Schlift tracks which muscles you've worked out recently, and suggests a workout from your favourite routines based on what hasn't been trained that week. 
+  
+  As you successfully lift, it increases the weights/reps according to SCIENCE.
 
 # both — the line above the testimonials in the description, and the section
 # label on the website
-testimonials_heading: "Don't believe me? Here's what my three satisfied customers have said:"
+testimonials_heading: "Here's what my four satisfied customers have said:"
 
 # both — quote and who said it
 testimonials:
@@ -73,7 +73,7 @@ other_features:
 # and their captions, the latest release notes) is read from this file at
 # build time. Store links are functional labels.
 website:
-  under_buttons: Free. I don't have stripe set up so you couldn't pay me if you wanted to.
+  under_buttons: Yes, really free.
   app_store_button: App Store
   play_store_button: Google Play
   screenshots_heading: What it looks like

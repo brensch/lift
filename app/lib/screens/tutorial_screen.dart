@@ -80,10 +80,9 @@ class _TutorialScreenState extends State<TutorialScreen>
   Future<void> _enter(int index, {required bool forward}) async {
     if (_busy) return;
     _busy = true;
-    setState(() {
-      _step = index;
-      _target = null;
-    });
+    // The old step stays on screen, outline and all, until the new one
+    // has been measured; then text and position change in one frame.
+    _pending = index;
     final step = _steps[index];
     try {
       if (step.screen == 'workout' && !_workouts.hasActiveWorkout) {
@@ -109,11 +108,20 @@ class _TutorialScreenState extends State<TutorialScreen>
     await _measure();
   }
 
+  /// The step being moved to while its target is measured; null once
+  /// shown. Registry notifications re-measure the shown step.
+  int? _pending;
+
   Future<void> _measure() async {
     if (!mounted) return;
-    final ctx = _registry.contextFor(_steps[_step].target);
+    final index = _pending ?? _step;
+    final ctx = _registry.contextFor(_steps[index].target);
     if (ctx == null) {
-      setState(() => _target = null);
+      setState(() {
+        _step = index;
+        _pending = null;
+        _target = null;
+      });
       return;
     }
     // Bring it on screen first; the ListView on home is tall.
@@ -131,10 +139,15 @@ class _TutorialScreenState extends State<TutorialScreen>
     final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
-    setState(() => _target = topLeft & box.size);
+    setState(() {
+      _step = index;
+      _pending = null;
+      _target = topLeft & box.size;
+    });
   }
 
   void _next() {
+    if (_busy) return;
     if (_step == _steps.length - 1) {
       Navigator.pop(context);
     } else {
