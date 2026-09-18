@@ -11,7 +11,11 @@ class WeightDisplayBox extends StatelessWidget {
   final double weight;
   final VoidCallback onTap;
 
-  const WeightDisplayBox({super.key, required this.weight, required this.onTap});
+  const WeightDisplayBox({
+    super.key,
+    required this.weight,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +74,11 @@ class WeightPicker extends StatefulWidget {
   final double initialWeight;
   final ValueChanged<double> onChanged;
 
-  const WeightPicker({super.key, required this.initialWeight, required this.onChanged});
+  const WeightPicker({
+    super.key,
+    required this.initialWeight,
+    required this.onChanged,
+  });
 
   @override
   State<WeightPicker> createState() => WeightPickerState();
@@ -246,7 +254,11 @@ class WeightAdjustBtn extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
 
-  const WeightAdjustBtn({super.key, required this.label, required this.onPressed});
+  const WeightAdjustBtn({
+    super.key,
+    required this.label,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -7,7 +7,9 @@ ExerciseArt chestDipArt() => const ExerciseArt([
     figure: Figure(
       pelvis: P(42, 65),
       torso: -75, // slight forward lean for chest dip
-      arms: [Limb(75, 140)], // upper arm down, forearm angles back up to hand on bar
+      arms: [
+        Limb(75, 140),
+      ], // upper arm down, forearm angles back up to hand on bar
       legs: [Limb(115, 55), Limb(112, 52)], // legs hanging/bent behind
     ),
     props: [

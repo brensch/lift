@@ -137,8 +137,15 @@ class Scenario {
     try {
       final base = '${name}_FAILURE';
       await binding.takeScreenshot(base);
-      _steps.add(_Step(_n, 'FAILURE: $error',
-          shot: '$base.png', note: error.toString(), kind: 'assert'));
+      _steps.add(
+        _Step(
+          _n,
+          'FAILURE: $error',
+          shot: '$base.png',
+          note: error.toString(),
+          kind: 'assert',
+        ),
+      );
       _n++;
     } catch (_) {
       // Screenshot can fail if the surface is gone; the printed block still lands.
@@ -149,17 +156,16 @@ class Scenario {
     say('════════════════ SCENARIO FAILED: $name ════════════════');
     say('LAST STEP OK : $lastStep');
     say('ERROR        : $error');
-    say('ON SCREEN NOW: ${onScreen.isEmpty ? '(nothing)' : onScreen.join(' | ')}');
+    say(
+      'ON SCREEN NOW: ${onScreen.isEmpty ? '(nothing)' : onScreen.join(' | ')}',
+    );
     say('════════════════════════════════════════════════════════');
     say('');
     // Machine-readable twin for the host report builder.
     // ignore: avoid_print
-    print('E2E|failure|${jsonEncode({
-          'scenario': name,
-          'lastStep': lastStep,
-          'error': error.toString(),
-          'onScreen': onScreen,
-        })}');
+    print(
+      'E2E|failure|${jsonEncode({'scenario': name, 'lastStep': lastStep, 'error': error.toString(), 'onScreen': onScreen})}',
+    );
   }
 
   /// Every non-empty text string currently in the widget tree — the ground truth
@@ -181,7 +187,9 @@ class Scenario {
   /// run(), a miss reports what text WAS on screen instead of a bare `false`.
   Future<void> mustSee(String text, {int seconds = 8}) async {
     if (await waitForText(text, seconds: seconds)) return;
-    throw StateError('expected "$text" on screen within ${seconds}s — not found');
+    throw StateError(
+      'expected "$text" on screen within ${seconds}s — not found',
+    );
   }
 
   // ── Capture ──
@@ -252,8 +260,11 @@ class Scenario {
     await settle(seconds: 1);
   }
 
-  void expectVisible(String text) => expect(find.text(text), findsWidgets,
-      reason: 'expected "$text" on screen');
+  void expectVisible(String text) => expect(
+    find.text(text),
+    findsWidgets,
+    reason: 'expected "$text" on screen',
+  );
 
   bool isVisible(String text) => find.text(text).evaluate().isNotEmpty;
 

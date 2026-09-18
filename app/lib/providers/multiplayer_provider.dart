@@ -47,8 +47,9 @@ class MultiplayerProvider extends ChangeNotifier {
       _trainingPartners = await _service.getTrainingPartners();
       notifyListeners();
     } catch (e) {
-      AppLogger.instance
-          .warn('Multiplayer', 'getTrainingPartners failed', {'error': '$e'});
+      AppLogger.instance.warn('Multiplayer', 'getTrainingPartners failed', {
+        'error': '$e',
+      });
     }
   }
 
@@ -59,8 +60,9 @@ class MultiplayerProvider extends ChangeNotifier {
       await _service.requestJoinPartner(partnerUserId);
       return null;
     } catch (e) {
-      AppLogger.instance
-          .warn('Multiplayer', 'requestJoinPartner failed', {'error': '$e'});
+      AppLogger.instance.warn('Multiplayer', 'requestJoinPartner failed', {
+        'error': '$e',
+      });
       return cleanErrorMessage(e);
     }
   }
@@ -89,11 +91,13 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       await _service.respondJoinRequest(requestId, accept);
     } catch (e) {
-      AppLogger.instance
-          .warn('Multiplayer', 'respondJoinRequest failed', {'error': '$e'});
+      AppLogger.instance.warn('Multiplayer', 'respondJoinRequest failed', {
+        'error': '$e',
+      });
     }
-    _incomingRequests =
-        _incomingRequests.where((r) => r.requestId != requestId).toList();
+    _incomingRequests = _incomingRequests
+        .where((r) => r.requestId != requestId)
+        .toList();
     if (!_disposed) notifyListeners();
     if (accept) await checkForSession();
   }
@@ -107,7 +111,9 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   void stopSync({bool clearSession = true, bool clearInviteToken = false}) {
-    AppLogger.instance.info('Multiplayer', 'stopSync', {'clearSession': clearSession});
+    AppLogger.instance.info('Multiplayer', 'stopSync', {
+      'clearSession': clearSession,
+    });
     _syncEnabled = false;
     _cancelPolling();
     if (clearSession) {
@@ -147,7 +153,11 @@ class MultiplayerProvider extends ChangeNotifier {
       if (!_disposed) notifyListeners();
       return token;
     } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'getMyInviteToken failed, will retry', {'error': e.toString()});
+      AppLogger.instance.warn(
+        'Multiplayer',
+        'getMyInviteToken failed, will retry',
+        {'error': e.toString()},
+      );
       _scheduleInviteTokenRetry();
       return null;
     }
@@ -189,7 +199,9 @@ class MultiplayerProvider extends ChangeNotifier {
       );
       return null;
     } catch (e) {
-      AppLogger.instance.error('Multiplayer', 'joinViaInvite failed', {'error': e.toString()});
+      AppLogger.instance.error('Multiplayer', 'joinViaInvite failed', {
+        'error': e.toString(),
+      });
       final cleanError = cleanErrorMessage(e);
       ErrorModalService.showError(cleanError.toUpperCase());
       return cleanError;
@@ -203,7 +215,9 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       await _service.leaveCurrentSession();
     } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'leaveCurrentSession failed', {'error': e.toString()});
+      AppLogger.instance.warn('Multiplayer', 'leaveCurrentSession failed', {
+        'error': e.toString(),
+      });
     }
     _clearSession(notify: true);
   }
@@ -231,7 +245,9 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       await _service.updateActiveWorkout(workoutId);
     } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'updateActiveWorkout failed', {'error': e.toString()});
+      AppLogger.instance.warn('Multiplayer', 'updateActiveWorkout failed', {
+        'error': e.toString(),
+      });
     }
   }
 

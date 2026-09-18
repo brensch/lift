@@ -74,9 +74,10 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     }
     setState(() => _isSaving = true);
     try {
-      await context
-          .read<WorkoutProvider>()
-          .adjustExerciseWeight(widget.block.exercise, _weight);
+      await context.read<WorkoutProvider>().adjustExerciseWeight(
+        widget.block.exercise,
+        _weight,
+      );
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -216,11 +217,7 @@ class _StepButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          width: 52,
-          height: 52,
-          child: Icon(icon, size: 24),
-        ),
+        child: SizedBox(width: 52, height: 52, child: Icon(icon, size: 24)),
       ),
     );
   }

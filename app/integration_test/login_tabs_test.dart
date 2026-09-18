@@ -14,18 +14,28 @@ void main() {
 
     await s.launch();
     // NEW USER tab is the default.
-    expect(await s.waitForText('What should we call you', seconds: 6), isTrue,
-        reason: 'NEW USER tab should be shown first');
+    expect(
+      await s.waitForText('What should we call you', seconds: 6),
+      isTrue,
+      reason: 'NEW USER tab should be shown first',
+    );
     await s.shot('NEW USER tab', note: 'Username entry + create account.');
 
     // Switch to SIGN IN.
     await s.tapText('SIGN IN');
     final onSignIn = await s.waitForText(
-        'Use a passkey on your device to sign in securely.',
-        seconds: 6);
-    await s.shot('SIGN IN tab',
-        note: onSignIn ? 'Passkey sign-in.' : 'WARNING: sign-in copy missing.');
-    expect(onSignIn, isTrue, reason: 'SIGN IN tab should show the passkey copy');
+      'Use a passkey on your device to sign in securely.',
+      seconds: 6,
+    );
+    await s.shot(
+      'SIGN IN tab',
+      note: onSignIn ? 'Passkey sign-in.' : 'WARNING: sign-in copy missing.',
+    );
+    expect(
+      onSignIn,
+      isTrue,
+      reason: 'SIGN IN tab should show the passkey copy',
+    );
 
     s.note('Login tabs verified', kind: 'assert');
     await s.report();

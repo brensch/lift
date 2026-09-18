@@ -48,9 +48,13 @@ const List<ExerciseInfo> exerciseCatalog = [
     BodyPart.back,
     BodyPart.ass,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_OVERHEAD_PRESS, 'Overhead Press', 'OHP', '🙌', [
-    BodyPart.shoulders,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_OVERHEAD_PRESS,
+    'Overhead Press',
+    'OHP',
+    '🙌',
+    [BodyPart.shoulders],
+  ),
   ExerciseInfo(Exercise.EXERCISE_BARBELL_ROW, 'Barbell Row', 'Row', '🚣', [
     BodyPart.back,
   ]),
@@ -139,9 +143,13 @@ const List<ExerciseInfo> exerciseCatalog = [
     BodyPart.back,
     BodyPart.arms,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_LAT_PULLDOWN, 'Lat Pulldown', 'Pulldown', '🔽', [
-    BodyPart.back,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_LAT_PULLDOWN,
+    'Lat Pulldown',
+    'Pulldown',
+    '🔽',
+    [BodyPart.back],
+  ),
   ExerciseInfo(
     Exercise.EXERCISE_SEATED_CABLE_ROW,
     'Seated Cable Row',
@@ -185,12 +193,20 @@ const List<ExerciseInfo> exerciseCatalog = [
   ExerciseInfo(Exercise.EXERCISE_ARNOLD_PRESS, 'Arnold Press', 'Arnold', '💪', [
     BodyPart.shoulders,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_LATERAL_RAISE, 'Lateral Raise', 'Lat Raise', '🔺', [
-    BodyPart.shoulders,
-  ]),
-  ExerciseInfo(Exercise.EXERCISE_FRONT_RAISE, 'Front Raise', 'Frnt Raise', '⬆️', [
-    BodyPart.shoulders,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_LATERAL_RAISE,
+    'Lateral Raise',
+    'Lat Raise',
+    '🔺',
+    [BodyPart.shoulders],
+  ),
+  ExerciseInfo(
+    Exercise.EXERCISE_FRONT_RAISE,
+    'Front Raise',
+    'Frnt Raise',
+    '⬆️',
+    [BodyPart.shoulders],
+  ),
   ExerciseInfo(
     Exercise.EXERCISE_REAR_DELT_FLY,
     'Rear Delt Fly',
@@ -204,18 +220,30 @@ const List<ExerciseInfo> exerciseCatalog = [
   ]),
 
   // ── Arms ──
-  ExerciseInfo(Exercise.EXERCISE_BARBELL_CURL, 'Barbell Curl', 'BB Curl', '💪', [
-    BodyPart.arms,
-  ]),
-  ExerciseInfo(Exercise.EXERCISE_DUMBBELL_CURL, 'Dumbbell Curl', 'DB Curl', '💪', [
-    BodyPart.arms,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_BARBELL_CURL,
+    'Barbell Curl',
+    'BB Curl',
+    '💪',
+    [BodyPart.arms],
+  ),
+  ExerciseInfo(
+    Exercise.EXERCISE_DUMBBELL_CURL,
+    'Dumbbell Curl',
+    'DB Curl',
+    '💪',
+    [BodyPart.arms],
+  ),
   ExerciseInfo(Exercise.EXERCISE_HAMMER_CURL, 'Hammer Curl', 'Hammer', '🔨', [
     BodyPart.arms,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_PREACHER_CURL, 'Preacher Curl', 'Preacher', '🙏', [
-    BodyPart.arms,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_PREACHER_CURL,
+    'Preacher Curl',
+    'Preacher',
+    '🙏',
+    [BodyPart.arms],
+  ),
   ExerciseInfo(
     Exercise.EXERCISE_CONCENTRATION_CURL,
     'Concentration Curl',
@@ -240,9 +268,13 @@ const List<ExerciseInfo> exerciseCatalog = [
     '🙌',
     [BodyPart.arms],
   ),
-  ExerciseInfo(Exercise.EXERCISE_SKULL_CRUSHER, 'Skull Crusher', 'Skullcr', '💀', [
-    BodyPart.arms,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_SKULL_CRUSHER,
+    'Skull Crusher',
+    'Skullcr',
+    '💀',
+    [BodyPart.arms],
+  ),
   ExerciseInfo(
     Exercise.EXERCISE_CLOSE_GRIP_BENCH_PRESS,
     'Close-Grip Bench Press',
@@ -271,9 +303,13 @@ const List<ExerciseInfo> exerciseCatalog = [
     BodyPart.legs,
     BodyPart.ass,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_LEG_EXTENSION, 'Leg Extension', 'Leg Ext', '🦵', [
-    BodyPart.legs,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_LEG_EXTENSION,
+    'Leg Extension',
+    'Leg Ext',
+    '🦵',
+    [BodyPart.legs],
+  ),
   ExerciseInfo(Exercise.EXERCISE_HACK_SQUAT, 'Hack Squat', 'Hack Sq', '🦵', [
     BodyPart.legs,
     BodyPart.ass,
@@ -282,10 +318,13 @@ const List<ExerciseInfo> exerciseCatalog = [
     BodyPart.legs,
     BodyPart.ass,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_WALKING_LUNGE, 'Walking Lunge', 'Wlk Lunge', '🚶', [
-    BodyPart.legs,
-    BodyPart.ass,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_WALKING_LUNGE,
+    'Walking Lunge',
+    'Wlk Lunge',
+    '🚶',
+    [BodyPart.legs, BodyPart.ass],
+  ),
   ExerciseInfo(Exercise.EXERCISE_STEP_UP, 'Step-Up', 'Step-Up', '🪜', [
     BodyPart.legs,
     BodyPart.ass,
@@ -303,19 +342,29 @@ const List<ExerciseInfo> exerciseCatalog = [
   ExerciseInfo(Exercise.EXERCISE_NORDIC_CURL, 'Nordic Curl', 'Nordic', '🦵', [
     BodyPart.legs,
   ]),
-  ExerciseInfo(Exercise.EXERCISE_GOOD_MORNING, 'Good Morning', 'Good AM', '🌅', [
-    BodyPart.ass,
-    BodyPart.back,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_GOOD_MORNING,
+    'Good Morning',
+    'Good AM',
+    '🌅',
+    [BodyPart.ass, BodyPart.back],
+  ),
 
   // ── Ass ──
-  ExerciseInfo(Exercise.EXERCISE_GLUTE_KICKBACK, 'Glute Kickback', 'Glt Kick', '🍑', [
-    BodyPart.ass,
-  ]),
-  ExerciseInfo(Exercise.EXERCISE_SUMO_DEADLIFT, 'Sumo Deadlift', 'Sumo DL', '🤼', [
-    BodyPart.ass,
-    BodyPart.back,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_GLUTE_KICKBACK,
+    'Glute Kickback',
+    'Glt Kick',
+    '🍑',
+    [BodyPart.ass],
+  ),
+  ExerciseInfo(
+    Exercise.EXERCISE_SUMO_DEADLIFT,
+    'Sumo Deadlift',
+    'Sumo DL',
+    '🤼',
+    [BodyPart.ass, BodyPart.back],
+  ),
   ExerciseInfo(Exercise.EXERCISE_SUMO_SQUAT, 'Sumo Squat', 'Sumo Sq', '🤼', [
     BodyPart.ass,
     BodyPart.legs,
@@ -341,15 +390,25 @@ const List<ExerciseInfo> exerciseCatalog = [
     '🍑',
     [BodyPart.ass, BodyPart.back],
   ),
-  ExerciseInfo(Exercise.EXERCISE_HIP_ABDUCTION, 'Hip Abduction', 'Abduction', '↔️', [
-    BodyPart.ass,
-  ]),
-  ExerciseInfo(Exercise.EXERCISE_HIP_ADDUCTION, 'Hip Adduction', 'Adduction', '🦵', [
-    BodyPart.legs,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_HIP_ABDUCTION,
+    'Hip Abduction',
+    'Abduction',
+    '↔️',
+    [BodyPart.ass],
+  ),
+  ExerciseInfo(
+    Exercise.EXERCISE_HIP_ADDUCTION,
+    'Hip Adduction',
+    'Adduction',
+    '🦵',
+    [BodyPart.legs],
+  ),
 
   // ── Core ──
-  ExerciseInfo(Exercise.EXERCISE_PLANK, 'Plank', 'Plank', '🧘', [BodyPart.core]),
+  ExerciseInfo(Exercise.EXERCISE_PLANK, 'Plank', 'Plank', '🧘', [
+    BodyPart.core,
+  ]),
   ExerciseInfo(
     Exercise.EXERCISE_HANGING_LEG_RAISE,
     'Hanging Leg Raise',
@@ -357,12 +416,20 @@ const List<ExerciseInfo> exerciseCatalog = [
     '🧗',
     [BodyPart.core],
   ),
-  ExerciseInfo(Exercise.EXERCISE_CABLE_CRUNCH, 'Cable Crunch', 'Cbl Crunch', '🌀', [
-    BodyPart.core,
-  ]),
-  ExerciseInfo(Exercise.EXERCISE_RUSSIAN_TWIST, 'Russian Twist', 'Twist', '🌪️', [
-    BodyPart.core,
-  ]),
+  ExerciseInfo(
+    Exercise.EXERCISE_CABLE_CRUNCH,
+    'Cable Crunch',
+    'Cbl Crunch',
+    '🌀',
+    [BodyPart.core],
+  ),
+  ExerciseInfo(
+    Exercise.EXERCISE_RUSSIAN_TWIST,
+    'Russian Twist',
+    'Twist',
+    '🌪️',
+    [BodyPart.core],
+  ),
   ExerciseInfo(
     Exercise.EXERCISE_AB_WHEEL_ROLLOUT,
     'Ab Wheel Rollout',

@@ -7,7 +7,9 @@ ExerciseArt dumbbellFlyArt() => const ExerciseArt([
     figure: Figure(
       pelvis: P(34, 57),
       torso: 0, // lying flat
-      arms: [Limb(-5, -10)], // arm nearly horizontal, extended away from body (wide open)
+      arms: [
+        Limb(-5, -10),
+      ], // arm nearly horizontal, extended away from body (wide open)
       legs: [Limb(150, 95), Limb(146, 100)],
     ),
     props: [

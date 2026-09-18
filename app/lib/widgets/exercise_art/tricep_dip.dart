@@ -8,7 +8,9 @@ ExerciseArt tricepDipArt() => const ExerciseArt([
     figure: Figure(
       pelvis: P(50, 60),
       torso: -90, // upright torso
-      arms: [Limb(60, 150)], // upper arm angled down-forward, forearm folds back
+      arms: [
+        Limb(60, 150),
+      ], // upper arm angled down-forward, forearm folds back
       legs: [Limb(100, 80), Limb(97, 77)], // legs hanging/slightly bent
     ),
     props: [

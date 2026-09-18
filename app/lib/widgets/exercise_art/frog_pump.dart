@@ -21,10 +21,7 @@ ExerciseArt frogPumpArt() => const ExerciseArt([
       pelvis: P(55, 52),
       torso: 155, // torso tilts as shoulders stay on floor
       arms: [Limb(2, 2)],
-      legs: [
-        Limb(-30, 110),
-        Limb(-26, 106),
-      ],
+      legs: [Limb(-30, 110), Limb(-26, 106)],
     ),
   ),
 ]);

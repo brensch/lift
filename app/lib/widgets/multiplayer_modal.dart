@@ -44,15 +44,18 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     if (!mounted) return;
     setState(() => _isScanning = false);
     // The QR holds the invite link; joinViaInvite pulls the token out of it.
-    final error =
-        await context.read<MultiplayerProvider>().joinViaInvite(scanned);
+    final error = await context.read<MultiplayerProvider>().joinViaInvite(
+      scanned,
+    );
     if (error == null && mounted) Navigator.pop(context);
   }
 
   Future<void> _shareInvite(String inviteToken) async {
     try {
       await SharePlus.instance.share(
-        ShareParams(text: 'Join my workout on Schlift: ${_shareUrl(inviteToken)}'),
+        ShareParams(
+          text: 'Join my workout on Schlift: ${_shareUrl(inviteToken)}',
+        ),
       );
     } catch (e) {
       debugPrint('Error sharing: $e');
@@ -65,9 +68,13 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     final error = await mp.requestJoinPartner(partnerUserId);
     if (!mounted) return;
     setState(() => _joiningPartnerId = null);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(error ?? 'Asked $name to train. Waiting for them to accept'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error ?? 'Asked $name to train. Waiting for them to accept',
+        ),
+      ),
+    );
   }
 
   String _partnerSubtitle(TrainingPartner p) {
@@ -252,7 +259,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : FilledButton.tonal(
-                            onPressed: () => _askPartner(p.user.id, p.user.name),
+                            onPressed: () =>
+                                _askPartner(p.user.id, p.user.name),
                             style: FilledButton.styleFrom(
                               visualDensity: VisualDensity.compact,
                             ),
@@ -356,7 +364,10 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     icon: const Icon(Icons.photo_camera_rounded, size: 24),
                     label: const Text(
                       'Scan',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),

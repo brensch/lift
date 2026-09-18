@@ -15,7 +15,9 @@ class JoinRequestBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = request.fromUser.name.isNotEmpty ? request.fromUser.name : 'A friend';
+    final name = request.fromUser.name.isNotEmpty
+        ? request.fromUser.name
+        : 'A friend';
     final mp = context.read<MultiplayerProvider>();
 
     return Material(
@@ -41,8 +43,10 @@ class JoinRequestBanner extends StatelessWidget {
               TextButton(
                 onPressed: () =>
                     mp.respondToJoinRequest(request.requestId, false),
-                child: Text('Decline',
-                    style: TextStyle(color: cs.onPrimaryContainer)),
+                child: Text(
+                  'Decline',
+                  style: TextStyle(color: cs.onPrimaryContainer),
+                ),
               ),
               const SizedBox(width: 4),
               FilledButton(

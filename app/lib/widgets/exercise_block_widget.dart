@@ -202,9 +202,7 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        (exerciseNames[widget
-                                                .block
-                                                .exercise] ??
+                                        (exerciseNames[widget.block.exercise] ??
                                             'Unknown'),
                                         style: TextStyle(
                                           fontSize: 17,
@@ -283,7 +281,7 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                       ),
                     ),
                   ),
-                )
+                ),
             ],
           ),
         ),

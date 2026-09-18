@@ -17,8 +17,9 @@ import 'support/scenario.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('multiplayer — app user leaves, session clears to solo',
-      (tester) async {
+  testWidgets('multiplayer — app user leaves, session clears to solo', (
+    tester,
+  ) async {
     final s = Scenario(binding, tester, 'multiplayer_leave');
     final stamp = DateTime.now().millisecondsSinceEpoch;
     final username = 'host_$stamp';
@@ -34,8 +35,10 @@ void main() {
     await peer.joinViaInvite(invite);
 
     final joined = await s.waitForText('Multiplayer (2)', seconds: 15);
-    await s.shot('Peer joined',
-        note: joined ? 'Session shows 2 people.' : 'WARNING: join not seen.');
+    await s.shot(
+      'Peer joined',
+      note: joined ? 'Session shows 2 people.' : 'WARNING: join not seen.',
+    );
     expect(joined, isTrue, reason: 'app should show the peer join');
 
     // The app user leaves; their GetCurrentSession then returns empty and the
@@ -43,17 +46,22 @@ void main() {
     await host.leaveSession();
     s.note('App user left the session', kind: 'peer');
 
-    final left = await s.waitForText('Multiplayer', seconds: 15) &&
+    final left =
+        await s.waitForText('Multiplayer', seconds: 15) &&
         !s.isVisible('Multiplayer (2)');
-    await s.shot('Left — back to solo',
-        note: left
-            ? 'Session cleared; the app is solo again.'
-            : 'WARNING: leave not reflected.');
+    await s.shot(
+      'Left — back to solo',
+      note: left
+          ? 'Session cleared; the app is solo again.'
+          : 'WARNING: leave not reflected.',
+    );
     expect(left, isTrue, reason: 'app should reflect the user leaving');
 
-    s.note('Session teardown verified',
-        detail: 'The app tracked a peer joining and then the user leaving.',
-        kind: 'assert');
+    s.note(
+      'Session teardown verified',
+      detail: 'The app tracked a peer joining and then the user leaving.',
+      kind: 'assert',
+    );
     await s.report();
   });
 }

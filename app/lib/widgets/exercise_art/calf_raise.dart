@@ -18,7 +18,10 @@ ExerciseArt calfRaiseArt() => const ExerciseArt([
       pelvis: P(50, 48),
       torso: -90,
       arms: [Limb(91, 91), Limb(89, 89)],
-      legs: [Limb(91, 70), Limb(89, 74)], // shin angles forward more as heel lifts
+      legs: [
+        Limb(91, 70),
+        Limb(89, 74),
+      ], // shin angles forward more as heel lifts
     ),
   ),
 ]);

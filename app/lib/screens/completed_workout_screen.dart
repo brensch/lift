@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -82,8 +81,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
       }
 
-      if (!widget.isHistory && userId != null && userId.isNotEmpty) {
-      }
+      if (!widget.isHistory && userId != null && userId.isNotEmpty) {}
     } catch (e, st) {
       debugPrint(
         'CompletedWorkoutScreen: failed to load workout ${widget.workoutId}: $e\n$st',
@@ -301,9 +299,9 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             const SizedBox(height: 28),
             Text(
               'Exercise totals',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
             ...summary.exerciseSummaries.map(
@@ -448,9 +446,9 @@ class _ExerciseSummaryCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 exercise.name,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -557,7 +555,6 @@ class WorkoutSummaryData {
     }
     return formatted;
   }
-
 }
 
 /// Thin formatting view over the server's per-exercise [ExerciseSummary].

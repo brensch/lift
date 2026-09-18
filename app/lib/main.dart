@@ -250,7 +250,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         // milliseconds), rather than sending someone who is signed in to the
         // login screen and then yanking them home.
         final isStarting = state.matchedLocation == '/starting';
-        if (!_authProvider.sessionLoaded) return isStarting ? null : '/starting';
+        if (!_authProvider.sessionLoaded) {
+          return isStarting ? null : '/starting';
+        }
 
         final loggedIn = _authProvider.isLoggedIn;
         if (isStarting) return loggedIn ? '/' : '/login';

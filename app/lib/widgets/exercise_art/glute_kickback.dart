@@ -10,7 +10,10 @@ ExerciseArt gluteKickbackArt() => const ExerciseArt([
       torso: 0, // horizontal — facing right
       arms: [Limb(90, 90)], // arm reaching down, hand on floor
       legs: [
-        Limb(110, 90), // support leg: thigh angled down-back, shin vertical down
+        Limb(
+          110,
+          90,
+        ), // support leg: thigh angled down-back, shin vertical down
         Limb(110, 90), // kicking leg same — tucked
       ],
     ),
@@ -22,7 +25,7 @@ ExerciseArt gluteKickbackArt() => const ExerciseArt([
       torso: 0,
       arms: [Limb(90, 90)],
       legs: [
-        Limb(110, 90),  // support knee stays planted
+        Limb(110, 90), // support knee stays planted
         Limb(-45, -15), // kicking leg: thigh drives back and up, shin extended
       ],
     ),

@@ -65,4 +65,3 @@ List<double> standardPlates(WeightUnit unit) => isMetricUnit(unit)
 /// The smallest increment you can actually add to a barbell: two of the
 /// smallest available plate (one per side).
 double barbellIncrement(WeightUnit unit) => standardPlates(unit).last * 2;
-

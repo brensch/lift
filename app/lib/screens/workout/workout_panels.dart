@@ -256,7 +256,8 @@ class PageDots extends StatelessWidget {
   final int index;
   final ValueChanged<int> onTap;
 
-  const PageDots({super.key, 
+  const PageDots({
+    super.key,
     required this.count,
     required this.index,
     required this.onTap,

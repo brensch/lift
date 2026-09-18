@@ -16,7 +16,9 @@ ExerciseArt closeGripBenchPressArt() => const ExerciseArt([
       [P(34, 61), P(34, 82)], // bench leg
       [P(58, 61), P(58, 82)], // bench leg
     ],
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
   // Lockout.
   Pose(
@@ -31,6 +33,8 @@ ExerciseArt closeGripBenchPressArt() => const ExerciseArt([
       [P(34, 61), P(34, 82)],
       [P(58, 61), P(58, 82)],
     ],
-    barbells: [Barbell(hands: [0])],
+    barbells: [
+      Barbell(hands: [0]),
+    ],
   ),
 ]);

@@ -54,7 +54,8 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
       final info = await plugin.androidInfo;
       return {
         'Device': '${info.manufacturer} ${info.model}',
-        'Android version': '${info.version.release} (SDK ${info.version.sdkInt})',
+        'Android version':
+            '${info.version.release} (SDK ${info.version.sdkInt})',
         'Security patch': info.version.securityPatch ?? 'unknown',
       };
     } else if (Platform.isIOS) {
@@ -81,22 +82,29 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                _Section(title: 'App', entries: {
-                  'Version': '${_packageInfo?.version ?? '?'} (${_packageInfo?.buildNumber ?? '?'})',
-                  'Git hash': _gitHash,
-                  'Package': _packageInfo?.packageName ?? '?',
-                  'Server': _serverInfo,
-                }),
+                _Section(
+                  title: 'App',
+                  entries: {
+                    'Version':
+                        '${_packageInfo?.version ?? '?'} (${_packageInfo?.buildNumber ?? '?'})',
+                    'Git hash': _gitHash,
+                    'Package': _packageInfo?.packageName ?? '?',
+                    'Server': _serverInfo,
+                  },
+                ),
                 const SizedBox(height: 16),
                 _Section(title: 'Device', entries: _deviceInfo),
                 const SizedBox(height: 16),
-                _Section(title: 'Watch', entries: {
-                  'Installed': _watchAvailable ? 'Yes' : 'No',
-                  if (_clockSync != null) ...{
-                    'Clock delta': '${_clockSync!.deltaMs}ms',
-                    'Round trip': '${_clockSync!.roundTripMs}ms',
+                _Section(
+                  title: 'Watch',
+                  entries: {
+                    'Installed': _watchAvailable ? 'Yes' : 'No',
+                    if (_clockSync != null) ...{
+                      'Clock delta': '${_clockSync!.deltaMs}ms',
+                      'Round trip': '${_clockSync!.roundTripMs}ms',
+                    },
                   },
-                }),
+                ),
                 const SizedBox(height: 24),
                 Center(
                   child: TextButton.icon(
@@ -104,7 +112,9 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
                     label: const Text('Copy to clipboard'),
                     onPressed: () {
                       final buf = StringBuffer();
-                      buf.writeln('Version: ${_packageInfo?.version} (${_packageInfo?.buildNumber})');
+                      buf.writeln(
+                        'Version: ${_packageInfo?.version} (${_packageInfo?.buildNumber})',
+                      );
                       buf.writeln('Git: $_gitHash');
                       buf.writeln('Package: ${_packageInfo?.packageName}');
                       buf.writeln('Server: $_serverInfo');
