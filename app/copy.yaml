@@ -54,7 +54,7 @@ tutorial:
     - screen: workout
       target: bar_plates
       title: Plate maths
-      body: i calculate how many plates to use to make up the weight. this feature costs money in other apps, i give it to you for free since i'm such a nice guy.
+      body: I calculate how many plates to use to make up the weight. This feature costs money in other apps, I give it to you for free since I'm such a nice guy.
     - screen: workout
       target: bar_timer
       title: Elapsed / heart rate
@@ -140,3 +140,9 @@ sounds:
     name: Truck horn
   - id: tada
     name: Ta-da
+
+# The small link under Sign in, and the page it opens.
+lost_passkey:
+  button: Lost passkey?
+  title: Lost passkey
+  body: This is so sad that you've lost your passkey. I have empathy for you during this difficult time. Make sure you check your password manager, your phone should have saved it for you when you signed up. If you deleted it, please tell Brendan your previous username and he will fix it for you.

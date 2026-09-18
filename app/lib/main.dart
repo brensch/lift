@@ -41,7 +41,6 @@ import 'screens/settings_screen.dart';
 import 'screens/plate_colors_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
-import 'screens/passkey_notice_screen.dart';
 import 'screens/build_info_screen.dart';
 import 'widgets/main_layout.dart';
 
@@ -64,9 +63,7 @@ final String serverBaseUrl = serverPort == 443
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await NotificationService.init();
   // Stamp every RPC with the app version for the server's update gate.
   try {
@@ -79,7 +76,11 @@ void main() async {
 }
 
 class SchliftApp extends StatefulWidget {
-  const SchliftApp({super.key, this.serverHostOverride, this.serverPortOverride});
+  const SchliftApp({
+    super.key,
+    this.serverHostOverride,
+    this.serverPortOverride,
+  });
 
   /// Point the app at a specific backend, overriding the compile-time
   /// SERVER_HOST/SERVER_PORT. Used by the end-to-end test harness to connect to
@@ -206,7 +207,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         unawaited(_soundProvider.reset());
         unawaited(_themeProvider.reset());
         _workoutProvider.clear();
-        _multiplayerProvider.stopSync(clearSession: true, clearInviteToken: true);
+        _multiplayerProvider.stopSync(
+          clearSession: true,
+          clearInviteToken: true,
+        );
       }
       _wasLoggedIn = isLoggedIn;
     });
@@ -226,25 +230,14 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         final loggedIn = _authProvider.isLoggedIn;
         final isLogin = state.matchedLocation == '/login';
         final isOnboarding = state.matchedLocation == '/onboarding';
-        final isPasskeyNotice = state.matchedLocation == '/passkey-notice';
 
         if (!loggedIn && !isLogin) return '/login';
-        if (loggedIn && _authProvider.needsPasskeyNotice && !isPasskeyNotice) {
-          return '/passkey-notice';
-        }
-        if (loggedIn && !_authProvider.needsPasskeyNotice && isPasskeyNotice) {
-          return '/';
-        }
         if (loggedIn && isLogin) return '/';
 
         // Route brand-new users to setup: the server says a user is
         // onboarded once they have any templates or workouts.
         final home = _workoutProvider.home;
-        if (loggedIn &&
-            !isOnboarding &&
-            !isPasskeyNotice &&
-            home != null &&
-            !home.onboarded) {
+        if (loggedIn && !isOnboarding && home != null && !home.onboarded) {
           return '/onboarding';
         }
 
@@ -252,10 +245,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       },
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(
-          path: '/passkey-notice',
-          builder: (_, __) => const PasskeyNoticeScreen(),
-        ),
         GoRoute(
           path: '/onboarding',
           builder: (_, __) => const OnboardingScreen(),
