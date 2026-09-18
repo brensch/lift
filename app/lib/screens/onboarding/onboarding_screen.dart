@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:math';
 
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart'
     show ExperienceLevel, Gender, LibraryTemplate;
@@ -193,7 +194,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Setup failed: $e. Try again.')),
+          SnackBar(
+            content: Text(
+              copy.onboarding.body.failed.replaceAll('{error}', '$e'),
+            ),
+          ),
         );
       }
     } finally {
@@ -325,44 +330,34 @@ class _BodyStep extends StatelessWidget {
     required this.onFinish,
   });
 
-  static const _levels = [
-    (ExperienceLevel.EXPERIENCE_LEVEL_CUTE, 'Cute', '🐣'),
-    (ExperienceLevel.EXPERIENCE_LEVEL_BEGINNER, 'A few months', '🌱'),
-    (ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE, 'A while', '💪'),
-    (ExperienceLevel.EXPERIENCE_LEVEL_EXPERT, 'Years', '🦍'),
-  ];
-
-  static const _genders = [
-    (Gender.GENDER_FEMALE, 'Female', '♀'),
-    (Gender.GENDER_MALE, 'Male', '♂'),
+  // Levels in the order copy.yaml lists them.
+  static const _levelValues = [
+    ExperienceLevel.EXPERIENCE_LEVEL_CUTE,
+    ExperienceLevel.EXPERIENCE_LEVEL_BEGINNER,
+    ExperienceLevel.EXPERIENCE_LEVEL_INTERMEDIATE,
+    ExperienceLevel.EXPERIENCE_LEVEL_EXPERT,
   ];
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final t = copy.onboarding.body;
+    final genders = [
+      (Gender.GENDER_FEMALE, t.female, '♀'),
+      (Gender.GENDER_MALE, t.male, '♂'),
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'STARTING WEIGHTS',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'A little about you',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            t.title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
-            'All optional. These only scale your starting weights. Skip '
-            'everything and the big lifts open at the empty bar.',
+            t.body,
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -371,7 +366,7 @@ class _BodyStep extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'GENDER',
+            t.genderHeading,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -382,7 +377,7 @@ class _BodyStep extends StatelessWidget {
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: _genders.map((entry) {
+            children: genders.map((entry) {
               final selected = gender == entry.$1;
               return ChoiceChip(
                 label: Text('${entry.$3} ${entry.$2}'),
@@ -398,14 +393,14 @@ class _BodyStep extends StatelessWidget {
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: 'Bodyweight',
+              labelText: t.bodyweight,
               suffixText: weightUnitSuffix(unit),
               border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            'HOW LONG HAVE YOU LIFTED?',
+            t.experienceHeading,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w900,
@@ -417,14 +412,14 @@ class _BodyStep extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _levels.map((entry) {
-              final selected = experience == entry.$1;
-              return ChoiceChip(
-                label: Text('${entry.$3} ${entry.$2}'),
-                selected: selected,
-                onSelected: (_) => onExperienceChanged(entry.$1),
-              );
-            }).toList(),
+            children: [
+              for (var i = 0; i < _levelValues.length; i++)
+                ChoiceChip(
+                  label: Text('${t.levels[i].emoji} ${t.levels[i].label}'),
+                  selected: experience == _levelValues[i],
+                  onSelected: (_) => onExperienceChanged(_levelValues[i]),
+                ),
+            ],
           ),
           const SizedBox(height: 10),
           InkWell(
@@ -435,7 +430,7 @@ class _BodyStep extends StatelessWidget {
                 const Text('🧠', style: TextStyle(fontSize: 13)),
                 const SizedBox(width: 5),
                 Text(
-                  'Why these questions? Read the papers',
+                  t.papersLink,
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
@@ -455,7 +450,7 @@ class _BodyStep extends StatelessWidget {
                   height: 56,
                   child: OutlinedButton(
                     onPressed: isSaving ? null : onBack,
-                    child: const Text('BACK'),
+                    child: Text(copy.onboarding.back),
                   ),
                 ),
               ),
@@ -472,9 +467,9 @@ class _BodyStep extends StatelessWidget {
                             height: 22,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
-                            'NEXT',
-                            style: TextStyle(fontWeight: FontWeight.w900),
+                        : Text(
+                            copy.onboarding.next,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                   ),
                 ),

@@ -10,7 +10,8 @@ class UnitCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const UnitCard({super.key, 
+  const UnitCard({
+    super.key,
     required this.title,
     required this.subtitle,
     required this.badge,
