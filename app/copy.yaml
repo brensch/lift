@@ -80,15 +80,89 @@ library:
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
+# Sign-in screen.
+login:
+  new_user_tab: NEW USER
+  sign_in_tab: SIGN IN
+  username_prompt: What should we call you
+  # Shown in the empty username box, one at a time.
+  username_examples:
+    - squat_master_9000
+    - bench_press_king
+    - iron_addict
+    - gains_goblin
+    - reps_for_jesus
+    - dorito_pump
+    - senior_minister_of_gains
+    - chicken_and_rice
+    - gluteus_maximus_prime
+    - anabolic_pigeon
+    - whey_too_much
+    - bicep_charles
+    - chuck_norris
+    - preworkout_heartbeat
+    - creatine_gremlin
+    - quadzilla_jr
+    - quadzilla_sr
+    - deltoid_dan
+    - shrugged_off
+    - gym_shark_bait
+    - tuna_shake
+    - failed_pr
+    - broccoli_boy
+  username_required: you gotta pick a username
+  create_account: Create account
+  sign_in_blurb: Use a passkey on your device to sign in securely.
+  sign_in: Sign in
+  # Debug builds only.
+  dev_login_heading: DEV NAME LOGIN
+  dev_username: Username
+  dev_login: Dev Login
+
+# Setup after signing up: marker, unit, a little about you, your workouts.
 onboarding:
+  next: NEXT
+  back: BACK
+  marker:
+    title: Choose your colour and creature
+    body: In group workouts this becomes your side stripe and emoji badge.
+    preview_heading: Group workout preview
+    preview_body: Your emoji replaces the vertical name and your colour owns the sidebar.
+    emojis_heading: WHIMSICAL EMOJIS
+    refresh: Refresh
+    colour_heading: COLOUR
+  unit:
+    title: What plates are you lifting with?
+    body: Ie are you in America
+    pounds: Pounds
+    pounds_body: Best for making you think you lift more because the number is larger.
+    kilograms: Kilograms
+    kilograms_body: Best for science and everywhere except America
+  body:
+    title: A little about you
+    body: All optional. These only scale your starting weights. Skip everything and the big lifts open at the empty bar.
+    gender_heading: GENDER
+    female: Female
+    male: Male
+    bodyweight: Bodyweight
+    experience_heading: HOW LONG HAVE YOU LIFTED?
+    # In order: cute, a few months, a while, years.
+    levels:
+      - emoji: 🐣
+        label: Cute
+      - emoji: 🌱
+        label: A few months
+      - emoji: 💪
+        label: A while
+      - emoji: 🦍
+        label: Years
+    papers_link: Why these questions? Read the papers
+    failed: "Setup failed: {error}. Try again."
   templates:
-    kicker: YOUR WORKOUTS
     title: Pick your workouts
     body: Tick the ones you want on your home screen. You can add more later, and edit any of them.
     none_selected: Pick at least one. Or one hundred.
-    back: BACK
     finish: START LIFTING
-
 # Rest-over notification sounds, in the order the picker shows them. The
 # id names the file app/assets/sounds/sound_<id>.wav (sources in
 # assets/sounds/SOURCES.md); `make sounds` mirrors the files to Android and

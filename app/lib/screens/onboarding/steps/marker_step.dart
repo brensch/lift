@@ -2,6 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
+
+import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
 import '../widgets/profile_marker_widgets.dart';
 
@@ -14,7 +16,8 @@ class MarkerStep extends StatelessWidget {
   final VoidCallback onRefreshEmojis;
   final VoidCallback onNext;
 
-  const MarkerStep({super.key, 
+  const MarkerStep({
+    super.key,
     required this.selectedEmoji,
     required this.selectedColorHex,
     required this.emojiChoices,
@@ -33,22 +36,12 @@ class MarkerStep extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'PICK YOUR MARKER',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Choose your colour and creature',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            copy.onboarding.marker.title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
-            'In group workouts this becomes your side stripe and emoji badge.',
+            copy.onboarding.marker.body,
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -61,7 +54,7 @@ class MarkerStep extends StatelessWidget {
           Row(
             children: [
               Text(
-                'WHIMSICAL EMOJIS',
+                copy.onboarding.marker.emojisHeading,
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
@@ -73,7 +66,7 @@ class MarkerStep extends StatelessWidget {
               TextButton.icon(
                 onPressed: onRefreshEmojis,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Refresh'),
+                label: Text(copy.onboarding.marker.refresh),
               ),
             ],
           ),
@@ -98,7 +91,7 @@ class MarkerStep extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'COLOUR',
+                    copy.onboarding.marker.colourHeading,
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w900,
@@ -130,9 +123,9 @@ class MarkerStep extends StatelessWidget {
             height: 56,
             child: FilledButton(
               onPressed: onNext,
-              child: const Text(
-                'NEXT',
-                style: TextStyle(fontWeight: FontWeight.w900),
+              child: Text(
+                copy.onboarding.next,
+                style: const TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
           ),
