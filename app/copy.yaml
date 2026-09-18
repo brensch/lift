@@ -139,7 +139,7 @@ onboarding:
   strength:
     title: How huge are you
     body: This does not reflect on who you are as a person, just helps me get your starting weight right.
-    note: Snapped to what fits on a bar. Every lift adjusts itself after your first session.
+    note: You can change these later don't worry.
     # Bottom of the scale to the top. Any number of them; the slider picks
     # the nearest.
     emojis: [🐣, 🐥, 🐤, 🐔, 🐇, 🐕, 🐒, 🐎, 🐂, 🦍]
@@ -154,12 +154,12 @@ onboarding:
         label: Overhead press
   weight:
     title: Weight
-    body: we log calories burned for you into your fitness tracker because that's the only reason to go to the gym. calories burned is proportional to weight. leave it blank and we use an average.
+    body: We log calories burned for you into your fitness tracker because that's the only reason to go to the gym. Calories burned is proportional to weight. Leave it blank and we use an average.
     field: Bodyweight
     failed: "Setup failed: {error}. Try again."
   templates:
-    title: Pick your workouts
-    body: Tick the ones you want on your home screen. You can add more later, and edit any of them.
+    title: Pick your favourite workouts
+    body: You can add, remove, or edit them later. Pretty cool.
     none_selected: Pick at least one. Or one hundred.
     finish: START LIFTING
 # Rest-over notification sounds, in the order the picker shows them. The

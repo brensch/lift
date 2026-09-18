@@ -1,5 +1,5 @@
-/// Setup: how huge are you. A vertical slider on the right, chick at the
-/// bottom and gorilla at the top; on the left the creature you currently
+/// Setup: how huge are you. A vertical slider on the right, weak at the
+/// bottom and huge at the top; on the left the creature you currently
 /// are and the first working weights that setting gives, snapped to what
 /// fits on a bar in the user's unit. Words and creatures in app/copy.yaml.
 library;
@@ -115,7 +115,7 @@ class StrengthStep extends StatelessWidget {
                             ],
                           ),
                         ),
-                      const Spacer(),
+                      const SizedBox(height: 4),
                       Text(
                         t.note,
                         style: TextStyle(
@@ -128,10 +128,9 @@ class StrengthStep extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Right: the scale, gorilla at the top.
+                // Right: the scale, huge at the top.
                 Column(
                   children: [
-                    Text(t.emojis.last, style: const TextStyle(fontSize: 28)),
                     Expanded(
                       child: RotatedBox(
                         quarterTurns: 3,
@@ -149,7 +148,6 @@ class StrengthStep extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Text(t.emojis.first, style: const TextStyle(fontSize: 28)),
                   ],
                 ),
               ],
