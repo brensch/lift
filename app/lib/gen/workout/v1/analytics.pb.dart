@@ -371,7 +371,7 @@ class GetStatsRequest extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<GetStatsRequest>(create);
   static GetStatsRequest? _defaultInstance;
 
-  /// Look-back window in days. 0 = 30. Capped at the retention window.
+  /// Look-back window in days. 0 = 30. Capped at a year.
   @$pb.TagNumber(1)
   $core.int get days => $_getIZ(0);
   @$pb.TagNumber(1)

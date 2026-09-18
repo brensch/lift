@@ -42,7 +42,7 @@ message GetAdminStatusResponse {
 }
 
 message GetStatsRequest {
-  // Look-back window in days. 0 = 30. Capped at the retention window.
+  // Look-back window in days. 0 = 30. Capped at a year.
   int32 days = 1;
   // When set, `trail` holds this user's most recent page views.
   string trail_username = 2;
