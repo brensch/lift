@@ -93,36 +93,52 @@ def page_html(target: Target, raw_png: Path, title: str, subtitle: str, index: i
     scale = phone_w / raw_w
     radius = int(88 * u * (phone_w / (1080 * 0.80)))
     accent = GREEN if index % 2 == 0 else BLUE
+    glow_top = (
+        f"radial-gradient(ellipse {int(w * 0.9)}px {int(h * 0.45)}px at 50% {int(h * 0.28)}px, "
+        f"{accent}26 0%, transparent 70%)"
+    )
+    glow_bottom = (
+        f"radial-gradient(ellipse {int(w * 0.7)}px {int(h * 0.3)}px at 50% {int(h * 0.9)}px, "
+        f"{accent}1A 0%, transparent 70%)"
+    )
+    gutter = int(48 * u)
+    title_font = "font-family: 'Space Grotesk', sans-serif; font-weight: 700"
+    subtitle_box = f"margin: {int(24 * u)}px auto 0; max-width: {int(w * 0.9)}px"
+    shadow = (
+        f"0 {int(40 * u)}px {int(120 * u)}px rgba(0,0,0,0.65), "
+        f"0 0 0 {int(3 * u)}px rgba(255,255,255,0.06)"
+    )
+    img_lift = int(CROP_TOP * scale)
     return f"""<!doctype html>
 <html><head><meta charset="utf-8">
 <style>
-{font_face('Space Grotesk', 'SpaceGrotesk-Bold.ttf', 700)}
-{font_face('Manrope', 'Manrope-Regular.ttf', 400)}
+{font_face("Space Grotesk", "SpaceGrotesk-Bold.ttf", 700)}
+{font_face("Manrope", "Manrope-Regular.ttf", 400)}
 html, body {{ margin: 0; width: {w}px; height: {h}px; overflow: hidden; background: {BG}; }}
 body {{
   position: relative; font-family: 'Manrope', sans-serif; color: {TEXT};
   background:
-    radial-gradient(ellipse {int(w*0.9)}px {int(h*0.45)}px at 50% {int(h*0.28)}px, {accent}26 0%, transparent 70%),
-    radial-gradient(ellipse {int(w*0.7)}px {int(h*0.3)}px at 50% {int(h*0.9)}px, {accent}1A 0%, transparent 70%),
+    {glow_top},
+    {glow_bottom},
     linear-gradient(180deg, {BG} 0%, #0E0E10 100%);
 }}
 .caption {{
-  position: absolute; left: {int(48*u)}px; right: {int(48*u)}px; top: {caption_top}px; text-align: center;
+  position: absolute; left: {gutter}px; right: {gutter}px; top: {caption_top}px; text-align: center;
 }}
 .title {{
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: {title_px}px; line-height: 1.05;
+  {title_font}; font-size: {title_px}px; line-height: 1.05;
   letter-spacing: -0.02em; margin: 0;
 }}
 .subtitle {{
-  font-size: {sub_px}px; line-height: 1.35; color: {MUTED}; margin: {int(24*u)}px auto 0; max-width: {int(w*0.9)}px;
+  font-size: {sub_px}px; line-height: 1.35; color: {MUTED}; {subtitle_box};
 }}
 .phone {{
   position: absolute; left: 50%; transform: translateX(-50%);
   top: {phone_top}px; width: {phone_w}px; height: {int((raw_h - CROP_TOP) * scale)}px;
   border-radius: {radius}px; overflow: hidden; background: {PANEL};
-  box-shadow: 0 {int(40*u)}px {int(120*u)}px rgba(0,0,0,0.65), 0 0 0 {int(3*u)}px rgba(255,255,255,0.06);
+  box-shadow: {shadow};
 }}
-.phone img {{ display: block; width: {phone_w}px; height: auto; margin-top: -{int(CROP_TOP * scale)}px; }}
+.phone img {{ display: block; width: {phone_w}px; height: auto; margin-top: -{img_lift}px; }}
 </style></head>
 <body>
   <div class="caption">
@@ -146,22 +162,30 @@ def render_all() -> list[Path]:
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         for target in TARGETS:
-            page = browser.new_page(viewport={"width": target.width, "height": target.height}, device_scale_factor=1)
+            page = browser.new_page(
+                viewport={"width": target.width, "height": target.height}, device_scale_factor=1
+            )
             for i, slide in enumerate(slides):
                 raw = RAW / slide["file"]
                 if not raw.is_file():
                     raise SystemExit(f"missing raw screenshot {raw}")
-                page.set_content(page_html(target, raw, slide["title"], slide.get("subtitle", ""), i))
+                page.set_content(
+                    page_html(target, raw, slide["title"], slide.get("subtitle", ""), i)
+                )
                 page.wait_for_load_state("networkidle")
                 out = OUT / target.store / target.kind / f"{i:02d}.png"
                 page.screenshot(path=str(out), full_page=False)
                 written.append(out)
-                print(f"wrote {out.relative_to(ROOT)} ({target.width}x{target.height}) — {slide['title']}")
+                size = f"{target.width}x{target.height}"
+                print(f"wrote {out.relative_to(ROOT)} ({size}) — {slide['title']}")
             page.close()
         browser.close()
 
     # Watch captures go up unframed at their native, store-accepted sizes.
-    for key, store, kind in (("wear_screenshots", "play", "wear"), ("apple_watch_screenshots", "appstore", "watch")):
+    for key, store, kind in (
+        ("wear_screenshots", "play", "wear"),
+        ("apple_watch_screenshots", "appstore", "watch"),
+    ):
         dest = OUT / store / kind
         shutil.rmtree(dest, ignore_errors=True)
         dest.mkdir(parents=True, exist_ok=True)
@@ -176,12 +200,15 @@ def render_all() -> list[Path]:
 
     sheet = OUT / "contact-sheet.html"
     cells = "".join(
-        f'<figure><img src="{p.relative_to(OUT)}"><figcaption>{p.relative_to(OUT)}</figcaption></figure>'
+        f'<figure><img src="{p.relative_to(OUT)}">'
+        f"<figcaption>{p.relative_to(OUT)}</figcaption></figure>"
         for p in written
     )
     sheet.write_text(
-        "<!doctype html><meta charset=utf-8><style>body{background:#222;color:#ddd;font:14px sans-serif;margin:16px}"
-        "figure{display:inline-block;margin:8px;text-align:center}img{height:520px;display:block;border:1px solid #444}"
+        "<!doctype html><meta charset=utf-8><style>"
+        "body{background:#222;color:#ddd;font:14px sans-serif;margin:16px}"
+        "figure{display:inline-block;margin:8px;text-align:center}"
+        "img{height:520px;display:block;border:1px solid #444}"
         f"</style><h1>Store screenshots</h1>{cells}",
         encoding="utf-8",
     )
