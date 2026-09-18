@@ -4,6 +4,20 @@ modules:
 lint:
   use:
     - STANDARD
+  except:
+    # Two naming rules are off, deliberately, for the whole module. They want
+    # every RPC to own a uniquely named response message. Here several RPCs
+    # share one on purpose: AuthResponse is "you are now signed in" for
+    # RegisterFinish / LoginFinish / TestLogin, WorkoutPlanResponse is "here
+    # is the plan now" for the four plan mutations, and GetParticipantWorkout
+    # returns a ParticipantStatus as-is.
+    #
+    # Satisfying the rules would mean either wrapping those responses — a wire
+    # break for app versions already in the stores — or minting byte-identical
+    # copies under new names, which every client would then have to handle in
+    # parallel. Request naming (RPC_REQUEST_STANDARD_NAME) stays enforced.
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    - RPC_RESPONSE_STANDARD_NAME
 breaking:
   use:
     - FILE
