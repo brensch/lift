@@ -15,7 +15,7 @@ class ScienceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          '🧠 Papers',
+          '🧠 Workout science',
           style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.3),
         ),
       ),

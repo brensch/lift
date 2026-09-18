@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/health_service.dart';
-import '../widgets/top_level_back_scope.dart';
 
 class MathsScreen extends StatelessWidget {
   const MathsScreen({super.key});
@@ -22,116 +21,114 @@ class MathsScreen extends StatelessWidget {
       bodyWeightKg: bodyWeightKg,
     );
 
-    return TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: const Text(
-            'Maths',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-          children: [
-            _SectionLabel('CALORIE ESTIMATION', cs),
-            const SizedBox(height: 8),
-            const Text(
-              'How we estimate calories burned',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        title: const Text(
+          'Calorie maths',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+        children: [
+          _SectionLabel('CALORIE ESTIMATION', cs),
+          const SizedBox(height: 8),
+          const Text(
+            'How we estimate calories burned',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'We use the MET (Metabolic Equivalent of Task) formula from the '
+            '2011 Compendium of Physical Activities (Ainsworth et al., Med Sci '
+            'Sports Exerc 43(8):1575–81). Traditional strength training has a '
+            'MET value of 3.5.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: cs.onSurface.withValues(alpha: 0.7),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'We use the MET (Metabolic Equivalent of Task) formula from the '
-              '2011 Compendium of Physical Activities (Ainsworth et al., Med Sci '
-              'Sports Exerc 43(8):1575–81). Traditional strength training has a '
-              'MET value of 3.5.',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: cs.onSurface.withValues(alpha: 0.7),
-              ),
+          ),
+          const SizedBox(height: 20),
+          _FormulaCard(cs),
+          const SizedBox(height: 20),
+          if (hasWeight) ...[
+            _SectionLabel('YOUR ESTIMATE', cs),
+            const SizedBox(height: 8),
+            _ExampleCard(
+              cs: cs,
+              bodyWeightKg: bodyWeightKg,
+              durationMinutes: exampleDuration,
+              calories: exampleCalories,
             ),
             const SizedBox(height: 20),
-            _FormulaCard(cs),
+          ] else ...[
+            _NoWeightCard(cs),
             const SizedBox(height: 20),
-            if (hasWeight) ...[
-              _SectionLabel('YOUR ESTIMATE', cs),
-              const SizedBox(height: 8),
-              _ExampleCard(
-                cs: cs,
-                bodyWeightKg: bodyWeightKg,
-                durationMinutes: exampleDuration,
-                calories: exampleCalories,
-              ),
-              const SizedBox(height: 20),
-            ] else ...[
-              _NoWeightCard(cs),
-              const SizedBox(height: 20),
-            ],
-            _SectionLabel('WHAT ABOUT TONNAGE?', cs),
-            const SizedBox(height: 8),
-            const Text(
-              'Volume and calorie burn',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Tonnage (sets × reps × weight lifted) does predict calorie '
-              'expenditure during strength training. A 2006 study by Haddock & '
-              'Wilkin (Int J Sports Med 27(2):143–8) found that 3-set protocols '
-              'burned ~2.8× more calories than 1-set protocols of the same '
-              'exercise.\n\n'
-              'However, when normalised per minute of actual exercise time, '
-              'calorie rate is roughly constant — meaning total duration already '
-              'captures most of the tonnage effect. More volume → longer sessions '
-              '→ more calories, which the MET × duration formula handles '
-              'automatically.\n\n'
-              'A 2020 regression study found that session time and volume load '
-              'together explained ~61% of energy expenditure variance (R² = 0.61). '
-              'The remaining 39% is individual variation in rest periods, exercise '
-              'selection, and body composition that no formula can capture without '
-              'direct measurement.',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: cs.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _SectionLabel('ACCURACY', cs),
-            const SizedBox(height: 8),
-            const Text(
-              'Why this is an estimate',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Resistance training has a large anaerobic component (up to 40% of '
-              'total energy expenditure) that standard indirect calorimetry cannot '
-              'fully capture — and no phone app can measure it at all. A 2024 '
-              'systematic review (PMC11393209) found no gold-standard method for '
-              'resistance training energy expenditure. The MET formula gives a '
-              'reasonable population-average estimate, accurate to perhaps ±25% '
-              'for any individual session.\n\n'
-              'If no bodyweight is set, we fall back to a flat 5 kcal/min — '
-              'roughly the midpoint of the 4–10 kcal/min range observed across '
-              'studies.',
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: cs.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _SectionLabel('REFERENCES', cs),
-            const SizedBox(height: 8),
-            ..._references(cs),
           ],
-        ),
+          _SectionLabel('WHAT ABOUT TONNAGE?', cs),
+          const SizedBox(height: 8),
+          const Text(
+            'Volume and calorie burn',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Tonnage (sets × reps × weight lifted) does predict calorie '
+            'expenditure during strength training. A 2006 study by Haddock & '
+            'Wilkin (Int J Sports Med 27(2):143–8) found that 3-set protocols '
+            'burned ~2.8× more calories than 1-set protocols of the same '
+            'exercise.\n\n'
+            'However, when normalised per minute of actual exercise time, '
+            'calorie rate is roughly constant — meaning total duration already '
+            'captures most of the tonnage effect. More volume → longer sessions '
+            '→ more calories, which the MET × duration formula handles '
+            'automatically.\n\n'
+            'A 2020 regression study found that session time and volume load '
+            'together explained ~61% of energy expenditure variance (R² = 0.61). '
+            'The remaining 39% is individual variation in rest periods, exercise '
+            'selection, and body composition that no formula can capture without '
+            'direct measurement.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: cs.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel('ACCURACY', cs),
+          const SizedBox(height: 8),
+          const Text(
+            'Why this is an estimate',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Resistance training has a large anaerobic component (up to 40% of '
+            'total energy expenditure) that standard indirect calorimetry cannot '
+            'fully capture — and no phone app can measure it at all. A 2024 '
+            'systematic review (PMC11393209) found no gold-standard method for '
+            'resistance training energy expenditure. The MET formula gives a '
+            'reasonable population-average estimate, accurate to perhaps ±25% '
+            'for any individual session.\n\n'
+            'If no bodyweight is set, we fall back to a flat 5 kcal/min — '
+            'roughly the midpoint of the 4–10 kcal/min range observed across '
+            'studies.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: cs.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _SectionLabel('REFERENCES', cs),
+          const SizedBox(height: 8),
+          ..._references(cs),
+        ],
       ),
     );
   }
@@ -235,7 +232,11 @@ class _FormulaCard extends StatelessWidget {
           _row(cs, '3.5', 'ml O₂ per kg per min at 1 MET (standard constant)'),
           _row(cs, 'weight_kg', 'your bodyweight in kilograms'),
           _row(cs, 'minutes', 'total workout duration'),
-          _row(cs, '÷ 200', 'converts ml O₂/min to kcal/min (5 kcal/L O₂ ÷ 1000 × 40)'),
+          _row(
+            cs,
+            '÷ 200',
+            'converts ml O₂/min to kcal/min (5 kcal/L O₂ ÷ 1000 × 40)',
+          ),
         ],
       ),
     );
