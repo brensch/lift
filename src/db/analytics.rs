@@ -4,8 +4,9 @@ use schlift::workout::v1::{
 };
 use std::collections::HashSet;
 
-/// How long page views and auth attempts are kept.
-pub const ANALYTICS_RETENTION_DAYS: i64 = 180;
+/// The widest window GetStats will aggregate. Analytics rows are kept until
+/// the account is deleted; this only bounds what one stats query reads.
+pub const MAX_STATS_WINDOW_DAYS: i64 = 365;
 
 /// A 'started' attempt younger than this may still be mid-ceremony, so it is
 /// neither reportable-as-abandoned in stats nor too old to annotate.
@@ -46,19 +47,6 @@ impl ServerDb {
         }
         tx.commit().await?;
         Ok(accepted)
-    }
-
-    pub async fn prune_analytics(&self) -> DbResult<()> {
-        let cutoff = now_unix() - ANALYTICS_RETENTION_DAYS * 86_400;
-        sqlx::query("DELETE FROM page_views WHERE entered_at_ms < ?")
-            .bind(cutoff * 1000)
-            .execute(&self.write_pool)
-            .await?;
-        sqlx::query("DELETE FROM auth_attempts WHERE started_at < ?")
-            .bind(cutoff)
-            .execute(&self.write_pool)
-            .await?;
-        Ok(())
     }
 
     // ── Auth attempts ──

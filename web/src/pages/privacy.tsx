@@ -33,8 +33,8 @@ export function PrivacyPage() {
             <li>
               Usage data: which screens of the app you open and for how long,
               linked to your account. It stays on our own server, is never
-              shared with or sold to anyone, and is deleted after 180 days or
-              when you delete your account.
+              shared with or sold to anyone, and is deleted when you delete
+              your account.
             </li>
             <li>
               Security data: session tokens and limited metadata needed to

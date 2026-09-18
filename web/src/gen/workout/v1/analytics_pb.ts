@@ -132,7 +132,7 @@ export const GetAdminStatusResponseSchema: GenMessage<GetAdminStatusResponse> = 
  */
 export type GetStatsRequest = Message<"workout.v1.GetStatsRequest"> & {
   /**
-   * Look-back window in days. 0 = 30. Capped at the retention window.
+   * Look-back window in days. 0 = 30. Capped at a year.
    *
    * @generated from field: int32 days = 1;
    */

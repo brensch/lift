@@ -1814,7 +1814,7 @@ public final class Analytics {
 
     /**
      * <pre>
-     * Look-back window in days. 0 = 30. Capped at the retention window.
+     * Look-back window in days. 0 = 30. Capped at a year.
      * </pre>
      *
      * <code>int32 days = 1 [json_name = "days"];</code>
@@ -1857,7 +1857,7 @@ public final class Analytics {
     private int days_;
     /**
      * <pre>
-     * Look-back window in days. 0 = 30. Capped at the retention window.
+     * Look-back window in days. 0 = 30. Capped at a year.
      * </pre>
      *
      * <code>int32 days = 1 [json_name = "days"];</code>
@@ -1869,7 +1869,7 @@ public final class Analytics {
     }
     /**
      * <pre>
-     * Look-back window in days. 0 = 30. Capped at the retention window.
+     * Look-back window in days. 0 = 30. Capped at a year.
      * </pre>
      *
      * <code>int32 days = 1 [json_name = "days"];</code>
@@ -1881,7 +1881,7 @@ public final class Analytics {
     }
     /**
      * <pre>
-     * Look-back window in days. 0 = 30. Capped at the retention window.
+     * Look-back window in days. 0 = 30. Capped at a year.
      * </pre>
      *
      * <code>int32 days = 1 [json_name = "days"];</code>
@@ -2055,7 +2055,7 @@ public final class Analytics {
 
       /**
        * <pre>
-       * Look-back window in days. 0 = 30. Capped at the retention window.
+       * Look-back window in days. 0 = 30. Capped at a year.
        * </pre>
        *
        * <code>int32 days = 1 [json_name = "days"];</code>
@@ -2067,7 +2067,7 @@ public final class Analytics {
       }
       /**
        * <pre>
-       * Look-back window in days. 0 = 30. Capped at the retention window.
+       * Look-back window in days. 0 = 30. Capped at a year.
        * </pre>
        *
        * <code>int32 days = 1 [json_name = "days"];</code>
@@ -2081,7 +2081,7 @@ public final class Analytics {
       }
       /**
        * <pre>
-       * Look-back window in days. 0 = 30. Capped at the retention window.
+       * Look-back window in days. 0 = 30. Capped at a year.
        * </pre>
        *
        * <code>int32 days = 1 [json_name = "days"];</code>

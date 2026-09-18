@@ -22,7 +22,7 @@ mod migration;
 mod session;
 mod workout;
 
-pub use analytics::ANALYTICS_RETENTION_DAYS;
+pub use analytics::MAX_STATS_WINDOW_DAYS;
 
 
 const SERVER_SCHEMA: &str = r#"
