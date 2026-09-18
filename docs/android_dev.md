@@ -82,13 +82,25 @@ cd app && flutter run -d <device-id>
 
 ### Release APK
 
+On a phone that has the real app from Play, install the side-by-side dev app —
+it never touches the production install:
+
+```bash
+make deploy-android-dev   # com.brensch.schlift.dev → dev.schlift.com
+```
+
+A release build of the production package is:
+
 ```bash
 cd app && flutter build apk --release
 adb install app/build/app/outputs/flutter-apk/app-release.apk
 ```
 
-Output lands at `app/build/app/outputs/flutter-apk/app-release.apk`. For signed
-store builds see [`releasing.md`](releasing.md).
+It will not install over a Play-installed app (Play re-signs the app, so the
+signatures differ), and `make deploy-android` responds to that by uninstalling
+`com.brensch.schlift` — do not run it against a phone with the real app. See
+[`makefile.md`](makefile.md). For signed store builds see
+[`releasing.md`](releasing.md).
 
 ## Wear OS
 
