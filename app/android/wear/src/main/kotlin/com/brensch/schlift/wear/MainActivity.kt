@@ -13,15 +13,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.wear.ambient.AmbientLifecycleObserver
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.HourglassBottom
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.foundation.background
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +27,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -49,21 +47,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.isUnspecified
+import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.CircularProgressIndicator
@@ -76,21 +76,23 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import workout.v1.Wearable
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import workout.v1.Wearable
 
-private val WearBodyFontFamily = FontFamily(
-    Font(R.font.manrope_variable, weight = FontWeight.Normal),
-    Font(R.font.manrope_variable, weight = FontWeight.Medium),
-    Font(R.font.manrope_variable, weight = FontWeight.SemiBold),
-    Font(R.font.manrope_variable, weight = FontWeight.Bold),
-)
+private val WearBodyFontFamily =
+    FontFamily(
+        Font(R.font.manrope_variable, weight = FontWeight.Normal),
+        Font(R.font.manrope_variable, weight = FontWeight.Medium),
+        Font(R.font.manrope_variable, weight = FontWeight.SemiBold),
+        Font(R.font.manrope_variable, weight = FontWeight.Bold),
+    )
 
-private val WearDisplayFontFamily = FontFamily(
-    Font(R.font.space_grotesk_variable, weight = FontWeight.Medium),
-    Font(R.font.space_grotesk_variable, weight = FontWeight.Bold),
-)
+private val WearDisplayFontFamily =
+    FontFamily(
+        Font(R.font.space_grotesk_variable, weight = FontWeight.Medium),
+        Font(R.font.space_grotesk_variable, weight = FontWeight.Bold),
+    )
 
 @Composable
 fun AutoResizingText(
@@ -110,9 +112,10 @@ fun AutoResizingText(
 
     Text(
         text = text,
-        modifier = modifier.drawWithContent {
-            if (readyToDraw) drawContent()
-        },
+        modifier =
+            modifier.drawWithContent {
+                if (readyToDraw) drawContent()
+            },
         color = color,
         fontSize = currentFontSize,
         fontWeight = fontWeight,
@@ -127,7 +130,7 @@ fun AutoResizingText(
             } else {
                 readyToDraw = true
             }
-        }
+        },
     )
 }
 
@@ -138,7 +141,7 @@ fun AutoResizingText(
 private val MobileLiftingGreen = Color(0xFF16A34A)
 private val MobileRestingBlue = Color(0xFF3B82F6)
 private val MobileYappingPink = Color(0xFFEC4899)
-private const val SchliftWearTag = "SchliftWear"
+private const val SCHLIFT_WEAR_TAG = "SchliftWear"
 
 class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -148,32 +151,33 @@ class MainActivity : ComponentActivity() {
     private var keepScreenOnForWorkout = false
     private var isAmbientMode by mutableStateOf(false)
 
-    private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
-        override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
-            logLifecycleEvent("ambient onEnter", "details=$ambientDetails")
-            isAmbientMode = true
-        }
+    private val ambientCallback =
+        object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+            override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+                logLifecycleEvent("ambient onEnter", "details=$ambientDetails")
+                isAmbientMode = true
+            }
 
-        override fun onExitAmbient() {
-            logLifecycleEvent("ambient onExit")
-            isAmbientMode = false
-        }
+            override fun onExitAmbient() {
+                logLifecycleEvent("ambient onExit")
+                isAmbientMode = false
+            }
 
-        override fun onUpdateAmbient() {
-            logLifecycleEvent("ambient onUpdate")
+            override fun onUpdateAmbient() {
+                logLifecycleEvent("ambient onUpdate")
+            }
         }
-    }
     private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
 
     @SuppressLint("InvalidFragmentVersionForActivityResult")
     private val heartRatePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             heartRatePermissionRequestInFlight = false
-            Log.i(SchliftWearTag, "Heart-rate permission result=$result")
+            Log.i(SCHLIFT_WEAR_TAG, "Heart-rate permission result=$result")
             if (hasHeartRatePermissions()) {
                 maybeRequestRuntimePermissions()
             } else {
-                Log.w(SchliftWearTag, "Required heart-rate permissions still missing after request")
+                Log.w(SCHLIFT_WEAR_TAG, "Required heart-rate permissions still missing after request")
             }
         }
 
@@ -181,11 +185,11 @@ class MainActivity : ComponentActivity() {
     private val workoutPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             workoutPermissionRequestInFlight = false
-            Log.i(SchliftWearTag, "Workout permission result=$result")
+            Log.i(SCHLIFT_WEAR_TAG, "Workout permission result=$result")
             if (hasWorkoutPermissions()) {
                 ensureCompanionSessionIfNeeded()
             } else {
-                Log.w(SchliftWearTag, "Required workout permissions still missing after request")
+                Log.w(SCHLIFT_WEAR_TAG, "Required workout permissions still missing after request")
             }
         }
 
@@ -237,7 +241,7 @@ class MainActivity : ComponentActivity() {
                     ByteArray(0),
                 )
             }.onFailure {
-                Log.d(SchliftWearTag, "Snapshot request not delivered", it)
+                Log.d(SCHLIFT_WEAR_TAG, "Snapshot request not delivered", it)
             }
         }
     }
@@ -286,37 +290,38 @@ class MainActivity : ComponentActivity() {
 
     private fun startUiHeartbeat() {
         if (uiHeartbeatJob?.isActive == true) return
-        Log.i(SchliftWearTag, "Starting UI heartbeat")
-        uiHeartbeatJob = scope.launch {
-            while (true) {
-                runCatching {
-                    WearTransport.sendToPhone(
-                        this@MainActivity,
-                        WearTransport.WEAR_TO_PHONE_UI_HEARTBEAT_PATH,
-                        ByteArray(0),
-                    )
-                }.onFailure {
-                    Log.d(SchliftWearTag, "UI heartbeat not delivered", it)
-                }
-                if (WearDataRepository.snapshot.value == null) {
+        Log.i(SCHLIFT_WEAR_TAG, "Starting UI heartbeat")
+        uiHeartbeatJob =
+            scope.launch {
+                while (true) {
                     runCatching {
                         WearTransport.sendToPhone(
                             this@MainActivity,
-                            WearTransport.WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH,
+                            WearTransport.WEAR_TO_PHONE_UI_HEARTBEAT_PATH,
                             ByteArray(0),
                         )
                     }.onFailure {
-                        Log.d(SchliftWearTag, "Snapshot request not delivered", it)
+                        Log.d(SCHLIFT_WEAR_TAG, "UI heartbeat not delivered", it)
                     }
+                    if (WearDataRepository.snapshot.value == null) {
+                        runCatching {
+                            WearTransport.sendToPhone(
+                                this@MainActivity,
+                                WearTransport.WEAR_TO_PHONE_SNAPSHOT_REQUEST_PATH,
+                                ByteArray(0),
+                            )
+                        }.onFailure {
+                            Log.d(SCHLIFT_WEAR_TAG, "Snapshot request not delivered", it)
+                        }
+                    }
+                    delay(3000)
                 }
-                delay(3000)
             }
-        }
     }
 
     private fun stopUiHeartbeat() {
         if (uiHeartbeatJob != null) {
-            Log.i(SchliftWearTag, "Stopping UI heartbeat")
+            Log.i(SCHLIFT_WEAR_TAG, "Stopping UI heartbeat")
         }
         uiHeartbeatJob?.cancel()
         uiHeartbeatJob = null
@@ -330,7 +335,7 @@ class MainActivity : ComponentActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
-        Log.i(SchliftWearTag, "Workout keep-screen-on set to $enabled")
+        Log.i(SCHLIFT_WEAR_TAG, "Workout keep-screen-on set to $enabled")
     }
 
     private fun requiredHeartRatePermissions(): List<String> {
@@ -347,12 +352,10 @@ class MainActivity : ComponentActivity() {
         return required.distinct()
     }
 
-    private fun hasHeartRatePermissions(): Boolean {
-        return hasBodySensorsPermission() || hasReadHeartRatePermission()
-    }
+    private fun hasHeartRatePermissions(): Boolean = hasBodySensorsPermission() || hasReadHeartRatePermission()
 
-    private fun hasPostNotificationsPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private fun hasPostNotificationsPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS,
@@ -360,45 +363,38 @@ class MainActivity : ComponentActivity() {
         } else {
             true
         }
-    }
 
-    private fun hasBodySensorsPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun hasBodySensorsPermission(): Boolean =
+        ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.BODY_SENSORS,
         ) == PackageManager.PERMISSION_GRANTED
-    }
 
-    private fun hasReadHeartRatePermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun hasReadHeartRatePermission(): Boolean =
+        ContextCompat.checkSelfPermission(
             this,
             "android.permission.health.READ_HEART_RATE",
         ) == PackageManager.PERMISSION_GRANTED
-    }
 
-    private fun hasExerciseSessionHeartRatePermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= 36) {
+    private fun hasExerciseSessionHeartRatePermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= 36) {
             hasReadHeartRatePermission()
         } else {
             hasBodySensorsPermission()
         }
-    }
 
-    private fun requiredWorkoutPermissions(): List<String> {
-        return listOf(Manifest.permission.ACTIVITY_RECOGNITION)
-    }
+    private fun requiredWorkoutPermissions(): List<String> = listOf(Manifest.permission.ACTIVITY_RECOGNITION)
 
-    private fun hasWorkoutPermissions(): Boolean {
-        return requiredWorkoutPermissions().all { permission ->
+    private fun hasWorkoutPermissions(): Boolean =
+        requiredWorkoutPermissions().all { permission ->
             ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
         }
-    }
 
     private fun requestHeartRatePermissionsIfNeeded(): Boolean {
         if (hasHeartRatePermissions()) return true
         if (heartRatePermissionRequestInFlight) return false
         heartRatePermissionRequestInFlight = true
-        Log.i(SchliftWearTag, "Requesting heart-rate permissions: ${requiredHeartRatePermissions()}")
+        Log.i(SCHLIFT_WEAR_TAG, "Requesting heart-rate permissions: ${requiredHeartRatePermissions()}")
         heartRatePermissionLauncher.launch(requiredHeartRatePermissions().toTypedArray())
         return false
     }
@@ -407,7 +403,7 @@ class MainActivity : ComponentActivity() {
         if (hasWorkoutPermissions()) return true
         if (workoutPermissionRequestInFlight) return false
         workoutPermissionRequestInFlight = true
-        Log.i(SchliftWearTag, "Requesting workout permissions: ${requiredWorkoutPermissions()}")
+        Log.i(SCHLIFT_WEAR_TAG, "Requesting workout permissions: ${requiredWorkoutPermissions()}")
         workoutPermissionLauncher.launch(requiredWorkoutPermissions().toTypedArray())
         return false
     }
@@ -419,7 +415,7 @@ class MainActivity : ComponentActivity() {
     // via system settings out-of-band.
     private fun maybeRequestRuntimePermissions(): Boolean {
         Log.d(
-            SchliftWearTag,
+            SCHLIFT_WEAR_TAG,
             "maybeRequestRuntimePermissions hr=${hasHeartRatePermissions()} workout=${hasWorkoutPermissions()} " +
                 "hrReqInFlight=$heartRatePermissionRequestInFlight workoutReqInFlight=$workoutPermissionRequestInFlight",
         )
@@ -434,23 +430,24 @@ class MainActivity : ComponentActivity() {
 
     private fun ensureCompanionSessionIfNeeded() {
         if (!hasHeartRatePermissions()) {
-            Log.d(SchliftWearTag, "ensureCompanionSessionIfNeeded skipped: missing heart-rate permission")
+            Log.d(SCHLIFT_WEAR_TAG, "ensureCompanionSessionIfNeeded skipped: missing heart-rate permission")
             return
         }
-        val snapshot = WearDataRepository.snapshot.value ?: run {
-            Log.d(SchliftWearTag, "ensureCompanionSessionIfNeeded skipped: no snapshot yet")
-            return
-        }
+        val snapshot =
+            WearDataRepository.snapshot.value ?: run {
+                Log.d(SCHLIFT_WEAR_TAG, "ensureCompanionSessionIfNeeded skipped: no snapshot yet")
+                return
+            }
         if (snapshot.workoutId.isBlank()) {
-            Log.d(SchliftWearTag, "ensureCompanionSessionIfNeeded skipped: blank workoutId")
+            Log.d(SCHLIFT_WEAR_TAG, "ensureCompanionSessionIfNeeded skipped: blank workoutId")
             return
         }
         if (snapshot.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) {
-            Log.d(SchliftWearTag, "ensureCompanionSessionIfNeeded skipped: workout already done")
+            Log.d(SCHLIFT_WEAR_TAG, "ensureCompanionSessionIfNeeded skipped: workout already done")
             return
         }
         Log.i(
-            SchliftWearTag,
+            SCHLIFT_WEAR_TAG,
             "ensureCompanionSessionIfNeeded starting HR/session for workoutId=${snapshot.workoutId} state=${snapshot.state}",
         )
         WorkoutForegroundService.startOrUpdate(
@@ -465,83 +462,106 @@ class MainActivity : ComponentActivity() {
     private fun sendAction(action: Wearable.WearAction) {
         val workoutId = WearDataRepository.snapshot.value?.workoutId ?: return
 
-        val intent = when (action.type) {
-            Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET -> {
-                Wearable.WearIntent.newBuilder().setStartSet(
-                    Wearable.StartSetIntent.newBuilder()
-                        .setWorkoutId(workoutId)
-                        .setSetId(action.setId)
-                        .build(),
-                ).build()
-            }
+        val intent =
+            when (action.type) {
+                Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET -> {
+                    Wearable.WearIntent
+                        .newBuilder()
+                        .setStartSet(
+                            Wearable.StartSetIntent
+                                .newBuilder()
+                                .setWorkoutId(workoutId)
+                                .setSetId(action.setId)
+                                .build(),
+                        ).build()
+                }
 
-            Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET -> {
-                Wearable.WearIntent.newBuilder().setCompleteSet(
-                    Wearable.CompleteSetIntent.newBuilder()
-                        .setWorkoutId(workoutId)
-                        .setSetId(action.setId)
-                        .setReps(action.reps)
-                        .setActualWeight(action.actualWeight)
-                        .setCompletedAt(System.currentTimeMillis() / 1000)
-                        .build(),
-                ).build()
-            }
+                Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET -> {
+                    Wearable.WearIntent
+                        .newBuilder()
+                        .setCompleteSet(
+                            Wearable.CompleteSetIntent
+                                .newBuilder()
+                                .setWorkoutId(workoutId)
+                                .setSetId(action.setId)
+                                .setReps(action.reps)
+                                .setActualWeight(action.actualWeight)
+                                .setCompletedAt(System.currentTimeMillis() / 1000)
+                                .build(),
+                        ).build()
+                }
 
-            Wearable.WearActionType.WEAR_ACTION_TYPE_SKIP_WARMUP -> {
-                Wearable.WearIntent.newBuilder().setSkipWarmup(
-                    Wearable.SkipWarmupIntent.newBuilder()
-                        .setWorkoutId(workoutId)
-                        .setSetId(action.setId)
-                        .build(),
-                ).build()
-            }
+                Wearable.WearActionType.WEAR_ACTION_TYPE_SKIP_WARMUP -> {
+                    Wearable.WearIntent
+                        .newBuilder()
+                        .setSkipWarmup(
+                            Wearable.SkipWarmupIntent
+                                .newBuilder()
+                                .setWorkoutId(workoutId)
+                                .setSetId(action.setId)
+                                .build(),
+                        ).build()
+                }
 
-            Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT -> {
-                Wearable.WearIntent.newBuilder().setEndWorkout(
-                    Wearable.EndWorkoutIntent.newBuilder()
-                        .setWorkoutId(workoutId)
-                        .build(),
-                ).build()
-            }
+                Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT -> {
+                    Wearable.WearIntent
+                        .newBuilder()
+                        .setEndWorkout(
+                            Wearable.EndWorkoutIntent
+                                .newBuilder()
+                                .setWorkoutId(workoutId)
+                                .build(),
+                        ).build()
+                }
 
-            else -> return
-        }.toBuilder()
-            .setIntentId(java.util.UUID.randomUUID().toString())
-            .setSentAt(System.currentTimeMillis() / 1000)
-            .build()
+                else -> {
+                    return
+                }
+            }.toBuilder()
+                .setIntentId(
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
+                ).setSentAt(System.currentTimeMillis() / 1000)
+                .build()
 
         scope.launch {
             runCatching {
-                val sent = WearTransport.sendToPhone(
-                    this@MainActivity,
-                    WearTransport.WEAR_TO_PHONE_INTENT_PATH,
-                    intent.toByteArray(),
-                )
+                val sent =
+                    WearTransport.sendToPhone(
+                        this@MainActivity,
+                        WearTransport.WEAR_TO_PHONE_INTENT_PATH,
+                        intent.toByteArray(),
+                    )
                 if (sent == 0) {
                     throw IllegalStateException("No connected phone node")
                 }
             }.onFailure { error ->
-                Log.e(SchliftWearTag, "Failed to send action to phone", error)
-                Toast.makeText(
-                    this@MainActivity,
-                    "Phone not connected",
-                    Toast.LENGTH_SHORT,
-                ).show()
+                Log.e(SCHLIFT_WEAR_TAG, "Failed to send action to phone", error)
+                Toast
+                    .makeText(
+                        this@MainActivity,
+                        "Phone not connected",
+                        Toast.LENGTH_SHORT,
+                    ).show()
             }
         }
     }
 
-    private fun logLifecycleEvent(event: String, extra: String? = null) {
+    private fun logLifecycleEvent(
+        event: String,
+        extra: String? = null,
+    ) {
         val suffix = extra?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
         Log.i(
-            SchliftWearTag,
+            SCHLIFT_WEAR_TAG,
             "Activity $event$suffix taskId=$taskId finishing=$isFinishing changingConfig=$isChangingConfigurations " +
                 "lifecycle=${lifecycle.currentState}",
         )
     }
 
-    private fun trimMemoryLevelName(level: Int): String {
-        return when (level) {
+    private fun trimMemoryLevelName(level: Int): String =
+        when (level) {
             ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> "UI_HIDDEN"
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE -> "RUNNING_MODERATE"
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> "RUNNING_LOW"
@@ -551,8 +571,8 @@ class MainActivity : ComponentActivity() {
             ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> "COMPLETE"
             else -> "UNKNOWN"
         }
-    }
 }
+
 @Composable
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
@@ -575,21 +595,23 @@ private fun WearApp(
     }
     LaunchedEffect(snapshot) {
         Log.d(
-            SchliftWearTag,
+            SCHLIFT_WEAR_TAG,
             "WearApp snapshot update present=${snapshot != null} " +
                 "workoutId=${snapshot?.workoutId ?: ""} state=${snapshot?.state} actions=${snapshot?.actionsList?.size ?: 0}",
         )
     }
     LaunchedEffect(snapshot != null, snapshot?.workoutId, snapshot?.state, snapshot?.actionsList?.size) {
-        val hasEndWorkoutAction = snapshot?.actionsList?.any {
-            it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
-        } == true
-        val keepOn = snapshot?.let {
-            it.workoutId.isNotBlank() &&
-                (it.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
-        } ?: false
+        val hasEndWorkoutAction =
+            snapshot?.actionsList?.any {
+                it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+            } == true
+        val keepOn =
+            snapshot?.let {
+                it.workoutId.isNotBlank() &&
+                    (it.state != workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE || hasEndWorkoutAction)
+            } ?: false
         Log.d(
-            SchliftWearTag,
+            SCHLIFT_WEAR_TAG,
             "WearApp keep-screen-on effect keepOn=$keepOn workoutId=${snapshot?.workoutId ?: ""} " +
                 "state=${snapshot?.state} hasEndAction=$hasEndWorkoutAction",
         )
@@ -610,26 +632,31 @@ private fun WearApp(
     }
 
     val data = snapshot!!
-    val hasEndWorkoutAction = data.actionsList.any {
-        it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
-    }
-    val liveYouTimerText = remember(data.workoutId, data.state, data.activeStartedAt, data.restUntil, data.lastRestEnd, hasEndWorkoutAction, nowTick) {
-        deriveYouTimerText(data)
-    }
-    val liveElapsedText = remember(data.workoutId, data.workoutStartTime, data.state, nowTick, isAmbientMode) {
-        deriveElapsedText(data, hideSeconds = isAmbientMode)
-    }
+    val hasEndWorkoutAction =
+        data.actionsList.any {
+            it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT
+        }
+    val liveYouTimerText =
+        remember(data.workoutId, data.state, data.activeStartedAt, data.restUntil, data.lastRestEnd, hasEndWorkoutAction, nowTick) {
+            deriveYouTimerText(data)
+        }
+    val liveElapsedText =
+        remember(data.workoutId, data.workoutStartTime, data.state, nowTick, isAmbientMode) {
+            deriveElapsedText(data, hideSeconds = isAmbientMode)
+        }
     val currentSet = if (data.youCard.hasDisplaySet()) data.youCard.displaySet else null
-    val completeTemplate = data.actionsList.firstOrNull {
-        it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET
-    }
+    val completeTemplate =
+        data.actionsList.firstOrNull {
+            it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET
+        }
     val isLiftingCompleteMode =
         data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING &&
             currentSet != null &&
             completeTemplate != null
-    val primaryAction = data.actionsList.firstOrNull {
-        it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
-    } ?: data.actionsList.firstOrNull()
+    val primaryAction =
+        data.actionsList.firstOrNull {
+            it.style == Wearable.WearActionStyle.WEAR_ACTION_STYLE_PRIMARY
+        } ?: data.actionsList.firstOrNull()
     val completionSummary = if (data.hasCompletionSummary()) data.completionSummary else null
     // Track which snapshot the action was sent on. When emittedAt changes, the server has
     // acknowledged the action and we are in a new phase — clear pending immediately in the
@@ -640,9 +667,10 @@ private fun WearApp(
     // Safety timeout: the button re-enables 2s after a tap even if no fresh snapshot
     // arrives (phone dropped the intent, watch offline, etc.). Normal reply is <500ms,
     // so 2s is ample and avoids the old 8s "stuck grey" window users complained about.
-    val isActionPending = pendingActionEmittedAt == data.emittedAt &&
-        pendingActionEmittedAt >= 0L &&
-        (System.currentTimeMillis() - pendingActionStartedAtMs) < 2000L
+    val isActionPending =
+        pendingActionEmittedAt == data.emittedAt &&
+            pendingActionEmittedAt >= 0L &&
+            (System.currentTimeMillis() - pendingActionStartedAtMs) < 2000L
 
     // When the local rest countdown expires, request a fresh snapshot immediately
     // rather than waiting up to 3 s for the next heartbeat. This ensures the button
@@ -660,7 +688,7 @@ private fun WearApp(
                 ByteArray(0),
             )
         }.onFailure {
-            Log.d(SchliftWearTag, "Rest-expiry snapshot request not delivered", it)
+            Log.d(SCHLIFT_WEAR_TAG, "Rest-expiry snapshot request not delivered", it)
         }
     }
 
@@ -669,25 +697,30 @@ private fun WearApp(
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
     val groupProgressText = formatGroupProgress(data.youCard, currentSet)
     val setsLeftText = formatSetsLeft(data.youCard, currentSet)
-    val repsWeightText = if (currentSet != null) {
-        "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
-    } else ""
+    val repsWeightText =
+        if (currentSet != null) {
+            "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
+        } else {
+            ""
+        }
     val weightOnlyText = if (currentSet != null) "x${currentSet.targetWeight.toInt()}" else ""
-    val startButtonTitle = if (currentSet != null) {
-        "Start\n$exerciseName"
-    } else {
-        "Start"
-    }
+    val startButtonTitle =
+        if (currentSet != null) {
+            "Start\n$exerciseName"
+        } else {
+            "Start"
+        }
     val completeButtonText = "Complete\n$exerciseName"
     val isResting = data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING
     val repOptionMax = 100
     val repOptionCount = repOptionMax + 1
     val initialReps = (currentSet?.targetReps ?: 0).coerceIn(0, repOptionMax)
-    val pickerState = rememberPickerState(
-        initialNumberOfOptions = repOptionCount,
-        initiallySelectedOption = initialReps,
-        repeatItems = false,
-    )
+    val pickerState =
+        rememberPickerState(
+            initialNumberOfOptions = repOptionCount,
+            initiallySelectedOption = initialReps,
+            repeatItems = false,
+        )
     LaunchedEffect(initialReps) {
         pickerState.scrollToOption(initialReps)
         // Wear Picker can land a few pixels off before first layout settles.
@@ -697,27 +730,31 @@ private fun WearApp(
     }
     val selectedReps = pickerState.selectedOption.coerceIn(0, repOptionMax)
     val stateAccentColor = watchStateAccentColor(data.youCard.stateLabel)
-    val timerColor = when {
-        liveYouTimerText.isNotEmpty() && stateAccentColor != null -> stateAccentColor
-        isResting -> Color(0xFF86EFAC)
-        else -> Color.White
-    }
+    val timerColor =
+        when {
+            liveYouTimerText.isNotEmpty() && stateAccentColor != null -> stateAccentColor
+            isResting -> Color(0xFF86EFAC)
+            else -> Color.White
+        }
     val buttonBackgroundColor = stateAccentColor ?: Color.White
     val buttonContentColor = if (stateAccentColor != null) Color.White else Color.Black
-    val buttonMutedContentColor = if (stateAccentColor != null) {
-        Color.White.copy(alpha = 0.6f)
-    } else {
-        Color(0xFF6B7280)
-    }
+    val buttonMutedContentColor =
+        if (stateAccentColor != null) {
+            Color.White.copy(alpha = 0.6f)
+        } else {
+            Color(0xFF6B7280)
+        }
 
     CompositionLocalProvider(
-        LocalTextStyle provides TextStyle(
-            fontFamily = WearBodyFontFamily,
-            fontWeight = FontWeight.Medium,
-        ),
+        LocalTextStyle provides
+            TextStyle(
+                fontFamily = WearBodyFontFamily,
+                fontWeight = FontWeight.Medium,
+            ),
     ) {
         if (data.state == workout.v1.WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE &&
-            completionSummary != null) {
+            completionSummary != null
+        ) {
             WorkoutCompleteScreen(
                 summary = completionSummary,
                 onPrimary = if (primaryAction != null) ({ onAction(primaryAction) }) else null,
@@ -726,254 +763,133 @@ private fun WearApp(
             return@CompositionLocalProvider
         }
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black),
         ) {
-        Column(
-            modifier = Modifier
-                .weight(0.5f)
-                .fillMaxHeight()
-                .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.End,
-        ) {
-            if (!isAmbientMode && liveYouTimerText.isNotEmpty()) {
+            Column(
+                modifier =
+                    Modifier
+                        .weight(0.5f)
+                        .fillMaxHeight()
+                        .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.End,
+            ) {
+                if (!isAmbientMode && liveYouTimerText.isNotEmpty()) {
+                    AutoResizingText(
+                        text = liveYouTimerText,
+                        color = timerColor,
+                        maxLines = 1,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 34.sp,
+                        fontFamily = WearDisplayFontFamily,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
                 AutoResizingText(
-                    text = liveYouTimerText,
-                    color = timerColor,
+                    text = data.youCard.stateLabel,
+                    color = stateAccentColor ?: Color.White,
                     maxLines = 1,
                     textAlign = TextAlign.End,
                     modifier = Modifier.fillMaxWidth(),
-                    fontSize = 34.sp,
+                    fontSize = 19.sp,
                     fontFamily = WearDisplayFontFamily,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                 )
-            }
-            AutoResizingText(
-                text = data.youCard.stateLabel,
-                color = stateAccentColor ?: Color.White,
-                maxLines = 1,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth(),
-                fontSize = 19.sp,
-                fontFamily = WearDisplayFontFamily,
-                fontWeight = FontWeight.Medium,
-            )
-            if (liveYouTimerText.isNotEmpty()) {
-                StatLine(
-                    text = currentClock,
-                    icon = Icons.Filled.AccessTime,
-                    color = Color(0xFFE5E7EB),
-                    fontSizeSp = 18,
-                )
-            }
-            StatLine(
-                text = liveElapsedText,
-                icon = Icons.Filled.HourglassBottom,
-                color = Color(0xFFCBD5E1),
-                fontSizeSp = 19,
-            )
-            StatLine(
-                text = if (latestBpm != null) "${latestBpm!!.toInt()}" else "--",
-                icon = Icons.Filled.Favorite,
-                color = hrColor,
-                fontSizeSp = 21,
-            )
-            if (nextUpText != null) {
-                StatLine(
-                    text = nextUpText,
-                    icon = Icons.Filled.Person,
-                    color = Color(0xFF9CA3AF),
-                    fontSizeSp = 18,
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(0.dp))
-
-        Column(
-            modifier = Modifier
-                .weight(0.5f)
-                .fillMaxHeight(),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            if (!isLiftingCompleteMode) {
-                Button(
-                    onClick = {
-                        if (primaryAction != null && !isActionPending) {
-                            pendingActionEmittedAt = data.emittedAt
-                            pendingActionStartedAtMs = System.currentTimeMillis()
-                            onAction(primaryAction)
-                        }
-                    },
-                    enabled = primaryAction != null && !isActionPending,
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = buttonBackgroundColor,
-                        contentColor = buttonContentColor,
-                    ),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 10.dp, end = 6.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalAlignment = Alignment.Start,
-                                ) {
-                                    AutoResizingText(
-                                        text = startButtonTitle,
-                                        maxLines = 2,
-                                        textAlign = TextAlign.Start,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        fontSize = 18.sp,
-                                        fontFamily = WearDisplayFontFamily,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    AutoResizingText(
-                                        text = repsWeightText,
-                                        maxLines = 1,
-                                        textAlign = TextAlign.Start,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        fontSize = 24.sp,
-                                        fontFamily = WearDisplayFontFamily,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    if (groupProgressText.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        AutoResizingText(
-                                            text = groupProgressText,
-                                            maxLines = 1,
-                                            textAlign = TextAlign.Start,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            fontSize = 16.sp,
-                                            fontFamily = WearDisplayFontFamily,
-                                            fontWeight = FontWeight.Medium,
-                                        )
-                                        if (setsLeftText.isNotEmpty()) {
-                                            AutoResizingText(
-                                                text = setsLeftText,
-                                                maxLines = 1,
-                                                textAlign = TextAlign.Start,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                fontSize = 12.sp,
-                                                fontFamily = WearBodyFontFamily,
-                                                fontWeight = FontWeight.Medium,
-                                                color = buttonContentColor.copy(alpha = 0.72f),
-                                            )
-                                        }
-                                    }
-                                }
-                    }
+                if (liveYouTimerText.isNotEmpty()) {
+                    StatLine(
+                        text = currentClock,
+                        icon = Icons.Filled.AccessTime,
+                        color = Color(0xFFE5E7EB),
+                        fontSizeSp = 18,
+                    )
                 }
-            } else {
-                Button(
-                    onClick = {
-                        if (isActionPending) return@Button
-                        val set = currentSet
-                        val template = completeTemplate
-                        if (set != null && template != null) {
-                            val action = template.toBuilder()
-                                .setSetId(set.id)
-                                .setReps(selectedReps)
-                                .setActualWeight(
-                                    if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
-                                )
-                                .build()
-                            pendingActionEmittedAt = data.emittedAt
-                            pendingActionStartedAtMs = System.currentTimeMillis()
-                            onAction(action)
-                        }
-                    },
-                    enabled = !isActionPending,
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(0.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = buttonBackgroundColor,
-                        contentColor = buttonContentColor,
-                    ),
+                StatLine(
+                    text = liveElapsedText,
+                    icon = Icons.Filled.HourglassBottom,
+                    color = Color(0xFFCBD5E1),
+                    fontSizeSp = 19,
+                )
+                StatLine(
+                    text = if (latestBpm != null) "${latestBpm!!.toInt()}" else "--",
+                    icon = Icons.Filled.Favorite,
+                    color = hrColor,
+                    fontSizeSp = 21,
+                )
+                if (nextUpText != null) {
+                    StatLine(
+                        text = nextUpText,
+                        icon = Icons.Filled.Person,
+                        color = Color(0xFF9CA3AF),
+                        fontSizeSp = 18,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(0.dp))
+
+            Column(
+                modifier =
+                    Modifier
+                        .weight(0.5f)
+                        .fillMaxHeight(),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                if (!isLiftingCompleteMode) {
+                    Button(
+                        onClick = {
+                            if (primaryAction != null && !isActionPending) {
+                                pendingActionEmittedAt = data.emittedAt
+                                pendingActionStartedAtMs = System.currentTimeMillis()
+                                onAction(primaryAction)
+                            }
+                        },
+                        enabled = primaryAction != null && !isActionPending,
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(0.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                backgroundColor = buttonBackgroundColor,
+                                contentColor = buttonContentColor,
+                            ),
                     ) {
-                            Column(
-                                modifier = Modifier
+                        Box(
+                            modifier =
+                                Modifier
                                     .fillMaxSize()
-                                    .padding(start = 10.dp, end = 0.dp),
-                                verticalArrangement = Arrangement.Center,
+                                    .padding(start = 10.dp, end = 6.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.Start,
                             ) {
                                 AutoResizingText(
-                                    text = completeButtonText,
-                                    color = buttonContentColor,
-                                    fontSize = 18.sp,
+                                    text = startButtonTitle,
+                                    maxLines = 2,
                                     textAlign = TextAlign.Start,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontSize = 18.sp,
                                     fontFamily = WearDisplayFontFamily,
                                     fontWeight = FontWeight.Bold,
-                                    maxLines = 2,
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
+                                Spacer(modifier = Modifier.height(8.dp))
+                                AutoResizingText(
+                                    text = repsWeightText,
+                                    maxLines = 1,
+                                    textAlign = TextAlign.Start,
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Start,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(44.dp)
-                                            .height(36.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(buttonBackgroundColor)
-                                            .border(
-                                                width = 1.dp,
-                                                color = buttonContentColor.copy(alpha = 0.45f),
-                                                shape = RoundedCornerShape(6.dp),
-                                            ),
-                                    ) {
-                                        Picker(
-                                            modifier = Modifier.fillMaxSize(),
-                                            state = pickerState,
-                                            gradientRatio = 0f,
-                                            contentDescription = "Completed reps picker",
-                                            option = { index: Int ->
-                                                val isSelected = index == pickerState.selectedOption
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .height(24.dp),
-                                                    contentAlignment = Alignment.Center,
-                                                ) {
-                                                    Text(
-                                                        text = index.toString(),
-                                                        textAlign = TextAlign.Center,
-                                                        fontSize = if (isSelected) 20.sp else 12.sp,
-                                                        color = if (isSelected) buttonContentColor else buttonMutedContentColor,
-                                                        fontFamily = WearDisplayFontFamily,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                        lineHeight = 24.sp,
-                                                    )
-                                                }
-                                            },
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(0.dp))
-                                    AutoResizingText(
-                                        text = weightOnlyText,
-                                        color = buttonContentColor,
-                                        fontSize = 28.sp,
-                                        textAlign = TextAlign.Start,
-                                        fontFamily = WearDisplayFontFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                    )
-                                }
+                                    fontSize = 24.sp,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                )
                                 if (groupProgressText.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(6.dp))
                                     AutoResizingText(
                                         text = groupProgressText,
-                                        color = buttonContentColor,
                                         maxLines = 1,
                                         textAlign = TextAlign.Start,
                                         modifier = Modifier.fillMaxWidth(),
@@ -984,21 +900,152 @@ private fun WearApp(
                                     if (setsLeftText.isNotEmpty()) {
                                         AutoResizingText(
                                             text = setsLeftText,
-                                            color = buttonContentColor.copy(alpha = 0.72f),
                                             maxLines = 1,
                                             textAlign = TextAlign.Start,
                                             modifier = Modifier.fillMaxWidth(),
                                             fontSize = 12.sp,
                                             fontFamily = WearBodyFontFamily,
                                             fontWeight = FontWeight.Medium,
+                                            color = buttonContentColor.copy(alpha = 0.72f),
                                         )
                                     }
                                 }
                             }
+                        }
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            if (isActionPending) return@Button
+                            val set = currentSet
+                            val template = completeTemplate
+                            if (set != null && template != null) {
+                                val action =
+                                    template
+                                        .toBuilder()
+                                        .setSetId(set.id)
+                                        .setReps(selectedReps)
+                                        .setActualWeight(
+                                            if (template.actualWeight > 0f) template.actualWeight else set.targetWeight,
+                                        ).build()
+                                pendingActionEmittedAt = data.emittedAt
+                                pendingActionStartedAtMs = System.currentTimeMillis()
+                                onAction(action)
+                            }
+                        },
+                        enabled = !isActionPending,
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RoundedCornerShape(0.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                backgroundColor = buttonBackgroundColor,
+                                contentColor = buttonContentColor,
+                            ),
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(start = 10.dp, end = 0.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.Start,
+                        ) {
+                            AutoResizingText(
+                                text = completeButtonText,
+                                color = buttonContentColor,
+                                fontSize = 18.sp,
+                                textAlign = TextAlign.Start,
+                                fontFamily = WearDisplayFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 2,
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Start,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .width(44.dp)
+                                            .height(36.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(buttonBackgroundColor)
+                                            .border(
+                                                width = 1.dp,
+                                                color = buttonContentColor.copy(alpha = 0.45f),
+                                                shape = RoundedCornerShape(6.dp),
+                                            ),
+                                ) {
+                                    Picker(
+                                        modifier = Modifier.fillMaxSize(),
+                                        state = pickerState,
+                                        gradientRatio = 0f,
+                                        contentDescription = "Completed reps picker",
+                                        option = { index: Int ->
+                                            val isSelected = index == pickerState.selectedOption
+                                            Box(
+                                                modifier =
+                                                    Modifier
+                                                        .fillMaxWidth()
+                                                        .height(24.dp),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Text(
+                                                    text = index.toString(),
+                                                    textAlign = TextAlign.Center,
+                                                    fontSize = if (isSelected) 20.sp else 12.sp,
+                                                    color = if (isSelected) buttonContentColor else buttonMutedContentColor,
+                                                    fontFamily = WearDisplayFontFamily,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    lineHeight = 24.sp,
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(0.dp))
+                                AutoResizingText(
+                                    text = weightOnlyText,
+                                    color = buttonContentColor,
+                                    fontSize = 28.sp,
+                                    textAlign = TextAlign.Start,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                )
+                            }
+                            if (groupProgressText.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                AutoResizingText(
+                                    text = groupProgressText,
+                                    color = buttonContentColor,
+                                    maxLines = 1,
+                                    textAlign = TextAlign.Start,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    fontSize = 16.sp,
+                                    fontFamily = WearDisplayFontFamily,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                if (setsLeftText.isNotEmpty()) {
+                                    AutoResizingText(
+                                        text = setsLeftText,
+                                        color = buttonContentColor.copy(alpha = 0.72f),
+                                        maxLines = 1,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        fontSize = 12.sp,
+                                        fontFamily = WearBodyFontFamily,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-    }
     }
 }
 
@@ -1009,15 +1056,17 @@ private fun WorkoutCompleteScreen(
     primaryLabel: String,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black),
     ) {
         Column(
-            modifier = Modifier
-                .weight(2f)
-                .fillMaxHeight()
-                .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
+            modifier =
+                Modifier
+                    .weight(2f)
+                    .fillMaxHeight()
+                    .padding(start = 8.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.End,
         ) {
@@ -1036,9 +1085,10 @@ private fun WorkoutCompleteScreen(
             CompletionMetric(label = "Vol", value = "${summary.totalVolumeLb}lb")
         }
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -1047,24 +1097,25 @@ private fun WorkoutCompleteScreen(
                 enabled = onPrimary != null,
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(0.dp),
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color.White,
-                    contentColor = Color.Black,
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        backgroundColor = Color.White,
+                        contentColor = Color.Black,
+                    ),
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                AutoResizingText(
-                    text = primaryLabel,
-                    textAlign = TextAlign.Start,
-                    maxLines = 2,
-                    modifier = Modifier.fillMaxWidth(),
-                    fontSize = 16.sp,
-                    fontFamily = WearDisplayFontFamily,
-                    fontWeight = FontWeight.Bold,
-                )
+                    AutoResizingText(
+                        text = primaryLabel,
+                        textAlign = TextAlign.Start,
+                        maxLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 16.sp,
+                        fontFamily = WearDisplayFontFamily,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }
@@ -1072,11 +1123,15 @@ private fun WorkoutCompleteScreen(
 }
 
 @Composable
-private fun CompletionMetric(label: String, value: String) {
+private fun CompletionMetric(
+    label: String,
+    value: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 1.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 1.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1096,6 +1151,7 @@ private fun CompletionMetric(label: String, value: String) {
         )
     }
 }
+
 @Composable
 private fun StatLine(
     text: String,
@@ -1124,9 +1180,7 @@ private fun StatLine(
     }
 }
 
-private fun formatNowClock(): String {
-    return LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
-}
+private fun formatNowClock(): String = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a"))
 
 private fun formatGroupProgress(
     card: Wearable.WearStatusCard,
@@ -1150,7 +1204,10 @@ private fun formatSetsLeft(
     return if (remaining == 1) "1 left" else "$remaining left"
 }
 
-private fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot, hideSeconds: Boolean = false): String {
+private fun deriveElapsedText(
+    snapshot: Wearable.WearWorkoutSnapshot,
+    hideSeconds: Boolean = false,
+): String {
     val startTime = snapshot.workoutStartTime.toLong()
     if (startTime <= 0L) return snapshot.elapsedText
     val currentApiNowMs = WearDataRepository.synchronizedNowUnixMillis()
@@ -1180,11 +1237,17 @@ private fun deriveYouTimerText(snapshot: Wearable.WearWorkoutSnapshot): String {
             val restUntil = snapshot.restUntil.toLong()
             val restUntilMs = restUntil * 1000L
             when {
-                restUntil <= 0L -> snapshot.youCard.timerText
-                snapshot.youCard.stateLabel == "Yapping" || restUntilMs <= currentApiNowMs ->
+                restUntil <= 0L -> {
+                    snapshot.youCard.timerText
+                }
+
+                snapshot.youCard.stateLabel == "Yapping" || restUntilMs <= currentApiNowMs -> {
                     formatDuration(((currentApiNowMs - restUntilMs).coerceAtLeast(0L) / 1000L).toInt())
-                else ->
+                }
+
+                else -> {
                     formatDuration(((restUntilMs - currentApiNowMs).coerceAtLeast(0L) / 1000L).toInt())
+                }
             }
         }
 
@@ -1197,7 +1260,9 @@ private fun deriveYouTimerText(snapshot: Wearable.WearWorkoutSnapshot): String {
             }
         }
 
-        else -> snapshot.youCard.timerText
+        else -> {
+            snapshot.youCard.timerText
+        }
     }
 }
 
@@ -1229,14 +1294,13 @@ private fun formatElapsedDurationNoSeconds(totalSeconds: Int): String {
     }
 }
 
-private fun watchStateAccentColor(stateLabel: String?): Color? {
-    return when (stateLabel) {
+private fun watchStateAccentColor(stateLabel: String?): Color? =
+    when (stateLabel) {
         "Lifting", "Warmup" -> MobileLiftingGreen
         "Resting" -> MobileRestingBlue
         "Yapping" -> MobileYappingPink
         else -> null
     }
-}
 
 private fun heartRateColor(bpm: Float?): Color {
     if (bpm == null || bpm <= 0f) return Color(0xFF94A3B8)
@@ -1248,10 +1312,9 @@ private fun heartRateColor(bpm: Float?): Color {
     }
 }
 
-private fun formatExerciseName(raw: String): String {
-    return raw
+private fun formatExerciseName(raw: String): String =
+    raw
         .removePrefix("EXERCISE_")
         .lowercase()
         .split('_')
         .joinToString(" ") { part -> part.replaceFirstChar { it.uppercase() } }
-}

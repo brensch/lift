@@ -1,0 +1,9 @@
+# Read by ktlint (and by editors). Formatter settings for the other languages
+# live with their tools: ruff.toml, .swiftformat, .swiftlint.yml,
+# web/.prettierrc.json, app/analysis_options.yaml, proto/buf.yaml.
+root = true
+
+[*.{kt,kts}]
+# Jetpack Compose requires @Composable functions to be PascalCase nouns;
+# this is ktlint's own switch for Compose code, not a suppression.
+ktlint_function_naming_ignore_when_annotated_with = Composable

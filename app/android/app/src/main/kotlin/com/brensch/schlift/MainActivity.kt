@@ -27,54 +27,70 @@ class MainActivity : FlutterFragmentActivity() {
                     WearBridgeManager.publishSnapshot(this, payload)
                     result.success(null)
                 }
+
                 "openWatchApp" -> {
                     CoroutineScope(Dispatchers.Main).launch {
                         val sent = WearBridgeManager.requestWatchAppOpen(this@MainActivity)
                         result.success(sent > 0)
                     }
                 }
+
                 "isWatchAppAvailable" -> {
                     CoroutineScope(Dispatchers.Main).launch {
                         result.success(WearBridgeManager.isWatchAppAvailable(this@MainActivity))
                     }
                 }
+
                 "isWatchAppOpenOnWatch" -> {
                     result.success(WearBridgeManager.isWatchAppOpenOnWatch())
                 }
+
                 "getWatchClockSync" -> {
                     CoroutineScope(Dispatchers.Main).launch {
                         result.success(WearBridgeManager.requestWatchClockSync(this@MainActivity))
                     }
                 }
 
-                else -> result.notImplemented()
+                else -> {
+                    result.notImplemented()
+                }
             }
         }
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "schlift/wear_bridge/intents",
-        ).setStreamHandler(object : EventChannel.StreamHandler {
-            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                WearBridgeManager.setIntentSink(events)
-            }
+        ).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(
+                    arguments: Any?,
+                    events: EventChannel.EventSink?,
+                ) {
+                    WearBridgeManager.setIntentSink(events)
+                }
 
-            override fun onCancel(arguments: Any?) {
-                WearBridgeManager.setIntentSink(null)
-            }
-        })
+                override fun onCancel(arguments: Any?) {
+                    WearBridgeManager.setIntentSink(null)
+                }
+            },
+        )
 
         EventChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "schlift/wear_bridge/sensors",
-        ).setStreamHandler(object : EventChannel.StreamHandler {
-            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                WearBridgeManager.setSensorSink(events)
-            }
+        ).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(
+                    arguments: Any?,
+                    events: EventChannel.EventSink?,
+                ) {
+                    WearBridgeManager.setSensorSink(events)
+                }
 
-            override fun onCancel(arguments: Any?) {
-                WearBridgeManager.setSensorSink(null)
-            }
-        })
+                override fun onCancel(arguments: Any?) {
+                    WearBridgeManager.setSensorSink(null)
+                }
+            },
+        )
     }
 }

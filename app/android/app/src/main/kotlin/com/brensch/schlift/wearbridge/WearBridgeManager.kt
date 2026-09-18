@@ -7,15 +7,15 @@ import android.util.Log
 import com.google.android.gms.wearable.CapabilityClient
 import com.google.android.gms.wearable.Wearable
 import io.flutter.plugin.common.EventChannel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.CompletableDeferred
-import java.util.concurrent.ConcurrentLinkedQueue
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
@@ -56,7 +56,10 @@ object WearBridgeManager {
         }
     }
 
-    fun publishSnapshot(context: Context, bytes: ByteArray) {
+    fun publishSnapshot(
+        context: Context,
+        bytes: ByteArray,
+    ) {
         lastSnapshotBytes.set(bytes)
         scope.launch {
             val nodeClient = Wearable.getNodeClient(context)
@@ -78,13 +81,11 @@ object WearBridgeManager {
         for (node in nodes) {
             runCatching {
                 messageClient.sendMessage(node.id, PHONE_TO_WEAR_LAUNCH_PATH, ByteArray(0)).await()
+            }.onSuccess {
+                sent += 1
+            }.onFailure {
+                Log.e("SchliftWearBridge", "Failed launch send to node=${node.id}", it)
             }
-                .onSuccess {
-                    sent += 1
-                }
-                .onFailure {
-                    Log.e("SchliftWearBridge", "Failed launch send to node=${node.id}", it)
-                }
         }
         return sent
     }
@@ -114,14 +115,14 @@ object WearBridgeManager {
 
     suspend fun isWatchAppAvailable(context: Context): Boolean {
         val capabilityClient = Wearable.getCapabilityClient(context)
-        val capability = runCatching {
-            capabilityClient
-                .getCapability(WEAR_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE)
-                .await()
-        }
-            .onFailure { Log.e("SchliftWearBridge", "Failed capability query", it) }
-            .getOrNull()
-            ?: return false
+        val capability =
+            runCatching {
+                capabilityClient
+                    .getCapability(WEAR_APP_CAPABILITY, CapabilityClient.FILTER_REACHABLE)
+                    .await()
+            }.onFailure { Log.e("SchliftWearBridge", "Failed capability query", it) }
+                .getOrNull()
+                ?: return false
         return capability.nodes.isNotEmpty()
     }
 
@@ -131,7 +132,12 @@ object WearBridgeManager {
         return (System.currentTimeMillis() - lastSeen) <= WATCH_UI_HEARTBEAT_TTL_MS
     }
 
-    fun onWearMessageReceived(context: Context, sourceNodeId: String, path: String, bytes: ByteArray) {
+    fun onWearMessageReceived(
+        context: Context,
+        sourceNodeId: String,
+        path: String,
+        bytes: ByteArray,
+    ) {
         if (path == WEAR_TO_PHONE_UI_HEARTBEAT_PATH) {
             lastWatchUiHeartbeatAtMs.set(System.currentTimeMillis())
             return
@@ -140,7 +146,8 @@ object WearBridgeManager {
             val snapshotBytes = lastSnapshotBytes.get() ?: return
             scope.launch {
                 runCatching {
-                    Wearable.getMessageClient(context)
+                    Wearable
+                        .getMessageClient(context)
                         .sendMessage(sourceNodeId, PHONE_TO_WEAR_SNAPSHOT_PATH, snapshotBytes)
                         .await()
                 }.onFailure { Log.e("SchliftWearBridge", "Failed snapshot reply to node=$sourceNodeId", it) }
@@ -160,18 +167,25 @@ object WearBridgeManager {
             return
         }
         when (path) {
-            WEAR_TO_PHONE_INTENT_PATH -> runCatching {
-                workout.v1.Wearable.WearIntent.parseFrom(bytes)
-                emitIntent(bytes)
-                Log.d("SchliftWearBridge", "Received wear intent bytes=${bytes.size}")
-            }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear intent", it) }
+            WEAR_TO_PHONE_INTENT_PATH -> {
+                runCatching {
+                    workout.v1.Wearable.WearIntent
+                        .parseFrom(bytes)
+                    emitIntent(bytes)
+                    Log.d("SchliftWearBridge", "Received wear intent bytes=${bytes.size}")
+                }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear intent", it) }
+            }
 
-            WEAR_TO_PHONE_SENSOR_BATCH_PATH -> runCatching {
-                val batch = workout.v1.Wearable.WearSensorBatch.parseFrom(bytes)
-                emitSensor(bytes)
-                sendSensorBatchAck(context, sourceNodeId, batch)
-                Log.d("SchliftWearBridge", "Received wear sensor batch id=${batch.batchId} bytes=${bytes.size}")
-            }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear sensor batch", it) }
+            WEAR_TO_PHONE_SENSOR_BATCH_PATH -> {
+                runCatching {
+                    val batch =
+                        workout.v1.Wearable.WearSensorBatch
+                            .parseFrom(bytes)
+                    emitSensor(bytes)
+                    sendSensorBatchAck(context, sourceNodeId, batch)
+                    Log.d("SchliftWearBridge", "Received wear sensor batch id=${batch.batchId} bytes=${bytes.size}")
+                }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear sensor batch", it) }
+            }
         }
     }
 
@@ -181,14 +195,17 @@ object WearBridgeManager {
         batch: workout.v1.Wearable.WearSensorBatch,
     ) {
         if (batch.batchId.isBlank()) return
-        val ack = workout.v1.Wearable.WearSensorBatchAck.newBuilder()
-            .setBatchId(batch.batchId)
-            .setWorkoutId(batch.workoutId)
-            .setReceivedAt(System.currentTimeMillis())
-            .build()
+        val ack =
+            workout.v1.Wearable.WearSensorBatchAck
+                .newBuilder()
+                .setBatchId(batch.batchId)
+                .setWorkoutId(batch.workoutId)
+                .setReceivedAt(System.currentTimeMillis())
+                .build()
         scope.launch {
             runCatching {
-                Wearable.getMessageClient(context)
+                Wearable
+                    .getMessageClient(context)
                     .sendMessage(sourceNodeId, PHONE_TO_WEAR_SENSOR_BATCH_ACK_PATH, ack.toByteArray())
                     .await()
             }.onFailure {
