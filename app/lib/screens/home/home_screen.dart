@@ -11,9 +11,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../tutorial/tutorial_seen.dart';
 import '../../tutorial/tutorial_target.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
@@ -38,20 +38,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const _tutorialSeenKey = 'tutorial_seen_v1';
   bool _isStarting = false;
   bool _tutorialChecked = false;
   // Which template card is expanded. Defaults to the suggestion; the user
   // taps the small chips to switch.
   String? _selectedTemplateId;
 
-  /// First arrival at a working home: show the walkthrough once.
+  /// First arrival at a working home: show the walkthrough once per account.
   Future<void> _maybeShowTutorial() async {
     if (_tutorialChecked) return;
     _tutorialChecked = true;
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_tutorialSeenKey) ?? false) return;
-    await prefs.setBool(_tutorialSeenKey, true);
+    final userId = context.read<AuthProvider>().userId;
+    if (userId == null || userId.isEmpty) return;
+    if (await TutorialSeen.checkAndMark(userId)) return;
     if (!mounted) return;
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
