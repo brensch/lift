@@ -57,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("action", choices=["pull", "push"])
+    parser.add_argument("action", choices=["pull", "push", "inspect"])
     parser.add_argument("--bundle-id", required=True)
     parser.add_argument("--listing", type=Path, default=ROOT / "store" / "listing.yaml")
     parser.add_argument(
@@ -270,6 +270,50 @@ def pull(asc: AppStoreConnect, app_id: str, version: dict | None) -> None:
     print(yaml.safe_dump(out, allow_unicode=True, sort_keys=False, width=100))
 
 
+def inspect(asc: AppStoreConnect, app_id: str, wanted: str | None) -> None:
+    """Read-only: every version and its state, then every screenshot set on one
+    version (any state) with each image's file name, size and processing state.
+
+    The store shows a device the set for its own display size, falling back to a
+    larger one. A set this script does not manage (SCREENSHOT_SETS) keeps
+    whatever was uploaded by hand, so stale images hide there.
+    """
+    versions = list_versions(asc, app_id, None)
+    print("versions:")
+    for v in versions:
+        print(f"  {v['attributes']['versionString']}: {version_state(v)}")
+    target = next(
+        (v for v in versions if not wanted or v["attributes"]["versionString"] == wanted), None
+    )
+    if target is None:
+        raise SystemExit(f"no App Store version {wanted}")
+    print(f"\nscreenshots on {target['attributes']['versionString']} ({version_state(target)}):")
+    for loc in asc.get(
+        f"/appStoreVersions/{target['id']}/appStoreVersionLocalizations", {"limit": 50}
+    ).get("data", []):
+        locale = loc["attributes"]["locale"]
+        sets = asc.get(
+            f"/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets", {"limit": 50}
+        ).get("data", [])
+        if not sets:
+            print(f"  [{locale}] no screenshot sets")
+        for s in sets:
+            display_type = s["attributes"]["screenshotDisplayType"]
+            managed = "managed" if display_type in SCREENSHOT_SETS else "NOT MANAGED by this script"
+            shots = asc.get(f"/appScreenshotSets/{s['id']}/appScreenshots", {"limit": 50}).get(
+                "data", []
+            )
+            print(f"  [{locale}] {display_type} ({managed}): {len(shots)} image(s)")
+            for shot in shots:
+                a = shot["attributes"]
+                asset = a.get("imageAsset") or {}
+                state = (a.get("assetDeliveryState") or {}).get("state", "?")
+                print(
+                    f"      {a.get('fileName')}  {asset.get('width')}x{asset.get('height')}  "
+                    f"{a.get('fileSize')} bytes  {state}"
+                )
+
+
 def push_text(asc: AppStoreConnect, app_id: str, version: dict, listing: dict) -> list[dict]:
     info = editable_app_info(asc, app_id)
     if info is None:
@@ -374,6 +418,34 @@ def upload_screenshot(asc: AppStoreConnect, set_id: str, path: Path) -> str | No
     return reserved["id"]
 
 
+# Display-type families this script owns outright. Within them, the repo is
+# the only source of screenshots: a set we do not upload is a leftover.
+OWNED_FAMILIES = ("APP_IPHONE_", "APP_WATCH_")
+
+
+def prune_stale_sets(asc: AppStoreConnect, localizations: list[dict]) -> None:
+    """Delete iPhone / Apple Watch screenshot sets this script does not manage.
+
+    Apple only requires the largest iPhone size and scales it down for smaller
+    displays. A smaller set left over from a hand upload is NOT scaled from
+    ours: it is shown as-is, on those devices and in App Store Connect, so the
+    listing keeps its old screenshots however often the managed set is pushed.
+    iPad and other families are left alone.
+    """
+    for loc in localizations:
+        if loc["id"] == "<new-loc>":
+            continue
+        locale = loc["attributes"]["locale"]
+        for s in asc.get(
+            f"/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets", {"limit": 50}
+        ).get("data", []):
+            display_type = s["attributes"]["screenshotDisplayType"]
+            if display_type in SCREENSHOT_SETS or not display_type.startswith(OWNED_FAMILIES):
+                continue
+            print(f"[{locale}] {display_type}: deleting stale screenshot set (not managed here)")
+            asc.request("DELETE", f"/appScreenshotSets/{s['id']}")
+
+
 def push_images(asc: AppStoreConnect, localizations: list[dict]) -> None:
     for display_type, (folder, expected) in SCREENSHOT_SETS.items():
         files = sorted((IMAGES / folder).glob("*.png"))
@@ -432,6 +504,7 @@ def push_images(asc: AppStoreConnect, localizations: list[dict]) -> None:
                     f"/appScreenshotSets/{existing['id']}/relationships/appScreenshots",
                     {"data": [{"type": "appScreenshots", "id": i} for i in ids]},
                 )
+    prune_stale_sets(asc, localizations)
 
 
 def main() -> int:
@@ -445,12 +518,16 @@ def main() -> int:
             return 1
     asc = AppStoreConnect(load_credentials(), dry_run=args.dry_run)
     app_id = find_app(asc, args.bundle_id)
+    if args.action == "inspect":
+        inspect(asc, app_id, args.version)
+        return 0
     if args.action == "pull":
-        version = None
-        try:
-            version = pick_version(asc, app_id, args.version)
-        except SystemExit as e:
-            print(f"(no editable version: {e})")
+        # Read-only: look the version up in whatever state it is in. (This
+        # used to go through pick_version, which creates a missing version.)
+        versions = list_versions(asc, app_id, args.version)
+        version = versions[0] if versions else None
+        if version is None:
+            print(f"(no App Store version {args.version or ''} to read)")
         pull(asc, app_id, version)
         return 0
     version = pick_version(asc, app_id, args.version, remove=args.remove_from_review)
