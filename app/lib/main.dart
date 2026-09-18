@@ -43,6 +43,7 @@ import 'screens/plate_colors_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/build_info_screen.dart';
+import 'tutorial/tutorial_seen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
@@ -191,6 +192,13 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     // Listen to auth changes: clear state on logout, load settings on login.
     // This covers mid-session signups/logins (not just app startup).
     _authProvider.addListener(() {
+      // The first notification is the saved session becoming known — before
+      // the router leaves /starting, so before any home screen can ask. Hand
+      // the old install-wide "tutorial seen" flag to whoever it belonged to.
+      // (Idempotent: only the first call does anything.)
+      if (_authProvider.sessionLoaded) {
+        unawaited(TutorialSeen.migrateLegacy(_authProvider.userId));
+      }
       final isLoggedIn = _authProvider.isLoggedIn;
       _workoutProvider.setBodyWeightKg(_authProvider.bodyWeightKg);
       if (isLoggedIn && !_wasLoggedIn) {
