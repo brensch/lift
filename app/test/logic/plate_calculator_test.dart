@@ -64,8 +64,11 @@ void main() {
         for (var w = bar; w <= bar + 400; w += 2.5) {
           final r = calcPlatesPerSide(w, unit);
           final loaded = loadedWeight(r, unit);
-          expect(loaded + r.remainder * 2, closeTo(w, 1e-6),
-              reason: 'unit=$unit weight=$w');
+          expect(
+            loaded + r.remainder * 2,
+            closeTo(w, 1e-6),
+            reason: 'unit=$unit weight=$w',
+          );
         }
       }
     });
@@ -74,9 +77,11 @@ void main() {
       for (final unit in [lb, kg]) {
         final bar = standardBarWeight(unit);
         for (var w = bar; w <= bar + 400; w += 2.5) {
-          expect(loadedWeight(calcPlatesPerSide(w, unit), unit),
-              lessThanOrEqualTo(w + 1e-6),
-              reason: 'unit=$unit weight=$w');
+          expect(
+            loadedWeight(calcPlatesPerSide(w, unit), unit),
+            lessThanOrEqualTo(w + 1e-6),
+            reason: 'unit=$unit weight=$w',
+          );
         }
       }
     });
@@ -87,8 +92,11 @@ void main() {
         final bar = standardBarWeight(unit);
         for (var w = bar; w <= bar + 400; w += 1) {
           final r = calcPlatesPerSide(w, unit);
-          expect(r.remainder, lessThan(smallest),
-              reason: 'a full plate was left unloaded at $w ($unit)');
+          expect(
+            r.remainder,
+            lessThan(smallest),
+            reason: 'a full plate was left unloaded at $w ($unit)',
+          );
           expect(r.remainder, greaterThanOrEqualTo(0));
         }
       }
@@ -98,8 +106,11 @@ void main() {
       for (var w = 45.0; w <= 500; w += 5) {
         final plates = calcPlatesPerSide(w, lb).plates;
         for (var i = 1; i < plates.length; i++) {
-          expect(plates[i], lessThanOrEqualTo(plates[i - 1]),
-              reason: 'weight=$w');
+          expect(
+            plates[i],
+            lessThanOrEqualTo(plates[i - 1]),
+            reason: 'weight=$w',
+          );
         }
       }
     });

@@ -5129,6 +5129,7 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
     $1.WeightUnit? unit,
     Gender? gender,
     $core.Iterable<$core.String>? libraryIds,
+    $core.double? strength,
   }) {
     final result = create();
     if (bodyWeightKg != null) result.bodyWeightKg = bodyWeightKg;
@@ -5136,6 +5137,7 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
     if (unit != null) result.unit = unit;
     if (gender != null) result.gender = gender;
     if (libraryIds != null) result.libraryIds.addAll(libraryIds);
+    if (strength != null) result.strength = strength;
     return result;
   }
 
@@ -5160,6 +5162,7 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
         enumValues: $1.WeightUnit.values)
     ..aE<Gender>(4, _omitFieldNames ? '' : 'gender', enumValues: Gender.values)
     ..pPS(5, _omitFieldNames ? '' : 'libraryIds')
+    ..aD(6, _omitFieldNames ? '' : 'strength', fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5222,6 +5225,18 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
   /// (also what clients from before the library send).
   @$pb.TagNumber(5)
   $pb.PbList<$core.String> get libraryIds => $_getList(4);
+
+  /// Chick to gorilla, 0..1, from the setup slider. When set it replaces
+  /// experience and gender for seeding the main lifts, and a missing
+  /// bodyweight seeds from an average instead of the empty bar.
+  @$pb.TagNumber(6)
+  $core.double get strength => $_getN(5);
+  @$pb.TagNumber(6)
+  set strength($core.double value) => $_setFloat(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasStrength() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearStrength() => $_clearField(6);
 }
 
 class CompleteOnboardingResponse extends $pb.GeneratedMessage {

@@ -1509,12 +1509,22 @@ impl WorkoutService for ServerWorkoutService {
             let experience = ExperienceLevel::try_from(req.experience)
                 .unwrap_or(ExperienceLevel::Unspecified);
             let gender = Gender::try_from(req.gender).unwrap_or(Gender::Unspecified);
-            for (exercise, weight) in crate::onboarding::starting_tracker_weights(
-                req.body_weight_kg,
-                experience,
-                gender,
-                unit,
-            ) {
+            // The slider replaces the experience and gender questions; older
+            // clients still send those.
+            let seeds = match req.strength {
+                Some(strength) => crate::onboarding::starting_tracker_weights_for_strength(
+                    req.body_weight_kg,
+                    strength,
+                    unit,
+                ),
+                None => crate::onboarding::starting_tracker_weights(
+                    req.body_weight_kg,
+                    experience,
+                    gender,
+                    unit,
+                ),
+            };
+            for (exercise, weight) in seeds {
                 if states.contains_key(&(exercise as i32)) {
                     continue;
                 }

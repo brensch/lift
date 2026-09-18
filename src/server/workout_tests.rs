@@ -39,6 +39,7 @@ async fn onboard(svc: &ServerWorkoutService, token: &str, unit: WeightUnit) -> G
             unit: unit as i32,
             gender: 0,
             library_ids: vec![],
+                    strength: None,
         },
     ))
     .await
@@ -148,6 +149,7 @@ mod home_and_onboarding {
                     unit: WeightUnit::Lb as i32,
                     gender: 0,
                     library_ids: vec!["stronglifts_a".into(), "butt_stuff".into()],
+                    strength: None,
                 },
             ))
             .await
@@ -179,6 +181,7 @@ mod home_and_onboarding {
                     unit: WeightUnit::Lb as i32,
                     gender: 0,
                     library_ids: vec!["nope".into()],
+                    strength: None,
                 },
             ))
             .await
@@ -280,6 +283,7 @@ mod home_and_onboarding {
                     unit: WeightUnit::Lb as i32,
                     gender: Gender::Male as i32,
                     library_ids: vec![],
+                    strength: None,
                 },
             ))
             .await
@@ -324,6 +328,7 @@ mod home_and_onboarding {
                     unit: WeightUnit::Kg as i32,
                     gender: 0,
                     library_ids: vec![],
+                    strength: None,
                 },
             ))
             .await

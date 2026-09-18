@@ -211,15 +211,16 @@ class WorkoutServiceWrapper {
     required WeightUnit unit,
     Gender gender = Gender.GENDER_UNSPECIFIED,
     List<String> libraryIds = const [],
+    double? strength, // chick 0 .. gorilla 1; replaces experience/gender
   }) async {
-    final response = await _client.workoutService.completeOnboarding(
-      CompleteOnboardingRequest()
-        ..bodyWeightKg = bodyWeightKg
-        ..experience = experience
-        ..unit = unit
-        ..gender = gender
-        ..libraryIds.addAll(libraryIds),
-    );
+    final request = CompleteOnboardingRequest()
+      ..bodyWeightKg = bodyWeightKg
+      ..experience = experience
+      ..unit = unit
+      ..gender = gender
+      ..libraryIds.addAll(libraryIds);
+    if (strength != null) request.strength = strength;
+    final response = await _client.workoutService.completeOnboarding(request);
     return response.home;
   }
 
