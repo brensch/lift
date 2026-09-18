@@ -5226,9 +5226,9 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $pb.PbList<$core.String> get libraryIds => $_getList(4);
 
-  /// Chick to gorilla, 0..1, from the setup slider. When set it replaces
-  /// experience and gender for seeding the main lifts, and a missing
-  /// bodyweight seeds from an average instead of the empty bar.
+  /// Chick to gorilla, 0..1, from the setup slider. When set it alone
+  /// seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+  /// 1); experience, gender and bodyweight are then ignored for seeding.
   @$pb.TagNumber(6)
   $core.double get strength => $_getN(5);
   @$pb.TagNumber(6)

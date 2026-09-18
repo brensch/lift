@@ -11,6 +11,38 @@ pub struct ServerAuthService {
     pub auth_state: Arc<AuthState>,
 }
 
+impl ServerAuthService {
+    // Attempt tracking is telemetry. A failure to write it is logged and
+    // swallowed: it must never be the reason somebody cannot sign in.
+
+    async fn track_attempt_start(
+        &self,
+        attempt_id: &str,
+        kind: &str,
+        platform: &str,
+        app_version: &str,
+    ) {
+        if let Err(e) = self
+            .db
+            .start_auth_attempt(attempt_id, kind, platform, app_version)
+            .await
+        {
+            tracing::warn!(error = %e, "failed to record auth attempt start");
+        }
+    }
+
+    async fn track_attempt_finish(&self, attempt_id: &str, outcome: &str, reason: &str) {
+        let reason: String = reason.chars().take(80).collect();
+        if let Err(e) = self
+            .db
+            .finish_auth_attempt(attempt_id, outcome, &reason)
+            .await
+        {
+            tracing::warn!(error = %e, "failed to record auth attempt finish");
+        }
+    }
+}
+
 #[tonic::async_trait]
 impl AuthService for ServerAuthService {
     /// Development-only login that bypasses WebAuthn entirely.
@@ -76,6 +108,7 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<RegisterStartRequest>,
     ) -> Result<Response<RegisterStartResponse>, Status> {
+        let (platform, app_version) = client_labels(&request);
         let req = request.into_inner();
         let username = req.username.trim().to_string();
         info!(rpc = "RegisterStart", %username, "request");
@@ -100,6 +133,8 @@ impl AuthService for ServerAuthService {
             .start_registration(&username)
             .await
             .map_err(Status::internal)?;
+        self.track_attempt_start(&user_id, "register", &platform, &app_version)
+            .await;
         let options_json =
             serde_json::to_string(&options).map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(RegisterStartResponse {
@@ -116,11 +151,18 @@ impl AuthService for ServerAuthService {
         info!(rpc = "RegisterFinish", user_id = %req.user_id, "request");
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
-        let username = self
+        let username = match self
             .auth_state
             .finish_registration(&req.user_id, &credential, remote_addr, req.name)
             .await
-            .map_err(Status::invalid_argument)?;
+        {
+            Ok(username) => username,
+            Err(e) => {
+                self.track_attempt_finish(&req.user_id, "rejected", &e).await;
+                return Err(Status::invalid_argument(e));
+            }
+        };
+        self.track_attempt_finish(&req.user_id, "ok", "").await;
         let token = self
             .db
             .create_auth_session(&req.user_id)
@@ -136,6 +178,7 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<LoginStartRequest>,
     ) -> Result<Response<LoginStartResponse>, Status> {
+        let (platform, app_version) = client_labels(&request);
         let req = request.into_inner();
         info!(rpc = "LoginStart", "request");
         let (challenge_id, options) = match req.username.as_deref() {
@@ -150,6 +193,8 @@ impl AuthService for ServerAuthService {
                 .await
                 .map_err(Status::internal)?,
         };
+        self.track_attempt_start(&challenge_id, "login", &platform, &app_version)
+            .await;
         let options_json =
             serde_json::to_string(&options).map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(LoginStartResponse {
@@ -165,11 +210,19 @@ impl AuthService for ServerAuthService {
         info!(rpc = "LoginFinish", challenge_id = %req.challenge_id, "request");
         let credential: PublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
-        let (token, user_id, username) = self
+        let (token, user_id, username) = match self
             .auth_state
             .finish_authentication(&req.challenge_id, &req.credential_json, &credential)
             .await
-            .map_err(Status::unauthenticated)?;
+        {
+            Ok(session) => session,
+            Err(e) => {
+                self.track_attempt_finish(&req.challenge_id, "rejected", &e)
+                    .await;
+                return Err(Status::unauthenticated(e));
+            }
+        };
+        self.track_attempt_finish(&req.challenge_id, "ok", "").await;
         Ok(Response::new(AuthResponse {
             session_token: token,
             user_id,
@@ -290,6 +343,34 @@ impl AuthService for ServerAuthService {
             deleted_user_id: user_id,
         }))
     }
+
+    /// Deliberately unauthenticated, like the Start/Finish RPCs it annotates:
+    /// the caller is by definition someone who failed to sign in. Do not copy
+    /// this as a pattern. What keeps it safe is that it cannot create rows —
+    /// it only labels a recent, still-unfinished attempt the server issued,
+    /// once, with an enum value.
+    async fn report_auth_failure(
+        &self,
+        request: Request<ReportAuthFailureRequest>,
+    ) -> Result<Response<ReportAuthFailureResponse>, Status> {
+        let req = request.into_inner();
+        let reason = AuthFailureReason::try_from(req.reason)
+            .unwrap_or(AuthFailureReason::Unspecified)
+            .as_str_name()
+            .trim_start_matches("AUTH_FAILURE_REASON_")
+            .to_lowercase();
+        info!(rpc = "ReportAuthFailure", %reason, "request");
+        if req.attempt_id.len() > 64 {
+            return Err(Status::invalid_argument("attempt_id too long"));
+        }
+        // Whether it landed is not revealed: an unknown id and a settled one
+        // look the same to the caller.
+        self.db
+            .report_auth_failure(&req.attempt_id, &reason)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(ReportAuthFailureResponse {}))
+    }
 }
 
 #[cfg(test)]
@@ -346,5 +427,131 @@ mod test_login_gate_tests {
 
         assert!(!response.session_token.is_empty());
         assert_eq!(response.username, "dev-user");
+    }
+}
+
+#[cfg(test)]
+mod auth_attempt_tests {
+    use super::*;
+    use sqlx::Row;
+
+    async fn temp_db() -> ServerDb {
+        let dir = std::env::temp_dir().join(format!("lift-attempt-test-{}", Uuid::new_v4()));
+        ServerDb::new_in_dir(&dir).await.unwrap()
+    }
+
+    async fn service(db: &ServerDb) -> ServerAuthService {
+        ServerAuthService {
+            db: db.clone(),
+            auth_state: Arc::new(AuthState::new(db.clone())),
+        }
+    }
+
+    async fn attempts(db: &ServerDb) -> Vec<(String, String, String)> {
+        sqlx::query("SELECT attempt_id, outcome, reason FROM auth_attempts ORDER BY attempt_id")
+            .fetch_all(&db.read_pool)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|r| (r.get("attempt_id"), r.get("outcome"), r.get("reason")))
+            .collect()
+    }
+
+    fn report(attempt_id: &str, reason: AuthFailureReason) -> Request<ReportAuthFailureRequest> {
+        Request::new(ReportAuthFailureRequest {
+            attempt_id: attempt_id.to_string(),
+            reason: reason as i32,
+        })
+    }
+
+    #[tokio::test]
+    async fn a_started_login_is_recorded_with_the_client_labels() {
+        let db = temp_db().await;
+        let mut request = Request::new(LoginStartRequest { username: None });
+        request
+            .metadata_mut()
+            .insert("x-platform", "android".parse().unwrap());
+        request
+            .metadata_mut()
+            .insert("x-app-version", "1.2.3".parse().unwrap());
+
+        let started = service(&db).await.login_start(request).await.unwrap();
+        let challenge_id = started.into_inner().challenge_id;
+
+        let row = sqlx::query("SELECT kind, outcome, platform, app_version FROM auth_attempts WHERE attempt_id = ?")
+            .bind(&challenge_id)
+            .fetch_one(&db.read_pool)
+            .await
+            .unwrap();
+        assert_eq!(row.get::<String, _>("kind"), "login");
+        assert_eq!(row.get::<String, _>("outcome"), "started");
+        assert_eq!(row.get::<String, _>("platform"), "android");
+        assert_eq!(row.get::<String, _>("app_version"), "1.2.3");
+    }
+
+    /// The unauthenticated report path must not be a way to write rows.
+    #[tokio::test]
+    async fn a_failure_report_cannot_create_an_attempt() {
+        let db = temp_db().await;
+        service(&db)
+            .await
+            .report_auth_failure(report("made-up-id", AuthFailureReason::Cancelled))
+            .await
+            .unwrap();
+        assert!(attempts(&db).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_failure_report_lands_once_and_never_rewrites_a_verdict() {
+        let db = temp_db().await;
+        let auth = service(&db).await;
+        db.start_auth_attempt("open", "login", "ios", "1.0.0").await.unwrap();
+        db.start_auth_attempt("settled", "login", "ios", "1.0.0").await.unwrap();
+        db.finish_auth_attempt("settled", "ok", "").await.unwrap();
+
+        for id in ["open", "settled"] {
+            auth.report_auth_failure(report(id, AuthFailureReason::Cancelled))
+                .await
+                .unwrap();
+        }
+        // A second report on the same attempt changes nothing.
+        auth.report_auth_failure(report("open", AuthFailureReason::Unsupported))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            attempts(&db).await,
+            vec![
+                ("open".to_string(), "client_error".to_string(), "cancelled".to_string()),
+                ("settled".to_string(), "ok".to_string(), String::new()),
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn a_rejected_login_is_recorded_as_rejected() {
+        let db = temp_db().await;
+        let auth = service(&db).await;
+        let challenge_id = auth
+            .login_start(Request::new(LoginStartRequest { username: None }))
+            .await
+            .unwrap()
+            .into_inner()
+            .challenge_id;
+
+        // A structurally valid credential that no passkey on file matches.
+        let credential_json = r#"{"id":"AAAA","rawId":"AAAA","type":"public-key","response":{"authenticatorData":"AAAA","clientDataJSON":"AAAA","signature":"AAAA"},"extensions":{}}"#;
+        let result = auth
+            .login_finish(Request::new(LoginFinishRequest {
+                challenge_id: challenge_id.clone(),
+                credential_json: credential_json.to_string(),
+            }))
+            .await;
+        assert!(result.is_err());
+
+        let rows = attempts(&db).await;
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].0, challenge_id);
+        assert_eq!(rows[0].1, "rejected");
     }
 }

@@ -4,8 +4,9 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/use-auth";
+import { useIsAdmin } from "@/lib/use-is-admin";
 
-const navItems = [
+const publicNavItems = [
   { to: "/", label: "Home" },
   { to: "/templates", label: "Templates" },
   { to: "/privacy", label: "Privacy" },
@@ -16,6 +17,8 @@ export function Layout() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
+  const isAdmin = useIsAdmin();
+  const navItems = isAdmin ? [...publicNavItems, { to: "/admin", label: "Stats" }] : publicNavItems;
 
   const authLink = user
     ? { to: "/dashboard", label: user.username }

@@ -15,7 +15,11 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'auth.pbenum.dart';
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
+
+export 'auth.pbenum.dart';
 
 class RegisterStartRequest extends $pb.GeneratedMessage {
   factory RegisterStartRequest({
@@ -1178,6 +1182,114 @@ class DeleteAccountResponse extends $pb.GeneratedMessage {
   $core.bool hasDeletedUserId() => $_has(0);
   @$pb.TagNumber(1)
   void clearDeletedUserId() => $_clearField(1);
+}
+
+class ReportAuthFailureRequest extends $pb.GeneratedMessage {
+  factory ReportAuthFailureRequest({
+    $core.String? attemptId,
+    AuthFailureReason? reason,
+  }) {
+    final result = create();
+    if (attemptId != null) result.attemptId = attemptId;
+    if (reason != null) result.reason = reason;
+    return result;
+  }
+
+  ReportAuthFailureRequest._();
+
+  factory ReportAuthFailureRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReportAuthFailureRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReportAuthFailureRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'attemptId')
+    ..aE<AuthFailureReason>(2, _omitFieldNames ? '' : 'reason',
+        enumValues: AuthFailureReason.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReportAuthFailureRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReportAuthFailureRequest copyWith(
+          void Function(ReportAuthFailureRequest) updates) =>
+      super.copyWith((message) => updates(message as ReportAuthFailureRequest))
+          as ReportAuthFailureRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReportAuthFailureRequest create() => ReportAuthFailureRequest._();
+  @$core.override
+  ReportAuthFailureRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReportAuthFailureRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReportAuthFailureRequest>(create);
+  static ReportAuthFailureRequest? _defaultInstance;
+
+  /// RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+  @$pb.TagNumber(1)
+  $core.String get attemptId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set attemptId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAttemptId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAttemptId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  AuthFailureReason get reason => $_getN(1);
+  @$pb.TagNumber(2)
+  set reason(AuthFailureReason value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasReason() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearReason() => $_clearField(2);
+}
+
+class ReportAuthFailureResponse extends $pb.GeneratedMessage {
+  factory ReportAuthFailureResponse() => create();
+
+  ReportAuthFailureResponse._();
+
+  factory ReportAuthFailureResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReportAuthFailureResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReportAuthFailureResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReportAuthFailureResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReportAuthFailureResponse copyWith(
+          void Function(ReportAuthFailureResponse) updates) =>
+      super.copyWith((message) => updates(message as ReportAuthFailureResponse))
+          as ReportAuthFailureResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReportAuthFailureResponse create() => ReportAuthFailureResponse._();
+  @$core.override
+  ReportAuthFailureResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReportAuthFailureResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReportAuthFailureResponse>(create);
+  static ReportAuthFailureResponse? _defaultInstance;
 }
 
 const $core.bool _omitFieldNames =

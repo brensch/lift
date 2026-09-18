@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/workout.pbgrpc.dart';
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
+import '../gen/workout/v1/analytics.pbgrpc.dart';
 import '../gen/workout/v1/settings.pbgrpc.dart';
 import 'app_logger.dart';
 
@@ -25,6 +27,10 @@ class AuthInterceptor extends ClientInterceptor {
     if (appVersion.isNotEmpty) {
       metadata['x-app-version'] = appVersion;
     }
+    // An analytics label only (page views, sign-in attempts by platform).
+    metadata['x-platform'] = kIsWeb
+        ? 'web'
+        : defaultTargetPlatform.name.toLowerCase();
     return metadata;
   }
 
@@ -106,6 +112,7 @@ class LoggingInterceptor extends ClientInterceptor {
   // High-frequency polling calls — log at debug to avoid noise.
   static const _debugOnlyMethods = {
     '/workout.v1.MultiplayerService/GetCurrentSession',
+    '/workout.v1.AnalyticsService/RecordPageViews',
   };
 
   @override
@@ -169,6 +176,7 @@ class GrpcClient {
   late MultiplayerServiceClient multiplayerService;
   late AuthServiceClient authService;
   late SettingsServiceClient settingsService;
+  late AnalyticsServiceClient analyticsService;
 
   GrpcClient({required this.host, required this.port}) {
     authInterceptor = AuthInterceptor();
@@ -210,6 +218,10 @@ class GrpcClient {
     );
     authService = AuthServiceClient(channel, interceptors: _interceptors);
     settingsService = SettingsServiceClient(
+      channel,
+      interceptors: _interceptors,
+    );
+    analyticsService = AnalyticsServiceClient(
       channel,
       interceptors: _interceptors,
     );

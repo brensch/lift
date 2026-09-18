@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:credential_manager/credential_manager.dart' as cm;
@@ -67,14 +68,17 @@ class AuthService {
 
     // Step 2: Create passkey credential via platform API
     // Server wraps options under "publicKey" key
-    final credential = await _authenticator
-        .register(_registerRequestFromOptions(startResponse.optionsJson))
-        .timeout(
-          _passkeyOpTimeout,
-          onTimeout: () => throw Exception(
-            'Timed out waiting for device passkey prompt. Try again.',
+    final credential = await _reportingDeviceFailure(
+      startResponse.userId,
+      () => _authenticator
+          .register(_registerRequestFromOptions(startResponse.optionsJson))
+          .timeout(
+            _passkeyOpTimeout,
+            onTimeout: () => throw _PasskeyPromptTimeout(
+              'Timed out waiting for device passkey prompt. Try again.',
+            ),
           ),
-        );
+    );
     AppLogger.instance.info('Auth', 'passkeyRegister', {
       'phase': 'registerPromptDone',
       'credentialId': credential.id,
@@ -127,16 +131,19 @@ class AuthService {
 
       // Step 2: Get passkey credential via platform API
       // Server wraps options under "publicKey" key
-      final credential =
-          await (Platform.isAndroid
-                  ? _androidAuthenticate(startResponse.optionsJson)
-                  : _authenticateWithPasskeys(startResponse.optionsJson))
-              .timeout(
-                _passkeyOpTimeout,
-                onTimeout: () => throw Exception(
-                  "login timed out. if you didn't see a popup you have too many passkeys for this app, delete them all. if you did, the backend is broken.",
+      final credential = await _reportingDeviceFailure(
+        startResponse.challengeId,
+        () =>
+            (Platform.isAndroid
+                    ? _androidAuthenticate(startResponse.optionsJson)
+                    : _authenticateWithPasskeys(startResponse.optionsJson))
+                .timeout(
+                  _passkeyOpTimeout,
+                  onTimeout: () => throw _PasskeyPromptTimeout(
+                    "login timed out. if you didn't see a popup you have too many passkeys for this app, delete them all. if you did, the backend is broken.",
+                  ),
                 ),
-              );
+      );
       AppLogger.instance.info('Auth', 'passkeyLogin', {
         'phase': 'authenticateDone',
         'credentialId': credential.id,
@@ -175,6 +182,65 @@ class AuthService {
     }
   }
 
+  /// Runs the on-device half of a passkey ceremony. If it dies there, the
+  /// server would only ever see a Start with no Finish, so tell it why —
+  /// that is how "passkeys are broken on platform X" becomes visible. The
+  /// report is best-effort and the original error always propagates.
+  Future<T> _reportingDeviceFailure<T>(
+    String attemptId,
+    Future<T> Function() ceremony,
+  ) async {
+    try {
+      return await ceremony();
+    } catch (error) {
+      final reason = _failureReason(error);
+      AppLogger.instance.warn('Auth', 'deviceCeremonyFailed', {
+        'reason': reason.name,
+      });
+      unawaited(
+        grpcClient.authService
+            .reportAuthFailure(
+              ReportAuthFailureRequest(attemptId: attemptId, reason: reason),
+            )
+            .then((_) {}, onError: (_) {}),
+      );
+      rethrow;
+    }
+  }
+
+  static AuthFailureReason _failureReason(Object error) {
+    if (error is PasskeyAuthCancelledException) {
+      return AuthFailureReason.AUTH_FAILURE_REASON_CANCELLED;
+    }
+    if (error is NoCredentialsAvailableException ||
+        error is _NoPasskeyReturned) {
+      return AuthFailureReason.AUTH_FAILURE_REASON_NO_CREDENTIAL;
+    }
+    if (error is DeviceNotSupportedException ||
+        error is PasskeyUnsupportedException ||
+        error is MissingGoogleSignInException ||
+        error is SyncAccountNotAvailableException ||
+        error is NoCreateOptionException) {
+      return AuthFailureReason.AUTH_FAILURE_REASON_UNSUPPORTED;
+    }
+    if (error is _PasskeyPromptTimeout || error is TimeoutException) {
+      return AuthFailureReason.AUTH_FAILURE_REASON_TIMEOUT;
+    }
+    if (error is cm.CredentialException) {
+      // credential_manager's numeric codes.
+      return switch (error.code) {
+        201 => AuthFailureReason.AUTH_FAILURE_REASON_CANCELLED,
+        202 || 203 => AuthFailureReason.AUTH_FAILURE_REASON_NO_CREDENTIAL,
+        207 || 209 => AuthFailureReason.AUTH_FAILURE_REASON_UNSUPPORTED,
+        _ => AuthFailureReason.AUTH_FAILURE_REASON_PLATFORM_ERROR,
+      };
+    }
+    if (error is AuthenticatorException) {
+      return AuthFailureReason.AUTH_FAILURE_REASON_PLATFORM_ERROR;
+    }
+    return AuthFailureReason.AUTH_FAILURE_REASON_OTHER;
+  }
+
   Future<_CredentialJsonCarrier> _androidAuthenticate(
     String optionsJson,
   ) async {
@@ -199,7 +265,7 @@ class AuthService {
       AppLogger.instance.warn('Auth', 'androidAuthenticate', {
         'phase': 'noCredential',
       });
-      throw Exception('No passkey credential returned by Android.');
+      throw _NoPasskeyReturned('No passkey credential returned by Android.');
     }
     AppLogger.instance.info('Auth', 'androidAuthenticate', {
       'phase': 'done',
@@ -425,4 +491,20 @@ class _CredentialJsonCarrier {
   String? get id => _json['id'] as String?;
 
   Map<String, dynamic> toJson() => _json;
+}
+
+// Typed so a failed ceremony can be classified without matching on message
+// text. Both still read as plain exceptions to the login screen.
+class _PasskeyPromptTimeout implements Exception {
+  _PasskeyPromptTimeout(this.message);
+  final String message;
+  @override
+  String toString() => 'Exception: $message';
+}
+
+class _NoPasskeyReturned implements Exception {
+  _NoPasskeyReturned(this.message);
+  final String message;
+  @override
+  String toString() => 'Exception: $message';
 }

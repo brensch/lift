@@ -8,6 +8,177 @@ public final class Auth {
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistryLite registry) {
   }
+  /**
+   * <pre>
+   * Why a passkey ceremony died on the device, as far as the app can tell.
+   * A fixed enum, never free text: this rides on an unauthenticated RPC.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.AuthFailureReason}
+   */
+  public enum AuthFailureReason
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>AUTH_FAILURE_REASON_UNSPECIFIED = 0;</code>
+     */
+    AUTH_FAILURE_REASON_UNSPECIFIED(0),
+    /**
+     * <pre>
+     * user dismissed the passkey sheet
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_CANCELLED = 1;</code>
+     */
+    AUTH_FAILURE_REASON_CANCELLED(1),
+    /**
+     * <pre>
+     * no passkey for this account on this device
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_NO_CREDENTIAL = 2;</code>
+     */
+    AUTH_FAILURE_REASON_NO_CREDENTIAL(2),
+    /**
+     * <pre>
+     * no passkey provider / OS too old
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_UNSUPPORTED = 3;</code>
+     */
+    AUTH_FAILURE_REASON_UNSUPPORTED(3),
+    /**
+     * <pre>
+     * the OS credential API errored
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_PLATFORM_ERROR = 4;</code>
+     */
+    AUTH_FAILURE_REASON_PLATFORM_ERROR(4),
+    /**
+     * <code>AUTH_FAILURE_REASON_TIMEOUT = 5;</code>
+     */
+    AUTH_FAILURE_REASON_TIMEOUT(5),
+    /**
+     * <code>AUTH_FAILURE_REASON_OTHER = 6;</code>
+     */
+    AUTH_FAILURE_REASON_OTHER(6),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>AUTH_FAILURE_REASON_UNSPECIFIED = 0;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_UNSPECIFIED_VALUE = 0;
+    /**
+     * <pre>
+     * user dismissed the passkey sheet
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_CANCELLED = 1;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_CANCELLED_VALUE = 1;
+    /**
+     * <pre>
+     * no passkey for this account on this device
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_NO_CREDENTIAL = 2;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_NO_CREDENTIAL_VALUE = 2;
+    /**
+     * <pre>
+     * no passkey provider / OS too old
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_UNSUPPORTED = 3;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_UNSUPPORTED_VALUE = 3;
+    /**
+     * <pre>
+     * the OS credential API errored
+     * </pre>
+     *
+     * <code>AUTH_FAILURE_REASON_PLATFORM_ERROR = 4;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_PLATFORM_ERROR_VALUE = 4;
+    /**
+     * <code>AUTH_FAILURE_REASON_TIMEOUT = 5;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_TIMEOUT_VALUE = 5;
+    /**
+     * <code>AUTH_FAILURE_REASON_OTHER = 6;</code>
+     */
+    public static final int AUTH_FAILURE_REASON_OTHER_VALUE = 6;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static AuthFailureReason valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static AuthFailureReason forNumber(int value) {
+      switch (value) {
+        case 0: return AUTH_FAILURE_REASON_UNSPECIFIED;
+        case 1: return AUTH_FAILURE_REASON_CANCELLED;
+        case 2: return AUTH_FAILURE_REASON_NO_CREDENTIAL;
+        case 3: return AUTH_FAILURE_REASON_UNSUPPORTED;
+        case 4: return AUTH_FAILURE_REASON_PLATFORM_ERROR;
+        case 5: return AUTH_FAILURE_REASON_TIMEOUT;
+        case 6: return AUTH_FAILURE_REASON_OTHER;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<AuthFailureReason>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        AuthFailureReason> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<AuthFailureReason>() {
+            @java.lang.Override
+            public AuthFailureReason findValueByNumber(int number) {
+              return AuthFailureReason.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return AuthFailureReasonVerifier.INSTANCE;
+    }
+
+    private static final class AuthFailureReasonVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new AuthFailureReasonVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return AuthFailureReason.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private AuthFailureReason(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.AuthFailureReason)
+  }
+
   public interface RegisterStartRequestOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.RegisterStartRequest)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -6948,6 +7119,627 @@ public final class Auth {
     private static volatile com.google.protobuf.Parser<DeleteAccountResponse> PARSER;
 
     public static com.google.protobuf.Parser<DeleteAccountResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ReportAuthFailureRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ReportAuthFailureRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     * @return The attemptId.
+     */
+    java.lang.String getAttemptId();
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     * @return The bytes for attemptId.
+     */
+    com.google.protobuf.ByteString
+        getAttemptIdBytes();
+
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     * @return The enum numeric value on the wire for reason.
+     */
+    int getReasonValue();
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     * @return The reason.
+     */
+    workout.v1.Auth.AuthFailureReason getReason();
+  }
+  /**
+   * Protobuf type {@code workout.v1.ReportAuthFailureRequest}
+   */
+  public  static final class ReportAuthFailureRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          ReportAuthFailureRequest, ReportAuthFailureRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ReportAuthFailureRequest)
+      ReportAuthFailureRequestOrBuilder {
+    private ReportAuthFailureRequest() {
+      attemptId_ = "";
+    }
+    public static final int ATTEMPT_ID_FIELD_NUMBER = 1;
+    private java.lang.String attemptId_;
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     * @return The attemptId.
+     */
+    @java.lang.Override
+    public java.lang.String getAttemptId() {
+      return attemptId_;
+    }
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     * @return The bytes for attemptId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getAttemptIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(attemptId_);
+    }
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     * @param value The attemptId to set.
+     */
+    private void setAttemptId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      attemptId_ = value;
+    }
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     */
+    private void clearAttemptId() {
+      
+      attemptId_ = getDefaultInstance().getAttemptId();
+    }
+    /**
+     * <pre>
+     * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+     * </pre>
+     *
+     * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+     * @param value The bytes for attemptId to set.
+     */
+    private void setAttemptIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      attemptId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int REASON_FIELD_NUMBER = 2;
+    private int reason_;
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     * @return The enum numeric value on the wire for reason.
+     */
+    @java.lang.Override
+    public int getReasonValue() {
+      return reason_;
+    }
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     * @return The reason.
+     */
+    @java.lang.Override
+    public workout.v1.Auth.AuthFailureReason getReason() {
+      workout.v1.Auth.AuthFailureReason result = workout.v1.Auth.AuthFailureReason.forNumber(reason_);
+      return result == null ? workout.v1.Auth.AuthFailureReason.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     * @param value The enum numeric value on the wire for reason to set.
+     */
+    private void setReasonValue(int value) {
+        reason_ = value;
+    }
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     * @param value The reason to set.
+     */
+    private void setReason(workout.v1.Auth.AuthFailureReason value) {
+      reason_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+     */
+    private void clearReason() {
+      
+      reason_ = 0;
+    }
+
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.ReportAuthFailureRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Auth.ReportAuthFailureRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ReportAuthFailureRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Auth.ReportAuthFailureRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ReportAuthFailureRequest)
+        workout.v1.Auth.ReportAuthFailureRequestOrBuilder {
+      // Construct using workout.v1.Auth.ReportAuthFailureRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+       * </pre>
+       *
+       * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+       * @return The attemptId.
+       */
+      @java.lang.Override
+      public java.lang.String getAttemptId() {
+        return instance.getAttemptId();
+      }
+      /**
+       * <pre>
+       * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+       * </pre>
+       *
+       * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+       * @return The bytes for attemptId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getAttemptIdBytes() {
+        return instance.getAttemptIdBytes();
+      }
+      /**
+       * <pre>
+       * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+       * </pre>
+       *
+       * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+       * @param value The attemptId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAttemptId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setAttemptId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+       * </pre>
+       *
+       * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAttemptId() {
+        copyOnWrite();
+        instance.clearAttemptId();
+        return this;
+      }
+      /**
+       * <pre>
+       * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+       * </pre>
+       *
+       * <code>string attempt_id = 1 [json_name = "attemptId"];</code>
+       * @param value The bytes for attemptId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAttemptIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setAttemptIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+       * @return The enum numeric value on the wire for reason.
+       */
+      @java.lang.Override
+      public int getReasonValue() {
+        return instance.getReasonValue();
+      }
+      /**
+       * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+       * @param value The reason to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReasonValue(int value) {
+        copyOnWrite();
+        instance.setReasonValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+       * @return The reason.
+       */
+      @java.lang.Override
+      public workout.v1.Auth.AuthFailureReason getReason() {
+        return instance.getReason();
+      }
+      /**
+       * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+       * @param value The enum numeric value on the wire for reason to set.
+       * @return This builder for chaining.
+       */
+      public Builder setReason(workout.v1.Auth.AuthFailureReason value) {
+        copyOnWrite();
+        instance.setReason(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AuthFailureReason reason = 2 [json_name = "reason"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearReason() {
+        copyOnWrite();
+        instance.clearReason();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ReportAuthFailureRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Auth.ReportAuthFailureRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "attemptId_",
+              "reason_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\f" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Auth.ReportAuthFailureRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Auth.ReportAuthFailureRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Auth.ReportAuthFailureRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ReportAuthFailureRequest)
+    private static final workout.v1.Auth.ReportAuthFailureRequest DEFAULT_INSTANCE;
+    static {
+      ReportAuthFailureRequest defaultInstance = new ReportAuthFailureRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ReportAuthFailureRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.Auth.ReportAuthFailureRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ReportAuthFailureRequest> PARSER;
+
+    public static com.google.protobuf.Parser<ReportAuthFailureRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ReportAuthFailureResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ReportAuthFailureResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.ReportAuthFailureResponse}
+   */
+  public  static final class ReportAuthFailureResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          ReportAuthFailureResponse, ReportAuthFailureResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ReportAuthFailureResponse)
+      ReportAuthFailureResponseOrBuilder {
+    private ReportAuthFailureResponse() {
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Auth.ReportAuthFailureResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Auth.ReportAuthFailureResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ReportAuthFailureResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Auth.ReportAuthFailureResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ReportAuthFailureResponse)
+        workout.v1.Auth.ReportAuthFailureResponseOrBuilder {
+      // Construct using workout.v1.Auth.ReportAuthFailureResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ReportAuthFailureResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Auth.ReportAuthFailureResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Auth.ReportAuthFailureResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Auth.ReportAuthFailureResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Auth.ReportAuthFailureResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ReportAuthFailureResponse)
+    private static final workout.v1.Auth.ReportAuthFailureResponse DEFAULT_INSTANCE;
+    static {
+      ReportAuthFailureResponse defaultInstance = new ReportAuthFailureResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ReportAuthFailureResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.Auth.ReportAuthFailureResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ReportAuthFailureResponse> PARSER;
+
+    public static com.google.protobuf.Parser<ReportAuthFailureResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

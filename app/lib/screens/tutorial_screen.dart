@@ -17,6 +17,7 @@ import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
+import '../services/page_tracker.dart';
 import '../theme/app_theme.dart';
 import '../tutorial/tutorial_service.dart';
 import '../tutorial/tutorial_target.dart';
@@ -84,6 +85,10 @@ class _TutorialScreenState extends State<TutorialScreen>
     // has been measured; then text and position change in one frame.
     _pending = index;
     final step = _steps[index];
+    // Named by position and target, not by the copy, which gets rewritten.
+    PageTracker.instance.enter(
+      'tutorial/${(index + 1).toString().padLeft(2, '0')}-${step.target}',
+    );
     try {
       if (step.screen == 'workout' && !_workouts.hasActiveWorkout) {
         await _workouts.startWorkout(
@@ -394,6 +399,7 @@ class _Popover extends StatelessWidget {
                         child: OutlinedButton.icon(
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: 'science'),
                               builder: (_) => const ScienceScreen(),
                             ),
                           ),

@@ -15,6 +15,28 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use authFailureReasonDescriptor instead')
+const AuthFailureReason$json = {
+  '1': 'AuthFailureReason',
+  '2': [
+    {'1': 'AUTH_FAILURE_REASON_UNSPECIFIED', '2': 0},
+    {'1': 'AUTH_FAILURE_REASON_CANCELLED', '2': 1},
+    {'1': 'AUTH_FAILURE_REASON_NO_CREDENTIAL', '2': 2},
+    {'1': 'AUTH_FAILURE_REASON_UNSUPPORTED', '2': 3},
+    {'1': 'AUTH_FAILURE_REASON_PLATFORM_ERROR', '2': 4},
+    {'1': 'AUTH_FAILURE_REASON_TIMEOUT', '2': 5},
+    {'1': 'AUTH_FAILURE_REASON_OTHER', '2': 6},
+  ],
+};
+
+/// Descriptor for `AuthFailureReason`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List authFailureReasonDescriptor = $convert.base64Decode(
+    'ChFBdXRoRmFpbHVyZVJlYXNvbhIjCh9BVVRIX0ZBSUxVUkVfUkVBU09OX1VOU1BFQ0lGSUVEEA'
+    'ASIQodQVVUSF9GQUlMVVJFX1JFQVNPTl9DQU5DRUxMRUQQARIlCiFBVVRIX0ZBSUxVUkVfUkVB'
+    'U09OX05PX0NSRURFTlRJQUwQAhIjCh9BVVRIX0ZBSUxVUkVfUkVBU09OX1VOU1VQUE9SVEVEEA'
+    'MSJgoiQVVUSF9GQUlMVVJFX1JFQVNPTl9QTEFURk9STV9FUlJPUhAEEh8KG0FVVEhfRkFJTFVS'
+    'RV9SRUFTT05fVElNRU9VVBAFEh0KGUFVVEhfRkFJTFVSRV9SRUFTT05fT1RIRVIQBg==');
+
 @$core.Deprecated('Use registerStartRequestDescriptor instead')
 const RegisterStartRequest$json = {
   '1': 'RegisterStartRequest',
@@ -311,3 +333,34 @@ const DeleteAccountResponse$json = {
 final $typed_data.Uint8List deleteAccountResponseDescriptor = $convert.base64Decode(
     'ChVEZWxldGVBY2NvdW50UmVzcG9uc2USJgoPZGVsZXRlZF91c2VyX2lkGAEgASgJUg1kZWxldG'
     'VkVXNlcklk');
+
+@$core.Deprecated('Use reportAuthFailureRequestDescriptor instead')
+const ReportAuthFailureRequest$json = {
+  '1': 'ReportAuthFailureRequest',
+  '2': [
+    {'1': 'attempt_id', '3': 1, '4': 1, '5': 9, '10': 'attemptId'},
+    {
+      '1': 'reason',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.AuthFailureReason',
+      '10': 'reason'
+    },
+  ],
+};
+
+/// Descriptor for `ReportAuthFailureRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List reportAuthFailureRequestDescriptor = $convert.base64Decode(
+    'ChhSZXBvcnRBdXRoRmFpbHVyZVJlcXVlc3QSHQoKYXR0ZW1wdF9pZBgBIAEoCVIJYXR0ZW1wdE'
+    'lkEjUKBnJlYXNvbhgCIAEoDjIdLndvcmtvdXQudjEuQXV0aEZhaWx1cmVSZWFzb25SBnJlYXNv'
+    'bg==');
+
+@$core.Deprecated('Use reportAuthFailureResponseDescriptor instead')
+const ReportAuthFailureResponse$json = {
+  '1': 'ReportAuthFailureResponse',
+};
+
+/// Descriptor for `ReportAuthFailureResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List reportAuthFailureResponseDescriptor =
+    $convert.base64Decode('ChlSZXBvcnRBdXRoRmFpbHVyZVJlc3BvbnNl');

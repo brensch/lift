@@ -14,6 +14,7 @@ built, it is called out explicitly under "Not implemented".
 | [app.md](app.md) | Flutter layer boundaries, providers, polling and refresh |
 | [wearable.md](wearable.md) | Watch ↔ phone ↔ server protocol for Wear OS and watchOS |
 | [auth.md](auth.md) | Passkey registration and login, session tokens |
+| [analytics.md](analytics.md) | Page-view tracking, sign-in attempt tracking, admins and the `/admin` stats page |
 | [testing.md](testing.md) | The test layers, the API invariant harness, known gaps |
 
 Progression, templates and volume are specified in
