@@ -247,3 +247,43 @@ deploy-android:
 		$(ADB) -s "$$SERIAL" uninstall com.brensch.schlift || true; \
 		$(ADB) -s "$$SERIAL" install app/build/app/outputs/flutter-apk/app-release.apk || exit 1; \
 	fi
+
+# The side-by-side dev app (com.brensch.schlift.dev, "Schlift Dev", talks to
+# dev.schlift.com), built and installed from this machine. This is the local
+# twin of .github/workflows/android-dev-release.yml: same package, same
+# release key, so it upgrades the installed dev app in place and keeps its
+# login. Needs app/android/key.properties + the keystore (gitignored — a
+# fresh git worktree will not have them).
+#
+# The build number is one more than whatever is installed, so adb never sees
+# a downgrade. There is deliberately no uninstall fallback: a failed install
+# is reported, never "fixed" by wiping the app.
+DEV_SERVER_HOST ?= dev.schlift.com
+DEV_APP_ID = com.brensch.schlift.dev
+deploy-android-dev:
+	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		SERIAL=$$($(ADB) devices | awk "NR > 1 && \$$2 == \"device\" { print \$$1 }" | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
+			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
+		done); \
+		if [ -z "$$SERIAL" ]; then \
+			echo "No non-watch Android device found."; \
+			$(ADB) devices; \
+			exit 1; \
+		fi; \
+		if [ ! -f app/android/key.properties ]; then \
+			echo "Missing app/android/key.properties (release signing). In a git worktree, copy it and the keystore from the main checkout."; \
+			exit 1; \
+		fi; \
+		INSTALLED=$$($(ADB) -s "$$SERIAL" shell dumpsys package $(DEV_APP_ID) </dev/null 2>/dev/null | grep -o "versionCode=[0-9]*" | head -1 | cut -d= -f2); \
+		CODE=$$(( $${INSTALLED:-500100} + 1 )); \
+		NAME=$$(git describe --tags --match "v*" --abbrev=0 2>/dev/null | sed "s/^v//"); \
+		echo "Building $(DEV_APP_ID) $${NAME:-0.0.0}+$$CODE for $$SERIAL (backend: $(DEV_SERVER_HOST))"; \
+		(cd app && SCHLIFT_DEV=1 $(FLUTTER) build apk --release \
+			--build-name="$${NAME:-0.0.0}" --build-number="$$CODE" \
+			--dart-define=GIT_HASH=$$(git rev-parse --short HEAD) \
+			--dart-define=SERVER_HOST=$(DEV_SERVER_HOST) \
+			--dart-define=SERVER_PORT=443); \
+		$(ADB) -s "$$SERIAL" install -r app/build/app/outputs/flutter-apk/app-release.apk; \
+	'
