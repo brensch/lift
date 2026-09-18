@@ -97,6 +97,10 @@ jobs:
           version: ${{ env.BUF_VERSION }}
       - name: Format check and lint (python, shell, kotlin, swift, proto)
         run: scripts/lint.sh check python shell kotlin swift proto
+      # The Xcode project is committed and built as-is, so a Swift file that is
+      # not registered in it is silently left out of the iOS/watchOS build.
+      - name: Every Swift file is in the Xcode project
+        run: python3 scripts/xcode_add_swift.py --check
 
   rust:
     needs: changes
