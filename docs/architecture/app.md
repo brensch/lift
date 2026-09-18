@@ -185,6 +185,21 @@ cd app && flutter test
 flutter analyze
 ```
 
+## Notification sounds
+
+The rest-over sounds are real recordings (Pixabay, no attribution needed;
+`app/assets/sounds/SOURCES.md` lists each), one WAV per preset in
+`app/assets/sounds/sound_<id>.wav`, mono 44.1 kHz, at most five seconds,
+loudness-normalised. The picker's list and names come from `sounds:` in
+`app/copy.yaml`; the first entry is the default, and an id stored by an
+older install that no longer exists falls back to it. Previews play the
+Flutter asset with just_audio. The OS notification systems can't read
+Flutter assets, so `make sounds` (`scripts/sync_sounds.py`) mirrors the
+files into `android/app/src/main/res/raw/` and `ios/Runner/sounds/` and
+rewrites the Xcode project entries; CI fails if the mirrors are stale or
+the YAML and the files disagree. To add a sound: drop the WAV in
+`assets/sounds`, list it in `copy.yaml`, run `make copy sounds`.
+
 ## Copy in YAML
 
 User-facing text is moving out of the Dart files and into `app/copy.yaml`,

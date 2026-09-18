@@ -7,44 +7,57 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AEE9106E8DCCA56A9ABF1C7D /* sound_air_horn.wav in Resources */ = {isa = PBXBuildFile; fileRef = CABC5866347BDB1647E784B0 /* sound_air_horn.wav */; };
+		C1CD8E09B35C6C9921F207FC /* sound_angry_siren.wav in Resources */ = {isa = PBXBuildFile; fileRef = BE0CAE2B4A217B77E6FE5B09 /* sound_angry_siren.wav */; };
+		757AC5B2F2A7AE742B881D10 /* sound_bell_ring.wav in Resources */ = {isa = PBXBuildFile; fileRef = AF2EFB1109FB060575B22C67 /* sound_bell_ring.wav */; };
+		FF32BA8A68546117E44ACB8F /* sound_big_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3CACE86EA1ADE848E4F7500F /* sound_big_bell.wav */; };
+		4E45DD4330BABB42405D6E7D /* sound_big_ben.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1F174447B75EFB23BA323410 /* sound_big_ben.wav */; };
+		AF22C831AD995F3B347490B1 /* sound_car_horn.wav in Resources */ = {isa = PBXBuildFile; fileRef = A420F1426F4201A988D801C2 /* sound_car_horn.wav */; };
+		B39340A671B6D6914026D1D1 /* sound_creepy_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = E9C3DB92DBE5E8380F5A9151 /* sound_creepy_bell.wav */; };
+		F9FFCB08E1001FABACAEBD43 /* sound_dirty_siren.wav in Resources */ = {isa = PBXBuildFile; fileRef = 66FAD1DC89D6B390FBB8CE36 /* sound_dirty_siren.wav */; };
+		CCA060C219B3FDEC8709B9A6 /* sound_kamata_grito.wav in Resources */ = {isa = PBXBuildFile; fileRef = A14ABC84CE1F93D1D565756C /* sound_kamata_grito.wav */; };
+		E7A3B2825B11FFD67FCDE14A /* sound_mega_horn.wav in Resources */ = {isa = PBXBuildFile; fileRef = 6A71E45D9B6412DE94CC2145 /* sound_mega_horn.wav */; };
+		1F463CC1202C54D543C395A0 /* sound_metallic_clang.wav in Resources */ = {isa = PBXBuildFile; fileRef = 89C1A7C037588B86676EF69A /* sound_metallic_clang.wav */; };
+		BB2CA70FFE5234FD908BB47A /* sound_microwave_ding.wav in Resources */ = {isa = PBXBuildFile; fileRef = 8D1ED2C3291F4ED976141F62 /* sound_microwave_ding.wav */; };
+		1F09A99D25D251B293FE2E02 /* sound_nature_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5FC50638D7F05066A068A6A7 /* sound_nature_whistle.wav */; };
+		28FDA41C14D9FBC163EF6559 /* sound_notification.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3A02169CB2E4E166B1236535 /* sound_notification.wav */; };
+		1FA83CEFCD955510364F6C79 /* sound_opening_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = CB6E435AA2ADC4E1B0BBBAC1 /* sound_opening_bell.wav */; };
+		8B288BE56CECC75D19D549B1 /* sound_police_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = E343BC1C8AF5A0318FED6CC4 /* sound_police_whistle.wav */; };
+		16242E5BC971F35C76ECF466 /* sound_referee_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = 56690938AB39B58D102BA9FA /* sound_referee_whistle.wav */; };
+		447BBC722E17FC6C64CC3C40 /* sound_slide_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5FECA4CB3ACF382DDD88ABF0 /* sound_slide_whistle.wav */; };
+		FADF341AC4739B1523814E70 /* sound_tada.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5D378BD8C869B74D64D20F1F /* sound_tada.wav */; };
+		2AF2C62AA5FA52660B78AF6B /* sound_truck_horn.wav in Resources */ = {isa = PBXBuildFile; fileRef = C8BBB017B95262880AD06967 /* sound_truck_horn.wav */; };
+		643490A06A76A395CD39E59C /* sound_winner_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 457989202164E5885736975A /* sound_winner_bell.wav */; };
+		CA0157595D9456C874D7EA60 /* sound_wolf_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = 30DAD95744B68CCC0B558E30 /* sound_wolf_whistle.wav */; };
+		7D9D1996BA5C1E3256F6A916 /* sound_you_died.wav in Resources */ = {isa = PBXBuildFile; fileRef = E74F06F10D927C906FDF066E /* sound_you_died.wav */; };
 		007F31BFDCE8A3EB5FFA7D02 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C129A9FB18F81555600E71B3 /* RunnerTests.swift */; };
 		0512486446519281E28F1B8A /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
 		2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
 		2FB20DD8BDBDEE445CEF4921 /* SchliftWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		34ED2D9264A9484E2CD750EE /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 56FCCA0B02AD162D3D1A6632 /* SwiftProtobuf */; };
 		3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
-		3D1B69E6E6E41BC0CA2F07D6 /* sound_bell_high.wav in Resources */ = {isa = PBXBuildFile; fileRef = A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */; };
 		4BFA56509017551A55367603 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
 		51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */; };
 		5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9240986A58A7473DBCC0828C /* PhoneConnector.swift */; };
 		5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2369EE1B891E190DF2D26271 /* SceneDelegate.swift */; };
-		66BD0871C37660FA6096B4E3 /* sound_retro_arcade.wav in Resources */ = {isa = PBXBuildFile; fileRef = 640B490B81349149F2547907 /* sound_retro_arcade.wav */; };
-		694497500D2DB1A222A36DCD /* sound_elevator_ding.wav in Resources */ = {isa = PBXBuildFile; fileRef = 9D9A65F990B0DE5041CDD0D4 /* sound_elevator_ding.wav */; };
 		6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */; };
 		7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */; };
 		79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
-		83BB02C86913F697A5CE5427 /* sound_success_rise.wav in Resources */ = {isa = PBXBuildFile; fileRef = 556437B0D22597E83CE168E9 /* sound_success_rise.wav */; };
-		8546F4930CC1BA59425F50DD /* sound_boxing_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 5C0D8E408D4F23DDAC9CEBDF /* sound_boxing_bell.wav */; };
 		86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */; };
 		96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */; };
 		9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C0B02B8A3792430DE97AC0B /* Assets.xcassets */; };
-		A0E50E0216FDA99832AF42F1 /* sound_chord_strum.wav in Resources */ = {isa = PBXBuildFile; fileRef = 160F374E2E877285D06DBB04 /* sound_chord_strum.wav */; };
 		A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */; };
-		B85CD84E2281AB98BD8A40A0 /* sound_dojo_gong.wav in Resources */ = {isa = PBXBuildFile; fileRef = 024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */; };
 		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
 		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
 		C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A421681FD4BE14DDF968D0D /* AppDelegate.swift */; };
-		CCF04A21D61D51C1307C17D2 /* sound_crystal_shine.wav in Resources */ = {isa = PBXBuildFile; fileRef = FB4E2177508418730B143F90 /* sound_crystal_shine.wav */; };
 		D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
 		D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
 		DC18D6045664645A1F5E31C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 510043DBEC3442DBC23147B8 /* Assets.xcassets */; };
-		DE9B466CFF96ABA4D7B1C895 /* sound_morning_dew.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3EB2394F56D082D799844284 /* sound_morning_dew.wav */; };
 		E71E24BC7C805F70F56B0811 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 619E4DB7FFFAEAF2006D3497 /* SwiftProtobuf */; };
 		E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */; };
 		E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */; };
 		EB8A841700E4A23E90DAF1DE /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
 		ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F62DC64DD9F280581E7BEEC2 /* LaunchScreen.storyboard */; };
-		F94353DFBE9508EDA357A6A9 /* sound_classic_beep.wav in Resources */ = {isa = PBXBuildFile; fileRef = A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */; };
 		FAE0BE4DC5D6A982453D8746 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
 		FDECF3657063BF41CF7E0FE5 /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
 /* End PBXBuildFile section */
@@ -81,22 +94,39 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_dojo_gong.wav; sourceTree = "<group>"; };
+		CABC5866347BDB1647E784B0 /* sound_air_horn.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_air_horn.wav; sourceTree = "<group>"; };
+		BE0CAE2B4A217B77E6FE5B09 /* sound_angry_siren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_angry_siren.wav; sourceTree = "<group>"; };
+		AF2EFB1109FB060575B22C67 /* sound_bell_ring.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_bell_ring.wav; sourceTree = "<group>"; };
+		3CACE86EA1ADE848E4F7500F /* sound_big_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_big_bell.wav; sourceTree = "<group>"; };
+		1F174447B75EFB23BA323410 /* sound_big_ben.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_big_ben.wav; sourceTree = "<group>"; };
+		A420F1426F4201A988D801C2 /* sound_car_horn.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_car_horn.wav; sourceTree = "<group>"; };
+		E9C3DB92DBE5E8380F5A9151 /* sound_creepy_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_creepy_bell.wav; sourceTree = "<group>"; };
+		66FAD1DC89D6B390FBB8CE36 /* sound_dirty_siren.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_dirty_siren.wav; sourceTree = "<group>"; };
+		A14ABC84CE1F93D1D565756C /* sound_kamata_grito.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_kamata_grito.wav; sourceTree = "<group>"; };
+		6A71E45D9B6412DE94CC2145 /* sound_mega_horn.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_mega_horn.wav; sourceTree = "<group>"; };
+		89C1A7C037588B86676EF69A /* sound_metallic_clang.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_metallic_clang.wav; sourceTree = "<group>"; };
+		8D1ED2C3291F4ED976141F62 /* sound_microwave_ding.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_microwave_ding.wav; sourceTree = "<group>"; };
+		5FC50638D7F05066A068A6A7 /* sound_nature_whistle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_nature_whistle.wav; sourceTree = "<group>"; };
+		3A02169CB2E4E166B1236535 /* sound_notification.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_notification.wav; sourceTree = "<group>"; };
+		CB6E435AA2ADC4E1B0BBBAC1 /* sound_opening_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_opening_bell.wav; sourceTree = "<group>"; };
+		E343BC1C8AF5A0318FED6CC4 /* sound_police_whistle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_police_whistle.wav; sourceTree = "<group>"; };
+		56690938AB39B58D102BA9FA /* sound_referee_whistle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_referee_whistle.wav; sourceTree = "<group>"; };
+		5FECA4CB3ACF382DDD88ABF0 /* sound_slide_whistle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_slide_whistle.wav; sourceTree = "<group>"; };
+		5D378BD8C869B74D64D20F1F /* sound_tada.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_tada.wav; sourceTree = "<group>"; };
+		C8BBB017B95262880AD06967 /* sound_truck_horn.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_truck_horn.wav; sourceTree = "<group>"; };
+		457989202164E5885736975A /* sound_winner_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_winner_bell.wav; sourceTree = "<group>"; };
+		30DAD95744B68CCC0B558E30 /* sound_wolf_whistle.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_wolf_whistle.wav; sourceTree = "<group>"; };
+		E74F06F10D927C906FDF066E /* sound_you_died.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_you_died.wav; sourceTree = "<group>"; };
 		11B240A653CCF4590B0EA9CC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		160F374E2E877285D06DBB04 /* sound_chord_strum.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_chord_strum.wav; sourceTree = "<group>"; };
 		1BA5CF54A368DD151691BD9F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		1C0B02B8A3792430DE97AC0B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2369EE1B891E190DF2D26271 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Manrope-Variable.ttf"; sourceTree = "<group>"; };
 		2BA101BC039C30FFF53AA926 /* workout.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = workout.pb.swift; sourceTree = "<group>"; };
-		3EB2394F56D082D799844284 /* sound_morning_dew.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_morning_dew.wav; sourceTree = "<group>"; };
 		3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SchliftWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		510043DBEC3442DBC23147B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		556437B0D22597E83CE168E9 /* sound_success_rise.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_success_rise.wav; sourceTree = "<group>"; };
-		5C0D8E408D4F23DDAC9CEBDF /* sound_boxing_bell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_boxing_bell.wav; sourceTree = "<group>"; };
 		610ACADC6746B84139F5257E /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
-		640B490B81349149F2547907 /* sound_retro_arcade.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_retro_arcade.wav; sourceTree = "<group>"; };
 		68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionManager.swift; sourceTree = "<group>"; };
 		694BB823ADF1C3067C48A654 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgePlugin.swift; sourceTree = "<group>"; };
@@ -105,9 +135,6 @@
 		9240986A58A7473DBCC0828C /* PhoneConnector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneConnector.swift; sourceTree = "<group>"; };
 		9A421681FD4BE14DDF968D0D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9BFFD28DDBB97D71080156CC /* wearable.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wearable.pb.swift; sourceTree = "<group>"; };
-		9D9A65F990B0DE5041CDD0D4 /* sound_elevator_ding.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_elevator_ding.wav; sourceTree = "<group>"; };
-		A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_classic_beep.wav; sourceTree = "<group>"; };
-		A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_bell_high.wav; sourceTree = "<group>"; };
 		ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = auth.pb.swift; sourceTree = "<group>"; };
 		B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSensorBatchOutbox.swift; sourceTree = "<group>"; };
 		B2E448C1951CDAF54DC87758 /* Runner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -119,7 +146,6 @@
 		E0856CC1A3E00E1DFC68F89A /* group.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = group.pb.swift; sourceTree = "<group>"; };
 		E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgeManager.swift; sourceTree = "<group>"; };
 		F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchliftWatchApp.swift; sourceTree = "<group>"; };
-		FB4E2177508418730B143F90 /* sound_crystal_shine.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = sound_crystal_shine.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -244,16 +270,29 @@
 		D205003FCD234D119F5482BD /* sounds */ = {
 			isa = PBXGroup;
 			children = (
-				A8DBBF8A9E0F50E01F0156FF /* sound_bell_high.wav */,
-				5C0D8E408D4F23DDAC9CEBDF /* sound_boxing_bell.wav */,
-				160F374E2E877285D06DBB04 /* sound_chord_strum.wav */,
-				A41881780D56C6CB2BDC86F2 /* sound_classic_beep.wav */,
-				FB4E2177508418730B143F90 /* sound_crystal_shine.wav */,
-				024D8470D4F2380085EBF2D1 /* sound_dojo_gong.wav */,
-				9D9A65F990B0DE5041CDD0D4 /* sound_elevator_ding.wav */,
-				3EB2394F56D082D799844284 /* sound_morning_dew.wav */,
-				640B490B81349149F2547907 /* sound_retro_arcade.wav */,
-				556437B0D22597E83CE168E9 /* sound_success_rise.wav */,
+				CABC5866347BDB1647E784B0 /* sound_air_horn.wav */,
+				BE0CAE2B4A217B77E6FE5B09 /* sound_angry_siren.wav */,
+				AF2EFB1109FB060575B22C67 /* sound_bell_ring.wav */,
+				3CACE86EA1ADE848E4F7500F /* sound_big_bell.wav */,
+				1F174447B75EFB23BA323410 /* sound_big_ben.wav */,
+				A420F1426F4201A988D801C2 /* sound_car_horn.wav */,
+				E9C3DB92DBE5E8380F5A9151 /* sound_creepy_bell.wav */,
+				66FAD1DC89D6B390FBB8CE36 /* sound_dirty_siren.wav */,
+				A14ABC84CE1F93D1D565756C /* sound_kamata_grito.wav */,
+				6A71E45D9B6412DE94CC2145 /* sound_mega_horn.wav */,
+				89C1A7C037588B86676EF69A /* sound_metallic_clang.wav */,
+				8D1ED2C3291F4ED976141F62 /* sound_microwave_ding.wav */,
+				5FC50638D7F05066A068A6A7 /* sound_nature_whistle.wav */,
+				3A02169CB2E4E166B1236535 /* sound_notification.wav */,
+				CB6E435AA2ADC4E1B0BBBAC1 /* sound_opening_bell.wav */,
+				E343BC1C8AF5A0318FED6CC4 /* sound_police_whistle.wav */,
+				56690938AB39B58D102BA9FA /* sound_referee_whistle.wav */,
+				5FECA4CB3ACF382DDD88ABF0 /* sound_slide_whistle.wav */,
+				5D378BD8C869B74D64D20F1F /* sound_tada.wav */,
+				C8BBB017B95262880AD06967 /* sound_truck_horn.wav */,
+				457989202164E5885736975A /* sound_winner_bell.wav */,
+				30DAD95744B68CCC0B558E30 /* sound_wolf_whistle.wav */,
+				E74F06F10D927C906FDF066E /* sound_you_died.wav */,
 			);
 			path = sounds;
 			sourceTree = "<group>";
@@ -412,19 +451,32 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AEE9106E8DCCA56A9ABF1C7D /* sound_air_horn.wav in Resources */,
+				C1CD8E09B35C6C9921F207FC /* sound_angry_siren.wav in Resources */,
+				757AC5B2F2A7AE742B881D10 /* sound_bell_ring.wav in Resources */,
+				FF32BA8A68546117E44ACB8F /* sound_big_bell.wav in Resources */,
+				4E45DD4330BABB42405D6E7D /* sound_big_ben.wav in Resources */,
+				AF22C831AD995F3B347490B1 /* sound_car_horn.wav in Resources */,
+				B39340A671B6D6914026D1D1 /* sound_creepy_bell.wav in Resources */,
+				F9FFCB08E1001FABACAEBD43 /* sound_dirty_siren.wav in Resources */,
+				CCA060C219B3FDEC8709B9A6 /* sound_kamata_grito.wav in Resources */,
+				E7A3B2825B11FFD67FCDE14A /* sound_mega_horn.wav in Resources */,
+				1F463CC1202C54D543C395A0 /* sound_metallic_clang.wav in Resources */,
+				BB2CA70FFE5234FD908BB47A /* sound_microwave_ding.wav in Resources */,
+				1F09A99D25D251B293FE2E02 /* sound_nature_whistle.wav in Resources */,
+				28FDA41C14D9FBC163EF6559 /* sound_notification.wav in Resources */,
+				1FA83CEFCD955510364F6C79 /* sound_opening_bell.wav in Resources */,
+				8B288BE56CECC75D19D549B1 /* sound_police_whistle.wav in Resources */,
+				16242E5BC971F35C76ECF466 /* sound_referee_whistle.wav in Resources */,
+				447BBC722E17FC6C64CC3C40 /* sound_slide_whistle.wav in Resources */,
+				FADF341AC4739B1523814E70 /* sound_tada.wav in Resources */,
+				2AF2C62AA5FA52660B78AF6B /* sound_truck_horn.wav in Resources */,
+				643490A06A76A395CD39E59C /* sound_winner_bell.wav in Resources */,
+				CA0157595D9456C874D7EA60 /* sound_wolf_whistle.wav in Resources */,
+				7D9D1996BA5C1E3256F6A916 /* sound_you_died.wav in Resources */,
 				DC18D6045664645A1F5E31C1 /* Assets.xcassets in Resources */,
 				ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */,
 				BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */,
-				3D1B69E6E6E41BC0CA2F07D6 /* sound_bell_high.wav in Resources */,
-				8546F4930CC1BA59425F50DD /* sound_boxing_bell.wav in Resources */,
-				A0E50E0216FDA99832AF42F1 /* sound_chord_strum.wav in Resources */,
-				F94353DFBE9508EDA357A6A9 /* sound_classic_beep.wav in Resources */,
-				CCF04A21D61D51C1307C17D2 /* sound_crystal_shine.wav in Resources */,
-				B85CD84E2281AB98BD8A40A0 /* sound_dojo_gong.wav in Resources */,
-				694497500D2DB1A222A36DCD /* sound_elevator_ding.wav in Resources */,
-				DE9B466CFF96ABA4D7B1C895 /* sound_morning_dew.wav in Resources */,
-				66BD0871C37660FA6096B4E3 /* sound_retro_arcade.wav in Resources */,
-				83BB02C86913F697A5CE5427 /* sound_success_rise.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
