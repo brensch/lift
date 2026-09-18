@@ -669,9 +669,8 @@ private fun WearApp(
     val exerciseName = formatExerciseName(currentSet?.exercise?.name ?: "")
     val groupProgressText = formatGroupProgress(data.youCard, currentSet)
     val setsLeftText = formatSetsLeft(data.youCard, currentSet)
-    val isAmrap = currentSet?.isAmrap ?: false
     val repsWeightText = if (currentSet != null) {
-        if (isAmrap) "AMRAPx${currentSet.targetWeight.toInt()}" else "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
+        "${currentSet.targetReps}x${currentSet.targetWeight.toInt()}"
     } else ""
     val weightOnlyText = if (currentSet != null) "x${currentSet.targetWeight.toInt()}" else ""
     val startButtonTitle = if (currentSet != null) {
