@@ -280,6 +280,7 @@ class _Popover extends StatelessWidget {
 
   static const _margin = 12.0;
   static const _gap = 16.0;
+  static const _needed = 210.0; // title, three lines, the buttons
 
   bool get _last => index == count - 1;
 
@@ -300,14 +301,19 @@ class _Popover extends StatelessWidget {
     final roomBelow = bounds.bottom - bottomSafe - (t.bottom + _gap);
     final roomAbove = t.top - _gap - topSafe;
     final below = roomBelow >= roomAbove;
+    // A tall target on a short screen can leave less than the card needs
+    // on either side; then the card creeps over the target's far edge by
+    // the shortfall rather than clipping its text.
+    final room = below ? roomBelow : roomAbove;
+    final overlap = (_needed - room).clamp(0.0, _needed);
     return Positioned(
       left: _margin,
       right: _margin,
-      top: below ? t.bottom + _gap : null,
-      bottom: below ? null : bounds.height - (t.top - _gap),
+      top: below ? t.bottom + _gap - overlap : null,
+      bottom: below ? null : bounds.height - (t.top - _gap) - overlap,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: (below ? roomBelow : roomAbove).clamp(160.0, 460.0),
+          maxHeight: (room + overlap).clamp(_needed, 460.0),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

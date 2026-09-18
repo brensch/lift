@@ -44,6 +44,10 @@ tutorial:
       title: Whatcha up to
       body: Summary of what you're up to if someone asks how many sets you have left. It's also shown on the watch app.
     - screen: workout
+      target: workout_all
+      title: what's up next
+      body: All the activities for the rest of the workout are here. Drag them to rearrange if someone is camping the squat rack.
+    - screen: workout
       target: bar_status
       title: Your current set
       body: The weight and the reps to hit, plus time left resting/time spent yapping etc. Beautifully colour coded for maximum aesthetics.
