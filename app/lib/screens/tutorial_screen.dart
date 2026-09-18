@@ -57,7 +57,7 @@ class _TutorialScreenState extends State<TutorialScreen>
     _workouts = WorkoutProvider(
       _service,
       context.read<SettingsProvider>(),
-      persistLocally: false,
+      sandbox: true,
     );
     _registry.addListener(_measure);
     // The sandbox account, then the first step once home has laid out.
@@ -90,15 +90,13 @@ class _TutorialScreenState extends State<TutorialScreen>
           '',
           templateId: TutorialWorkoutService.suggestedTemplateId,
         );
+        // A watch on the wrist, as far as the bar is concerned.
+        _workouts.ingestWearHeartRateBatch(
+          TutorialWorkoutService.heartRateBatch(_workouts.activeWorkout!.id),
+        );
       } else if (step.screen == 'home' && _workouts.hasActiveWorkout) {
         await _workouts.endWorkout(fireEndedCallback: false);
         await _workouts.refreshHome();
-      }
-      if (forward && step.action == 'start_set') {
-        final next = _workouts.nextPendingSet;
-        if (next != null && _workouts.activeSetId == null) {
-          await _workouts.startSet(next.id);
-        }
       }
     } finally {
       _busy = false;

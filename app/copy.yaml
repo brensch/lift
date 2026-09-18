@@ -15,8 +15,8 @@ tutorial:
   # The walkthrough runs over the real screens with a sample account behind
   # them. Each step points at one `target` (an id the screens know: see
   # TutorialTarget in the code) on a `screen` (home, then workout), with the
-  # explanation in a popover beside it. `action` runs before the step:
-  # start_workout opens the sample session, start_set starts its first set.
+  # explanation in a popover beside it. `action: start_workout` opens the
+  # sample session (already two exercises in, mid-rest) before the step.
   steps:
     - screen: home
       target: home_volume
@@ -60,7 +60,6 @@ tutorial:
       title: Elapsed / heart rate
       body: How long you've been going, and your heart rate from the watch if you're wearing one.
     - screen: workout
-      action: start_set
       target: bar_button
       title: Tap to start/finish sets
       body: You can also do that from your watch.
