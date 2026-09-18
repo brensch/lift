@@ -1,6 +1,7 @@
-/// Setup: how strong are you, chick to gorilla. The lifts underneath show
-/// the first working weights that setting gives, in the user's unit,
-/// snapped to what fits on a bar. Words in app/copy.yaml.
+/// Setup: how huge are you. A vertical slider on the right, chick at the
+/// bottom and gorilla at the top; on the left the creature you currently
+/// are and the first working weights that setting gives, snapped to what
+/// fits on a bar in the user's unit. Words and creatures in app/copy.yaml.
 library;
 
 import 'package:flutter/material.dart';
@@ -14,7 +15,6 @@ import '../../../logic/weight_units.dart';
 class StrengthStep extends StatelessWidget {
   final WeightUnit unit;
   final double strength; // 0 chick .. 1 gorilla
-  final double bodyweightKg; // 0 = not given
   final ValueChanged<double> onChanged;
   final VoidCallback onBack;
   final VoidCallback onNext;
@@ -23,7 +23,6 @@ class StrengthStep extends StatelessWidget {
     super.key,
     required this.unit,
     required this.strength,
-    required this.bodyweightKg,
     required this.onChanged,
     required this.onBack,
     required this.onNext,
@@ -36,16 +35,19 @@ class StrengthStep extends StatelessWidget {
     (Exercise.EXERCISE_OVERHEAD_PRESS, 'overhead_press'),
   ];
 
+  /// The creature for [strength]: the list in copy.yaml, chick first.
+  static String creatureFor(double strength) {
+    final list = copy.onboarding.strength.emojis;
+    final i = (strength.clamp(0.0, 1.0) * (list.length - 1)).round();
+    return list[i];
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final t = copy.onboarding.strength;
     final weights = {
-      for (final (ex, lb) in startingWeightsLb(
-        bodyweightKg: bodyweightKg,
-        strength: strength,
-        unit: unit,
-      ))
+      for (final (ex, lb) in startingWeightsLb(strength: strength, unit: unit))
         ex: lb,
     };
     final labels = {for (final l in t.lifts) l.id: l.label};
@@ -68,75 +70,92 @@ class StrengthStep extends StatelessWidget {
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              const Text('🐣', style: TextStyle(fontSize: 34)),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 6,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 14,
-                    ),
-                  ),
-                  child: Slider(value: strength, onChanged: onChanged),
-                ),
-              ),
-              const Text('🦍', style: TextStyle(fontSize: 34)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            ),
-            child: Column(
+          const SizedBox(height: 16),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final (ex, key) in _shown)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            labels[key] ?? key,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                // Left: the creature, then the numbers.
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        creatureFor(strength),
+                        style: const TextStyle(fontSize: 72, height: 1.1),
+                      ),
+                      const SizedBox(height: 12),
+                      for (final (ex, key) in _shown)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                labels[key] ?? key,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                  color: cs.onSurface.withValues(alpha: 0.55),
+                                ),
+                              ),
+                              Text(
+                                formatWeight(
+                                  weights[ex] ?? 0,
+                                  unit,
+                                  includeUnit: true,
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  fontFeatures: [FontFeature.tabularFigures()],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const Spacer(),
+                      Text(
+                        t.note,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Right: the scale, gorilla at the top.
+                Column(
+                  children: [
+                    Text(t.emojis.last, style: const TextStyle(fontSize: 28)),
+                    Expanded(
+                      child: RotatedBox(
+                        quarterTurns: 3,
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 10,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 16,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 26,
                             ),
                           ),
+                          child: Slider(value: strength, onChanged: onChanged),
                         ),
-                        Text(
-                          formatWeight(
-                            weights[ex] ?? 0,
-                            unit,
-                            includeUnit: true,
-                          ),
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Text(t.emojis.first, style: const TextStyle(fontSize: 28)),
+                  ],
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            t.note,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.55),
-            ),
-          ),
-          const Spacer(),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
