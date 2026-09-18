@@ -16,7 +16,7 @@ message PageView {
   int32 seq = 2;
   string page = 3;
   int64 entered_at_ms = 4; // client clock, Unix millis
-  int64 duration_ms = 5;   // foreground time on the page
+  int64 duration_ms = 5; // foreground time on the page
 }
 
 message RecordPageViewsRequest {
