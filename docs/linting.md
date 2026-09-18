@@ -86,8 +86,10 @@ same tools with Homebrew; `scripts/lint.sh` falls back to `PATH`.
 - **Swift can only be compiled on macOS.** After changing Swift, run the
   *iOS Debug Compile* workflow against your branch
   (`gh workflow run ios-debug-compile.yml --ref <branch>`). The Xcode project
-  is committed, not generated in CI, so a new `.swift` file must also be added
-  to `app/ios/Runner.xcodeproj/project.pbxproj`.
+  is committed, not generated in CI, so a new `.swift` file must also be
+  registered in it — never by hand:
+  `scripts/xcode_add_swift.py <sibling already in the project> <new file>`.
+  CI runs `scripts/xcode_add_swift.py --check` and fails if one is missing.
 - **Kotlin** is compiled by
   `cd app/android && ./gradlew :wear:compileDebugKotlin :app:compileDebugKotlin`.
 - **`git blame`** skips the mechanical reformat commits listed in

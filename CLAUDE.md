@@ -29,7 +29,8 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   see `docs/linting.md` for how to regenerate `package-lock.json` safely.
 - **Swift cannot be compiled on this machine.** After editing Swift, run
   `gh workflow run ios-debug-compile.yml --ref <branch>`. A new `.swift` file
-  must also be added to `app/ios/Runner.xcodeproj/project.pbxproj`.
+  must also be registered in the committed Xcode project with
+  `scripts/xcode_add_swift.py` (CI checks this).
 - **`flutter`, `dart`, `bun` and `adb` are not on `PATH`.** Paths are in
   `docs/makefile.md`.
 - **A git worktree has no signing files** (`app/android/key.properties`, the
