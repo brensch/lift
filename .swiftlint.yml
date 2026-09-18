@@ -1,0 +1,11 @@
+# SwiftLint, run with --strict (warnings fail). Formatting is swiftformat's
+# job (.swiftformat); the two settings below only stop the linter arguing
+# with the formatter about layout it produces.
+
+# swiftformat adds a trailing comma to every multi-line collection.
+trailing_comma:
+  mandatory_comma: true
+
+# swiftformat puts the brace of a multi-line `if a,\n b,\n c` on its own line.
+opening_brace:
+  ignore_multiline_statement_conditions: true

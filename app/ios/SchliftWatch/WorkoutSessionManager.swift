@@ -4,8 +4,8 @@ import HealthKit
 class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     var onLatestHeartRateChanged: ((Double?) -> Void)?
     var onHeartRateSample: ((Workout_V1_HeartRateSample) -> Void)?
-    // Reports the raw HKWorkoutSessionState on every transition, so the UI can surface what
-    // the session is actually doing (running/stopped/ended) instead of us guessing.
+    /// Reports the raw HKWorkoutSessionState on every transition, so the UI can surface what
+    /// the session is actually doing (running/stopped/ended) instead of us guessing.
     var onSessionStateChanged: ((Int) -> Void)?
 
     private let healthStore = HKHealthStore()
@@ -14,14 +14,14 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     private var starting = false
     private var currentSessionState: HKWorkoutSessionState = .notStarted
     private var builderCollectionStarted = false
-    // True while a graceful end is in flight (stopActivity → .stopped → discard → end()).
+    /// True while a graceful end is in flight (stopActivity → .stopped → discard → end()).
     private var endingInProgress = false
 
     private var isSessionRunning: Bool {
         session != nil &&
-        builder != nil &&
-        builderCollectionStarted &&
-        currentSessionState == .running
+            builder != nil &&
+            builderCollectionStarted &&
+            currentSessionState == .running
     }
 
     func ensureSessionActive() {
@@ -35,7 +35,7 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         if session != nil || builder != nil {
             print(
                 "SchliftWatch: Resetting unhealthy workout session before restart " +
-                "state=\(currentSessionState.rawValue) collectionStarted=\(builderCollectionStarted)"
+                    "state=\(currentSessionState.rawValue) collectionStarted=\(builderCollectionStarted)"
             )
             tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
         }
@@ -134,9 +134,9 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
     }
 
-    // After the session reaches .stopped: stop the live builder (discardWorkout — no save,
-    // no write auth needed, the phone persists the workout) and then end() the session so it
-    // transitions to .ended and releases the background runtime.
+    /// After the session reaches .stopped: stop the live builder (discardWorkout — no save,
+    /// no write auth needed, the phone persists the workout) and then end() the session so it
+    /// transitions to .ended and releases the background runtime.
     private func finalizeStoppedSession() {
         guard !endingInProgress else { return }
         endingInProgress = true
@@ -155,7 +155,12 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
     // MARK: - HKWorkoutSessionDelegate
 
-    func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
+    func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didChangeTo toState: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
+        date _: Date
+    ) {
         currentSessionState = toState
         print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
         DispatchQueue.main.async { [weak self] in self?.onSessionStateChanged?(toState.rawValue) }
@@ -174,7 +179,7 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
     }
 
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+    func workoutSession(_: HKWorkoutSession, didFailWithError error: Error) {
         print("SchliftWatch: Workout session failed: \(error)")
         starting = false
         tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
@@ -184,13 +189,14 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
 
     // MARK: - HKLiveWorkoutBuilderDelegate
 
-    func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+    func workoutBuilderDidCollectEvent(_: HKLiveWorkoutBuilder) {}
 
     func workoutBuilder(_ workoutBuilder: HKLiveWorkoutBuilder, didCollectDataOf collectedTypes: Set<HKSampleType>) {
         guard let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate),
               collectedTypes.contains(heartRateType),
               let statistics = workoutBuilder.statistics(for: heartRateType),
-              let quantity = statistics.mostRecentQuantity() else {
+              let quantity = statistics.mostRecentQuantity()
+        else {
             return
         }
         let bpm = quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
@@ -214,12 +220,12 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
     }
 
-    // Immediate, forced teardown — used for restart/error paths (NOT the user-initiated end,
-    // which uses the graceful stopActivity flow above). Order matters: discard the live builder
-    // FIRST (stops the data source) so the session can actually reach .ended when we end() it;
-    // ending before the source stops can strand the session in .stopped (a zombie that keeps
-    // the app's background runtime alive). References are nil'd up front, so this session's
-    // later delegate transitions fall through (workoutSession !== session).
+    /// Immediate, forced teardown — used for restart/error paths (NOT the user-initiated end,
+    /// which uses the graceful stopActivity flow above). Order matters: discard the live builder
+    /// FIRST (stops the data source) so the session can actually reach .ended when we end() it;
+    /// ending before the source stops can strand the session in .stopped (a zombie that keeps
+    /// the app's background runtime alive). References are nil'd up front, so this session's
+    /// later delegate transitions fall through (workoutSession !== session).
     private func tearDownCurrentSession(clearDisplayedHeartRate: Bool, endUnderlyingSession: Bool) {
         let existingSession = session
         let existingBuilder = builder

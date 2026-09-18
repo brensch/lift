@@ -1,0 +1,3 @@
+# swiftformat: format + format-check for every tracked Swift file.
+# Language mode matches SWIFT_VERSION in app/ios/project.yml.
+--swiftversion 5.0

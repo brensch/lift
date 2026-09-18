@@ -1,9 +1,9 @@
 import SwiftUI
 
 // Match mobile app workout state accents:
-private let mobileLiftingGreen = Color(red: 0x16/255, green: 0xA3/255, blue: 0x4A/255) // #16A34A
-private let mobileRestingBlue = Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255) // #3B82F6
-private let mobileYappingPink = Color(red: 0xEC/255, green: 0x48/255, blue: 0x99/255) // #EC4899
+private let mobileLiftingGreen = Color(red: 0x16 / 255, green: 0xA3 / 255, blue: 0x4A / 255) // #16A34A
+private let mobileRestingBlue = Color(red: 0x3B / 255, green: 0x82 / 255, blue: 0xF6 / 255) // #3B82F6
+private let mobileYappingPink = Color(red: 0xEC / 255, green: 0x48 / 255, blue: 0x99 / 255) // #EC4899
 
 // Custom fonts — registered via Info.plist UIAppFonts
 private let bodyFont = "Manrope-Variable"
@@ -26,7 +26,8 @@ struct ContentView: View {
 
     private var nextUpText: String? {
         guard let snapshot = connector.snapshot,
-              !snapshot.nextUpEmoji.isEmpty else {
+              !snapshot.nextUpEmoji.isEmpty
+        else {
             return nil
         }
         return snapshot.nextUpEmoji
@@ -35,7 +36,8 @@ struct ContentView: View {
     private var restBoundaryDate: Date? {
         guard let snapshot = connector.snapshot,
               snapshot.state == .resting,
-              snapshot.restUntil > 0 else {
+              snapshot.restUntil > 0
+        else {
             return nil
         }
         let restUntilMs = snapshot.restUntil * 1000
@@ -88,7 +90,8 @@ struct ContentView: View {
         let completeTemplate = data.actions.first { $0.type == .completeSet }
         let isLiftingCompleteMode = data.state == .lifting && currentSet != nil && completeTemplate != nil
         let primaryAction = data.actions.first { $0.style == .primary } ?? data.actions.first
-        let completionSummary: Workout_V1_WearCompletionSummary? = data.hasCompletionSummary ? data.completionSummary : nil
+        let completionSummary: Workout_V1_WearCompletionSummary? =
+            data.hasCompletionSummary ? data.completionSummary : nil
 
         if data.state == .allDone, let summary = completionSummary {
             // Has the user already ended this workout from the watch? endedWorkoutID is set
@@ -160,7 +163,9 @@ struct ContentView: View {
             if !data.youCard.timerText.isEmpty, let accent = stateAccentColor {
                 return accent
             }
-            if isResting { return Color(red: 0x86/255, green: 0xEF/255, blue: 0xAC/255) }
+            if isResting {
+                return Color(red: 0x86 / 255, green: 0xEF / 255, blue: 0xAC / 255)
+            }
             return .white
         }()
         let buttonBackgroundColor = stateAccentColor ?? .white
@@ -170,7 +175,9 @@ struct ContentView: View {
         let initialReps = min(max(Int(currentSet?.targetReps ?? 0), 0), repOptionMax)
 
         let hrColor = heartRateColor(connector.latestBpm)
-        let liveYouTimerText = isLuminanceReduced ? "" : deriveYouTimerText(data, currentApiNowMs: connector.synchronizedNowMs())
+        let liveYouTimerText = isLuminanceReduced
+            ? ""
+            : deriveYouTimerText(data, currentApiNowMs: connector.synchronizedNowMs())
         let liveElapsedText = deriveElapsedText(
             data,
             currentApiNowMs: connector.synchronizedNowMs(),
@@ -200,7 +207,7 @@ struct ContentView: View {
                     statLine(
                         text: formatNowClock(now),
                         systemImage: "clock",
-                        color: Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255),
+                        color: Color(red: 0xE5 / 255, green: 0xE7 / 255, blue: 0xEB / 255),
                         fontSize: 18
                     )
                 }
@@ -208,7 +215,7 @@ struct ContentView: View {
                 statLine(
                     text: liveElapsedText,
                     systemImage: "hourglass.bottomhalf.filled",
-                    color: Color(red: 0xCB/255, green: 0xD5/255, blue: 0xE1/255),
+                    color: Color(red: 0xCB / 255, green: 0xD5 / 255, blue: 0xE1 / 255),
                     fontSize: 19
                 )
 
@@ -223,7 +230,7 @@ struct ContentView: View {
                     statLine(
                         text: nextUp,
                         systemImage: "person.fill",
-                        color: Color(red: 0x9C/255, green: 0xA3/255, blue: 0xAF/255),
+                        color: Color(red: 0x9C / 255, green: 0xA3 / 255, blue: 0xAF / 255),
                         fontSize: 18
                     )
                 }
@@ -234,11 +241,11 @@ struct ContentView: View {
             // Right column: action button or rep picker
             if !isLiftingCompleteMode {
                 // Simple action button
-                Button(action: {
+                Button {
                     if let action = primaryAction, !connector.isActionPending {
                         connector.sendIntent(action: action)
                     }
-                }) {
+                } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(startButtonTitle)
                             .font(displayFontName(size: 18))
@@ -281,7 +288,7 @@ struct ContentView: View {
                 .disabled(primaryAction == nil || connector.isActionPending)
             } else {
                 // Rep picker + complete button
-                Button(action: {
+                Button {
                     if let set = currentSet, let template = completeTemplate, !connector.isActionPending {
                         var action = template
                         action.setID = set.id
@@ -289,7 +296,7 @@ struct ContentView: View {
                         action.actualWeight = template.actualWeight > 0 ? template.actualWeight : set.targetWeight
                         connector.sendIntent(action: action)
                     }
-                }) {
+                } label: {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(completeButtonText)
                             .font(displayFontName(size: 18))
@@ -301,11 +308,11 @@ struct ContentView: View {
 
                         HStack(alignment: .center, spacing: 0) {
                             Picker("", selection: $selectedReps) {
-                                ForEach(0...repOptionMax, id: \.self) { i in
-                                    Text("\(i)")
+                                ForEach(0 ... repOptionMax, id: \.self) { reps in
+                                    Text("\(reps)")
                                         .font(displayFontName(size: 20))
                                         .foregroundColor(buttonContentColor)
-                                        .tag(i)
+                                        .tag(reps)
                                 }
                             }
                             .pickerStyle(.wheel)
@@ -355,7 +362,6 @@ struct ContentView: View {
         .edgesIgnoringSafeArea(.all)
     }
 
-    @ViewBuilder
     private func statLine(text: String, systemImage: String, color: Color, fontSize: CGFloat) -> some View {
         HStack(spacing: 4) {
             Text(text)
@@ -370,7 +376,6 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
     private func workoutCompleteScreen(
         summary: Workout_V1_WearCompletionSummary,
         onPrimary: (() -> Void)?,
@@ -405,7 +410,9 @@ struct ContentView: View {
                 .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 6))
                 .frame(width: geo.size.width * 2.0 / 3.0, height: geo.size.height)
 
-                Button(action: { onPrimary?() }) {
+                Button {
+                    onPrimary?()
+                } label: {
                     Text(primaryLabel)
                         .font(displayFontName(size: 16))
                         .foregroundColor(.black)
@@ -424,12 +431,11 @@ struct ContentView: View {
         .edgesIgnoringSafeArea(.all)
     }
 
-    @ViewBuilder
     private func completionMetric(label: String, value: String) -> some View {
         HStack {
             Text(label)
                 .font(.custom(bodyFont, size: 13))
-                .foregroundColor(Color(red: 0x9C/255, green: 0xA3/255, blue: 0xAF/255))
+                .foregroundColor(Color(red: 0x9C / 255, green: 0xA3 / 255, blue: 0xAF / 255))
                 .watchAutoShrink(minScale: 0.7)
 
             Spacer()
@@ -445,8 +451,7 @@ struct ContentView: View {
 
 private extension View {
     func watchAutoShrink(lines: Int = 1, minScale: CGFloat = 0.5) -> some View {
-        self
-            .lineLimit(lines)
+        lineLimit(lines)
             .minimumScaleFactor(minScale)
             .allowsTightening(true)
     }
@@ -482,7 +487,7 @@ private func formatGroupProgress(
 
 private func formatSetsLeft(
     _ card: Workout_V1_WearStatusCard,
-    displaySet: Workout_V1_ProposedSet?
+    displaySet _: Workout_V1_ProposedSet?
 ) -> String {
     guard card.currentGroupSet > 0, card.totalGroupSets > 0 else { return "" }
     let remaining = max(0, Int(card.totalGroupSets - card.currentGroupSet + 1))
@@ -554,14 +559,14 @@ private func formatElapsedDurationNoSeconds(_ totalSeconds: Int) -> String {
     return "\(minutes) min"
 }
 
-// Periodic schedule that also injects an explicit refresh tick at the rest-end
-// boundary so the color/state transition is visible even in ambient mode where
-// the periodic cadence drops to 60s.
+/// Periodic schedule that also injects an explicit refresh tick at the rest-end
+/// boundary so the color/state transition is visible even in ambient mode where
+/// the periodic cadence drops to 60s.
 struct WatchSchedule: TimelineSchedule {
     let restBoundary: Date?
     let ambient: Bool
 
-    func entries(from startDate: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
+    func entries(from startDate: Date, mode _: TimelineScheduleMode) -> AnyIterator<Date> {
         let interval: TimeInterval = ambient ? 60 : 1
         var cursor = startDate
         var boundaryEmitted = false
@@ -571,7 +576,8 @@ struct WatchSchedule: TimelineSchedule {
             if let boundary = boundary,
                !boundaryEmitted,
                boundary > cursor,
-               boundary <= cursor.addingTimeInterval(interval) {
+               boundary <= cursor.addingTimeInterval(interval)
+            {
                 boundaryEmitted = true
                 let entry = boundary
                 cursor = boundary.addingTimeInterval(interval)
@@ -584,9 +590,9 @@ struct WatchSchedule: TimelineSchedule {
     }
 }
 
-// Decide what the watch should *display* as the current state, accounting for
-// rest timers that have already expired locally even if a fresh snapshot from
-// the phone hasn't landed yet.
+/// Decide what the watch should *display* as the current state, accounting for
+/// rest timers that have already expired locally even if a fresh snapshot from
+/// the phone hasn't landed yet.
 private func deriveEffectiveStateLabel(
     _ snapshot: Workout_V1_WearWorkoutSnapshot,
     currentApiNowMs: Int64
@@ -615,17 +621,17 @@ private func watchStateAccentColor(_ stateLabel: String) -> Color? {
 
 private func heartRateColor(_ bpm: Double?) -> Color {
     guard let bpm = bpm, bpm > 0 else {
-        return Color(red: 0x94/255, green: 0xA3/255, blue: 0xB8/255)
+        return Color(red: 0x94 / 255, green: 0xA3 / 255, blue: 0xB8 / 255)
     }
     switch bpm {
     case ..<110:
-        return Color(red: 0x22/255, green: 0xC5/255, blue: 0x5E/255)
+        return Color(red: 0x22 / 255, green: 0xC5 / 255, blue: 0x5E / 255)
     case ..<140:
-        return Color(red: 0xFA/255, green: 0xCC/255, blue: 0x15/255)
+        return Color(red: 0xFA / 255, green: 0xCC / 255, blue: 0x15 / 255)
     case ..<165:
-        return Color(red: 0xF9/255, green: 0x73/255, blue: 0x16/255)
+        return Color(red: 0xF9 / 255, green: 0x73 / 255, blue: 0x16 / 255)
     default:
-        return Color(red: 0xEF/255, green: 0x44/255, blue: 0x44/255)
+        return Color(red: 0xEF / 255, green: 0x44 / 255, blue: 0x44 / 255)
     }
 }
 
@@ -668,7 +674,7 @@ private func splitExerciseNameWords(_ name: String) -> [String] {
             }
             continue
         }
-        if character.isUppercase && !current.isEmpty {
+        if character.isUppercase, !current.isEmpty {
             words.append(current)
             current = String(character)
         } else {
