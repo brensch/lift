@@ -46,8 +46,7 @@ export function LoginPage() {
             <WobblyText text="SIGNED IN" seed={63} />
           </h1>
           <p className="text-muted">
-            Logged in as{" "}
-            <span className="text-text font-semibold">{user.username}</span>
+            Logged in as <span className="text-text font-semibold">{user.username}</span>
           </p>
           <div className="flex flex-col gap-3">
             <Button
@@ -75,8 +74,7 @@ export function LoginPage() {
         </h1>
 
         <p className="text-muted leading-relaxed">
-          Sign in with your Schlift passkey to view your workout stats and
-          history online.
+          Sign in with your Schlift passkey to view your workout stats and history online.
         </p>
 
         <Button
@@ -91,9 +89,7 @@ export function LoginPage() {
 
         {error && <p className="text-danger font-semibold text-sm">{error}</p>}
 
-        <p className="text-sm text-muted/70">
-          You'll need a passkey created in the Schlift app.
-        </p>
+        <p className="text-sm text-muted/70">You'll need a passkey created in the Schlift app.</p>
 
         <p className="text-sm text-muted">
           No account yet?{" "}

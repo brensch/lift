@@ -7,40 +7,35 @@ export function PrivacyPage() {
         <h1 className="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold tracking-tight m-0">
           <WobblyText text="PRIVACY POLICY" seed={77} />
         </h1>
-        <p className="mt-2 text-sm text-muted">
-          Effective date: February 20, 2026
-        </p>
+        <p className="mt-2 text-sm text-muted">Effective date: February 20, 2026</p>
 
         <p className="mt-6 text-muted leading-relaxed">
-          This policy explains what data Schlift collects, why we collect it, and
-          how you can control or delete it.
+          This policy explains what data Schlift collects, why we collect it, and how you can
+          control or delete it.
         </p>
 
         <Section title="Data We Collect">
           <ul className="list-disc pl-5 space-y-2 text-muted text-[0.95rem] leading-relaxed">
             <li>
-              Account data: username, account creation time, and authentication
-              credentials (for passkey login).
+              Account data: username, account creation time, and authentication credentials (for
+              passkey login).
             </li>
             <li>
-              Workout data: workouts, exercise groups, planned sets, completed
-              sets, and related timestamps.
+              Workout data: workouts, exercise groups, planned sets, completed sets, and related
+              timestamps.
             </li>
             <li>
-              Optional device telemetry: heart-rate samples from supported
-              wearable integrations.
+              Optional device telemetry: heart-rate samples from supported wearable integrations.
             </li>
             <li>
-              Usage data: which screens of the app you open and for how long,
-              linked to your account. It stays on our own server, is never
-              shared with or sold to anyone, and is deleted when you delete
-              your account.
+              Usage data: which screens of the app you open and for how long, linked to your
+              account. It stays on our own server, is never shared with or sold to anyone, and is
+              deleted when you delete your account.
             </li>
             <li>
-              Security data: session tokens and limited metadata needed to
-              protect accounts and detect abuse. This includes whether
-              sign-in attempts succeed and, when one fails on your device,
-              the general reason (for example, that it was cancelled).
+              Security data: session tokens and limited metadata needed to protect accounts and
+              detect abuse. This includes whether sign-in attempts succeed and, when one fails on
+              your device, the general reason (for example, that it was cancelled).
             </li>
           </ul>
         </Section>
@@ -48,37 +43,30 @@ export function PrivacyPage() {
         <Section title="How We Use Data">
           <ul className="list-disc pl-5 space-y-2 text-muted text-[0.95rem] leading-relaxed">
             <li>
-              Provide core functionality (saving workouts, syncing sessions, and
-              powering progress/history views).
+              Provide core functionality (saving workouts, syncing sessions, and powering
+              progress/history views).
             </li>
-            <li>
-              Secure accounts and authenticate users through passkeys and session
-              management.
-            </li>
+            <li>Secure accounts and authenticate users through passkeys and session management.</li>
             <li>Operate and improve reliability of the service.</li>
             <li>
-              See which parts of the app get used and where people get stuck,
-              so we know what to fix.
+              See which parts of the app get used and where people get stuck, so we know what to
+              fix.
             </li>
           </ul>
         </Section>
 
         <Section title="Data Sharing">
           <p className="text-muted leading-relaxed">
-            We do not sell your personal data. We only share data when required
-            to run the service, meet legal obligations, or protect users and the
-            platform.
+            We do not sell your personal data. We only share data when required to run the service,
+            meet legal obligations, or protect users and the platform.
           </p>
         </Section>
 
         <Section title="Data Retention">
           <p className="text-muted leading-relaxed">
-            We retain data while your account is active. You can request
-            immediate deletion of your account and associated data at the{" "}
-            <a
-              href="/delete-account"
-              className="text-text underline underline-offset-2"
-            >
+            We retain data while your account is active. You can request immediate deletion of your
+            account and associated data at the{" "}
+            <a href="/delete-account" className="text-text underline underline-offset-2">
               account deletion page
             </a>
             .
@@ -89,8 +77,8 @@ export function PrivacyPage() {
           <ul className="list-disc pl-5 space-y-2 text-muted text-[0.95rem] leading-relaxed">
             <li>You can stop using the service at any time.</li>
             <li>
-              You can delete your account and workout data permanently through
-              the account deletion page.
+              You can delete your account and workout data permanently through the account deletion
+              page.
             </li>
           </ul>
         </Section>
@@ -105,18 +93,10 @@ export function PrivacyPage() {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-8">
-      <h2 className="font-display text-lg font-bold tracking-tight m-0 mb-3">
-        {title}
-      </h2>
+      <h2 className="font-display text-lg font-bold tracking-tight m-0 mb-3">{title}</h2>
       {children}
     </div>
   );

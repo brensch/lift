@@ -44,9 +44,7 @@ function Reveal({
     <div
       ref={ref}
       className={cn(
-        visible
-          ? "animate-reveal-up motion-reduce:animate-none"
-          : "opacity-0 translate-y-12",
+        visible ? "animate-reveal-up motion-reduce:animate-none" : "opacity-0 translate-y-12",
         className,
       )}
       style={visible ? { animationDelay: `${delay}ms` } : undefined}
@@ -75,11 +73,7 @@ function StoreButtons({ size = "lg" }: { size?: "lg" | "default" }) {
 }
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-xs uppercase tracking-[0.2em] text-muted/60 mb-3">
-      {children}
-    </p>
-  );
+  return <p className="text-xs uppercase tracking-[0.2em] text-muted/60 mb-3">{children}</p>;
 }
 
 export function HomePage() {
@@ -95,10 +89,7 @@ export function HomePage() {
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
-          <div
-            className="opacity-0"
-            style={{ animation: "fade-in 0.8s ease-out 0.1s forwards" }}
-          >
+          <div className="opacity-0" style={{ animation: "fade-in 0.8s ease-out 0.1s forwards" }}>
             <h1 className="font-display text-[clamp(4rem,12vw,9rem)] font-black tracking-[-0.06em] leading-[0.85] m-0">
               <WobblyText text={CONTENT.name.toUpperCase()} seed={42} />
             </h1>
@@ -176,13 +167,9 @@ export function HomePage() {
                     />
                   </div>
                   <figcaption className="mt-5">
-                    <h3 className="font-display font-bold text-lg tracking-tight m-0">
-                      {s.title}
-                    </h3>
+                    <h3 className="font-display font-bold text-lg tracking-tight m-0">{s.title}</h3>
                     {s.subtitle && (
-                      <p className="text-sm text-muted leading-relaxed mt-1 mb-0">
-                        {s.subtitle}
-                      </p>
+                      <p className="text-sm text-muted leading-relaxed mt-1 mb-0">{s.subtitle}</p>
                     )}
                   </figcaption>
                 </figure>
@@ -274,9 +261,7 @@ export function HomePage() {
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight m-0">
               {site("companion_heading")}
             </h2>
-            <p className="mt-5 text-muted leading-relaxed max-w-md">
-              {site("companion_text")}
-            </p>
+            <p className="mt-5 text-muted leading-relaxed max-w-md">{site("companion_text")}</p>
             <div className="mt-7 flex gap-3 flex-wrap">
               <Link to="/demo" className="no-underline">
                 <Button variant="primary" className="group">
@@ -348,9 +333,7 @@ export function HomePage() {
           <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight m-0">
             {site("cta_heading")}
           </h2>
-          <p className="mt-4 text-muted max-w-sm mx-auto leading-relaxed">
-            {site("cta_text")}
-          </p>
+          <p className="mt-4 text-muted max-w-sm mx-auto leading-relaxed">{site("cta_text")}</p>
           <div className="mt-8">
             <StoreButtons />
           </div>

@@ -34,16 +34,26 @@ export function Sparkline({
   const last = points[points.length - 1];
   const xs = points.map((p) => p.x);
   const ys = points.map((p) => p.y);
-  const endX = last && width ? scaleLinear(Math.min(...xs), Math.max(...xs), pad, width - pad)(last.x) : 0;
+  const endX =
+    last && width ? scaleLinear(Math.min(...xs), Math.max(...xs), pad, width - pad)(last.x) : 0;
   const yMin = Math.min(...ys);
   const yMax = Math.max(...ys);
-  const endY = last ? scaleLinear(yMin, yMax === yMin ? yMin + 1 : yMax, height - pad, pad)(last.y) : 0;
+  const endY = last
+    ? scaleLinear(yMin, yMax === yMin ? yMin + 1 : yMax, height - pad, pad)(last.y)
+    : 0;
 
   return (
     <div ref={ref} style={{ height }} className="w-full">
       {width > 0 && points.length >= 2 && (
         <svg width={width} height={height} className="block" aria-hidden="true">
-          <path d={d} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path
+            d={d}
+            fill="none"
+            stroke={color}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
           <circle cx={endX} cy={endY} r={5} fill={SURFACE} />
           <circle cx={endX} cy={endY} r={3} fill={color} />
         </svg>

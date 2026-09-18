@@ -8,8 +8,7 @@ export function lbToDisplay(lb: number, unit: DisplayUnit): number {
 
 /** 225 → "225", 102.06 → "102.1" — weights read cleaner without trailing .0 */
 export function formatNumber(n: number, maxDecimals = 1): string {
-  const rounded =
-    Math.round(n * 10 ** maxDecimals) / 10 ** maxDecimals;
+  const rounded = Math.round(n * 10 ** maxDecimals) / 10 ** maxDecimals;
   return rounded.toLocaleString("en-US", {
     maximumFractionDigits: maxDecimals,
   });
@@ -34,10 +33,7 @@ export function formatDuration(totalSeconds: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function formatDate(unixSeconds: number): string {
   const d = new Date(unixSeconds * 1000);
