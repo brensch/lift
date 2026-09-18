@@ -1,4 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../logic/audio.dart';
+import '../gen/sounds.dart';
 import 'package:flutter/services.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -76,8 +79,11 @@ class NotificationService {
     // Don't schedule if already in the past
     if (scheduledTime.isBefore(tz.TZDateTime.now(tz.local))) return;
 
-    // Use per-preset channel ID to avoid Android's channel sound caching
-    final channelId = 'rest_timer_$soundPresetId';
+    // Android fixes a channel's sound when the channel is created, so the
+    // id carries the preset and the bundled sounds' revision: a changed
+    // file gets a fresh channel, and the stale ones are removed.
+    final channelId = 'rest_timer_${soundPresetId}_$soundsRevision';
+    await _dropStaleRestChannels();
     final androidSound = RawResourceAndroidNotificationSound(
       'sound_$soundPresetId',
     );
@@ -155,6 +161,45 @@ class NotificationService {
   }
 
   /// Cancels any pending or active rest notifications.
+  static const _channelRevisionKey = 'rest_channel_revision';
+
+  /// Deletes rest channels made for an older sounds revision (and the
+  /// unversioned ones from before revisions existed), once per revision.
+  static Future<void> _dropStaleRestChannels() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final previous = prefs.getString(_channelRevisionKey);
+    if (previous == soundsRevision) return;
+    for (final id in soundPresets.keys) {
+      await android.deleteNotificationChannel(channelId: 'rest_timer_$id');
+      if (previous != null) {
+        await android.deleteNotificationChannel(
+          channelId: 'rest_timer_${id}_$previous',
+        );
+      }
+    }
+    // The synthesised presets from before the recordings.
+    for (final id in const [
+      'chord_strum',
+      'bell_high',
+      'classic_beep',
+      'success_rise',
+      'boxing_bell',
+      'elevator_ding',
+      'dojo_gong',
+      'retro_arcade',
+      'crystal_shine',
+      'morning_dew',
+    ]) {
+      await android.deleteNotificationChannel(channelId: 'rest_timer_$id');
+    }
+    await prefs.setString(_channelRevisionKey, soundsRevision);
+  }
+
   static Future<void> cancelRest() =>
       _bestEffort('cancelRest', () => _plugin.cancel(id: _restNotificationId));
 
@@ -173,9 +218,9 @@ class NotificationService {
   /// Schedules a next-workout reminder notification.
   /// Cancels any pending next-workout notification.
   static Future<void> cancelNextWorkout() => _bestEffort(
-        'cancelNextWorkout',
-        () => _plugin.cancel(id: _nextWorkoutNotificationId),
-      );
+    'cancelNextWorkout',
+    () => _plugin.cancel(id: _nextWorkoutNotificationId),
+  );
 
   /// Comprehensive cleanup of all notifications.
   static Future<void> cancelAll() =>
