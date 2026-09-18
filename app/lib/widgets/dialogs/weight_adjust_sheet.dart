@@ -138,7 +138,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             ],
           ),
           Text(
-            'Reps and sets are handled — this sticks for the rest of the '
+            'Reps and sets are handled. This sticks for the rest of the '
             'session, and finishing at the new weight updates your '
             'progression.',
             style: TextStyle(

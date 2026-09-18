@@ -147,7 +147,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           else
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Text('One session so far — the trend appears next time.',
+              child: Text('One session so far. The trend appears next time.',
                   style: TextStyle(color: cs.tertiary)),
             ),
           const SizedBox(height: 20),

@@ -193,7 +193,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Setup failed: $e — try again.')),
+          SnackBar(content: Text('Setup failed: $e. Try again.')),
         );
       }
     } finally {
@@ -361,7 +361,7 @@ class _BodyStep extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'All optional. These only scale your starting weights — skip '
+            'All optional. These only scale your starting weights. Skip '
             'everything and the big lifts open at the empty bar.',
             style: TextStyle(
               fontSize: 14,
