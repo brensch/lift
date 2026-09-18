@@ -1,0 +1,15 @@
+# Mechanical whole-repo reformats, so `git blame` looks through them.
+# GitHub reads this file automatically; locally:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Add a commit here only if a formatter produced all of it. See docs/linting.md.
+
+# dart format across app/
+f74e9c9a8d3ec5ffac91109caa9d5786404e5f2b
+# cargo fmt across the crate
+93d48e9b290acf626919122f65c433bd1a511279
+# buf format across proto/
+645638ca6ab50d6a8fe4c498dc1b3cc12fbce4e3
+# ktlint across the Android and Wear OS Kotlin
+f330eac18cb9fc0f906a0d5ca1fd56f375c4bc1f
+# prettier across web/
+66eff62be9fca8a45633054ea30fefe421f70658

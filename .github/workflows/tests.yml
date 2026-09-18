@@ -8,8 +8,20 @@ on:
       - main
 
 # Jobs run in parallel; wall time is the slowest one (the fuzz harness).
-# Rust and Flutter only run when their inputs changed, so a docs-only or
+# Rust, Flutter and web only run when their inputs changed, so a docs-only or
 # release-notes-only change finishes in seconds.
+#
+# Every language is format-checked and linted, and all of it goes through
+# scripts/lint.sh — the same command a person or an agent runs locally — with
+# tool versions pinned (scripts/install_lint_tools.sh, FLUTTER_VERSION,
+# BUF_VERSION, web/package.json). Anything unformatted or unlinted fails.
+
+env:
+  # dart format's output changes between SDK releases, so the version that
+  # formats the code has to be the version that checks it. Bump this together
+  # with the local SDK, and re-run `scripts/lint.sh fmt dart` when you do.
+  FLUTTER_VERSION: "3.44.8"
+  BUF_VERSION: "1.64.0"
 
 jobs:
   # Store text is committed: release-notes/<version>.md (read by
@@ -34,6 +46,7 @@ jobs:
     outputs:
       rust: ${{ steps.filter.outputs.rust }}
       flutter: ${{ steps.filter.outputs.flutter }}
+      web: ${{ steps.filter.outputs.web }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,8 +70,33 @@ jobs:
               - 'app/**'
               - 'scripts/gen_copy.py'
               - 'scripts/sync_sounds.py'
+              - 'scripts/lint.sh'
               - 'proto/**'
               - '.github/workflows/tests.yml'
+            web:
+              - 'web/**'
+              - 'store/listing.yaml'
+              - 'templates/library.yaml'
+              - 'release-notes/**'
+              - 'scripts/lint.sh'
+              - '.github/workflows/tests.yml'
+
+  # Python, shell, Kotlin, Swift and protobuf: no toolchain to set up beyond
+  # the pinned binaries, so this always runs and takes well under a minute.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pinned formatters and linters
+        run: scripts/install_lint_tools.sh
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+          version: ${{ env.BUF_VERSION }}
+      - name: Format check and lint (python, shell, kotlin, swift, proto)
+        run: scripts/lint.sh check python shell kotlin swift proto
 
   rust:
     needs: changes
@@ -70,6 +108,8 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
@@ -81,8 +121,8 @@ jobs:
         with:
           prefix-key: rust-dev
 
-      - name: Clippy (deny warnings)
-        run: cargo clippy --all-targets -- -D warnings
+      - name: Format check (cargo fmt) and lint (clippy, deny warnings)
+        run: scripts/lint.sh check rust
 
       - name: Run Rust tests
         run: cargo test --all-targets
@@ -126,16 +166,46 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      # Before any Dart tooling: without a package config the formatter picks
+      # a different language version and a different style.
       - name: Install Flutter dependencies
         working-directory: app
         run: flutter pub get
 
-      - name: Flutter analyze
-        working-directory: app
-        run: flutter analyze --fatal-infos
+      - name: Format check (dart format) and lint (flutter analyze, infos fatal)
+        run: scripts/lint.sh check dart
 
       - name: Run Flutter tests
         working-directory: app
         run: flutter test
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # npm ci, not bun: it is what the production deploy runs, and it fails
+      # when package-lock.json has drifted from package.json.
+      - name: Install dependencies
+        working-directory: web
+        run: npm ci --no-audit --no-fund
+
+      - name: Format check (prettier), lint (eslint) and typecheck (tsc)
+        run: scripts/lint.sh check web
+
+      - name: Build
+        working-directory: web
+        run: npm run build
