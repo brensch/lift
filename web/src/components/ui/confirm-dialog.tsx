@@ -70,10 +70,7 @@ export function ConfirmDialog({
           <Button ref={cancelRef} onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button
-            onClick={onConfirm}
-            className="bg-danger border border-danger text-white"
-          >
+          <Button onClick={onConfirm} className="bg-danger border border-danger text-white">
             {confirmLabel}
           </Button>
         </div>

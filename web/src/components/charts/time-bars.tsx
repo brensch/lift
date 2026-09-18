@@ -39,10 +39,7 @@ export function TimeBars({ rows }: { rows: TimeBarRow[] }) {
   }
 
   const barMax = Math.max(width - LABEL_W - VALUE_W - 12, 40);
-  const maxTotal = Math.max(
-    ...rows.map((r) => r.segments.reduce((a, s) => a + s.seconds, 0)),
-    1
-  );
+  const maxTotal = Math.max(...rows.map((r) => r.segments.reduce((a, s) => a + s.seconds, 0)), 1);
 
   const hovered = hover !== null ? rows[hover] : null;
   const tooltipTop = hover !== null ? hover * (BAR_H + ROW_GAP) + BAR_H + 6 : 0;
@@ -72,7 +69,10 @@ export function TimeBars({ rows }: { rows: TimeBarRow[] }) {
                 {row.label}
               </text>
               {visible.map((seg, si) => {
-                const w = Math.max(seg.seconds * scale - (si < visible.length - 1 ? SEG_GAP : 0), 1.5);
+                const w = Math.max(
+                  seg.seconds * scale - (si < visible.length - 1 ? SEG_GAP : 0),
+                  1.5,
+                );
                 const isLast = si === visible.length - 1;
                 const r = isLast ? 4 : 0;
                 const el = (
@@ -132,9 +132,7 @@ export function TimeBars({ rows }: { rows: TimeBarRow[] }) {
                 className="inline-block w-2.5 h-2.5 rounded-[3px]"
                 style={{ background: s.color }}
               />
-              <span className="font-semibold text-text">
-                {formatDuration(s.seconds)}
-              </span>
+              <span className="font-semibold text-text">{formatDuration(s.seconds)}</span>
               <span className="text-muted">{s.label}</span>
             </p>
           ))}

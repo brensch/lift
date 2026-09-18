@@ -38,7 +38,17 @@ import { cn } from "@/lib/utils";
 const NOW_S = Math.floor(Date.now() / 1000);
 
 /** A one-line stat: label left, value right. Five of these make one strip. */
-function Stat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
+function Stat({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: string;
+}) {
   return (
     <div className="border border-border rounded-xl bg-surface px-4 py-3 min-w-0 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
       <div className="min-w-0">
@@ -80,7 +90,10 @@ function Select({
           </option>
         ))}
       </select>
-      <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" />
+      <ChevronDown
+        size={14}
+        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted"
+      />
     </span>
   );
 }
@@ -115,8 +128,14 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
   const unit: DisplayUnit = data?.unit ?? "lb";
   const sinceS = data?.sinceS ?? NOW_S;
   const { startS, endS, label: rangeLabel } = resolveRange(range, NOW_S, sinceS);
-  const workouts = useMemo(() => (data ? workoutsInRange(data, startS, endS) : []), [data, startS, endS]);
-  const exercises = useMemo(() => (data ? exercisesInRange(data, startS, endS) : []), [data, startS, endS]);
+  const workouts = useMemo(
+    () => (data ? workoutsInRange(data, startS, endS) : []),
+    [data, startS, endS],
+  );
+  const exercises = useMemo(
+    () => (data ? exercisesInRange(data, startS, endS) : []),
+    [data, startS, endS],
+  );
   const chartable = useMemo(() => exercises.filter((e) => e.points.length >= 2), [exercises]);
   const selected = chartable.find((e) => e.series.key === selectedKey) ?? chartable[0] ?? null;
   const weekly = useMemo(() => weeklyVolume(workouts, startS, endS), [workouts, startS, endS]);
@@ -167,7 +186,12 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
   }
 
   const hasData = data.workoutCount > 0;
-  const rangeWords = range.preset === "custom" ? "in this range" : range.preset === "all" ? "all time" : `in the last ${rangeLabel}`;
+  const rangeWords =
+    range.preset === "custom"
+      ? "in this range"
+      : range.preset === "all"
+        ? "all time"
+        : `in the last ${rangeLabel}`;
 
   return (
     // On large screens the whole dashboard is one viewport: header row, stat
@@ -178,12 +202,17 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="font-display text-2xl font-extrabold tracking-tight m-0 shrink-0">
-            <WobblyText text={demo ? "DEMO GAINS" : `HEY ${user!.username.toUpperCase()}`} seed={88} />
+            <WobblyText
+              text={demo ? "DEMO GAINS" : `HEY ${user!.username.toUpperCase()}`}
+              seed={88}
+            />
           </h1>
           {hasData && (
             <p className="text-sm text-muted m-0 truncate">
               {workouts.length} {workouts.length === 1 ? "workout" : "workouts"} {rangeWords}
-              {range.preset !== "all" && workouts.length > 0 ? ` · ${formatNumber(perWeek)} a week` : ""}
+              {range.preset !== "all" && workouts.length > 0
+                ? ` · ${formatNumber(perWeek)} a week`
+                : ""}
             </p>
           )}
           {demo && (
@@ -201,7 +230,9 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
               options={chartable.map((e) => ({ value: e.series.key, label: e.series.name }))}
             />
           )}
-          {hasData && <RangePicker value={range} onChange={setRange} nowS={NOW_S} sinceS={data.sinceS} />}
+          {hasData && (
+            <RangePicker value={range} onChange={setRange} nowS={NOW_S} sinceS={data.sinceS} />
+          )}
           {demo ? (
             <Link to="/" className="no-underline">
               <Button size="sm" variant="primary">
@@ -221,8 +252,8 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
         <div className="border border-border rounded-xl bg-surface p-10 text-center mt-4">
           <h2 className="font-display text-2xl font-bold tracking-tight m-0">Nothing here yet</h2>
           <p className="text-muted mt-3 max-w-md mx-auto leading-relaxed">
-            Your dashboard fills itself in the moment you finish your first workout in the app. Until
-            then, you can see what it'll look like.
+            Your dashboard fills itself in the moment you finish your first workout in the app.
+            Until then, you can see what it'll look like.
           </p>
           <div className="mt-6 flex gap-3 justify-center flex-wrap">
             <Link to="/demo" className="no-underline">
@@ -235,8 +266,12 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
         </div>
       ) : workouts.length === 0 ? (
         <div className="border border-border rounded-xl bg-surface p-10 text-center mt-4">
-          <h2 className="font-display text-2xl font-bold tracking-tight m-0">Nothing {rangeWords}</h2>
-          <p className="text-muted mt-3 max-w-md mx-auto leading-relaxed">Widen the range to see earlier training.</p>
+          <h2 className="font-display text-2xl font-bold tracking-tight m-0">
+            Nothing {rangeWords}
+          </h2>
+          <p className="text-muted mt-3 max-w-md mx-auto leading-relaxed">
+            Widen the range to see earlier training.
+          </p>
           <div className="mt-6 flex justify-center">
             <Button variant="primary" onClick={() => setRange({ preset: "all" })}>
               Show everything
@@ -247,7 +282,11 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
         <>
           {/* Stat strip */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 mt-3 lg:mt-0 shrink-0">
-            <Stat label="Workouts" value={String(workouts.length)} sub={`${formatNumber(perWeek)} a week`} />
+            <Stat
+              label="Workouts"
+              value={String(workouts.length)}
+              sub={`${formatNumber(perWeek)} a week`}
+            />
             <Stat
               label="Volume"
               value={`${formatCompact(lbToDisplay(volumeLb, unit))} ${unit}`}
@@ -256,9 +295,17 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
             <Stat
               label="In the gym"
               value={formatDuration(gymS)}
-              sub={gymS > 0 ? `${Math.round((liftingS / gymS) * 100)}% lifting · ${Math.round((yappingS / gymS) * 100)}% yapping` : undefined}
+              sub={
+                gymS > 0
+                  ? `${Math.round((liftingS / gymS) * 100)}% lifting · ${Math.round((yappingS / gymS) * 100)}% yapping`
+                  : undefined
+              }
             />
-            <Stat label="Best est. 1RM" value={best ? formatWeight(best.lb, unit) : "—"} sub={best?.name} />
+            <Stat
+              label="Best est. 1RM"
+              value={best ? formatWeight(best.lb, unit) : "—"}
+              sub={best?.name}
+            />
             <Stat
               label="New PRs"
               value={String(prs.length)}
@@ -280,15 +327,23 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                     { label: "Top set", color: CONTEXT, shape: "line" },
                   ]}
                   table={{
-                    head: ["Date", `Top set (${unit})`, "Reps", `Est. 1RM (${unit})`, `Volume (${unit})`],
+                    head: [
+                      "Date",
+                      `Top set (${unit})`,
+                      "Reps",
+                      `Est. 1RM (${unit})`,
+                      `Volume (${unit})`,
+                    ],
                     numeric: [1, 2, 3, 4],
-                    rows: [...selected.points].reverse().map((p) => [
-                      formatDateFull(p.dateS),
-                      formatNumber(lbToDisplay(p.topWeightLb, unit)),
-                      String(p.topReps),
-                      formatNumber(lbToDisplay(p.e1rmLb, unit)),
-                      formatNumber(lbToDisplay(p.volumeLb, unit), 0),
-                    ]),
+                    rows: [...selected.points]
+                      .reverse()
+                      .map((p) => [
+                        formatDateFull(p.dateS),
+                        formatNumber(lbToDisplay(p.topWeightLb, unit)),
+                        String(p.topReps),
+                        formatNumber(lbToDisplay(p.e1rmLb, unit)),
+                        formatNumber(lbToDisplay(p.volumeLb, unit), 0),
+                      ]),
                   }}
                 >
                   <LineChart
@@ -298,12 +353,18 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                         label: "Top set",
                         color: CONTEXT,
                         context: true,
-                        points: selected.points.map((p) => ({ x: p.dateS, y: lbToDisplay(p.topWeightLb, unit) })),
+                        points: selected.points.map((p) => ({
+                          x: p.dateS,
+                          y: lbToDisplay(p.topWeightLb, unit),
+                        })),
                       },
                       {
                         label: "Est. 1RM",
                         color: SERIES_1,
-                        points: selected.points.map((p) => ({ x: p.dateS, y: lbToDisplay(p.e1rmLb, unit) })),
+                        points: selected.points.map((p) => ({
+                          x: p.dateS,
+                          y: lbToDisplay(p.e1rmLb, unit),
+                        })),
                       },
                     ]}
                     yFormat={(v) => formatNumber(v, 0)}
@@ -342,11 +403,16 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                         <span className="min-w-0">
                           <span className="flex items-center gap-1.5 text-sm font-semibold truncate">
                             {e.series.name}
-                            {e.isPr && <Trophy size={12} style={{ color: SERIES_3 }} aria-label="PR" />}
+                            {e.isPr && (
+                              <Trophy size={12} style={{ color: SERIES_3 }} aria-label="PR" />
+                            )}
                           </span>
                           <span
                             className="block text-xs [font-variant-numeric:tabular-nums]"
-                            style={{ color: delta > 0 ? SERIES_3 : delta < 0 ? SERIES_2 : "var(--color-muted)" }}
+                            style={{
+                              color:
+                                delta > 0 ? SERIES_3 : delta < 0 ? SERIES_2 : "var(--color-muted)",
+                            }}
                           >
                             {delta > 0 ? "+" : ""}
                             {formatNumber(delta)} {unit}
@@ -357,7 +423,10 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                             <Sparkline
                               height={28}
                               color={active ? SERIES_1 : CONTEXT}
-                              points={e.points.map((p) => ({ x: p.dateS, y: lbToDisplay(p.e1rmLb, unit) }))}
+                              points={e.points.map((p) => ({
+                                x: p.dateS,
+                                y: lbToDisplay(p.e1rmLb, unit),
+                              }))}
                             />
                           )}
                         </span>
@@ -382,16 +451,21 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                 table={{
                   head: ["Week of", "Sessions", `Volume (${unit})`],
                   numeric: [1, 2],
-                  rows: [...weekly].reverse().map((w) => [
-                    formatDateFull(w.weekS),
-                    String(w.sessions),
-                    formatNumber(lbToDisplay(w.volumeLb, unit), 0),
-                  ]),
+                  rows: [...weekly]
+                    .reverse()
+                    .map((w) => [
+                      formatDateFull(w.weekS),
+                      String(w.sessions),
+                      formatNumber(lbToDisplay(w.volumeLb, unit), 0),
+                    ]),
                 }}
               >
                 <ColumnChart
                   height="fill"
-                  data={weekly.map((w) => ({ label: formatDate(w.weekS), value: lbToDisplay(w.volumeLb, unit) }))}
+                  data={weekly.map((w) => ({
+                    label: formatDate(w.weekS),
+                    value: lbToDisplay(w.volumeLb, unit),
+                  }))}
                   color={SERIES_1}
                   yFormat={formatCompact}
                   tooltipValue={(c) => {
@@ -411,7 +485,9 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                       onClick={() => setBottomTab(t)}
                       className={cn(
                         "px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition-colors",
-                        bottomTab === t ? "bg-primary text-on-primary" : "text-muted hover:text-text",
+                        bottomTab === t
+                          ? "bg-primary text-on-primary"
+                          : "text-muted hover:text-text",
                       )}
                     >
                       {t === "time" ? "Where the time goes" : "Workouts"}
@@ -420,9 +496,16 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                 </div>
                 {bottomTab === "time" && (
                   <div className="hidden xl:flex items-center gap-3 text-[11px] text-muted">
-                    {[["Lifting", SERIES_1], ["Resting", SERIES_2], ["Yapping", SERIES_3]].map(([l, c]) => (
+                    {[
+                      ["Lifting", SERIES_1],
+                      ["Resting", SERIES_2],
+                      ["Yapping", SERIES_3],
+                    ].map(([l, c]) => (
                       <span key={l} className="flex items-center gap-1">
-                        <span className="inline-block w-2 h-2 rounded-[2px]" style={{ background: c }} />
+                        <span
+                          className="inline-block w-2 h-2 rounded-[2px]"
+                          style={{ background: c }}
+                        />
                         {l}
                       </span>
                     ))}
@@ -462,13 +545,26 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                     <tbody>
                       {workouts.map((w) => (
                         <tr key={w.id}>
-                          <td className="py-1.5 px-1.5 border-b border-border/40 whitespace-nowrap">{formatDate(w.startS)}</td>
-                          <td className="py-1.5 px-1.5 border-b border-border/40 truncate max-w-[8rem]">{w.name || "Workout"}</td>
-                          <td className="py-1.5 px-1.5 border-b border-border/40 text-right [font-variant-numeric:tabular-nums]">{formatDuration(w.durationS)}</td>
-                          <td className="py-1.5 px-1.5 border-b border-border/40 text-right [font-variant-numeric:tabular-nums]">{formatNumber(lbToDisplay(w.volumeLb, unit), 0)}</td>
+                          <td className="py-1.5 px-1.5 border-b border-border/40 whitespace-nowrap">
+                            {formatDate(w.startS)}
+                          </td>
+                          <td className="py-1.5 px-1.5 border-b border-border/40 truncate max-w-[8rem]">
+                            {w.name || "Workout"}
+                          </td>
+                          <td className="py-1.5 px-1.5 border-b border-border/40 text-right [font-variant-numeric:tabular-nums]">
+                            {formatDuration(w.durationS)}
+                          </td>
+                          <td className="py-1.5 px-1.5 border-b border-border/40 text-right [font-variant-numeric:tabular-nums]">
+                            {formatNumber(lbToDisplay(w.volumeLb, unit), 0)}
+                          </td>
                           <td className="py-1.5 px-1.5 border-b border-border/40 text-muted whitespace-nowrap">
                             {w.topExercise}
-                            {w.heaviestSetLb > 0 && <span className="text-text"> · {formatWeight(w.heaviestSetLb, unit)}</span>}
+                            {w.heaviestSetLb > 0 && (
+                              <span className="text-text">
+                                {" "}
+                                · {formatWeight(w.heaviestSetLb, unit)}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}

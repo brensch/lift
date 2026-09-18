@@ -44,14 +44,12 @@ export function ChartCard({
     <div
       className={cn(
         "border border-border rounded-xl bg-surface p-4 sm:p-5",
-        fill && "h-full min-h-0 flex flex-col"
+        fill && "h-full min-h-0 flex flex-col",
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <h3 className="font-display font-bold text-base tracking-tight m-0">
-            {title}
-          </h3>
+          <h3 className="font-display font-bold text-base tracking-tight m-0">{title}</h3>
           {subtitle && <p className="text-sm text-muted mt-0.5 m-0">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -59,10 +57,7 @@ export function ChartCard({
           {legend && legend.length > 1 && !showTable && (
             <div className="hidden sm:flex items-center gap-4">
               {legend.map((item) => (
-                <span
-                  key={item.label}
-                  className="flex items-center gap-1.5 text-xs text-muted"
-                >
+                <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
                   {item.shape === "line" ? (
                     <span
                       className="inline-block w-3.5 h-0.5 rounded-full"
@@ -94,10 +89,7 @@ export function ChartCard({
       {legend && legend.length > 1 && !showTable && (
         <div className="flex sm:hidden items-center gap-4 mb-3 -mt-1">
           {legend.map((item) => (
-            <span
-              key={item.label}
-              className="flex items-center gap-1.5 text-xs text-muted"
-            >
+            <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
               {item.shape === "line" ? (
                 <span
                   className="inline-block w-3.5 h-0.5 rounded-full"
@@ -125,7 +117,7 @@ export function ChartCard({
                     key={h}
                     className={cn(
                       "text-muted font-medium text-xs uppercase tracking-wider py-2 px-2 border-b border-border sticky top-0 bg-surface",
-                      table.numeric?.includes(i) ? "text-right" : "text-left"
+                      table.numeric?.includes(i) ? "text-right" : "text-left",
                     )}
                   >
                     {h}
@@ -143,7 +135,7 @@ export function ChartCard({
                         "py-1.5 px-2 border-b border-border/40 text-text",
                         table.numeric?.includes(ci)
                           ? "text-right [font-variant-numeric:tabular-nums]"
-                          : "text-left"
+                          : "text-left",
                       )}
                     >
                       {cell}

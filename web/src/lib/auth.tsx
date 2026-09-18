@@ -1,10 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  type ReactNode,
-} from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { authClient, authHeaders } from "./grpc";
 import { AuthContext, type User } from "./auth-context";
 
@@ -25,10 +19,7 @@ function loadSession(): User | null {
 
 function saveSession(user: User) {
   localStorage.setItem(TOKEN_KEY, user.sessionToken);
-  localStorage.setItem(
-    USER_KEY,
-    JSON.stringify({ userId: user.userId, username: user.username })
-  );
+  localStorage.setItem(USER_KEY, JSON.stringify({ userId: user.userId, username: user.username }));
 }
 
 function clearSession() {
@@ -47,7 +38,7 @@ function decodeClientDataChallenge(clientDataJSON: ArrayBuffer): string | null {
 }
 
 function decodeClientDataChallengeFromBase64(
-  encodedClientDataJSON: string | null | undefined
+  encodedClientDataJSON: string | null | undefined,
 ): string | null {
   if (!encodedClientDataJSON) return null;
   try {
@@ -72,10 +63,7 @@ function toBase64Url(input: ArrayBuffer | Uint8Array | null): string | null {
     binary += String.fromCharCode(byte);
   }
 
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function serializeAssertion(credential: PublicKeyCredential) {
@@ -148,9 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const publicKeyJson = parsedOptions.publicKey ?? parsedOptions;
       const publicKey = (
         PublicKeyCredential as unknown as {
-          parseRequestOptionsFromJSON: (
-            opts: unknown
-          ) => CredentialRequestOptions["publicKey"];
+          parseRequestOptionsFromJSON: (opts: unknown) => CredentialRequestOptions["publicKey"];
         }
       ).parseRequestOptionsFromJSON(publicKeyJson);
 
@@ -174,8 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const requestChallenge =
         typeof startResp.optionsJson === "string"
-          ? (JSON.parse(startResp.optionsJson) as { challenge?: string })
-              .challenge ?? null
+          ? ((JSON.parse(startResp.optionsJson) as { challenge?: string }).challenge ?? null)
           : null;
       const response = credential.response as AuthenticatorAssertionResponse;
       const responseChallenge = decodeClientDataChallenge(response.clientDataJSON);
@@ -191,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const credentialJson = serializeAssertion(credential);
       const serializedChallenge = decodeClientDataChallengeFromBase64(
-        credentialJson.response.clientDataJSON
+        credentialJson.response.clientDataJSON,
       );
 
       if (requestChallenge && serializedChallenge !== requestChallenge) {
@@ -231,15 +216,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const devLogin: ((username: string) => Promise<void>) | undefined =
-    import.meta.env.DEV
-      ? async (username: string) => {
-          const { performDevLogin } = await import("./auth-dev");
-          const newUser = await performDevLogin(username);
-          saveSession(newUser);
-          setUser(newUser);
-        }
-      : undefined;
+  const devLogin: ((username: string) => Promise<void>) | undefined = import.meta.env.DEV
+    ? async (username: string) => {
+        const { performDevLogin } = await import("./auth-dev");
+        const newUser = await performDevLogin(username);
+        saveSession(newUser);
+        setUser(newUser);
+      }
+    : undefined;
 
   const logout = useCallback(async () => {
     if (user) {

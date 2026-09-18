@@ -13,7 +13,11 @@ function fromInput(v: string): number | null {
   return Math.floor(new Date(y, m - 1, d).getTime() / 1000);
 }
 function short(s: number): string {
-  return new Date(s * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+  return new Date(s * 1000).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "2-digit",
+  });
 }
 
 /**
@@ -34,7 +38,9 @@ export function RangePicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [from, setFrom] = useState(toInput(value.preset === "custom" ? value.fromS : nowS - 90 * 86_400));
+  const [from, setFrom] = useState(
+    toInput(value.preset === "custom" ? value.fromS : nowS - 90 * 86_400),
+  );
   const [to, setTo] = useState(toInput(value.preset === "custom" ? value.toS : nowS));
 
   useEffect(() => {
@@ -75,7 +81,10 @@ export function RangePicker({
       >
         <Calendar size={14} className="text-muted" />
         {label}
-        <ChevronDown size={14} className={cn("text-muted transition-transform", open && "rotate-180")} />
+        <ChevronDown
+          size={14}
+          className={cn("text-muted transition-transform", open && "rotate-180")}
+        />
       </button>
 
       {open && (
@@ -96,10 +105,16 @@ export function RangePicker({
                 }}
                 className={cn(
                   "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors",
-                  active ? "text-text font-semibold" : "text-muted hover:bg-white/[0.04] hover:text-text",
+                  active
+                    ? "text-text font-semibold"
+                    : "text-muted hover:bg-white/[0.04] hover:text-text",
                 )}
               >
-                <span>{r.key === "all" ? "All time" : `Last ${r.label === "1M" ? "month" : r.label === "3M" ? "3 months" : r.label === "6M" ? "6 months" : "year"}`}</span>
+                <span>
+                  {r.key === "all"
+                    ? "All time"
+                    : `Last ${r.label === "1M" ? "month" : r.label === "3M" ? "3 months" : r.label === "6M" ? "6 months" : "year"}`}
+                </span>
                 {active && <Check size={16} strokeWidth={3} />}
               </button>
             );
