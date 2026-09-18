@@ -2,19 +2,19 @@ package com.brensch.schlift.wear
 
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import workout.v1.Wearable
 
 object WearDataRepository {
@@ -25,17 +25,24 @@ object WearDataRepository {
     private val _latestBpm = MutableStateFlow<Float?>(null)
     val latestBpm: StateFlow<Float?> = _latestBpm.asStateFlow()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     @Volatile
     private var lastSnapshotReceivedElapsedRealtimeMs: Long = 0L
+
     @Volatile
     private var lastSnapshotEmittedAtUnixMs: Long = 0L
+
     @Volatile
     private var scheduledRestCompletionForRestUntilUnix: Long = 0L
+
     @Volatile
     private var lastHapticForRestUntilUnix: Long = 0L
     private var restCompletionJob: kotlinx.coroutines.Job? = null
 
-    fun updateSnapshot(context: Context, snapshot: Wearable.WearWorkoutSnapshot) {
+    fun updateSnapshot(
+        context: Context,
+        snapshot: Wearable.WearWorkoutSnapshot,
+    ) {
         val previous = _snapshot.value
         // Drop-stale guard: out-of-order sends from the phone (unawaited
         // publishSnapshot + last-writer-wins native cache) could clobber newer
@@ -88,7 +95,10 @@ object WearDataRepository {
         cancelRestCompletionAlert()
     }
 
-    private fun scheduleRestCompletionAlert(context: Context, restUntilUnix: Long) {
+    private fun scheduleRestCompletionAlert(
+        context: Context,
+        restUntilUnix: Long,
+    ) {
         if (restUntilUnix <= 0L) {
             cancelRestCompletionAlert()
             return
@@ -112,16 +122,20 @@ object WearDataRepository {
 
         restCompletionJob?.cancel()
         scheduledRestCompletionForRestUntilUnix = restUntilUnix
-        restCompletionJob = scope.launch {
-            val delayMs = (restUntilMs - synchronizedNowUnixMillis()).coerceAtLeast(0L)
-            if (delayMs > 0L) {
-                delay(delayMs)
+        restCompletionJob =
+            scope.launch {
+                val delayMs = (restUntilMs - synchronizedNowUnixMillis()).coerceAtLeast(0L)
+                if (delayMs > 0L) {
+                    delay(delayMs)
+                }
+                fireRestCompletionAlert(context, restUntilUnix)
             }
-            fireRestCompletionAlert(context, restUntilUnix)
-        }
     }
 
-    private fun maybeCatchUpRestCompletionAlert(context: Context, restUntilUnix: Long) {
+    private fun maybeCatchUpRestCompletionAlert(
+        context: Context,
+        restUntilUnix: Long,
+    ) {
         if (restUntilUnix <= 0L || restUntilUnix == lastHapticForRestUntilUnix) return
         val nowMs = synchronizedNowUnixMillis()
         val restUntilMs = restUntilUnix * 1000L
@@ -130,7 +144,10 @@ object WearDataRepository {
         fireRestCompletionAlert(context, restUntilUnix)
     }
 
-    private fun fireRestCompletionAlert(context: Context, restUntilUnix: Long) {
+    private fun fireRestCompletionAlert(
+        context: Context,
+        restUntilUnix: Long,
+    ) {
         if (restUntilUnix <= 0L || restUntilUnix == lastHapticForRestUntilUnix) return
         restCompletionJob?.cancel()
         restCompletionJob = null
@@ -146,13 +163,14 @@ object WearDataRepository {
     }
 
     private fun playRestFinishedHaptic(context: Context) {
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val manager = context.getSystemService(VibratorManager::class.java)
-            manager?.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        }
+        val vibrator =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val manager = context.getSystemService(VibratorManager::class.java)
+                manager?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
         if (vibrator?.hasVibrator() != true) return
 
         val pattern = longArrayOf(0L, 120L, 180L, 120L, 180L, 120L, 180L, 120L, 180L, 120L)

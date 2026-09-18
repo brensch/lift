@@ -16,7 +16,9 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class WearExerciseSessionManager(private val context: Context) {
+class WearExerciseSessionManager(
+    private val context: Context,
+) {
     private val exerciseClient = HealthServices.getClient(context).exerciseClient
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var ensureJob: Job? = null
@@ -27,27 +29,30 @@ class WearExerciseSessionManager(private val context: Context) {
     fun ensureSessionActive() {
         if (active) return
         if (ensureJob?.isActive == true) return
-        ensureJob = scope.launch {
-            while (isActive && !active) {
-                runCatching {
-                    val config = ExerciseConfig.builder(ExerciseType.STRENGTH_TRAINING)
-                        .setIsGpsEnabled(false)
-                        .build()
-                    exerciseClient.startExerciseAsync(config).await()
-                    active = true
-                    Log.i("SchliftWear", "Exercise session started")
-                }.onFailure {
-                    if (it is SecurityException) {
-                        Log.e("SchliftWear", "Missing permissions for exercise session, stopping retries", it)
-                        return@launch
+        ensureJob =
+            scope.launch {
+                while (isActive && !active) {
+                    runCatching {
+                        val config =
+                            ExerciseConfig
+                                .builder(ExerciseType.STRENGTH_TRAINING)
+                                .setIsGpsEnabled(false)
+                                .build()
+                        exerciseClient.startExerciseAsync(config).await()
+                        active = true
+                        Log.i("SchliftWear", "Exercise session started")
+                    }.onFailure {
+                        if (it is SecurityException) {
+                            Log.e("SchliftWear", "Missing permissions for exercise session, stopping retries", it)
+                            return@launch
+                        }
+                        Log.e("SchliftWear", "Failed to start exercise session", it)
                     }
-                    Log.e("SchliftWear", "Failed to start exercise session", it)
-                }
-                if (!active) {
-                    delay(5000)
+                    if (!active) {
+                        delay(5000)
+                    }
                 }
             }
-        }
     }
 
     fun endSessionIfActive() {
@@ -66,18 +71,21 @@ class WearExerciseSessionManager(private val context: Context) {
     }
 
     private fun logPermissionStatus() {
-        val bodySensors = ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.BODY_SENSORS,
-        ) == PackageManager.PERMISSION_GRANTED
-        val activityRecognition = ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.ACTIVITY_RECOGNITION,
-        ) == PackageManager.PERMISSION_GRANTED
-        val readHeartRate = ContextCompat.checkSelfPermission(
-            context,
-            "android.permission.health.READ_HEART_RATE",
-        ) == PackageManager.PERMISSION_GRANTED
+        val bodySensors =
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.BODY_SENSORS,
+            ) == PackageManager.PERMISSION_GRANTED
+        val activityRecognition =
+            ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.ACTIVITY_RECOGNITION,
+            ) == PackageManager.PERMISSION_GRANTED
+        val readHeartRate =
+            ContextCompat.checkSelfPermission(
+                context,
+                "android.permission.health.READ_HEART_RATE",
+            ) == PackageManager.PERMISSION_GRANTED
         Log.i(
             "SchliftWear",
             "Permissions body=$bodySensors activity=$activityRecognition readHr=$readHeartRate",

@@ -15,7 +15,7 @@ val isReleaseTask = gradle.startParameter.taskNames.any { it.contains("release",
 if (isReleaseTask && !keystorePropertiesFile.exists()) {
     throw GradleException(
         "Missing app/android/key.properties for release signing. " +
-            "Create it before running release builds."
+            "Create it before running release builds.",
     )
 }
 
