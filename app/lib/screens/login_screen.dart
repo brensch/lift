@@ -25,31 +25,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _usernameFocusNode = FocusNode();
   late TabController _tabController;
 
-  final List<String> _usernameExamples = [
-    'squat_master_9000',
-    'bench_press_king',
-    'iron_addict',
-    'gains_goblin',
-    'reps_for_jesus',
-    'dorito_pump',
-    'senior_minister_of_gains',
-    'chicken_and_rice',
-    'gluteus_maximus_prime',
-    'anabolic_pigeon',
-    'whey_too_much',
-    'bicep_charles',
-    'chuck_norris',
-    'preworkout_heartbeat',
-    'creatine_gremlin',
-    'quadzilla_jr',
-    'quadzilla_sr',
-    'deltoid_dan',
-    'shrugged_off',
-    'gym_shark_bait',
-    'tuna_shake',
-    'failed_pr',
-    'broccoli_boy',
-  ];
+  final List<String> _usernameExamples = copy.login.usernameExamples;
   int _exampleIndex = 0;
   Timer? _exampleTimer;
 
@@ -90,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _createAccount() async {
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
-      context.read<AuthProvider>().setError('you gotta pick a username');
+      context.read<AuthProvider>().setError(copy.login.usernameRequired);
       return;
     }
     final auth = context.read<AuthProvider>();
@@ -174,10 +150,9 @@ class _LoginScreenState extends State<LoginScreen>
                                 letterSpacing: 1.0,
                               ),
 
-                              tabs: const [
-                                Tab(text: 'NEW USER'),
-
-                                Tab(text: 'SIGN IN'),
+                              tabs: [
+                                Tab(text: copy.login.newUserTab),
+                                Tab(text: copy.login.signInTab),
                               ],
                             ),
 
@@ -206,7 +181,7 @@ class _LoginScreenState extends State<LoginScreen>
                         const SizedBox(height: 16),
 
                         Text(
-                          'DEV NAME LOGIN',
+                          copy.login.devLoginHeading,
 
                           style: TextStyle(
                             fontSize: 12,
@@ -224,8 +199,8 @@ class _LoginScreenState extends State<LoginScreen>
                         TextField(
                           controller: _devUsernameController,
 
-                          decoration: const InputDecoration(
-                            labelText: 'Username',
+                          decoration: InputDecoration(
+                            labelText: copy.login.devUsername,
                           ),
 
                           textInputAction: TextInputAction.done,
@@ -255,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('Dev Login'),
+                                : Text(copy.login.devLogin),
                           ),
                         ),
                       ],
@@ -306,9 +281,9 @@ class _LoginScreenState extends State<LoginScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'What should we call you',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+        Text(
+          copy.login.usernamePrompt,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -351,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         const SizedBox(height: 8),
         PrimaryButton(
-          label: 'Create account',
+          label: copy.login.createAccount,
           icon: Icons.fingerprint,
           loading: auth.isLoading,
           onPressed: auth.isLoading ? null : () => _createAccount(),
@@ -366,10 +341,10 @@ class _LoginScreenState extends State<LoginScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Use a passkey on your device to sign in securely.',
+        Text(
+          copy.login.signInBlurb,
           textAlign: TextAlign.left,
-          style: TextStyle(fontSize: 14),
+          style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 24),
         if (auth.error != null)
@@ -382,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         PrimaryButton(
-          label: 'Sign in',
+          label: copy.login.signIn,
           icon: Icons.fingerprint,
           loading: auth.isLoading,
           onPressed: auth.isLoading ? null : _passkeyLogin,

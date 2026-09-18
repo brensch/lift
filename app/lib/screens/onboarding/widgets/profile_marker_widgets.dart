@@ -2,13 +2,19 @@
 library;
 
 import 'package:flutter/material.dart';
+
+import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
 
 class ProfilePreviewCard extends StatelessWidget {
   final String emoji;
   final String colorHex;
 
-  const ProfilePreviewCard({super.key, required this.emoji, required this.colorHex});
+  const ProfilePreviewCard({
+    super.key,
+    required this.emoji,
+    required this.colorHex,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +47,7 @@ class ProfilePreviewCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Group workout preview',
+                    copy.onboarding.marker.previewHeading,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w900,
@@ -49,9 +55,12 @@ class ProfilePreviewCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Your emoji replaces the vertical name and your colour owns the sidebar.',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  Text(
+                    copy.onboarding.marker.previewBody,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -68,7 +77,8 @@ class EmojiChoiceChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const EmojiChoiceChip({super.key, 
+  const EmojiChoiceChip({
+    super.key,
     required this.emoji,
     required this.selected,
     required this.onTap,
@@ -106,7 +116,8 @@ class ColorChoiceDot extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const ColorChoiceDot({super.key, 
+  const ColorChoiceDot({
+    super.key,
     required this.hex,
     required this.selected,
     required this.onTap,
