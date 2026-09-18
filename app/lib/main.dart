@@ -9,6 +9,7 @@ import 'package:app_links/app_links.dart' as app_links;
 
 import 'services/app_logger.dart';
 import 'services/notification_service.dart';
+import 'services/page_tracker.dart';
 import 'services/grpc_client.dart';
 import 'widgets/dialogs/template_update_dialog.dart';
 import 'services/auth_service.dart';
@@ -130,6 +131,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       port: widget.serverPortOverride ?? serverPort,
     );
     _authService = AuthService(grpcClient: _grpcClient);
+    PageTracker.instance.attach(
+      _grpcClient,
+      isLoggedIn: () => _authProvider.isLoggedIn,
+    );
 
     _authProvider = AuthProvider(
       authService: _authService,
@@ -163,6 +168,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       final navigator = ErrorModalService.rootNavigatorKey.currentState;
       navigator?.push(
         MaterialPageRoute<void>(
+          settings: const RouteSettings(name: '/workout/:id/completed'),
           fullscreenDialog: true,
           builder: (_) => CompletedWorkoutScreen(workoutId: workoutId),
         ),
@@ -188,6 +194,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       final isLoggedIn = _authProvider.isLoggedIn;
       _workoutProvider.setBodyWeightKg(_authProvider.bodyWeightKg);
       if (isLoggedIn && !_wasLoggedIn) {
+        PageTracker.instance.onLogin();
         _settingsProvider.load();
         _soundProvider.load();
         final userId = _authProvider.userId;
@@ -203,6 +210,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           _multiplayerProvider.joinViaInvite(token);
         }
       } else if (!isLoggedIn && _wasLoggedIn) {
+        PageTracker.instance.onLogout();
         _settingsProvider.clear();
         unawaited(_soundProvider.reset());
         unawaited(_themeProvider.reset());
@@ -221,6 +229,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
 
     _router = GoRouter(
       navigatorKey: ErrorModalService.rootNavigatorKey,
+      // Page-view tracking. Each navigator needs its own observer; routes
+      // added below are picked up with no further code.
+      observers: [PageTrackObserver()],
       refreshListenable: Listenable.merge([
         _authProvider,
         _settingsProvider,
@@ -250,6 +261,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           builder: (_, __) => const OnboardingScreen(),
         ),
         ShellRoute(
+          observers: [PageTrackObserver()],
           builder: (context, state, child) =>
               MainLayout(currentPath: state.matchedLocation, child: child),
           routes: [
@@ -359,6 +371,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    PageTracker.instance.detach();
     _linkSubscription?.cancel();
     unawaited(_wearableSyncCoordinator.dispose());
     _grpcClient.shutdown();

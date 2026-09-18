@@ -368,6 +368,7 @@ class _LoginScreenState extends State<LoginScreen>
           child: TextButton(
             onPressed: () => Navigator.of(context, rootNavigator: true).push(
               MaterialPageRoute<void>(
+                settings: const RouteSettings(name: 'lost-passkey'),
                 builder: (_) => const LostPasskeyScreen(),
               ),
             ),

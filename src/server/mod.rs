@@ -10,6 +10,8 @@ use crate::workout::{
     is_final_set_of_exercise_after_completion, start_workout_response_from_active,
     workout_state_snapshot_from_state, ExercisePlan, END_OF_EXERCISE_REST_SECONDS,
 };
+use schlift::workout::v1::admin_service_server::AdminService;
+use schlift::workout::v1::analytics_service_server::AnalyticsService;
 use schlift::workout::v1::auth_service_server::AuthService;
 use schlift::workout::v1::multiplayer_service_server::MultiplayerService;
 use schlift::workout::v1::settings_service_server::SettingsService;
@@ -22,6 +24,7 @@ use tonic::{Request, Response, Status};
 use tracing::info;
 use uuid::Uuid;
 
+mod analytics;
 mod auth;
 mod messages;
 mod multiplayer;
@@ -34,6 +37,7 @@ mod workout;
 #[cfg(test)]
 mod workout_tests;
 
+pub use analytics::{ServerAdminService, ServerAnalyticsService};
 pub use auth::ServerAuthService;
 pub use multiplayer::ServerMultiplayerService;
 pub use settings::ServerSettingsService;
@@ -41,6 +45,6 @@ pub use user::ServerUserService;
 pub use workout::ServerWorkoutService;
 
 use support::{
-    authed_user_id, build_participant_status, internal_error, refresh_participant_for_user,
-    setting_type_key, ServerResult,
+    authed_admin_id, authed_user_id, build_participant_status, client_labels, internal_error,
+    refresh_participant_for_user, setting_type_key, ServerResult,
 };

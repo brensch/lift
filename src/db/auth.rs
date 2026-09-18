@@ -334,6 +334,19 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
+        sqlx::query("DELETE FROM page_views WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("DELETE FROM admins WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+        // A registration attempt is keyed by the user id it went on to create.
+        sqlx::query("DELETE FROM auth_attempts WHERE attempt_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("DELETE FROM users_current WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -408,6 +421,8 @@ mod account_deletion_tests {
             ("workout_templates", format!("(id, user_id, name, template_order, template_blob, created_at, updated_at) VALUES ('{u}-tpl', ?, 'T', 0, x'00', 1, 1)")),
             ("exercise_trackers", "(user_id, exercise, working_weight, current_reps, updated_at, source) VALUES (?, 1, 100.0, 6, 1, 'test')".to_string()),
             ("user_message_events", "(user_id, message_key, created_at, updated_at, message_blob) VALUES (?, 'k', 1, 1, x'00')".to_string()),
+            ("page_views", "(user_id, app_session_id, seq, page, entered_at_ms) VALUES (?, 's', 1, '/settings', 1)".to_string()),
+            ("admins", "(user_id, granted_at) VALUES (?, 1)".to_string()),
         ];
 
         for (table, cols) in &stmts {

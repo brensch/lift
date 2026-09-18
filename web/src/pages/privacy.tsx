@@ -31,8 +31,16 @@ export function PrivacyPage() {
               wearable integrations.
             </li>
             <li>
+              Usage data: which screens of the app you open and for how long,
+              linked to your account. It stays on our own server, is never
+              shared with or sold to anyone, and is deleted after 180 days or
+              when you delete your account.
+            </li>
+            <li>
               Security data: session tokens and limited metadata needed to
-              protect accounts and detect abuse.
+              protect accounts and detect abuse. This includes whether
+              sign-in attempts succeed and, when one fails on your device,
+              the general reason (for example, that it was cancelled).
             </li>
           </ul>
         </Section>
@@ -48,6 +56,10 @@ export function PrivacyPage() {
               management.
             </li>
             <li>Operate and improve reliability of the service.</li>
+            <li>
+              See which parts of the app get used and where people get stuck,
+              so we know what to fix.
+            </li>
           </ul>
         </Section>
 
