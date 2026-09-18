@@ -51,6 +51,18 @@ with the same signing fingerprints.
 
 ## Routine
 
+**With the phone on adb, build the app locally:** `make deploy-android-dev`
+builds the same signed `.dev` APK on this machine (~80 s against ~9 min in CI)
+and installs it over the one on the phone. Pair it with
+`gh workflow run dev-backend-deploy.yml --ref <branch>` when the backend changed
+too. The hosted APK below is for a phone that is *not* plugged in.
+
+Local and CI builds number themselves differently — CI uses `500000 +
+run_number`, the make target uses one more than whatever is installed — so once
+a local build is on the phone, a CI APK is refused as a downgrade
+(`INSTALL_FAILED_VERSION_DOWNGRADE`). Keep using the make target, or uninstall
+the dev app first.
+
 Dev releases are tag-driven, same as prod's `v*` — just a `dev-*` prefix so the
 two can never collide.
 
