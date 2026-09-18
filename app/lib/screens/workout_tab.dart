@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
+import '../tutorial/tutorial_target.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import 'home/home_screen.dart';
@@ -155,6 +157,9 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
     final child = wp.hasActiveWorkout
         ? const WorkoutScreen()
         : const HomeScreen();
+
+    // Inside the tutorial's sandbox the tutorial owns the back button.
+    if (TutorialScope.maybeOf(context) != null) return child;
 
     return PopScope(
       canPop: false,
