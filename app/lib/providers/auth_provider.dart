@@ -27,6 +27,8 @@ class AuthProvider extends ChangeNotifier {
   String _profileColorHex = defaultProfileColorHex;
   double _bodyWeightKg = 0;
   bool _isLoading = false;
+  bool _sessionLoaded = false;
+  Future<void>? _initialProfileLoad;
   bool _bodyWeightHealthSyncInFlight = false;
   String? _error;
 
@@ -46,6 +48,12 @@ class AuthProvider extends ChangeNotifier {
   String? get error => _error;
   bool get isLoggedIn => _sessionToken != null;
 
+  /// False until [loadSession] has read the saved session from disk. Until
+  /// then "not logged in" only means "not known yet", and the router must not
+  /// act on it — that is what used to flash the login screen at a signed-in
+  /// user on every cold start.
+  bool get sessionLoaded => _sessionLoaded;
+
   Future<void> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     _sessionToken = prefs.getString(_sessionTokenKey);
@@ -53,9 +61,17 @@ class AuthProvider extends ChangeNotifier {
     _username = prefs.getString(_usernameKey);
     if (_sessionToken != null) {
       _grpcClient.setToken(_sessionToken);
-      await refreshProfile(notify: false);
     }
+    // Publish the session as soon as it is known. The profile (emoji, colour,
+    // body weight) is cosmetic, fetched over the network, and announces itself
+    // when it lands; waiting for it here held every cold start on a round trip
+    // — tens of seconds on a phone whose radio was asleep.
+    _sessionLoaded = true;
+    // Started before notifying so that listeners reacting to the login can
+    // wait on it (see syncBodyWeightFromHealth).
+    _initialProfileLoad = _sessionToken != null ? refreshProfile() : null;
     notifyListeners();
+    await _initialProfileLoad;
   }
 
   Future<void> passkeyRegister(String username) async {
@@ -221,6 +237,8 @@ class AuthProvider extends ChangeNotifier {
     if (_bodyWeightHealthSyncInFlight || _sessionToken == null) return null;
     _bodyWeightHealthSyncInFlight = true;
     try {
+      // Compare against the server's body weight, not the 0 we start with.
+      await _initialProfileLoad;
       final importedKg = await HealthService.readLatestBodyWeightKg(
         requestPermissions: requestPermissions,
       );
