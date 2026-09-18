@@ -131,9 +131,15 @@ is `UNIQUE` on the trimmed, lowercased name, and no RPC renames a user.
 
 ## Retention and deletion
 
-`page_views` and `auth_attempts` are pruned to 180 days at server start
-(`ANALYTICS_RETENTION_DAYS`). `page_views` and `admins` are covered by
-`delete_user_account_and_data` and by its discover-every-`user_id`-table test.
+Nothing expires: analytics rows are kept until the account is deleted, which is
+what the privacy policy promises. `page_views` and `admins` are covered by
+`delete_user_account_and_data` and by its discover-every-`user_id`-table test;
+a successful registration's `auth_attempts` row goes with the account too.
+Attempts that never became an account carry no username and stay.
+
+`GetStats` aggregates at most `MAX_STATS_WINDOW_DAYS` (365) at a time. That is a
+query-cost bound, not retention: `page_stats` reads every row in the window to
+compute medians.
 
 ## Disclosure
 

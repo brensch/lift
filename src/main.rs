@@ -75,9 +75,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if args.first().map(String::as_str) == Some("admin") {
         return admin_command(&server_db, &args[1..]).await;
     }
-    if let Err(e) = server_db.prune_analytics().await {
-        error!("failed to prune analytics: {}", e);
-    }
     // The template library is part of the build; refuse to boot on a bad
     // file rather than serve a stale table.
     let library = template_library::load()?;

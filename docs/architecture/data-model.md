@@ -208,8 +208,8 @@ never edited by hand and the YAML wins on every restart.
 | `user_settings_current` | Per-user settings, keyed by `(user_id, setting_type)` — the weight unit lives here |
 | `user_message_events` | Coaching/progression messages, upserted by `message_key`, soft-dismissed via `dismissed_at` |
 | `workout_heart_rate_samples` | Heart rate from the watch, one row per sample |
-| `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. Pruned at 180 days. See [analytics.md](analytics.md) |
-| `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username. Pruned at 180 days |
+| `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. Kept until the account is deleted. See [analytics.md](analytics.md) |
+| `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username |
 | `admins` | Who may call `AdminService.GetStats`. Keyed by `user_id`, never by name |
 
 ## Referential integrity

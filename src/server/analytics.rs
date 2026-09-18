@@ -1,5 +1,5 @@
 use super::*;
-use crate::db::ANALYTICS_RETENTION_DAYS;
+use crate::db::MAX_STATS_WINDOW_DAYS;
 
 // ── Analytics Service ──
 
@@ -99,7 +99,7 @@ impl AdminService for ServerAdminService {
 
         let days = match req.days {
             d if d <= 0 => 30,
-            d => (d as i64).min(ANALYTICS_RETENTION_DAYS) as i32,
+            d => (d as i64).min(MAX_STATS_WINDOW_DAYS) as i32,
         };
         let since = now_unix() - days as i64 * 86_400;
         let since_ms = since * 1000;
