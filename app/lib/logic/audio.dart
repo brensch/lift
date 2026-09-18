@@ -1,8 +1,11 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Directory, File, Platform;
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../gen/copy.dart';
+import '../gen/sounds.dart';
 
 /// One rest-over sound: a bundled WAV, named in app/copy.yaml.
 class SoundDef {
@@ -65,6 +68,31 @@ class SoundPlayer {
     _sessionConfigured = true;
   }
 
+  /// The clip as a file the player can open. just_audio's own asset cache
+  /// is keyed by asset path alone and never refreshed, so a re-cut sound
+  /// kept playing its old bytes after an update; this copy is keyed by the
+  /// bundled sounds' revision instead, and the stale cache is dropped once.
+  static bool _staleCacheCleared = false;
+  Future<String> _fileFor(String id) async {
+    if (!_staleCacheCleared) {
+      _staleCacheCleared = true;
+      await AudioPlayer.clearAssetCache();
+    }
+    final dir = Directory(
+      '${(await getTemporaryDirectory()).path}/schlift_sounds_$soundsRevision',
+    );
+    final file = File('${dir.path}/sound_$id.wav');
+    if (!file.existsSync()) {
+      await dir.create(recursive: true);
+      final data = await rootBundle.load(soundPresets[id]!.assetFor(id));
+      await file.writeAsBytes(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        flush: true,
+      );
+    }
+    return file.path;
+  }
+
   Future<void> play(String presetId) async {
     try {
       await _ensureSession();
@@ -76,7 +104,7 @@ class SoundPlayer {
         // so we never request audio focus / pause the user's music.
         player = AudioPlayer(handleAudioSessionActivation: Platform.isIOS);
         final id = knownSoundPreset(presetId);
-        await player.setAsset(soundPresets[id]!.assetFor(id));
+        await player.setFilePath(await _fileFor(id));
         _players[presetId] = player;
       }
       await player.seek(Duration.zero);
