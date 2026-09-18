@@ -534,7 +534,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (isUnauthenticatedError(e)) return;
     if (isAppUpdateRequiredError(e)) {
       ErrorModalService.showError(
-        'THIS VERSION OF SCHLIFT IS TOO OLD — PLEASE UPDATE FROM THE STORE.',
+        'THIS VERSION OF SCHLIFT IS TOO OLD. PLEASE UPDATE FROM THE STORE.',
       );
       return;
     }
@@ -659,7 +659,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final prefix = next.warmup ? 'Warmup ' : '';
     final w = next.targetWeight.toDouble();
     final weightStr = formatWeight(w, _settingsProvider.weightUnit);
-    return 'Next up: $prefix$name — $weightStr ${weightUnitSuffix(_settingsProvider.weightUnit)} × ${next.targetReps}';
+    return 'Next up: $prefix$name, $weightStr ${weightUnitSuffix(_settingsProvider.weightUnit)} × ${next.targetReps}';
   }
 
   bool isSetDone(String setId) {
@@ -1524,7 +1524,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         );
       } else if (result == HealthWriteResult.permissionDenied) {
         Fluttertoast.showToast(
-          msg: 'Health Connect permission denied — enable in settings',
+          msg: 'Health Connect permission denied. Enable in settings',
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: Colors.orange,

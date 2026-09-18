@@ -154,7 +154,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
             controller: _nameController,
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
-              hintText: 'Name — e.g. Push, Legs, Tuesday',
+              hintText: 'Name, e.g. Push, Legs, Tuesday',
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
@@ -171,7 +171,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Text(
                       'Add exercises. Tap one to adjust its weight or '
-                      'sets — that adjustment follows the exercise '
+                      'sets. That adjustment follows the exercise '
                       'everywhere.',
                       textAlign: TextAlign.center,
                       style: TextStyle(

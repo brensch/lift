@@ -23,8 +23,8 @@ class ScienceScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [
           Text(
-            'Schlift trains you for muscle growth. Every number — sets, '
-            'reps, rest, weight — comes from the research below. One '
+            'Schlift trains you for muscle growth. Every number (sets, '
+            'reps, rest, weight) comes from the research below. One '
             'rule filters it all: keep it simple enough that you do it.',
             style: TextStyle(
               fontSize: 14,
@@ -42,12 +42,12 @@ class ScienceScreen extends StatelessWidget {
                 'the movement and 0.5 for each helper.',
             citations: [
               _Citation(
-                'Schoenfeld, Ogborn & Krieger (2017) — dose-response of '
+                'Schoenfeld, Ogborn & Krieger (2017): dose-response of '
                     'weekly sets on muscle growth',
                 'https://pubmed.ncbi.nlm.nih.gov/27433992/',
               ),
               _Citation(
-                'Baz-Valle et al. (2022) — systematic review of weekly '
+                'Baz-Valle et al. (2022): systematic review of weekly '
                     'volume per muscle group',
                 'https://pubmed.ncbi.nlm.nih.gov/35291645/',
               ),
@@ -62,7 +62,7 @@ class ScienceScreen extends StatelessWidget {
                 'it was a warmup.',
             citations: [
               _Citation(
-                'Grgic et al. (2022) — training to failure vs not, '
+                'Grgic et al. (2022): training to failure vs not, '
                     'meta-analysis',
                 'https://pubmed.ncbi.nlm.nih.gov/33497853/',
               ),
@@ -76,7 +76,7 @@ class ScienceScreen extends StatelessWidget {
                 'compounds, 10–15 on isolation, 10–20 on core.',
             citations: [
               _Citation(
-                'Schoenfeld et al. (2017) — low- vs high-load training, '
+                'Schoenfeld et al. (2017): low- vs high-load training, '
                     'meta-analysis',
                 'https://pubmed.ncbi.nlm.nih.gov/28834797/',
               ),
@@ -93,12 +93,12 @@ class ScienceScreen extends StatelessWidget {
                 'allowed.',
             citations: [
               _Citation(
-                'Schoenfeld et al. (2016) — 3 min vs 1 min rest, '
+                'Schoenfeld et al. (2016): 3 min vs 1 min rest, '
                     'randomized trial',
                 'https://pubmed.ncbi.nlm.nih.gov/26605807/',
               ),
               _Citation(
-                'Grgic et al. (2017) — rest interval review for '
+                'Grgic et al. (2017): rest interval review for '
                     'hypertrophy',
                 'https://pubmed.ncbi.nlm.nih.gov/28933024/',
               ),
@@ -114,12 +114,12 @@ class ScienceScreen extends StatelessWidget {
                 'actually lifted.',
             citations: [
               _Citation(
-                'Plotkin et al. (2022) — load progression vs repetition '
+                'Plotkin et al. (2022): load progression vs repetition '
                     'progression',
                 'https://pubmed.ncbi.nlm.nih.gov/36199287/',
               ),
               _Citation(
-                'ACSM (2009) — progression models in resistance training',
+                'ACSM (2009): progression models in resistance training',
                 'https://pubmed.ncbi.nlm.nih.gov/19204579/',
               ),
             ],
@@ -127,7 +127,7 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Misses and deloads',
             body:
-                'Miss once and the weight holds — everyone has bad days. '
+                'Miss once and the weight holds. Everyone has bad days. '
                 'Miss twice in a row and the weight drops 10%, then '
                 'rebuilds through the rep range. Grinding a stuck weight '
                 'forever is how progress dies.',
@@ -142,12 +142,12 @@ class ScienceScreen extends StatelessWidget {
                 'allowed. The amber marker is information, not a gate.',
             citations: [
               _Citation(
-                'MacDougall et al. (1995) — muscle protein synthesis '
+                'MacDougall et al. (1995): muscle protein synthesis '
                     'time course after training',
                 'https://pubmed.ncbi.nlm.nih.gov/8563679/',
               ),
               _Citation(
-                'Schoenfeld, Grgic & Krieger (2019) — training frequency '
+                'Schoenfeld, Grgic & Krieger (2019): training frequency '
                     'meta-analysis',
                 'https://pubmed.ncbi.nlm.nih.gov/30558493/',
               ),
@@ -159,7 +159,7 @@ class ScienceScreen extends StatelessWidget {
                 'Barbell compounds get four warmup sets at roughly '
                 '40/55/70/85% of the working weight. Walking up to a '
                 'heavy bar cold is how injuries happen. Light isolation '
-                'work needs none — the first set is its own warmup.',
+                'work needs none. The first set is its own warmup.',
             citations: [],
           ),
           const _Section(
@@ -169,23 +169,23 @@ class ScienceScreen extends StatelessWidget {
                 'and gender. At the same bodyweight, women average ~52% '
                 'of men\u2019s upper-body strength and ~66% lower-body. So '
                 'upper-body seeds scale to ~60% and lower-body to ~75%. '
-                'Gender changes nothing else — relative gains are similar '
+                'Gender changes nothing else. Relative gains are similar '
                 'between sexes, so the program is identical. The seed is '
                 'only a guess: progression finds your real weight in 2–3 '
                 'sessions.',
             citations: [
               _Citation(
-                'Miller et al. (1993) — sex differences in strength: '
+                'Miller et al. (1993): sex differences in strength: '
                     '~52% upper body, ~66% lower body',
                 'https://pubmed.ncbi.nlm.nih.gov/8477683/',
               ),
               _Citation(
-                'Nuzzo (2023) — comprehensive review of sex differences '
+                'Nuzzo (2023): comprehensive review of sex differences '
                     'in muscle strength and size',
                 'https://pubmed.ncbi.nlm.nih.gov/36696264/',
               ),
               _Citation(
-                'Roberts et al. (2020) — sex differences in resistance '
+                'Roberts et al. (2020): sex differences in resistance '
                     'training response, meta-analysis',
                 'https://pubmed.ncbi.nlm.nih.gov/32218059/',
               ),
@@ -201,8 +201,8 @@ class ScienceScreen extends StatelessWidget {
             child: Text(
               'Honesty note: effect sizes in this research are modest '
               'and most studies are short. Good programs differ little. '
-              'The one variable that beats all others is showing up — '
-              'that is why Schlift optimises for simplicity.',
+              'The one variable that beats all others is showing up. '
+              'That is why Schlift optimises for simplicity.',
               style: TextStyle(
                 fontSize: 13,
                 height: 1.5,

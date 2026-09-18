@@ -65,7 +65,7 @@ class ExerciseListCard extends StatelessWidget {
     final title = exerciseNames[block.exercise] ?? 'Exercise';
     final topSet = _topWorkingSet();
     final weightLabel = topSet == null
-        ? '—'
+        ? '-'
         : formatWeight(topSet.targetWeight.toDouble(), unit, includeUnit: true);
     final repsLabel = topSet == null ? null : '${topSet.targetReps}';
     final contentColor = completed ? AppTheme.successFg : colorScheme.onSurface;

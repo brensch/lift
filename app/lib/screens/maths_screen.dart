@@ -84,7 +84,7 @@ class MathsScreen extends StatelessWidget {
             'burned ~2.8× more calories than 1-set protocols of the same '
             'exercise.\n\n'
             'However, when normalised per minute of actual exercise time, '
-            'calorie rate is roughly constant — meaning total duration already '
+            'calorie rate is roughly constant, meaning total duration already '
             'captures most of the tonnage effect. More volume → longer sessions '
             '→ more calories, which the MET × duration formula handles '
             'automatically.\n\n'
@@ -110,12 +110,12 @@ class MathsScreen extends StatelessWidget {
           Text(
             'Resistance training has a large anaerobic component (up to 40% of '
             'total energy expenditure) that standard indirect calorimetry cannot '
-            'fully capture — and no phone app can measure it at all. A 2024 '
+            'fully capture, and no phone app can measure it at all. A 2024 '
             'systematic review (PMC11393209) found no gold-standard method for '
             'resistance training energy expenditure. The MET formula gives a '
             'reasonable population-average estimate, accurate to perhaps ±25% '
             'for any individual session.\n\n'
-            'If no bodyweight is set, we fall back to a flat 5 kcal/min — '
+            'If no bodyweight is set, we fall back to a flat 5 kcal/min, '
             'roughly the midpoint of the 4–10 kcal/min range observed across '
             'studies.',
             style: TextStyle(
@@ -301,7 +301,7 @@ class _ExampleCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'EXAMPLE — ${durationMinutes.toInt()} MIN SESSION',
+            'EXAMPLE: ${durationMinutes.toInt()} MIN SESSION',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w900,

@@ -66,7 +66,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     if (!mounted) return;
     setState(() => _joiningPartnerId = null);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(error ?? 'Asked $name to train — waiting for them to accept'),
+      content: Text(error ?? 'Asked $name to train. Waiting for them to accept'),
     ));
   }
 
@@ -200,8 +200,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
             ),
             child: Text(
-              'No training partners yet. Do a session with someone — scan their '
-              'code or open their link — and they’ll show up here to re-invite '
+              'No training partners yet. Do a session with someone (scan their '
+              'code or open their link) and they’ll show up here to re-invite '
               'in one tap.',
               style: TextStyle(
                 fontSize: 12.5,
