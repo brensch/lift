@@ -418,6 +418,34 @@ def upload_screenshot(asc: AppStoreConnect, set_id: str, path: Path) -> str | No
     return reserved["id"]
 
 
+# Display-type families this script owns outright. Within them, the repo is
+# the only source of screenshots: a set we do not upload is a leftover.
+OWNED_FAMILIES = ("APP_IPHONE_", "APP_WATCH_")
+
+
+def prune_stale_sets(asc: AppStoreConnect, localizations: list[dict]) -> None:
+    """Delete iPhone / Apple Watch screenshot sets this script does not manage.
+
+    Apple only requires the largest iPhone size and scales it down for smaller
+    displays. A smaller set left over from a hand upload is NOT scaled from
+    ours: it is shown as-is, on those devices and in App Store Connect, so the
+    listing keeps its old screenshots however often the managed set is pushed.
+    iPad and other families are left alone.
+    """
+    for loc in localizations:
+        if loc["id"] == "<new-loc>":
+            continue
+        locale = loc["attributes"]["locale"]
+        for s in asc.get(
+            f"/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets", {"limit": 50}
+        ).get("data", []):
+            display_type = s["attributes"]["screenshotDisplayType"]
+            if display_type in SCREENSHOT_SETS or not display_type.startswith(OWNED_FAMILIES):
+                continue
+            print(f"[{locale}] {display_type}: deleting stale screenshot set (not managed here)")
+            asc.request("DELETE", f"/appScreenshotSets/{s['id']}")
+
+
 def push_images(asc: AppStoreConnect, localizations: list[dict]) -> None:
     for display_type, (folder, expected) in SCREENSHOT_SETS.items():
         files = sorted((IMAGES / folder).glob("*.png"))
@@ -476,6 +504,7 @@ def push_images(asc: AppStoreConnect, localizations: list[dict]) -> None:
                     f"/appScreenshotSets/{existing['id']}/relationships/appScreenshots",
                     {"data": [{"type": "appScreenshots", "id": i} for i in ids]},
                 )
+    prune_stale_sets(asc, localizations)
 
 
 def main() -> int:
