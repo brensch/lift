@@ -46,16 +46,6 @@ class TemplatesStep extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            t.kicker,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
-              color: cs.tertiary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
             t.title,
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
           ),
@@ -127,7 +117,7 @@ class TemplatesStep extends StatelessWidget {
                   height: 56,
                   child: OutlinedButton(
                     onPressed: isSaving ? null : onBack,
-                    child: Text(t.back),
+                    child: Text(copy.onboarding.back),
                   ),
                 ),
               ),
