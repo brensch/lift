@@ -8,7 +8,7 @@ import { useIsAdmin } from "@/lib/use-is-admin";
 
 const publicNavItems = [
   { to: "/", label: "Home" },
-  { to: "/templates", label: "Templates" },
+  { to: "/routines", label: "Routines" },
   { to: "/privacy", label: "Privacy" },
   { to: "/delete-account", label: "Delete Account" },
 ];

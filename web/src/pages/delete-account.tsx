@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { authClient, authHeaders } from "@/lib/grpc";
 import { useAuth } from "@/lib/use-auth";
 
@@ -11,8 +12,13 @@ export function DeleteAccountPage() {
     type: "info" | "ok" | "error";
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  // Once the account is gone the button must not be usable again: a second
+  // click would only ask a deleted account for its passkey.
+  const [deleted, setDeleted] = useState(false);
 
   async function handleDelete() {
+    setConfirming(false);
     setLoading(true);
     setStatus(null);
 
@@ -45,6 +51,7 @@ export function DeleteAccountPage() {
       // Clear local session since account is gone
       await logout();
 
+      setDeleted(true);
       setStatus({
         text: `Account deleted (user id: ${resp.deletedUserId})`,
         type: "ok",
@@ -54,6 +61,7 @@ export function DeleteAccountPage() {
         text: err instanceof Error ? err.message : "Delete request failed",
         type: "error",
       });
+    } finally {
       setLoading(false);
     }
   }
@@ -72,26 +80,49 @@ export function DeleteAccountPage() {
           </p>
         </div>
 
-        <p className="text-muted leading-relaxed">
-          {user
-            ? `Signed in as ${user.username}. Click below to permanently delete your account.`
-            : "You'll authenticate with a passkey to prove account ownership, then your data will be deleted."}
-        </p>
+        {!deleted && (
+          <p className="text-muted leading-relaxed">
+            {user
+              ? `Signed in as ${user.username}. Click below to permanently delete your account.`
+              : "You'll authenticate with a passkey to prove account ownership, then your data will be deleted."}
+          </p>
+        )}
 
         <div>
           <Button
             variant="primary"
-            onClick={handleDelete}
-            disabled={loading}
-            className="disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={() => setConfirming(true)}
+            disabled={loading || deleted}
+            className="disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
-            {loading
-              ? "Processing..."
-              : user
-                ? "Delete my account"
-                : "Authenticate & delete my account"}
+            {deleted
+              ? "Account deleted"
+              : loading
+                ? "Processing..."
+                : user
+                  ? "Delete my account"
+                  : "Authenticate & delete my account"}
           </Button>
         </div>
+
+        <ConfirmDialog
+          open={confirming}
+          title={user ? `Delete ${user.username}?` : "Delete your account?"}
+          confirmLabel={user ? "Delete permanently" : "Authenticate & delete"}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirming(false)}
+        >
+          <p className="m-0">
+            This permanently deletes the account, its passkeys, workout history
+            and heart-rate data. It cannot be undone.
+          </p>
+          {!user && (
+            <p className="m-0 mt-2">
+              You'll be asked for your passkey first, to prove the account is
+              yours.
+            </p>
+          )}
+        </ConfirmDialog>
 
         {status && (
           <p
