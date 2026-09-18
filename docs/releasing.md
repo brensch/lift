@@ -421,12 +421,42 @@ gh workflow run store-assets.yml -f action=push -f platforms=both -f dry_run=fal
   locked by a review), and promotional text, keywords, description and the
   iPhone + Apple Watch screenshot sets on the version. A version waiting for
   review cannot be edited: pull it from review, or target the next version.
+  It uploads one iPhone size (6.9", `APP_IPHONE_67`), which Apple scales down
+  for smaller phones, and then **deletes any other iPhone or Watch screenshot
+  set on the version**. A smaller set left from a hand upload is not scaled
+  from ours, it is shown as-is — which is how the listing once kept its old
+  screenshots through several pushes. iPad sets are left alone.
 
-### Pull
+**A push log is not proof.** After pushing screenshots, run `inspect` and read
+what Apple actually holds.
+
+### Pull and inspect
 
 `action = pull` prints what each store currently has (text per language, image
 counts) and saves it as the `store-listing-pull` artifact. Use it to seed
 `listing.yaml` from the live listing or to check the two are in sync.
+
+`action = inspect` (App Store) is the one to use when the listing looks wrong.
+It is read-only and works on a version in **any** state, including one waiting
+for review: every version and its state, then every screenshot set on
+`ios_version` with each image's file name, dimensions and processing state,
+flagging sets the script does not manage.
+
+```bash
+gh workflow run store-assets.yml -f action=inspect -f platforms=ios -f ios_version=0.10.3
+```
+
+### Screenshots and a release, in order
+
+Screenshots belong to an App Store *version*, and only an editable version can
+be changed, so the order matters:
+
+1. `v*` tag, wait for both builds.
+2. If a version is waiting for review, push with `ios_version=<that version>`
+   and `ios_remove_from_review=true` (this gives up its place in the queue).
+3. `inspect` — confirm only the managed sets remain and every image is `COMPLETE`.
+4. `prod-v*` tag (or Store Promote), which reuses or renames that version,
+   attaches the build and submits.
 
 ### What can go wrong
 
