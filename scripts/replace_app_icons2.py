@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Generate the SCHLIFT app feature graphic."""
 
-from pathlib import Path
 import math
 import random
+from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 BLACK = (10, 10, 10, 255)  # #0A0A0A
 WHITE = (250, 250, 250, 255)  # #FAFAFA
@@ -97,10 +97,10 @@ def draw_wobbly_text(
         if bbox is None:
             cursor_x += advance
             continue
-            
-        width = max(1, int(math.ceil(bbox[2] - bbox[0])))
-        height = max(1, int(math.ceil(bbox[3] - bbox[1])))
-        pad = max(10, int(round(height * 0.35)))
+
+        width = max(1, math.ceil(bbox[2] - bbox[0]))
+        height = max(1, math.ceil(bbox[3] - bbox[1]))
+        pad = max(10, round(height * 0.35))
 
         glyph = Image.new("RGBA", (width + pad * 2, height + pad * 2), (0, 0, 0, 0))
         glyph_draw = ImageDraw.Draw(glyph)
@@ -113,7 +113,7 @@ def draw_wobbly_text(
         )
         canvas.alpha_composite(
             rotated,
-            (int(round(cursor_x + dx)), int(round(origin_y + dy))),
+            (round(cursor_x + dx), round(origin_y + dy)),
         )
         cursor_x += advance + tracking
 
@@ -121,20 +121,25 @@ def draw_wobbly_text(
 def draw_feature_graphic() -> Image.Image:
     width, height = 1024, 500
     image = Image.new("RGBA", (width, height), BG_COLOR)
-    
+
     logo_size = 250
     logo_x = 90
     logo_y = (height - logo_size) // 2
     logo_radius = int(logo_size * 0.22)
-    
+
     # 1. Draw Drop Shadow for the App Icon
     shadow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     shadow_draw = ImageDraw.Draw(shadow_layer)
     shadow_offset_y = 10
     shadow_draw.rounded_rectangle(
-        (logo_x, logo_y + shadow_offset_y, logo_x + logo_size, logo_y + logo_size + shadow_offset_y),
+        (
+            logo_x,
+            logo_y + shadow_offset_y,
+            logo_x + logo_size,
+            logo_y + logo_size + shadow_offset_y,
+        ),
         radius=logo_radius,
-        fill=(0, 0, 0, 160) # Semi-transparent black
+        fill=(0, 0, 0, 160),  # Semi-transparent black
     )
     # Blur the shadow layer
     shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=15))
@@ -155,7 +160,7 @@ def draw_feature_graphic() -> Image.Image:
         if title_font.getlength(title_text) <= max_text_width or title_font_size <= 20:
             break
         title_font_size -= 2
-    
+
     # 4. Draw Wobbly "SCHLIFT" Text
     draw_wobbly_text(
         canvas=image,
@@ -173,8 +178,8 @@ def draw_feature_graphic() -> Image.Image:
     # 5. Draw Motto with Auto-scaling (Ensures it never cuts off)
     byline_text = "Track lifts, get strong, together."
     byline_font_size = 46
-    max_text_width = width - text_x - 30 # 30px padding from right edge
-    
+    max_text_width = width - text_x - 30  # 30px padding from right edge
+
     while True:
         byline_font = load_font(byline_font_size)
         if byline_font.getlength(byline_text) <= max_text_width or byline_font_size <= 20:
@@ -183,7 +188,7 @@ def draw_feature_graphic() -> Image.Image:
 
     draw = ImageDraw.Draw(image)
     draw.text(
-        (text_x + 8, 335), # Align slightly inset with the wobbly text
+        (text_x + 8, 335),  # Align slightly inset with the wobbly text
         byline_text,
         font=byline_font,
         fill=WHITE,
@@ -195,10 +200,10 @@ def main() -> None:
     repo_root = Path(__file__).resolve().parent.parent
     marketing_dir = repo_root / "marketing"
     marketing_dir.mkdir(parents=True, exist_ok=True)
-    
+
     out_path = marketing_dir / "feature_graphic.png"
     image = draw_feature_graphic()
-    
+
     # Convert RGBA to RGB to save cleanly as PNG
     image.convert("RGB").save(out_path, format="PNG", optimize=True)
     print(f"Success! Saved feature graphic to {out_path.absolute()}")

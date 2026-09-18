@@ -25,10 +25,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+import httplib2
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-
-import httplib2
 
 # Sibling script: shared auth + commit helpers.
 from upload_google_play import (
@@ -57,9 +56,13 @@ class FoundRelease:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--package-name", required=True)
-    parser.add_argument("--version", required=True, help="Release version, e.g. 0.10.1 (the v* tag without the v)")
+    parser.add_argument(
+        "--version", required=True, help="Release version, e.g. 0.10.1 (the v* tag without the v)"
+    )
     parser.add_argument("--release-notes-file", required=True, type=Path)
     parser.add_argument(
         "--promote",
@@ -76,7 +79,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--service-account-json", default=None)
     parser.add_argument("--service-account-json-file", default=None)
-    parser.add_argument("--dry-run", action="store_true", help="Look everything up, print the plan, do not commit")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Look everything up, print the plan, do not commit"
+    )
     return parser.parse_args()
 
 
@@ -104,7 +109,8 @@ def load_release_notes(path: Path) -> str:
         raise SystemExit(f"Release notes are empty: {path}")
     if len(text) > PLAY_RELEASE_NOTES_LIMIT:
         raise SystemExit(
-            f"Release notes are {len(text)} characters; Google Play allows {PLAY_RELEASE_NOTES_LIMIT}."
+            f"Release notes are {len(text)} characters; "
+            f"Google Play allows {PLAY_RELEASE_NOTES_LIMIT}."
         )
     return text
 
@@ -117,7 +123,9 @@ def release_status(user_fraction: float) -> dict:
     return {"status": "inProgress", "userFraction": user_fraction}
 
 
-def find_release(androidpublisher, package_name: str, edit_id: str, track: str, version: str) -> FoundRelease:
+def find_release(
+    androidpublisher, package_name: str, edit_id: str, track: str, version: str
+) -> FoundRelease:
     """The release on `track` whose name starts with `v<version>-`.
 
     The upload workflow names releases `<tag>-<run>-<label>`, so a rerun of
@@ -146,7 +154,9 @@ def find_release(androidpublisher, package_name: str, edit_id: str, track: str, 
 
 
 def list_tracks(androidpublisher, package_name: str, edit_id: str) -> list[str]:
-    result = androidpublisher.edits().tracks().list(packageName=package_name, editId=edit_id).execute()
+    result = (
+        androidpublisher.edits().tracks().list(packageName=package_name, editId=edit_id).execute()
+    )
     return [track["track"] for track in result.get("tracks", [])]
 
 
@@ -192,7 +202,9 @@ def main() -> int:
     http = google_auth_httplib2_request(credentials, httplib2.Http(timeout=120))
     androidpublisher = build("androidpublisher", "v3", http=http, cache_discovery=False)
 
-    edit_id = androidpublisher.edits().insert(packageName=args.package_name, body={}).execute()["id"]
+    edit_id = (
+        androidpublisher.edits().insert(packageName=args.package_name, body={}).execute()["id"]
+    )
     print(f"Created Google Play edit {edit_id}")
 
     try:
@@ -200,10 +212,14 @@ def main() -> int:
         for promotion in promotions:
             for track in (promotion.source_track, promotion.target_track):
                 if track not in tracks:
-                    raise SystemExit(f"Track {track!r} does not exist. Tracks on {args.package_name}: {tracks}")
+                    raise SystemExit(
+                        f"Track {track!r} does not exist. Tracks on {args.package_name}: {tracks}"
+                    )
 
         for promotion in promotions:
-            found = find_release(androidpublisher, args.package_name, edit_id, promotion.source_track, args.version)
+            found = find_release(
+                androidpublisher, args.package_name, edit_id, promotion.source_track, args.version
+            )
             print(
                 f"{promotion.source_track!r} -> {promotion.target_track!r}: "
                 f"release {found.name!r} version codes {found.version_codes} "
@@ -212,7 +228,14 @@ def main() -> int:
                 + ")"
             )
             assign_release(
-                androidpublisher, args.package_name, edit_id, promotion.target_track, found, args.version, notes, status
+                androidpublisher,
+                args.package_name,
+                edit_id,
+                promotion.target_track,
+                found,
+                args.version,
+                notes,
+                status,
             )
 
         if args.dry_run:
@@ -228,7 +251,7 @@ def main() -> int:
         print(f"Promotion failed before commit; deleting edit {edit_id}", file=sys.stderr)
         try:
             androidpublisher.edits().delete(packageName=args.package_name, editId=edit_id).execute()
-        except Exception as delete_error:  # noqa: BLE001 - best effort cleanup
+        except Exception as delete_error:
             print(f"Failed to delete edit {edit_id}: {delete_error}", file=sys.stderr)
         raise
 

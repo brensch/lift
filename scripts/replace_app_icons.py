@@ -16,15 +16,13 @@ safe zone) over a solid background of the master's own ground colour.
 
 from __future__ import annotations
 
-from pathlib import Path
 import argparse
-import glob
 import json
 import math
 import random
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
-
 
 BLACK = (10, 10, 10, 255)  # #0A0A0A
 WHITE = (250, 250, 250, 255)  # #FAFAFA
@@ -79,7 +77,7 @@ def draw_master_icon(size: int) -> Image.Image:
 
 def draw_marketing_icon(size: int) -> Image.Image:
     image = Image.new("RGBA", (size, size), BLACK)
-    
+
     # Scale the barbell down even for marketing icons to account for Play Store masking
     scale = 0.75
     inner = int(size * scale)
@@ -146,9 +144,9 @@ def draw_wobbly_text(
         if bbox is None:
             cursor_x += advance
             continue
-        width = max(1, int(math.ceil(bbox[2] - bbox[0])))
-        height = max(1, int(math.ceil(bbox[3] - bbox[1])))
-        pad = max(10, int(round(height * 0.35)))
+        width = max(1, math.ceil(bbox[2] - bbox[0]))
+        height = max(1, math.ceil(bbox[3] - bbox[1]))
+        pad = max(10, round(height * 0.35))
 
         glyph = Image.new("RGBA", (width + pad * 2, height + pad * 2), (0, 0, 0, 0))
         glyph_draw = ImageDraw.Draw(glyph)
@@ -161,7 +159,7 @@ def draw_wobbly_text(
         )
         canvas.alpha_composite(
             rotated,
-            (int(round(cursor_x + dx)), int(round(origin_y + dy))),
+            (round(cursor_x + dx), round(origin_y + dy)),
         )
         cursor_x += advance
 
@@ -211,8 +209,10 @@ def collect_png_targets(repo_root: Path) -> list[Path]:
 
     targets: set[Path] = set()
     for pattern in patterns:
-        for match in glob.glob(str(repo_root / pattern)):
-            p = Path(match)
+        for p in repo_root.glob(pattern):
+            # Hidden files are skipped, as glob.glob did before this moved to pathlib.
+            if p.name.startswith("."):
+                continue
             if p.exists() and p.is_file():
                 targets.add(p.relative_to(repo_root))
     return sorted(targets)
@@ -237,8 +237,15 @@ def ground_colour(master: Image.Image) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--source", type=Path, default=None, help="1024x1024 PNG master to use instead of the drawn barbell")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--source",
+        type=Path,
+        default=None,
+        help="1024x1024 PNG master to use instead of the drawn barbell",
+    )
     args = ap.parse_args()
     repo_root = Path(__file__).resolve().parent.parent
     if args.source:
@@ -267,7 +274,7 @@ def main() -> None:
     # Square output icon set (store/export assets): opaque, full-bleed background.
     marketing_dir = repo_root / "marketing"
     marketing_dir.mkdir(parents=True, exist_ok=True)
-    
+
     generic_output_specs = {
         "schlift-square-192.png": 192,
         "schlift-square-512.png": 512,
@@ -275,7 +282,11 @@ def main() -> None:
     }
     for filename, px in generic_output_specs.items():
         out_path = marketing_dir / filename
-        marketing_icon = apple_icon_master.resize((px, px), Image.Resampling.LANCZOS) if args.source else draw_marketing_icon(px)
+        marketing_icon = (
+            apple_icon_master.resize((px, px), Image.Resampling.LANCZOS)
+            if args.source
+            else draw_marketing_icon(px)
+        )
         marketing_icon.convert("RGB").save(
             out_path,
             format="PNG",
@@ -285,21 +296,124 @@ def main() -> None:
 
     watch_icon_dir = repo_root / "app/ios/SchliftWatch/Assets.xcassets/AppIcon.appiconset"
     watch_icon_specs = [
-        {"idiom": "watch", "scale": "2x", "size": "24x24", "role": "notificationCenter", "subtype": "38mm", "pixels": 48},
-        {"idiom": "watch", "scale": "2x", "size": "27.5x27.5", "role": "notificationCenter", "subtype": "42mm", "pixels": 55},
-        {"idiom": "watch", "scale": "2x", "size": "29x29", "role": "companionSettings", "pixels": 58},
-        {"idiom": "watch", "scale": "3x", "size": "29x29", "role": "companionSettings", "pixels": 87},
-        {"idiom": "watch", "scale": "2x", "size": "40x40", "role": "appLauncher", "subtype": "38mm", "pixels": 80},
-        {"idiom": "watch", "scale": "2x", "size": "44x44", "role": "appLauncher", "subtype": "40mm", "pixels": 88},
-        {"idiom": "watch", "scale": "2x", "size": "50x50", "role": "appLauncher", "subtype": "44mm", "pixels": 100},
-        {"idiom": "watch", "scale": "2x", "size": "46x46", "role": "appLauncher", "subtype": "41mm", "pixels": 92},
-        {"idiom": "watch", "scale": "2x", "size": "51x51", "role": "appLauncher", "subtype": "45mm", "pixels": 102},
-        {"idiom": "watch", "scale": "2x", "size": "54x54", "role": "appLauncher", "subtype": "49mm", "pixels": 108},
-        {"idiom": "watch", "scale": "2x", "size": "86x86", "role": "quickLook", "subtype": "38mm", "pixels": 172},
-        {"idiom": "watch", "scale": "2x", "size": "98x98", "role": "quickLook", "subtype": "42mm", "pixels": 196},
-        {"idiom": "watch", "scale": "2x", "size": "108x108", "role": "quickLook", "subtype": "44mm", "pixels": 216},
-        {"idiom": "watch", "scale": "2x", "size": "117x117", "role": "quickLook", "subtype": "45mm", "pixels": 234},
-        {"idiom": "watch", "scale": "2x", "size": "129x129", "role": "quickLook", "subtype": "49mm", "pixels": 258},
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "24x24",
+            "role": "notificationCenter",
+            "subtype": "38mm",
+            "pixels": 48,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "27.5x27.5",
+            "role": "notificationCenter",
+            "subtype": "42mm",
+            "pixels": 55,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "29x29",
+            "role": "companionSettings",
+            "pixels": 58,
+        },
+        {
+            "idiom": "watch",
+            "scale": "3x",
+            "size": "29x29",
+            "role": "companionSettings",
+            "pixels": 87,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "40x40",
+            "role": "appLauncher",
+            "subtype": "38mm",
+            "pixels": 80,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "44x44",
+            "role": "appLauncher",
+            "subtype": "40mm",
+            "pixels": 88,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "50x50",
+            "role": "appLauncher",
+            "subtype": "44mm",
+            "pixels": 100,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "46x46",
+            "role": "appLauncher",
+            "subtype": "41mm",
+            "pixels": 92,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "51x51",
+            "role": "appLauncher",
+            "subtype": "45mm",
+            "pixels": 102,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "54x54",
+            "role": "appLauncher",
+            "subtype": "49mm",
+            "pixels": 108,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "86x86",
+            "role": "quickLook",
+            "subtype": "38mm",
+            "pixels": 172,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "98x98",
+            "role": "quickLook",
+            "subtype": "42mm",
+            "pixels": 196,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "108x108",
+            "role": "quickLook",
+            "subtype": "44mm",
+            "pixels": 216,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "117x117",
+            "role": "quickLook",
+            "subtype": "45mm",
+            "pixels": 234,
+        },
+        {
+            "idiom": "watch",
+            "scale": "2x",
+            "size": "129x129",
+            "role": "quickLook",
+            "subtype": "49mm",
+            "pixels": 258,
+        },
         {"idiom": "watch-marketing", "scale": "1x", "size": "1024x1024", "pixels": 1024},
     ]
     watch_images: list[dict[str, str]] = []
@@ -309,7 +423,7 @@ def main() -> None:
         subtype = f"-{spec['subtype']}" if "subtype" in spec else ""
         filename = f"Icon-Watch-{role}{subtype}-{pixels}.png"
         write_png_at_size(apple_icon_master, watch_icon_dir / filename, pixels)
-        watch_images.append({k: v for k, v in spec.items()} | {"filename": filename})
+        watch_images.append(dict(spec.items()) | {"filename": filename})
         updated_files.add((watch_icon_dir / filename).relative_to(repo_root))
 
     contents = {
@@ -329,7 +443,12 @@ def main() -> None:
 </resources>
 """
 
-    foreground_xml = """<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    barbell_path = (
+        "M24,38.25h4.5v31.5h-4.5zM29.25,38.25h4.5v31.5h-4.5zM34.5,38.25h4.5v31.5h-4.5z"
+        "M39,51h30v6h-30z"
+        "M69,38.25h4.5v31.5h-4.5zM74.25,38.25h4.5v31.5h-4.5zM79.5,38.25h4.5v31.5h-4.5z"
+    )
+    foreground_xml = f"""<vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
@@ -339,7 +458,7 @@ def main() -> None:
         android:pathData="M54,4A50,50 0 1,1 54,104A50,50 0 1,1 54,4Z" />
     <path
         android:fillColor="#FAFAFA"
-        android:pathData="M24,38.25h4.5v31.5h-4.5zM29.25,38.25h4.5v31.5h-4.5zM34.5,38.25h4.5v31.5h-4.5zM39,51h30v6h-30zM69,38.25h4.5v31.5h-4.5zM74.25,38.25h4.5v31.5h-4.5zM79.5,38.25h4.5v31.5h-4.5z" />
+        android:pathData="{barbell_path}" />
 </vector>
 """
 
@@ -372,8 +491,12 @@ def main() -> None:
         text_updates = {
             Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
             Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
-            Path("app/android/app/src/main/res/drawable/ic_launcher_foreground.xml"): foreground_xml,
-            Path("app/android/wear/src/main/res/drawable/ic_launcher_foreground.xml"): foreground_xml,
+            Path(
+                "app/android/app/src/main/res/drawable/ic_launcher_foreground.xml"
+            ): foreground_xml,
+            Path(
+                "app/android/wear/src/main/res/drawable/ic_launcher_foreground.xml"
+            ): foreground_xml,
         }
 
     for rel_path, content in text_updates.items():
