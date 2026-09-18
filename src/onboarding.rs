@@ -45,6 +45,21 @@ fn gender_multiplier(gender: Gender, ex: Exercise) -> f32 {
     }
 }
 
+/// What a blank bodyweight seeds from when the slider is used: an average
+/// adult, so the first session is a barbell with something on it. Mirrored
+/// in app/lib/logic/starting_weights.dart.
+pub const AVERAGE_BODYWEIGHT_KG: f32 = 75.0;
+
+/// The setup slider, chick (0) to gorilla (1), through the old four
+/// levels' multipliers so the ends match what they used to seed.
+pub fn strength_multiplier(strength: f32) -> f32 {
+    const STOPS: [f32; 4] = [0.40, 0.85, 1.0, 1.15];
+    let s = strength.clamp(0.0, 1.0) * 3.0;
+    let i = (s.floor() as usize).min(2);
+    let t = s - i as f32;
+    STOPS[i] + (STOPS[i + 1] - STOPS[i]) * t
+}
+
 /// (exercise, fraction of bodyweight) for a sane first working weight.
 const RATIOS: [(Exercise, f32); 5] = [
     (Exercise::Squat, 0.95),
@@ -78,6 +93,31 @@ pub fn starting_tracker_weights(
             } else {
                 starting_weight_lb(*exercise, unit)
             };
+            (*exercise, weight)
+        })
+        .collect()
+}
+
+/// Tracker seeds for the main lifts from the slider alone: no gender
+/// question (the unspecified multipliers), and an average bodyweight when
+/// none was given. Snapped loadable in the user's unit, never below the
+/// bar. Mirrored in app/lib/logic/starting_weights.dart, which shows the
+/// same numbers under the slider.
+pub fn starting_tracker_weights_for_strength(
+    bodyweight_kg: f32,
+    strength: f32,
+    unit: AppWeightUnit,
+) -> Vec<(Exercise, f32)> {
+    let bodyweight = if bodyweight_kg > 0.0 { bodyweight_kg } else { AVERAGE_BODYWEIGHT_KG };
+    let multiplier = strength_multiplier(strength);
+    RATIOS
+        .iter()
+        .map(|(exercise, ratio)| {
+            let raw = kg_to_pounds(bodyweight)
+                * ratio
+                * multiplier
+                * gender_multiplier(Gender::Unspecified, *exercise);
+            let weight = snap_weight_lb(*exercise, raw, unit).max(starting_weight_lb(*exercise, unit));
             (*exercise, weight)
         })
         .collect()
@@ -166,5 +206,24 @@ mod tests {
             AppWeightUnit::Lb,
         );
         assert!(weights.iter().all(|(_, w)| *w >= 45.0));
+    }
+
+    /// The numbers app/test/logic/starting_weights_test.dart asserts too:
+    /// the slider preview and the seeds must agree.
+    #[test]
+    fn slider_seeds_match_the_app_mirror() {
+        let w = starting_tracker_weights_for_strength(0.0, 0.5, AppWeightUnit::Lb);
+        let get = |ex: Exercise| w.iter().find(|(e, _)| *e == ex).unwrap().1;
+        assert_eq!(get(Exercise::Squat), 130.0);
+        assert_eq!(get(Exercise::BenchPress), 85.0);
+        assert_eq!(get(Exercise::Deadlift), 155.0);
+        assert_eq!(get(Exercise::OverheadPress), 60.0);
+        assert_eq!(get(Exercise::BarbellRow), 90.0);
+        // Chick never goes below the bar; gorilla at 100 kg is heavy.
+        let chick = starting_tracker_weights_for_strength(50.0, 0.0, AppWeightUnit::Kg);
+        assert!(chick.iter().all(|(_, w)| *w >= kg_to_pounds(20.0) - 0.01));
+        let gorilla = starting_tracker_weights_for_strength(100.0, 1.0, AppWeightUnit::Lb);
+        assert!(get(Exercise::Squat) < gorilla.iter().find(|(e, _)| *e == Exercise::Squat).unwrap().1);
+        assert!((strength_multiplier(1.0 / 3.0) - 0.85).abs() < 1e-5);
     }
 }

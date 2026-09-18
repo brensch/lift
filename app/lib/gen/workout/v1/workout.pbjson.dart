@@ -2030,6 +2030,18 @@ const CompleteOnboardingRequest$json = {
       '10': 'gender'
     },
     {'1': 'library_ids', '3': 5, '4': 3, '5': 9, '10': 'libraryIds'},
+    {
+      '1': 'strength',
+      '3': 6,
+      '4': 1,
+      '5': 2,
+      '9': 0,
+      '10': 'strength',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_strength'},
   ],
 };
 
@@ -2039,7 +2051,8 @@ final $typed_data.Uint8List completeOnboardingRequestDescriptor = $convert.base6
     'R5V2VpZ2h0S2cSOwoKZXhwZXJpZW5jZRgCIAEoDjIbLndvcmtvdXQudjEuRXhwZXJpZW5jZUxl'
     'dmVsUgpleHBlcmllbmNlEioKBHVuaXQYAyABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXRSBH'
     'VuaXQSKgoGZ2VuZGVyGAQgASgOMhIud29ya291dC52MS5HZW5kZXJSBmdlbmRlchIfCgtsaWJy'
-    'YXJ5X2lkcxgFIAMoCVIKbGlicmFyeUlkcw==');
+    'YXJ5X2lkcxgFIAMoCVIKbGlicmFyeUlkcxIfCghzdHJlbmd0aBgGIAEoAkgAUghzdHJlbmd0aI'
+    'gBAUILCglfc3RyZW5ndGg=');
 
 @$core.Deprecated('Use completeOnboardingResponseDescriptor instead')
 const CompleteOnboardingResponse$json = {
