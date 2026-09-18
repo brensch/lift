@@ -38740,9 +38740,9 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-     * experience and gender for seeding the main lifts, and a missing
-     * bodyweight seeds from an average instead of the empty bar.
+     * Chick to gorilla, 0..1, from the setup slider. When set it alone
+     * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+     * 1); experience, gender and bodyweight are then ignored for seeding.
      * </pre>
      *
      * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -38751,9 +38751,9 @@ public final class WorkoutOuterClass {
     boolean hasStrength();
     /**
      * <pre>
-     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-     * experience and gender for seeding the main lifts, and a missing
-     * bodyweight seeds from an average instead of the empty bar.
+     * Chick to gorilla, 0..1, from the setup slider. When set it alone
+     * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+     * 1); experience, gender and bodyweight are then ignored for seeding.
      * </pre>
      *
      * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39125,9 +39125,9 @@ public final class WorkoutOuterClass {
     private float strength_;
     /**
      * <pre>
-     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-     * experience and gender for seeding the main lifts, and a missing
-     * bodyweight seeds from an average instead of the empty bar.
+     * Chick to gorilla, 0..1, from the setup slider. When set it alone
+     * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+     * 1); experience, gender and bodyweight are then ignored for seeding.
      * </pre>
      *
      * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39139,9 +39139,9 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-     * experience and gender for seeding the main lifts, and a missing
-     * bodyweight seeds from an average instead of the empty bar.
+     * Chick to gorilla, 0..1, from the setup slider. When set it alone
+     * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+     * 1); experience, gender and bodyweight are then ignored for seeding.
      * </pre>
      *
      * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39153,9 +39153,9 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-     * experience and gender for seeding the main lifts, and a missing
-     * bodyweight seeds from an average instead of the empty bar.
+     * Chick to gorilla, 0..1, from the setup slider. When set it alone
+     * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+     * 1); experience, gender and bodyweight are then ignored for seeding.
      * </pre>
      *
      * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39167,9 +39167,9 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-     * experience and gender for seeding the main lifts, and a missing
-     * bodyweight seeds from an average instead of the empty bar.
+     * Chick to gorilla, 0..1, from the setup slider. When set it alone
+     * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+     * 1); experience, gender and bodyweight are then ignored for seeding.
      * </pre>
      *
      * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39637,9 +39637,9 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-       * experience and gender for seeding the main lifts, and a missing
-       * bodyweight seeds from an average instead of the empty bar.
+       * Chick to gorilla, 0..1, from the setup slider. When set it alone
+       * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+       * 1); experience, gender and bodyweight are then ignored for seeding.
        * </pre>
        *
        * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39651,9 +39651,9 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-       * experience and gender for seeding the main lifts, and a missing
-       * bodyweight seeds from an average instead of the empty bar.
+       * Chick to gorilla, 0..1, from the setup slider. When set it alone
+       * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+       * 1); experience, gender and bodyweight are then ignored for seeding.
        * </pre>
        *
        * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39665,9 +39665,9 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-       * experience and gender for seeding the main lifts, and a missing
-       * bodyweight seeds from an average instead of the empty bar.
+       * Chick to gorilla, 0..1, from the setup slider. When set it alone
+       * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+       * 1); experience, gender and bodyweight are then ignored for seeding.
        * </pre>
        *
        * <code>optional float strength = 6 [json_name = "strength"];</code>
@@ -39681,9 +39681,9 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Chick to gorilla, 0..1, from the setup slider. When set it replaces
-       * experience and gender for seeding the main lifts, and a missing
-       * bodyweight seeds from an average instead of the empty bar.
+       * Chick to gorilla, 0..1, from the setup slider. When set it alone
+       * seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
+       * 1); experience, gender and bodyweight are then ignored for seeding.
        * </pre>
        *
        * <code>optional float strength = 6 [json_name = "strength"];</code>

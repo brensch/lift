@@ -109,6 +109,16 @@ class AuthServiceClient extends $grpc.Client {
     return $createUnaryCall(_$deleteAccount, request, options: options);
   }
 
+  /// Unauthenticated by design — the caller is someone who could not sign in.
+  /// It can only annotate an attempt the server itself issued, once, while it
+  /// is still unfinished.
+  $grpc.ResponseFuture<$0.ReportAuthFailureResponse> reportAuthFailure(
+    $0.ReportAuthFailureRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$reportAuthFailure, request, options: options);
+  }
+
   // method descriptors
 
   static final _$registerStart =
@@ -166,6 +176,11 @@ class AuthServiceClient extends $grpc.Client {
           '/workout.v1.AuthService/DeleteAccount',
           ($0.DeleteAccountRequest value) => value.writeToBuffer(),
           $0.DeleteAccountResponse.fromBuffer);
+  static final _$reportAuthFailure = $grpc.ClientMethod<
+          $0.ReportAuthFailureRequest, $0.ReportAuthFailureResponse>(
+      '/workout.v1.AuthService/ReportAuthFailure',
+      ($0.ReportAuthFailureRequest value) => value.writeToBuffer(),
+      $0.ReportAuthFailureResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.AuthService')
@@ -264,6 +279,15 @@ abstract class AuthServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.DeleteAccountRequest.fromBuffer(value),
             ($0.DeleteAccountResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ReportAuthFailureRequest,
+            $0.ReportAuthFailureResponse>(
+        'ReportAuthFailure',
+        reportAuthFailure_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ReportAuthFailureRequest.fromBuffer(value),
+        ($0.ReportAuthFailureResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.RegisterStartResponse> registerStart_Pre(
@@ -359,4 +383,13 @@ abstract class AuthServiceBase extends $grpc.Service {
 
   $async.Future<$0.DeleteAccountResponse> deleteAccount(
       $grpc.ServiceCall call, $0.DeleteAccountRequest request);
+
+  $async.Future<$0.ReportAuthFailureResponse> reportAuthFailure_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ReportAuthFailureRequest> $request) async {
+    return reportAuthFailure($call, await $request);
+  }
+
+  $async.Future<$0.ReportAuthFailureResponse> reportAuthFailure(
+      $grpc.ServiceCall call, $0.ReportAuthFailureRequest request);
 }

@@ -130,6 +130,7 @@ class SettingsScreen extends StatelessWidget {
   ) async {
     final savedKg = await showModalBottomSheet<double>(
       context: context,
+      routeSettings: const RouteSettings(name: 'sheet/body-weight'),
       useRootNavigator: true,
       isScrollControlled: true,
       builder: (sheetContext) => _BodyWeightBottomSheet(
@@ -187,6 +188,7 @@ class SettingsScreen extends StatelessWidget {
   ) async {
     final choice = await showModalBottomSheet<WeightUnit>(
       context: context,
+      routeSettings: const RouteSettings(name: 'sheet/weight-unit'),
       useRootNavigator: true,
       isScrollControlled: true,
       builder: (context) => SafeArea(

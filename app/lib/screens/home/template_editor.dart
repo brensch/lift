@@ -23,6 +23,7 @@ Future<void> showTemplateEditor(
 }) {
   return showModalBottomSheet(
     context: context,
+    routeSettings: const RouteSettings(name: 'sheet/template-editor'),
     isScrollControlled: true,
     useRootNavigator: true,
     backgroundColor: Colors.transparent,
@@ -322,6 +323,7 @@ Future<void> showTrackerSheet(
 }) {
   return showModalBottomSheet(
     context: context,
+    routeSettings: const RouteSettings(name: 'sheet/tracker'),
     isScrollControlled: true,
     useRootNavigator: true,
     backgroundColor: Colors.transparent,

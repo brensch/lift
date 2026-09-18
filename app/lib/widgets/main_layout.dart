@@ -143,6 +143,7 @@ class MainLayout extends StatelessWidget {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
                             MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: 'tutorial'),
                               builder: (_) => const TutorialScreen(),
                             ),
                           );
@@ -157,6 +158,7 @@ class MainLayout extends StatelessWidget {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
                             MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: 'science'),
                               builder: (_) => const ScienceScreen(),
                             ),
                           );
@@ -171,6 +173,7 @@ class MainLayout extends StatelessWidget {
                           Navigator.pop(context); // close the menu
                           Navigator.of(context, rootNavigator: true).push(
                             MaterialPageRoute<void>(
+                              settings: const RouteSettings(name: 'maths'),
                               builder: (_) => const MathsScreen(),
                             ),
                           );
@@ -353,6 +356,7 @@ class MainLayout extends StatelessWidget {
   void _showMultiplayerModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      routeSettings: const RouteSettings(name: 'sheet/multiplayer'),
       isScrollControlled: true,
       useRootNavigator: true,
       builder: (context) => const MultiplayerModal(),

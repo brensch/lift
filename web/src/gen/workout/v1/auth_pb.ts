@@ -2,15 +2,15 @@
 // @generated from file workout/v1/auth.proto (package workout.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file workout/v1/auth.proto.
  */
 export const file_workout_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChV3b3Jrb3V0L3YxL2F1dGgucHJvdG8SCndvcmtvdXQudjEiKAoUUmVnaXN0ZXJTdGFydFJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkiPgoVUmVnaXN0ZXJTdGFydFJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSFAoMb3B0aW9uc19qc29uGAIgASgJIl0KFVJlZ2lzdGVyRmluaXNoUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCRIRCgRuYW1lGAMgASgJSACIAQFCBwoFX25hbWUiSAoMQXV0aFJlc3BvbnNlEhUKDXNlc3Npb25fdG9rZW4YASABKAkSDwoHdXNlcl9pZBgCIAEoCRIQCgh1c2VybmFtZRgDIAEoCSI3ChFMb2dpblN0YXJ0UmVxdWVzdBIVCgh1c2VybmFtZRgBIAEoCUgAiAEBQgsKCV91c2VybmFtZSJAChJMb2dpblN0YXJ0UmVzcG9uc2USFAoMY2hhbGxlbmdlX2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSJDChJMb2dpbkZpbmlzaFJlcXVlc3QSFAoMY2hhbGxlbmdlX2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIPCg1Mb2dvdXRSZXF1ZXN0IhAKDkxvZ291dFJlc3BvbnNlIhgKFkFkZFBhc3NrZXlTdGFydFJlcXVlc3QiLwoXQWRkUGFzc2tleVN0YXJ0UmVzcG9uc2USFAoMb3B0aW9uc19qc29uGAEgASgJIk4KF0FkZFBhc3NrZXlGaW5pc2hSZXF1ZXN0EhcKD2NyZWRlbnRpYWxfanNvbhgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQFCBwoFX25hbWUiGgoYQWRkUGFzc2tleUZpbmlzaFJlc3BvbnNlIi0KFERlbGV0ZVBhc3NrZXlSZXF1ZXN0EhUKDWNyZWRlbnRpYWxfaWQYASABKAkiFwoVRGVsZXRlUGFzc2tleVJlc3BvbnNlIpYBCgtQYXNza2V5SW5mbxIVCg1jcmVkZW50aWFsX2lkGAEgASgJEhEKBG5hbWUYAiABKAlIAIgBARISCgpjcmVhdGVkX2F0GAMgASgDEhoKDWNyZWF0ZWRfYXRfaXAYBCABKAlIAYgBARISCgp0cmFuc3BvcnRzGAUgAygJQgcKBV9uYW1lQhAKDl9jcmVhdGVkX2F0X2lwIhUKE0xpc3RQYXNza2V5c1JlcXVlc3QiQQoUTGlzdFBhc3NrZXlzUmVzcG9uc2USKQoIcGFzc2tleXMYASADKAsyFy53b3Jrb3V0LnYxLlBhc3NrZXlJbmZvIiQKEFRlc3RMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkiFgoURGVsZXRlQWNjb3VudFJlcXVlc3QiMAoVRGVsZXRlQWNjb3VudFJlc3BvbnNlEhcKD2RlbGV0ZWRfdXNlcl9pZBgBIAEoCTKIBwoLQXV0aFNlcnZpY2USVAoNUmVnaXN0ZXJTdGFydBIgLndvcmtvdXQudjEuUmVnaXN0ZXJTdGFydFJlcXVlc3QaIS53b3Jrb3V0LnYxLlJlZ2lzdGVyU3RhcnRSZXNwb25zZRJNCg5SZWdpc3RlckZpbmlzaBIhLndvcmtvdXQudjEuUmVnaXN0ZXJGaW5pc2hSZXF1ZXN0Ghgud29ya291dC52MS5BdXRoUmVzcG9uc2USSwoKTG9naW5TdGFydBIdLndvcmtvdXQudjEuTG9naW5TdGFydFJlcXVlc3QaHi53b3Jrb3V0LnYxLkxvZ2luU3RhcnRSZXNwb25zZRJHCgtMb2dpbkZpbmlzaBIeLndvcmtvdXQudjEuTG9naW5GaW5pc2hSZXF1ZXN0Ghgud29ya291dC52MS5BdXRoUmVzcG9uc2USPwoGTG9nb3V0Ehkud29ya291dC52MS5Mb2dvdXRSZXF1ZXN0Ghoud29ya291dC52MS5Mb2dvdXRSZXNwb25zZRJaCg9BZGRQYXNza2V5U3RhcnQSIi53b3Jrb3V0LnYxLkFkZFBhc3NrZXlTdGFydFJlcXVlc3QaIy53b3Jrb3V0LnYxLkFkZFBhc3NrZXlTdGFydFJlc3BvbnNlEl0KEEFkZFBhc3NrZXlGaW5pc2gSIy53b3Jrb3V0LnYxLkFkZFBhc3NrZXlGaW5pc2hSZXF1ZXN0GiQud29ya291dC52MS5BZGRQYXNza2V5RmluaXNoUmVzcG9uc2USVAoNRGVsZXRlUGFzc2tleRIgLndvcmtvdXQudjEuRGVsZXRlUGFzc2tleVJlcXVlc3QaIS53b3Jrb3V0LnYxLkRlbGV0ZVBhc3NrZXlSZXNwb25zZRJRCgxMaXN0UGFzc2tleXMSHy53b3Jrb3V0LnYxLkxpc3RQYXNza2V5c1JlcXVlc3QaIC53b3Jrb3V0LnYxLkxpc3RQYXNza2V5c1Jlc3BvbnNlEkMKCVRlc3RMb2dpbhIcLndvcmtvdXQudjEuVGVzdExvZ2luUmVxdWVzdBoYLndvcmtvdXQudjEuQXV0aFJlc3BvbnNlElQKDURlbGV0ZUFjY291bnQSIC53b3Jrb3V0LnYxLkRlbGV0ZUFjY291bnRSZXF1ZXN0GiEud29ya291dC52MS5EZWxldGVBY2NvdW50UmVzcG9uc2ViBnByb3RvMw");
+  fileDesc("ChV3b3Jrb3V0L3YxL2F1dGgucHJvdG8SCndvcmtvdXQudjEiKAoUUmVnaXN0ZXJTdGFydFJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkiPgoVUmVnaXN0ZXJTdGFydFJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSFAoMb3B0aW9uc19qc29uGAIgASgJIl0KFVJlZ2lzdGVyRmluaXNoUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCRIRCgRuYW1lGAMgASgJSACIAQFCBwoFX25hbWUiSAoMQXV0aFJlc3BvbnNlEhUKDXNlc3Npb25fdG9rZW4YASABKAkSDwoHdXNlcl9pZBgCIAEoCRIQCgh1c2VybmFtZRgDIAEoCSI3ChFMb2dpblN0YXJ0UmVxdWVzdBIVCgh1c2VybmFtZRgBIAEoCUgAiAEBQgsKCV91c2VybmFtZSJAChJMb2dpblN0YXJ0UmVzcG9uc2USFAoMY2hhbGxlbmdlX2lkGAEgASgJEhQKDG9wdGlvbnNfanNvbhgCIAEoCSJDChJMb2dpbkZpbmlzaFJlcXVlc3QSFAoMY2hhbGxlbmdlX2lkGAEgASgJEhcKD2NyZWRlbnRpYWxfanNvbhgCIAEoCSIPCg1Mb2dvdXRSZXF1ZXN0IhAKDkxvZ291dFJlc3BvbnNlIhgKFkFkZFBhc3NrZXlTdGFydFJlcXVlc3QiLwoXQWRkUGFzc2tleVN0YXJ0UmVzcG9uc2USFAoMb3B0aW9uc19qc29uGAEgASgJIk4KF0FkZFBhc3NrZXlGaW5pc2hSZXF1ZXN0EhcKD2NyZWRlbnRpYWxfanNvbhgBIAEoCRIRCgRuYW1lGAIgASgJSACIAQFCBwoFX25hbWUiGgoYQWRkUGFzc2tleUZpbmlzaFJlc3BvbnNlIi0KFERlbGV0ZVBhc3NrZXlSZXF1ZXN0EhUKDWNyZWRlbnRpYWxfaWQYASABKAkiFwoVRGVsZXRlUGFzc2tleVJlc3BvbnNlIpYBCgtQYXNza2V5SW5mbxIVCg1jcmVkZW50aWFsX2lkGAEgASgJEhEKBG5hbWUYAiABKAlIAIgBARISCgpjcmVhdGVkX2F0GAMgASgDEhoKDWNyZWF0ZWRfYXRfaXAYBCABKAlIAYgBARISCgp0cmFuc3BvcnRzGAUgAygJQgcKBV9uYW1lQhAKDl9jcmVhdGVkX2F0X2lwIhUKE0xpc3RQYXNza2V5c1JlcXVlc3QiQQoUTGlzdFBhc3NrZXlzUmVzcG9uc2USKQoIcGFzc2tleXMYASADKAsyFy53b3Jrb3V0LnYxLlBhc3NrZXlJbmZvIiQKEFRlc3RMb2dpblJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkiFgoURGVsZXRlQWNjb3VudFJlcXVlc3QiMAoVRGVsZXRlQWNjb3VudFJlc3BvbnNlEhcKD2RlbGV0ZWRfdXNlcl9pZBgBIAEoCSJdChhSZXBvcnRBdXRoRmFpbHVyZVJlcXVlc3QSEgoKYXR0ZW1wdF9pZBgBIAEoCRItCgZyZWFzb24YAiABKA4yHS53b3Jrb3V0LnYxLkF1dGhGYWlsdXJlUmVhc29uIhsKGVJlcG9ydEF1dGhGYWlsdXJlUmVzcG9uc2UqjwIKEUF1dGhGYWlsdXJlUmVhc29uEiMKH0FVVEhfRkFJTFVSRV9SRUFTT05fVU5TUEVDSUZJRUQQABIhCh1BVVRIX0ZBSUxVUkVfUkVBU09OX0NBTkNFTExFRBABEiUKIUFVVEhfRkFJTFVSRV9SRUFTT05fTk9fQ1JFREVOVElBTBACEiMKH0FVVEhfRkFJTFVSRV9SRUFTT05fVU5TVVBQT1JURUQQAxImCiJBVVRIX0ZBSUxVUkVfUkVBU09OX1BMQVRGT1JNX0VSUk9SEAQSHwobQVVUSF9GQUlMVVJFX1JFQVNPTl9USU1FT1VUEAUSHQoZQVVUSF9GQUlMVVJFX1JFQVNPTl9PVEhFUhAGMuoHCgtBdXRoU2VydmljZRJUCg1SZWdpc3RlclN0YXJ0EiAud29ya291dC52MS5SZWdpc3RlclN0YXJ0UmVxdWVzdBohLndvcmtvdXQudjEuUmVnaXN0ZXJTdGFydFJlc3BvbnNlEk0KDlJlZ2lzdGVyRmluaXNoEiEud29ya291dC52MS5SZWdpc3RlckZpbmlzaFJlcXVlc3QaGC53b3Jrb3V0LnYxLkF1dGhSZXNwb25zZRJLCgpMb2dpblN0YXJ0Eh0ud29ya291dC52MS5Mb2dpblN0YXJ0UmVxdWVzdBoeLndvcmtvdXQudjEuTG9naW5TdGFydFJlc3BvbnNlEkcKC0xvZ2luRmluaXNoEh4ud29ya291dC52MS5Mb2dpbkZpbmlzaFJlcXVlc3QaGC53b3Jrb3V0LnYxLkF1dGhSZXNwb25zZRI/CgZMb2dvdXQSGS53b3Jrb3V0LnYxLkxvZ291dFJlcXVlc3QaGi53b3Jrb3V0LnYxLkxvZ291dFJlc3BvbnNlEloKD0FkZFBhc3NrZXlTdGFydBIiLndvcmtvdXQudjEuQWRkUGFzc2tleVN0YXJ0UmVxdWVzdBojLndvcmtvdXQudjEuQWRkUGFzc2tleVN0YXJ0UmVzcG9uc2USXQoQQWRkUGFzc2tleUZpbmlzaBIjLndvcmtvdXQudjEuQWRkUGFzc2tleUZpbmlzaFJlcXVlc3QaJC53b3Jrb3V0LnYxLkFkZFBhc3NrZXlGaW5pc2hSZXNwb25zZRJUCg1EZWxldGVQYXNza2V5EiAud29ya291dC52MS5EZWxldGVQYXNza2V5UmVxdWVzdBohLndvcmtvdXQudjEuRGVsZXRlUGFzc2tleVJlc3BvbnNlElEKDExpc3RQYXNza2V5cxIfLndvcmtvdXQudjEuTGlzdFBhc3NrZXlzUmVxdWVzdBogLndvcmtvdXQudjEuTGlzdFBhc3NrZXlzUmVzcG9uc2USQwoJVGVzdExvZ2luEhwud29ya291dC52MS5UZXN0TG9naW5SZXF1ZXN0Ghgud29ya291dC52MS5BdXRoUmVzcG9uc2USVAoNRGVsZXRlQWNjb3VudBIgLndvcmtvdXQudjEuRGVsZXRlQWNjb3VudFJlcXVlc3QaIS53b3Jrb3V0LnYxLkRlbGV0ZUFjY291bnRSZXNwb25zZRJgChFSZXBvcnRBdXRoRmFpbHVyZRIkLndvcmtvdXQudjEuUmVwb3J0QXV0aEZhaWx1cmVSZXF1ZXN0GiUud29ya291dC52MS5SZXBvcnRBdXRoRmFpbHVyZVJlc3BvbnNlYgZwcm90bzM");
 
 /**
  * @generated from message workout.v1.RegisterStartRequest
@@ -402,6 +402,100 @@ export const DeleteAccountResponseSchema: GenMessage<DeleteAccountResponse> = /*
   messageDesc(file_workout_v1_auth, 20);
 
 /**
+ * @generated from message workout.v1.ReportAuthFailureRequest
+ */
+export type ReportAuthFailureRequest = Message<"workout.v1.ReportAuthFailureRequest"> & {
+  /**
+   * RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+   *
+   * @generated from field: string attempt_id = 1;
+   */
+  attemptId: string;
+
+  /**
+   * @generated from field: workout.v1.AuthFailureReason reason = 2;
+   */
+  reason: AuthFailureReason;
+};
+
+/**
+ * Describes the message workout.v1.ReportAuthFailureRequest.
+ * Use `create(ReportAuthFailureRequestSchema)` to create a new message.
+ */
+export const ReportAuthFailureRequestSchema: GenMessage<ReportAuthFailureRequest> = /*@__PURE__*/
+  messageDesc(file_workout_v1_auth, 21);
+
+/**
+ * @generated from message workout.v1.ReportAuthFailureResponse
+ */
+export type ReportAuthFailureResponse = Message<"workout.v1.ReportAuthFailureResponse"> & {
+};
+
+/**
+ * Describes the message workout.v1.ReportAuthFailureResponse.
+ * Use `create(ReportAuthFailureResponseSchema)` to create a new message.
+ */
+export const ReportAuthFailureResponseSchema: GenMessage<ReportAuthFailureResponse> = /*@__PURE__*/
+  messageDesc(file_workout_v1_auth, 22);
+
+/**
+ * Why a passkey ceremony died on the device, as far as the app can tell.
+ * A fixed enum, never free text: this rides on an unauthenticated RPC.
+ *
+ * @generated from enum workout.v1.AuthFailureReason
+ */
+export enum AuthFailureReason {
+  /**
+   * @generated from enum value: AUTH_FAILURE_REASON_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * user dismissed the passkey sheet
+   *
+   * @generated from enum value: AUTH_FAILURE_REASON_CANCELLED = 1;
+   */
+  CANCELLED = 1,
+
+  /**
+   * no passkey for this account on this device
+   *
+   * @generated from enum value: AUTH_FAILURE_REASON_NO_CREDENTIAL = 2;
+   */
+  NO_CREDENTIAL = 2,
+
+  /**
+   * no passkey provider / OS too old
+   *
+   * @generated from enum value: AUTH_FAILURE_REASON_UNSUPPORTED = 3;
+   */
+  UNSUPPORTED = 3,
+
+  /**
+   * the OS credential API errored
+   *
+   * @generated from enum value: AUTH_FAILURE_REASON_PLATFORM_ERROR = 4;
+   */
+  PLATFORM_ERROR = 4,
+
+  /**
+   * @generated from enum value: AUTH_FAILURE_REASON_TIMEOUT = 5;
+   */
+  TIMEOUT = 5,
+
+  /**
+   * @generated from enum value: AUTH_FAILURE_REASON_OTHER = 6;
+   */
+  OTHER = 6,
+}
+
+/**
+ * Describes the enum workout.v1.AuthFailureReason.
+ */
+export const AuthFailureReasonSchema: GenEnum<AuthFailureReason> = /*@__PURE__*/
+  enumDesc(file_workout_v1_auth, 0);
+
+/**
  * @generated from service workout.v1.AuthService
  */
 export const AuthService: GenService<{
@@ -492,6 +586,18 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof DeleteAccountRequestSchema;
     output: typeof DeleteAccountResponseSchema;
+  },
+  /**
+   * Unauthenticated by design — the caller is someone who could not sign in.
+   * It can only annotate an attempt the server itself issued, once, while it
+   * is still unfinished.
+   *
+   * @generated from rpc workout.v1.AuthService.ReportAuthFailure
+   */
+  reportAuthFailure: {
+    methodKind: "unary";
+    input: typeof ReportAuthFailureRequestSchema;
+    output: typeof ReportAuthFailureResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_workout_v1_auth, 0);

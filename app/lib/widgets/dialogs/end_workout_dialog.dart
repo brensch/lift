@@ -19,6 +19,7 @@ Future<void> endWorkout(BuildContext context) async {
     if (workoutId == null) return;
 
     final completedRoute = MaterialPageRoute<void>(
+      settings: const RouteSettings(name: '/workout/:id/completed'),
       fullscreenDialog: true,
       builder: (_) => CompletedWorkoutScreen(workoutId: workoutId),
     );

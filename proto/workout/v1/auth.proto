@@ -77,6 +77,25 @@ message DeleteAccountResponse {
   string deleted_user_id = 1;
 }
 
+// Why a passkey ceremony died on the device, as far as the app can tell.
+// A fixed enum, never free text: this rides on an unauthenticated RPC.
+enum AuthFailureReason {
+  AUTH_FAILURE_REASON_UNSPECIFIED = 0;
+  AUTH_FAILURE_REASON_CANCELLED = 1;      // user dismissed the passkey sheet
+  AUTH_FAILURE_REASON_NO_CREDENTIAL = 2;  // no passkey for this account on this device
+  AUTH_FAILURE_REASON_UNSUPPORTED = 3;    // no passkey provider / OS too old
+  AUTH_FAILURE_REASON_PLATFORM_ERROR = 4; // the OS credential API errored
+  AUTH_FAILURE_REASON_TIMEOUT = 5;
+  AUTH_FAILURE_REASON_OTHER = 6;
+}
+
+message ReportAuthFailureRequest {
+  // RegisterStartResponse.user_id or LoginStartResponse.challenge_id.
+  string attempt_id = 1;
+  AuthFailureReason reason = 2;
+}
+message ReportAuthFailureResponse {}
+
 service AuthService {
   rpc RegisterStart(RegisterStartRequest) returns (RegisterStartResponse);
   rpc RegisterFinish(RegisterFinishRequest) returns (AuthResponse);
@@ -89,4 +108,8 @@ service AuthService {
   rpc ListPasskeys(ListPasskeysRequest) returns (ListPasskeysResponse);
   rpc TestLogin(TestLoginRequest) returns (AuthResponse);
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+  // Unauthenticated by design — the caller is someone who could not sign in.
+  // It can only annotate an attempt the server itself issued, once, while it
+  // is still unfinished.
+  rpc ReportAuthFailure(ReportAuthFailureRequest) returns (ReportAuthFailureResponse);
 }
