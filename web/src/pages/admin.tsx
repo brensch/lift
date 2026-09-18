@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/use-auth";
 import { adminClient, authHeaders } from "@/lib/grpc";
 import type {
   AuthAttemptStat,
+  DailyStat,
   GetStatsResponse,
   PageStat,
   TrailEntry,
@@ -13,11 +14,11 @@ import type {
 import { ChartCard } from "@/components/charts/chart-card";
 import { ColumnChart } from "@/components/charts/column-chart";
 import { StatTile } from "@/components/charts/stat-tile";
-import { SERIES_1, SERIES_3 } from "@/components/charts/chart-utils";
+import { CONTEXT, SERIES_1, SERIES_3 } from "@/components/charts/chart-utils";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const WINDOWS = [7, 30, 90, 180];
+const WINDOWS = [7, 30, 90, 365];
 
 function formatMs(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)}ms`;
@@ -37,6 +38,27 @@ function formatWhen(ms: number): string {
   });
 }
 
+/** "2026-09-05" → "Sep 5". Short enough for the chart's label stride. */
+function shortDay(day: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+/**
+ * Every UTC day in the window, oldest first. The server only returns days
+ * that had activity; a quiet day has to show as a gap, not vanish.
+ */
+function fillDays(daily: DailyStat[], days: number): { day: string; views: number; users: number }[] {
+  const byDay = new Map(daily.map((d) => [d.day, d]));
+  const out = [];
+  const today = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(today - i * 86_400_000).toISOString().slice(0, 10);
+    const d = byDay.get(day);
+    out.push({ day, views: Number(d?.views ?? 0), users: Number(d?.uniqueUsers ?? 0) });
+  }
+  return out;
+}
+
 function pct(n: number, of: number): string {
   return of > 0 ? `${Math.round((n / of) * 100)}%` : "–";
 }
@@ -54,6 +76,13 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
 interface FunnelStep {
   label: string;
   count: number;
+  /** Mean foreground time per visit; absent for steps that are not pages. */
+  avgMs?: number;
+}
+
+function avgMs(p: PageStat): number | undefined {
+  const views = Number(p.views);
+  return views > 0 ? Number(p.totalDurationMs) / views : undefined;
 }
 
 /** Horizontal bars, each labelled with its count and its share of the first step. */
@@ -65,8 +94,20 @@ function Funnel({ steps, color }: { steps: FunnelStep[]; color: string }) {
   }
   return (
     <ol className="list-none p-0 m-0 flex flex-col gap-2">
+      <li
+        aria-hidden
+        className="grid grid-cols-[minmax(0,9.5rem)_1fr_5.5rem_3.5rem] items-center gap-3 text-[0.65rem] uppercase tracking-wider text-muted"
+      >
+        <span />
+        <span />
+        <span className="text-right">Users</span>
+        <span className="text-right">Avg time</span>
+      </li>
       {steps.map((step, i) => (
-        <li key={step.label} className="grid grid-cols-[minmax(0,11rem)_1fr_auto] items-center gap-3 text-sm">
+        <li
+          key={step.label}
+          className="grid grid-cols-[minmax(0,9.5rem)_1fr_5.5rem_3.5rem] items-center gap-3 text-sm"
+        >
           <span className="truncate text-muted" title={step.label}>
             {step.label}
           </span>
@@ -76,9 +117,12 @@ function Funnel({ steps, color }: { steps: FunnelStep[]; color: string }) {
               style={{ width: `${(step.count / top) * 100}%`, background: color, minWidth: step.count > 0 ? 2 : 0 }}
             />
           </span>
-          <span className="[font-variant-numeric:tabular-nums] text-text whitespace-nowrap">
+          <span className="[font-variant-numeric:tabular-nums] text-text whitespace-nowrap text-right">
             {formatNumber(step.count, 0)}
-            <span className="text-muted ml-2">{i === 0 ? "" : pct(step.count, first)}</span>
+            <span className="text-muted ml-2 inline-block w-9 text-right">{i === 0 ? "" : pct(step.count, first)}</span>
+          </span>
+          <span className="[font-variant-numeric:tabular-nums] text-muted whitespace-nowrap text-right">
+            {step.avgMs === undefined ? "" : formatMs(step.avgMs)}
           </span>
         </li>
       ))}
@@ -90,12 +134,15 @@ function DataTable({
   head,
   rows,
   numeric = [],
+  wrap = [],
   onRowClick,
   activeRow,
 }: {
   head: string[];
   rows: (string | number)[][];
   numeric?: number[];
+  /** Columns allowed to wrap; the rest stay on one line. */
+  wrap?: number[];
   onRowClick?: (index: number) => void;
   activeRow?: number;
 }) {
@@ -133,7 +180,8 @@ function DataTable({
                 <td
                   key={c}
                   className={cn(
-                    "px-2 py-1.5 whitespace-nowrap",
+                    "px-2 py-1.5",
+                    wrap.includes(c) ? "whitespace-normal text-muted" : "whitespace-nowrap",
                     numeric.includes(c) ? "text-right [font-variant-numeric:tabular-nums]" : "text-left"
                   )}
                 >
@@ -191,6 +239,22 @@ function passkeyRows(attempts: AuthAttemptStat[]): PasskeyRow[] {
     rows.set(key, row);
   }
   return [...rows.values()].sort((a, b) => b.total - a.total);
+}
+
+const FAILURE_LABELS: [string, string][] = [
+  ["cancelled", "cancelled"],
+  ["no_credential", "no passkey"],
+  ["unsupported", "unsupported"],
+  ["platform_error", "OS error"],
+  ["timeout", "timed out"],
+];
+
+/** "9 cancelled · 4 no passkey" — only the reasons that happened. */
+function failureSummary(r: PasskeyRow): string {
+  const parts = FAILURE_LABELS.filter(([key]) => r.reasons[key]).map(([key, label]) => `${r.reasons[key]} ${label}`);
+  if (r.rejected) parts.push(`${r.rejected} rejected by server`);
+  if (r.otherErrors) parts.push(`${r.otherErrors} other`);
+  return parts.length ? parts.join(" · ") : "–";
 }
 
 // ── Trail ──
@@ -301,7 +365,11 @@ export function AdminPage() {
   const signupFunnel: FunnelStep[] = [
     { label: "Started sign-up", count: registerStarted },
     { label: "Passkey created", count: registerOk },
-    ...byPrefix("onboarding/").map((p) => ({ label: p.page, count: users(p) })),
+    ...byPrefix("onboarding/").map((p) => ({
+      label: p.page.slice("onboarding/".length),
+      count: users(p),
+      avgMs: avgMs(p),
+    })),
     ...byPrefix("tutorial/")
       .slice(0, 1)
       .map((p) => ({ label: "Opened tutorial", count: users(p) })),
@@ -309,17 +377,22 @@ export function AdminPage() {
       .slice(-1)
       .map((p) => ({ label: "Finished tutorial", count: users(p) })),
   ];
-  const tutorialFunnel = byPrefix("tutorial/").map((p) => ({ label: p.page.slice("tutorial/".length), count: users(p) }));
+  const tutorialFunnel = byPrefix("tutorial/").map((p) => ({
+    label: p.page.slice("tutorial/".length),
+    count: users(p),
+    avgMs: avgMs(p),
+  }));
   const passkeys = passkeyRows(attempts);
   const totalViews = pages.reduce((n, p) => n + Number(p.views), 0);
-  const daily = stats?.daily ?? [];
+  const daily = fillDays(stats?.daily ?? [], stats?.days ?? days);
+  const peakUsers = Math.max(...daily.map((d) => d.users), 0);
 
   return (
     <div className="max-w-5xl mx-auto px-5 py-8 flex flex-col gap-4">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h2 className="font-display text-[clamp(1.5rem,3vw,2.2rem)] font-extrabold tracking-tight m-0">Stats</h2>
-          <p className="text-sm text-muted mt-1 mb-0">Page views and sign-in attempts, first-party, kept 180 days.</p>
+          <p className="text-sm text-muted mt-1 mb-0">Page views and sign-in attempts. First-party; kept until the account is deleted.</p>
         </div>
         <span className="relative inline-flex">
           <select
@@ -351,10 +424,10 @@ export function AdminPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <Card title="Sign-up funnel" subtitle="Sign-up attempts, then distinct users reaching each step.">
+            <Card title="Sign-up funnel" subtitle="Sign-up attempts, then distinct users reaching each step. Time is the average per visit.">
               <Funnel steps={signupFunnel} color={SERIES_1} />
             </Card>
-            <Card title="Tutorial" subtitle="Distinct users who saw each step.">
+            <Card title="Tutorial" subtitle="Distinct users who saw each step, and the average time on it.">
               <Funnel steps={tutorialFunnel} color={SERIES_3} />
             </Card>
           </div>
@@ -364,8 +437,9 @@ export function AdminPage() {
             subtitle="Every sign-up and sign-in ceremony the server started. Abandoned = the device never came back and never said why."
           >
             <DataTable
-              head={["Flow", "Platform", "Version", "Attempts", "OK", "Success", "Abandoned", "Cancelled", "No passkey", "Unsupported", "OS error", "Timeout", "Other", "Rejected"]}
-              numeric={[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]}
+              head={["Flow", "Platform", "Version", "Attempts", "OK", "Success", "Abandoned", "Reported failures"]}
+              numeric={[3, 4, 5, 6]}
+              wrap={[7]}
               rows={passkeys.map((r) => [
                 r.kind,
                 r.platform,
@@ -374,33 +448,45 @@ export function AdminPage() {
                 r.ok,
                 pct(r.ok, r.total),
                 r.abandoned,
-                r.reasons.cancelled ?? 0,
-                r.reasons.no_credential ?? 0,
-                r.reasons.unsupported ?? 0,
-                r.reasons.platform_error ?? 0,
-                r.reasons.timeout ?? 0,
-                r.otherErrors,
-                r.rejected,
+                failureSummary(r),
               ])}
             />
           </Card>
 
-          <ChartCard
-            title="Page views per day"
-            subtitle="UTC days"
-            table={{
-              head: ["Day", "Views", "Users"],
-              rows: daily.map((d) => [d.day, String(d.views), String(d.uniqueUsers)]),
-              numeric: [1, 2],
-            }}
-          >
-            <ColumnChart
-              data={daily.map((d) => ({ label: d.day, value: Number(d.views) }))}
-              color={SERIES_1}
-              yFormat={(v) => formatNumber(v, 0)}
-              tooltipValue={(c) => `${formatNumber(c.value, 0)} views`}
-            />
-          </ChartCard>
+          <div className="grid md:grid-cols-2 gap-4">
+            <ChartCard
+              title="Daily active users"
+              subtitle={`Distinct users who opened the app each UTC day · peak ${formatNumber(peakUsers, 0)}`}
+              table={{
+                head: ["Day", "Users"],
+                rows: daily.map((d) => [d.day, String(d.users)]),
+                numeric: [1],
+              }}
+            >
+              <ColumnChart
+                data={daily.map((d) => ({ label: shortDay(d.day), value: d.users }))}
+                color={SERIES_1}
+                yFormat={(v) => formatNumber(v, 0)}
+                tooltipValue={(c) => `${formatNumber(c.value, 0)} ${c.value === 1 ? "user" : "users"}`}
+              />
+            </ChartCard>
+            <ChartCard
+              title="Page views per day"
+              subtitle="UTC days"
+              table={{
+                head: ["Day", "Views"],
+                rows: daily.map((d) => [d.day, String(d.views)]),
+                numeric: [1],
+              }}
+            >
+              <ColumnChart
+                data={daily.map((d) => ({ label: shortDay(d.day), value: d.views }))}
+                color={CONTEXT}
+                yFormat={(v) => formatNumber(v, 0)}
+                tooltipValue={(c) => `${formatNumber(c.value, 0)} views`}
+              />
+            </ChartCard>
+          </div>
 
           <Card title="Pages" subtitle="Median is time in the foreground on that page per visit.">
             <DataTable
