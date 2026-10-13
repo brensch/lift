@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1500, height: 1100 } });
+const errs = [];
+p.on('console', (m) => errs.push(m.type() + ': ' + m.text()));
+p.on('pageerror', (e) => errs.push('PAGEERROR ' + e.message));
+await p.goto(process.argv[2], { waitUntil: 'networkidle', timeout: 40000 });
+await p.waitForTimeout(2500);
+console.log('--- api you:', await p.evaluate(async () => (await (await fetch('/api/house-wen')).json()).you));
+console.log('--- #houses children:', await p.evaluate(() => [...document.getElementById('houses').children].map(c => c.tagName + '.' + c.className).join(', ')));
+console.log('--- first 300 chars of #houses:', (await p.locator('#houses').innerText()).slice(0, 300).replace(/\n/g, ' | '));
+console.log('--- console:', errs.slice(0, 8).join('\n'));
+await b.close();

@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--disable-blink-features=AutomationControlled'] });
+const ctx = await b.newContext({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36', viewport: { width: 1440, height: 1800 } });
+await ctx.addInitScript(() => Object.defineProperty(navigator, 'webdriver', { get: () => undefined }));
+const p = await ctx.newPage();
+await p.goto(process.argv[2], { waitUntil: 'domcontentloaded', timeout: 45000 });
+await p.waitForTimeout(4000);
+const L = (await p.locator('body').innerText()).split('\n').map(s => s.trim()).filter(Boolean);
+console.log(L.slice(0, 45).map((s, i) => `${i}: ${s.slice(0, 70)}`).join('\n'));
+await b.close();

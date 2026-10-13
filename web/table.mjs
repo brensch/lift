@@ -1,0 +1,24 @@
+import { chromium } from 'playwright';
+import { readFileSync } from 'fs';
+const pw = JSON.parse(readFileSync(process.argv[3], 'utf8'));
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1600, height: 950 } });
+const errs = [];
+p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+p.on('pageerror', (e) => errs.push('PAGEERROR ' + e.message));
+await p.goto(process.argv[2] + '/login', { waitUntil: 'networkidle' });
+await p.fill('#who', 'brendan');
+await p.fill('#password', pw.brendan);
+await p.click('button[value=member]');
+await p.waitForTimeout(3500);
+console.log('rows:', await p.locator('#rows tr').count(), '| count:', await p.locator('#count').textContent());
+console.log('thumbnails:', await p.locator('img.thumb').count(), '| map pins:', await p.locator('.leaflet-marker-icon').count());
+console.log('headers:', (await p.locator('#head').innerText()).replace(/\n/g, ' | '));
+await p.screenshot({ path: process.argv[4] });
+// sort by size
+await p.locator('#head th', { hasText: 'Size' }).click();
+await p.waitForTimeout(900);
+const first3 = await p.locator('#rows tr').first().innerText();
+console.log('after sorting by Size:', first3.replace(/\n/g, ' | ').slice(0, 130));
+console.log(errs.length ? 'ERRORS: ' + errs.slice(0,3).join(' | ') : 'no console errors');
+await b.close();
