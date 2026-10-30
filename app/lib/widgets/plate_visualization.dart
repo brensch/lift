@@ -77,7 +77,7 @@ class _PlateSheet extends StatelessWidget {
       bool last = false,
     }) => Expanded(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 4, 12, 14),
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 14),
         decoration: BoxDecoration(
           border: Border(
             right: last ? BorderSide.none : BorderSide(color: t.hairline),
@@ -119,7 +119,7 @@ class _PlateSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
+          AppTheme.sheetHandle(context, gap: 0),
           // Plates (each side), bar, total: three columns split by
           // hairlines.
           IntrinsicHeight(

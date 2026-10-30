@@ -16,39 +16,42 @@ class AppTheme {
   /// The top of every bottom sheet: a flat 36×4 grab bar, and under it a
   /// line across the sheet's full width. A sheet that pads its content in
   /// passes that padding as [inset], so the line still meets the edges.
-  static Widget sheetHandle(BuildContext context, {double inset = 0}) =>
-      SizedBox(
-        width: double.infinity,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 8, bottom: 8),
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            SizedBox(
-              height: 1,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned(
-                    left: -inset,
-                    right: -inset,
-                    top: 0,
-                    bottom: 0,
-                    child: ColoredBox(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
+  /// [gap] is the space under the line; a sheet whose content draws its
+  /// own dividers from the top passes 0 so they meet the line.
+  static Widget sheetHandle(
+    BuildContext context, {
+    double inset = 0,
+    double gap = 12,
+  }) => SizedBox(
+    width: double.infinity,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 36,
+          height: 4,
+          margin: const EdgeInsets.only(top: 8, bottom: 8),
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
-      );
+        SizedBox(
+          height: 1,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: -inset,
+                right: -inset,
+                top: 0,
+                bottom: 0,
+                child: ColoredBox(color: Theme.of(context).dividerColor),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: gap),
+      ],
+    ),
+  );
 
   /// Translucent card fill used on the ground (text colour @ ~4%).
   static Color cardFill(BuildContext context) =>
