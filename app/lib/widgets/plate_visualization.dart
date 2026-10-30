@@ -3,45 +3,234 @@ import 'package:provider/provider.dart';
 import '../logic/plate_calculator.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
+import 'common/flat.dart';
 
+/// What to load for [weight]: a flat sheet with the total, the bar drawn
+/// big with each plate sized like the real thing, and the plates for each
+/// side listed in loading order.
 Future<void> showPlateBreakdownDialog(
   BuildContext context, {
   required double weight,
   Map<double, Color>? colorOverrides,
   List<double>? displayPlatesPerSide,
 }) {
-  final unit = context.read<SettingsProvider>().weightUnit;
-  return showDialog<void>(
+  return showModalBottomSheet<void>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(
-        '${formatWeight(weight, unit).toUpperCase()} BREAKDOWN',
-        style: TextStyle(fontWeight: context.tokens.weight.heavy),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 20),
-          PlateVisualization(
-            weight: weight,
-            scale: 2.0,
-            showText: true,
-            isInteractive: false,
-            colorOverrides: colorOverrides,
-            displayPlatesPerSide: displayPlatesPerSide,
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('CLOSE'),
-        ),
-      ],
+    useRootNavigator: true,
+    isScrollControlled: true,
+    builder: (_) => _PlateSheet(
+      weight: weight,
+      colorOverrides: colorOverrides,
+      displayPlatesPerSide: displayPlatesPerSide,
     ),
   );
+}
+
+class _PlateSheet extends StatelessWidget {
+  final double weight;
+  final Map<double, Color>? colorOverrides;
+  final List<double>? displayPlatesPerSide;
+
+  const _PlateSheet({
+    required this.weight,
+    this.colorOverrides,
+    this.displayPlatesPerSide,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final settings = context.watch<SettingsProvider>();
+    final unit = settings.weightUnit;
+    final suffix = weightUnitSuffix(unit);
+    final barWeight = standardBarWeight(unit);
+    final plates =
+        displayPlatesPerSide ?? calcPlatesPerSide(weight, unit).plates;
+    Color colorOf(double plate) => colorOverrides != null
+        ? (colorOverrides![plate] ?? Colors.purple)
+        : settings.plateColor(plate);
+    String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
+
+    // Each plate size once, heaviest (loaded first) first, with its count.
+    final counts = <double, int>{};
+    for (final p in plates) {
+      counts[p] = (counts[p] ?? 0) + 1;
+    }
+    final sizes = counts.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    final note = weight < barWeight
+        ? 'Dumbbells'
+        : plates.isEmpty
+        ? 'Bar only'
+        : '${num(barWeight)} $suffix bar';
+
+    return SafeArea(
+      top: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(child: AppTheme.sheetHandle(context)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionLabel('Plates'),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '${formatWeight(weight, unit)} $suffix',
+                      style: t.mono(
+                        TextStyle(
+                          fontSize: t.size.displayLg,
+                          fontWeight: t.weight.bold,
+                          color: t.text,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      note,
+                      style: TextStyle(fontSize: t.size.bodyLg, color: t.muted),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // The bar, big, on white.
+          Container(
+            height: 150,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.symmetric(
+                horizontal: BorderSide(color: t.outline),
+              ),
+            ),
+            child: FittedBox(
+              child: _BigBarbell(
+                plates: plates,
+                colorOf: colorOf,
+                heaviest: standardPlates(unit).first,
+              ),
+            ),
+          ),
+          if (sizes.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: const SectionLabel('Each side, in loading order'),
+            ),
+            for (final size in sizes)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: t.hairline)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: colorOf(size),
+                        border: Border.all(color: t.outline),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        '${num(size)} $suffix',
+                        style: t.mono(
+                          TextStyle(
+                            fontSize: t.size.title,
+                            fontWeight: t.weight.bold,
+                            color: t.text,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '× ${counts[size]}',
+                      style: t.mono(
+                        TextStyle(
+                          fontSize: t.size.title,
+                          fontWeight: t.weight.bold,
+                          color: t.text,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+/// A barbell drawn the way it looks loaded: the sleeve through the middle,
+/// plates out from the collars, each as tall and thick as its weight makes
+/// it relative to the heaviest plate.
+class _BigBarbell extends StatelessWidget {
+  final List<double> plates;
+  final Color Function(double plate) colorOf;
+  final double heaviest;
+
+  const _BigBarbell({
+    required this.plates,
+    required this.colorOf,
+    required this.heaviest,
+  });
+
+  static const double _fullHeight = 120;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget plate(double p) {
+      final f = (p / heaviest).clamp(0.0, 1.0);
+      return Container(
+        width: 8 + 12 * f,
+        height: _fullHeight * (0.32 + 0.68 * f),
+        margin: const EdgeInsets.symmetric(horizontal: 1),
+        decoration: BoxDecoration(
+          color: colorOf(p),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.35)),
+        ),
+      );
+    }
+
+    final sleeve = Container(width: 24, height: 8, color: Colors.grey.shade500);
+    return SizedBox(
+      height: _fullHeight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          sleeve,
+          for (final p in plates.reversed) plate(p),
+          // Collar, then the bar between the hands.
+          Container(width: 10, height: 22, color: Colors.grey.shade700),
+          Container(width: 70, height: 6, color: t.muted),
+          Container(width: 10, height: 22, color: Colors.grey.shade700),
+          for (final p in plates) plate(p),
+          sleeve,
+        ],
+      ),
+    );
+  }
 }
 
 class PlateVisualization extends StatelessWidget {
