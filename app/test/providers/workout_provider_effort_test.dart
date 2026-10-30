@@ -286,16 +286,33 @@ void main() {
       );
     });
 
-    test('up next carries on with the exercise in hand', () async {
+    test('dragging an exercise to the top makes it next', () async {
+      await bootWorkout();
+      await h.provider.completeSet('s2', 6, 185);
+      await h.provider.reorderExercises([
+        Exercise.EXERCISE_BENCH_PRESS,
+        Exercise.EXERCISE_SQUAT,
+      ]);
+      expect(h.provider.doneTargetSet!.id, 'b1');
+    });
+
+    test('up next is the first open set in order', () async {
       await bootWorkout();
       await h.provider.completeSet('b1', 5, 135);
       expect(
         h.provider.doneTargetSet!.id,
         's1',
-        reason: 'bench is finished, so back to the first open set',
+        reason: 'a set done out of order leaves the top one next',
       );
-      await h.provider.completeSet('s2', 6, 185);
-      expect(h.provider.doneTargetSet!.id, 's3', reason: 'squat continues');
+      await h.provider.reorderExercises([
+        Exercise.EXERCISE_BENCH_PRESS,
+        Exercise.EXERCISE_SQUAT,
+      ]);
+      expect(
+        h.provider.doneTargetSet!.exercise,
+        Exercise.EXERCISE_SQUAT,
+        reason: 'bench is done, so squat is still next',
+      );
     });
   });
 

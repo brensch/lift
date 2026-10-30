@@ -430,24 +430,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
                 _isDoneSet(p.id),
           ));
 
-  /// The set up next: carry on with the exercise of the latest done set
-  /// while it has sets left, else the first open set in plan order. Passed
-  /// warmups are not open. Mirrors `compute_next_up_set` (the rung case is
-  /// [_awaitingRampSet]).
+  /// The set up next: the first open set in plan order — the order is the
+  /// person's, so whatever's on top is next. Passed warmups are not open.
+  /// Mirrors `compute_next_up_set` (the rung case is [_awaitingRampSet]).
   ProposedSet? _firstUncompletedSet() {
-    final open = _visibleProposedSetsSorted()
-        .where((s) => !_isDoneSet(s.id) && !isPassedWarmup(s))
-        .toList();
-    final last = _lastDoneSet();
-    final exercise = last == null
-        ? null
-        : _proposedById(last.proposedSetId)?.exercise;
-    if (exercise != null) {
-      for (final s in open) {
-        if (s.exercise == exercise) return s;
-      }
+    for (final s in _visibleProposedSetsSorted()) {
+      if (!_isDoneSet(s.id) && !isPassedWarmup(s)) return s;
     }
-    return open.isEmpty ? null : open.first;
+    return null;
   }
 
   /// The tiny optimistic layer: after a local set change, advance the

@@ -250,10 +250,10 @@ pub fn is_passed_warmup(
 /// snapshot's `display_set` (multiplayer peers read it too). While the
 /// latest done set is an unanswered calibration rung it is the first set
 /// "right" would append (`{done_id}:0`), whatever else is pending, so nobody
-/// jumps past their own working sets. Otherwise any set can be done in any
-/// order, so it carries on with the exercise of the latest done set while
-/// that has sets left, then the first open set in plan order. Passed
-/// warmups are not open; with nothing open the workout is done.
+/// jumps past their own working sets. Otherwise it is the first open set in
+/// plan order: the order is the person's (they drag exercises into it), so
+/// whatever is on top is what's next. Passed warmups are not open; with
+/// nothing open the workout is done.
 pub fn compute_next_up_set(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
@@ -261,25 +261,15 @@ pub fn compute_next_up_set(
     if let Some(next) = crate::workout::awaiting_ramp_set(proposed_sets, completed_sets) {
         return Some(next);
     }
-    let open: Vec<&ProposedSet> = proposed_sets
+    proposed_sets
         .iter()
-        .filter(|p| {
+        .find(|p| {
             !completed_sets
                 .iter()
                 .any(|c| c.proposed_set_id == p.id && c.ended_at > 0)
                 && !is_passed_warmup(p, proposed_sets, completed_sets)
         })
-        .collect();
-    let latest_exercise = completed_sets
-        .iter()
-        .filter(|c| c.ended_at > 0)
-        .max_by_key(|c| c.ended_at)
-        .and_then(|c| proposed_sets.iter().find(|p| p.id == c.proposed_set_id))
-        .map(|p| p.exercise);
-    latest_exercise
-        .and_then(|ex| open.iter().find(|p| p.exercise == ex))
-        .or_else(|| open.first())
-        .map(|p| (*p).clone())
+        .cloned()
 }
 
 #[cfg(test)]

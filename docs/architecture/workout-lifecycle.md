@@ -101,9 +101,9 @@ the exercise's undone warmups — or once one of the exercise's working sets
 is done. They stay in the plan, but nothing
 waits on them: they are not up next, they don't keep the exercise open (the
 last working set still gets the short end-of-exercise rest), and they don't
-hold the workout off ALL_DONE. Up next (`compute_next_up_set`) carries on
-with the exercise of the latest done set while it has sets left, then the
-first open set in plan order.
+hold the workout off ALL_DONE. Up next (`compute_next_up_set`) is the
+first open set in plan order: the order is the person's (they drag
+exercises into it), so whatever is on top is next.
 
 Each exercise's header shows what it's set to (weight × reps) and a pencil
 for its sheet. Changing weight or reps there applies to the rest of the

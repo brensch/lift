@@ -1073,7 +1073,7 @@ mod tests {
     }
 
     #[test]
-    fn up_next_carries_on_with_the_exercise_in_hand() {
+    fn up_next_is_the_first_open_set_in_order() {
         let mut sets = vec![
             proposed("a1", 0, false),
             proposed("a2", 1, false),
@@ -1087,14 +1087,8 @@ mod tests {
         complete(&mut active, "b1", 5, 2_000);
         assert_eq!(
             snap_at(&active, 2_050).display_set.unwrap().id,
-            "b2",
-            "out of order, the next set is the same exercise's"
-        );
-        complete(&mut active, "b2", 5, 2_200);
-        assert_eq!(
-            snap_at(&active, 2_250).display_set.unwrap().id,
             "a1",
-            "then back to the first open set"
+            "a set done out of order doesn't move up next off the top"
         );
     }
 
