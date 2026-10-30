@@ -44,7 +44,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   List<CompletedSet> _completedSets = [];
   bool _isLoading = true;
   String? _loadError;
-  List<String> _sessionFriends = [];
+  List<User> _sessionFriends = [];
   bool _sessionFriendsLoaded = false;
   List<HeartRateSample> _heartRateSamples = [];
 
@@ -132,7 +132,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     MultiplayerServiceWrapper service,
     String selfId,
   ) async {
-    List<String> names = [];
+    List<User> friends = [];
     try {
       final sessionResponse = await service.getSessionParticipants(sessionId);
       final participants = sessionResponse.participants;
@@ -142,18 +142,14 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         if (user.id.isEmpty || (selfId.isNotEmpty && user.id == selfId)) {
           continue;
         }
-        final display = user.name.isNotEmpty ? user.name : user.id;
-        if (display.isEmpty) continue;
-        if (seen.add(display)) {
-          names.add(display);
-        }
+        if (seen.add(user.id)) friends.add(user);
       }
     } catch (_) {
-      names = [];
+      friends = [];
     }
     if (mounted) {
       setState(() {
-        _sessionFriends = names;
+        _sessionFriends = friends;
         _sessionFriendsLoaded = true;
       });
     }
@@ -299,16 +295,53 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     );
   }
 
+  /// Who you trained with: a chip each, their emoji on their colour.
   Widget _buildFriends(BuildContext context) {
     final t = context.tokens;
-    final text = !_sessionFriendsLoaded
-        ? 'Loading…'
-        : _sessionFriends.isEmpty
-        ? 'Nobody (solo session)'
-        : _sessionFriends.join(' · ');
-    return Text(
-      text,
-      style: TextStyle(fontSize: t.size.body, color: t.text),
+    if (!_sessionFriendsLoaded || _sessionFriends.isEmpty) {
+      return Text(
+        _sessionFriendsLoaded ? 'Nobody (solo session)' : 'Loading…',
+        style: TextStyle(fontSize: t.size.bodyLg, color: t.muted),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final user in _sessionFriends)
+          Container(
+            decoration: BoxDecoration(
+              color: t.panel,
+              border: Border.all(color: t.outline),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  color: profileColorFromHex(user.profileColorHex),
+                  child: Text(
+                    normalizedProfileEmoji(user.profileEmoji),
+                    style: TextStyle(fontSize: t.size.titleLg, height: 1),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    user.name.isNotEmpty ? user.name : user.id,
+                    style: TextStyle(
+                      fontSize: t.size.bodyLg,
+                      fontWeight: t.weight.bold,
+                      color: t.text,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -353,7 +386,7 @@ class _MetricGrid extends StatelessWidget {
               m.$1.toUpperCase(),
               style: t.mono(
                 TextStyle(
-                  fontSize: t.size.caption,
+                  fontSize: t.size.small,
                   fontWeight: t.weight.bold,
                   letterSpacing: 1,
                   color: m.$3 ?? t.muted,
@@ -367,7 +400,7 @@ class _MetricGrid extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: t.mono(
                 TextStyle(
-                  fontSize: t.size.title,
+                  fontSize: t.size.titleLg,
                   fontWeight: t.weight.bold,
                   color: t.text,
                 ),
@@ -424,7 +457,7 @@ class _ExerciseSummaryRow extends StatelessWidget {
           Text(
             exercise.name,
             style: TextStyle(
-              fontSize: t.size.bodyLg,
+              fontSize: t.size.subtitle,
               fontWeight: t.weight.bold,
               color: t.text,
             ),
@@ -451,7 +484,7 @@ class _ExerciseSummaryRow extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Heaviest set: ${exercise.heaviestSetWeightLabel}',
-            style: TextStyle(fontSize: t.size.small, color: t.muted),
+            style: TextStyle(fontSize: t.size.body, color: t.muted),
           ),
         ],
       ),
@@ -467,21 +500,26 @@ class _ExerciseStatColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final t = context.tokens;
     return Column(
       children: [
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontWeight: context.tokens.weight.heavy,
+          style: t.mono(
+            TextStyle(
+              fontSize: t.size.subtitle,
+              fontWeight: t.weight.bold,
+              color: t.text,
+            ),
           ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colorScheme.tertiary,
-            fontWeight: context.tokens.weight.bold,
+          style: TextStyle(
+            fontSize: t.size.body,
+            fontWeight: t.weight.medium,
+            color: t.muted,
           ),
         ),
       ],

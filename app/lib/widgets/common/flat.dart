@@ -26,7 +26,7 @@ class SectionLabel extends StatelessWidget {
             text.toUpperCase(),
             style: t.mono(
               TextStyle(
-                fontSize: t.size.caption,
+                fontSize: t.size.small,
                 fontWeight: t.weight.bold,
                 letterSpacing: 1,
                 color: t.muted,
