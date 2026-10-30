@@ -46,6 +46,22 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   /// this screen is built, so it catches up on its first frame.
   static int _answered = 0;
 
+  /// The exercise in hand at the last build: when it changes (the last
+  /// exercise is finished), the next one scrolls up to the top.
+  String? _focusedId;
+
+  void _scrollFocusToTop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _focusKey.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +109,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     final blocks = wp.exerciseBlocks;
     final isEnded = wp.isWorkoutEnded;
     final focusedBlock = _focusedBlock(wp, blocks);
+    final focusedId = focusedBlock?.stableId;
+    if (focusedId != _focusedId) {
+      // Not on the first build: only moving on to the next exercise scrolls.
+      if (_focusedId != null && focusedId != null && _page == 0) {
+        _scrollFocusToTop();
+      }
+      _focusedId = focusedId;
+    }
     // Completed blocks stay pinned (green) at the top of the list; only the
     // unfinished ones below them can be dragged/reordered.
     final completedBlocks = blocks
