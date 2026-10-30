@@ -572,29 +572,15 @@ class _VolumeRow extends StatelessWidget {
     final row = Row(
       children: [
         SizedBox(
-          width: 132,
-          child: Row(
-            children: [
-              Flexible(
-                child: Text(
-                  muscleShortLabels[entry.muscle] ?? '?',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.bodyLg,
-                    fontWeight: context.tokens.weight.bold,
-                    color: nameColor,
-                  ),
-                ),
-              ),
-              if (recovering)
-                Padding(
-                  padding: const EdgeInsets.only(left: 5),
-                  child: _RecoveryChip(
-                    hours: recovery!.hoursRemaining.toInt(),
-                    urgent: targeted,
-                  ),
-                ),
-            ],
+          width: 96,
+          child: Text(
+            muscleShortLabels[entry.muscle] ?? '?',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.bold,
+              color: nameColor,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -655,9 +641,22 @@ class _VolumeRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        // Hours still recovering, beside the bar; the slot is kept empty
+        // when there are none so every bar lines up.
         SizedBox(
-          width: 56,
+          width: 52,
+          child: recovering
+              ? Align(
+                  alignment: Alignment.centerRight,
+                  child: _RecoveryChip(
+                    hours: recovery!.hoursRemaining.toInt(),
+                    urgent: targeted,
+                  ),
+                )
+              : null,
+        ),
+        SizedBox(
+          width: 44,
           child: Text.rich(
             TextSpan(
               children: [
@@ -665,8 +664,11 @@ class _VolumeRow extends StatelessWidget {
                   text: sets % 1 == 0
                       ? sets.toStringAsFixed(0)
                       : sets.toStringAsFixed(1),
+                  // In the target range the number goes green.
                   style: TextStyle(
-                    color: inBand || over
+                    color: inBand
+                        ? context.tokens.accentGreen
+                        : over
                         ? cs.onSurface
                         : cs.onSurface.withValues(alpha: 0.55),
                   ),
@@ -675,11 +677,6 @@ class _VolumeRow extends StatelessWidget {
                   TextSpan(
                     text: '▲',
                     style: TextStyle(color: context.tokens.accentAmber),
-                  )
-                else if (inBand)
-                  TextSpan(
-                    text: ' ✓',
-                    style: TextStyle(color: context.tokens.accentGreen),
                   ),
               ],
             ),
