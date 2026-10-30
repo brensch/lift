@@ -13,31 +13,19 @@ import 'common/flat.dart';
 Future<void> showPlateBreakdownDialog(
   BuildContext context, {
   required double weight,
-  Map<double, Color>? colorOverrides,
-  List<double>? displayPlatesPerSide,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
-    builder: (_) => _PlateSheet(
-      weight: weight,
-      colorOverrides: colorOverrides,
-      displayPlatesPerSide: displayPlatesPerSide,
-    ),
+    builder: (_) => _PlateSheet(weight: weight),
   );
 }
 
 class _PlateSheet extends StatelessWidget {
   final double weight;
-  final Map<double, Color>? colorOverrides;
-  final List<double>? displayPlatesPerSide;
 
-  const _PlateSheet({
-    required this.weight,
-    this.colorOverrides,
-    this.displayPlatesPerSide,
-  });
+  const _PlateSheet({required this.weight});
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +34,8 @@ class _PlateSheet extends StatelessWidget {
     final unit = settings.weightUnit;
     final suffix = weightUnitSuffix(unit);
     final barWeight = standardBarWeight(unit);
-    final plates =
-        displayPlatesPerSide ?? calcPlatesPerSide(weight, unit).plates;
-    Color colorOf(double plate) => colorOverrides != null
-        ? (colorOverrides![plate] ?? Colors.purple)
-        : settings.plateColor(plate);
+    final plates = calcPlatesPerSide(weight, unit).plates;
+    final colorOf = settings.plateColor;
     String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
 
     // Each plate size once, heaviest (loaded first) first, with its count.
@@ -148,7 +133,7 @@ class _PlateSheet extends StatelessWidget {
               ),
             ),
             child: FittedBox(
-              child: _BigBarbell(
+              child: BigBarbell(
                 plates: plates,
                 colorOf: colorOf,
                 heaviest: standardPlates(unit).first,
@@ -216,12 +201,13 @@ class _PlateSheet extends StatelessWidget {
 /// A barbell drawn the way it looks loaded: the sleeve through the middle,
 /// plates out from the collars, each as tall and thick as its weight makes
 /// it relative to the heaviest plate.
-class _BigBarbell extends StatelessWidget {
+class BigBarbell extends StatelessWidget {
   final List<double> plates;
   final Color Function(double plate) colorOf;
   final double heaviest;
 
-  const _BigBarbell({
+  const BigBarbell({
+    super.key,
     required this.plates,
     required this.colorOf,
     required this.heaviest,
@@ -265,152 +251,52 @@ class _BigBarbell extends StatelessWidget {
   }
 }
 
+/// The bar loaded for [weight], small: inline wherever a set's load is
+/// shown. Tappable (the default) it sits in a flat white box and opens the
+/// plate breakdown.
 class PlateVisualization extends StatelessWidget {
   final double weight;
   final double scale;
-  final bool showText;
   final bool isInteractive;
-  final Map<double, Color>? colorOverrides;
-  final List<double>? displayPlatesPerSide;
 
   const PlateVisualization({
     super.key,
     required this.weight,
     this.scale = 1.0,
-    this.showText = false,
     this.isInteractive = true,
-    this.colorOverrides,
-    this.displayPlatesPerSide,
   });
 
-  Color _plateColor(BuildContext context, double plate) {
-    if (colorOverrides != null) {
-      return colorOverrides![plate] ?? Colors.purple;
-    }
-    return context.read<SettingsProvider>().plateColor(plate);
-  }
+  Color _plateColor(BuildContext context, double plate) =>
+      context.read<SettingsProvider>().plateColor(plate);
 
   @override
   Widget build(BuildContext context) {
-    // Watch provider so we rebuild when colors change (unless overrides given)
-    if (colorOverrides == null) {
-      context.watch<SettingsProvider>();
-    }
-
+    // Rebuild when the plate colours change.
+    context.watch<SettingsProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
-    final result = calcPlatesPerSide(weight, unit);
-    final platesForDisplay = displayPlatesPerSide ?? result.plates;
-    final barWeight = standardBarWeight(unit);
-    final isDumbbellWeight = weight < barWeight;
-    final isBarOnly = weight == barWeight;
-
-    Widget content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Transform.scale(
-            scale: scale,
-            child: isDumbbellWeight
-                ? _buildDumbbell()
-                : _buildBarbell(context, platesForDisplay),
-          ),
-        ),
-        if (showText) ...[
-          const SizedBox(height: 16),
-          Builder(
-            builder: (context) {
-              if (isDumbbellWeight) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    'Dumbbell setup',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.subtitle,
-                      fontWeight: context.tokens.weight.heavy,
-                      color: Colors.grey.shade600,
-                      height: 1.8,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                );
-              }
-              if (isBarOnly) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    'Bar only',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.subtitle,
-                      fontWeight: context.tokens.weight.heavy,
-                      color: Colors.grey.shade600,
-                      height: 1.8,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                );
-              }
-              final Map<double, int> plateCounts = {};
-              for (var p in platesForDisplay) {
-                plateCounts[p] = (plateCounts[p] ?? 0) + 1;
-              }
-              final plateDescription = plateCounts.entries
-                  .map(
-                    (e) =>
-                        '${e.key % 1 == 0 ? e.key.toInt() : e.key} × ${e.value}',
-                  )
-                  .join('\n');
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  'Each side:\n$plateDescription',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.subtitle,
-                    fontWeight: context.tokens.weight.heavy,
-                    color: Colors.grey.shade600,
-                    height: 1.8,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ],
+    final plates = calcPlatesPerSide(weight, unit).plates;
+    final content = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Transform.scale(
+        scale: scale,
+        child: weight < standardBarWeight(unit)
+            ? _buildDumbbell()
+            : _buildBarbell(context, plates),
+      ),
     );
-
-    if (isInteractive) {
-      final colorScheme = Theme.of(context).colorScheme;
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: Material(
-          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: () => showPlateBreakdownDialog(
-              context,
-              weight: weight,
-              colorOverrides: colorOverrides,
-              displayPlatesPerSide: displayPlatesPerSide,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: colorScheme.outline, width: 1.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: content,
-            ),
-          ),
+    if (!isInteractive) return content;
+    final t = context.tokens;
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(side: BorderSide(color: t.outline)),
+      child: InkWell(
+        onTap: () => showPlateBreakdownDialog(context, weight: weight),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: content,
         ),
-      );
-    }
-
-    return content;
+      ),
+    );
   }
 
   Widget _buildBarbell(BuildContext context, List<double> plates) {

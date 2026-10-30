@@ -24,235 +24,131 @@ const List<MapEntry<String, Color>> _colorOptions = [
   MapEntry('Brown', Colors.brown),
 ];
 
-class PlateColorsScreen extends StatefulWidget {
+/// Plate colours: the bar loaded with one of every plate, then a row per
+/// plate size with its colour swatches. A tap applies and saves.
+class PlateColorsScreen extends StatelessWidget {
   const PlateColorsScreen({super.key});
 
   @override
-  State<PlateColorsScreen> createState() => _PlateColorsScreenState();
-}
-
-class _PlateColorsScreenState extends State<PlateColorsScreen> {
-  late Map<double, Color> _colors;
-  bool _dirty = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final provider = context.read<SettingsProvider>();
-    _colors = Map.from(provider.plateColors);
-  }
-
-  void _save() {
-    context.read<SettingsProvider>().updatePlateColors(_colors);
-    setState(() => _dirty = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Plate colours saved')));
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final unit = context.watch<SettingsProvider>().weightUnit;
-    final plateWeights = standardPlates(unit);
+    final t = context.tokens;
+    final settings = context.watch<SettingsProvider>();
+    final unit = settings.weightUnit;
+    final plates = standardPlates(unit);
+    final suffix = weightUnitSuffix(unit);
+    String num(double v) => v % 1 == 0 ? '${v.toInt()}' : '$v';
+    String nameOf(Color c) => _colorOptions
+        .firstWhere(
+          (o) => o.value.toARGB32() == c.toARGB32(),
+          orElse: () => MapEntry('Custom', c),
+        )
+        .key;
 
-    final previewPlatesPerSide = plateWeights;
-    final contrivedWeight =
-        standardBarWeight(unit) +
-        previewPlatesPerSide.fold<double>(0, (sum, plate) => sum + plate * 2);
+    void pick(double plate, Color color) {
+      final colors = Map<double, Color>.from(settings.plateColors);
+      colors[plate] = color;
+      settings.updatePlateColors(colors);
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: PageTitle('Plate colours'),
-        actions: [
-          if (_dirty)
-            TextButton(
-              onPressed: _save,
-              child: Text(
-                'Save',
-                style: TextStyle(
-                  fontWeight: context.tokens.weight.heavy,
-                  color: colorScheme.primary,
-                ),
-              ),
-            ),
-        ],
-      ),
-      body: Column(
+      appBar: AppBar(title: const PageTitle('Plate colours')),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Center(
-              child: PlateVisualization(
-                weight: contrivedWeight,
-                scale: 2.0,
-                showText: false,
-                isInteractive: false,
-                colorOverrides: _colors,
-                displayPlatesPerSide: previewPlatesPerSide,
+          // The bar with one of every plate on it.
+          Container(
+            height: 150,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: t.outline)),
+            ),
+            child: FittedBox(
+              child: BigBarbell(
+                plates: plates,
+                colorOf: settings.plateColor,
+                heaviest: plates.first,
               ),
             ),
           ),
-          Divider(color: colorScheme.outline),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: plateWeights.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1.0,
+          for (final plate in plates)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: t.hairline)),
               ),
-              itemBuilder: (context, index) {
-                final weight = plateWeights[index];
-                final currentColor = _colors[weight] ?? Colors.purple;
-                final plateTextColor = currentColor.computeLuminance() > 0.55
-                    ? Colors.black87
-                    : Colors.white;
-                return Material(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.3,
-                  ),
-                  borderRadius: context.tokens.br(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => _showColorPicker(context, weight),
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Center(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 94,
-                              height: 94,
-                              child: CustomPaint(
-                                painter: _PlateRingPainter(
-                                  color: currentColor,
-                                  borderColor: colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 9,
-                              child: Text(
-                                weight % 1 == 0
-                                    ? '${weight.toInt()}'
-                                    : '$weight',
-                                style: TextStyle(
-                                  color: plateTextColor,
-                                  fontWeight: context.tokens.weight.heavy,
-                                  fontSize: weight >= 10 ? 12 : 11,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                            ),
-                          ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        // The plate, edge on, as tall as its weight makes it.
+                        Container(
+                          width: 14,
+                          height: 20 + 24 * (plate / plates.first),
+                          decoration: BoxDecoration(
+                            color: settings.plateColor(plate),
+                            border: Border.all(color: t.outline),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 14),
+                        Text(
+                          '${num(plate)} $suffix',
+                          style: t.mono(
+                            TextStyle(
+                              fontSize: t.size.title,
+                              fontWeight: t.weight.bold,
+                              color: t.text,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          nameOf(settings.plateColor(plate)),
+                          style: TextStyle(
+                            fontSize: t.size.body,
+                            color: t.muted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showColorPicker(BuildContext context, double weight) {
-    final label = _plateLabel(weight);
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Select a color for $label'),
-        content: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _colorOptions.map((option) {
-            final isSelected = _colors[weight] == option.value;
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _colors[weight] = option.value;
-                  _dirty = true;
-                });
-                Navigator.pop(context);
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: option.value,
-                  borderRadius: context.tokens.br(8),
-                  border: Border.all(
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.outline,
-                    width: isSelected ? 3 : 1,
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 40,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _colorOptions.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 6),
+                      itemBuilder: (_, i) {
+                        final option = _colorOptions[i].value;
+                        final chosen =
+                            option.toARGB32() ==
+                            settings.plateColor(plate).toARGB32();
+                        return GestureDetector(
+                          onTap: () => pick(plate, option),
+                          child: Container(
+                            width: 40,
+                            decoration: BoxDecoration(
+                              color: option,
+                              border: Border.all(
+                                color: chosen ? t.text : t.outline,
+                                width: chosen ? 3 : 1,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+                ],
               ),
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
+            ),
         ],
       ),
     );
   }
-
-  String _plateLabel(double weight) =>
-      '${weight % 1 == 0 ? weight.toInt() : weight} ${weightUnitSuffix(context.read<SettingsProvider>().weightUnit)}';
-}
-
-class _PlateRingPainter extends CustomPainter {
-  const _PlateRingPainter({required this.color, required this.borderColor});
-
-  final Color color;
-  final Color borderColor;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final outerRadius = size.shortestSide / 2 - 2;
-    final innerRadius = outerRadius * 0.32;
-
-    final ringPath = Path()
-      ..fillType = PathFillType.evenOdd
-      ..addOval(Rect.fromCircle(center: center, radius: outerRadius))
-      ..addOval(Rect.fromCircle(center: center, radius: innerRadius));
-
-    canvas.drawShadow(ringPath, Colors.black.withValues(alpha: 0.2), 4, false);
-    canvas.drawPath(ringPath, Paint()..color = color);
-
-    canvas.drawCircle(
-      center,
-      outerRadius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = borderColor,
-    );
-    canvas.drawCircle(
-      center,
-      innerRadius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = borderColor.withValues(alpha: 0.55),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _PlateRingPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.borderColor != borderColor;
 }
