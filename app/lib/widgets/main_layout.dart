@@ -90,34 +90,34 @@ class MainLayout extends StatelessWidget {
                     context.push('/settings/profile-marker');
                   },
                 ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ListView(
-                    // Dividers and the active highlight run edge to edge.
-                    children: [
-                      _MenuButton(
-                        icon: AppIcons.workout,
-                        label: 'Workout',
-                        onTap: () => goToTopLevel('/'),
-                        isActive: currentPath == '/',
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: AppIcons.progress,
-                        label: 'Progress',
-                        onTap: () => goToTopLevel('/progress'),
-                        isActive: currentPath == '/progress',
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: AppIcons.history,
-                        label: 'History',
-                        onTap: () => goToTopLevel('/history'),
-                        isActive: currentPath == '/history',
-                      ),
-                    ],
-                  ),
+                // The items sit straight under your totals, fixed in place:
+                // a plain column, nothing to scroll or stretch.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _MenuButton(
+                      icon: AppIcons.workout,
+                      label: 'Workout',
+                      onTap: () => goToTopLevel('/'),
+                      isActive: currentPath == '/',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
+                      icon: AppIcons.progress,
+                      label: 'Progress',
+                      onTap: () => goToTopLevel('/progress'),
+                      isActive: currentPath == '/progress',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
+                      icon: AppIcons.history,
+                      label: 'History',
+                      onTap: () => goToTopLevel('/history'),
+                      isActive: currentPath == '/history',
+                    ),
+                  ],
                 ),
+                const Spacer(),
                 Divider(color: colorScheme.outline),
                 // Logout, and Settings as a cog beside it.
                 Padding(
