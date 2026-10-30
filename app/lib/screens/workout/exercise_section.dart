@@ -150,8 +150,7 @@ class ExerciseSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: _padding),
       child: Row(
         children: [
-          // The name takes the room it needs before the target does; finding
-          // weight, when it is, on its own line under it.
+          // The name takes the room it needs before the target does.
           Expanded(
             child: GestureDetector(
               onTap: onEdit,
@@ -170,31 +169,6 @@ class ExerciseSection extends StatelessWidget {
                         color: finished ? t.muted : t.text,
                       ),
                     ),
-                    if (calibrating) ...[
-                      Text(
-                        copy.workout.calibrationLine.toUpperCase(),
-                        style: t.mono(
-                          TextStyle(
-                            fontSize: t.size.small,
-                            fontWeight: t.weight.bold,
-                            letterSpacing: 0.5,
-                            color: t.primary,
-                          ),
-                        ),
-                      ),
-                      // What to do, on the exercise you're on.
-                      if (focused && !finished)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            copy.workout.calibrationHint,
-                            style: TextStyle(
-                              fontSize: t.size.body,
-                              color: t.muted,
-                            ),
-                          ),
-                        ),
-                    ],
                   ],
                 ),
               ),
@@ -238,6 +212,36 @@ class ExerciseSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           header,
+          // Finding weight: its own row across the whole width, and on the
+          // exercise you're on, what to do.
+          if (calibrating)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(_padding, 0, _padding, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    copy.workout.calibrationLine.toUpperCase(),
+                    style: t.mono(
+                      TextStyle(
+                        fontSize: t.size.small,
+                        fontWeight: t.weight.bold,
+                        letterSpacing: 0.5,
+                        color: t.primary,
+                      ),
+                    ),
+                  ),
+                  if (focused && !finished)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        copy.workout.calibrationHint,
+                        style: TextStyle(fontSize: t.size.body, color: t.muted),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           // A finished exercise steps back so the one in hand stands out.
           Opacity(
             opacity: finished ? 0.45 : 1,
