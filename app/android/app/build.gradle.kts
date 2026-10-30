@@ -66,6 +66,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            // `flutter run` installs a debug build. Give it its own package so
+            // it sits beside the Play install instead of replacing it: Flutter
+            // reacts to INSTALL_FAILED_VERSION_DOWNGRADE (debug builds carry
+            // version code 1) by uninstalling whatever holds the package name.
+            // Dev login does not need passkeys, so the suffix costing this
+            // package its asset-link verification does not matter.
+            applicationIdSuffix = ".debug"
+            manifestPlaceholders["appLabel"] =
+                if (isDevChannel) "Schlift Dev Debug" else "Schlift Debug"
+        }
         release {
             // Keep release interop stable for Wear protobuf transport messages.
             // R8 shrinking/obfuscation can break GeneratedMessageLite field lookups.

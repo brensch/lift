@@ -23,12 +23,12 @@ import '../../logic/weight_units.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
-import '../../services/health_service.dart';
 import '../../services/wearable_bridge_service.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
 import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
+import '../../theme/app_icons.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -91,10 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Health was granted (or not) once, up front, by PermissionsService; the
+  // watch launch needs no prompt of its own.
   Future<void> _setUpHealthAndWatch(WearableBridgeService bridge) async {
-    // ONE comprehensive Health permission request, fully awaited, THEN launch
-    // the watch — never concurrently (the iOS half-answered-sheet bug).
-    await HealthService.requestWorkoutHealthPermissions();
     try {
       if (await bridge.isWatchAppAvailable()) {
         await bridge.openWatchApp();
@@ -119,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(
           'Delete ${template.name}?',
-          style: const TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: context.tokens.weight.heavy),
         ),
         content: const Text(
           'Your weights are safe. They live on the exercises, not the '
@@ -196,77 +195,86 @@ class _HomeScreenState extends State<HomeScreen> {
         ? const <MuscleGroup>{}
         : templateMuscles(selected, wp.trackers).toSet();
 
+    // Scrolls (and pulls to refresh) only when the content is taller than the
+    // screen; when it fits, the page stays put. No stretch at the edges.
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-        children: [
-          TutorialTarget(
-            id: 'home_volume',
-            child: VolumeCard(
-              volume: home.volume,
-              recovery: home.recovery,
-              highlight: highlight,
-            ),
-          ),
-          const SizedBox(height: 14),
-          TutorialTarget(
-            id: 'home_templates',
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final template in templates)
-                  TemplateChip(
-                    template: template,
-                    trackers: wp.trackers,
-                    selected: template.id == selected?.id,
-                    recommended: template.id == suggestedId,
-                    onTap: () =>
-                        setState(() => _selectedTemplateId = template.id),
-                  ),
-                _ActionChip(
-                  icon: Icons.bolt,
-                  label: 'Empty',
-                  selected: emptySelected,
-                  onTap: () =>
-                      setState(() => _selectedTemplateId = _emptyWorkoutId),
-                ),
-                TutorialTarget(
-                  id: 'home_add',
-                  child: _ActionChip(
-                    icon: Icons.add,
-                    label: 'Add',
-                    selected: false,
-                    onTap: _addTemplate,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          if (emptySelected)
-            _EmptyWorkoutCard(isStarting: _isStarting, onStart: () => _start())
-          else if (selected != null)
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
+        child: ListView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+          children: [
             TutorialTarget(
-              id: 'home_plan',
-              child: SelectedTemplateCard(
-                template: selected,
-                trackers: wp.trackers,
-                unit: unit,
-                recommended: selected.id == suggestedId,
-                suggestionReason: selected.id == suggestedId
-                    ? home.suggestionReason
-                    : '',
-                isStarting: _isStarting,
-                onStart: () => _start(templateId: selected!.id),
-                onEdit: () => _editTemplate(selected),
-                onDelete: () => _confirmDeleteTemplate(selected!),
+              id: 'home_volume',
+              child: VolumeCard(
+                volume: home.volume,
+                recovery: home.recovery,
+                highlight: highlight,
               ),
-            )
-          else
-            _EmptyState(onCreate: () => _editTemplate(null)),
-        ],
+            ),
+            const SizedBox(height: 14),
+            TutorialTarget(
+              id: 'home_templates',
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final template in templates)
+                    TemplateChip(
+                      template: template,
+                      trackers: wp.trackers,
+                      selected: template.id == selected?.id,
+                      recommended: template.id == suggestedId,
+                      onTap: () =>
+                          setState(() => _selectedTemplateId = template.id),
+                    ),
+                  _ActionChip(
+                    icon: AppIcons.lightning,
+                    label: 'Empty',
+                    selected: emptySelected,
+                    onTap: () =>
+                        setState(() => _selectedTemplateId = _emptyWorkoutId),
+                  ),
+                  TutorialTarget(
+                    id: 'home_add',
+                    child: _ActionChip(
+                      icon: AppIcons.add,
+                      label: 'Add',
+                      selected: false,
+                      onTap: _addTemplate,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (emptySelected)
+              _EmptyWorkoutCard(
+                isStarting: _isStarting,
+                onStart: () => _start(),
+              )
+            else if (selected != null)
+              TutorialTarget(
+                id: 'home_plan',
+                child: SelectedTemplateCard(
+                  template: selected,
+                  trackers: wp.trackers,
+                  unit: unit,
+                  recommended: selected.id == suggestedId,
+                  suggestionReason: selected.id == suggestedId
+                      ? home.suggestionReason
+                      : '',
+                  isStarting: _isStarting,
+                  onStart: () => _start(templateId: selected!.id),
+                  onEdit: () => _editTemplate(selected),
+                  onDelete: () => _confirmDeleteTemplate(selected!),
+                ),
+              )
+            else
+              _EmptyState(onCreate: () => _editTemplate(null)),
+          ],
+        ),
       ),
     );
   }
@@ -287,18 +295,18 @@ class _EmptyWorkoutCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: AppTheme.brMd,
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.6), width: 2),
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Don't tell me what to do",
             style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.titleLg,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: -0.3,
             ),
           ),
@@ -307,7 +315,7 @@ class _EmptyWorkoutCard extends StatelessWidget {
             "I'll add exercises as I go. The app still brings the "
             'weights, sets and reps for whatever you pick.',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: context.tokens.size.bodyLg,
               height: 1.4,
               color: cs.onSurface.withValues(alpha: 0.65),
             ),
@@ -324,11 +332,11 @@ class _EmptyWorkoutCard extends StatelessWidget {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
+                  : Text(
                       'START',
                       style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        fontWeight: context.tokens.weight.heavy,
+                        fontSize: context.tokens.size.subtitle,
                       ),
                     ),
             ),
@@ -362,7 +370,7 @@ class _ActionChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? cs.primary.withValues(alpha: 0.12) : null,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: context.tokens.br(10),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
@@ -375,7 +383,10 @@ class _ActionChip extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: context.tokens.size.body,
+                fontWeight: context.tokens.weight.heavy,
+              ),
             ),
           ],
         ),
@@ -428,16 +439,19 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        borderRadius: AppTheme.brMd,
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
-          const Text('🏗️', style: TextStyle(fontSize: 40)),
+          Text('🏗️', style: TextStyle(fontSize: context.tokens.size.display)),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'No templates yet',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.title,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -501,7 +515,7 @@ class VolumeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
-        borderRadius: AppTheme.brMd,
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
@@ -536,7 +550,6 @@ class _VolumeRow extends StatelessWidget {
   });
 
   static const _trackMax = 24.0;
-  static const _grayFill = Color(0xFF4A4A50);
 
   @override
   Widget build(BuildContext context) {
@@ -547,50 +560,47 @@ class _VolumeRow extends StatelessWidget {
     final inBand = sets >= low && sets <= high;
     final over = sets > high;
     final fill = over
-        ? AppTheme.accentAmber
+        ? context.tokens.accentAmber
         : inBand
-        ? AppTheme.accentGreen
-        : _grayFill;
+        ? context.tokens.accentGreen
+        : context.tokens.outline;
 
     final recovering = recovery != null && !recovery!.recovered;
-    final nameColor = !targeted
-        ? cs.onSurface
-        : recovering
-        ? AppTheme.accentAmber
-        : AppTheme.accentGreen;
+    // The selected workout's muscles are picked out in the primary orange.
+    final nameColor = targeted ? context.tokens.primary : cs.onSurface;
 
     final row = Row(
       children: [
         SizedBox(
-          width: 92,
-          child: Row(
-            children: [
-              Flexible(
-                child: Text(
-                  muscleShortLabels[entry.muscle] ?? '?',
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: nameColor,
-                  ),
-                ),
-              ),
-              if (recovering)
-                Padding(
-                  padding: const EdgeInsets.only(left: 5),
+          width: 96,
+          child: Text(
+            muscleShortLabels[entry.muscle] ?? '?',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.bold,
+              color: nameColor,
+            ),
+          ),
+        ),
+        // Hours still recovering, just left of the bar; the slot is kept
+        // empty when there are none so every bar lines up.
+        SizedBox(
+          width: 52,
+          child: recovering
+              ? Align(
+                  alignment: Alignment.centerRight,
                   child: _RecoveryChip(
                     hours: recovery!.hoursRemaining.toInt(),
                     urgent: targeted,
                   ),
-                ),
-            ],
-          ),
+                )
+              : null,
         ),
         const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
-            height: 12,
+            height: 6,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -602,7 +612,7 @@ class _VolumeRow extends StatelessWidget {
                         color: cs.surfaceContainerHighest.withValues(
                           alpha: 0.35,
                         ),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: context.tokens.br(6),
                       ),
                     ),
                     Positioned(
@@ -611,7 +621,9 @@ class _VolumeRow extends StatelessWidget {
                       top: 0,
                       bottom: 0,
                       child: Container(
-                        color: AppTheme.accentGreen.withValues(alpha: 0.10),
+                        color: context.tokens.accentGreen.withValues(
+                          alpha: 0.10,
+                        ),
                       ),
                     ),
                     // The fill, inset like the mock's rounded pill.
@@ -623,7 +635,7 @@ class _VolumeRow extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: fill,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: context.tokens.br(4),
                         ),
                       ),
                     ),
@@ -653,28 +665,26 @@ class _VolumeRow extends StatelessWidget {
                   text: sets % 1 == 0
                       ? sets.toStringAsFixed(0)
                       : sets.toStringAsFixed(1),
+                  // In the target range the number goes green.
                   style: TextStyle(
-                    color: inBand || over
+                    color: inBand
+                        ? context.tokens.accentGreen
+                        : over
                         ? cs.onSurface
                         : cs.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
                 if (over)
-                  const TextSpan(
+                  TextSpan(
                     text: '▲',
-                    style: TextStyle(color: AppTheme.accentAmber),
-                  )
-                else if (inBand)
-                  const TextSpan(
-                    text: ' ✓',
-                    style: TextStyle(color: AppTheme.accentGreen),
+                    style: TextStyle(color: context.tokens.accentAmber),
                   ),
               ],
             ),
             textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+            style: TextStyle(
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.heavy,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
@@ -698,22 +708,22 @@ class _RecoveryChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final color = urgent
-        ? AppTheme.accentAmber
+        ? context.tokens.primary
         : cs.onSurface.withValues(alpha: 0.45);
     final border = urgent
-        ? AppTheme.accentAmber
+        ? context.tokens.primary
         : cs.outline.withValues(alpha: 0.6);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         border: Border.all(color: border),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: context.tokens.br(6),
       ),
       child: Text(
         '${hours}h',
         style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
+          fontSize: context.tokens.size.small,
+          fontWeight: context.tokens.weight.heavy,
           letterSpacing: 0.2,
           color: color,
         ),
@@ -754,7 +764,7 @@ class TemplateChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           color: selected ? cs.primary.withValues(alpha: 0.12) : null,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: context.tokens.br(10),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
@@ -766,13 +776,13 @@ class TemplateChip extends StatelessWidget {
             if (recommended)
               Padding(
                 padding: const EdgeInsets.only(right: 3),
-                child: Icon(Icons.star_rounded, size: 14, color: cs.primary),
+                child: Icon(AppIcons.star, size: 14, color: cs.primary),
               ),
             Text(
               template.name,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+              style: TextStyle(
+                fontSize: context.tokens.size.body,
+                fontWeight: context.tokens.weight.heavy,
                 letterSpacing: -0.2,
               ),
             ),
@@ -782,8 +792,8 @@ class TemplateChip extends StatelessWidget {
                 child: Text(
                   time,
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                    fontSize: context.tokens.size.small,
+                    fontWeight: context.tokens.weight.bold,
                     color: cs.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
@@ -832,12 +842,11 @@ class SelectedTemplateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.6);
-    final muscles = templateMuscles(template, trackers);
     final time = estimatedSessionLabel(template, trackers);
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: AppTheme.brMd,
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: accent, width: 2),
         color: recommended ? cs.primary.withValues(alpha: 0.05) : null,
       ),
@@ -857,9 +866,9 @@ class SelectedTemplateCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             template.name,
-                            style: const TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.titleLg,
+                              fontWeight: context.tokens.weight.heavy,
                               letterSpacing: -0.3,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -871,8 +880,8 @@ class SelectedTemplateCard extends StatelessWidget {
                             child: Text(
                               time,
                               style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                                fontSize: context.tokens.size.bodyLg,
+                                fontWeight: context.tokens.weight.bold,
                                 color: cs.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
@@ -887,8 +896,8 @@ class SelectedTemplateCard extends StatelessWidget {
                               ? 'Recommended next'
                               : 'Recommended: $suggestionReason',
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: context.tokens.size.body,
+                            fontWeight: context.tokens.weight.bold,
                             color: cs.primary,
                           ),
                         ),
@@ -898,7 +907,7 @@ class SelectedTemplateCard extends StatelessWidget {
               ),
               PopupMenuButton<String>(
                 icon: Icon(
-                  Icons.more_vert,
+                  AppIcons.more,
                   color: cs.onSurface.withValues(alpha: 0.6),
                 ),
                 onSelected: (value) {
@@ -912,37 +921,6 @@ class SelectedTemplateCard extends StatelessWidget {
               ),
             ],
           ),
-          if (muscles.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, bottom: 8, right: 8),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  for (final muscle in muscles)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest.withValues(
-                          alpha: 0.4,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        muscleShortLabels[muscle] ?? '?',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
           for (final exercise in template.exercises)
             Padding(
               padding: const EdgeInsets.only(bottom: 5, right: 8),
@@ -968,11 +946,11 @@ class SelectedTemplateCard extends StatelessWidget {
                           height: 22,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
+                      : Text(
                           'START',
                           style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
+                            fontWeight: context.tokens.weight.heavy,
+                            fontSize: context.tokens.size.subtitle,
                           ),
                         ),
                 ),
@@ -1008,46 +986,24 @@ class _ExerciseLine extends StatelessWidget {
         ? '${resolved.sets}×${resolved.targetReps} @ '
               '${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
         : '${resolved.sets}×${resolved.targetReps}';
-    final restMinutes = resolved == null
-        ? ''
-        : resolved.restSeconds % 60 == 0
-        ? '${resolved.restSeconds ~/ 60}m rest'
-        : '${(resolved.restSeconds / 60).toStringAsFixed(1)}m rest';
     return Row(
       children: [
-        if (resolved?.includeWarmup ?? false)
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Icon(
-              Icons.local_fire_department,
-              size: 13,
-              color: cs.tertiary.withValues(alpha: 0.8),
-            ),
-          ),
         Expanded(
           child: Text(
             name,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.bold,
+            ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (restMinutes.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Text(
-              restMinutes,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface.withValues(alpha: 0.45),
-              ),
-            ),
-          ),
+        const SizedBox(width: 8),
         Text(
           prescription,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+            fontSize: context.tokens.size.bodyLg,
+            fontWeight: context.tokens.weight.bold,
             fontFeatures: const [FontFeature.tabularFigures()],
             color: cs.onSurface.withValues(alpha: 0.7),
           ),

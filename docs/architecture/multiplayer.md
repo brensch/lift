@@ -30,7 +30,7 @@ If those disagree, `user_current_session` wins.
 stateDiagram-v2
     [*] --> Solo
     Solo --> InSession: JoinViaInvite<br/>(upsert both users' rows)
-    InSession --> InSession: StartSet / CompleteSet<br/>(refresh caller's blob)
+    InSession --> InSession: CompleteSet<br/>(refresh caller's blob)
     InSession --> Solo: LeaveCurrentSession<br/>(delete caller's row)
     InSession --> Solo: EndWorkout<br/>(refresh final blob, then delete row)
     note right of Solo

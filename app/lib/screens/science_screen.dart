@@ -3,8 +3,11 @@
 /// over the flow, back pops) and from the main menu.
 library;
 
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class ScienceScreen extends StatelessWidget {
   const ScienceScreen({super.key});
@@ -13,12 +16,7 @@ class ScienceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '🧠 Workout science',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.3),
-        ),
-      ),
+      appBar: AppBar(title: PageTitle('🧠 Workout science')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [
@@ -27,7 +25,7 @@ class ScienceScreen extends StatelessWidget {
             'reps, rest, weight) comes from the research below. One '
             'rule filters it all: keep it simple enough that you do it.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.5,
               color: cs.onSurface.withValues(alpha: 0.75),
             ),
@@ -195,7 +193,7 @@ class ScienceScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: context.tokens.br(12),
               border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
             ),
             child: Text(
@@ -204,7 +202,7 @@ class ScienceScreen extends StatelessWidget {
               'The one variable that beats all others is showing up. '
               'That is why Schlift optimises for simplicity.',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: context.tokens.size.body,
                 height: 1.5,
                 fontStyle: FontStyle.italic,
                 color: cs.onSurface.withValues(alpha: 0.65),
@@ -238,9 +236,9 @@ class _Section extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+            style: TextStyle(
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: -0.3,
             ),
           ),
@@ -248,7 +246,7 @@ class _Section extends StatelessWidget {
           Text(
             body,
             style: TextStyle(
-              fontSize: 13.5,
+              fontSize: context.tokens.size.body,
               height: 1.5,
               color: cs.onSurface.withValues(alpha: 0.75),
             ),
@@ -264,15 +262,15 @@ class _Section extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.open_in_new, size: 14, color: cs.tertiary),
+                    Icon(AppIcons.openExternal, size: 14, color: cs.tertiary),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         citation.label,
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: context.tokens.size.small,
                           height: 1.4,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: context.tokens.weight.bold,
                           decoration: TextDecoration.underline,
                           decorationColor: cs.tertiary,
                           color: cs.onSurface.withValues(alpha: 0.8),

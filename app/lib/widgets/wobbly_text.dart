@@ -1,17 +1,22 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../theme/theme_spec.dart';
+
 class WobblyText extends StatelessWidget {
   final String text;
   final double fontSize;
   final int seed;
+
+  /// How far each letter drifts, in logical pixels; its tilt scales with it.
+  final double maxOffset;
 
   const WobblyText({
     super.key,
     required this.text,
     this.fontSize = 48,
     this.seed = 42,
-    double maxOffset = 2, // Kept for signature compatibility
+    this.maxOffset = 0.8,
   });
 
   @override
@@ -29,7 +34,12 @@ class WobblyText extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           for (final ch in letters)
-            _WobblyLetter(char: ch, fontSize: fontSize, rng: rng),
+            _WobblyLetter(
+              char: ch,
+              fontSize: fontSize,
+              maxOffset: maxOffset,
+              rng: rng,
+            ),
         ],
       ),
     );
@@ -39,11 +49,13 @@ class WobblyText extends StatelessWidget {
 class _WobblyLetter extends StatefulWidget {
   final String char;
   final double fontSize;
+  final double maxOffset;
   final Random rng;
 
   const _WobblyLetter({
     required this.char,
     required this.fontSize,
+    required this.maxOffset,
     required this.rng,
   });
 
@@ -85,9 +97,10 @@ class _WobblyLetterState extends State<_WobblyLetter>
       animation: _controller,
       builder: (context, child) {
         final t = _controller.value * 2 * pi;
-        final dx = sin(t * 0.4 + dxSeed) * 0.8;
-        final dy = cos(t * 0.5 + dySeed) * 0.8;
-        final angle = sin(t * 0.3 + rotateSeed) * 0.01;
+        final wobble = widget.maxOffset;
+        final dx = sin(t * 0.4 + dxSeed) * wobble;
+        final dy = cos(t * 0.5 + dySeed) * wobble;
+        final angle = sin(t * 0.3 + rotateSeed) * 0.0125 * wobble;
 
         return Transform.translate(
           offset: Offset(dx, dy),
@@ -95,9 +108,8 @@ class _WobblyLetterState extends State<_WobblyLetter>
             angle: angle,
             child: Text(
               widget.char == ' ' ? '\u00A0' : widget.char,
-              style: TextStyle(
-                fontSize: widget.fontSize,
-                fontWeight: FontWeight.w900,
+              style: context.tokens.wordmark(
+                TextStyle(fontSize: widget.fontSize),
               ),
             ),
           ),

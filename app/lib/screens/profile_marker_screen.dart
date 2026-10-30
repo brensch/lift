@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +9,9 @@ import '../logic/whimsical_emojis.dart';
 import '../providers/auth_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
+import '../theme/theme_spec.dart';
+import 'onboarding/widgets/profile_marker_widgets.dart';
+import '../theme/app_icons.dart';
 
 class ProfileMarkerScreen extends StatefulWidget {
   const ProfileMarkerScreen({super.key});
@@ -89,13 +93,10 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Profile Marker',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-        ),
+        title: PageTitle('Profile Marker'),
       ),
       body: SafeArea(
         child: Column(
@@ -107,28 +108,31 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   Text(
                     'GROUP LOOK',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.small,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: 1.4,
                       color: cs.tertiary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Pick your colour and emoji',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.headline,
+                      fontWeight: context.tokens.weight.heavy,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'This controls the badge and side stripe used for you in group workouts.',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: context.tokens.size.body,
                       height: 1.4,
                       color: cs.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _ProfilePreviewCard(
+                  ProfilePreviewCard(
                     emoji: _selectedEmoji,
                     colorHex: _selectedColorHex,
                   ),
@@ -138,8 +142,8 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                       Text(
                         'EMOJIS',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.heavy,
                           letterSpacing: 1.2,
                           color: cs.tertiary,
                         ),
@@ -147,7 +151,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                       const Spacer(),
                       TextButton.icon(
                         onPressed: _refreshEmojiChoices,
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        icon: const Icon(AppIcons.refresh, size: 18),
                         label: const Text('Refresh'),
                       ),
                     ],
@@ -158,7 +162,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     runSpacing: 10,
                     children: _emojiChoices
                         .map(
-                          (emoji) => _EmojiChoiceChip(
+                          (emoji) => EmojiChoiceChip(
                             emoji: emoji,
                             selected: emoji == _selectedEmoji,
                             onTap: () => setState(() => _selectedEmoji = emoji),
@@ -170,8 +174,8 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   Text(
                     'COLOURS',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.small,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: 1.2,
                       color: cs.tertiary,
                     ),
@@ -182,7 +186,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     runSpacing: 10,
                     children: profileColorHexOptions
                         .map(
-                          (hex) => _ColorChoiceDot(
+                          (hex) => ColorChoiceDot(
                             hex: hex,
                             selected: hex == _selectedColorHex,
                             onTap: () =>
@@ -213,155 +217,16 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
+                      : Text(
                           'SAVE',
-                          style: TextStyle(fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            fontWeight: context.tokens.weight.heavy,
+                          ),
                         ),
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfilePreviewCard extends StatelessWidget {
-  final String emoji;
-  final String colorHex;
-
-  const _ProfilePreviewCard({required this.emoji, required this.colorHex});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final accent = profileColorFromHex(colorHex);
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 88,
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(16),
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Text(emoji, style: const TextStyle(fontSize: 28)),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Workout card preview',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      color: cs.tertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Your emoji appears in the rounded side rail and the selected colour fills that rail.',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmojiChoiceChip extends StatelessWidget {
-  final String emoji;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _EmojiChoiceChip({
-    required this.emoji,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 52,
-        height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected
-              ? cs.primary.withValues(alpha: 0.12)
-              : cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Text(emoji, style: const TextStyle(fontSize: 26)),
-      ),
-    );
-  }
-}
-
-class _ColorChoiceDot extends StatelessWidget {
-  final String hex;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ColorChoiceDot({
-    required this.hex,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = profileColorFromHex(hex);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: selected ? cs.onSurface : color.withValues(alpha: 0.6),
-            width: selected ? 3 : 1.5,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
         ),
       ),
     );

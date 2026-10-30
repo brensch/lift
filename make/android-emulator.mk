@@ -1,6 +1,12 @@
 # Android SDK checks, AVDs, emulator lifecycle, screenshot/input automation for agents.
 # Split from the top-level Makefile; variables live there.
 
+.PHONY: android-sdk-check android-phone-avd-create android-phone-play-avd-create \
+	android-phone-play-emulator-start android-wear-avd-create android-emulator-start \
+	android-emulator-stop android-emulator-wait android-emulator-unlock android-emulator-reverse \
+	android-screenshot android-tap android-text android-run-emulator android-agent-start \
+	android-agent-stop
+
 android-sdk-check:
 	@bash -ec '\
 		for path in "$(ANDROID_SDKMANAGER)" "$(ANDROID_AVDMANAGER)" "$(ANDROID_EMULATOR)" "$(ADB)" "$(FLUTTER)"; do \
@@ -135,12 +141,8 @@ android-run-emulator: android-emulator-reverse
 			"$(FLUTTER)" run -d "$(ANDROID_SERIAL)" --debug --no-resident; \
 	'
 
-android-agent-start:
-	$(MAKE) agent-backend-start
-	$(MAKE) android-emulator-start
-	$(MAKE) android-emulator-wait
-	$(MAKE) android-emulator-unlock
-	$(MAKE) android-emulator-reverse
+# e2e-up is the same backend + emulator bring-up.
+android-agent-start: e2e-up
 	$(MAKE) android-run-emulator
 	$(MAKE) android-screenshot ANDROID_SCREENSHOT_OUT=.tmp/screenshots/android-agent-start.png
 

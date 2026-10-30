@@ -17,27 +17,23 @@ import 'package:protobuf/protobuf.dart' as $pb;
 class WearActionType extends $pb.ProtobufEnum {
   static const WearActionType WEAR_ACTION_TYPE_UNSPECIFIED =
       WearActionType._(0, _omitEnumNames ? '' : 'WEAR_ACTION_TYPE_UNSPECIFIED');
-  static const WearActionType WEAR_ACTION_TYPE_START_SET =
-      WearActionType._(1, _omitEnumNames ? '' : 'WEAR_ACTION_TYPE_START_SET');
   static const WearActionType WEAR_ACTION_TYPE_COMPLETE_SET = WearActionType._(
       2, _omitEnumNames ? '' : 'WEAR_ACTION_TYPE_COMPLETE_SET');
-  static const WearActionType WEAR_ACTION_TYPE_SKIP_WARMUP =
-      WearActionType._(3, _omitEnumNames ? '' : 'WEAR_ACTION_TYPE_SKIP_WARMUP');
   static const WearActionType WEAR_ACTION_TYPE_END_WORKOUT =
       WearActionType._(4, _omitEnumNames ? '' : 'WEAR_ACTION_TYPE_END_WORKOUT');
+  static const WearActionType WEAR_ACTION_TYPE_START_SET =
+      WearActionType._(8, _omitEnumNames ? '' : 'WEAR_ACTION_TYPE_START_SET');
 
   static const $core.List<WearActionType> values = <WearActionType>[
     WEAR_ACTION_TYPE_UNSPECIFIED,
-    WEAR_ACTION_TYPE_START_SET,
     WEAR_ACTION_TYPE_COMPLETE_SET,
-    WEAR_ACTION_TYPE_SKIP_WARMUP,
     WEAR_ACTION_TYPE_END_WORKOUT,
+    WEAR_ACTION_TYPE_START_SET,
   ];
 
-  static final $core.List<WearActionType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
-  static WearActionType? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
+  static final $core.Map<$core.int, WearActionType> _byValue =
+      $pb.ProtobufEnum.initByValue(values);
+  static WearActionType? valueOf($core.int value) => _byValue[value];
 
   const WearActionType._(super.value, super.name);
 }
@@ -50,18 +46,15 @@ class WearActionStyle extends $pb.ProtobufEnum {
       WearActionStyle._(1, _omitEnumNames ? '' : 'WEAR_ACTION_STYLE_PRIMARY');
   static const WearActionStyle WEAR_ACTION_STYLE_SECONDARY =
       WearActionStyle._(2, _omitEnumNames ? '' : 'WEAR_ACTION_STYLE_SECONDARY');
-  static const WearActionStyle WEAR_ACTION_STYLE_REP_OPTION = WearActionStyle._(
-      3, _omitEnumNames ? '' : 'WEAR_ACTION_STYLE_REP_OPTION');
 
   static const $core.List<WearActionStyle> values = <WearActionStyle>[
     WEAR_ACTION_STYLE_UNSPECIFIED,
     WEAR_ACTION_STYLE_PRIMARY,
     WEAR_ACTION_STYLE_SECONDARY,
-    WEAR_ACTION_STYLE_REP_OPTION,
   ];
 
   static final $core.List<WearActionStyle?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
   static WearActionStyle? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

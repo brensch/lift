@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
-import '../screens/maths_screen.dart';
-import '../screens/science_screen.dart';
-import '../screens/tutorial_screen.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/theme_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import 'join_request_banner.dart';
 import '../services/wearable_bridge_service.dart';
+import 'menu_profile.dart';
 import 'multiplayer_modal.dart';
-import 'wobbly_text.dart';
 import 'workout_bar/workout_bottom_bar.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
+import 'wordmark.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
@@ -24,10 +22,8 @@ class MainLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final themeProvider = context.watch<ThemeProvider>();
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
-    final userName = authProvider.username ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
     void goToTopLevel(String path) {
@@ -63,20 +59,19 @@ class MainLayout extends StatelessWidget {
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          // The menu icon's lines end 16 from the edge, in line with the page
+          // content below: 5 here + the button's 8 + the glyph's own 3.
+          actionsPadding: const EdgeInsets.only(right: 5),
           title: GestureDetector(
             onTap: () => context.go('/'),
-            child: const WobblyText(
-              text: 'SCHLIFT',
-              fontSize: 24,
-              maxOffset: 2,
-            ),
+            child: const Wordmark(),
           ),
           actions: [
-            _buildWatchLaunchButton(context),
+            const _WatchLaunchButton(),
             _buildMultiplayerButton(context, mp),
             Builder(
               builder: (context) => IconButton(
-                icon: const Icon(Icons.menu),
+                icon: const Icon(AppIcons.menu, size: 32),
                 onPressed: () => Scaffold.of(context).openEndDrawer(),
               ),
             ),
@@ -88,171 +83,69 @@ class MainLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Menu',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -1.0,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
+                // You, and your totals. Tap to edit your profile.
+                MenuProfile(
+                  onEditProfile: () {
+                    Navigator.pop(context);
+                    context.push('/settings/profile-marker');
+                  },
                 ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      _MenuButton(
-                        icon: Icons.fitness_center_outlined,
-                        label: 'Workout',
-                        onTap: () => goToTopLevel('/'),
-                        isActive: currentPath == '/',
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: Icons.bar_chart_outlined,
-                        label: 'Progress',
-                        onTap: () => goToTopLevel('/progress'),
-                        isActive: currentPath == '/progress',
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: Icons.history_outlined,
-                        label: 'History',
-                        onTap: () => goToTopLevel('/history'),
-                        isActive: currentPath == '/history',
-                      ),
-                      Divider(height: 32, color: colorScheme.outline),
-                      _MenuButton(
-                        icon: Icons.school_outlined,
-                        label: 'Tutorial',
-                        onTap: () {
-                          Navigator.pop(context); // close the menu
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(name: 'tutorial'),
-                              builder: (_) => const TutorialScreen(),
-                            ),
-                          );
-                        },
-                        isActive: false,
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: Icons.psychology_outlined,
-                        label: 'Workout science',
-                        onTap: () {
-                          Navigator.pop(context); // close the menu
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(name: 'science'),
-                              builder: (_) => const ScienceScreen(),
-                            ),
-                          );
-                        },
-                        isActive: false,
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: Icons.functions_outlined,
-                        label: 'Calorie maths',
-                        onTap: () {
-                          Navigator.pop(context); // close the menu
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(name: 'maths'),
-                              builder: (_) => const MathsScreen(),
-                            ),
-                          );
-                        },
-                        isActive: false,
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: Icons.settings_outlined,
-                        label: 'Settings',
-                        onTap: () => goToTopLevel('/settings'),
-                        isActive: isSettingsSection(currentPath),
-                      ),
-                      Divider(height: 32, color: colorScheme.outline),
-                    ],
-                  ),
+                // The items sit straight under your totals, fixed in place:
+                // a plain column, nothing to scroll or stretch.
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _MenuButton(
+                      icon: AppIcons.workout,
+                      label: 'Workout',
+                      onTap: () => goToTopLevel('/'),
+                      isActive: currentPath == '/',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
+                      icon: AppIcons.progress,
+                      label: 'Progress',
+                      onTap: () => goToTopLevel('/progress'),
+                      isActive: currentPath == '/progress',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
+                      icon: AppIcons.history,
+                      label: 'History',
+                      onTap: () => goToTopLevel('/history'),
+                      isActive: currentPath == '/history',
+                    ),
+                  ],
                 ),
+                const Spacer(),
                 Divider(color: colorScheme.outline),
+                // Logout, and Settings as a cog beside it.
                 Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+                  child: Row(
                     children: [
-                      if (userName.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            bottom: 16,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 20,
-                                color: colorScheme.tertiary,
-                              ),
-                              const SizedBox(width: 16),
-                              Text(
-                                userName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                  letterSpacing: -0.5,
-                                  color: colorScheme.tertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            _MenuButton(
-                              icon: Icons.logout,
-                              label: 'Logout',
-                              color: colorScheme.error,
-                              onTap: () {
-                                Navigator.pop(context);
-                                authProvider.logout();
-                                context.go('/login');
-                              },
-                              isActive: false,
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              icon: Icon(
-                                themeProvider.isDarkMode(context)
-                                    ? Icons.wb_sunny
-                                    : Icons.dark_mode_outlined,
-                                color: colorScheme.onSurface,
-                              ),
-                              tooltip: themeProvider.isDarkMode(context)
-                                  ? 'Switch to light mode'
-                                  : 'Switch to dark mode',
-                              onPressed: () => themeProvider.toggle(),
-                            ),
-                          ],
+                      _MenuButton(
+                        icon: AppIcons.logout,
+                        label: 'Logout',
+                        color: colorScheme.error,
+                        onTap: () {
+                          Navigator.pop(context);
+                          authProvider.logout();
+                          context.go('/login');
+                        },
+                        isActive: false,
+                        edgeToEdge: false,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'Settings',
+                        onPressed: () => goToTopLevel('/settings'),
+                        icon: Icon(
+                          AppIcons.settings,
+                          size: 28,
+                          color: isSettingsSection(currentPath)
+                              ? colorScheme.primary
+                              : colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -277,79 +170,28 @@ class MainLayout extends StatelessWidget {
     );
   }
 
+  /// Icon only; a count shows when others are in the session.
   Widget _buildMultiplayerButton(BuildContext context, MultiplayerProvider mp) {
-    final wp = context.watch<WorkoutProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-
-    // Check workout duration if active
-    bool shouldShake = !mp.isInSession;
-    if (wp.hasActiveWorkout && wp.activeWorkout!.startTime != Int64.ZERO) {
-      final startTime = DateTime.fromMillisecondsSinceEpoch(
-        wp.activeWorkout!.startTime.toInt() * 1000,
-      );
-      final duration = DateTime.now().difference(startTime);
-      if (duration.inMinutes >= 5) {
-        shouldShake = false;
-      }
-    }
-
     final participantCount = mp.isInSession ? mp.participants.length + 1 : 0;
-    final buttonLabel = participantCount > 1
-        ? 'Multiplayer ($participantCount)'
-        : 'Multiplayer';
-
-    Widget button = Padding(
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: FilledButton.icon(
-        onPressed: () => _showMultiplayerModal(context),
-        icon: const Icon(Icons.group_add, size: 16),
-        label: Text(
-          buttonLabel,
-          style: const TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 11,
-            letterSpacing: 0.5,
+      child: Badge(
+        isLabelVisible: participantCount > 1,
+        label: Text('$participantCount'),
+        backgroundColor: colorScheme.onSurface,
+        textColor: colorScheme.surface,
+        child: IconButton.filled(
+          tooltip: 'Multiplayer',
+          onPressed: () => _showMultiplayerModal(context),
+          icon: const Icon(AppIcons.multiplayer),
+          style: IconButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            shape: RoundedRectangleBorder(borderRadius: context.tokens.br(8)),
           ),
         ),
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          minimumSize: const Size(0, 36),
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
       ),
-    );
-
-    if (!shouldShake) {
-      return button;
-    }
-
-    return _ShakingWidget(child: button);
-  }
-
-  Widget _buildWatchLaunchButton(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return IconButton(
-      tooltip: 'Open watch app',
-      icon: Icon(Icons.watch, color: colorScheme.onSurface),
-      onPressed: () async {
-        final bridge = context.read<WearableBridgeService>();
-        final alreadyOpen = await bridge.isWatchAppOpenOnWatch();
-        final queued = await bridge.openWatchApp();
-        if (!context.mounted) return;
-        final String message;
-        if (!queued) {
-          message = 'No paired watch with Schlift installed';
-        } else if (alreadyOpen) {
-          message = 'Schlift is already open on your watch';
-        } else {
-          message = 'Open Schlift on your wrist to connect';
-        }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-      },
     );
   }
 
@@ -371,12 +213,17 @@ class _MenuButton extends StatelessWidget {
   final bool isActive;
   final Color? color;
 
+  /// Runs to the menu's edges (the list items, whose highlight and dividers
+  /// span the full width) rather than sitting inside padding (Logout).
+  final bool edgeToEdge;
+
   const _MenuButton({
     required this.icon,
     required this.label,
     required this.onTap,
     required this.isActive,
     this.color,
+    this.edgeToEdge = true,
   });
 
   @override
@@ -386,25 +233,28 @@ class _MenuButton extends StatelessWidget {
 
     return Material(
       color: isActive ? colorScheme.primary : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: edgeToEdge ? null : context.tokens.br(8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: EdgeInsets.symmetric(
+            horizontal: edgeToEdge ? 24 : 16,
+            vertical: 14,
+          ),
           child: Row(
             children: [
               Icon(
                 icon,
-                size: 20,
+                size: 28,
                 color: isActive ? colorScheme.onPrimary : effectiveColor,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Text(
                 label,
                 style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
+                  fontWeight: context.tokens.weight.heavy,
+                  fontSize: context.tokens.size.title,
                   letterSpacing: -0.5,
                   color: isActive ? colorScheme.onPrimary : effectiveColor,
                 ),
@@ -417,60 +267,50 @@ class _MenuButton extends StatelessWidget {
   }
 }
 
-class _ShakingWidget extends StatefulWidget {
-  final Widget child;
-  const _ShakingWidget({required this.child});
+/// Opens Schlift on the watch. Shown only when a paired watch has Schlift
+/// installed; checked once when the bar is built.
+class _WatchLaunchButton extends StatefulWidget {
+  const _WatchLaunchButton();
 
   @override
-  State<_ShakingWidget> createState() => _ShakingWidgetState();
+  State<_WatchLaunchButton> createState() => _WatchLaunchButtonState();
 }
 
-class _ShakingWidgetState extends State<_ShakingWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+class _WatchLaunchButtonState extends State<_WatchLaunchButton> {
+  bool _available = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-
-    _animation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.1), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: 0.1, end: -0.1), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: -0.1, end: 0.1), weight: 2),
-      TweenSequenceItem(tween: Tween(begin: 0.1, end: 0.0), weight: 1),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _startCycle();
-  }
-
-  Future<void> _startCycle() async {
-    while (mounted) {
-      await Future.delayed(const Duration(seconds: 5));
-      if (mounted) {
-        await _controller.forward(from: 0.0);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    context.read<WearableBridgeService>().isWatchAppAvailable().then((ok) {
+      if (mounted && ok) setState(() => _available = true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.rotate(angle: _animation.value, child: child);
+    if (!_available) return const SizedBox.shrink();
+    final colorScheme = Theme.of(context).colorScheme;
+    return IconButton(
+      tooltip: 'Open watch app',
+      icon: Icon(AppIcons.watch, color: colorScheme.onSurface),
+      onPressed: () async {
+        final bridge = context.read<WearableBridgeService>();
+        final alreadyOpen = await bridge.isWatchAppOpenOnWatch();
+        final queued = await bridge.openWatchApp();
+        if (!context.mounted) return;
+        final String message;
+        if (!queued) {
+          message = 'No paired watch with Schlift installed';
+        } else if (alreadyOpen) {
+          message = 'Schlift is already open on your watch';
+        } else {
+          message = 'Open Schlift on your wrist to connect';
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       },
-      child: widget.child,
     );
   }
 }

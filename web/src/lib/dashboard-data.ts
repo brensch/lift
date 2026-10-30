@@ -26,9 +26,7 @@ export interface WorkoutRow {
   name: string;
   startS: number;
   durationS: number;
-  liftingS: number;
   restingS: number;
-  yappingS: number;
   volumeLb: number;
   topExercise: string;
   heaviestSetLb: number;
@@ -83,9 +81,7 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
         name: workout.name,
         startS: Number(workout.startTime),
         durationS: Number(summary.durationSeconds),
-        liftingS: Number(summary.liftingSeconds),
         restingS: Number(summary.restingSeconds),
-        yappingS: Number(summary.yappingSeconds),
         volumeLb: summary.totalVolume,
         topExercise: top ? exerciseName(top.exercise) : "—",
         heaviestSetLb: top?.heaviestSetWeight ?? 0,

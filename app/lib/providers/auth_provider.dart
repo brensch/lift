@@ -231,17 +231,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<double?> syncBodyWeightFromHealth({
-    bool requestPermissions = false,
-  }) async {
+  Future<double?> syncBodyWeightFromHealth() async {
     if (_bodyWeightHealthSyncInFlight || _sessionToken == null) return null;
     _bodyWeightHealthSyncInFlight = true;
     try {
       // Compare against the server's body weight, not the 0 we start with.
       await _initialProfileLoad;
-      final importedKg = await HealthService.readLatestBodyWeightKg(
-        requestPermissions: requestPermissions,
-      );
+      final importedKg = await HealthService.readLatestBodyWeightKg();
       if (importedKg == null || importedKg <= 0) return null;
 
       final changed = (_bodyWeightKg - importedKg).abs() >= 0.05;

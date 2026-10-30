@@ -1,9 +1,10 @@
-/// Supporting panels for the workout screen: missing-HR notice, page tabs, column labels, empty state.
+/// Supporting panels for the workout screen: missing-HR notice, the session
+/// strip, page tabs, the add-exercise row.
 library;
 
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
+import '../../theme/app_icons.dart';
 
 class NoHeartRateMonitor extends StatelessWidget {
   const NoHeartRateMonitor({super.key});
@@ -17,14 +18,14 @@ class NoHeartRateMonitor extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.watch_outlined, size: 52, color: colorScheme.tertiary),
+            Icon(AppIcons.watch, size: 52, color: colorScheme.tertiary),
             const SizedBox(height: 18),
             Text(
               'No heart rate yet',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
+                fontSize: context.tokens.size.subtitle,
+                fontWeight: context.tokens.weight.heavy,
                 color: colorScheme.onSurface,
               ),
             ),
@@ -34,9 +35,9 @@ class NoHeartRateMonitor extends StatelessWidget {
               'your heart while schlifting.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14.5,
+                fontSize: context.tokens.size.body,
                 height: 1.45,
-                fontWeight: FontWeight.w600,
+                fontWeight: context.tokens.weight.bold,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -49,100 +50,106 @@ class NoHeartRateMonitor extends StatelessWidget {
 
 // ─── Session strip (top block: workout name + a single slim progress bar) ────
 
+/// The workout's name, its overall progress, and how long it has been
+/// going: one full-width row, the exercises themselves right below.
 class SessionStrip extends StatelessWidget {
   final String title; // e.g. "5×5 Workout A"
-  final String subtitle; // faded, e.g. "Squat · Bench · Row"
-  final String dateLabel; // e.g. "Jul 30"
   final double progress; // 0..1 across all working sets
+  final String elapsedText; // the workout's running time
+  final String? heartRateText; // your heart rate, when something sends one
 
   const SessionStrip({
     super.key,
     required this.title,
-    this.subtitle = '',
-    this.dateLabel = '',
     required this.progress,
+    required this.elapsedText,
+    this.heartRateText,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      padding: const EdgeInsets.fromLTRB(15, 12, 15, 13),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: AppTheme.brMd,
-        border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.4,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                      if (subtitle.isNotEmpty)
-                        TextSpan(
-                          text: '   $subtitle',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.1,
-                            color: cs.onSurface.withValues(alpha: 0.38),
-                          ),
-                        ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      // The name takes the width it needs (at most 70%, then ellipsis); the
+      // bar fills everything after it.
+      child: LayoutBuilder(
+        builder: (context, constraints) => Row(
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.7),
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: context.tokens.size.title,
+                  fontWeight: context.tokens.weight.heavy,
+                  letterSpacing: -0.4,
+                  color: cs.onSurface,
                 ),
               ),
-              if (dateLabel.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Text(
-                    dateLabel,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.1,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      color: cs.onSurface.withValues(alpha: 0.42),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: context.tokens.br(999),
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: cs.onSurface.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation(cs.primary),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // The session's clock, and under it your heart.
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  elapsedText,
+                  style: context.tokens.mono(
+                    TextStyle(
+                      fontSize: context.tokens.size.body,
+                      fontWeight: context.tokens.weight.bold,
+                      color: context.tokens.muted,
                     ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 11),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0.0, 1.0),
-              minHeight: 5,
-              backgroundColor: cs.onSurface.withValues(alpha: 0.09),
-              valueColor: const AlwaysStoppedAnimation(AppTheme.successFg),
+                if (heartRateText != null)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        AppIcons.heart,
+                        size: context.tokens.size.body,
+                        color: context.tokens.heart,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        heartRateText!,
+                        style: context.tokens.mono(
+                          TextStyle(
+                            fontSize: context.tokens.size.body,
+                            fontWeight: context.tokens.weight.bold,
+                            color: context.tokens.text,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// ─── Page tabs (named + swipeable — clearer than anonymous dots) ─────────────
+// ─── Page tabs: the views by name, switched by a tap ─────────────────────────
 
 class PageTabItem {
   final String label;
@@ -190,8 +197,8 @@ class PageTabs extends StatelessWidget {
                             Text(
                               tabs[i].label,
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
+                                fontSize: context.tokens.size.subtitle,
+                                fontWeight: context.tokens.weight.heavy,
                                 letterSpacing: -0.1,
                                 color: i == index
                                     ? cs.onSurface
@@ -204,8 +211,8 @@ class PageTabs extends StatelessWidget {
                                 child: Text(
                                   '${tabs[i].count}',
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: context.tokens.size.small,
+                                    fontWeight: context.tokens.weight.heavy,
                                     color: cs.onSurface.withValues(alpha: 0.4),
                                   ),
                                 ),
@@ -217,10 +224,8 @@ class PageTabs extends StatelessWidget {
                         height: 2.5,
                         margin: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
-                          color: i == index
-                              ? AppTheme.successFg
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(3),
+                          color: i == index ? cs.primary : Colors.transparent,
+                          borderRadius: context.tokens.br(3),
                         ),
                       ),
                     ],
@@ -228,21 +233,6 @@ class PageTabs extends StatelessWidget {
                 ),
               ),
             ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.only(right: 2, bottom: 3),
-            child: Opacity(
-              opacity: 0.5,
-              child: Transform.rotate(
-                angle: math.pi / 2,
-                child: Icon(
-                  Icons.unfold_more_rounded,
-                  size: 16,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -251,93 +241,33 @@ class PageTabs extends StatelessWidget {
 
 // ─── Page indicator (legacy dots, kept for reference) ───────────────────────
 
-class PageDots extends StatelessWidget {
-  final int count;
-  final int index;
-  final ValueChanged<int> onTap;
+// ─── Add exercise (a full-width row, like the sections above it) ────────────
 
-  const PageDots({
-    super.key,
-    required this.count,
-    required this.index,
-    required this.onTap,
-  });
+class AddExerciseRow extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const AddExerciseRow({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (int i = 0; i < count; i++)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onTap(i),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-                width: i == index ? 22 : 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: i == index
-                      ? colorScheme.primary
-                      : colorScheme.outline.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(999),
-                ),
+    final t = context.tokens;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Row(
+          children: [
+            Icon(AppIcons.add, size: t.size.title, color: t.muted),
+            const SizedBox(width: 8),
+            Text(
+              'Add exercise',
+              style: TextStyle(
+                fontSize: t.size.bodyLg,
+                fontWeight: t.weight.bold,
+                color: t.muted,
               ),
             ),
-          ),
-      ],
-    );
-  }
-}
-
-// ─── Two-column scaffolding ────────────────────────────────────────────────
-
-class ColumnLabel extends StatelessWidget {
-  final String text;
-  final TextAlign align;
-  const ColumnLabel(this.text, {super.key, this.align = TextAlign.left});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Text(
-      text.toUpperCase(),
-      textAlign: align,
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5,
-        color: colorScheme.tertiary,
-      ),
-    );
-  }
-}
-
-class EmptyPanel extends StatelessWidget {
-  final String text;
-  const EmptyPanel({super.key, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: AppTheme.brMd,
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: colorScheme.tertiary,
+          ],
         ),
       ),
     );

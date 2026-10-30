@@ -35,8 +35,10 @@ extension PhoneConnector {
             return
         }
 
-        if snapshot.lastRestEnd > 0 {
-            maybeCatchUpRestCompletionAlert(restUntil: snapshot.lastRestEnd)
+        // The rest already ended before this snapshot landed (the watch was asleep and
+        // the phone has moved on to ready). Fire the alert once if it is still recent.
+        if snapshot.restUntil > 0 {
+            maybeCatchUpRestCompletionAlert(restUntil: snapshot.restUntil)
         }
         cancelRestCompletionAlert()
     }

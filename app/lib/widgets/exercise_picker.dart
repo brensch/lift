@@ -6,27 +6,13 @@ import '../gen/workout/v1/workout.pb.dart' show ExerciseTracker;
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
 import 'exercise_graphic.dart';
+import '../theme/app_icons.dart';
 
 /// Per-body-part accent colour, used for both the filter chips and the row tags.
-Color bodyPartColor(BodyPart part) {
-  switch (part) {
-    case BodyPart.chest:
-      return const Color(0xFF6BB6FF);
-    case BodyPart.back:
-      return const Color(0xFFE3C66B);
-    case BodyPart.shoulders:
-      return const Color(0xFFC79BFF);
-    case BodyPart.arms:
-      return const Color(0xFFFFB36B);
-    case BodyPart.legs:
-      return const Color(0xFF7CF2C0);
-    case BodyPart.ass:
-      return const Color(0xFFFF7EB6);
-    case BodyPart.core:
-      return const Color(0xFF6BE3E3);
-  }
-}
+Color bodyPartColor(BuildContext context, BodyPart part) =>
+    context.tokens.bodyParts[part.index];
 
 /// Opens the full-height exercise picker as a staged selection: the user
 /// picks freely, nothing applies until SAVE, and dismissing with changes
@@ -37,6 +23,7 @@ Future<void> showExercisePicker({
   required Set<Exercise> initialSelected,
   required void Function(Set<Exercise> selected) onSave,
   List<ExerciseTracker> trackers = const [],
+  Set<Exercise> excluded = const {},
 }) {
   return showModalBottomSheet(
     context: context,
@@ -51,6 +38,7 @@ Future<void> showExercisePicker({
       initialSelected: initialSelected,
       onSave: onSave,
       trackers: trackers,
+      excluded: excluded,
     ),
   );
 }
@@ -60,10 +48,15 @@ class _ExercisePickerSheet extends StatefulWidget {
   final void Function(Set<Exercise> selected) onSave;
   final List<ExerciseTracker> trackers;
 
+  /// Not offered at all: in a workout, the exercises already in it (one
+  /// exercise appears once).
+  final Set<Exercise> excluded;
+
   const _ExercisePickerSheet({
     required this.initialSelected,
     required this.onSave,
     required this.trackers,
+    required this.excluded,
   });
 
   @override
@@ -128,6 +121,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
   List<ExerciseInfo> get _filtered {
     final q = _query.trim().toLowerCase();
     return exerciseCatalog.where((info) {
+      if (widget.excluded.contains(info.exercise)) return false;
       if (_filter != null && !info.bodyParts.contains(_filter)) return false;
       // Searching overrides the equipment filter — a typed name always wins.
       if (_equipment != null &&
@@ -167,9 +161,9 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(
+        title: Text(
           'Discard changes?',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: context.tokens.weight.heavy),
         ),
         content: const Text('Your selection has not been saved.'),
         actions: [
@@ -199,12 +193,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: BoxDecoration(
-            color: AppTheme.sheetColor(context),
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppTheme.radiusLg),
-            ),
-          ),
+          decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
           child: Column(
             children: [
               // grab handle
@@ -214,26 +203,28 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                 padding: const EdgeInsets.fromLTRB(24, 8, 12, 4),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Select exercises',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                          fontSize: context.tokens.size.subtitle,
+                          fontWeight: context.tokens.weight.heavy,
                           letterSpacing: -0.3,
                         ),
                       ),
                     ),
                     TextButton(
                       onPressed: _dirty ? _save : null,
-                      child: const Text(
+                      child: Text(
                         'SAVE',
-                        style: TextStyle(fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontWeight: context.tokens.weight.heavy,
+                        ),
                       ),
                     ),
                     IconButton(
                       onPressed: _close,
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(AppIcons.close),
                     ),
                   ],
                 ),
@@ -245,14 +236,14 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search exercises…',
-                    prefixIcon: const Icon(Icons.search, size: 20),
+                    prefixIcon: const Icon(AppIcons.search, size: 20),
                     isDense: true,
                     filled: true,
                     fillColor: colorScheme.surfaceContainerHighest.withValues(
                       alpha: 0.3,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: AppTheme.brSm,
+                      borderRadius: context.tokens.brSm,
                       borderSide: BorderSide(color: colorScheme.outline),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -278,7 +269,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                     for (final part in BodyPart.values)
                       _FilterChip(
                         label: bodyPartLabels[part]!.toUpperCase(),
-                        color: bodyPartColor(part),
+                        color: bodyPartColor(context, part),
                         selected: _filter == part,
                         alwaysOutlined: part == BodyPart.ass,
                         onTap: () => setState(
@@ -362,7 +353,7 @@ class _FilterChip extends StatelessWidget {
             color: selected
                 ? color
                 : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: context.tokens.br(20),
             border: Border.all(
               color: alwaysOutlined && !selected
                   ? color
@@ -373,8 +364,8 @@ class _FilterChip extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 0.5,
               color: selected
                   ? colorScheme.surface
@@ -403,7 +394,7 @@ class _ExerciseRow extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: AppTheme.brMd,
+      borderRadius: context.tokens.brMd,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
@@ -416,7 +407,7 @@ class _ExerciseRow extends StatelessWidget {
                 color: colorScheme.surfaceContainerHighest.withValues(
                   alpha: 0.25,
                 ),
-                borderRadius: AppTheme.brMd,
+                borderRadius: context.tokens.brMd,
               ),
               alignment: Alignment.center,
               child: ExerciseGraphic(exercise: info.exercise, size: 60),
@@ -429,9 +420,9 @@ class _ExerciseRow extends StatelessWidget {
                 children: [
                   Text(
                     info.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.bodyLg,
+                      fontWeight: context.tokens.weight.bold,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -465,7 +456,7 @@ class _ExerciseRow extends StatelessWidget {
                 ),
               ),
               child: Icon(
-                selected ? Icons.check : Icons.add,
+                selected ? AppIcons.check : AppIcons.add,
                 size: 20,
                 color: selected ? colorScheme.surface : colorScheme.onSurface,
               ),
@@ -484,18 +475,18 @@ class _Tag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = bodyPartColor(part);
+    final color = bodyPartColor(context, part);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: context.tokens.br(6),
       ),
       child: Text(
         bodyPartLabels[part]!.toUpperCase(),
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+          fontSize: context.tokens.size.small,
+          fontWeight: context.tokens.weight.heavy,
           letterSpacing: 0.5,
           color: color,
         ),

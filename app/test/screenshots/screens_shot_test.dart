@@ -15,7 +15,6 @@ import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/providers/settings_provider.dart';
-import 'package:schlift/providers/theme_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
 import 'package:schlift/screens/onboarding/steps/marker_step.dart';
@@ -27,13 +26,16 @@ import 'package:schlift/screens/tutorial_screen.dart';
 import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/services/grpc_client.dart';
 import 'package:schlift/theme/app_theme.dart';
+import 'package:schlift/theme/app_icons.dart';
 import 'package:schlift/widgets/dialogs/weight_adjust_sheet.dart';
 
 import '../support/provider_harness.dart';
+import 'package:schlift/services/wearable_bridge_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  // The repo bundles Manrope/Space Grotesk under assets/google_fonts/, so
+  // The repo bundles Space Grotesk / Space Mono under
+  // assets/google_fonts/, so
   // google_fonts resolves offline and text renders legibly in goldens.
   GoogleFonts.config.allowRuntimeFetching = false;
 
@@ -52,7 +54,9 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => SettingsProvider(grpc)),
-          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          Provider<WearableBridgeService>.value(
+            value: NoopWearableBridgeService(),
+          ),
           ChangeNotifierProvider(
             create: (_) => AuthProvider(
               authService: AuthService(grpcClient: grpc),
@@ -60,7 +64,7 @@ void main() {
             ),
           ),
         ],
-        child: MaterialApp(theme: AppTheme.light, home: home),
+        child: MaterialApp(theme: AppTheme.theme, home: home),
       ),
     );
     if (settle) {
@@ -111,7 +115,7 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 300));
     }
-    expect(find.textContaining('Workout science'), findsWidgets);
+    expect(find.textContaining('WORKOUT SCIENCE'), findsWidgets);
     // The header's shaking multiplayer button sleeps in a loop; tear the
     // tree down and let its last sleep elapse so no timer is left pending.
     await tester.pumpWidget(const SizedBox());
@@ -298,7 +302,7 @@ void main() {
           ChangeNotifierProvider.value(value: h.settings),
         ],
         child: MaterialApp(
-          theme: AppTheme.light,
+          theme: AppTheme.theme,
           home: Builder(
             builder: (context) => Scaffold(
               body: Center(
@@ -323,18 +327,28 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await shoot(tester, 'weight_sheet');
 
-    // Tap + twice: 185 → 195, then UPDATE applies it to pending sets.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.tap(find.byIcon(Icons.add));
+    // Weight + twice (185 → 195) and reps + once (6 → 7), then SAVE
+    // applies both to the pending sets (and the account's tracker).
+    await tester.tap(find.byIcon(AppIcons.add).first);
+    await tester.tap(find.byIcon(AppIcons.add).first);
+    await tester.tap(find.byIcon(AppIcons.add).last);
     await tester.pump();
-    expect(find.text('UPDATE'), findsOneWidget);
-    await tester.tap(find.text('UPDATE'));
+    expect(find.text('SAVE'), findsOneWidget);
+    await tester.tap(find.text('SAVE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(
-      h.provider.activeProposedSets.every((s) => s.targetWeight == 195),
+      h.provider.activeProposedSets.every(
+        (s) => s.targetWeight == 195 && s.targetReps == 7,
+      ),
       isTrue,
-      reason: 'both pending working sets moved to 195',
+      reason: 'both pending working sets moved to 195 × 7',
+    );
+    final write = h.service.trackerWrites.single;
+    expect(
+      (write.workingWeight, write.targetReps),
+      (195.0, 7),
+      reason: 'the account takes the new numbers too',
     );
 
     // Tear down inside the test body: the provider's periodic ticker must

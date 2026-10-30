@@ -8,7 +8,9 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
+import '../widgets/common/flat.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/theme_spec.dart';
 
 /// One lift, in depth: tap a card on Progress to see its full history — a
 /// weight / estimated-1RM trend you can toggle between, personal bests, and a
@@ -28,8 +30,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   List<_Session>? _sessions;
   bool _isLoading = true;
   _Metric _metric = _Metric.weight;
-
-  static const _accent = Color(0xFF60A5FA);
 
   @override
   void initState() {
@@ -75,25 +75,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final name = exerciseNames[widget.exercise] ?? '?';
-    final emoji = exerciseEmojis[widget.exercise] ?? '🏋️';
 
     Widget scaffold(Widget body) => TopLevelBackScope(
       child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Text(emoji, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
-              Text(
-                name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
+        appBar: AppBar(title: PageTitle(name)),
         body: body,
       ),
     );
@@ -126,79 +111,85 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
     return scaffold(
       ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
           // Headline: current top weight + best est. 1RM.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _headStat(
-                '${formatWeight(current, unit)} $suffix',
-                'current top set',
-                cs,
-                big: true,
-                color: _accent,
-              ),
-              const Spacer(),
-              _headStat(
-                '${formatWeight(bestOneRm, unit)} $suffix',
-                'best est. 1RM',
-                cs,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _MetricToggle(
-            metric: _metric,
-            onChanged: (m) => setState(() => _metric = m),
-            cs: cs,
-          ),
-          const SizedBox(height: 12),
-          if (sessions.length >= 2)
-            SizedBox(
-              height: 200,
-              child: _TrendChart(
-                sessions: sessions,
-                metric: _metric,
-                unit: unit,
-                color: _accent,
-                cs: cs,
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Text(
-                'One session so far. The trend appears next time.',
-                style: TextStyle(color: cs.tertiary),
-              ),
+          FlatSection(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _headStat(
+                  '${formatWeight(current, unit)} $suffix',
+                  'current top set',
+                  cs,
+                  big: true,
+                  color: context.tokens.series.first,
+                ),
+                const Spacer(),
+                _headStat(
+                  '${formatWeight(bestOneRm, unit)} $suffix',
+                  'best est. 1RM',
+                  cs,
+                ),
+              ],
             ),
-          const SizedBox(height: 20),
+          ),
+          FlatTabs(
+            labels: const ['Top weight', 'Est. 1RM'],
+            selected: _metric == _Metric.weight ? 0 : 1,
+            onSelect: (i) => setState(
+              () => _metric = i == 0 ? _Metric.weight : _Metric.oneRm,
+            ),
+          ),
+          FlatSection(
+            child: sessions.length >= 2
+                ? SizedBox(
+                    height: 200,
+                    child: _TrendChart(
+                      sessions: sessions,
+                      metric: _metric,
+                      unit: unit,
+                      color: context.tokens.series.first,
+                      cs: cs,
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'One session so far. The trend appears next time.',
+                      style: TextStyle(color: cs.tertiary),
+                    ),
+                  ),
+          ),
           // Bests / totals.
-          Row(
-            children: [
-              _footStat('Best set', '${formatWeight(best, unit)} $suffix', cs),
-              const SizedBox(width: 18),
-              _footStat('Sessions', '${sessions.length}', cs),
-              const SizedBox(width: 18),
-              _footStat('Total sets', '$totalSets', cs),
-              const SizedBox(width: 18),
-              _footStat('Volume', '${_compact(totalVolume)} $suffix', cs),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'EVERY SESSION',
-            style: TextStyle(
-              color: cs.tertiary,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
+          FlatSection(
+            child: Row(
+              children: [
+                _footStat(
+                  'Best set',
+                  '${formatWeight(best, unit)} $suffix',
+                  cs,
+                ),
+                const SizedBox(width: 18),
+                _footStat('Sessions', '${sessions.length}', cs),
+                const SizedBox(width: 18),
+                _footStat('Total sets', '$totalSets', cs),
+                const SizedBox(width: 18),
+                _footStat('Volume', '${_compact(totalVolume)} $suffix', cs),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
+          const FlatHeading('Every session'),
           for (final s in sessions.reversed)
-            _SessionRow(session: s, unit: unit, cs: cs),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: context.tokens.hairline),
+                ),
+              ),
+              child: _SessionRow(session: s, unit: unit, cs: cs),
+            ),
         ],
       ),
     );
@@ -223,12 +214,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         value,
         style: TextStyle(
           fontSize: big ? 30 : 18,
-          fontWeight: FontWeight.w900,
+          fontWeight: context.tokens.weight.heavy,
           height: 1,
           color: color,
         ),
       ),
-      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+      Text(
+        label,
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: context.tokens.size.small,
+        ),
+      ),
     ],
   );
 
@@ -239,73 +236,21 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         label.toUpperCase(),
         style: TextStyle(
           color: cs.tertiary,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+          fontSize: context.tokens.size.caption,
+          fontWeight: context.tokens.weight.bold,
           letterSpacing: 0.5,
         ),
       ),
       const SizedBox(height: 2),
       Text(
         value,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+        style: TextStyle(
+          fontWeight: context.tokens.weight.heavy,
+          fontSize: context.tokens.size.body,
+        ),
       ),
     ],
   );
-}
-
-class _MetricToggle extends StatelessWidget {
-  final _Metric metric;
-  final ValueChanged<_Metric> onChanged;
-  final ColorScheme cs;
-  const _MetricToggle({
-    required this.metric,
-    required this.onChanged,
-    required this.cs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    Widget seg(String label, _Metric m) {
-      final active = metric == m;
-      return Expanded(
-        child: GestureDetector(
-          onTap: () => onChanged(m),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: active
-                  ? cs.primary.withValues(alpha: 0.18)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-                color: active ? cs.primary : cs.tertiary,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          seg('Top weight', _Metric.weight),
-          seg('Est. 1RM', _Metric.oneRm),
-        ],
-      ),
-    );
-  }
 }
 
 class _TrendChart extends StatelessWidget {
@@ -356,7 +301,10 @@ class _TrendChart extends StatelessWidget {
               interval: interval,
               getTitlesWidget: (v, meta) => Text(
                 formatWeight(v, unit),
-                style: TextStyle(fontSize: 10, color: cs.tertiary),
+                style: TextStyle(
+                  fontSize: context.tokens.size.caption,
+                  color: cs.tertiary,
+                ),
               ),
             ),
           ),
@@ -381,7 +329,10 @@ class _TrendChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     _shortDate(sessions[i].date),
-                    style: TextStyle(fontSize: 10, color: cs.tertiary),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.caption,
+                      color: cs.tertiary,
+                    ),
                   ),
                 );
               },
@@ -398,8 +349,8 @@ class _TrendChart extends StatelessWidget {
                 '${formatWeight(_value(ses), unit)} ${weightUnitSuffix(unit)}\n${_shortDate(ses.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
+                  fontWeight: context.tokens.weight.bold,
+                  fontSize: context.tokens.size.small,
                 ),
               );
             }).toList(),
@@ -420,17 +371,6 @@ class _TrendChart extends StatelessWidget {
                 color: color,
                 strokeWidth: 2,
                 strokeColor: cs.surface,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  color.withValues(alpha: 0.28),
-                  color.withValues(alpha: 0.0),
-                ],
               ),
             ),
           ),
@@ -463,8 +403,8 @@ class _SessionRow extends StatelessWidget {
               _shortDate(session.date),
               style: TextStyle(
                 color: cs.tertiary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: context.tokens.size.small,
+                fontWeight: context.tokens.weight.bold,
               ),
             ),
           ),
@@ -472,12 +412,18 @@ class _SessionRow extends StatelessWidget {
           Expanded(
             child: Text(
               '${formatWeight(session.topWeight, unit)} $suffix × ${session.topReps}',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.heavy,
+                fontSize: context.tokens.size.body,
+              ),
             ),
           ),
           Text(
             '${session.sets} sets · ${_compactVol(session.volume)} $suffix',
-            style: TextStyle(color: cs.tertiary, fontSize: 12),
+            style: TextStyle(
+              color: cs.tertiary,
+              fontSize: context.tokens.size.small,
+            ),
           ),
         ],
       ),

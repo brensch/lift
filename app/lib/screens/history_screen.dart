@@ -10,7 +10,10 @@ import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
+import '../widgets/common/flat.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 /// History: past workouts as rich cards — date, the lifts you did, and totals
 /// (volume, sets, duration) — instead of a bare list.
@@ -86,13 +89,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: const Text(
-            'History',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-          ),
+          title: PageTitle('History'),
         ),
         body: body,
       ),
@@ -107,13 +107,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🗒️', style: TextStyle(fontSize: 40)),
+              Text(
+                '🗒️',
+                style: TextStyle(fontSize: context.tokens.size.display),
+              ),
               const SizedBox(height: 12),
               Text(
                 'No completed workouts yet',
                 style: TextStyle(
                   color: cs.onSurface,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: context.tokens.weight.heavy,
                 ),
               ),
             ],
@@ -130,23 +133,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return scaffold(
       ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          Row(
-            children: [
-              _headStat('${_items!.length}', 'workouts', cs),
-              const SizedBox(width: 24),
-              _headStat('$thisWeek', 'this week', cs),
-            ],
+          FlatSection(
+            child: Row(
+              children: [
+                _headStat('${_items!.length}', 'workouts', cs),
+                const SizedBox(width: 24),
+                _headStat('$thisWeek', 'this week', cs),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
           ..._grouped(cs, unit),
         ],
       ),
     );
   }
 
-  /// Cards grouped under a month header so a long history stays scannable.
+  /// Full-width rows grouped under a month heading, so a long history stays
+  /// scannable.
   List<Widget> _grouped(ColorScheme cs, WeightUnit unit) {
     const months = [
       'January',
@@ -167,25 +172,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
     for (final item in _items!) {
       final label = '${months[item.date.month - 1]} ${item.date.year}';
       if (label != currentMonth) {
-        if (out.isNotEmpty) out.add(const SizedBox(height: 8));
         out.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8, left: 2),
-            child: Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                color: cs.tertiary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: context.tokens.hairline),
               ),
             ),
+            child: SectionLabel(label),
           ),
         );
         currentMonth = label;
       }
       out.add(_HistoryCard(item: item, unit: unit, cs: cs));
-      out.add(const SizedBox(height: 10));
     }
     return out;
   }
@@ -195,13 +195,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
     children: [
       Text(
         value,
-        style: const TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.w900,
+        style: TextStyle(
+          fontSize: context.tokens.size.titleLg,
+          fontWeight: context.tokens.weight.heavy,
           height: 1,
         ),
       ),
-      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+      Text(
+        label,
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: context.tokens.size.small,
+        ),
+      ),
     ],
   );
 }
@@ -226,16 +232,25 @@ class _HistoryCard extends StatelessWidget {
         ? ' +${item.exercises.length - 3}'
         : '';
 
+    final details = [
+      if (item.volume > 0)
+        '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
+      if (item.workingSets > 0) '${item.workingSets} sets',
+      if (item.partners.isNotEmpty) 'with ${_names(item.partners)}',
+    ].join(' · ');
+
+    // A full-width row, split from the next by a hairline.
     return Material(
-      color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
         onTap: () => context.push(
           '/workout/${item.workout.id}/completed?isHistory=true',
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: context.tokens.hairline)),
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -249,58 +264,44 @@ class _HistoryCard extends StatelessWidget {
                       '$title$more',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.heavy,
+                        fontSize: context.tokens.size.bodyLg,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${_relativeDay(date)} · ${_formatDuration(item.duration)}',
-                      style: TextStyle(color: cs.tertiary, fontSize: 12),
+                      style: TextStyle(
+                        color: cs.tertiary,
+                        fontSize: context.tokens.size.small,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        if (item.volume > 0)
-                          _chip(
-                            '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
-                            cs,
+                    if (details.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        details,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.tokens.mono(
+                          TextStyle(
+                            fontSize: context.tokens.size.small,
+                            fontWeight: context.tokens.weight.bold,
+                            color: cs.onSurface,
                           ),
-                        if (item.workingSets > 0)
-                          _chip('${item.workingSets} sets', cs),
-                        if (item.partners.isNotEmpty)
-                          _chip('👥 with ${_names(item.partners)}', cs),
-                      ],
-                    ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: cs.tertiary),
+              Icon(AppIcons.forward, color: cs.tertiary),
             ],
           ),
         ),
       ),
     );
   }
-
-  Widget _chip(String text, ColorScheme cs) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: cs.onSurface.withValues(alpha: 0.85),
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
 
   String _thousands(double v) {
     final n = v.round();
@@ -346,10 +347,7 @@ class _DateBadge extends StatelessWidget {
     return Container(
       width: 52,
       height: 52,
-      decoration: BoxDecoration(
-        color: cs.primary.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(border: Border.all(color: cs.outline)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -357,16 +355,16 @@ class _DateBadge extends StatelessWidget {
             months[date.month - 1],
             style: TextStyle(
               color: cs.primary,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.caption,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 0.5,
             ),
           ),
           Text(
             '${date.day}',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+            style: TextStyle(
+              fontSize: context.tokens.size.title,
+              fontWeight: context.tokens.weight.heavy,
               height: 1,
             ),
           ),

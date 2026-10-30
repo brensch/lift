@@ -2,6 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../../theme/theme_spec.dart';
+import '../../../theme/app_icons.dart';
 
 class UnitCard extends StatelessWidget {
   final String title;
@@ -31,7 +33,7 @@ class UnitCard extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.08)
               : cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: context.tokens.br(14),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
             width: 2,
@@ -45,7 +47,10 @@ class UnitCard extends StatelessWidget {
               child: Text(
                 badge,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 32, height: 1.0),
+                style: TextStyle(
+                  fontSize: context.tokens.size.headlineLg,
+                  height: 1.0,
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -55,16 +60,16 @@ class UnitCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
+                    style: TextStyle(
+                      fontWeight: context.tokens.weight.heavy,
+                      fontSize: context.tokens.size.bodyLg,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: context.tokens.size.body,
                       color: cs.onSurface.withValues(alpha: 0.62),
                     ),
                   ),
@@ -85,7 +90,7 @@ class UnitCard extends StatelessWidget {
                 color: selected ? cs.primary : Colors.transparent,
               ),
               child: selected
-                  ? Icon(Icons.check, size: 10, color: cs.onPrimary)
+                  ? Icon(AppIcons.check, size: 10, color: cs.onPrimary)
                   : null,
             ),
           ],

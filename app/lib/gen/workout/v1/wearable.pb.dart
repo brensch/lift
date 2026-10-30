@@ -22,26 +22,26 @@ export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 export 'wearable.pbenum.dart';
 
+/// Everything the watch prints is a string the phone rendered. The watch
+/// lays them out; it never derives text from the workout.
 class WearStatusCard extends $pb.GeneratedMessage {
   factory WearStatusCard({
-    $core.String? sideLabel,
-    $core.String? header,
     $core.String? stateLabel,
     $core.String? timerText,
-    $core.bool? isComplete,
     $0.ProposedSet? displaySet,
-    $core.int? currentGroupSet,
-    $core.int? totalGroupSets,
+    $core.String? exerciseName,
+    $core.String? setLine,
+    $core.String? setText,
+    $core.String? yappingLabel,
   }) {
     final result = create();
-    if (sideLabel != null) result.sideLabel = sideLabel;
-    if (header != null) result.header = header;
     if (stateLabel != null) result.stateLabel = stateLabel;
     if (timerText != null) result.timerText = timerText;
-    if (isComplete != null) result.isComplete = isComplete;
     if (displaySet != null) result.displaySet = displaySet;
-    if (currentGroupSet != null) result.currentGroupSet = currentGroupSet;
-    if (totalGroupSets != null) result.totalGroupSets = totalGroupSets;
+    if (exerciseName != null) result.exerciseName = exerciseName;
+    if (setLine != null) result.setLine = setLine;
+    if (setText != null) result.setText = setText;
+    if (yappingLabel != null) result.yappingLabel = yappingLabel;
     return result;
   }
 
@@ -58,15 +58,14 @@ class WearStatusCard extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'WearStatusCard',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sideLabel')
-    ..aOS(2, _omitFieldNames ? '' : 'header')
     ..aOS(3, _omitFieldNames ? '' : 'stateLabel')
     ..aOS(4, _omitFieldNames ? '' : 'timerText')
-    ..aOB(5, _omitFieldNames ? '' : 'isComplete')
     ..aOM<$0.ProposedSet>(6, _omitFieldNames ? '' : 'displaySet',
         subBuilder: $0.ProposedSet.create)
-    ..aI(7, _omitFieldNames ? '' : 'currentGroupSet')
-    ..aI(8, _omitFieldNames ? '' : 'totalGroupSets')
+    ..aOS(9, _omitFieldNames ? '' : 'exerciseName')
+    ..aOS(10, _omitFieldNames ? '' : 'setLine')
+    ..aOS(11, _omitFieldNames ? '' : 'setText')
+    ..aOS(12, _omitFieldNames ? '' : 'yappingLabel')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -88,79 +87,72 @@ class WearStatusCard extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<WearStatusCard>(create);
   static WearStatusCard? _defaultInstance;
 
-  @$pb.TagNumber(1)
-  $core.String get sideLabel => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set sideLabel($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSideLabel() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSideLabel() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get header => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set header($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasHeader() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearHeader() => $_clearField(2);
-
   @$pb.TagNumber(3)
-  $core.String get stateLabel => $_getSZ(2);
+  $core.String get stateLabel => $_getSZ(0);
   @$pb.TagNumber(3)
-  set stateLabel($core.String value) => $_setString(2, value);
+  set stateLabel($core.String value) => $_setString(0, value);
   @$pb.TagNumber(3)
-  $core.bool hasStateLabel() => $_has(2);
+  $core.bool hasStateLabel() => $_has(0);
   @$pb.TagNumber(3)
   void clearStateLabel() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  $core.String get timerText => $_getSZ(3);
+  $core.String get timerText => $_getSZ(1);
   @$pb.TagNumber(4)
-  set timerText($core.String value) => $_setString(3, value);
+  set timerText($core.String value) => $_setString(1, value);
   @$pb.TagNumber(4)
-  $core.bool hasTimerText() => $_has(3);
+  $core.bool hasTimerText() => $_has(1);
   @$pb.TagNumber(4)
   void clearTimerText() => $_clearField(4);
 
-  @$pb.TagNumber(5)
-  $core.bool get isComplete => $_getBF(4);
-  @$pb.TagNumber(5)
-  set isComplete($core.bool value) => $_setBool(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasIsComplete() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearIsComplete() => $_clearField(5);
-
   @$pb.TagNumber(6)
-  $0.ProposedSet get displaySet => $_getN(5);
+  $0.ProposedSet get displaySet => $_getN(2);
   @$pb.TagNumber(6)
   set displaySet($0.ProposedSet value) => $_setField(6, value);
   @$pb.TagNumber(6)
-  $core.bool hasDisplaySet() => $_has(5);
+  $core.bool hasDisplaySet() => $_has(2);
   @$pb.TagNumber(6)
   void clearDisplaySet() => $_clearField(6);
   @$pb.TagNumber(6)
-  $0.ProposedSet ensureDisplaySet() => $_ensure(5);
+  $0.ProposedSet ensureDisplaySet() => $_ensure(2);
 
-  @$pb.TagNumber(7)
-  $core.int get currentGroupSet => $_getIZ(6);
-  @$pb.TagNumber(7)
-  set currentGroupSet($core.int value) => $_setSignedInt32(6, value);
-  @$pb.TagNumber(7)
-  $core.bool hasCurrentGroupSet() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearCurrentGroupSet() => $_clearField(7);
+  @$pb.TagNumber(9)
+  $core.String get exerciseName => $_getSZ(3);
+  @$pb.TagNumber(9)
+  set exerciseName($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(9)
+  $core.bool hasExerciseName() => $_has(3);
+  @$pb.TagNumber(9)
+  void clearExerciseName() => $_clearField(9);
 
-  @$pb.TagNumber(8)
-  $core.int get totalGroupSets => $_getIZ(7);
-  @$pb.TagNumber(8)
-  set totalGroupSets($core.int value) => $_setSignedInt32(7, value);
-  @$pb.TagNumber(8)
-  $core.bool hasTotalGroupSets() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearTotalGroupSets() => $_clearField(8);
+  @$pb.TagNumber(10)
+  $core.String get setLine => $_getSZ(4);
+  @$pb.TagNumber(10)
+  set setLine($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(10)
+  $core.bool hasSetLine() => $_has(4);
+  @$pb.TagNumber(10)
+  void clearSetLine() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get setText => $_getSZ(5);
+  @$pb.TagNumber(11)
+  set setText($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(11)
+  $core.bool hasSetText() => $_has(5);
+  @$pb.TagNumber(11)
+  void clearSetText() => $_clearField(11);
+
+  /// What the watch switches to on its own when the countdown reaches zero
+  /// (RESTING becoming YAPPING), before the next snapshot arrives.
+  @$pb.TagNumber(12)
+  $core.String get yappingLabel => $_getSZ(6);
+  @$pb.TagNumber(12)
+  set yappingLabel($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(12)
+  $core.bool hasYappingLabel() => $_has(6);
+  @$pb.TagNumber(12)
+  void clearYappingLabel() => $_clearField(12);
 }
 
 class WearAction extends $pb.GeneratedMessage {
@@ -171,6 +163,7 @@ class WearAction extends $pb.GeneratedMessage {
     $core.String? setId,
     $core.int? reps,
     $core.double? actualWeight,
+    $0.Effort? effort,
   }) {
     final result = create();
     if (type != null) result.type = type;
@@ -179,6 +172,7 @@ class WearAction extends $pb.GeneratedMessage {
     if (setId != null) result.setId = setId;
     if (reps != null) result.reps = reps;
     if (actualWeight != null) result.actualWeight = actualWeight;
+    if (effort != null) result.effort = effort;
     return result;
   }
 
@@ -204,6 +198,8 @@ class WearAction extends $pb.GeneratedMessage {
     ..aI(5, _omitFieldNames ? '' : 'reps')
     ..aD(6, _omitFieldNames ? '' : 'actualWeight',
         fieldType: $pb.PbFieldType.OF)
+    ..aE<$0.Effort>(7, _omitFieldNames ? '' : 'effort',
+        enumValues: $0.Effort.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -277,6 +273,15 @@ class WearAction extends $pb.GeneratedMessage {
   $core.bool hasActualWeight() => $_has(5);
   @$pb.TagNumber(6)
   void clearActualWeight() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $0.Effort get effort => $_getN(6);
+  @$pb.TagNumber(7)
+  set effort($0.Effort value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasEffort() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearEffort() => $_clearField(7);
 }
 
 class WearWorkoutSnapshot extends $pb.GeneratedMessage {
@@ -285,30 +290,26 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     $fixnum.Int64? emittedAt,
     $0.WorkoutState? state,
     $fixnum.Int64? workoutStartTime,
-    $fixnum.Int64? activeStartedAt,
     $fixnum.Int64? restUntil,
-    $fixnum.Int64? lastRestEnd,
     $core.String? elapsedText,
     WearStatusCard? youCard,
-    WearStatusCard? groupCard,
     $core.Iterable<WearAction>? actions,
     WearCompletionSummary? completionSummary,
     $core.String? nextUpEmoji,
+    $fixnum.Int64? liftingStartedAt,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (emittedAt != null) result.emittedAt = emittedAt;
     if (state != null) result.state = state;
     if (workoutStartTime != null) result.workoutStartTime = workoutStartTime;
-    if (activeStartedAt != null) result.activeStartedAt = activeStartedAt;
     if (restUntil != null) result.restUntil = restUntil;
-    if (lastRestEnd != null) result.lastRestEnd = lastRestEnd;
     if (elapsedText != null) result.elapsedText = elapsedText;
     if (youCard != null) result.youCard = youCard;
-    if (groupCard != null) result.groupCard = groupCard;
     if (actions != null) result.actions.addAll(actions);
     if (completionSummary != null) result.completionSummary = completionSummary;
     if (nextUpEmoji != null) result.nextUpEmoji = nextUpEmoji;
+    if (liftingStartedAt != null) result.liftingStartedAt = liftingStartedAt;
     return result;
   }
 
@@ -330,19 +331,16 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     ..aE<$0.WorkoutState>(3, _omitFieldNames ? '' : 'state',
         enumValues: $0.WorkoutState.values)
     ..aInt64(4, _omitFieldNames ? '' : 'workoutStartTime')
-    ..aInt64(5, _omitFieldNames ? '' : 'activeStartedAt')
     ..aInt64(6, _omitFieldNames ? '' : 'restUntil')
-    ..aInt64(7, _omitFieldNames ? '' : 'lastRestEnd')
     ..aOS(8, _omitFieldNames ? '' : 'elapsedText')
     ..aOM<WearStatusCard>(9, _omitFieldNames ? '' : 'youCard',
-        subBuilder: WearStatusCard.create)
-    ..aOM<WearStatusCard>(10, _omitFieldNames ? '' : 'groupCard',
         subBuilder: WearStatusCard.create)
     ..pPM<WearAction>(11, _omitFieldNames ? '' : 'actions',
         subBuilder: WearAction.create)
     ..aOM<WearCompletionSummary>(12, _omitFieldNames ? '' : 'completionSummary',
         subBuilder: WearCompletionSummary.create)
     ..aOS(13, _omitFieldNames ? '' : 'nextUpEmoji')
+    ..aInt64(15, _omitFieldNames ? '' : 'liftingStartedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -400,86 +398,66 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearWorkoutStartTime() => $_clearField(4);
 
-  @$pb.TagNumber(5)
-  $fixnum.Int64 get activeStartedAt => $_getI64(4);
-  @$pb.TagNumber(5)
-  set activeStartedAt($fixnum.Int64 value) => $_setInt64(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasActiveStartedAt() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearActiveStartedAt() => $_clearField(5);
-
   @$pb.TagNumber(6)
-  $fixnum.Int64 get restUntil => $_getI64(5);
+  $fixnum.Int64 get restUntil => $_getI64(4);
   @$pb.TagNumber(6)
-  set restUntil($fixnum.Int64 value) => $_setInt64(5, value);
+  set restUntil($fixnum.Int64 value) => $_setInt64(4, value);
   @$pb.TagNumber(6)
-  $core.bool hasRestUntil() => $_has(5);
+  $core.bool hasRestUntil() => $_has(4);
   @$pb.TagNumber(6)
   void clearRestUntil() => $_clearField(6);
 
-  @$pb.TagNumber(7)
-  $fixnum.Int64 get lastRestEnd => $_getI64(6);
-  @$pb.TagNumber(7)
-  set lastRestEnd($fixnum.Int64 value) => $_setInt64(6, value);
-  @$pb.TagNumber(7)
-  $core.bool hasLastRestEnd() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearLastRestEnd() => $_clearField(7);
-
   @$pb.TagNumber(8)
-  $core.String get elapsedText => $_getSZ(7);
+  $core.String get elapsedText => $_getSZ(5);
   @$pb.TagNumber(8)
-  set elapsedText($core.String value) => $_setString(7, value);
+  set elapsedText($core.String value) => $_setString(5, value);
   @$pb.TagNumber(8)
-  $core.bool hasElapsedText() => $_has(7);
+  $core.bool hasElapsedText() => $_has(5);
   @$pb.TagNumber(8)
   void clearElapsedText() => $_clearField(8);
 
   @$pb.TagNumber(9)
-  WearStatusCard get youCard => $_getN(8);
+  WearStatusCard get youCard => $_getN(6);
   @$pb.TagNumber(9)
   set youCard(WearStatusCard value) => $_setField(9, value);
   @$pb.TagNumber(9)
-  $core.bool hasYouCard() => $_has(8);
+  $core.bool hasYouCard() => $_has(6);
   @$pb.TagNumber(9)
   void clearYouCard() => $_clearField(9);
   @$pb.TagNumber(9)
-  WearStatusCard ensureYouCard() => $_ensure(8);
-
-  @$pb.TagNumber(10)
-  WearStatusCard get groupCard => $_getN(9);
-  @$pb.TagNumber(10)
-  set groupCard(WearStatusCard value) => $_setField(10, value);
-  @$pb.TagNumber(10)
-  $core.bool hasGroupCard() => $_has(9);
-  @$pb.TagNumber(10)
-  void clearGroupCard() => $_clearField(10);
-  @$pb.TagNumber(10)
-  WearStatusCard ensureGroupCard() => $_ensure(9);
+  WearStatusCard ensureYouCard() => $_ensure(6);
 
   @$pb.TagNumber(11)
-  $pb.PbList<WearAction> get actions => $_getList(10);
+  $pb.PbList<WearAction> get actions => $_getList(7);
 
   @$pb.TagNumber(12)
-  WearCompletionSummary get completionSummary => $_getN(11);
+  WearCompletionSummary get completionSummary => $_getN(8);
   @$pb.TagNumber(12)
   set completionSummary(WearCompletionSummary value) => $_setField(12, value);
   @$pb.TagNumber(12)
-  $core.bool hasCompletionSummary() => $_has(11);
+  $core.bool hasCompletionSummary() => $_has(8);
   @$pb.TagNumber(12)
   void clearCompletionSummary() => $_clearField(12);
   @$pb.TagNumber(12)
-  WearCompletionSummary ensureCompletionSummary() => $_ensure(11);
+  WearCompletionSummary ensureCompletionSummary() => $_ensure(8);
 
   @$pb.TagNumber(13)
-  $core.String get nextUpEmoji => $_getSZ(12);
+  $core.String get nextUpEmoji => $_getSZ(9);
   @$pb.TagNumber(13)
-  set nextUpEmoji($core.String value) => $_setString(12, value);
+  set nextUpEmoji($core.String value) => $_setString(9, value);
   @$pb.TagNumber(13)
-  $core.bool hasNextUpEmoji() => $_has(12);
+  $core.bool hasNextUpEmoji() => $_has(9);
   @$pb.TagNumber(13)
   void clearNextUpEmoji() => $_clearField(13);
+
+  @$pb.TagNumber(15)
+  $fixnum.Int64 get liftingStartedAt => $_getI64(10);
+  @$pb.TagNumber(15)
+  set liftingStartedAt($fixnum.Int64 value) => $_setInt64(10, value);
+  @$pb.TagNumber(15)
+  $core.bool hasLiftingStartedAt() => $_has(10);
+  @$pb.TagNumber(15)
+  void clearLiftingStartedAt() => $_clearField(15);
 }
 
 class WearCompletionSummary extends $pb.GeneratedMessage {
@@ -487,12 +465,14 @@ class WearCompletionSummary extends $pb.GeneratedMessage {
     $core.String? durationText,
     $core.int? completedWorkingSets,
     $core.int? totalVolumeLb,
+    $core.String? volumeText,
   }) {
     final result = create();
     if (durationText != null) result.durationText = durationText;
     if (completedWorkingSets != null)
       result.completedWorkingSets = completedWorkingSets;
     if (totalVolumeLb != null) result.totalVolumeLb = totalVolumeLb;
+    if (volumeText != null) result.volumeText = volumeText;
     return result;
   }
 
@@ -512,6 +492,7 @@ class WearCompletionSummary extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'durationText')
     ..aI(2, _omitFieldNames ? '' : 'completedWorkingSets')
     ..aI(3, _omitFieldNames ? '' : 'totalVolumeLb')
+    ..aOS(4, _omitFieldNames ? '' : 'volumeText')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -560,72 +541,15 @@ class WearCompletionSummary extends $pb.GeneratedMessage {
   $core.bool hasTotalVolumeLb() => $_has(2);
   @$pb.TagNumber(3)
   void clearTotalVolumeLb() => $_clearField(3);
-}
 
-class StartSetIntent extends $pb.GeneratedMessage {
-  factory StartSetIntent({
-    $core.String? workoutId,
-    $core.String? setId,
-  }) {
-    final result = create();
-    if (workoutId != null) result.workoutId = workoutId;
-    if (setId != null) result.setId = setId;
-    return result;
-  }
-
-  StartSetIntent._();
-
-  factory StartSetIntent.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory StartSetIntent.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'StartSetIntent',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
-    ..aOS(2, _omitFieldNames ? '' : 'setId')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  StartSetIntent clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  StartSetIntent copyWith(void Function(StartSetIntent) updates) =>
-      super.copyWith((message) => updates(message as StartSetIntent))
-          as StartSetIntent;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static StartSetIntent create() => StartSetIntent._();
-  @$core.override
-  StartSetIntent createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static StartSetIntent getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<StartSetIntent>(create);
-  static StartSetIntent? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get workoutId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set workoutId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasWorkoutId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearWorkoutId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get setId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set setId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasSetId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearSetId() => $_clearField(2);
+  @$pb.TagNumber(4)
+  $core.String get volumeText => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set volumeText($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasVolumeText() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVolumeText() => $_clearField(4);
 }
 
 class CompleteSetIntent extends $pb.GeneratedMessage {
@@ -635,6 +559,7 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
     $core.int? reps,
     $core.double? actualWeight,
     $fixnum.Int64? completedAt,
+    $0.Effort? effort,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -642,6 +567,7 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
     if (reps != null) result.reps = reps;
     if (actualWeight != null) result.actualWeight = actualWeight;
     if (completedAt != null) result.completedAt = completedAt;
+    if (effort != null) result.effort = effort;
     return result;
   }
 
@@ -664,6 +590,8 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
     ..aD(4, _omitFieldNames ? '' : 'actualWeight',
         fieldType: $pb.PbFieldType.OF)
     ..aInt64(5, _omitFieldNames ? '' : 'completedAt')
+    ..aE<$0.Effort>(6, _omitFieldNames ? '' : 'effort',
+        enumValues: $0.Effort.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -729,54 +657,66 @@ class CompleteSetIntent extends $pb.GeneratedMessage {
   $core.bool hasCompletedAt() => $_has(4);
   @$pb.TagNumber(5)
   void clearCompletedAt() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $0.Effort get effort => $_getN(5);
+  @$pb.TagNumber(6)
+  set effort($0.Effort value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasEffort() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearEffort() => $_clearField(6);
 }
 
-class SkipWarmupIntent extends $pb.GeneratedMessage {
-  factory SkipWarmupIntent({
+class StartSetIntent extends $pb.GeneratedMessage {
+  factory StartSetIntent({
     $core.String? workoutId,
     $core.String? setId,
+    $fixnum.Int64? startedAt,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (setId != null) result.setId = setId;
+    if (startedAt != null) result.startedAt = startedAt;
     return result;
   }
 
-  SkipWarmupIntent._();
+  StartSetIntent._();
 
-  factory SkipWarmupIntent.fromBuffer($core.List<$core.int> data,
+  factory StartSetIntent.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory SkipWarmupIntent.fromJson($core.String json,
+  factory StartSetIntent.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SkipWarmupIntent',
+      _omitMessageNames ? '' : 'StartSetIntent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workoutId')
     ..aOS(2, _omitFieldNames ? '' : 'setId')
+    ..aInt64(3, _omitFieldNames ? '' : 'startedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SkipWarmupIntent clone() => deepCopy();
+  StartSetIntent clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SkipWarmupIntent copyWith(void Function(SkipWarmupIntent) updates) =>
-      super.copyWith((message) => updates(message as SkipWarmupIntent))
-          as SkipWarmupIntent;
+  StartSetIntent copyWith(void Function(StartSetIntent) updates) =>
+      super.copyWith((message) => updates(message as StartSetIntent))
+          as StartSetIntent;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SkipWarmupIntent create() => SkipWarmupIntent._();
+  static StartSetIntent create() => StartSetIntent._();
   @$core.override
-  SkipWarmupIntent createEmptyInstance() => create();
+  StartSetIntent createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static SkipWarmupIntent getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<SkipWarmupIntent>(create);
-  static SkipWarmupIntent? _defaultInstance;
+  static StartSetIntent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<StartSetIntent>(create);
+  static StartSetIntent? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get workoutId => $_getSZ(0);
@@ -795,6 +735,15 @@ class SkipWarmupIntent extends $pb.GeneratedMessage {
   $core.bool hasSetId() => $_has(1);
   @$pb.TagNumber(2)
   void clearSetId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get startedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set startedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStartedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStartedAt() => $_clearField(3);
 }
 
 class EndWorkoutIntent extends $pb.GeneratedMessage {
@@ -851,24 +800,22 @@ class EndWorkoutIntent extends $pb.GeneratedMessage {
   void clearWorkoutId() => $_clearField(1);
 }
 
-enum WearIntent_Intent { startSet, completeSet, skipWarmup, endWorkout, notSet }
+enum WearIntent_Intent { completeSet, endWorkout, startSet, notSet }
 
 class WearIntent extends $pb.GeneratedMessage {
   factory WearIntent({
     $core.String? intentId,
     $fixnum.Int64? sentAt,
-    StartSetIntent? startSet,
     CompleteSetIntent? completeSet,
-    SkipWarmupIntent? skipWarmup,
     EndWorkoutIntent? endWorkout,
+    StartSetIntent? startSet,
   }) {
     final result = create();
     if (intentId != null) result.intentId = intentId;
     if (sentAt != null) result.sentAt = sentAt;
-    if (startSet != null) result.startSet = startSet;
     if (completeSet != null) result.completeSet = completeSet;
-    if (skipWarmup != null) result.skipWarmup = skipWarmup;
     if (endWorkout != null) result.endWorkout = endWorkout;
+    if (startSet != null) result.startSet = startSet;
     return result;
   }
 
@@ -883,27 +830,24 @@ class WearIntent extends $pb.GeneratedMessage {
 
   static const $core.Map<$core.int, WearIntent_Intent> _WearIntent_IntentByTag =
       {
-    10: WearIntent_Intent.startSet,
     11: WearIntent_Intent.completeSet,
-    12: WearIntent_Intent.skipWarmup,
     13: WearIntent_Intent.endWorkout,
+    17: WearIntent_Intent.startSet,
     0: WearIntent_Intent.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'WearIntent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [10, 11, 12, 13])
+    ..oo(0, [11, 13, 17])
     ..aOS(1, _omitFieldNames ? '' : 'intentId')
     ..aInt64(2, _omitFieldNames ? '' : 'sentAt')
-    ..aOM<StartSetIntent>(10, _omitFieldNames ? '' : 'startSet',
-        subBuilder: StartSetIntent.create)
     ..aOM<CompleteSetIntent>(11, _omitFieldNames ? '' : 'completeSet',
         subBuilder: CompleteSetIntent.create)
-    ..aOM<SkipWarmupIntent>(12, _omitFieldNames ? '' : 'skipWarmup',
-        subBuilder: SkipWarmupIntent.create)
     ..aOM<EndWorkoutIntent>(13, _omitFieldNames ? '' : 'endWorkout',
         subBuilder: EndWorkoutIntent.create)
+    ..aOM<StartSetIntent>(17, _omitFieldNames ? '' : 'startSet',
+        subBuilder: StartSetIntent.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -924,15 +868,13 @@ class WearIntent extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<WearIntent>(create);
   static WearIntent? _defaultInstance;
 
-  @$pb.TagNumber(10)
   @$pb.TagNumber(11)
-  @$pb.TagNumber(12)
   @$pb.TagNumber(13)
+  @$pb.TagNumber(17)
   WearIntent_Intent whichIntent() => _WearIntent_IntentByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(10)
   @$pb.TagNumber(11)
-  @$pb.TagNumber(12)
   @$pb.TagNumber(13)
+  @$pb.TagNumber(17)
   void clearIntent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -953,49 +895,38 @@ class WearIntent extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearSentAt() => $_clearField(2);
 
-  @$pb.TagNumber(10)
-  StartSetIntent get startSet => $_getN(2);
-  @$pb.TagNumber(10)
-  set startSet(StartSetIntent value) => $_setField(10, value);
-  @$pb.TagNumber(10)
-  $core.bool hasStartSet() => $_has(2);
-  @$pb.TagNumber(10)
-  void clearStartSet() => $_clearField(10);
-  @$pb.TagNumber(10)
-  StartSetIntent ensureStartSet() => $_ensure(2);
-
   @$pb.TagNumber(11)
-  CompleteSetIntent get completeSet => $_getN(3);
+  CompleteSetIntent get completeSet => $_getN(2);
   @$pb.TagNumber(11)
   set completeSet(CompleteSetIntent value) => $_setField(11, value);
   @$pb.TagNumber(11)
-  $core.bool hasCompleteSet() => $_has(3);
+  $core.bool hasCompleteSet() => $_has(2);
   @$pb.TagNumber(11)
   void clearCompleteSet() => $_clearField(11);
   @$pb.TagNumber(11)
-  CompleteSetIntent ensureCompleteSet() => $_ensure(3);
-
-  @$pb.TagNumber(12)
-  SkipWarmupIntent get skipWarmup => $_getN(4);
-  @$pb.TagNumber(12)
-  set skipWarmup(SkipWarmupIntent value) => $_setField(12, value);
-  @$pb.TagNumber(12)
-  $core.bool hasSkipWarmup() => $_has(4);
-  @$pb.TagNumber(12)
-  void clearSkipWarmup() => $_clearField(12);
-  @$pb.TagNumber(12)
-  SkipWarmupIntent ensureSkipWarmup() => $_ensure(4);
+  CompleteSetIntent ensureCompleteSet() => $_ensure(2);
 
   @$pb.TagNumber(13)
-  EndWorkoutIntent get endWorkout => $_getN(5);
+  EndWorkoutIntent get endWorkout => $_getN(3);
   @$pb.TagNumber(13)
   set endWorkout(EndWorkoutIntent value) => $_setField(13, value);
   @$pb.TagNumber(13)
-  $core.bool hasEndWorkout() => $_has(5);
+  $core.bool hasEndWorkout() => $_has(3);
   @$pb.TagNumber(13)
   void clearEndWorkout() => $_clearField(13);
   @$pb.TagNumber(13)
-  EndWorkoutIntent ensureEndWorkout() => $_ensure(5);
+  EndWorkoutIntent ensureEndWorkout() => $_ensure(3);
+
+  @$pb.TagNumber(17)
+  StartSetIntent get startSet => $_getN(4);
+  @$pb.TagNumber(17)
+  set startSet(StartSetIntent value) => $_setField(17, value);
+  @$pb.TagNumber(17)
+  $core.bool hasStartSet() => $_has(4);
+  @$pb.TagNumber(17)
+  void clearStartSet() => $_clearField(17);
+  @$pb.TagNumber(17)
+  StartSetIntent ensureStartSet() => $_ensure(4);
 }
 
 class HeartRateSample extends $pb.GeneratedMessage {

@@ -28,9 +28,9 @@ fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
             proposed_set_id: id,
             actual_reps: 5,
             actual_weight: 100.0,
-            started_at: at - 60,
             ended_at: at,
             rest_until: 0,
+            ..Default::default()
         });
     }
     WorkoutRecord {

@@ -1,8 +1,11 @@
 import 'dart:async';
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/app_logger.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class DebugLogsScreen extends StatefulWidget {
   const DebugLogsScreen({super.key});
@@ -85,20 +88,20 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Logs (${entries.length})'),
+        title: PageTitle('Logs (${entries.length})'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.copy),
+            icon: const Icon(AppIcons.copy),
             tooltip: 'Copy all',
             onPressed: _copyLogs,
           ),
           IconButton(
-            icon: const Icon(Icons.share),
+            icon: const Icon(AppIcons.share),
             tooltip: 'Share',
             onPressed: _shareLogs,
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(AppIcons.delete),
             tooltip: 'Clear',
             onPressed: _clearLogs,
           ),
@@ -153,9 +156,7 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
                 ),
                 IconButton(
                   icon: Icon(
-                    _autoScroll
-                        ? Icons.vertical_align_bottom
-                        : Icons.vertical_align_top,
+                    _autoScroll ? AppIcons.toBottom : AppIcons.toTop,
                     size: 20,
                   ),
                   tooltip: _autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF',
@@ -217,7 +218,9 @@ class _LogEntryTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Text.rich(
         TextSpan(
-          style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+          style: context.tokens.mono(
+            TextStyle(fontSize: context.tokens.size.small),
+          ),
           children: [
             TextSpan(
               text: timeStr,
@@ -227,12 +230,12 @@ class _LogEntryTile extends StatelessWidget {
               text: ' ${entry.levelName.padRight(5)}',
               style: TextStyle(
                 color: _levelColor(entry.level),
-                fontWeight: FontWeight.w700,
+                fontWeight: context.tokens.weight.bold,
               ),
             ),
             TextSpan(
               text: ' ${entry.tag}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(fontWeight: context.tokens.weight.bold),
             ),
             TextSpan(text: ' ${entry.message}'),
             if (fieldsStr.isNotEmpty)

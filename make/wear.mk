@@ -1,76 +1,29 @@
 # Wear OS: run on device, logs, emulator, release build and deploy.
 # Split from the top-level Makefile; variables live there.
 
+.PHONY: run-wear run-wear-logs run-wear-debug build-wear-release deploy-wear \
+	android-wear-emulator-start android-wear-run-emulator android-wear-pairing-notes
+
+WEAR_APK_DEBUG = app/build/wear/outputs/apk/debug/wear-debug.apk
+WEAR_APK_RELEASE = app/build/wear/outputs/apk/release/wear-release.apk
+WEAR_ACTIVITY = com.brensch.schlift/com.brensch.schlift.wear.MainActivity
+
 run-wear:
-	@SERIAL="$(WEAR_SERIAL)"; \
-	if [ -z "$$SERIAL" ]; then \
-		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-	fi; \
-	if [ -z "$$SERIAL" ]; then \
-		echo "No connected Wear OS device found."; \
-		$(ADB) devices; \
-		exit 1; \
-	fi; \
-	echo "Using wear target: $$SERIAL"; \
-	cd app/android && bash -ec '\
+	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
-		GRADLE_CMD="./gradlew"; \
-		if [ ! -x "$$GRADLE_CMD" ]; then \
-			PROP_FILE="gradle/wrapper/gradle-wrapper.properties"; \
-			if [ ! -f "$$PROP_FILE" ]; then \
-				echo "Missing $$PROP_FILE and no ./gradlew present."; \
-				exit 1; \
-			fi; \
-			DIST_URL=$$(sed -n '\''s/^distributionUrl=//p'\'' "$$PROP_FILE" | sed '\''s#\\:##g'\''); \
-			VER=$$(echo "$$DIST_URL" | sed -E '\''s#.*gradle-([0-9.]+)-.*#\1#'\''); \
-			ROOT_DIR="$$(cd ../.. && pwd)"; \
-			CACHE_DIR="$$ROOT_DIR/.tmp/gradle-$$VER"; \
-			ZIP_PATH="$$ROOT_DIR/.tmp/gradle-$$VER-bin.zip"; \
-			GRADLE_CMD="$$CACHE_DIR/bin/gradle"; \
-			if [ ! -x "$$GRADLE_CMD" ]; then \
-				echo "Bootstrapping Gradle $$VER from $$DIST_URL"; \
-				mkdir -p "$$ROOT_DIR/.tmp"; \
-				curl -fsSL "$$DIST_URL" -o "$$ZIP_PATH"; \
-				unzip -qo "$$ZIP_PATH" -d "$$ROOT_DIR/.tmp"; \
-			fi; \
-		fi; \
-		"$$GRADLE_CMD" :wear:assembleDebug; \
+		$(PICK_WATCH) \
+		(cd app/android && ./gradlew :wear:assembleDebug); \
+		$(ADB) -s "$$SERIAL" install -r $(WEAR_APK_DEBUG); \
+		$(ADB) -s "$$SERIAL" shell am start -n $(WEAR_ACTIVITY); \
 	'
-	@if [ ! -f "app/build/wear/outputs/apk/debug/wear-debug.apk" ]; then \
-		echo "Wear APK not found at app/build/wear/outputs/apk/debug/wear-debug.apk"; \
-		echo "Check Gradle output and try again."; \
-		exit 1; \
-	fi
-	@SERIAL="$(WEAR_SERIAL)"; \
-	if [ -z "$$SERIAL" ]; then \
-		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-	fi; \
-	$(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/debug/wear-debug.apk; \
-	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.schlift/com.brensch.schlift.wear.MainActivity
 
 run-wear-logs:
-	@SERIAL="$(WEAR_SERIAL)"; \
-	if [ -z "$$SERIAL" ]; then \
-		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-	fi; \
-	if [ -z "$$SERIAL" ]; then \
-		echo "No connected Wear OS device found."; \
-		$(ADB) devices; \
-		exit 1; \
-	fi; \
-	echo "Streaming Wear logs from: $$SERIAL"; \
-	echo "Filter: $(WEAR_LOG_FILTER)"; \
-	$(ADB) -s "$$SERIAL" logcat -c || true; \
-	$(ADB) -s "$$SERIAL" logcat $(WEAR_LOG_FILTER)
+	@bash -ec '\
+		$(PICK_WATCH) \
+		echo "Filter: $(WEAR_LOG_FILTER)"; \
+		$(ADB) -s "$$SERIAL" logcat -c || true; \
+		$(ADB) -s "$$SERIAL" logcat $(WEAR_LOG_FILTER); \
+	'
 
 run-wear-debug:
 	@bash -ec '\
@@ -81,32 +34,19 @@ run-wear-debug:
 	'
 
 build-wear-release:
-	cd app/android && ./gradlew :wear:assembleRelease
+	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		cd app/android && ./gradlew :wear:assembleRelease; \
+	'
 
+# Like deploy-android, this never uninstalls to get past a signature
+# mismatch: a watch with the Play build keeps it.
 deploy-wear: build-wear-release
-	@SERIAL="$(WEAR_SERIAL)"; \
-	if [ -z "$$SERIAL" ]; then \
-		SERIAL=$$($(ADB) devices | awk 'NR>1 && $$2=="device" {print $$1}' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-	fi; \
-	if [ -z "$$SERIAL" ]; then \
-		echo "No connected Wear OS device found."; \
-		$(ADB) devices; \
-		exit 1; \
-	fi; \
-	if [ ! -f "app/build/wear/outputs/apk/release/wear-release.apk" ]; then \
-		echo "Wear release APK not found at app/build/wear/outputs/apk/release/wear-release.apk"; \
-		exit 1; \
-	fi; \
-	echo "Deploying wear release to: $$SERIAL"; \
-	if ! $(ADB) -s "$$SERIAL" install -r app/build/wear/outputs/apk/release/wear-release.apk; then \
-		echo "Release install failed. Retrying with uninstall (signature mismatch fallback)..."; \
-		$(ADB) -s "$$SERIAL" uninstall com.brensch.schlift || true; \
-		$(ADB) -s "$$SERIAL" install app/build/wear/outputs/apk/release/wear-release.apk || exit 1; \
-	fi; \
-	$(ADB) -s "$$SERIAL" shell am start -n com.brensch.schlift/com.brensch.schlift.wear.MainActivity
+	@bash -ec '\
+		$(PICK_WATCH) \
+		$(ADB) -s "$$SERIAL" install -r $(WEAR_APK_RELEASE); \
+		$(ADB) -s "$$SERIAL" shell am start -n $(WEAR_ACTIVITY); \
+	'
 
 android-wear-emulator-start: android-wear-avd-create
 	@bash -ec '\
@@ -166,5 +106,4 @@ android-wear-pairing-notes:
 		'    adb connect <watch_ip>:<debug_port>' \
 		'    WEAR_SERIAL=<watch_ip>:<debug_port> make run-wear'
 
-WEAR_SERIAL ?=
 WEAR_LOG_FILTER ?= SchliftWear:D SchliftWearBridge:D Wearable:D WearTransport:D *:S

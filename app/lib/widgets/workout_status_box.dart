@@ -1,316 +1,301 @@
+/// One person's status in the workout banner. A band across the top in the
+/// colour of the stage they're at — their emoji on their own colour, the
+/// stage, the clock — readable from across the gym; under it, calm, the set
+/// in front of them: what it is, weight × reps, and (yours) the plates to
+/// load. Yours and every partner's are the same box; tap a partner's to see
+/// their workout.
+library;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../theme/app_theme.dart';
+
+import '../gen/copy.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/exercises.dart';
+import '../logic/set_labels.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../logic/exercises.dart';
+import '../theme/theme_spec.dart';
 import 'plate_visualization.dart';
-import '../tutorial/tutorial_target.dart';
 
 class StatusBox extends StatelessWidget {
-  final String sideLabel;
-  final String? sideBadge;
-  final String? header;
-  final Color color;
-  final Color? sideColor;
-  final Widget? child;
-  final String? stateLabel;
+  final String emoji;
+  final Color profileColor;
+
+  /// The stage ("Lifting", "Resting", …) and its colour: the band.
+  final String stateLabel;
+  final Color stateColor;
   final String? timerText;
-  final Color? timerColor;
+
+  /// The set in front of them, and the plan it belongs to (for "Set 2 of
+  /// 5"); null when they're done.
   final ProposedSet? set;
-  final bool isComplete;
-  final bool showHeader;
-  final Widget? headerTrailing;
-  final double sideLabelWidth;
+  final Iterable<ProposedSet> plan;
+
+  /// Their turn on the rack: the plates box pulses orange.
+  final bool upNext;
 
   const StatusBox({
     super.key,
-    required this.sideLabel,
-    this.sideBadge,
-    this.header,
-    required this.color,
-    this.sideColor,
-    this.child,
-    this.stateLabel,
+    required this.emoji,
+    required this.profileColor,
+    required this.stateLabel,
+    required this.stateColor,
     this.timerText,
-    this.timerColor,
     this.set,
-    this.isComplete = false,
-    this.showHeader = false,
-    this.headerTrailing,
-    this.sideLabelWidth = 32,
+    this.plan = const [],
+    this.upNext = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final name = set != null ? (exerciseNames[set!.exercise] ?? '?') : null;
-    final sidebarColor = sideColor ?? color;
-    final contentColor =
-        ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+    final t = context.tokens;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final onBand =
+        ThemeData.estimateBrightnessForColor(stateColor) == Brightness.dark
         ? Colors.white
-        : Colors.black;
-    final accentColor = contentColor.withValues(alpha: 0.82);
-    final sidebarContentColor =
-        ThemeData.estimateBrightnessForColor(sidebarColor) == Brightness.dark
-        ? Colors.white
-        : Colors.black;
-    final effectiveTimerColor =
-        timerColor != null &&
-            (timerColor!.toARGB32() == color.toARGB32() ||
-                timerColor!.computeLuminance() == color.computeLuminance())
-        ? contentColor
-        : (timerColor ?? contentColor);
+        : t.text;
+    final set = this.set;
 
-    return Container(
-      decoration: BoxDecoration(color: color, borderRadius: AppTheme.brMd),
-      child: ClipRRect(
-        borderRadius: AppTheme.brMd,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: sideLabelWidth,
-                color: sidebarColor,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Center(
-                  child: sideBadge != null
-                      ? Text(
-                          sideBadge!,
-                          style: const TextStyle(fontSize: 24, height: 1),
-                        )
-                      : RotatedBox(
-                          quarterTurns: 3,
-                          child: Text(
-                            sideLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 2.0,
-                              color: sidebarContentColor.withValues(
-                                alpha: 0.82,
-                              ),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: false,
-                          ),
-                        ),
-                ),
+    TextStyle bandMono(double size) => t.mono(
+      TextStyle(
+        fontSize: size,
+        fontWeight: t.weight.bold,
+        letterSpacing: 1.5,
+        color: onBand,
+        height: 1,
+      ),
+    );
+
+    // The band: their emoji on a block of their own colour, full height
+    // from the left edge; the stage; the clock hard right.
+    const bandHeight = 52.0;
+    final band = Container(
+      height: bandHeight,
+      color: stateColor,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: bandHeight,
+            alignment: Alignment.center,
+            color: profileColor,
+            child: Text(
+              emoji,
+              style: TextStyle(fontSize: t.size.headline, height: 1),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                stateLabel.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: bandMono(t.size.headline).copyWith(letterSpacing: 0.5),
               ),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.horizontal(
-                      right: Radius.circular(AppTheme.radiusMd),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (header != null && showHeader) ...[
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  header!,
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w900,
-                                    color: accentColor,
-                                    letterSpacing: -0.3,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (headerTrailing != null) ...[
-                                const SizedBox(width: 8),
-                                headerTrailing!,
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (name != null) ...[
-                                    Text(
-                                      name,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w900,
-                                        height: 1.1,
-                                        color: contentColor,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                  ],
-                                  if (set != null) ...[
-                                    StatusSetWeightInfo(
-                                      set: set!,
-                                      textColor: contentColor,
-                                      secondaryTextColor: accentColor,
-                                    ),
-                                  ] else if (isComplete) ...[
-                                    Text(
-                                      'All sets complete',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900,
-                                        fontFamily: 'monospace',
-                                        color: contentColor,
-                                      ),
-                                    ),
-                                  ] else if (child != null) ...[
-                                    child!,
-                                  ],
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (stateLabel != null) ...[
-                                  Text(
-                                    stateLabel!,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      height: 1.1,
-                                      color: accentColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                ],
-                                if (timerText != null)
-                                  Text(
-                                    timerText!,
-                                    style: TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w900,
-                                      fontFamily: 'monospace',
-                                      letterSpacing: -1.5,
-                                      height: 1.0,
-                                      color: effectiveTimerColor,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+            ),
+          ),
+          if (timerText != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 8, right: 12),
+              child: Center(
+                child: Text(timerText!, style: bandMono(t.size.headline)),
               ),
-            ],
+            ),
+        ],
+      ),
+    );
+
+    final Widget body;
+    if (set == null) {
+      body = Text(
+        copy.workout.allDone,
+        style: TextStyle(fontSize: t.size.body, color: t.muted),
+      );
+    } else {
+      final what = Text(
+        '${exerciseNames[set.exercise] ?? '?'} · ${setLineFor(set, plan)}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: t.size.subtitle,
+          fontWeight: t.weight.medium,
+          color: t.muted,
+        ),
+      );
+      final weightSize = t.size.headlineLg;
+      final load = Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: formatWeight(set.targetWeight.toDouble(), unit)),
+            TextSpan(
+              text: ' ${weightUnitSuffix(unit)} ',
+              style: TextStyle(fontSize: weightSize * 0.5),
+            ),
+            TextSpan(text: '× ${set.targetReps}'),
+          ],
+        ),
+        maxLines: 1,
+        softWrap: false,
+        style: t.mono(
+          TextStyle(
+            fontSize: weightSize,
+            fontWeight: t.weight.bold,
+            color: t.text,
+            height: 1.1,
           ),
         ),
+      );
+      body = Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                what,
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: load,
+                ),
+              ],
+            ),
+          ),
+          if (set.targetWeight > 0) ...[
+            const SizedBox(width: 12),
+            // Up next on the rack: NEXT down the plates' left edge.
+            if (upNext) ...[
+              RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  copy.workout.nextLabel,
+                  style: t.mono(
+                    TextStyle(
+                      fontSize: t.size.small,
+                      fontWeight: t.weight.bold,
+                      letterSpacing: 1.5,
+                      color: t.primary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            _Plates(weight: set.targetWeight.toDouble(), upNext: upNext),
+          ],
+        ],
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: t.panel,
+        border: Border.all(color: t.outline.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          band,
+          Padding(padding: EdgeInsets.fromLTRB(12, 10, 12, 12), child: body),
+        ],
       ),
     );
   }
 }
 
-class StatusSetWeightInfo extends StatelessWidget {
-  final ProposedSet set;
-  final Color textColor;
-  final Color secondaryTextColor;
+/// The plates to load, in a fixed white box (so nothing moves when the
+/// numbers change); tap it for the plate-by-plate breakdown. For whoever is
+/// up next on the rack it pulses orange: this is what to load now.
+class _Plates extends StatefulWidget {
+  final double weight;
+  final bool upNext;
 
-  const StatusSetWeightInfo({
-    super.key,
-    required this.set,
-    required this.textColor,
-    required this.secondaryTextColor,
-  });
+  const _Plates({required this.weight, required this.upNext});
+
+  @override
+  State<_Plates> createState() => _PlatesState();
+}
+
+class _PlatesState extends State<_Plates> with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_Plates oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  void _sync() {
+    if (widget.upNext) {
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+    } else if (_pulse.isAnimating) {
+      _pulse.stop();
+      _pulse.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final weightText = formatWeight(set.targetWeight.toDouble(), unit);
-    final bigStyle = const TextStyle(
-      fontSize: 32,
-      fontWeight: FontWeight.w900,
-      fontFamily: 'monospace',
-      letterSpacing: -1.5,
-      height: 1.0,
-    ).copyWith(color: textColor);
-    void detailTrigger() {
-      showPlateBreakdownDialog(context, weight: set.targetWeight.toDouble());
-    }
-
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Weight \u00D7 reps, with the unit hugging the weight ("17.5 lb \u00D7 5") so
-          // it reads the same way as every other set display in the app.
-          Text(weightText, style: bigStyle),
-          const SizedBox(width: 5),
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              weightUnitSuffix(unit),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: secondaryTextColor,
-              ),
+    final weight = widget.weight;
+    return GestureDetector(
+      onTap: () => showPlateBreakdownDialog(context, weight: weight),
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (context, child) => Container(
+          width: 132,
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(
+              color: widget.upNext ? t.primary : t.outline,
+              width: widget.upNext ? 3 : 1,
             ),
+            boxShadow: widget.upNext
+                ? [
+                    BoxShadow(
+                      color: t.primary.withValues(alpha: 0.35),
+                      spreadRadius: 5 * _pulse.value,
+                    ),
+                  ]
+                : null,
           ),
-          const SizedBox(width: 5),
-          Text('\u00D7 ${set.targetReps}', style: bigStyle),
-          const SizedBox(width: 8),
-          TutorialTarget(
-            id: 'bar_plates',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: detailTrigger,
-                borderRadius: BorderRadius.circular(999),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: secondaryTextColor.withValues(alpha: 0.85),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: SizedBox(
-                    width: 92,
-                    height: 32,
-                    child: Center(
-                      child: PlateVisualization(
-                        weight: set.targetWeight.toDouble(),
-                        scale: 0.72,
-                        isInteractive: false,
-                      ),
-                    ),
-                  ),
+          child: child,
+        ),
+        child: isEmptyBar(weight, unit)
+            ? Text(
+                copy.workout.emptyBar,
+                style: TextStyle(
+                  fontSize: t.size.body,
+                  fontWeight: t.weight.heavy,
+                  color: Colors.black,
                 ),
+              )
+            : FittedBox(
+                child: PlateVisualization(weight: weight, isInteractive: false),
               ),
-            ),
-          ),
-        ],
       ),
     );
   }

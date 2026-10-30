@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
+import '../../../theme/theme_spec.dart';
 import '../widgets/profile_marker_widgets.dart'
     show EmojiChoiceChip, ColorChoiceDot;
+import '../../../theme/app_icons.dart';
 
 class MarkerStep extends StatelessWidget {
   final String selectedEmoji;
@@ -38,13 +40,16 @@ class MarkerStep extends StatelessWidget {
         children: [
           Text(
             copy.onboarding.marker.title,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.headline,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             copy.onboarding.marker.body,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.4,
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
@@ -56,12 +61,15 @@ class MarkerStep extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 color: profileColorFromHex(selectedColorHex),
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: context.tokens.br(28),
               ),
               alignment: Alignment.center,
               child: Text(
                 selectedEmoji,
-                style: const TextStyle(fontSize: 64, height: 1.1),
+                style: TextStyle(
+                  fontSize: context.tokens.size.giant,
+                  height: 1.1,
+                ),
               ),
             ),
           ),
@@ -70,7 +78,7 @@ class MarkerStep extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: onRefreshEmojis,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
+              icon: const Icon(AppIcons.refresh, size: 18),
               label: Text(copy.onboarding.marker.refresh),
             ),
           ),
@@ -119,7 +127,7 @@ class MarkerStep extends StatelessWidget {
               onPressed: onNext,
               child: Text(
                 copy.onboarding.next,
-                style: const TextStyle(fontWeight: FontWeight.w900),
+                style: TextStyle(fontWeight: context.tokens.weight.heavy),
               ),
             ),
           ),

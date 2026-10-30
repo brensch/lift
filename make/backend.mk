@@ -1,34 +1,29 @@
 # Backend: run, agent background instance, load and fuzz harnesses.
 # Split from the top-level Makefile; variables live there.
 
+.PHONY: run-backend run-backend-release run-backend-scratch agent-backend-start agent-backend-stop \
+	load-test fuzz-api fuzz-api-ci run-prod check
+
+STOP_LOCAL_BACKENDS = pkill -f "[t]arget/(debug|release)/schlift" || true
+
+# Dev server on :50051 with dev login, rebuilt and restarted when a Rust
+# input is saved (an incremental debug build is a second or two). Only the
+# backend's own inputs are watched, so app and web edits do not restart it.
+BACKEND_WATCH = -w src -w proto -w templates -w build.rs -w Cargo.toml -w Cargo.lock
 run-backend:
-	@pkill -f "[/]target/debug/schlift" || true
-	@pkill -f "[/]target/release/schlift" || true
-	RUST_LOG=info \
-	WEBAUTHN_RP_ID=schlift.com \
-	WEBAUTHN_RP_ORIGIN=https://schlift.com \
-	TEST_AUTH_ENABLED=1 \
-	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
-	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '='),android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk \
-	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
-	cargo watch -x "run --bin schlift --features test-auth"
+	@$(STOP_LOCAL_BACKENDS)
+	$(BACKEND_DEV_ENV) cargo watch $(BACKEND_WATCH) -x "run --bin schlift --features test-auth"
 
 run-backend-release:
-	@pkill -f "[/]target/debug/schlift" || true
-	@pkill -f "[/]target/release/schlift" || true
-	RUST_LOG=info \
-	WEBAUTHN_RP_ID=schlift.com \
-	WEBAUTHN_RP_ORIGIN=https://schlift.com \
-	TEST_AUTH_ENABLED=1 \
-	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=') \
-	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$$(keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '='),android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk \
-	ANDROID_CERT_SHA256=$$(keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //') \
-	cargo run --release --bin schlift --features test-auth
+	@$(STOP_LOCAL_BACKENDS)
+	$(BACKEND_DEV_ENV) cargo run --release --bin schlift --features test-auth
 
+# Same as run-backend, on an empty database that is wiped every start.
+SCRATCH_BACKEND_DATA_DIR ?= .tmp/scratch-backend
 run-backend-scratch:
-	@pkill -f "[/]target/release/schlift" || true
-	@rm -f data/scratch.sqlite data/scratch.sqlite-wal data/scratch.sqlite-shm
-	RUST_LOG=info TEST_AUTH_ENABLED=1 cargo run --release --bin schlift --features test-auth
+	@$(STOP_LOCAL_BACKENDS)
+	@rm -rf "$(SCRATCH_BACKEND_DATA_DIR)" && mkdir -p "$(SCRATCH_BACKEND_DATA_DIR)"
+	DATA_DIR="$(SCRATCH_BACKEND_DATA_DIR)" $(BACKEND_DEV_ENV) cargo run --bin schlift --features test-auth
 
 agent-backend-start:
 	@bash -ec '\
@@ -40,17 +35,8 @@ agent-backend-start:
 				exit 0; \
 			fi; \
 		fi; \
-		APK_HASH=$$(keytool -exportcert -keystore "$(DEBUG_KEYSTORE)" -alias "$(DEBUG_ALIAS)" -storepass "$(DEBUG_STOREPASS)" 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr "+/" "-_" | tr -d "=" || true); \
-		CERT_SHA=$$(keytool -list -v -keystore "$(DEBUG_KEYSTORE)" -alias "$(DEBUG_ALIAS)" -storepass "$(DEBUG_STOREPASS)" 2>/dev/null | grep SHA256 | head -1 | sed "s/.*SHA256: //" || true); \
 		echo "Starting backend on localhost:50051"; \
-		DATA_DIR="$(AGENT_BACKEND_DATA_DIR)" \
-		RUST_LOG=info \
-		TEST_AUTH_ENABLED=1 \
-		WEBAUTHN_RP_ID=schlift.com \
-		WEBAUTHN_RP_ORIGIN=https://schlift.com \
-		WEBAUTHN_ANDROID_ORIGIN="android:apk-key-hash:$$APK_HASH" \
-		WEBAUTHN_ANDROID_ORIGINS="android:apk-key-hash:$$APK_HASH,android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk" \
-		ANDROID_CERT_SHA256="$$CERT_SHA" \
+		DATA_DIR="$(AGENT_BACKEND_DATA_DIR)" $(BACKEND_DEV_ENV) \
 		cargo run --bin schlift --features test-auth > "$(AGENT_BACKEND_LOG)" 2>&1 & \
 		echo $$! > "$(AGENT_TMP_DIR)/backend.pid"; \
 		for i in $$(seq 1 120); do \

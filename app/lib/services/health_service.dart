@@ -33,36 +33,30 @@ class HealthService {
 
   static Future<HeartRateZoneProfile?>? _cachedZoneProfileFuture;
   static bool _healthPermissionRequestInFlight = false;
-  static bool _workoutHealthPermissionsRequested = false;
 
-  /// Set true by the e2e harness before the app launches. When true, the methods
-  /// that proactively prompt for Health permissions no-op: on the emulator those
-  /// requests open the native Health Connect sheet, which pauses the Flutter
-  /// surface and hangs an integration_test. Health isn't under test there, so
-  /// suppressing the prompt is safe. Always false in production.
+  /// Set true by the e2e harness before the app launches. When true, the
+  /// permission request no-ops: on the emulator it opens the native Health
+  /// Connect sheet, which pauses the Flutter surface and hangs an
+  /// integration_test. Health isn't under test there, so suppressing the
+  /// prompt is safe. Always false in production.
   @visibleForTesting
   static bool suppressPermissionPrompts = false;
 
-  /// Requests every Health permission the workout flow uses, in a SINGLE system
-  /// sheet, at most once per app run.
+  /// Requests every Health permission the app uses, in a SINGLE system sheet.
   ///
-  /// This is the ONLY place that proactively prompts. iOS HealthKit hides
-  /// read-permission status (`hasPermissions` returns null for reads), so checking it
-  /// before each read/write makes the app re-request forever; and firing several
-  /// separate authorization requests (live HR read, HR-sample write, workout write,
-  /// resting HR, …) makes iOS present a cascade of sheets that appear to "reset" when
-  /// you grant them. We ask for the full union once, up front, then never prompt
-  /// again — every other read/write simply attempts the operation and silently
+  /// The ONLY Health prompt, and its only caller is PermissionsService, once
+  /// per install. iOS HealthKit hides read-permission status (`hasPermissions`
+  /// returns null for reads), so checking it before each read/write makes the
+  /// app re-request forever; and firing several separate authorization
+  /// requests (live HR read, HR-sample write, workout write, resting HR, …)
+  /// makes iOS present a cascade of sheets that appear to "reset" when you
+  /// grant them. We ask for the full union once, up front, then never prompt
+  /// again: every read/write simply attempts the operation and silently
   /// no-ops if the user declined.
-  ///
-  /// `requestAuthorization` is idempotent: on later app runs it presents no sheet for
-  /// already-decided types, so calling this again is harmless.
   static Future<void> requestWorkoutHealthPermissions() async {
     if (suppressPermissionPrompts) return;
-    if (_workoutHealthPermissionsRequested) return;
-    // Another request is mid-flight; don't stack a competing sheet. Retry next time.
+    // Another request is mid-flight; don't stack a competing sheet.
     if (_healthPermissionRequestInFlight) return;
-    _workoutHealthPermissionsRequested = true;
     _healthPermissionRequestInFlight = true;
     try {
       final health = Health();
@@ -105,22 +99,17 @@ class HealthService {
       await health.requestAuthorization(types, permissions: access);
     } catch (e, st) {
       debugPrint('Health: requestWorkoutHealthPermissions failed: $e\n$st');
-      // Allow a retry on a later workout if it threw before prompting.
-      _workoutHealthPermissionsRequested = false;
     } finally {
       _healthPermissionRequestInFlight = false;
     }
   }
 
-  static Future<double?> readLatestBodyWeightKg({
-    bool requestPermissions = false,
-  }) async {
-    // e2e: never open the native Health sheet (see suppressPermissionPrompts).
-    if (suppressPermissionPrompts && requestPermissions) return null;
+  /// The most recent body weight in Health, or null when there is none or
+  /// the WEIGHT read was never granted. Never prompts.
+  static Future<double?> readLatestBodyWeightKg() async {
     try {
       AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
         'phase': 'start',
-        'requestPermissions': requestPermissions,
         'platform': Platform.isAndroid
             ? 'android'
             : Platform.isIOS
@@ -143,19 +132,9 @@ class HealthService {
       AppLogger.instance.info('Health', 'weight permissions', {
         'hasPerms': hasPerms,
       });
-      if (hasPerms != true) {
-        if (!requestPermissions) return null;
-        if (_healthPermissionRequestInFlight) return null;
-        _healthPermissionRequestInFlight = true;
-        final granted = await health.requestAuthorization([
-          type,
-        ], permissions: permissions);
-        _healthPermissionRequestInFlight = false;
-        AppLogger.instance.info('Health', 'weight permission request', {
-          'granted': granted,
-        });
-        if (!granted) return null;
-      }
+      // iOS reports null for reads whatever the answer was: try the read,
+      // which comes back empty when it was declined.
+      if (hasPerms == false) return null;
 
       final now = DateTime.now();
       final recentPoints = await health.getHealthDataFromTypes(
@@ -195,7 +174,6 @@ class HealthService {
       });
       return weightKg != null && weightKg > 0 ? weightKg : null;
     } catch (e, st) {
-      _healthPermissionRequestInFlight = false;
       debugPrint('Health: readLatestBodyWeightKg failed: $e\n$st');
       AppLogger.instance.error('Health', 'readLatestBodyWeightKg failed', {
         'error': e.toString(),
@@ -229,12 +207,8 @@ class HealthService {
     await health.configure();
     debugPrint('Health: configured');
 
-    // Auth is requested once, comprehensively (see requestWorkoutHealthPermissions),
-    // normally at workout start. Ensure it has run at least once (e.g. for a resumed
-    // workout ended in a fresh app run), then just attempt the write — we never
-    // re-prompt per write.
-    await requestWorkoutHealthPermissions();
-
+    // Auth was requested once, comprehensively, by PermissionsService. Just
+    // attempt the write; it fails quietly if it was declined.
     final durationMinutes = endTime.difference(startTime).inSeconds / 60.0;
     final calories = estimateCalories(
       durationMinutes: durationMinutes,
@@ -276,11 +250,8 @@ class HealthService {
     final health = Health();
     await health.configure();
 
-    // Heart-rate write access is part of the single comprehensive request made at
-    // workout start. Ensure it has run once, then just attempt the writes — no
-    // per-write permission prompt (that caused the repeating "write heart rate" sheet).
-    await requestWorkoutHealthPermissions();
-
+    // Heart-rate write access is part of the single comprehensive request
+    // (PermissionsService). Just attempt the writes; never prompt per write.
     for (final sample in samples) {
       final ts = DateTime.fromMillisecondsSinceEpoch(sample.sampledAt.toInt());
       await health.writeHealthData(
@@ -296,19 +267,15 @@ class HealthService {
 
   static Future<HeartRateZoneProfile?> readHeartRateZoneProfile({
     bool useCache = true,
-    bool requestPermissions = false,
   }) {
     if (!useCache || _cachedZoneProfileFuture == null) {
-      _cachedZoneProfileFuture = _readHeartRateZoneProfileImpl(
-        requestPermissions: requestPermissions,
-      );
+      _cachedZoneProfileFuture = _readHeartRateZoneProfileImpl();
     }
     return _cachedZoneProfileFuture!;
   }
 
-  static Future<HeartRateZoneProfile?> _readHeartRateZoneProfileImpl({
-    required bool requestPermissions,
-  }) async {
+  /// Never prompts: without the resting HR / birth date reads it returns null.
+  static Future<HeartRateZoneProfile?> _readHeartRateZoneProfileImpl() async {
     try {
       final health = Health();
       await health.configure();
@@ -332,17 +299,9 @@ class HealthService {
         supportedTypes,
         permissions: permissions,
       );
-      if (hasPerms != true) {
-        if (!requestPermissions) return null;
-        if (_healthPermissionRequestInFlight) return null;
-        _healthPermissionRequestInFlight = true;
-        final granted = await health.requestAuthorization(
-          supportedTypes,
-          permissions: permissions,
-        );
-        _healthPermissionRequestInFlight = false;
-        if (!granted) return null;
-      }
+      // iOS reports null for reads whatever the answer was: try the read,
+      // which comes back empty when it was declined.
+      if (hasPerms == false) return null;
 
       final now = DateTime.now();
       final lookback = Platform.isAndroid
@@ -413,7 +372,6 @@ class HealthService {
         estimatedMaxHeartRateBpm: estimatedMaxHr,
       );
     } catch (e, st) {
-      _healthPermissionRequestInFlight = false;
       debugPrint('Health: readHeartRateZoneProfile failed: $e\n$st');
       return null;
     }

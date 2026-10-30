@@ -55,7 +55,9 @@ CREATE TABLE IF NOT EXISTS workouts (
     start_time INTEGER NOT NULL,
     end_time INTEGER NOT NULL DEFAULT 0,
     session_id TEXT NOT NULL DEFAULT '',
-    template_id TEXT NOT NULL DEFAULT ''
+    template_id TEXT NOT NULL DEFAULT '',
+    lifting_set_id TEXT NOT NULL DEFAULT '',
+    lifting_started_at INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_user_time ON workouts(user_id, start_time DESC);
 
@@ -70,7 +72,9 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     warmup INTEGER NOT NULL DEFAULT 0,
     cancelled INTEGER NOT NULL DEFAULT 0,
     rest_after_success INTEGER NOT NULL DEFAULT 0,
-    rest_after_failure INTEGER NOT NULL DEFAULT 0
+    rest_after_failure INTEGER NOT NULL DEFAULT 0,
+    calibration INTEGER NOT NULL DEFAULT 0,
+    skipped INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout ON proposed_sets(workout_id, workout_order);
 
@@ -81,9 +85,10 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     proposed_set_id TEXT NOT NULL,
     actual_reps INTEGER NOT NULL,
     actual_weight REAL NOT NULL,
-    started_at INTEGER NOT NULL,
     ended_at INTEGER NOT NULL DEFAULT 0,
-    rest_until INTEGER NOT NULL DEFAULT 0
+    rest_until INTEGER NOT NULL DEFAULT 0,
+    effort INTEGER NOT NULL DEFAULT 0,
+    started_at INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed ON completed_sets(proposed_set_id);
@@ -196,6 +201,7 @@ CREATE TABLE IF NOT EXISTS exercise_trackers (
     override_sets INTEGER NOT NULL DEFAULT 0,
     override_rep_low INTEGER NOT NULL DEFAULT 0,
     override_rep_high INTEGER NOT NULL DEFAULT 0,
+    consecutive_hard INTEGER NOT NULL DEFAULT 0,
     updated_at INTEGER NOT NULL,
     source TEXT NOT NULL DEFAULT '',
     PRIMARY KEY(user_id, exercise)
@@ -319,6 +325,23 @@ impl ServerDb {
         .execute(&write_pool)
         .await
         .ok();
+        // Columns added after the tables shipped. Each ALTER fails harmlessly
+        // once the column exists; a fresh file gets them from SERVER_SCHEMA.
+        // (completed_sets.rest_skipped may exist in older files; nothing
+        // reads or writes it.)
+        for alter in [
+            "ALTER TABLE proposed_sets ADD COLUMN calibration INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE completed_sets ADD COLUMN effort INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE exercise_trackers ADD COLUMN consecutive_hard INTEGER NOT NULL DEFAULT 0",
+            // Older files may still have completed_sets.started_at from the
+            // first StartSet era; its meaning is the same.
+            "ALTER TABLE completed_sets ADD COLUMN started_at INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE workouts ADD COLUMN lifting_set_id TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE workouts ADD COLUMN lifting_started_at INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE proposed_sets ADD COLUMN skipped INTEGER NOT NULL DEFAULT 0",
+        ] {
+            sqlx::query(alter).execute(&write_pool).await.ok();
+        }
         sqlx::query(
             "CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
              ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC)",

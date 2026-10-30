@@ -1051,8 +1051,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $core.Iterable<$1.ProposedSet>? proposedSets,
     $core.Iterable<$1.CompletedSet>? completedSets,
     $1.ProposedSet? nextUpSet,
-    $fixnum.Int64? restUntil,
-    $core.bool? hasActiveSet,
+    $1.WorkoutStateSnapshot? stateSnapshot,
   }) {
     final result = create();
     if (user != null) result.user = user;
@@ -1061,8 +1060,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (proposedSets != null) result.proposedSets.addAll(proposedSets);
     if (completedSets != null) result.completedSets.addAll(completedSets);
     if (nextUpSet != null) result.nextUpSet = nextUpSet;
-    if (restUntil != null) result.restUntil = restUntil;
-    if (hasActiveSet != null) result.hasActiveSet = hasActiveSet;
+    if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     return result;
   }
 
@@ -1089,8 +1087,8 @@ class ParticipantStatus extends $pb.GeneratedMessage {
         subBuilder: $1.CompletedSet.create)
     ..aOM<$1.ProposedSet>(7, _omitFieldNames ? '' : 'nextUpSet',
         subBuilder: $1.ProposedSet.create)
-    ..aInt64(8, _omitFieldNames ? '' : 'restUntil')
-    ..aOB(9, _omitFieldNames ? '' : 'hasActiveSet')
+    ..aOM<$1.WorkoutStateSnapshot>(10, _omitFieldNames ? '' : 'stateSnapshot',
+        subBuilder: $1.WorkoutStateSnapshot.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1160,23 +1158,19 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   $1.ProposedSet ensureNextUpSet() => $_ensure(5);
 
-  @$pb.TagNumber(8)
-  $fixnum.Int64 get restUntil => $_getI64(6);
-  @$pb.TagNumber(8)
-  set restUntil($fixnum.Int64 value) => $_setInt64(6, value);
-  @$pb.TagNumber(8)
-  $core.bool hasRestUntil() => $_has(6);
-  @$pb.TagNumber(8)
-  void clearRestUntil() => $_clearField(8);
-
-  @$pb.TagNumber(9)
-  $core.bool get hasActiveSet => $_getBF(7);
-  @$pb.TagNumber(9)
-  set hasActiveSet($core.bool value) => $_setBool(7, value);
-  @$pb.TagNumber(9)
-  $core.bool hasHasActiveSet() => $_has(7);
-  @$pb.TagNumber(9)
-  void clearHasActiveSet() => $_clearField(9);
+  /// Their workout's state, exactly as their own phone sees it: lifting,
+  /// resting, yapping, ready or all done, with the timestamps the timers run
+  /// from.
+  @$pb.TagNumber(10)
+  $1.WorkoutStateSnapshot get stateSnapshot => $_getN(6);
+  @$pb.TagNumber(10)
+  set stateSnapshot($1.WorkoutStateSnapshot value) => $_setField(10, value);
+  @$pb.TagNumber(10)
+  $core.bool hasStateSnapshot() => $_has(6);
+  @$pb.TagNumber(10)
+  void clearStateSnapshot() => $_clearField(10);
+  @$pb.TagNumber(10)
+  $1.WorkoutStateSnapshot ensureStateSnapshot() => $_ensure(6);
 }
 
 /// Someone the caller has shared at least one session with.

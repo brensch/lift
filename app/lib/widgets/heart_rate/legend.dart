@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../theme/theme_spec.dart';
 
 class HeartRateLegendItem extends StatelessWidget {
   final String label;
@@ -28,8 +29,8 @@ class HeartRateLegendItem extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
+            fontSize: context.tokens.size.caption,
+            fontWeight: context.tokens.weight.bold,
             letterSpacing: 0.8,
             color: colorScheme.onSurface.withValues(alpha: 0.5),
           ),

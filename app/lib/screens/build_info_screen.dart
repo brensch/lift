@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -6,6 +7,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../services/wearable_bridge_service.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 const _gitHash = String.fromEnvironment('GIT_HASH', defaultValue: 'dev');
 
@@ -71,12 +74,7 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Build Info',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-        ),
-      ),
+      appBar: AppBar(title: PageTitle('Build Info')),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -108,7 +106,7 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
                 const SizedBox(height: 24),
                 Center(
                   child: TextButton.icon(
-                    icon: const Icon(Icons.copy, size: 16),
+                    icon: const Icon(AppIcons.copy, size: 16),
                     label: const Text('Copy to clipboard'),
                     onPressed: () {
                       final buf = StringBuffer();
@@ -161,8 +159,8 @@ class _Section extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 13,
+            fontWeight: context.tokens.weight.heavy,
+            fontSize: context.tokens.size.body,
             letterSpacing: -0.3,
             color: cs.onSurface.withValues(alpha: 0.5),
           ),
@@ -171,7 +169,7 @@ class _Section extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: context.tokens.br(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
@@ -183,7 +181,7 @@ class _Section extends StatelessWidget {
                     Text(
                       e.key,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: context.tokens.size.body,
                         color: cs.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
@@ -191,9 +189,9 @@ class _Section extends StatelessWidget {
                     Flexible(
                       child: Text(
                         e.value,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                        style: TextStyle(
+                          fontSize: context.tokens.size.body,
+                          fontWeight: context.tokens.weight.bold,
                         ),
                         textAlign: TextAlign.end,
                         overflow: TextOverflow.ellipsis,

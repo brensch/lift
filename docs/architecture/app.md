@@ -117,17 +117,80 @@ default templates server-side.
 
 ## Health and sensors
 
-`HealthService` requests **all** HealthKit / Health Connect permissions in a
-single comprehensive request, once.
+### Permissions: one screen, once
 
-> Do not add a second `requestAuthorization` path. iOS shows the permission
-> sheet once per permission set; a second partial request produces a sheet the
-> user has no reason to expect and can silently fail. `_workoutHealthPermissionsRequested`
-> and `_healthPermissionRequestInFlight` guard against re-entry.
+Right after sign-in, once per install, the router shows `PermissionsScreen`
+(`/permissions`, before onboarding). Its one button runs
+`PermissionsService.requestAll()`, which asks for everything the phone app
+uses, one system UI after the other:
+
+| | iOS | Android |
+|---|---|---|
+| 1. Notifications | Alert + sound alert | `POST_NOTIFICATIONS` dialog (13+) |
+| 2. Health | One HealthKit sheet, every type | One Health Connect screen, every type |
+| 3. Exact alarms | n/a | "Alarms & reminders" settings page (14+, skipped when already held) |
+
+Neither OS can merge these into a single dialog; one tap runs them back to
+back. Whatever the user declines stays declined until they change it in system
+settings: nothing else in the app prompts. `NotificationService.init()` asks
+for nothing, every Health read and write just attempts the operation, and the
+Apple Watch shares the phone's HealthKit grant. The Wear OS app asks for its
+own sensor permissions on the watch, because they belong to that device.
+
+`HealthService.requestWorkoutHealthPermissions()` is the single Health
+request, for the full union of types.
+
+> Do not add a second `requestAuthorization` path, or any other prompt outside
+> `PermissionsService`. iOS shows the permission sheet once per permission
+> set; a second partial request produces a sheet the user has no reason to
+> expect and can silently fail. iOS also hides read status (`hasPermissions`
+> is null for reads), so reads treat null as "try it" and get nothing back
+> when declined.
 
 Calorie estimation uses a MET-based formula (`_strengthTrainingMet = 3.5`) with a
 flat `_fallbackKcalPerMin = 5.0` when body weight is unknown. Derivation is in
 [`docs/calorie_maths.md`](../calorie_maths.md).
+
+## Theming
+
+Every colour, font, text size, weight and radius comes from one `ThemeSpec`
+(`lib/theme/theme_spec.dart`), and the app's values are in
+`lib/theme/schlift_spec.dart`: warm grey, signal orange, Space Grotesk and
+Space Mono, the stacked SCH/LIFT wordmark (`Wordmark`), Phosphor icons
+(`AppIcons`, `lib/theme/app_icons.dart`), corners mostly squared off.
+
+```mermaid
+flowchart LR
+  P[schlift_spec.dart<br/>the values] --> B[AppTheme.build]
+  B --> T[ThemeData<br/>+ the spec as an extension]
+  T --> W[widgets:<br/>Theme.of / context.tokens]
+```
+
+`AppTheme.build` maps the spec onto Material's components and attaches the
+spec as a `ThemeExtension`, so widgets read `context.tokens`:
+
+| Token | For |
+|---|---|
+| `tokens.size.caption` … `tokens.size.giant` | Every text size (a 12-step scale; nothing under 12pt) |
+| `tokens.weight.regular/medium/bold/heavy` | Every font weight |
+| `tokens.resting`, `tokens.primary`, … | Colours beyond the colour scheme |
+| `tokens.br(n)` / `tokens.radius(n)` | Corners, scaled by `cornerScale` (pills become rectangles) |
+| `tokens.mono(style)` / `tokens.wordmark(style)` | Counting numbers; the SCHLIFT wordmark |
+
+> Never hard-code a colour, font family, text size, weight or radius in a
+> widget; if a token is missing, add it to `ThemeSpec`. Code without a
+> `BuildContext` takes the colours or the spec as a parameter; native UI
+> with no widget tree (Fluttertoast) reads `schliftSpec` directly. Data
+> colours a user picks (plate and profile colours) are the exception, and so
+> is the debug-only wordmark lab, which compares fonts on purpose.
+
+Fonts come from Google Fonts and are bundled in `assets/google_fonts/`
+(Space Grotesk and Space Mono, static weights with their OFL
+licences), so they work offline and in tests. A new family needs its files
+bundled the same way.
+
+Debug builds have a wordmark lab (Settings → Wordmark lab, `/wordmarks`):
+SCHLIFT banner candidates in a mock app bar.
 
 ## Component layout
 

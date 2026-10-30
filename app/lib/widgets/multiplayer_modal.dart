@@ -4,9 +4,14 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gen/workout/v1/group.pb.dart';
+import '../gen/workout/v1/workout.pb.dart' show User;
+import '../logic/user_profile.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
+import 'common/flat.dart';
+import '../theme/theme_spec.dart';
 import 'participant_ticker.dart';
+import '../theme/app_icons.dart';
 
 String _shareUrl(String inviteToken) =>
     'https://schlift.com/?join=$inviteToken';
@@ -102,68 +107,44 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'IN YOUR SESSION',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.5,
-            color: cs.tertiary,
-          ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: SectionLabel('In your session'),
         ),
-        const SizedBox(height: 10),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            borderRadius: AppTheme.brMd,
-          ),
-          child: Column(
-            children: [
-              for (final p in participants)
-                Builder(
-                  builder: (_) {
-                    final status = describeParticipantStatus(p);
-                    final name = participantDisplayName(p);
-                    return ListTile(
-                      dense: true,
-                      leading: CircleAvatar(
-                        radius: 14,
-                        backgroundColor: status.stateColor,
-                        child: Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                ThemeData.estimateBrightnessForColor(
-                                      status.stateColor,
-                                    ) ==
-                                    Brightness.dark
-                                ? Colors.white
-                                : Colors.black,
-                          ),
-                        ),
+        // Full-width rows: their emoji on their colour, name, stage.
+        _Rows(
+          children: [
+            for (final p in participants)
+              Builder(
+                builder: (_) {
+                  final status = describeParticipantStatus(
+                    p,
+                    tokens: context.tokens,
+                  );
+                  return ListTile(
+                    dense: true,
+                    leading: _Avatar(user: p.user),
+                    title: Text(
+                      participantDisplayName(p),
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.body,
                       ),
-                      title: Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      trailing: Text(
-                        status.stateLabel,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
+                    ),
+                    trailing: Text(
+                      status.stateLabel.toUpperCase(),
+                      style: context.tokens.mono(
+                        TextStyle(
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.bold,
                           color: status.stateColor,
                         ),
                       ),
-                    );
-                  },
-                ),
-            ],
-          ),
+                    ),
+                  );
+                },
+              ),
+          ],
         ),
         const SizedBox(height: 24),
       ],
@@ -177,98 +158,81 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'FRIENDS',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.5,
-            color: cs.tertiary,
-          ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: SectionLabel('Friends'),
         ),
         const SizedBox(height: 6),
-        Text(
-          'People you’ve trained with. Tap Ask and they get a request to join '
-          'your session.',
-          style: TextStyle(
-            fontSize: 12.5,
-            height: 1.35,
-            fontWeight: FontWeight.w600,
-            color: cs.onSurfaceVariant,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'People you’ve trained with. Tap Ask and they get a request to '
+            'join your session.',
+            style: TextStyle(
+              fontSize: context.tokens.size.body,
+              height: 1.35,
+              color: cs.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(height: 12),
         if (partners.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
-              borderRadius: AppTheme.brMd,
-              border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
+              border: Border.symmetric(
+                horizontal: BorderSide(color: context.tokens.hairline),
+              ),
             ),
             child: Text(
               'No training partners yet. Do a session with someone (scan their '
               'code or open their link) and they’ll show up here to re-invite '
               'in one tap.',
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: context.tokens.size.small,
                 height: 1.4,
-                fontWeight: FontWeight.w600,
+                fontWeight: context.tokens.weight.bold,
                 color: cs.tertiary,
               ),
             ),
           )
         else
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-              borderRadius: AppTheme.brMd,
-            ),
-            child: Column(
-              children: [
-                for (final p in partners)
-                  ListTile(
-                    dense: true,
-                    leading: CircleAvatar(
-                      radius: 14,
-                      child: Text(
-                        p.user.name.isNotEmpty
-                            ? p.user.name[0].toUpperCase()
-                            : '?',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+          _Rows(
+            children: [
+              for (final p in partners)
+                ListTile(
+                  dense: true,
+                  leading: _Avatar(user: p.user),
+                  title: Text(
+                    p.user.name,
+                    style: TextStyle(
+                      fontWeight: context.tokens.weight.bold,
+                      fontSize: context.tokens.size.body,
                     ),
-                    title: Text(
-                      p.user.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      _partnerSubtitle(p),
-                      style: TextStyle(fontSize: 11.5, color: cs.tertiary),
-                    ),
-                    trailing: _joiningPartnerId == p.user.id
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : FilledButton.tonal(
-                            onPressed: () =>
-                                _askPartner(p.user.id, p.user.name),
-                            style: FilledButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            child: const Text('Ask'),
-                          ),
                   ),
-              ],
-            ),
+                  subtitle: Text(
+                    _partnerSubtitle(p),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.small,
+                      color: cs.tertiary,
+                    ),
+                  ),
+                  trailing: _joiningPartnerId == p.user.id
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : FilledButton.tonal(
+                          onPressed: () => _askPartner(p.user.id, p.user.name),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: const Text('Ask'),
+                        ),
+                ),
+            ],
           ),
       ],
     );
@@ -290,54 +254,36 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
       top: false,
       child: Container(
         constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
-        decoration: BoxDecoration(
-          color: AppTheme.sheetColor(context),
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTheme.radiusLg),
-          ),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
-        ),
-        padding: const EdgeInsets.all(24),
+        // No side borders: the Scan band and lists run to the very edge.
+        color: AppTheme.sheetColor(context),
+        padding: const EdgeInsets.only(bottom: 16),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(child: AppTheme.sheetHandle(context)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Multiplayer',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: const PageTitle('Multiplayer'),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               if (_isScanning)
                 Column(
                   children: [
                     SizedBox(
                       height: 320,
-                      child: ClipRRect(
-                        borderRadius: AppTheme.brMd,
-                        child: MobileScanner(onDetect: _handleScan),
-                      ),
+                      child: MobileScanner(onDetect: _handleScan),
                     ),
                     const SizedBox(height: 14),
                     Text(
                       'Point at your friend’s code',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontSize: context.tokens.size.body,
+                        fontWeight: context.tokens.weight.bold,
                         color: cs.onSurfaceVariant,
                       ),
                     ),
@@ -356,17 +302,20 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   ),
                 )
               else ...[
-                // The hero: scan a friend's code to join them.
+                // The hero: scan a friend's code to join them. Edge to edge.
                 SizedBox(
-                  height: 60,
+                  height: 64,
                   child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      shape: const RoundedRectangleBorder(),
+                    ),
                     onPressed: () => setState(() => _isScanning = true),
-                    icon: const Icon(Icons.photo_camera_rounded, size: 24),
-                    label: const Text(
+                    icon: const Icon(AppIcons.camera, size: 24),
+                    label: Text(
                       'Scan',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        fontSize: context.tokens.size.bodyLg,
+                        fontWeight: context.tokens.weight.heavy,
                       ),
                     ),
                   ),
@@ -378,7 +327,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: AppTheme.brMd,
                       border: Border.all(color: cs.outline),
                     ),
                     child: QrImageView(
@@ -392,7 +340,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 Center(
                   child: TextButton.icon(
                     onPressed: () => _shareInvite(inviteToken),
-                    icon: const Icon(Icons.ios_share_rounded, size: 18),
+                    icon: const Icon(AppIcons.export, size: 18),
                     label: const Text('Share link'),
                   ),
                 ),
@@ -403,6 +351,52 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Rows split by hairlines, with one above the first: a list that reads as
+/// part of the page rather than a box on it.
+class _Rows extends StatelessWidget {
+  final List<Widget> children;
+
+  const _Rows({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final line = BorderSide(color: context.tokens.hairline);
+    return DecoratedBox(
+      decoration: BoxDecoration(border: Border(top: line)),
+      child: Column(
+        children: [
+          for (final c in children)
+            DecoratedBox(
+              decoration: BoxDecoration(border: Border(bottom: line)),
+              child: c,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Someone's emoji on a square of their colour, as on the workout banner.
+class _Avatar extends StatelessWidget {
+  final User user;
+
+  const _Avatar({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      color: profileColorFromHex(user.profileColorHex),
+      child: Text(
+        normalizedProfileEmoji(user.profileEmoji),
+        style: TextStyle(fontSize: context.tokens.size.bodyLg, height: 1),
       ),
     );
   }

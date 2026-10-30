@@ -1,7 +1,6 @@
-/// The whole edit UI for an exercise mid-workout: weight up, weight down,
-/// or remove it. The app controls sets and reps — if the prescribed
-/// weight is wrong, tap until it isn't. Warmups regenerate for the new
-/// weight automatically.
+/// The edit sheet for an exercise mid-workout: its weight and reps (for the
+/// rest of this workout and on your account from now on), or remove it.
+/// Warmups regenerate for the new weight automatically.
 library;
 
 import 'package:flutter/material.dart';
@@ -15,6 +14,9 @@ import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
+import '../common/flat.dart';
+import '../../theme/theme_spec.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showWeightAdjustSheet(
   BuildContext context, {
@@ -44,17 +46,34 @@ class _WeightAdjustSheet extends StatefulWidget {
 }
 
 class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
-  /// The working weight (lb) being edited.
+  /// The working weight (lb) and reps being edited.
   late double _weight;
+  late int _reps;
+  late final double _startWeight;
+  late final int _startReps;
   bool _isSaving = false;
 
-  List<ProposedSet> get _workingSets => widget.block.workingSets.toList();
+  /// The sets the weight is read from: the working sets, or — mid-ramp,
+  /// before any exist — the calibration rungs.
+  List<ProposedSet> get _workingSets {
+    final working = widget.block.workingSets.toList();
+    return working.isNotEmpty ? working : widget.block.calibrationSets.toList();
+  }
 
   @override
   void initState() {
     super.initState();
     final sets = _workingSets;
     _weight = sets.isEmpty ? 0 : sets.last.targetWeight.toDouble();
+    final working = widget.block.workingSets.toList();
+    final tracker = context.read<WorkoutProvider>().trackerFor(
+      widget.block.exercise,
+    );
+    _reps = working.isNotEmpty
+        ? working.last.targetReps
+        : (tracker != null && tracker.targetReps > 0 ? tracker.targetReps : 5);
+    _startWeight = _weight;
+    _startReps = _reps;
   }
 
   /// One plate-pair in the display unit. The 0..2000 clamp below mirrors
@@ -62,21 +81,31 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   double _stepLb(WeightUnit unit) =>
       isMetricUnit(unit) ? poundsFromDisplayWeight(2.5, unit) : 5.0;
 
-  bool get _dirty {
-    final sets = _workingSets;
-    return sets.isNotEmpty && (sets.last.targetWeight - _weight).abs() > 0.01;
-  }
+  bool get _dirty =>
+      (_startWeight - _weight).abs() > 0.01 || _startReps != _reps;
 
+  /// This workout's remaining sets take the new numbers, and so does your
+  /// account: the exercise's weight and rep target from now on. Any sets
+  /// or rep range you set by hand stay as they were.
   Future<void> _apply() async {
     if (!_dirty || _isSaving) {
       if (mounted && !_isSaving) Navigator.pop(context);
       return;
     }
     setState(() => _isSaving = true);
+    final wp = context.read<WorkoutProvider>();
+    final exercise = widget.block.exercise;
+    final tracker = wp.trackerFor(exercise);
+    final overridden = tracker?.overridden ?? false;
     try {
-      await context.read<WorkoutProvider>().adjustExerciseWeight(
-        widget.block.exercise,
-        _weight,
+      await wp.adjustExerciseWeight(exercise, _weight, targetReps: _reps);
+      await wp.setExerciseTracker(
+        exercise: exercise,
+        workingWeightLb: _weight,
+        overrideSets: overridden ? tracker!.sets : 0,
+        overrideRepLow: overridden ? tracker!.repRangeLow : 0,
+        overrideRepHigh: overridden ? tracker!.repRangeHigh : 0,
+        targetReps: _reps,
       );
       if (mounted) Navigator.pop(context);
     } finally {
@@ -86,115 +115,135 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final step = _stepLb(unit);
+    final name = exerciseNames[widget.block.exercise] ?? '?';
+
+    Widget stepper(
+      String label,
+      String value,
+      VoidCallback onDown,
+      VoidCallback onUp, {
+      bool last = false,
+    }) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          border: Border(
+            right: last ? BorderSide.none : BorderSide(color: t.hairline),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionLabel(label),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _StepButton(icon: AppIcons.remove, onTap: onDown),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value,
+                      style: t.mono(
+                        TextStyle(
+                          fontSize: t.size.titleLg,
+                          fontWeight: t.weight.bold,
+                          color: t.text,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                _StepButton(icon: AppIcons.add, onTap: onUp),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.sheetColor(context),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusLg),
-        ),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-      ),
+      color: AppTheme.sheetColor(context),
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        left: 20,
-        right: 20,
-        top: 8,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  exerciseNames[widget.block.exercise] ?? 'Adjust weight',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+          AppTheme.sheetHandle(context, gap: 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 4, 0),
+            child: Row(
+              children: [
+                Expanded(child: PageTitle(name)),
+                if (widget.onDelete != null)
+                  IconButton(
+                    tooltip: 'Remove from this workout',
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onDelete!();
+                    },
+                    icon: Icon(AppIcons.delete, color: t.error),
                   ),
-                ),
-              ),
-              if (widget.onDelete != null)
-                IconButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onDelete!();
-                  },
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    color: cs.error.withValues(alpha: 0.8),
-                  ),
-                ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          Text(
-            'Reps and sets are handled. This sticks for the rest of the '
-            'session, and finishing at the new weight updates your '
-            'progression.',
-            style: TextStyle(
-              fontSize: 12,
-              color: cs.onSurface.withValues(alpha: 0.55),
+              ],
             ),
           ),
-          const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _StepButton(
-                icon: Icons.remove,
-                onTap: () => setState(() {
-                  _weight = (_weight - step).clamp(0, 2000);
-                }),
-              ),
-              SizedBox(
-                width: 130,
-                child: Text(
-                  formatWeight(_weight, unit, includeUnit: true),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ),
-              _StepButton(
-                icon: Icons.add,
-                onTap: () => setState(() {
-                  _weight = (_weight + step).clamp(0, 2000);
-                }),
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Text(
+              'Changes $name for the rest of this workout and for next time.',
+              style: TextStyle(fontSize: t.size.body, color: t.muted),
+            ),
           ),
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 52,
-            child: FilledButton(
-              onPressed: _isSaving ? null : _apply,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      _dirty ? 'UPDATE' : 'DONE',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.symmetric(
+                horizontal: BorderSide(color: t.hairline),
+              ),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  stepper(
+                    'Weight',
+                    formatWeight(_weight, unit, includeUnit: true),
+                    () => setState(
+                      () => _weight = (_weight - step).clamp(0, 2000),
                     ),
+                    () => setState(
+                      () => _weight = (_weight + step).clamp(0, 2000),
+                    ),
+                  ),
+                  stepper(
+                    'Reps',
+                    '$_reps',
+                    () => setState(() => _reps = (_reps - 1).clamp(1, 100)),
+                    () => setState(() => _reps = (_reps + 1).clamp(1, 100)),
+                    last: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: SizedBox(
+              height: 56,
+              child: FilledButton(
+                onPressed: _isSaving ? null : _apply,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(_dirty ? 'SAVE' : 'DONE'),
+              ),
             ),
           ),
         ],
@@ -203,6 +252,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   }
 }
 
+/// A square − / + for the steppers.
 class _StepButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -210,14 +260,17 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final t = context.tokens;
     return Material(
-      color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(side: BorderSide(color: t.outline)),
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(width: 52, height: 52, child: Icon(icon, size: 24)),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, size: t.size.title, color: t.text),
+        ),
       ),
     );
   }
@@ -234,7 +287,7 @@ Future<bool> showDeleteExerciseDialog(
         builder: (ctx) => AlertDialog(
           title: Text(
             'Remove $exerciseName?',
-            style: const TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(fontWeight: context.tokens.weight.heavy),
           ),
           content: const Text(
             'This will remove its remaining sets. Sets you already did stay.',

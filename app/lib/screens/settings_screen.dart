@@ -3,13 +3,18 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
-import '../logic/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
+import '../widgets/common/flat.dart';
+import 'maths_screen.dart';
+import 'science_screen.dart';
+import 'tutorial_screen.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/app_icons.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -30,95 +35,102 @@ class SettingsScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: const Text(
-            'Settings',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-          ),
+          title: PageTitle('Settings'),
         ),
         body: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(bottom: 24),
           children: [
-            _SettingsTile(
-              icon: Icons.mood_outlined,
-              label: 'Profile marker',
-              subtitle: '${auth.profileEmoji} · ${auth.username ?? 'You'}',
-              trailing: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: profileColorFromHex(auth.profileColorHex),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              onTap: () => context.push('/settings/profile-marker'),
-            ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.monitor_weight_outlined,
+            const FlatHeading('You'),
+            FlatRow(
+              icon: AppIcons.bodyWeight,
               label: 'Body weight',
               subtitle: bodyWeightLabel,
               trailing: IconButton(
-                icon: const Icon(Icons.sync),
+                icon: const Icon(AppIcons.refresh),
                 tooltip: 'Sync from health data',
                 onPressed: () => _syncBodyWeightFromHealth(context, auth),
               ),
               onTap: () => _showBodyWeightPicker(context, auth, settings),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.scale_outlined,
+            FlatRow(
+              icon: AppIcons.weightUnit,
               label: 'Weight unit',
               subtitle: unitLabel,
               onTap: () => _showWeightUnitPicker(context, settings),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.palette_outlined,
+            FlatRow(
+              icon: AppIcons.palette,
               label: 'Plate colours',
               subtitle: 'Assign colours to plate weights',
               onTap: () => context.push('/settings/plate-colors'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.key_outlined,
+            const FlatHeading('Learn'),
+            FlatRow(
+              icon: AppIcons.tutorial,
+              label: 'Tutorial',
+              subtitle: 'The walkthrough again',
+              onTap: () => _push(context, 'tutorial', const TutorialScreen()),
+            ),
+            FlatRow(
+              icon: AppIcons.science,
+              label: 'Workout science',
+              subtitle: 'The papers behind the app',
+              onTap: () => _push(context, 'science', const ScienceScreen()),
+            ),
+            FlatRow(
+              icon: AppIcons.maths,
+              label: 'Calorie maths',
+              subtitle: 'How burn is worked out',
+              onTap: () => _push(context, 'maths', const MathsScreen()),
+            ),
+            const FlatHeading('Account'),
+            FlatRow(
+              icon: AppIcons.key,
               label: 'Passkeys',
               subtitle: 'Manage your login credentials',
               onTap: () => context.push('/passkeys'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.notifications_outlined,
+            const FlatHeading('Sounds'),
+            FlatRow(
+              icon: AppIcons.notifications,
               label: 'Pick sound',
               subtitle: 'Choose notification sound',
               onTap: () => context.push('/sound-settings'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.bug_report_outlined,
+            const FlatHeading('Behind the scenes'),
+            FlatRow(
+              icon: AppIcons.debug,
               label: 'Debug',
               subtitle: 'Notification debugging',
               onTap: () => context.push('/debug-notifications'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.article_outlined,
+            FlatRow(
+              icon: AppIcons.article,
               label: 'App Logs',
               subtitle: 'View and share diagnostic logs',
               onTap: () => context.push('/debug-logs'),
             ),
-
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.info_outline,
+            FlatRow(
+              icon: AppIcons.info,
               label: 'Build info',
               subtitle: 'Version, device, and watch details',
               onTap: () => context.push('/build-info'),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Open one of the full-screen reading pages over everything.
+  void _push(BuildContext context, String name, Widget page) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: name),
+        builder: (_) => page,
       ),
     );
   }
@@ -163,9 +175,7 @@ class SettingsScreen extends StatelessWidget {
     AuthProvider auth,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    final syncedKg = await auth.syncBodyWeightFromHealth(
-      requestPermissions: true,
-    );
+    final syncedKg = await auth.syncBodyWeightFromHealth();
     if (!context.mounted) return;
     if (syncedKg != null && syncedKg > 0) {
       messenger.showSnackBar(
@@ -204,7 +214,7 @@ class SettingsScreen extends StatelessWidget {
                 title: const Text('Pounds (🦅)'),
                 subtitle: const Text('Standard US gym loading'),
                 trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_LB
-                    ? const Icon(Icons.check)
+                    ? const Icon(AppIcons.check)
                     : null,
                 onTap: () => Navigator.pop(context, WeightUnit.WEIGHT_UNIT_LB),
               ),
@@ -212,7 +222,7 @@ class SettingsScreen extends StatelessWidget {
                 title: const Text('Kilograms (🌍)'),
                 subtitle: const Text('Standard international gym loading'),
                 trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
-                    ? const Icon(Icons.check)
+                    ? const Icon(AppIcons.check)
                     : null,
                 onTap: () => Navigator.pop(context, WeightUnit.WEIGHT_UNIT_KG),
               ),
@@ -295,16 +305,19 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: AppTheme.sheetHandle(context)),
-              const Text(
+              Center(child: AppTheme.sheetHandle(context, inset: 20)),
+              Text(
                 'Body weight',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  fontSize: context.tokens.size.subtitle,
+                  fontWeight: context.tokens.weight.heavy,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Used to estimate calories burned. Stored on your profile.',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: context.tokens.size.body,
                   color: cs.onSurface.withValues(alpha: 0.6),
                 ),
               ),
@@ -328,79 +341,11 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
                 height: 50,
                 child: FilledButton(
                   onPressed: _save,
-                  child: const Text(
+                  child: Text(
                     'SAVE',
-                    style: TextStyle(fontWeight: FontWeight.w900),
+                    style: TextStyle(fontWeight: context.tokens.weight.heavy),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
-  final Widget? trailing;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-      borderRadius: AppTheme.brMd,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              Icon(icon, size: 24, color: colorScheme.onSurface),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        letterSpacing: -0.5,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
-              Icon(
-                Icons.chevron_right,
-                color: colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),

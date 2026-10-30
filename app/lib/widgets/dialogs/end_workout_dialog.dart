@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../screens/completed_workout_screen.dart';
+import '../../theme/theme_spec.dart';
 
 Future<void> endWorkout(BuildContext context) async {
   final confirmed = await showEndWorkoutConfirmDialog(context);
@@ -45,9 +46,9 @@ Future<bool> showEndWorkoutConfirmDialog(BuildContext context) async {
   return await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text(
+          title: Text(
             'End Workout?',
-            style: TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(fontWeight: context.tokens.weight.heavy),
           ),
           content: const Text('This will end your current workout.'),
           actions: [

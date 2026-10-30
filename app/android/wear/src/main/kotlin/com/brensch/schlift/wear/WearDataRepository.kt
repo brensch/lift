@@ -86,10 +86,12 @@ object WearDataRepository {
             return
         }
 
-        if (snapshot.lastRestEnd.toLong() > 0L) {
+        // Not resting any more: if the rest that just ended was missed (watch asleep,
+        // snapshot delayed), fire the haptic late within the catch-up window.
+        if (snapshot.restUntil.toLong() > 0L) {
             maybeCatchUpRestCompletionAlert(
                 context = context.applicationContext,
-                restUntilUnix = snapshot.lastRestEnd.toLong(),
+                restUntilUnix = snapshot.restUntil.toLong(),
             )
         }
         cancelRestCompletionAlert()

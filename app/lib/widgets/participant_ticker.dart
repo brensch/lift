@@ -1,9 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/user_profile.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
+import '../gen/copy.dart';
 
 String _fmt(int seconds) {
   final m = seconds.abs() ~/ 60;
@@ -29,78 +32,83 @@ Color participantProfileColor(ParticipantStatus participant) {
 
 ParticipantVisualStatus describeParticipantStatus(
   ParticipantStatus participant, {
+  required ThemeSpec tokens,
   DateTime? now,
 }) {
   final nowUnix = (now ?? DateTime.now()).millisecondsSinceEpoch ~/ 1000;
   final nextSet = participant.hasNextUpSet() ? participant.nextUpSet : null;
-  final restUntil = participant.restUntil.toInt();
+  // Their state is the server's snapshot of their workout, the same one
+  // their own phone draws.
+  final snapshot = participant.hasStateSnapshot()
+      ? participant.stateSnapshot
+      : null;
+  final restUntil = snapshot?.restUntil.toInt() ?? 0;
+  // The snapshot is from their last change, so a rest it says is running
+  // may have run out since: on this clock that is yapping, as it would be
+  // on their phone.
+  var state = snapshot?.state ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED;
+  if (state == WorkoutState.WORKOUT_STATE_RESTING && restUntil <= nowUnix) {
+    state = WorkoutState.WORKOUT_STATE_YAPPING;
+  }
 
   if (participant.hasActiveWorkout() &&
       participant.activeWorkout.endTime != Int64.ZERO) {
     return ParticipantVisualStatus(
-      stateLabel: 'Finished',
-      stateColor: AppTheme.successFg,
+      stateLabel: copy.workout.allDone,
+      stateColor: tokens.successFg,
       sortPriority: 0,
       isComplete: true,
     );
   }
 
-  final activeSet = participant.completedSets.cast<CompletedSet?>().firstWhere(
-    (c) => c!.endedAt == Int64.ZERO,
-    orElse: () => null,
-  );
-  if (participant.hasActiveSet || activeSet != null) {
-    final proposed = participant.proposedSets.cast<ProposedSet?>().firstWhere(
-      (ps) => ps!.id == activeSet?.proposedSetId,
-      orElse: () => null,
-    );
-    final elapsed = activeSet != null
-        ? nowUnix - activeSet.startedAt.toInt()
-        : 0;
+  final shownSet = snapshot != null && snapshot.hasDisplaySet()
+      ? snapshot.displaySet
+      : nextSet;
+
+  if (state == WorkoutState.WORKOUT_STATE_LIFTING && shownSet != null) {
     return ParticipantVisualStatus(
-      stateLabel: proposed?.warmup == true ? 'Warmup' : 'Lifting',
-      stateColor: AppTheme.workoutLiftingFg,
-      proposedSet: proposed,
-      timerText: _fmt(elapsed),
-      sortPriority: 4,
+      stateLabel: copy.workout.lifting,
+      stateColor: tokens.workoutLiftingFg,
+      proposedSet: shownSet,
+      timerText: _fmt(max(0, nowUnix - snapshot!.liftingStartedAt.toInt())),
+      sortPriority: 3,
     );
   }
 
-  if (restUntil > nowUnix && nextSet != null) {
-    final remaining = restUntil - nowUnix;
+  if (state == WorkoutState.WORKOUT_STATE_RESTING && nextSet != null) {
     return ParticipantVisualStatus(
-      stateLabel: 'Resting',
-      stateColor: AppTheme.workoutRestingFg,
+      stateLabel: copy.workout.resting,
+      stateColor: tokens.workoutRestingFg,
       proposedSet: nextSet,
-      timerText: _fmt(remaining),
+      timerText: _fmt(max(0, restUntil - nowUnix)),
       sortPriority: 2,
     );
   }
 
-  if (restUntil > 0 && restUntil <= nowUnix && nextSet != null) {
-    final elapsed = nowUnix - restUntil;
+  // Their rest has run out and the next set isn't started: yapping,
+  // counting up from the rest end.
+  if (state == WorkoutState.WORKOUT_STATE_YAPPING && nextSet != null) {
     return ParticipantVisualStatus(
-      stateLabel: 'Yapping',
-      stateColor: AppTheme.workoutYappingFg,
+      stateLabel: copy.workout.yapping,
+      stateColor: tokens.workoutYappingFg,
       proposedSet: nextSet,
-      timerText: _fmt(elapsed),
-      timerColor: AppTheme.workoutYappingFg,
-      sortPriority: 3,
+      timerText: _fmt(max(0, nowUnix - restUntil)),
+      sortPriority: 1,
     );
   }
 
   if (nextSet != null) {
     return ParticipantVisualStatus(
-      stateLabel: 'Next up',
-      stateColor: AppTheme.warmupFg,
+      stateLabel: copy.workout.ready,
+      stateColor: tokens.warmupFg,
       proposedSet: nextSet,
       sortPriority: 1,
     );
   }
 
   return ParticipantVisualStatus(
-    stateLabel: 'Done',
-    stateColor: AppTheme.successFg,
+    stateLabel: copy.workout.allDone,
+    stateColor: tokens.successFg,
     sortPriority: 0,
     isComplete: true,
   );
@@ -115,17 +123,16 @@ int? participantScheduledStartUnix(
     return null;
   }
 
-  final activeSet = participant.completedSets.cast<CompletedSet?>().firstWhere(
-    (c) => c!.endedAt == Int64.ZERO,
-    orElse: () => null,
-  );
-  if (participant.hasActiveSet ||
-      activeSet != null ||
-      !participant.hasNextUpSet()) {
-    return null;
-  }
+  if (!participant.hasNextUpSet()) return null;
 
-  final restUntil = participant.restUntil.toInt();
+  // Lifting: on the rack, not waiting for it. Resting or yapping: their
+  // rest end, past or not. Otherwise they could go now.
+  final snapshot = participant.hasStateSnapshot()
+      ? participant.stateSnapshot
+      : null;
+  if (snapshot == null) return nowUnix;
+  if (snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING) return null;
+  final restUntil = snapshot.restUntil.toInt();
   return restUntil > 0 ? restUntil : nowUnix;
 }
 
@@ -134,7 +141,6 @@ class ParticipantVisualStatus {
   final Color stateColor;
   final ProposedSet? proposedSet;
   final String? timerText;
-  final Color? timerColor;
   final int sortPriority;
   final bool isComplete;
 
@@ -143,7 +149,6 @@ class ParticipantVisualStatus {
     required this.stateColor,
     this.proposedSet,
     this.timerText,
-    this.timerColor,
     required this.sortPriority,
     this.isComplete = false,
   });
