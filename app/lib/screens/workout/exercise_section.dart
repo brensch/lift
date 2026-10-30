@@ -6,7 +6,6 @@
 /// place in the order.
 library;
 
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 
 import '../../gen/copy.dart';
@@ -14,8 +13,8 @@ import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
 import '../../logic/session_state.dart';
-import '../../providers/workout_provider.dart';
 import '../../theme/theme_spec.dart';
+import 'section_workout.dart';
 import 'set_circle.dart';
 
 const double _padding = 16;
@@ -25,7 +24,9 @@ const double _glow = 8;
 
 class ExerciseSection extends StatelessWidget {
   final ExerciseBlock block;
-  final WorkoutProvider wp;
+
+  /// The workout it belongs to: yours (tappable) or a partner's.
+  final SectionWorkout workout;
 
   /// The exercise the next set belongs to: drawn on the panel colour.
   final bool focused;
@@ -42,7 +43,7 @@ class ExerciseSection extends StatelessWidget {
   const ExerciseSection({
     super.key,
     required this.block,
-    required this.wp,
+    required this.workout,
     required this.focused,
     required this.finished,
     this.dragIndex,
@@ -52,12 +53,14 @@ class ExerciseSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final live = !wp.isWorkoutEnded;
+    final w = workout;
+    final wp = w.actions;
+    final live = wp != null;
     final sets = block.sets.where((s) => !s.cancelled).toList();
     final warmups = sets.where((s) => s.warmup).toList();
     final working = sets.where((s) => !s.warmup).toList();
     final openWarmups = warmups.any(
-      (s) => !wp.isSetDone(s.id) && !wp.isPassedWarmup(s),
+      (s) => !w.isDone(s.id) && !w.isPassedWarmup(s),
     );
     final calibrating =
         sets.any((s) => s.calibration) &&
@@ -65,7 +68,7 @@ class ExerciseSection extends StatelessWidget {
 
     // The rung just done asks how much was left in the tank; until it is
     // answered the plan below it is undecided, so no other set starts.
-    final prompt = wp.effortPrompt;
+    final prompt = w.effortPrompt;
     final asking =
         prompt != null &&
         prompt.calibration &&
@@ -73,19 +76,17 @@ class ExerciseSection extends StatelessWidget {
     final askingHere = asking && prompt.exercise == block.exercise;
 
     // The up-next circle wears the workout's state colour, like the banner.
-    final stateValue =
-        wp.stateSnapshot?.state.value ??
-        WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
+    final stateValue = w.stateValue;
     final nextColor = isRestingState(stateValue)
         ? t.workoutRestingFg
         : isYappingState(stateValue)
         ? t.workoutYappingFg
         : t.primary;
-    final nextId = wp.doneTargetSet?.id;
-    final liftingId = wp.activeWorkout?.liftingSetId ?? '';
+    final nextId = w.nextSetId;
+    final liftingId = w.liftingSetId;
 
     Widget circle(ProposedSet set) {
-      final done = _doneFor(set.id);
+      final done = w.doneFor(set.id);
       final reps = done?.actualReps ?? set.targetReps;
       final SetCircleState state;
       if (done != null) {
@@ -98,13 +99,13 @@ class ExerciseSection extends StatelessWidget {
         state = SetCircleState.lifting;
       } else if (!asking && nextId == set.id) {
         state = SetCircleState.next;
-      } else if (wp.isPassedWarmup(set)) {
+      } else if (w.isPassedWarmup(set)) {
         state = SetCircleState.skipped;
       } else {
         state = SetCircleState.pending;
       }
       final VoidCallback? onTap;
-      if (!live) {
+      if (wp == null) {
         onTap = null;
       } else if (done != null) {
         onTap = () => wp.tapDoneSet(done.id);
@@ -210,7 +211,7 @@ class ExerciseSection extends StatelessWidget {
                     label: copy.workout.warmupLabel,
                     follow: followIn(warmups),
                     ids: [for (final s in warmups) s.id],
-                    trailing: live && openWarmups
+                    trailing: wp != null && openWarmups
                         ? _SkipButton(
                             onTap: () => wp.skipWarmups(block.exercise),
                           )
@@ -231,7 +232,7 @@ class ExerciseSection extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(_padding, 6, _padding, 6),
               child: _RepsLeftQuestion(
                 onAnswer: (effort) =>
-                    wp.rateExercise(prompt.completedSetId, effort),
+                    wp?.rateExercise(prompt.completedSetId, effort),
               ),
             ),
         ],
@@ -254,15 +255,6 @@ class ExerciseSection extends StatelessWidget {
         content,
       ],
     );
-  }
-
-  CompletedSet? _doneFor(String proposedSetId) {
-    for (final c in wp.completedSets) {
-      if (c.proposedSetId == proposedSetId && c.endedAt != Int64.ZERO) {
-        return c;
-      }
-    }
-    return null;
   }
 }
 

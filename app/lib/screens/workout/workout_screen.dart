@@ -23,6 +23,7 @@ import '../../widgets/exercise_picker.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
 import '../../widgets/workout_bar/workout_focus.dart';
 import 'exercise_section.dart';
+import 'section_workout.dart';
 import 'workout_panels.dart';
 import '../../theme/theme_spec.dart';
 
@@ -170,6 +171,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     ];
 
     final workout = wp.workout!;
+    final sectionWorkout = SectionWorkout.mine(wp);
     final divider = Divider(
       height: 1,
       thickness: 1,
@@ -230,7 +232,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                     ExerciseSection(
                       key: ValueKey('section-${block.stableId}'),
                       block: block,
-                      wp: wp,
+                      workout: sectionWorkout,
                       focused: false,
                       finished: true,
                       onEdit: isEnded
@@ -281,7 +283,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                 ? _focusKey
                                 : null,
                             block: block,
-                            wp: wp,
+                            workout: sectionWorkout,
                             focused: focusedBlock?.stableId == block.stableId,
                             finished: false,
                             dragIndex: isEnded || unfinishedBlocks.length < 2

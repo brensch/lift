@@ -204,7 +204,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                       animation: _throb,
                       builder: (context, _) => CustomPaint(
                         painter: _SpotlightPainter(
-                          outline: context.tokens.accentRed,
+                          outline: context.tokens.primary,
                           radius: context.tokens.radius(18),
                           target: _target,
                           throb: Curves.easeInOut.transform(_throb.value),
@@ -232,7 +232,7 @@ class _TutorialScreenState extends State<TutorialScreen>
   }
 }
 
-/// The dim layer with a hole around the target and the throbbing outline.
+/// The dim layer with a hole around the target and its orange outline.
 class _SpotlightPainter extends CustomPainter {
   final Rect? target;
   final double throb;
@@ -262,21 +262,13 @@ class _SpotlightPainter extends CustomPainter {
       Path.combine(PathOperation.difference, full, holePath),
       scrim,
     );
-    // Glow, then the outline on top.
+    // A crisp orange outline that beats a little thicker, no glow.
     canvas.drawRRect(
       RRect.fromRectAndRadius(hole, _radius),
       Paint()
-        ..color = outline.withValues(alpha: 0.35 + 0.35 * throb)
+        ..color = outline
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6 + 10 * throb
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 + 10 * throb),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(hole, _radius),
-      Paint()
-        ..color = outline.withValues(alpha: 0.8 + 0.2 * throb)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
+        ..strokeWidth = 3 + 2 * throb,
     );
   }
 
@@ -363,13 +355,8 @@ class _Popover extends StatelessWidget {
     final t = copy.tutorial;
     final muted = cs.onSurface.withValues(alpha: 0.55);
     return Material(
-      color: cs.surface,
-      elevation: 16,
-      shadowColor: Colors.black,
-      shape: RoundedRectangleBorder(
-        borderRadius: context.tokens.brLg,
-        side: BorderSide(color: cs.onSurface.withValues(alpha: 0.35), width: 2),
-      ),
+      color: context.tokens.panel,
+      shape: RoundedRectangleBorder(side: BorderSide(color: cs.outline)),
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
