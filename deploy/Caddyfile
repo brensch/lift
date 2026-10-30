@@ -1,3 +1,12 @@
+# HTTP/1.1 and HTTP/2 only. HTTP/3 would bind UDP 443, which another
+# service on this box (snek-server) holds; Caddy then fails to start and
+# takes schlift.com down with it. The app speaks gRPC over HTTP/2 anyway.
+{
+    servers {
+        protocols h1 h2
+    }
+}
+
 schlift.com {
     encode zstd gzip
 
