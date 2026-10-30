@@ -98,10 +98,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     final step = _stepLb(unit);
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.sheetColor(context),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-      ),
+      decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         left: 20,

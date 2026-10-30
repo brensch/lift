@@ -68,7 +68,6 @@ class _LibrarySheetState extends State<_LibrarySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final wp = context.watch<WorkoutProvider>();
     final have = {
       for (final t in wp.templates)
@@ -82,10 +81,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
       maxChildSize: 0.95,
       expand: false,
       builder: (context, controller) => Container(
-        decoration: BoxDecoration(
-          color: AppTheme.sheetColor(context),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-        ),
+        decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

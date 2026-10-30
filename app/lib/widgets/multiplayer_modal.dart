@@ -254,10 +254,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
       top: false,
       child: Container(
         constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
-        decoration: BoxDecoration(
-          color: AppTheme.sheetColor(context),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
-        ),
+        // No side borders: the Scan band and lists run to the very edge.
+        color: AppTheme.sheetColor(context),
         padding: const EdgeInsets.only(bottom: 16),
         child: SingleChildScrollView(
           child: Column(
