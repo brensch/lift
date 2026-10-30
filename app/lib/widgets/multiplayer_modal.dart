@@ -266,17 +266,11 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             children: [
               Center(child: AppTheme.sheetHandle(context)),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const PageTitle('Multiplayer'),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(AppIcons.close),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
                 ),
+                child: const PageTitle('Multiplayer'),
               ),
               const SizedBox(height: 12),
               if (_isScanning)
