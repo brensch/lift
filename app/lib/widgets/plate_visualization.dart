@@ -60,11 +60,58 @@ class _PlateSheet extends StatelessWidget {
     }
     final sizes = counts.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    final note = weight < barWeight
-        ? 'Dumbbells'
+    final perSide = plates.fold<double>(0, (a, p) => a + p);
+    final plateText = weight < barWeight
+        ? '—'
         : plates.isEmpty
-        ? 'Bar only'
-        : '${num(barWeight)} $suffix bar';
+        ? 'None'
+        : '${num(perSide)} $suffix';
+    final barText = weight < barWeight
+        ? 'Dumbbells'
+        : '${num(barWeight)} $suffix';
+
+    Widget column(
+      String label,
+      String value,
+      String? note, {
+      bool last = false,
+    }) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 4, 12, 14),
+        decoration: BoxDecoration(
+          border: Border(
+            right: last ? BorderSide.none : BorderSide(color: t.hairline),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionLabel(label),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: t.mono(
+                  TextStyle(
+                    fontSize: t.size.headline,
+                    fontWeight: t.weight.bold,
+                    color: t.text,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+            if (note != null)
+              Text(
+                note,
+                style: TextStyle(fontSize: t.size.small, color: t.muted),
+              ),
+          ],
+        ),
+      ),
+    );
 
     return SafeArea(
       top: false,
@@ -73,34 +120,19 @@ class _PlateSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Center(child: AppTheme.sheetHandle(context)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Plates (each side), bar, total: three columns split by
+          // hairlines.
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SectionLabel('Plates'),
-                const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      '${formatWeight(weight, unit)} $suffix',
-                      style: t.mono(
-                        TextStyle(
-                          fontSize: t.size.displayLg,
-                          fontWeight: t.weight.bold,
-                          color: t.text,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      note,
-                      style: TextStyle(fontSize: t.size.bodyLg, color: t.muted),
-                    ),
-                  ],
+                column('Plates', plateText, 'each side'),
+                column('Bar', barText, null),
+                column(
+                  'Total',
+                  '${formatWeight(weight, unit)} $suffix',
+                  null,
+                  last: true,
                 ),
               ],
             ),

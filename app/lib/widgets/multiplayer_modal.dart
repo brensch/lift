@@ -8,6 +8,7 @@ import '../gen/workout/v1/workout.pb.dart' show User;
 import '../logic/user_profile.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
+import 'common/flat.dart';
 import '../theme/theme_spec.dart';
 import 'participant_ticker.dart';
 import '../theme/app_icons.dart';
@@ -106,16 +107,10 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'IN YOUR SESSION',
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: 1.5,
-            color: cs.tertiary,
-          ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: SectionLabel('In your session'),
         ),
-        const SizedBox(height: 10),
         // Full-width rows: their emoji on their colour, name, stage.
         _Rows(
           children: [
@@ -163,31 +158,28 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'FRIENDS',
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: 1.5,
-            color: cs.tertiary,
-          ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: SectionLabel('Friends'),
         ),
         const SizedBox(height: 6),
-        Text(
-          'People you’ve trained with. Tap Ask and they get a request to join '
-          'your session.',
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            height: 1.35,
-            fontWeight: context.tokens.weight.bold,
-            color: cs.onSurfaceVariant,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            'People you’ve trained with. Tap Ask and they get a request to '
+            'join your session.',
+            style: TextStyle(
+              fontSize: context.tokens.size.body,
+              height: 1.35,
+              color: cs.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(height: 12),
         if (partners.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               border: Border.symmetric(
                 horizontal: BorderSide(color: context.tokens.hairline),
@@ -266,40 +258,33 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           color: AppTheme.sheetColor(context),
           border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
         ),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.only(bottom: 16),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(child: AppTheme.sheetHandle(context)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Multiplayer',
-                    style: TextStyle(
-                      fontSize: context.tokens.size.title,
-                      fontWeight: context.tokens.weight.heavy,
-                      letterSpacing: -0.5,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const PageTitle('Multiplayer'),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(AppIcons.close),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(AppIcons.close),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               if (_isScanning)
                 Column(
                   children: [
                     SizedBox(
                       height: 320,
-                      child: ClipRRect(
-                        borderRadius: context.tokens.brMd,
-                        child: MobileScanner(onDetect: _handleScan),
-                      ),
+                      child: MobileScanner(onDetect: _handleScan),
                     ),
                     const SizedBox(height: 14),
                     Text(
@@ -325,10 +310,13 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   ),
                 )
               else ...[
-                // The hero: scan a friend's code to join them.
+                // The hero: scan a friend's code to join them. Edge to edge.
                 SizedBox(
-                  height: 60,
+                  height: 64,
                   child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      shape: const RoundedRectangleBorder(),
+                    ),
                     onPressed: () => setState(() => _isScanning = true),
                     icon: const Icon(AppIcons.camera, size: 24),
                     label: Text(
@@ -347,7 +335,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: context.tokens.brMd,
                       border: Border.all(color: cs.outline),
                     ),
                     child: QrImageView(

@@ -181,6 +181,8 @@ class AppTheme {
         modalElevation: 0,
         shadowColor: Colors.transparent,
         shape: sheetShape,
+        // Full width on any screen, not Material's 640 cap.
+        constraints: const BoxConstraints(maxWidth: double.infinity),
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
