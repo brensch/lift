@@ -143,10 +143,7 @@ class WeightPickerState extends State<WeightPicker> {
     final sliderDivisions = (maxDisplay / smallStep).round();
 
     return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.vertical(top: context.tokens.radius(24)),
-      ),
+      decoration: BoxDecoration(color: colorScheme.surface),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         top: 24,

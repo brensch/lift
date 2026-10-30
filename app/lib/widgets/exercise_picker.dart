@@ -185,12 +185,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: BoxDecoration(
-            color: AppTheme.sheetColor(context),
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(context.tokens.radiusLg),
-            ),
-          ),
+          decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
           child: Column(
             children: [
               // grab handle

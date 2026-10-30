@@ -13,15 +13,12 @@ class AppTheme {
   /// The app's theme, built from [schliftSpec].
   static final theme = build(schliftSpec);
 
-  /// Standard grab handle for bottom sheets (36×4, outlineVariant).
+  /// Standard grab handle for bottom sheets: a flat 36×4 bar.
   static Widget sheetHandle(BuildContext context) => Container(
     width: 36,
     height: 4,
     margin: const EdgeInsets.only(top: 8, bottom: 12),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.outlineVariant,
-      borderRadius: BorderRadius.circular(4),
-    ),
+    color: Theme.of(context).colorScheme.outlineVariant,
   );
 
   /// Translucent card fill used on the ground (text colour @ ~4%).
@@ -48,11 +45,11 @@ class AppTheme {
       borderRadius: s.brSm,
       borderSide: BorderSide(color: s.outline),
     );
-    final sheetShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(s.radiusLg),
-        topRight: Radius.circular(s.radiusLg),
-      ),
+    // Surfaces that sit over the page are flat: square, no shadow, set
+    // apart by a line rather than a lift.
+    final sheetShape = Border(top: BorderSide(color: s.outline));
+    final flatPanel = RoundedRectangleBorder(
+      side: BorderSide(color: s.outline),
     );
     final typography = s.isDark
         ? Typography.material2021().white
@@ -81,20 +78,25 @@ class AppTheme {
         outlineVariant: s.outline,
       ),
       dividerColor: s.hairline,
+      dividerTheme: DividerThemeData(color: s.hairline, thickness: 1, space: 1),
       appBarTheme: AppBarTheme(
         backgroundColor: s.background,
         foregroundColor: s.text,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        // Page titles in the buttons' face, regular weight.
+        titleTextStyle: GoogleFonts.getFont(
+          s.buttonFont,
+          fontSize: s.size.title,
+          fontWeight: s.weight.regular,
+          color: s.text,
+        ),
       ),
       cardTheme: CardThemeData(
         color: s.panel,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: s.brMd,
-          side: BorderSide(color: s.hairline),
-        ),
+        shape: RoundedRectangleBorder(side: BorderSide(color: s.hairline)),
         margin: EdgeInsets.zero,
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -137,7 +139,9 @@ class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: s.panel,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: s.brLg),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: flatPanel,
       ),
       drawerTheme: DrawerThemeData(
         backgroundColor: s.background,
@@ -156,7 +160,9 @@ class AppTheme {
       popupMenuTheme: PopupMenuThemeData(
         color: s.panel,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: s.brSm),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: flatPanel,
       ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(borderRadius: s.brSm),
@@ -171,6 +177,9 @@ class AppTheme {
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: s.panel,
         surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        modalElevation: 0,
+        shadowColor: Colors.transparent,
         shape: sheetShape,
       ),
       switchTheme: SwitchThemeData(
@@ -191,8 +200,8 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: s.primary,
         contentTextStyle: TextStyle(color: s.onPrimary),
-        behavior: SnackBarBehavior.floating,
-        shape: controlShape,
+        behavior: SnackBarBehavior.fixed,
+        elevation: 0,
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: s.primary),
     );

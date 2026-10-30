@@ -4,6 +4,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gen/workout/v1/group.pb.dart';
+import '../gen/workout/v1/workout.pb.dart' show User;
+import '../logic/user_profile.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
@@ -114,61 +116,40 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           ),
         ),
         const SizedBox(height: 10),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            borderRadius: context.tokens.brMd,
-          ),
-          child: Column(
-            children: [
-              for (final p in participants)
-                Builder(
-                  builder: (_) {
-                    final status = describeParticipantStatus(
-                      p,
-                      tokens: context.tokens,
-                    );
-                    final name = participantDisplayName(p);
-                    return ListTile(
-                      dense: true,
-                      leading: CircleAvatar(
-                        radius: 14,
-                        backgroundColor: status.stateColor,
-                        child: Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: TextStyle(
-                            fontSize: context.tokens.size.small,
-                            fontWeight: context.tokens.weight.bold,
-                            color:
-                                ThemeData.estimateBrightnessForColor(
-                                      status.stateColor,
-                                    ) ==
-                                    Brightness.dark
-                                ? Colors.white
-                                : Colors.black,
-                          ),
-                        ),
+        // Full-width rows: their emoji on their colour, name, stage.
+        _Rows(
+          children: [
+            for (final p in participants)
+              Builder(
+                builder: (_) {
+                  final status = describeParticipantStatus(
+                    p,
+                    tokens: context.tokens,
+                  );
+                  return ListTile(
+                    dense: true,
+                    leading: _Avatar(user: p.user),
+                    title: Text(
+                      participantDisplayName(p),
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.body,
                       ),
-                      title: Text(
-                        name,
-                        style: TextStyle(
-                          fontWeight: context.tokens.weight.bold,
-                          fontSize: context.tokens.size.body,
-                        ),
-                      ),
-                      trailing: Text(
-                        status.stateLabel,
-                        style: TextStyle(
+                    ),
+                    trailing: Text(
+                      status.stateLabel.toUpperCase(),
+                      style: context.tokens.mono(
+                        TextStyle(
                           fontSize: context.tokens.size.small,
-                          fontWeight: context.tokens.weight.heavy,
+                          fontWeight: context.tokens.weight.bold,
                           color: status.stateColor,
                         ),
                       ),
-                    );
-                  },
-                ),
-            ],
-          ),
+                    ),
+                  );
+                },
+              ),
+          ],
         ),
         const SizedBox(height: 24),
       ],
@@ -206,10 +187,11 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         if (partners.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              borderRadius: context.tokens.brMd,
-              border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
+              border: Border.symmetric(
+                horizontal: BorderSide(color: context.tokens.hairline),
+              ),
             ),
             child: Text(
               'No training partners yet. Do a session with someone (scan their '
@@ -224,59 +206,41 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             ),
           )
         else
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-              borderRadius: context.tokens.brMd,
-            ),
-            child: Column(
-              children: [
-                for (final p in partners)
-                  ListTile(
-                    dense: true,
-                    leading: CircleAvatar(
-                      radius: 14,
-                      child: Text(
-                        p.user.name.isNotEmpty
-                            ? p.user.name[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontSize: context.tokens.size.small,
-                          fontWeight: context.tokens.weight.bold,
-                        ),
-                      ),
+          _Rows(
+            children: [
+              for (final p in partners)
+                ListTile(
+                  dense: true,
+                  leading: _Avatar(user: p.user),
+                  title: Text(
+                    p.user.name,
+                    style: TextStyle(
+                      fontWeight: context.tokens.weight.bold,
+                      fontSize: context.tokens.size.body,
                     ),
-                    title: Text(
-                      p.user.name,
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.bold,
-                        fontSize: context.tokens.size.body,
-                      ),
-                    ),
-                    subtitle: Text(
-                      _partnerSubtitle(p),
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        color: cs.tertiary,
-                      ),
-                    ),
-                    trailing: _joiningPartnerId == p.user.id
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : FilledButton.tonal(
-                            onPressed: () =>
-                                _askPartner(p.user.id, p.user.name),
-                            style: FilledButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            child: const Text('Ask'),
-                          ),
                   ),
-              ],
-            ),
+                  subtitle: Text(
+                    _partnerSubtitle(p),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.small,
+                      color: cs.tertiary,
+                    ),
+                  ),
+                  trailing: _joiningPartnerId == p.user.id
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : FilledButton.tonal(
+                          onPressed: () => _askPartner(p.user.id, p.user.name),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: const Text('Ask'),
+                        ),
+                ),
+            ],
           ),
       ],
     );
@@ -300,9 +264,6 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
         decoration: BoxDecoration(
           color: AppTheme.sheetColor(context),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(context.tokens.radiusLg),
-          ),
           border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
         ),
         padding: const EdgeInsets.all(24),
@@ -411,6 +372,52 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Rows split by hairlines, with one above the first: a list that reads as
+/// part of the page rather than a box on it.
+class _Rows extends StatelessWidget {
+  final List<Widget> children;
+
+  const _Rows({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final line = BorderSide(color: context.tokens.hairline);
+    return DecoratedBox(
+      decoration: BoxDecoration(border: Border(top: line)),
+      child: Column(
+        children: [
+          for (final c in children)
+            DecoratedBox(
+              decoration: BoxDecoration(border: Border(bottom: line)),
+              child: c,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Someone's emoji on a square of their colour, as on the workout banner.
+class _Avatar extends StatelessWidget {
+  final User user;
+
+  const _Avatar({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      color: profileColorFromHex(user.profileColorHex),
+      child: Text(
+        normalizedProfileEmoji(user.profileEmoji),
+        style: TextStyle(fontSize: context.tokens.size.bodyLg, height: 1),
       ),
     );
   }

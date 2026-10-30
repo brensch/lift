@@ -116,9 +116,6 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.radiusLg),
-        ),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       padding: EdgeInsets.only(
@@ -403,9 +400,6 @@ class _TrackerSheetState extends State<_TrackerSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.radiusLg),
-        ),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       padding: EdgeInsets.only(

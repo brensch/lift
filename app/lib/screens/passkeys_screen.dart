@@ -160,15 +160,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Passkeys',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text('Passkeys')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

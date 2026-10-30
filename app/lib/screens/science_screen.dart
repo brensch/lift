@@ -15,15 +15,7 @@ class ScienceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '🧠 Workout science',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.3,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text('🧠 Workout science')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [

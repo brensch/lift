@@ -21,6 +21,7 @@ import '../../widgets/dialogs/end_workout_dialog.dart';
 import '../../widgets/dialogs/weight_adjust_sheet.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
+import '../../widgets/workout_bar/workout_focus.dart';
 import 'exercise_section.dart';
 import 'workout_panels.dart';
 import '../../theme/theme_spec.dart';
@@ -36,6 +37,46 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   /// The view on show: the workout, the log, or heart rate. Picked by its
   /// header; there is no swiping between them.
   int _page = 0;
+
+  /// The exercise in hand, so a tap on the banner can bring it into view.
+  final _focusKey = GlobalKey();
+
+  /// The last request answered: a tap made from another page lands before
+  /// this screen is built, so it catches up on its first frame.
+  static int _answered = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    workoutFocusRequests.addListener(_showFocus);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (workoutFocusRequests.value != _answered) _showFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    workoutFocusRequests.removeListener(_showFocus);
+    super.dispose();
+  }
+
+  /// To the workout view, scrolled so the exercise in hand sits at the
+  /// bottom, just above the banner.
+  void _showFocus() {
+    if (!mounted) return;
+    _answered = workoutFocusRequests.value;
+    if (_page != 0) setState(() => _page = 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _focusKey.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -236,6 +277,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           ExerciseSection(
+                            key: focusedBlock?.stableId == block.stableId
+                                ? _focusKey
+                                : null,
                             block: block,
                             wp: wp,
                             focused: focusedBlock?.stableId == block.stableId,

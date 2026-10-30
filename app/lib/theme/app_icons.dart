@@ -389,7 +389,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-
   /// Phosphor `fire`.
   static const warmup = IconData(
     0xe242,

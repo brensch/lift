@@ -62,13 +62,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Plate colours',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
+        title: Text('Plate colours'),
         actions: [
           if (_dirty)
             TextButton(

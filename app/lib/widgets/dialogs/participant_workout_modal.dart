@@ -33,9 +33,6 @@ Future<void> showParticipantWorkoutModal(
       return Container(
         decoration: BoxDecoration(
           color: AppTheme.sheetColor(ctx),
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(context.tokens.radiusLg),
-          ),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
         ),
         padding: EdgeInsets.only(

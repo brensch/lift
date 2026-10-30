@@ -29,13 +29,7 @@ class MathsScreen extends StatelessWidget {
           icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Calorie maths',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
+        title: Text('Calorie maths'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),

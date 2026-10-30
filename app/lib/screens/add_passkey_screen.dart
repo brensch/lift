@@ -58,15 +58,7 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Add Passkey',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text('Add Passkey')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),

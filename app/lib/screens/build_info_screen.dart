@@ -73,15 +73,7 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Build Info',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text('Build Info')),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(

@@ -11,6 +11,7 @@ import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
+import '../widgets/common/flat.dart';
 import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
@@ -117,13 +118,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: Text(
-            'Progress',
-            style: TextStyle(
-              fontWeight: context.tokens.weight.heavy,
-              letterSpacing: -0.5,
-            ),
-          ),
+          title: Text('Progress'),
         ),
         body: body,
       ),
@@ -140,26 +135,25 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
     return scaffold(
       ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          _SummaryHeader(
-            workoutCount: _workoutCount,
-            totalVolume: _totalVolume,
-            since: _series!
-                .expand((s) => s.points)
-                .map((p) => p.date)
-                .reduce((a, b) => a.isBefore(b) ? a : b),
-            unit: unit,
-            cs: cs,
+          FlatSection(
+            child: _SummaryHeader(
+              workoutCount: _workoutCount,
+              totalVolume: _totalVolume,
+              since: _series!
+                  .expand((s) => s.points)
+                  .map((p) => p.date)
+                  .reduce((a, b) => a.isBefore(b) ? a : b),
+              unit: unit,
+              cs: cs,
+            ),
           ),
-          const SizedBox(height: 14),
-          _WindowSelector(
+          FlatTabs(
             labels: [for (final w in _windows) w.label],
             selected: _windowIdx,
             onSelect: (i) => setState(() => _windowIdx = i),
-            cs: cs,
           ),
-          const SizedBox(height: 14),
           if (shown.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 40),
@@ -174,10 +168,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               ),
             )
           else
-            for (final s in shown) ...[
-              _ExerciseCard(series: s, unit: unit, cs: cs),
-              const SizedBox(height: 10),
-            ],
+            for (final s in shown) _ExerciseCard(series: s, unit: unit, cs: cs),
         ],
       ),
     );
@@ -259,74 +250,6 @@ class _SummaryHeader extends StatelessWidget {
   );
 }
 
-/// Segmented control for the chart time-scale (1M / 3M / 6M / 1Y / All).
-class _WindowSelector extends StatelessWidget {
-  final List<String> labels;
-  final int selected;
-  final ValueChanged<int> onSelect;
-  final ColorScheme cs;
-  const _WindowSelector({
-    required this.labels,
-    required this.selected,
-    required this.onSelect,
-    required this.cs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: context.tokens.brSm,
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onSelect(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(vertical: 7),
-                  decoration: BoxDecoration(
-                    color: i == selected ? cs.surface : Colors.transparent,
-                    borderRadius: context.tokens.brSm,
-                    boxShadow: i == selected
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.18),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      labels[i],
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        fontWeight: i == selected
-                            ? context.tokens.weight.heavy
-                            : context.tokens.weight.bold,
-                        color: i == selected
-                            ? cs.onSurface
-                            : cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ExerciseCard extends StatelessWidget {
   final _ExerciseProgress series;
   final WeightUnit unit;
@@ -347,17 +270,15 @@ class _ExerciseCard extends StatelessWidget {
         ? ''
         : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';
 
+    // A full-width row, split from the next by a hairline.
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: context.tokens.brMd,
         onTap: () => context.push('/exercise/${series.exercise.value}'),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: context.tokens.brMd,
-            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
+            border: Border(bottom: BorderSide(color: context.tokens.hairline)),
           ),
           child: Row(
             children: [

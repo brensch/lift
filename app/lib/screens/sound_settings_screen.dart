@@ -15,15 +15,7 @@ class SoundSettingsScreen extends StatelessWidget {
     final presets = getPresets();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Pick sound',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text('Pick sound')),
       body: ListView.separated(
         itemCount: presets.length,
         separatorBuilder: (_, __) =>

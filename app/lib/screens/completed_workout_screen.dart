@@ -15,6 +15,7 @@ import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
+import '../widgets/common/flat.dart';
 import '../widgets/heart_rate/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
 import '../theme/theme_spec.dart';
@@ -231,104 +232,70 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           ),
           title: Text(
             workout.name.isNotEmpty ? workout.name : 'Workout summary',
-            style: TextStyle(
-              fontWeight: context.tokens.weight.heavy,
-              letterSpacing: -0.5,
-            ),
           ),
         ),
         body: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(bottom: 24),
           children: [
-            Text(
-              'Session snapshot',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: context.tokens.weight.heavy,
+            FlatSection(
+              label: 'Session',
+              bleed: true,
+              child: _MetricGrid(
+                metrics: [
+                  ('Duration', summary.durationLabel, null),
+                  ('Volume', summary.volumeLabel, null),
+                  ('Sets', '$workingSetsDone', null),
+                  (
+                    copy.workout.lifting,
+                    summary.liftingTimeLabel,
+                    context.tokens.workoutLiftingFg,
+                  ),
+                  (
+                    copy.workout.resting,
+                    summary.restingTimeLabel,
+                    context.tokens.workoutRestingFg,
+                  ),
+                  (
+                    copy.workout.yapping,
+                    summary.yappingTimeLabel,
+                    context.tokens.workoutYappingFg,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.start,
-              children: [
-                _SummaryMetric(
-                  label: 'Duration',
-                  value: summary.durationLabel,
-                  icon: AppIcons.timer,
+            if (hasHeartRateChart)
+              FlatSection(
+                label: 'Heart',
+                child: HeartRateChart(
+                  heartRateSamples: _heartRateSamples,
+                  completedSets: ownCompletedSets,
+                  workoutStartTime: workout.startTime,
+                  now: chartNow,
+                  followLiveClock: false,
                 ),
-                _SummaryMetric(
-                  label: 'Volume',
-                  value: summary.volumeLabel,
-                  icon: AppIcons.lines,
+              ),
+            FlatSection(label: 'Trained with', child: _buildFriends(context)),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: context.tokens.hairline),
                 ),
-                _SummaryMetric(
-                  label: 'Sets',
-                  value: '$workingSetsDone',
-                  icon: AppIcons.workout,
-                ),
-                _SummaryMetric(
-                  label: copy.workout.resting,
-                  value: summary.restingTimeLabel,
-                  icon: AppIcons.calm,
-                  accent: context.tokens.workoutRestingFg,
-                ),
-                _SummaryMetric(
-                  label: copy.workout.yapping,
-                  value: summary.yappingTimeLabel,
-                  icon: AppIcons.yapping,
-                  accent: context.tokens.workoutYappingFg,
-                ),
-              ],
+              ),
+              child: const SectionLabel('Exercises'),
             ),
-            if (hasHeartRateChart) ...[
-              const SizedBox(height: 16),
-              HeartRateChart(
-                heartRateSamples: _heartRateSamples,
+            for (final exercise in summary.exerciseSummaries)
+              _ExerciseSummaryRow(exercise: exercise),
+            FlatSection(
+              label: 'Set log',
+              divider: false,
+              child: SetLog(
+                proposedSets: ownProposedSets,
                 completedSets: ownCompletedSets,
-                workoutStartTime: workout.startTime,
-                now: chartNow,
-                followLiveClock: false,
+                workoutOwnerEmojis: {
+                  workout.id: normalizedProfileEmoji(auth.profileEmoji),
+                },
               ),
-            ],
-            const SizedBox(height: 16),
-            Text(
-              'Friends worked out with',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: context.tokens.weight.heavy,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            _buildFriendChips(context),
-            const SizedBox(height: 28),
-            Text(
-              'Exercise totals',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: context.tokens.weight.heavy,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...summary.exerciseSummaries.map(
-              (exercise) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _ExerciseSummaryCard(exercise: exercise),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Set log',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: context.tokens.weight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SetLog(
-              proposedSets: ownProposedSets,
-              completedSets: ownCompletedSets,
-              workoutOwnerEmojis: {
-                workout.id: normalizedProfileEmoji(auth.profileEmoji),
-              },
             ),
           ],
         ),
@@ -336,30 +303,16 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     );
   }
 
-  Widget _buildFriendChips(BuildContext context) {
-    if (!_sessionFriendsLoaded) {
-      return Text(
-        'Loading friends...',
-        style: Theme.of(context).textTheme.bodySmall,
-      );
-    }
-    if (_sessionFriends.isEmpty) {
-      return Text(
-        'None (solo session)',
-        style: Theme.of(context).textTheme.bodySmall,
-      );
-    }
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: _sessionFriends
-          .map(
-            (name) => Chip(
-              label: Text(name),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-            ),
-          )
-          .toList(),
+  Widget _buildFriends(BuildContext context) {
+    final t = context.tokens;
+    final text = !_sessionFriendsLoaded
+        ? 'Loading…'
+        : _sessionFriends.isEmpty
+        ? 'Nobody (solo session)'
+        : _sessionFriends.join(' · ');
+    return Text(
+      text,
+      style: TextStyle(fontSize: t.size.body, color: t.text),
     );
   }
 
@@ -379,93 +332,108 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   }
 }
 
-class _SummaryMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
+/// The session's numbers as a full-width grid: three to a row, cells split
+/// by hairlines, a state's total labelled in its colour.
+class _MetricGrid extends StatelessWidget {
+  final List<(String, String, Color?)> metrics;
 
-  /// The icon's colour; the primary colour by default, a state's colour for
-  /// the state totals (Rest, Yapping).
-  final Color? accent;
-
-  const _SummaryMetric({
-    required this.label,
-    required this.value,
-    required this.icon,
-    this.accent,
-  });
+  const _MetricGrid({required this.metrics});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: context.tokens.br(12),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: accent ?? colorScheme.primary, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: context.tokens.weight.heavy,
-              fontSize: context.tokens.size.title,
-            ),
+    final t = context.tokens;
+    Widget cell((String, String, Color?) m, {required bool last}) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 12),
+        decoration: BoxDecoration(
+          border: Border(
+            right: last ? BorderSide.none : BorderSide(color: t.hairline),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: context.tokens.weight.bold,
-              letterSpacing: 0.5,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              m.$1.toUpperCase(),
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.caption,
+                  fontWeight: t.weight.bold,
+                  letterSpacing: 1,
+                  color: m.$3 ?? t.muted,
+                ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              m.$2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.title,
+                  fontWeight: t.weight.bold,
+                  color: t.text,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+
+    final rows = <Widget>[];
+    for (var i = 0; i < metrics.length; i += 3) {
+      final row = metrics.sublist(i, (i + 3).clamp(0, metrics.length));
+      rows.add(
+        Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: t.hairline)),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var j = 0; j < 3; j++)
+                  j < row.length
+                      ? cell(row[j], last: j == 2)
+                      : const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
   }
 }
 
-class _ExerciseSummaryCard extends StatelessWidget {
+/// One exercise's totals: a full-width row, name then the numbers.
+class _ExerciseSummaryRow extends StatelessWidget {
   final ExerciseSummaryView exercise;
 
-  const _ExerciseSummaryCard({required this.exercise});
+  const _ExerciseSummaryRow({required this.exercise});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final t = context.tokens;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: context.tokens.br(14),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.35)),
+        border: Border(bottom: BorderSide(color: t.hairline)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                exercise.emoji,
-                style: TextStyle(fontSize: context.tokens.size.title),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                exercise.name,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: context.tokens.weight.heavy,
-                ),
-              ),
-            ],
+          Text(
+            exercise.name,
+            style: TextStyle(
+              fontSize: t.size.bodyLg,
+              fontWeight: t.weight.bold,
+              color: t.text,
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -487,7 +455,7 @@ class _ExerciseSummaryCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Heaviest set: ${exercise.heaviestSetWeightLabel}',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: TextStyle(fontSize: t.size.small, color: t.muted),
           ),
         ],
       ),
@@ -537,6 +505,8 @@ class WorkoutSummaryData {
       _formatDuration(Duration(seconds: _s.durationSeconds.toInt()));
   String get volumeLabel =>
       '${formatWeight(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
+  String get liftingTimeLabel =>
+      _formatDuration(Duration(seconds: _s.liftingSeconds.toInt()));
   String get restingTimeLabel =>
       _formatDuration(Duration(seconds: _s.restingSeconds.toInt()));
   String get yappingTimeLabel =>

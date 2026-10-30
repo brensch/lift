@@ -11,6 +11,7 @@ import '../services/grpc_client.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
+import '../widgets/common/flat.dart';
 import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
@@ -36,33 +37,24 @@ class SettingsScreen extends StatelessWidget {
             icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: Text(
-            'Settings',
-            style: TextStyle(
-              fontWeight: context.tokens.weight.heavy,
-              letterSpacing: -0.5,
-            ),
-          ),
+          title: Text('Settings'),
         ),
         body: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(bottom: 24),
           children: [
-            _SettingsTile(
+            const FlatHeading('You'),
+            FlatRow(
               icon: AppIcons.profileMarker,
               label: 'Profile marker',
               subtitle: '${auth.profileEmoji} · ${auth.username ?? 'You'}',
               trailing: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: profileColorFromHex(auth.profileColorHex),
-                  shape: BoxShape.circle,
-                ),
+                width: 18,
+                height: 18,
+                color: profileColorFromHex(auth.profileColorHex),
               ),
               onTap: () => context.push('/settings/profile-marker'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
+            FlatRow(
               icon: AppIcons.bodyWeight,
               label: 'Body weight',
               subtitle: bodyWeightLabel,
@@ -73,60 +65,53 @@ class SettingsScreen extends StatelessWidget {
               ),
               onTap: () => _showBodyWeightPicker(context, auth, settings),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
+            FlatRow(
               icon: AppIcons.weightUnit,
               label: 'Weight unit',
               subtitle: unitLabel,
               onTap: () => _showWeightUnitPicker(context, settings),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
+            FlatRow(
               icon: AppIcons.palette,
               label: 'Plate colours',
               subtitle: 'Assign colours to plate weights',
               onTap: () => context.push('/settings/plate-colors'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
+            const FlatHeading('Account'),
+            FlatRow(
               icon: AppIcons.key,
               label: 'Passkeys',
               subtitle: 'Manage your login credentials',
               onTap: () => context.push('/passkeys'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
+            const FlatHeading('Sounds'),
+            FlatRow(
               icon: AppIcons.notifications,
               label: 'Pick sound',
               subtitle: 'Choose notification sound',
               onTap: () => context.push('/sound-settings'),
             ),
-            if (kDebugMode) ...[
-              const SizedBox(height: 8),
-              _SettingsTile(
+            const FlatHeading('Behind the scenes'),
+            if (kDebugMode)
+              FlatRow(
                 icon: AppIcons.title,
                 label: 'Wordmark lab',
                 subtitle: 'SCHLIFT banner candidates',
                 onTap: () => context.push('/wordmarks'),
               ),
-            ],
-            const SizedBox(height: 8),
-            _SettingsTile(
+            FlatRow(
               icon: AppIcons.debug,
               label: 'Debug',
               subtitle: 'Notification debugging',
               onTap: () => context.push('/debug-notifications'),
             ),
-            const SizedBox(height: 8),
-            _SettingsTile(
+            FlatRow(
               icon: AppIcons.article,
               label: 'App Logs',
               subtitle: 'View and share diagnostic logs',
               onTap: () => context.push('/debug-logs'),
             ),
-
-            const SizedBox(height: 8),
-            _SettingsTile(
+            FlatRow(
               icon: AppIcons.info,
               label: 'Build info',
               subtitle: 'Version, device, and watch details',
@@ -349,74 +334,6 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
                     style: TextStyle(fontWeight: context.tokens.weight.heavy),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
-  final Widget? trailing;
-
-  const _SettingsTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-      borderRadius: context.tokens.brMd,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            children: [
-              Icon(icon, size: 24, color: colorScheme.onSurface),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.heavy,
-                        fontSize: context.tokens.size.body,
-                        letterSpacing: -0.5,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
-              Icon(
-                AppIcons.forward,
-                color: colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ],
           ),

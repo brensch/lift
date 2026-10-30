@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
 import '../theme/theme_spec.dart';
+import 'onboarding/widgets/profile_marker_widgets.dart';
 import '../theme/app_icons.dart';
 
 class ProfileMarkerScreen extends StatefulWidget {
@@ -94,13 +95,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
           icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
-          'Profile Marker',
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
+        title: Text('Profile Marker'),
       ),
       body: SafeArea(
         child: Column(
@@ -136,7 +131,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _ProfilePreviewCard(
+                  ProfilePreviewCard(
                     emoji: _selectedEmoji,
                     colorHex: _selectedColorHex,
                   ),
@@ -166,7 +161,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     runSpacing: 10,
                     children: _emojiChoices
                         .map(
-                          (emoji) => _EmojiChoiceChip(
+                          (emoji) => EmojiChoiceChip(
                             emoji: emoji,
                             selected: emoji == _selectedEmoji,
                             onTap: () => setState(() => _selectedEmoji = emoji),
@@ -190,7 +185,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     runSpacing: 10,
                     children: profileColorHexOptions
                         .map(
-                          (hex) => _ColorChoiceDot(
+                          (hex) => ColorChoiceDot(
                             hex: hex,
                             selected: hex == _selectedColorHex,
                             onTap: () =>
@@ -231,156 +226,6 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfilePreviewCard extends StatelessWidget {
-  final String emoji;
-  final String colorHex;
-
-  const _ProfilePreviewCard({required this.emoji, required this.colorHex});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final accent = profileColorFromHex(colorHex);
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLowest,
-        borderRadius: context.tokens.br(16),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 88,
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.horizontal(
-                left: context.tokens.radius(16),
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              emoji,
-              style: TextStyle(fontSize: context.tokens.size.headline),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Workout card preview',
-                    style: TextStyle(
-                      fontSize: context.tokens.size.body,
-                      fontWeight: context.tokens.weight.heavy,
-                      color: cs.tertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Your emoji appears in the rounded side rail and the selected colour fills that rail.',
-                    style: TextStyle(
-                      fontSize: context.tokens.size.body,
-                      fontWeight: context.tokens.weight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmojiChoiceChip extends StatelessWidget {
-  final String emoji;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _EmojiChoiceChip({
-    required this.emoji,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: context.tokens.br(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 52,
-        height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected
-              ? cs.primary.withValues(alpha: 0.12)
-              : cs.surfaceContainerLowest,
-          borderRadius: context.tokens.br(14),
-          border: Border.all(
-            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Text(
-          emoji,
-          style: TextStyle(fontSize: context.tokens.size.titleLg),
-        ),
-      ),
-    );
-  }
-}
-
-class _ColorChoiceDot extends StatelessWidget {
-  final String hex;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ColorChoiceDot({
-    required this.hex,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final color = profileColorFromHex(hex);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: context.tokens.br(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: selected ? cs.onSurface : color.withValues(alpha: 0.6),
-            width: selected ? 3 : 1.5,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
         ),
       ),
     );

@@ -99,9 +99,6 @@ class _EditSetSheetState extends State<EditSetSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.radiusLg),
-        ),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       padding: EdgeInsets.only(

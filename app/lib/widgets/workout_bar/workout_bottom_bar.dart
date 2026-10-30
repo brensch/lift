@@ -26,6 +26,7 @@ import '../dialogs/end_workout_dialog.dart';
 import '../dialogs/participant_workout_modal.dart';
 import '../participant_ticker.dart';
 import '../workout_status_box.dart';
+import 'workout_focus.dart';
 
 /// Partner bars in view before the stack scrolls.
 const _maxPartnersInView = 3;
@@ -228,8 +229,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         final allDone = you.set == null;
 
         return GestureDetector(
-          // Anywhere else in the app, the banner is the way back.
-          onTap: onWorkoutPage ? null : () => context.go('/'),
+          // The banner is the way back to where you're up to: the workout
+          // page, scrolled to the exercise in hand.
+          onTap: () {
+            if (!onWorkoutPage) context.go('/');
+            requestWorkoutFocus();
+          },
           onVerticalDragUpdate: others.isEmpty ? null : _onDragUpdate,
           onVerticalDragEnd: others.isEmpty ? null : _onDragEnd,
           child: Container(

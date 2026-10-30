@@ -133,29 +133,20 @@ class ColorChoiceDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final color = profileColorFromHex(hex);
+    // A flat square of the colour, like the block it fills behind your
+    // emoji; the chosen one framed in ink.
     return InkWell(
       onTap: onTap,
-      borderRadius: context.tokens.br(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
           color: color,
           border: Border.all(
             color: selected ? cs.onSurface : color.withValues(alpha: 0.6),
             width: selected ? 3 : 1.5,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    spreadRadius: 1,
-                  ),
-                ]
-              : null,
         ),
       ),
     );

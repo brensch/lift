@@ -64,10 +64,13 @@ void main() {
       );
 
       final detail = await api.workoutDetail();
-      final warmups = detail?.proposedSets.where((x) => x.warmup).toList() ?? [];
+      final warmups =
+          detail?.proposedSets.where((x) => x.warmup).toList() ?? [];
       expect(warmups.length, warmupsBefore, reason: 'no warmup is removed');
       expect(
-        warmups.where((x) => x.exercise == first.exercise).every((x) => x.skipped),
+        warmups
+            .where((x) => x.exercise == first.exercise)
+            .every((x) => x.skipped),
         isTrue,
         reason: "the exercise's undone warmups are marked skipped",
       );

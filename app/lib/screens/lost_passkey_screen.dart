@@ -14,15 +14,7 @@ class LostPasskeyScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final t = copy.lostPasskey;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          t.title,
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
+      appBar: AppBar(title: Text(t.title)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
