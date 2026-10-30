@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
@@ -62,7 +63,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Plate colours'),
+        title: PageTitle('Plate colours'),
         actions: [
           if (_dirty)
             TextButton(

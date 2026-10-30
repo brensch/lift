@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
 import '../logic/audio.dart';
 import '../providers/sound_provider.dart';
@@ -15,7 +16,7 @@ class SoundSettingsScreen extends StatelessWidget {
     final presets = getPresets();
 
     return Scaffold(
-      appBar: AppBar(title: Text('Pick sound')),
+      appBar: AppBar(title: PageTitle('Pick sound')),
       body: ListView.separated(
         itemCount: presets.length,
         separatorBuilder: (_, __) =>

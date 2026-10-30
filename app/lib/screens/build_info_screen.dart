@@ -1,4 +1,5 @@
 import 'dart:io' show Platform;
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -73,7 +74,7 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Build Info')),
+      appBar: AppBar(title: PageTitle('Build Info')),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -87,7 +88,7 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Logs (${entries.length})'),
+        title: PageTitle('Logs (${entries.length})'),
         actions: [
           IconButton(
             icon: const Icon(AppIcons.copy),

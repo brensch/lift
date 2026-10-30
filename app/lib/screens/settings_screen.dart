@@ -37,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
             icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: Text('Settings'),
+          title: PageTitle('Settings'),
         ),
         body: ListView(
           padding: const EdgeInsets.only(bottom: 24),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -160,7 +161,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Passkeys')),
+      appBar: AppBar(title: PageTitle('Passkeys')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

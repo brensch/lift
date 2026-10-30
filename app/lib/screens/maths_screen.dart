@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -29,7 +30,7 @@ class MathsScreen extends StatelessWidget {
           icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Calorie maths'),
+        title: PageTitle('Calorie maths'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -95,7 +96,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
           icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Profile Marker'),
+        title: PageTitle('Profile Marker'),
       ),
       body: SafeArea(
         child: Column(

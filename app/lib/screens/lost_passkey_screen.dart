@@ -1,6 +1,7 @@
 /// What to do when the passkey is gone. Words in app/copy.yaml.
 library;
 
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 
 import '../gen/copy.dart';
@@ -14,7 +15,7 @@ class LostPasskeyScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final t = copy.lostPasskey;
     return Scaffold(
-      appBar: AppBar(title: Text(t.title)),
+      appBar: AppBar(title: PageTitle(t.title)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),

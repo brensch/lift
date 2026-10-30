@@ -3,6 +3,7 @@
 /// over the flow, back pops) and from the main menu.
 library;
 
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/theme_spec.dart';
@@ -15,7 +16,7 @@ class ScienceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text('🧠 Workout science')),
+      appBar: AppBar(title: PageTitle('🧠 Workout science')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [

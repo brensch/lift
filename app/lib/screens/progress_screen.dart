@@ -118,7 +118,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: Text('Progress'),
+          title: PageTitle('Progress'),
         ),
         body: body,
       ),

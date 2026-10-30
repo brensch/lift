@@ -166,7 +166,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     }
     if (_workout == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Workout summary')),
+        appBar: AppBar(title: PageTitle('Workout summary')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -230,7 +230,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             icon: const Icon(AppIcons.back),
             onPressed: _handleBackNavigation,
           ),
-          title: Text(
+          title: PageTitle(
             workout.name.isNotEmpty ? workout.name : 'Workout summary',
           ),
         ),

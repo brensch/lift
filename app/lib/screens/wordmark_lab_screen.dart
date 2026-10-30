@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/theme_spec.dart';
@@ -213,7 +214,7 @@ class WordmarkLabScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Wordmark lab')),
+      appBar: AppBar(title: PageTitle('Wordmark lab')),
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         itemCount: banners.length,

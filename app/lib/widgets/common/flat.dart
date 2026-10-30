@@ -242,3 +242,15 @@ class FlatHeading extends StatelessWidget {
     );
   }
 }
+
+/// A page's title in the app bar: capitals, in the buttons' face (the app
+/// bar theme sets the face and weight).
+class PageTitle extends StatelessWidget {
+  final String text;
+
+  const PageTitle(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text.toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis);
+}

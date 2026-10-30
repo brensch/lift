@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
@@ -95,7 +96,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Debug: Notifications'),
+            title: PageTitle('Debug: Notifications'),
             actions: [
               IconButton(
                 icon: const Icon(AppIcons.refresh),

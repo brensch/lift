@@ -92,7 +92,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: Text('History'),
+          title: PageTitle('History'),
         ),
         body: body,
       ),
