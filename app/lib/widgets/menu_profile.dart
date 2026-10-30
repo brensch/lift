@@ -12,6 +12,7 @@ import '../logic/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
+import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 
 class MenuProfile extends StatefulWidget {
@@ -182,6 +183,11 @@ class _MenuProfileState extends State<MenuProfile> {
                         context,
                       ).appBarTheme.titleTextStyle?.copyWith(color: onColor),
                     ),
+                  ),
+                  // Says the banner edits your profile.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Icon(AppIcons.edit, color: onColor),
                   ),
                 ],
               ),
