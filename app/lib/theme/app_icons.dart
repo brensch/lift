@@ -270,20 +270,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `user`.
-  static const person = IconData(
-    0xe4c2,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
-  /// Phosphor `smiley`.
-  static const profileMarker = IconData(
-    0xe436,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
   /// Phosphor `chartBar`.
   static const progress = IconData(
     0xe150,
@@ -357,13 +343,6 @@ abstract final class AppIcons {
   /// Phosphor `timer`.
   static const timer = IconData(
     0xe492,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
-  /// Phosphor `textT`.
-  static const title = IconData(
-    0xe48a,
     fontFamily: _family,
     fontPackage: _package,
   );

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../screens/maths_screen.dart';
-import '../screens/science_screen.dart';
-import '../screens/tutorial_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -9,6 +6,7 @@ import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import 'join_request_banner.dart';
 import '../services/wearable_bridge_service.dart';
+import 'menu_profile.dart';
 import 'multiplayer_modal.dart';
 import 'workout_bar/workout_bottom_bar.dart';
 import '../theme/theme_spec.dart';
@@ -26,7 +24,6 @@ class MainLayout extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
-    final userName = authProvider.username ?? '';
     final colorScheme = Theme.of(context).colorScheme;
 
     void goToTopLevel(String path) {
@@ -86,7 +83,14 @@ class MainLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 16),
+                // You, and your totals. Tap to edit your profile.
+                MenuProfile(
+                  onEditProfile: () {
+                    Navigator.pop(context);
+                    context.push('/settings/profile-marker');
+                  },
+                ),
+                const SizedBox(height: 12),
                 Expanded(
                   child: ListView(
                     // Dividers and the active highlight run edge to edge.
@@ -111,113 +115,37 @@ class MainLayout extends StatelessWidget {
                         onTap: () => goToTopLevel('/history'),
                         isActive: currentPath == '/history',
                       ),
-                      Divider(height: 32, color: colorScheme.outline),
-                      _MenuButton(
-                        icon: AppIcons.tutorial,
-                        label: 'Tutorial',
-                        onTap: () {
-                          Navigator.pop(context); // close the menu
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(name: 'tutorial'),
-                              builder: (_) => const TutorialScreen(),
-                            ),
-                          );
-                        },
-                        isActive: false,
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: AppIcons.science,
-                        label: 'Workout science',
-                        onTap: () {
-                          Navigator.pop(context); // close the menu
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(name: 'science'),
-                              builder: (_) => const ScienceScreen(),
-                            ),
-                          );
-                        },
-                        isActive: false,
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: AppIcons.maths,
-                        label: 'Calorie maths',
-                        onTap: () {
-                          Navigator.pop(context); // close the menu
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(name: 'maths'),
-                              builder: (_) => const MathsScreen(),
-                            ),
-                          );
-                        },
-                        isActive: false,
-                      ),
-                      const SizedBox(height: 4),
-                      _MenuButton(
-                        icon: AppIcons.settings,
-                        label: 'Settings',
-                        onTap: () => goToTopLevel('/settings'),
-                        isActive: isSettingsSection(currentPath),
-                      ),
-                      Divider(height: 32, color: colorScheme.outline),
                     ],
                   ),
                 ),
                 Divider(color: colorScheme.outline),
+                // Logout, and Settings as a cog beside it.
                 Padding(
-                  // Lines the name and Logout up with the menu items above.
-                  padding: const EdgeInsets.fromLTRB(8, 16, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+                  child: Row(
                     children: [
-                      if (userName.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 16,
-                            right: 16,
-                            bottom: 16,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                AppIcons.person,
-                                size: 28,
-                                color: colorScheme.tertiary,
-                              ),
-                              const SizedBox(width: 20),
-                              Text(
-                                userName,
-                                style: TextStyle(
-                                  fontWeight: context.tokens.weight.heavy,
-                                  fontSize: context.tokens.size.title,
-                                  letterSpacing: -0.5,
-                                  color: colorScheme.tertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            _MenuButton(
-                              icon: AppIcons.logout,
-                              label: 'Logout',
-                              color: colorScheme.error,
-                              onTap: () {
-                                Navigator.pop(context);
-                                authProvider.logout();
-                                context.go('/login');
-                              },
-                              isActive: false,
-                              edgeToEdge: false,
-                            ),
-                          ],
+                      _MenuButton(
+                        icon: AppIcons.logout,
+                        label: 'Logout',
+                        color: colorScheme.error,
+                        onTap: () {
+                          Navigator.pop(context);
+                          authProvider.logout();
+                          context.go('/login');
+                        },
+                        isActive: false,
+                        edgeToEdge: false,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'Settings',
+                        onPressed: () => goToTopLevel('/settings'),
+                        icon: Icon(
+                          AppIcons.settings,
+                          size: 28,
+                          color: isSettingsSection(currentPath)
+                              ? colorScheme.primary
+                              : colorScheme.onSurface,
                         ),
                       ),
                     ],

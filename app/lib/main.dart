@@ -27,7 +27,6 @@ import 'providers/settings_provider.dart';
 import 'providers/sound_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/permissions_screen.dart';
-import 'screens/wordmark_lab_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/workout_tab.dart';
 import 'screens/completed_workout_screen.dart';
@@ -280,10 +279,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       routes: [
         GoRoute(path: '/starting', builder: (_, __) => const Scaffold()),
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(
-          path: '/wordmarks',
-          builder: (_, __) => const WordmarkLabScreen(),
-        ),
         GoRoute(
           path: '/permissions',
           builder: (_, __) => const PermissionsScreen(),

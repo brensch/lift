@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
-import '../logic/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
@@ -12,6 +10,9 @@ import '../services/user_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
+import 'maths_screen.dart';
+import 'science_screen.dart';
+import 'tutorial_screen.dart';
 import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
@@ -44,17 +45,6 @@ class SettingsScreen extends StatelessWidget {
           children: [
             const FlatHeading('You'),
             FlatRow(
-              icon: AppIcons.profileMarker,
-              label: 'Profile marker',
-              subtitle: '${auth.profileEmoji} · ${auth.username ?? 'You'}',
-              trailing: Container(
-                width: 18,
-                height: 18,
-                color: profileColorFromHex(auth.profileColorHex),
-              ),
-              onTap: () => context.push('/settings/profile-marker'),
-            ),
-            FlatRow(
               icon: AppIcons.bodyWeight,
               label: 'Body weight',
               subtitle: bodyWeightLabel,
@@ -77,6 +67,25 @@ class SettingsScreen extends StatelessWidget {
               subtitle: 'Assign colours to plate weights',
               onTap: () => context.push('/settings/plate-colors'),
             ),
+            const FlatHeading('Learn'),
+            FlatRow(
+              icon: AppIcons.tutorial,
+              label: 'Tutorial',
+              subtitle: 'The walkthrough again',
+              onTap: () => _push(context, 'tutorial', const TutorialScreen()),
+            ),
+            FlatRow(
+              icon: AppIcons.science,
+              label: 'Workout science',
+              subtitle: 'The papers behind the app',
+              onTap: () => _push(context, 'science', const ScienceScreen()),
+            ),
+            FlatRow(
+              icon: AppIcons.maths,
+              label: 'Calorie maths',
+              subtitle: 'How burn is worked out',
+              onTap: () => _push(context, 'maths', const MathsScreen()),
+            ),
             const FlatHeading('Account'),
             FlatRow(
               icon: AppIcons.key,
@@ -92,13 +101,6 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => context.push('/sound-settings'),
             ),
             const FlatHeading('Behind the scenes'),
-            if (kDebugMode)
-              FlatRow(
-                icon: AppIcons.title,
-                label: 'Wordmark lab',
-                subtitle: 'SCHLIFT banner candidates',
-                onTap: () => context.push('/wordmarks'),
-              ),
             FlatRow(
               icon: AppIcons.debug,
               label: 'Debug',
@@ -119,6 +121,16 @@ class SettingsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Open one of the full-screen reading pages over everything.
+  void _push(BuildContext context, String name, Widget page) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: name),
+        builder: (_) => page,
       ),
     );
   }
