@@ -217,7 +217,6 @@ workout:
   next_label: NEXT
   skip_warmups: Skip
   calibration_line: Finding weight
-  set_weight: I know my weight
   empty_bar: Bar
   # Finding weight: after each rung, how much was left in the tank. The
   # answer picks the next rung or settles the working weight.

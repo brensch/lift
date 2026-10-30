@@ -1768,6 +1768,7 @@ mod tests {
                 workout_id: "w1".to_string(),
                 exercise,
                 working_weight: weight,
+                target_reps: 0,
             },
             AppWeightUnit::Lb,
         )

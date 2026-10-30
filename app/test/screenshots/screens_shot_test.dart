@@ -327,18 +327,28 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await shoot(tester, 'weight_sheet');
 
-    // Tap + twice: 185 → 195, then UPDATE applies it to pending sets.
-    await tester.tap(find.byIcon(AppIcons.add));
-    await tester.tap(find.byIcon(AppIcons.add));
+    // Weight + twice (185 → 195) and reps + once (6 → 7), then SAVE
+    // applies both to the pending sets (and the account's tracker).
+    await tester.tap(find.byIcon(AppIcons.add).first);
+    await tester.tap(find.byIcon(AppIcons.add).first);
+    await tester.tap(find.byIcon(AppIcons.add).last);
     await tester.pump();
-    expect(find.text('UPDATE'), findsOneWidget);
-    await tester.tap(find.text('UPDATE'));
+    expect(find.text('SAVE'), findsOneWidget);
+    await tester.tap(find.text('SAVE'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(
-      h.provider.activeProposedSets.every((s) => s.targetWeight == 195),
+      h.provider.activeProposedSets.every(
+        (s) => s.targetWeight == 195 && s.targetReps == 7,
+      ),
       isTrue,
-      reason: 'both pending working sets moved to 195',
+      reason: 'both pending working sets moved to 195 × 7',
+    );
+    final write = h.service.trackerWrites.single;
+    expect(
+      (write.workingWeight, write.targetReps),
+      (195.0, 7),
+      reason: 'the account takes the new numbers too',
     );
 
     // Tear down inside the test body: the provider's periodic ticker must

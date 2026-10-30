@@ -22140,6 +22140,16 @@ public final class WorkoutOuterClass {
      * @return The workingWeight.
      */
     float getWorkingWeight();
+
+    /**
+     * <pre>
+     * the remaining working sets' reps; 0 = unchanged
+     * </pre>
+     *
+     * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+     * @return The targetReps.
+     */
+    int getTargetReps();
   }
   /**
    * <pre>
@@ -22282,6 +22292,44 @@ public final class WorkoutOuterClass {
     private void clearWorkingWeight() {
       
       workingWeight_ = 0F;
+    }
+
+    public static final int TARGET_REPS_FIELD_NUMBER = 4;
+    private int targetReps_;
+    /**
+     * <pre>
+     * the remaining working sets' reps; 0 = unchanged
+     * </pre>
+     *
+     * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+     * @return The targetReps.
+     */
+    @java.lang.Override
+    public int getTargetReps() {
+      return targetReps_;
+    }
+    /**
+     * <pre>
+     * the remaining working sets' reps; 0 = unchanged
+     * </pre>
+     *
+     * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+     * @param value The targetReps to set.
+     */
+    private void setTargetReps(int value) {
+      
+      targetReps_ = value;
+    }
+    /**
+     * <pre>
+     * the remaining working sets' reps; 0 = unchanged
+     * </pre>
+     *
+     * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+     */
+    private void clearTargetReps() {
+      
+      targetReps_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.AdjustExerciseWeightRequest parseFrom(
@@ -22519,6 +22567,46 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * the remaining working sets' reps; 0 = unchanged
+       * </pre>
+       *
+       * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+       * @return The targetReps.
+       */
+      @java.lang.Override
+      public int getTargetReps() {
+        return instance.getTargetReps();
+      }
+      /**
+       * <pre>
+       * the remaining working sets' reps; 0 = unchanged
+       * </pre>
+       *
+       * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+       * @param value The targetReps to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTargetReps(int value) {
+        copyOnWrite();
+        instance.setTargetReps(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * the remaining working sets' reps; 0 = unchanged
+       * </pre>
+       *
+       * <code>int32 target_reps = 4 [json_name = "targetReps"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTargetReps() {
+        copyOnWrite();
+        instance.clearTargetReps();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.AdjustExerciseWeightRequest)
     }
     @java.lang.Override
@@ -22538,10 +22626,11 @@ public final class WorkoutOuterClass {
               "workoutId_",
               "exercise_",
               "workingWeight_",
+              "targetReps_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\f" +
-                "\u0003\u0001";
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\f" +
+                "\u0003\u0001\u0004\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -39276,6 +39365,16 @@ public final class WorkoutOuterClass {
      * @return The overrideRepHigh.
      */
     int getOverrideRepHigh();
+
+    /**
+     * <pre>
+     * The current rep target; 0 restarts the climb at the range bottom.
+     * </pre>
+     *
+     * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+     * @return The targetReps.
+     */
+    int getTargetReps();
   }
   /**
    * <pre>
@@ -39485,6 +39584,44 @@ public final class WorkoutOuterClass {
     private void clearOverrideRepHigh() {
       
       overrideRepHigh_ = 0;
+    }
+
+    public static final int TARGET_REPS_FIELD_NUMBER = 6;
+    private int targetReps_;
+    /**
+     * <pre>
+     * The current rep target; 0 restarts the climb at the range bottom.
+     * </pre>
+     *
+     * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+     * @return The targetReps.
+     */
+    @java.lang.Override
+    public int getTargetReps() {
+      return targetReps_;
+    }
+    /**
+     * <pre>
+     * The current rep target; 0 restarts the climb at the range bottom.
+     * </pre>
+     *
+     * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+     * @param value The targetReps to set.
+     */
+    private void setTargetReps(int value) {
+      
+      targetReps_ = value;
+    }
+    /**
+     * <pre>
+     * The current rep target; 0 restarts the climb at the range bottom.
+     * </pre>
+     *
+     * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+     */
+    private void clearTargetReps() {
+      
+      targetReps_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.SetExerciseTrackerRequest parseFrom(
@@ -39794,6 +39931,46 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The current rep target; 0 restarts the climb at the range bottom.
+       * </pre>
+       *
+       * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+       * @return The targetReps.
+       */
+      @java.lang.Override
+      public int getTargetReps() {
+        return instance.getTargetReps();
+      }
+      /**
+       * <pre>
+       * The current rep target; 0 restarts the climb at the range bottom.
+       * </pre>
+       *
+       * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+       * @param value The targetReps to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTargetReps(int value) {
+        copyOnWrite();
+        instance.setTargetReps(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The current rep target; 0 restarts the climb at the range bottom.
+       * </pre>
+       *
+       * <code>int32 target_reps = 6 [json_name = "targetReps"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTargetReps() {
+        copyOnWrite();
+        instance.clearTargetReps();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.SetExerciseTrackerRequest)
     }
     @java.lang.Override
@@ -39815,10 +39992,11 @@ public final class WorkoutOuterClass {
               "overrideSets_",
               "overrideRepLow_",
               "overrideRepHigh_",
+              "targetReps_",
             };
             java.lang.String info =
-                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\f\u0002\u0001" +
-                "\u0003\u0004\u0004\u0004\u0005\u0004";
+                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\f\u0002\u0001" +
+                "\u0003\u0004\u0004\u0004\u0005\u0004\u0006\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

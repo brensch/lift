@@ -105,6 +105,12 @@ hold the workout off ALL_DONE. Up next (`compute_next_up_set`) carries on
 with the exercise of the latest done set while it has sets left, then the
 first open set in plan order.
 
+Each exercise's header shows what it's set to (weight × reps) and a pencil
+for its sheet. Changing weight or reps there applies to the rest of the
+workout (`AdjustExerciseWeight`, with `target_reps`) and to the account's
+tracker (`SetExerciseTracker`, with `target_reps`), so next time starts from
+it too. An exercise already in the workout can't be added again.
+
 The live workout page lists every exercise full width, its sets as
 circles in two rows, labelled down the left edge: WARMUP, ending in "Skip"
 while any is open, and WORKING. A warmup behind you shows as a

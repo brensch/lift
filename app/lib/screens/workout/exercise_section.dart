@@ -7,11 +7,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
+import '../../theme/app_icons.dart';
+import '../../providers/settings_provider.dart';
+import '../../logic/set_labels.dart';
 import '../../logic/session_state.dart';
 import '../../theme/theme_spec.dart';
 import 'section_workout.dart';
@@ -136,8 +140,16 @@ class ExerciseSection extends StatelessWidget {
       return null;
     }
 
+    // What it's set to now: the next working set still to do (or the last,
+    // once all are done); mid-ramp, the rung.
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final targetSet =
+        working.where((s) => !w.isDone(s.id)).firstOrNull ?? working.lastOrNull;
+
+    // The header: the name (tap it, or the pencil, for the weight sheet),
+    // finding weight if it is, and what it's set to now.
     final header = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _padding),
+      padding: const EdgeInsets.only(left: _padding, right: 4),
       child: Row(
         children: [
           Flexible(
@@ -150,7 +162,7 @@ class ExerciseSection extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: t.size.bodyLg,
+                    fontSize: t.size.subtitle,
                     fontWeight: t.weight.bold,
                     color: finished ? t.muted : t.text,
                   ),
@@ -171,25 +183,28 @@ class ExerciseSection extends StatelessWidget {
                 ),
               ),
             ),
-            const Spacer(),
-            if (live && !askingHere && onEdit != null)
-              GestureDetector(
-                onTap: onEdit,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    copy.workout.setWeight,
-                    style: TextStyle(
-                      fontSize: t.size.small,
-                      fontWeight: t.weight.medium,
-                      color: t.muted,
-                      decoration: TextDecoration.underline,
-                      decorationColor: t.muted,
-                    ),
-                  ),
+          ],
+          const Spacer(),
+          if (targetSet != null)
+            Text(
+              setTextFor(targetSet, unit),
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.body,
+                  fontWeight: t.weight.bold,
+                  color: finished ? t.muted : t.text,
                 ),
               ),
-          ],
+            ),
+          if (live && onEdit != null)
+            IconButton(
+              tooltip: 'Weight and reps',
+              onPressed: onEdit,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
+            )
+          else
+            const SizedBox(width: 12),
         ],
       ),
     );

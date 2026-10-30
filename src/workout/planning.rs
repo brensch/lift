@@ -430,9 +430,14 @@ pub(crate) fn apply_adjust_exercise_weight(
     if !(0.0..=2000.0).contains(&req.working_weight) {
         return Err(WorkoutError::failed_precondition("Weight out of range"));
     }
+    if !(0..=100).contains(&req.target_reps) {
+        return Err(WorkoutError::failed_precondition("Reps out of range"));
+    }
     if replace_pending_calibration(workout_ref, req, unit) {
+        apply_target_reps(workout_ref, req);
         return Ok(());
     }
+    apply_target_reps(workout_ref, req);
     let exercise = req.exercise;
     let done = completed_proposed_ids(workout_ref);
 
@@ -512,6 +517,24 @@ pub(crate) fn apply_adjust_exercise_weight(
     workout_ref.proposed_sets = out;
     workout_ref.renumber_sets();
     Ok(())
+}
+
+/// A rep target given with the adjust: every working set of the exercise
+/// still to do takes it. Rungs and warmups keep theirs.
+fn apply_target_reps(workout_ref: &mut ActiveWorkout, req: &AdjustExerciseWeightRequest) {
+    if req.target_reps <= 0 {
+        return;
+    }
+    let done = completed_proposed_ids(workout_ref);
+    for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
+        s.exercise == req.exercise
+            && !s.warmup
+            && !s.calibration
+            && !s.cancelled
+            && !done.contains(&s.id)
+    }) {
+        set.target_reps = req.target_reps;
+    }
 }
 
 /// Cancel an exercise's pending sets. Completed sets stay — the work happened.
@@ -727,10 +750,55 @@ mod plan_op_tests {
                 workout_id: "w1".to_string(),
                 exercise,
                 working_weight: weight,
+                target_reps: 0,
             },
             AppWeightUnit::Lb,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn adjust_with_reps_sets_the_remaining_working_sets() {
+        let mut active = workout_with(&[plan(SQUAT, 200.0, true)]);
+        let first_working = visible(&active)
+            .iter()
+            .find(|s| !s.warmup)
+            .unwrap()
+            .id
+            .clone();
+        active.completed_sets.push(CompletedSet {
+            id: "c1".to_string(),
+            workout_id: "w1".to_string(),
+            proposed_set_id: first_working.clone(),
+            actual_reps: 6,
+            actual_weight: 200.0,
+            ended_at: 2_000,
+            ..Default::default()
+        });
+        apply_adjust_exercise_weight(
+            &mut active,
+            &AdjustExerciseWeightRequest {
+                workout_id: "w1".to_string(),
+                exercise: SQUAT,
+                working_weight: 210.0,
+                target_reps: 4,
+            },
+            AppWeightUnit::Lb,
+        )
+        .unwrap();
+        let sets = visible(&active);
+        for s in sets.iter().filter(|s| !s.warmup) {
+            if s.id == first_working {
+                assert_eq!(s.target_reps, 6, "a done set keeps its reps");
+            } else {
+                assert_eq!(s.target_reps, 4);
+                assert!((s.target_weight - 210.0).abs() < 1e-3);
+            }
+        }
+        assert!(
+            sets.iter().filter(|s| s.warmup).all(|s| s.target_reps != 4),
+            "warmups keep their ladder reps"
+        );
     }
 
     // ── AddExercises ────────────────────────────────────────────────────────
@@ -934,6 +1002,7 @@ mod plan_op_tests {
                 workout_id: "w1".to_string(),
                 exercise: SQUAT,
                 working_weight: 100.0,
+                target_reps: 0,
             },
             AppWeightUnit::Lb,
         )
@@ -1272,6 +1341,7 @@ mod plan_op_tests {
                 workout_id: "other".to_string(),
                 exercise: SQUAT,
                 working_weight: 100.0,
+                target_reps: 0,
             },
             AppWeightUnit::Lb,
         )

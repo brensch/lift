@@ -408,6 +408,7 @@ async fn run_user(
                             workout_id: workout_id.clone(),
                             exercise: s.exercise,
                             working_weight: weight,
+                            target_reps: 0,
                         },
                     ))
                     .await;

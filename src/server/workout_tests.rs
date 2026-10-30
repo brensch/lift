@@ -735,6 +735,7 @@ mod template_workout_loop {
                     override_sets: 5,
                     override_rep_low: 5,
                     override_rep_high: 8,
+                    target_reps: 0,
                 },
             ))
             .await
@@ -793,6 +794,7 @@ mod template_workout_loop {
                 override_sets: 0,
                 override_rep_low: 0,
                 override_rep_high: 0,
+                target_reps: 0,
             },
         ))
         .await
@@ -1452,6 +1454,7 @@ mod offline_queue {
                                 workout_id: workout_id.clone(),
                                 exercise: Exercise::LateralRaise as i32,
                                 working_weight: -50.0,
+                                target_reps: 0,
                             },
                         )),
                         mutation(Mutation::CompleteSet(CompleteSetRequest {

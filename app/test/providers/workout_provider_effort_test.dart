@@ -802,6 +802,26 @@ void main() {
       },
     );
 
+    test('an adjust with reps sets the remaining working sets', () async {
+      await bootWorkout();
+      await h.provider.completeSet('s2', 6, 185);
+      await h.provider.adjustExerciseWeight(
+        Exercise.EXERCISE_SQUAT,
+        195,
+        targetReps: 4,
+      );
+      final byId = {for (final s in h.provider.activeProposedSets) s.id: s};
+      expect(byId['s2']!.targetReps, 6, reason: 'a done set keeps its reps');
+      expect(byId['s3']!.targetReps, 4);
+      expect(byId['s3']!.targetWeight, 195);
+      expect(byId['b1']!.targetReps, isNot(4), reason: 'other exercises');
+      await h.settleQueue();
+      final sent = h.service.flushedMutations
+          .singleWhere((m) => m.hasAdjustExerciseWeight())
+          .adjustExerciseWeight;
+      expect(sent.targetReps, 4);
+    });
+
     test('without a calibration rung the adjust is unchanged', () async {
       await bootWorkout();
       await h.provider.adjustExerciseWeight(Exercise.EXERCISE_SQUAT, 205);

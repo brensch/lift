@@ -488,6 +488,7 @@ message AdjustExerciseWeightRequest {
   string workout_id = 1;
   Exercise exercise = 2;
   float working_weight = 3; // lb
+  int32 target_reps = 4; // the remaining working sets' reps; 0 = unchanged
 }
 
 // Cancel an exercise's pending sets. Completed sets stay.
@@ -716,6 +717,8 @@ message SetExerciseTrackerRequest {
   int32 override_sets = 3; // 0 = derived
   int32 override_rep_low = 4; // 0 = derived
   int32 override_rep_high = 5; // 0 = derived
+  // The current rep target; 0 restarts the climb at the range bottom.
+  int32 target_reps = 6;
 }
 message SetExerciseTrackerResponse {
   ExerciseTracker tracker = 1;

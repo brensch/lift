@@ -46,6 +46,35 @@ class FakeWorkoutService extends WorkoutServiceWrapper {
   @override
   Future<GetHomeResponse> getHome() async => homeResponse;
 
+  /// Every account tracker write (SetExerciseTracker), in order.
+  final List<SetExerciseTrackerRequest> trackerWrites = [];
+
+  @override
+  Future<ExerciseTracker> setExerciseTracker({
+    required Exercise exercise,
+    required double workingWeight,
+    int overrideSets = 0,
+    int overrideRepLow = 0,
+    int overrideRepHigh = 0,
+    int targetReps = 0,
+  }) async {
+    trackerWrites.add(
+      SetExerciseTrackerRequest(
+        exercise: exercise,
+        workingWeight: workingWeight,
+        overrideSets: overrideSets,
+        overrideRepLow: overrideRepLow,
+        overrideRepHigh: overrideRepHigh,
+        targetReps: targetReps,
+      ),
+    );
+    return ExerciseTracker(
+      exercise: exercise,
+      workingWeight: workingWeight,
+      targetReps: targetReps,
+    );
+  }
+
   @override
   Future<EndWorkoutResponse> endWorkout(String workoutId) async =>
       EndWorkoutResponse(

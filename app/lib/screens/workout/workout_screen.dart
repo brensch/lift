@@ -426,6 +426,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       context: context,
       trackers: wp.trackers,
       initialSelected: const {},
+      // An exercise already in the workout can't be added again.
+      excluded: {for (final b in wp.exerciseBlocks) b.exercise},
       onSave: (selected) {
         if (selected.isEmpty) return;
         // Catalog order keeps the additions deterministic.

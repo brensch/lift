@@ -169,6 +169,7 @@ class WorkoutServiceWrapper {
     int overrideSets = 0,
     int overrideRepLow = 0,
     int overrideRepHigh = 0,
+    int targetReps = 0,
   }) async {
     final response = await _client.workoutService.setExerciseTracker(
       SetExerciseTrackerRequest()
@@ -176,7 +177,8 @@ class WorkoutServiceWrapper {
         ..workingWeight = workingWeight
         ..overrideSets = overrideSets
         ..overrideRepLow = overrideRepLow
-        ..overrideRepHigh = overrideRepHigh,
+        ..overrideRepHigh = overrideRepHigh
+        ..targetReps = targetReps,
     );
     return response.tracker;
   }

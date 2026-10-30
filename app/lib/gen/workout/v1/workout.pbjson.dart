@@ -1307,15 +1307,16 @@ const AdjustExerciseWeightRequest$json = {
       '10': 'exercise'
     },
     {'1': 'working_weight', '3': 3, '4': 1, '5': 2, '10': 'workingWeight'},
+    {'1': 'target_reps', '3': 4, '4': 1, '5': 5, '10': 'targetReps'},
   ],
 };
 
 /// Descriptor for `AdjustExerciseWeightRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List adjustExerciseWeightRequestDescriptor =
-    $convert.base64Decode(
-        'ChtBZGp1c3RFeGVyY2lzZVdlaWdodFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya2'
-        '91dElkEjAKCGV4ZXJjaXNlGAIgASgOMhQud29ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2US'
-        'JQoOd29ya2luZ193ZWlnaHQYAyABKAJSDXdvcmtpbmdXZWlnaHQ=');
+final $typed_data.Uint8List adjustExerciseWeightRequestDescriptor = $convert.base64Decode(
+    'ChtBZGp1c3RFeGVyY2lzZVdlaWdodFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya2'
+    '91dElkEjAKCGV4ZXJjaXNlGAIgASgOMhQud29ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2US'
+    'JQoOd29ya2luZ193ZWlnaHQYAyABKAJSDXdvcmtpbmdXZWlnaHQSHwoLdGFyZ2V0X3JlcHMYBC'
+    'ABKAVSCnRhcmdldFJlcHM=');
 
 @$core.Deprecated('Use removeExerciseRequestDescriptor instead')
 const RemoveExerciseRequest$json = {
@@ -2044,6 +2045,7 @@ const SetExerciseTrackerRequest$json = {
     {'1': 'override_sets', '3': 3, '4': 1, '5': 5, '10': 'overrideSets'},
     {'1': 'override_rep_low', '3': 4, '4': 1, '5': 5, '10': 'overrideRepLow'},
     {'1': 'override_rep_high', '3': 5, '4': 1, '5': 5, '10': 'overrideRepHigh'},
+    {'1': 'target_reps', '3': 6, '4': 1, '5': 5, '10': 'targetReps'},
   ],
 };
 
@@ -2053,7 +2055,7 @@ final $typed_data.Uint8List setExerciseTrackerRequestDescriptor = $convert.base6
     '52MS5FeGVyY2lzZVIIZXhlcmNpc2USJQoOd29ya2luZ193ZWlnaHQYAiABKAJSDXdvcmtpbmdX'
     'ZWlnaHQSIwoNb3ZlcnJpZGVfc2V0cxgDIAEoBVIMb3ZlcnJpZGVTZXRzEigKEG92ZXJyaWRlX3'
     'JlcF9sb3cYBCABKAVSDm92ZXJyaWRlUmVwTG93EioKEW92ZXJyaWRlX3JlcF9oaWdoGAUgASgF'
-    'Ug9vdmVycmlkZVJlcEhpZ2g=');
+    'Ug9vdmVycmlkZVJlcEhpZ2gSHwoLdGFyZ2V0X3JlcHMYBiABKAVSCnRhcmdldFJlcHM=');
 
 @$core.Deprecated('Use setExerciseTrackerResponseDescriptor instead')
 const SetExerciseTrackerResponse$json = {

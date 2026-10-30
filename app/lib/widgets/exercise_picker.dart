@@ -23,6 +23,7 @@ Future<void> showExercisePicker({
   required Set<Exercise> initialSelected,
   required void Function(Set<Exercise> selected) onSave,
   List<ExerciseTracker> trackers = const [],
+  Set<Exercise> excluded = const {},
 }) {
   return showModalBottomSheet(
     context: context,
@@ -37,6 +38,7 @@ Future<void> showExercisePicker({
       initialSelected: initialSelected,
       onSave: onSave,
       trackers: trackers,
+      excluded: excluded,
     ),
   );
 }
@@ -46,10 +48,15 @@ class _ExercisePickerSheet extends StatefulWidget {
   final void Function(Set<Exercise> selected) onSave;
   final List<ExerciseTracker> trackers;
 
+  /// Not offered at all: in a workout, the exercises already in it (one
+  /// exercise appears once).
+  final Set<Exercise> excluded;
+
   const _ExercisePickerSheet({
     required this.initialSelected,
     required this.onSave,
     required this.trackers,
+    required this.excluded,
   });
 
   @override
@@ -114,6 +121,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
   List<ExerciseInfo> get _filtered {
     final q = _query.trim().toLowerCase();
     return exerciseCatalog.where((info) {
+      if (widget.excluded.contains(info.exercise)) return false;
       if (_filter != null && !info.bodyParts.contains(_filter)) return false;
       // Searching overrides the equipment filter — a typed name always wins.
       if (_equipment != null &&

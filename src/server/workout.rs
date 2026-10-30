@@ -1181,9 +1181,9 @@ impl WorkoutService for ServerWorkoutService {
                 req.working_weight.max(0.0),
                 unit,
             ),
-            // A manual correction restarts the rep climb at the range
-            // bottom; resolution clamps 0 there.
-            current_reps: 0,
+            // A manual correction sets the rep target, or (0) restarts the
+            // climb at the range bottom; resolution clamps 0 there.
+            current_reps: req.target_reps.clamp(0, 100),
             consecutive_misses: 0,
             last_performed_at: previous.last_performed_at,
             override_sets: req.override_sets.max(0),

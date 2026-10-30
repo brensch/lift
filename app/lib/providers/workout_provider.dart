@@ -211,14 +211,36 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _refreshDerivedState();
   }
 
-  void _applyLocalAdjustExerciseWeight(Exercise exercise, double weightLb) {
-    if (_applyLocalTypedCalibrationWeight(exercise, weightLb)) {
-      _refreshDerivedState();
-      return;
-    }
+  void _applyLocalAdjustExerciseWeight(
+    Exercise exercise,
+    double weightLb, {
+    int targetReps = 0,
+  }) {
     final completedIds = _activeCompletedSets
         .map((c) => c.proposedSetId)
         .toSet();
+    // A rep target with it: every working set still to do takes it.
+    // Mirrors `apply_target_reps`.
+    void applyReps() {
+      if (targetReps <= 0) return;
+      for (final set in _activeProposedSets) {
+        if (set.exercise != exercise ||
+            set.warmup ||
+            set.calibration ||
+            set.cancelled ||
+            completedIds.contains(set.id)) {
+          continue;
+        }
+        set.targetReps = targetReps;
+      }
+    }
+
+    if (_applyLocalTypedCalibrationWeight(exercise, weightLb)) {
+      applyReps();
+      _refreshDerivedState();
+      return;
+    }
+    applyReps();
     for (final set in _activeProposedSets) {
       if (set.exercise != exercise || set.warmup || set.cancelled) continue;
       if (completedIds.contains(set.id)) continue;
@@ -885,6 +907,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           _applyLocalAdjustExerciseWeight(
             mutation.adjustExerciseWeight.exercise,
             mutation.adjustExerciseWeight.workingWeight,
+            targetReps: mutation.adjustExerciseWeight.targetReps,
           );
         case WorkoutMutation_Mutation.removeExercise:
           _applyLocalRemoveExercise(mutation.removeExercise.exercise);
@@ -1075,6 +1098,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     int overrideSets = 0,
     int overrideRepLow = 0,
     int overrideRepHigh = 0,
+    int targetReps = 0,
   }) async {
     await _service.setExerciseTracker(
       exercise: exercise,
@@ -1082,6 +1106,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       overrideSets: overrideSets,
       overrideRepLow: overrideRepLow,
       overrideRepHigh: overrideRepHigh,
+      targetReps: targetReps,
     );
     await refreshHome();
   }
@@ -1947,10 +1972,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Move an exercise's remaining working sets to a new weight (lb). The
   /// server regenerates its pending warmups for it.
-  Future<void> adjustExerciseWeight(Exercise exercise, double weightLb) async {
+  Future<void> adjustExerciseWeight(
+    Exercise exercise,
+    double weightLb, {
+    int targetReps = 0,
+  }) async {
     if (_activeWorkout == null) return;
     final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
-    _applyLocalAdjustExerciseWeight(exercise, weightLb);
+    _applyLocalAdjustExerciseWeight(exercise, weightLb, targetReps: targetReps);
     _queueMutation(
       _buildMutation(
         workoutId: _activeWorkout!.id,
@@ -1958,7 +1987,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         adjustExerciseWeight: AdjustExerciseWeightRequest()
           ..workoutId = _activeWorkout!.id
           ..exercise = exercise
-          ..workingWeight = weightLb,
+          ..workingWeight = weightLb
+          ..targetReps = targetReps,
       ),
     );
     await _persistLocalCache();

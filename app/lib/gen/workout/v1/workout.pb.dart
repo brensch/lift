@@ -2727,11 +2727,13 @@ class AdjustExerciseWeightRequest extends $pb.GeneratedMessage {
     $core.String? workoutId,
     Exercise? exercise,
     $core.double? workingWeight,
+    $core.int? targetReps,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (exercise != null) result.exercise = exercise;
     if (workingWeight != null) result.workingWeight = workingWeight;
+    if (targetReps != null) result.targetReps = targetReps;
     return result;
   }
 
@@ -2753,6 +2755,7 @@ class AdjustExerciseWeightRequest extends $pb.GeneratedMessage {
         enumValues: Exercise.values)
     ..aD(3, _omitFieldNames ? '' : 'workingWeight',
         fieldType: $pb.PbFieldType.OF)
+    ..aI(4, _omitFieldNames ? '' : 'targetReps')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2803,6 +2806,15 @@ class AdjustExerciseWeightRequest extends $pb.GeneratedMessage {
   $core.bool hasWorkingWeight() => $_has(2);
   @$pb.TagNumber(3)
   void clearWorkingWeight() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get targetReps => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set targetReps($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTargetReps() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTargetReps() => $_clearField(4);
 }
 
 /// Cancel an exercise's pending sets. Completed sets stay.
@@ -5142,6 +5154,7 @@ class SetExerciseTrackerRequest extends $pb.GeneratedMessage {
     $core.int? overrideSets,
     $core.int? overrideRepLow,
     $core.int? overrideRepHigh,
+    $core.int? targetReps,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -5149,6 +5162,7 @@ class SetExerciseTrackerRequest extends $pb.GeneratedMessage {
     if (overrideSets != null) result.overrideSets = overrideSets;
     if (overrideRepLow != null) result.overrideRepLow = overrideRepLow;
     if (overrideRepHigh != null) result.overrideRepHigh = overrideRepHigh;
+    if (targetReps != null) result.targetReps = targetReps;
     return result;
   }
 
@@ -5172,6 +5186,7 @@ class SetExerciseTrackerRequest extends $pb.GeneratedMessage {
     ..aI(3, _omitFieldNames ? '' : 'overrideSets')
     ..aI(4, _omitFieldNames ? '' : 'overrideRepLow')
     ..aI(5, _omitFieldNames ? '' : 'overrideRepHigh')
+    ..aI(6, _omitFieldNames ? '' : 'targetReps')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5238,6 +5253,16 @@ class SetExerciseTrackerRequest extends $pb.GeneratedMessage {
   $core.bool hasOverrideRepHigh() => $_has(4);
   @$pb.TagNumber(5)
   void clearOverrideRepHigh() => $_clearField(5);
+
+  /// The current rep target; 0 restarts the climb at the range bottom.
+  @$pb.TagNumber(6)
+  $core.int get targetReps => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set targetReps($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasTargetReps() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearTargetReps() => $_clearField(6);
 }
 
 class SetExerciseTrackerResponse extends $pb.GeneratedMessage {
