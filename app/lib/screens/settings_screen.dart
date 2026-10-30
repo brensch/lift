@@ -293,7 +293,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: AppTheme.sheetHandle(context)),
+              Center(child: AppTheme.sheetHandle(context, inset: 20)),
               Text(
                 'Body weight',
                 style: TextStyle(

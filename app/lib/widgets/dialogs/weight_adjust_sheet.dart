@@ -112,7 +112,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
+          Center(child: AppTheme.sheetHandle(context, inset: 20)),
           Row(
             children: [
               Expanded(

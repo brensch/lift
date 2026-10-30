@@ -90,7 +90,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: AppTheme.sheetHandle(context)),
+            Center(child: AppTheme.sheetHandle(context, inset: 20)),
             Row(
               children: [
                 Expanded(

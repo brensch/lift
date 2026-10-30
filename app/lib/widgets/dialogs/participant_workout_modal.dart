@@ -46,7 +46,7 @@ Future<void> showParticipantWorkoutModal(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Center(child: AppTheme.sheetHandle(ctx)),
+              Center(child: AppTheme.sheetHandle(ctx, inset: 24)),
               Row(
                 children: [
                   Expanded(

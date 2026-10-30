@@ -128,7 +128,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
+          Center(child: AppTheme.sheetHandle(context, inset: 20)),
           Row(
             children: [
               Expanded(
@@ -412,7 +412,7 @@ class _TrackerSheetState extends State<_TrackerSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
+          Center(child: AppTheme.sheetHandle(context, inset: 20)),
           Row(
             children: [
               Expanded(
