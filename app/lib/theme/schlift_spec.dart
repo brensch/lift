@@ -32,6 +32,16 @@ const schliftSpec = ThemeSpec(
   lifting: Color(0xFFFF4F00),
   // Yapping: rest has run out and the next set isn't started. Pink.
   yapping: Color(0xFFD94F8C),
+  // Chart lines: deep, saturated, each distinct on the warm grey.
+  series: [
+    Color(0xFF1F4FD1), // blue
+    Color(0xFFD03A00), // burnt orange
+    Color(0xFF1E7A3C), // green
+    Color(0xFFC2185B), // magenta
+    Color(0xFF5B2DB8), // violet
+    Color(0xFF00796B), // teal
+    Color(0xFF8D5A00), // ochre
+  ],
   bodyFont: 'Space Grotesk',
   headingFont: 'Space Grotesk',
   buttonFont: 'Space Mono',

@@ -279,103 +279,97 @@ class _ExerciseCard extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: context.tokens.hairline)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // LEFT — name + current (with gain)
-              SizedBox(
-                width: 104,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
+              // The name across the full width, the current weight and the
+              // gain on the right.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Expanded(
+                    child: Text(
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: context.tokens.weight.bold,
-                        fontSize: context.tokens.size.body,
+                        fontSize: context.tokens.size.bodyLg,
+                        color: cs.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            formatWeight(series.current, unit),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: context.tokens.weight.heavy,
-                              fontSize: context.tokens.size.bodyLg,
-                              letterSpacing: -0.3,
-                              color: series.colorIn(context.tokens),
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (gainText.isNotEmpty) ...[
-                          const SizedBox(width: 5),
-                          Text(
-                            gainText,
-                            style: TextStyle(
-                              color: gainColor,
-                              fontSize: context.tokens.size.small,
-                              fontWeight: context.tokens.weight.heavy,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              // MIDDLE — bounded trend graph (not full width)
-              Expanded(
-                child: SizedBox(
-                  height: 38,
-                  child: series.points.length >= 2
-                      ? _Chart(
-                          series: series,
-                          unit: unit,
-                          cs: cs,
-                          compact: true,
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '1 session',
-                            style: TextStyle(
-                              color: cs.tertiary,
-                              fontSize: context.tokens.size.small,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // RIGHT — 1RM + best, stacked tight
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _rightStat(
-                    context,
-                    '1RM',
-                    formatWeight(series.bestOneRm, unit),
-                    cs,
                   ),
-                  const SizedBox(height: 4),
-                  _rightStat(
-                    context,
-                    'BEST',
-                    formatWeight(series.best, unit),
-                    cs,
+                  if (gainText.isNotEmpty) ...[
+                    Text(
+                      gainText,
+                      style: context.tokens.mono(
+                        TextStyle(
+                          color: gainColor,
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    formatWeight(series.current, unit),
+                    style: context.tokens.mono(
+                      TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.title,
+                        color: series.colorIn(context.tokens),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // The trend, then the bests.
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: series.points.length >= 2
+                          ? _Chart(
+                              series: series,
+                              unit: unit,
+                              cs: cs,
+                              compact: true,
+                            )
+                          : Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '1 session',
+                                style: TextStyle(
+                                  color: cs.tertiary,
+                                  fontSize: context.tokens.size.small,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _rightStat(
+                        context,
+                        '1RM',
+                        formatWeight(series.bestOneRm, unit),
+                        cs,
+                      ),
+                      const SizedBox(height: 4),
+                      _rightStat(
+                        context,
+                        'BEST',
+                        formatWeight(series.best, unit),
+                        cs,
+                      ),
+                    ],
                   ),
                 ],
               ),
