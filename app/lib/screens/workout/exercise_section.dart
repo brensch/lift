@@ -149,42 +149,56 @@ class ExerciseSection extends StatelessWidget {
     // The header: the name (tap it, or the pencil, for the weight sheet),
     // finding weight if it is, and what it's set to now.
     final header = Padding(
-      padding: const EdgeInsets.only(left: _padding, right: 4),
+      padding: const EdgeInsets.symmetric(horizontal: _padding),
       child: Row(
         children: [
-          Flexible(
-            child: GestureDetector(
-              onTap: onEdit,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Text(
-                  exerciseNames[block.exercise] ?? '?',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: t.size.subtitle,
-                    fontWeight: t.weight.bold,
-                    color: finished ? t.muted : t.text,
+          // The name takes the room it needs before the target does.
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: GestureDetector(
+                    onTap: onEdit,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        exerciseNames[block.exercise] ?? '?',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: t.size.subtitle,
+                          fontWeight: t.weight.bold,
+                          color: finished ? t.muted : t.text,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                if (calibrating) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    copy.workout.calibrationLine.toUpperCase(),
+                    style: t.mono(
+                      TextStyle(
+                        fontSize: t.size.caption,
+                        fontWeight: t.weight.bold,
+                        letterSpacing: 0.5,
+                        color: t.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (calibrating) ...[
-            const SizedBox(width: 8),
-            Text(
-              copy.workout.calibrationLine.toUpperCase(),
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.caption,
-                  fontWeight: t.weight.bold,
-                  letterSpacing: 0.5,
-                  color: t.primary,
-                ),
-              ),
+          // The pencil, then the target flush with the right margin.
+          if (live && onEdit != null)
+            IconButton(
+              tooltip: 'Weight and reps',
+              onPressed: onEdit,
+              visualDensity: VisualDensity.compact,
+              icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
             ),
-          ],
-          const Spacer(),
           if (targetSet != null)
             Text(
               setTextFor(targetSet, unit),
@@ -196,15 +210,6 @@ class ExerciseSection extends StatelessWidget {
                 ),
               ),
             ),
-          if (live && onEdit != null)
-            IconButton(
-              tooltip: 'Weight and reps',
-              onPressed: onEdit,
-              visualDensity: VisualDensity.compact,
-              icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
-            )
-          else
-            const SizedBox(width: 12),
         ],
       ),
     );
