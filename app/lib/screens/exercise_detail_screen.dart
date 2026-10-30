@@ -75,28 +75,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final name = exerciseNames[widget.exercise] ?? '?';
-    final emoji = exerciseEmojis[widget.exercise] ?? '🏋️';
 
     Widget scaffold(Widget body) => TopLevelBackScope(
       child: Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Text(
-                emoji,
-                style: TextStyle(fontSize: context.tokens.size.subtitle),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                name,
-                style: TextStyle(
-                  fontWeight: context.tokens.weight.heavy,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-        ),
+        appBar: AppBar(title: PageTitle(name)),
         body: body,
       ),
     );
@@ -389,17 +371,6 @@ class _TrendChart extends StatelessWidget {
                 color: color,
                 strokeWidth: 2,
                 strokeColor: cs.surface,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  color.withValues(alpha: 0.28),
-                  color.withValues(alpha: 0.0),
-                ],
               ),
             ),
           ),

@@ -263,7 +263,6 @@ class _ExerciseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = exerciseNames[series.exercise] ?? '?';
-    final emoji = exerciseEmojis[series.exercise] ?? '🏋️';
     final gain = series.gain;
     final gainColor = gain > 0 ? context.tokens.accentGreen : cs.tertiary;
     final gainText = gain == 0
@@ -289,26 +288,14 @@ class _ExerciseCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          emoji,
-                          style: TextStyle(fontSize: context.tokens.size.body),
-                        ),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: context.tokens.weight.heavy,
-                              fontSize: context.tokens.size.body,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.body,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Row(
@@ -482,17 +469,6 @@ class _Chart extends StatelessWidget {
                   strokeColor: series.colorIn(context.tokens),
                 ),
               ),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    series.colorIn(context.tokens).withValues(alpha: 0.22),
-                    series.colorIn(context.tokens).withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -585,17 +561,6 @@ class _Chart extends StatelessWidget {
                 color: series.colorIn(context.tokens),
                 strokeWidth: 2,
                 strokeColor: cs.surface,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  series.colorIn(context.tokens).withValues(alpha: 0.28),
-                  series.colorIn(context.tokens).withValues(alpha: 0.0),
-                ],
               ),
             ),
           ),

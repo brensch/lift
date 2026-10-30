@@ -569,7 +569,6 @@ class ExerciseSummaryView {
   int get totalSets => _e.totalSets;
   int get totalReps => _e.totalReps;
   String get name => exerciseNames[_e.exercise] ?? 'Unknown';
-  String get emoji => exerciseEmojis[_e.exercise] ?? '?';
   String get volumeLabel =>
       '${formatWeight(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get formattedOneRm => _e.bestOneRepMax > 0
