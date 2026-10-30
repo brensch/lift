@@ -1,4 +1,4 @@
-use schlift::workout::v1::{
+use crate::pb::{
     CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
     WorkoutSummary,
 };

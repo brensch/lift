@@ -1,4 +1,4 @@
-use schlift::workout::v1::{CompletedSet, ProposedSet, Workout};
+use crate::pb::{CompletedSet, ProposedSet, Workout};
 
 /// A workout's full mutable state: the row plus its ordered flat set list.
 /// There is no group structure — "the sets for one exercise" is derived

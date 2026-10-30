@@ -3,8 +3,8 @@
 //! skips the questions.
 
 use crate::exercise_catalog::{snap_weight_lb, starting_weight_lb};
+use crate::pb::{Exercise, ExperienceLevel, Gender};
 use crate::weight_units::{kg_to_pounds, AppWeightUnit};
-use schlift::workout::v1::{Exercise, ExperienceLevel, Gender};
 
 fn experience_multiplier(level: ExperienceLevel) -> f32 {
     match level {

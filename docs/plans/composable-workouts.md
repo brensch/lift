@@ -79,7 +79,7 @@ a template makes a second source of truth.
 ### 3.2 The prescription
 
 The prescription derives from what the exercise is. The exercise catalog
-(`src/exercise_catalog.rs`) classifies every exercise by equipment
+(`core/src/exercise_catalog.rs`) classifies every exercise by equipment
 (barbell, dumbbell, machine, cable, bodyweight) and by role (compound,
 isolation, core). The table:
 
@@ -253,12 +253,12 @@ Parts of files that stay:
   message infrastructure and the progression-message builder; every
   exercise now uses them.
 - `src/server/settings.rs` — the 3 program RPCs.
-- `src/recovery.rs` — per-regime profiles. One fixed profile over the 10
+- `core/src/recovery.rs` — per-regime profiles. One fixed profile over the 10
   muscles stays.
-- `src/weight_units.rs` — `weight_unit_from_state`. It reads a key that
+- `core/src/weight_units.rs` — `weight_unit_from_state`. It reads a key that
   nothing writes and always returns pounds; kilogram users get
   pound-rounded weights today. Read `user_settings_current` instead.
-- `src/exercise_progress.rs` — the linear engine. Double progression
+- `core/src/exercise_progress.rs` — the linear engine. Double progression
   replaces it.
 
 ### 5.2 Flutter

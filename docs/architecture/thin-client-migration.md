@@ -51,11 +51,11 @@ These are hand-maintained line-by-line ports, kept in sync only by golden tests.
 
 | App code | Lines | Rust owner |
 |---|---|---|
-| `logic/weight_units.dart` plate math (`snapLoadable`, `simplestLoadableNear`, `platesForSide`, …) | ~106 | `src/weight_units.rs` |
-| `logic/warmup.dart` (`generateWarmupDefs`, `rebuildExerciseSets`) | ~140 | `src/workout/planning.rs:31` / `:364` |
-| `logic/workout_plan_builder.dart` (deleted with the group model) | ~265 | `src/workout/planning.rs` (`generate_sets_for_exercise` + the four plan ops) |
-| `logic/plate_calculator.dart` | ~27 | `src/weight_units.rs:82` (`plates_per_side`) |
-| `logic/session_state.dart` next-to-lift / participant ordering | ~90 | `src/progress.rs` (`compute_next_up_set`), `src/server/support.rs` (`build_participant_status`) |
+| `logic/weight_units.dart` plate math (`snapLoadable`, `simplestLoadableNear`, `platesForSide`, …) | ~106 | `core/src/weight_units.rs` |
+| `logic/warmup.dart` (`generateWarmupDefs`, `rebuildExerciseSets`) | ~140 | `core/src/workout/planning.rs:31` / `:364` |
+| `logic/workout_plan_builder.dart` (deleted with the group model) | ~265 | `core/src/workout/planning.rs` (`generate_sets_for_exercise` + the four plan ops) |
+| `logic/plate_calculator.dart` | ~27 | `core/src/weight_units.rs:82` (`plates_per_side`) |
+| `logic/session_state.dart` next-to-lift / participant ordering | ~90 | `core/src/progress.rs` (`compute_next_up_set`), `src/server/support.rs` (`build_participant_status`) |
 | `screens/home/group_grid.dart` set/warmup materialization for the preview | ~70 | same planner |
 
 **Requires the server to return, per proposed/warmup set:** the plate-snapped
@@ -70,7 +70,7 @@ does plate math. Then delete every row above.
 `providers/workout_provider.dart` (`_computeNextUpSet` `:408`, `_computeStateSnapshot`
 `:419`, `_applyLocalAddExercises`, `_applyLocalAdjustExerciseWeight`,
 `_applyLocalRemoveExercise`, `_applyLocalReorderExercises`,
-`_rebuildBlocksCache`) re-implement `src/workout/reducer.rs` to update the
+`_rebuildBlocksCache`) re-implement `core/src/workout/reducer.rs` to update the
 UI **before** the server confirms.
 
 Crucially, **the server already returns `state_snapshot` + `next_up_set` on every
@@ -109,7 +109,7 @@ No Rust implementation exists for any of these today.
 | `progress_screen.dart:49–105`, `exercise_detail_screen.dart:42–94` | N+1 `getWorkout` loop → per-exercise trend, gains, 1RM/volume series | a per-exercise **progress/analytics RPC** (series precomputed) |
 | `history_screen.dart:35–88` | N+1 loop → per-workout volume, working sets, exercise list | `ListWorkoutSummaries` RPC (or summary embedded in `ListWorkouts`) |
 | `home_screen.dart:359–406` `_estimatedWorkoutMinutes` | hard-coded per-set/warmup/rest seconds heuristic | `estimated_duration_seconds` on the schedule response |
-| `onboarding_screen.dart:253–324` | bodyweight × per-lift ratio × experience multiplier → recommended starts | onboarding seeds in `src/onboarding.rs` (now via `CompleteOnboarding`) |
+| `onboarding_screen.dart:253–324` | bodyweight × per-lift ratio × experience multiplier → recommended starts | onboarding seeds in `core/src/onboarding.rs` (now via `CompleteOnboarding`) |
 
 Est-1RM (`w*(1+reps/30)`) is implemented in **three** client spots and nowhere
 in Rust — it should be computed once, server-side, per completed set / summary.

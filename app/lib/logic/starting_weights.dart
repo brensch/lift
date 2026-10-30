@@ -1,5 +1,5 @@
 /// The first working weights for the main lifts, from the setup slider
-/// (chick 0 .. gorilla 1). A mirror of src/onboarding.rs: the slider shows
+/// (chick 0 .. gorilla 1). A mirror of core/src/onboarding.rs: the slider shows
 /// these numbers and the server seeds the same ones, and
 /// test/logic/starting_weights_test.dart pins both to the same values.
 library;

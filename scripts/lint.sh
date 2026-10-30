@@ -57,7 +57,7 @@ lint_dart() {
 # ── rust ──
 fmt_rust() { cargo fmt --all; }
 fmt_check_rust() { cargo fmt --all -- --check; }
-lint_rust() { cargo clippy --all-targets -- -D warnings; }
+lint_rust() { cargo clippy --workspace --all-targets -- -D warnings; }
 
 # ── web (TypeScript / React) ──
 # bun locally (fast); npm where bun is absent, which is what CI uses so that

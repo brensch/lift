@@ -8,7 +8,7 @@ void main() {
   double lift(List<(Exercise, double)> w, Exercise ex) =>
       w.firstWhere((e) => e.$1 == ex).$2;
 
-  test('slider preview matches the server seeds (src/onboarding.rs)', () {
+  test('slider preview matches the server seeds (core/src/onboarding.rs)', () {
     final w = startingWeightsLb(strength: 0.5, unit: WeightUnit.WEIGHT_UNIT_LB);
     expect(lift(w, Exercise.EXERCISE_SQUAT), 180);
     expect(lift(w, Exercise.EXERCISE_BENCH_PRESS), 130);

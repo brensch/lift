@@ -1,5 +1,5 @@
-/// Pins the Dart catalog mirror to src/exercise_catalog.rs and the
-/// calibration maths to src/workout/planning.rs. The numbers here are the
+/// Pins the Dart catalog mirror to core/src/exercise_catalog.rs and the
+/// calibration maths to core/src/workout/planning.rs. The numbers here are the
 /// ones the Rust tests assert; a change on either side must land on both.
 library;
 

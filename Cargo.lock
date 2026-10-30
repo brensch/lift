@@ -1990,6 +1990,7 @@ dependencies = [
  "log",
  "prost",
  "rand 0.8.5",
+ "schlift-core",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2008,6 +2009,17 @@ dependencies = [
  "uuid",
  "webauthn-rs",
  "webauthn-rs-proto",
+]
+
+[[package]]
+name = "schlift-core"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "prost-build",
+ "serde",
+ "serde_yaml",
+ "uuid",
 ]
 
 [[package]]

@@ -32,8 +32,8 @@ use crate::exercise_catalog::{
     prescription, progression_increment_lb, snap_weight_lb, starting_weight_lb, Prescription,
 };
 use crate::history::{workout_time, WorkoutRecord};
+use crate::pb::{Effort, Exercise, ProposedSet};
 use crate::weight_units::AppWeightUnit;
-use schlift::workout::v1::{Effort, Exercise, ProposedSet};
 
 /// How many misses at a weight before backing off it.
 const MISSES_BEFORE_DELOAD: i32 = 2;
@@ -474,7 +474,7 @@ pub fn weight_history(history: &[WorkoutRecord]) -> HashMap<i32, Vec<f32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use schlift::workout::v1::{CompletedSet, Workout};
+    use crate::pb::{CompletedSet, Workout};
 
     fn proposed(id: &str, ex: Exercise, weight: f32, reps: i32, warmup: bool) -> ProposedSet {
         ProposedSet {

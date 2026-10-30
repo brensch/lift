@@ -13,19 +13,13 @@ mod auth;
 mod db;
 #[cfg(feature = "test-auth")]
 mod demo_seed;
-mod exercise_catalog;
-mod exercise_progress;
-mod history;
-mod onboarding;
-mod progress;
-mod recovery;
 mod server;
-mod state;
-mod template_library;
-mod time;
-mod volume;
-mod weight_units;
-mod workout;
+// The domain lives in schlift-core; these keep `crate::progress` and
+// friends naming it as before.
+use schlift_core::{
+    exercise_catalog, exercise_progress, history, onboarding, progress, recovery, state,
+    template_library, time, volume, weight_units, workout,
+};
 
 use auth::AuthState;
 use db::ServerDb;

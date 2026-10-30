@@ -1,9 +1,9 @@
 /// The catalog the app prescribes from, and the calibration-ramp maths that
 /// reads it. A mirror of `load_style`, `category`, `prescription`,
 /// `starting_weight_lb`, `progression_increment_lb` and `snap_weight_lb` in
-/// src/exercise_catalog.rs, the plate snapping in src/weight_units.rs,
-/// `calibration_start_weight` in src/exercise_progress.rs and the
-/// calibration helpers in src/workout/planning.rs. The optimistic reducer in
+/// core/src/exercise_catalog.rs, the plate snapping in core/src/weight_units.rs,
+/// `calibration_start_weight` in core/src/exercise_progress.rs and the
+/// calibration helpers in core/src/workout/planning.rs. The optimistic reducer in
 /// WorkoutProvider appends ramp rungs and working sets with these, and the
 /// server must land on the same numbers or the plan flickers.
 ///
@@ -242,7 +242,7 @@ class Prescription {
   });
 }
 
-/// Mirrors `prescription` in src/exercise_catalog.rs.
+/// Mirrors `prescription` in core/src/exercise_catalog.rs.
 Prescription prescriptionFor(Exercise exercise) {
   if (_corePrimary.contains(exercise)) {
     return const Prescription(
@@ -327,7 +327,7 @@ double _roundToUnitIncrement(
   return f32(f32(weightLb / lbStep).roundToDouble() * lbStep);
 }
 
-/// Mirrors `snap_loadable` in src/weight_units.rs: the nearest weight that
+/// Mirrors `snap_loadable` in core/src/weight_units.rs: the nearest weight that
 /// is exactly loadable on the bar; below the bar, the smallest plate's grid.
 double _snapLoadable(double target, double bar, List<double> plates) {
   final smallest = plates.last;

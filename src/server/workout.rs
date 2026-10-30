@@ -223,7 +223,7 @@ impl ServerWorkoutService {
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let mut active = active_from_get_workout_response(resp)?;
+        let mut active = active_from_get_workout_response(resp).map_err(workout_status)?;
 
         apply(&mut active)?;
 
@@ -431,7 +431,7 @@ impl WorkoutService for ServerWorkoutService {
         let unit = self.get_weight_unit(&user_id).await?;
 
         let mut active = ActiveWorkout::new(workout, Vec::new(), Vec::new());
-        apply_add_exercises(&mut active, &workout_id, &plans, &[], unit)?;
+        apply_add_exercises(&mut active, &workout_id, &plans, &[], unit).map_err(workout_status)?;
 
         // Insert real rows
         self.db
@@ -507,7 +507,7 @@ impl WorkoutService for ServerWorkoutService {
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let mut active = active_from_get_workout_response(resp)?;
+        let mut active = active_from_get_workout_response(resp).map_err(workout_status)?;
         active.workout.end_time = ended_at;
         resolve_all_effort(&mut active);
         self.db
@@ -875,7 +875,7 @@ impl WorkoutService for ServerWorkoutService {
                 workout_state: None,
             }));
         };
-        let mut active = active_from_get_workout_response(resp)?;
+        let mut active = active_from_get_workout_response(resp).map_err(workout_status)?;
         let mut applied = Vec::with_capacity(req.mutations.len());
         let mut generated_messages = Vec::<UserMessage>::new();
 
@@ -930,16 +930,16 @@ impl WorkoutService for ServerWorkoutService {
                             ));
                         }
                     }
-                    result.map_err(Into::into)
+                    result.map_err(workout_status)
                 }
                 Mutation::StartSet(req) => {
-                    apply_start_set_to_active(&mut active, &req, now).map_err(Into::into)
+                    apply_start_set_to_active(&mut active, &req, now).map_err(workout_status)
                 }
                 Mutation::SkipWarmups(req) => {
-                    apply_skip_warmups_to_active(&mut active, &req).map_err(Into::into)
+                    apply_skip_warmups_to_active(&mut active, &req).map_err(workout_status)
                 }
                 Mutation::DeleteCompletedSet(req) => {
-                    apply_delete_completed_set_to_active(&mut active, &req).map_err(Into::into)
+                    apply_delete_completed_set_to_active(&mut active, &req).map_err(workout_status)
                 }
                 Mutation::EndWorkout(_) => {
                     active.workout.end_time = now;
@@ -957,22 +957,23 @@ impl WorkoutService for ServerWorkoutService {
                         &req.client_working_set_ids,
                         unit,
                     )
-                    .map_err(Into::into)
+                    .map_err(workout_status)
                 }
                 Mutation::AdjustExerciseWeight(req) => {
-                    apply_adjust_exercise_weight(&mut active, &req, unit).map_err(Into::into)
+                    apply_adjust_exercise_weight(&mut active, &req, unit).map_err(workout_status)
                 }
                 Mutation::RemoveExercise(req) => {
-                    apply_remove_exercise(&mut active, &req).map_err(Into::into)
+                    apply_remove_exercise(&mut active, &req).map_err(workout_status)
                 }
                 Mutation::ReorderExercises(req) => {
-                    apply_reorder_exercises(&mut active, &req).map_err(Into::into)
+                    apply_reorder_exercises(&mut active, &req).map_err(workout_status)
                 }
                 Mutation::RateExercise(req) => {
-                    apply_rate_exercise_to_active(&mut active, &req, unit).map_err(Into::into)
+                    apply_rate_exercise_to_active(&mut active, &req, unit).map_err(workout_status)
                 }
                 Mutation::EditCompletedSet(req) => {
-                    apply_edit_completed_set_to_active(&mut active, &req, unit).map_err(Into::into)
+                    apply_edit_completed_set_to_active(&mut active, &req, unit)
+                        .map_err(workout_status)
                 }
             };
             if let Err(error) = applied_result {

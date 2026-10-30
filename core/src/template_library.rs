@@ -5,12 +5,12 @@
 //! and again at startup, then mirrored into the `template_library` table
 //! that `ListTemplateLibrary` serves.
 
-use schlift::workout::v1::{Exercise, LibraryTemplate};
+use crate::pb::{Exercise, LibraryTemplate};
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-const SOURCE: &str = include_str!("../templates/library.yaml");
+const SOURCE: &str = include_str!("../../templates/library.yaml");
 
 #[derive(Deserialize)]
 struct File {

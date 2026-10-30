@@ -35,7 +35,7 @@ exercise. "The sets for one exercise" is a *derived* block (grouped by
 exercise), computed where a card or sheet needs it — never stored. There is
 no group or superset structure.
 
-`generate_sets_for_exercise` (`src/workout/planning.rs`) prescribes one
+`generate_sets_for_exercise` (`core/src/workout/planning.rs`) prescribes one
 exercise's block: the warmup ladder (where prescribed) then the working
 sets.
 
@@ -195,7 +195,7 @@ sequenceDiagram
 ```
 
 The same logical transition therefore exists **twice**: in Rust
-(`src/workout/reducer.rs`) and in Dart (`WorkoutProvider`). They must agree. If
+(`core/src/workout/reducer.rs`) and in Dart (`WorkoutProvider`). They must agree. If
 they diverge, the UI flickers as the optimistic result is replaced by a
 different server result.
 
@@ -282,8 +282,8 @@ Every `ProposedSet` field is persisted, so recovery is lossless.
 
 | Concern | File |
 |---|---|
-| Warmup generation, plate snapping | `src/workout/planning.rs` |
-| State transitions | `src/workout/reducer.rs` |
-| Next-up-set derivation | `src/progress.rs` |
-| Prescription + progression + volume | `src/exercise_catalog.rs`, `src/exercise_progress.rs`, `src/volume.rs` |
+| Warmup generation, plate snapping | `core/src/workout/planning.rs` |
+| State transitions | `core/src/workout/reducer.rs` |
+| Next-up-set derivation | `core/src/progress.rs` |
+| Prescription + progression + volume | `core/src/exercise_catalog.rs`, `core/src/exercise_progress.rs`, `core/src/volume.rs` |
 | Client-side mirror of all the above | `app/lib/providers/workout_provider.dart`, `app/lib/logic/` |

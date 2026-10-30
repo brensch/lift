@@ -6,7 +6,7 @@
 
 use crate::exercise_catalog::{muscles, ALL_MUSCLES};
 use crate::history::{workout_time, WorkoutRecord};
-use schlift::workout::v1::{Exercise, MuscleGroup};
+use crate::pb::{Exercise, MuscleGroup};
 
 const HOUR: i64 = 3600;
 

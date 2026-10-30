@@ -195,7 +195,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
             ..workoutOrder = order++
             ..exercise = exercise
             // Fallbacks mirror DEFAULT_*_REST_SECONDS and the 8-12 range
-            // bottom in src/workout/planning.rs / exercise_catalog.rs.
+            // bottom in core/src/workout/planning.rs / exercise_catalog.rs.
             ..targetReps = tracker?.targetReps ?? 8
             ..targetWeight = tracker?.workingWeight ?? 0
             ..restAfterSuccess = (tracker != null && tracker.restSeconds > 0)
@@ -442,7 +442,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The tiny optimistic layer: after a local set change, advance the
   /// highlight to the next set and derive the state the same way
-  /// `workout_state_snapshot_from_state` in `src/workout/reducer.rs` does.
+  /// `workout_state_snapshot_from_state` in `core/src/workout/reducer.rs` does.
   /// The authoritative snapshot comes from the server response a beat later.
   void _refreshDerivedState() {
     _sortState();
@@ -564,7 +564,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  // ── Effort and calibration: the Dart half of src/workout/reducer.rs ──
+  // ── Effort and calibration: the Dart half of core/src/workout/reducer.rs ──
 
   /// The most recently finished set, by `ended_at`. Ties go to the later
   /// row, as Rust's `max_by_key` does.
@@ -1608,7 +1608,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // Tiny optimistic set edit: mutate the local list so the tap registers
   // instantly, then _refreshDerivedState advances the highlight. Mirrors
-  // `apply_complete_set_to_active` in `src/workout/reducer.rs`: one done
+  // `apply_complete_set_to_active` in `core/src/workout/reducer.rs`: one done
   // row per set with the rest target and its start stored on it; any Done
   // ends the lifting; a rating given with it is recorded there and then.
   void _applyLocalCompleteSet(
@@ -1671,7 +1671,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The rest-timer target for a just-completed set, computed locally so the
   /// countdown starts on the transition and survives signal loss — it's a
   /// stored target time (endedAt + rest), not a per-request server value. Mirrors
-  /// `complete_set` in `src/workout/reducer.rs`: the rest *durations* are
+  /// `complete_set` in `core/src/workout/reducer.rs`: the rest *durations* are
   /// server-provided on the proposed set (`restAfterSuccess`/`restAfterFailure`);
   /// an exercise's final set uses the short end-of-exercise rest. The server reconciles
   /// with an identical target when the mutation lands.

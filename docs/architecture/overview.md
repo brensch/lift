@@ -19,7 +19,7 @@ graph TB
     subgraph server["Backend — single Rust binary"]
         grpc["tonic gRPC<br/>+ tonic-web"]
         handlers["RPC handlers<br/>src/server/"]
-        engine["Prescription + progression<br/>src/exercise_catalog.rs<br/>src/exercise_progress.rs<br/>src/volume.rs"]
+        engine["Prescription + progression<br/>core/src/exercise_catalog.rs<br/>core/src/exercise_progress.rs<br/>core/src/volume.rs"]
         dbl["DB layer<br/>src/db/"]
     end
 

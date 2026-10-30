@@ -77,7 +77,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   }
 
   /// One plate-pair in the display unit. The 0..2000 clamp below mirrors
-  /// the server's range check in src/workout/planning.rs.
+  /// the server's range check in core/src/workout/planning.rs.
   double _stepLb(WeightUnit unit) =>
       isMetricUnit(unit) ? poundsFromDisplayWeight(2.5, unit) : 5.0;
 

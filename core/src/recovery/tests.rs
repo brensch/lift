@@ -3,7 +3,7 @@
 
 use super::*;
 use crate::history::WorkoutRecord;
-use schlift::workout::v1::{CompletedSet, ProposedSet, Workout};
+use crate::pb::{CompletedSet, ProposedSet, Workout};
 
 const DAY: i64 = 24 * HOUR;
 

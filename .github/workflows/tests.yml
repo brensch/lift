@@ -57,6 +57,8 @@ jobs:
           filters: |
             rust:
               - 'src/**'
+              - 'core/**'
+              - 'templates/library.yaml'
               - 'proto/**'
               - 'examples/**'
               - 'testdata/**'
@@ -129,7 +131,7 @@ jobs:
         run: scripts/lint.sh check rust
 
       - name: Run Rust tests
-        run: cargo test --all-targets
+        run: cargo test --workspace --all-targets
 
   # Randomised API sequences against a throwaway backend, checking state
   # invariants after every mutation. Fixed seed so a failure is reproducible.

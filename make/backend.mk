@@ -9,7 +9,7 @@ STOP_LOCAL_BACKENDS = pkill -f "[t]arget/(debug|release)/schlift" || true
 # Dev server on :50051 with dev login, rebuilt and restarted when a Rust
 # input is saved (an incremental debug build is a second or two). Only the
 # backend's own inputs are watched, so app and web edits do not restart it.
-BACKEND_WATCH = -w src -w proto -w templates -w build.rs -w Cargo.toml -w Cargo.lock
+BACKEND_WATCH = -w src -w core -w proto -w templates -w build.rs -w Cargo.toml -w Cargo.lock
 run-backend:
 	@$(STOP_LOCAL_BACKENDS)
 	$(BACKEND_DEV_ENV) cargo watch $(BACKEND_WATCH) -x "run --bin schlift --features test-auth"

@@ -20,14 +20,14 @@ make fuzz-api-ci           # the fixed-seed run CI uses
 
 Pure and fast, inline in their modules:
 
-- `src/exercise_catalog.rs` — every exercise is classified (the scan is
+- `core/src/exercise_catalog.rs` — every exercise is classified (the scan is
   pinned, so a `_ =>` fallback cannot quietly misfile a new lift), and the
   prescription table is asserted per class.
-- `src/exercise_progress.rs` — the double-progression cases: rep advance
+- `core/src/exercise_progress.rs` — the double-progression cases: rep advance
   follows the worst set, load bump at the top of the range, hold on one
   miss, 10% deload on two, bodyweight rep-only, performed-weight basis,
   kg/lb snapping, overrides.
-- `src/volume.rs` — the 7-day window, primary/secondary weighting, and the
+- `core/src/volume.rs` — the 7-day window, primary/secondary weighting, and the
   suggestion's deficit scoring and tie-break.
 - `src/db/migration.rs` — old-schema fixtures for all three legacy
   programs, history-beats-state, template seeding, dropped tables, and
@@ -85,7 +85,7 @@ trips. Removing the `DELETE FROM active_workout_current` from
 
 ## Mirrored reducers
 
-`app/lib/logic/workout_reducer.dart` and `src/workout/reducer.rs` implement the
+`app/lib/logic/workout_reducer.dart` and `core/src/workout/reducer.rs` implement the
 same optimistic set transitions on each side of the wire. Both carry a test
 suite asserting the same behaviours (idempotent start, one-tap completion,
 success/failure/end-of-group rest, warmup-only skipping), so a semantic change
@@ -95,7 +95,7 @@ the server's 60.
 
 ## Cross-language golden fixtures
 
-`src/workout/planning.rs` and `app/lib/logic/warmup.dart` are independent ports
+`core/src/workout/planning.rs` and `app/lib/logic/warmup.dart` are independent ports
 of the same warmup and plate-snapping maths. The app computes warmups locally for
 instant feedback; the server computes the authoritative ones. Drift shows up as
 the user's warmups changing when the server replies.

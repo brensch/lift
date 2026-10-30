@@ -230,7 +230,7 @@ lockstep with it:
 ### Duplicated logic
 
 `app/lib/logic/warmup.dart` is a line-for-line port of the warmup maths in
-`src/workout/planning.rs` — plate snapping that must agree exactly. The golden
+`core/src/workout/planning.rs` — plate snapping that must agree exactly. The golden
 fixture pins them together; if you change one, change both and regenerate.
 
 ## Testing

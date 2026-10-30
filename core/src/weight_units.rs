@@ -9,8 +9,8 @@ pub enum AppWeightUnit {
 /// The unit the user chose in settings (`WeightUnitConfig`). Unset or
 /// unknown means pounds.
 pub fn unit_from_proto(unit: i32) -> AppWeightUnit {
-    match schlift::workout::v1::WeightUnit::try_from(unit) {
-        Ok(schlift::workout::v1::WeightUnit::Kg) => AppWeightUnit::Kg,
+    match crate::pb::WeightUnit::try_from(unit) {
+        Ok(crate::pb::WeightUnit::Kg) => AppWeightUnit::Kg,
         _ => AppWeightUnit::Lb,
     }
 }

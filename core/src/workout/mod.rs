@@ -1,21 +1,20 @@
-use crate::state::ActiveWorkout;
-pub use schlift::workout::v1::{
+pub use crate::pb::{
     AdjustExerciseWeightRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
     GetWorkoutResponse, ProposedSet, RemoveExerciseRequest, ReorderExercisesRequest,
     StartWorkoutResponse, WorkoutPlanChangeStats, WorkoutStateSnapshot,
 };
+use crate::state::ActiveWorkout;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tonic::Status;
 use uuid::Uuid;
 
 mod planning;
 mod reducer;
 
-pub(crate) use planning::{
+pub use planning::{
     apply_add_exercises, apply_adjust_exercise_weight, apply_remove_exercise,
     apply_reorder_exercises, ExercisePlan,
 };
-pub(crate) use reducer::{
+pub use reducer::{
     active_from_get_workout_response, active_proposed_sets, apply_complete_set_to_active,
     apply_delete_completed_set_to_active, apply_edit_completed_set_to_active,
     apply_rate_exercise_to_active, apply_skip_warmups_to_active, apply_start_set_to_active,
@@ -25,27 +24,18 @@ pub(crate) use reducer::{
 };
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum WorkoutError {
+pub enum WorkoutError {
     FailedPrecondition(&'static str),
     Internal(&'static str),
 }
 
 impl WorkoutError {
-    pub(crate) fn failed_precondition(message: &'static str) -> Self {
+    pub fn failed_precondition(message: &'static str) -> Self {
         Self::FailedPrecondition(message)
     }
 
-    pub(crate) fn internal(message: &'static str) -> Self {
+    pub fn internal(message: &'static str) -> Self {
         Self::Internal(message)
-    }
-}
-
-impl From<WorkoutError> for Status {
-    fn from(value: WorkoutError) -> Self {
-        match value {
-            WorkoutError::FailedPrecondition(message) => Status::failed_precondition(message),
-            WorkoutError::Internal(message) => Status::internal(message),
-        }
     }
 }
 
@@ -59,4 +49,4 @@ pub fn now_unix() -> i64 {
 
 /// Rest after an exercise's final set — no point in a full working rest when
 /// the next thing is a different exercise.
-pub(crate) const END_OF_EXERCISE_REST_SECONDS: i64 = 60;
+pub const END_OF_EXERCISE_REST_SECONDS: i64 = 60;

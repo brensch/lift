@@ -118,7 +118,7 @@ ProposedSet set_(
   ..restAfterFailure = restFailure;
 
 /// One rung of a calibration ramp: five reps at [weight], 90 s rest, as
-/// `calibration_set` in src/workout/planning.rs builds it.
+/// `calibration_set` in core/src/workout/planning.rs builds it.
 ProposedSet rung(
   String id,
   Exercise exercise, {

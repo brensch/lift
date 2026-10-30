@@ -14,7 +14,7 @@ use std::collections::HashMap;
 
 use crate::exercise_catalog::{muscle_label, muscles, primary_muscle, ALL_MUSCLES};
 use crate::history::WorkoutRecord;
-use schlift::workout::v1::{Exercise, MuscleGroup, MuscleVolume, WorkoutTemplate};
+use crate::pb::{Exercise, MuscleGroup, MuscleVolume, WorkoutTemplate};
 
 pub const VOLUME_WINDOW_SECONDS: i64 = 7 * 24 * 3600;
 pub const VOLUME_TARGET_LOW: i32 = 10;
@@ -160,7 +160,7 @@ pub fn suggest_template(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use schlift::workout::v1::{CompletedSet, ProposedSet, Workout};
+    use crate::pb::{CompletedSet, ProposedSet, Workout};
 
     fn record_with_sets(at: i64, sets: &[(Exercise, bool)]) -> WorkoutRecord {
         let mut proposed = Vec::new();

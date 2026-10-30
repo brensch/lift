@@ -1,6 +1,6 @@
 /// The exceptions, the effort question and the calibration ramp, driven
 /// through the real WorkoutProvider against the fake service. These pin
-/// the Dart half of src/workout/reducer.rs (`is_prompt_worthy`,
+/// the Dart half of core/src/workout/reducer.rs (`is_prompt_worthy`,
 /// `effort_prompt_from_state`, `apply_edit_completed_set_to_active`,
 /// `apply_start_set_to_active`, `record_effort`, `resolve_stale_effort`)
 /// to the same answers the Rust tests pin.
@@ -140,7 +140,7 @@ void main() {
     });
   });
 
-  // Mirrors the Rust `lifting` tests in src/workout/reducer.rs.
+  // Mirrors the Rust `lifting` tests in core/src/workout/reducer.rs.
   group('lifting', () {
     test('Start lifts the set until its Done', () async {
       await bootWorkout();
@@ -238,7 +238,7 @@ void main() {
     });
   });
 
-  // Mirrors the Rust "any set, any order" tests in src/workout/reducer.rs.
+  // Mirrors the Rust "any set, any order" tests in core/src/workout/reducer.rs.
   group('warmups are never removed', () {
     test('a working set moves past its warmups', () async {
       await bootWorkout();

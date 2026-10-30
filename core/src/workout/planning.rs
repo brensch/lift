@@ -6,19 +6,19 @@
 
 use super::*;
 use crate::exercise_catalog::{prescription, progression_increment_lb, snap_weight_lb};
+use crate::pb::{Effort, Exercise};
 use crate::weight_units::{
     bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near, AppWeightUnit,
 };
-use schlift::workout::v1::{Effort, Exercise};
 
 const DEFAULT_SUCCESS_REST_SECONDS: i32 = 180;
 const DEFAULT_FAILURE_REST_SECONDS: i32 = 300;
 const WARMUP_REST_SECONDS: i32 = 30;
 /// A calibration rung is always five reps, rested 90 s whatever happened.
-pub(crate) const CALIBRATION_REPS: i32 = 5;
-pub(crate) const CALIBRATION_REST_SECONDS: i32 = 90;
+pub const CALIBRATION_REPS: i32 = 5;
+pub const CALIBRATION_REST_SECONDS: i32 = 90;
 /// The ramp stops here; the sixth rung is treated as right.
-pub(crate) const MAX_CALIBRATION_RUNGS: usize = 6;
+pub const MAX_CALIBRATION_RUNGS: usize = 6;
 /// Each rung climbs by at least this fraction of the current weight.
 const CALIBRATION_RUNG_FRACTION: f32 = 1.10;
 
@@ -80,7 +80,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
 
 /// Everything needed to prescribe one exercise's block of sets: the tracker
 /// weight and the prescription, resolved by the caller (which owns DB access).
-pub(crate) struct ExercisePlan {
+pub struct ExercisePlan {
     pub exercise: i32,
     pub working_weight: f32, // lb
     pub sets: i32,
@@ -136,7 +136,7 @@ fn make_set(
 }
 
 /// One rung of the calibration ramp: five reps at `weight`, 90 s rest.
-pub(crate) fn calibration_set(workout_id: &str, exercise: i32, weight: f32) -> ProposedSet {
+pub fn calibration_set(workout_id: &str, exercise: i32, weight: f32) -> ProposedSet {
     let mut set = make_set(
         workout_id,
         exercise,
@@ -152,7 +152,7 @@ pub(crate) fn calibration_set(workout_id: &str, exercise: i32, weight: f32) -> P
 
 /// The next rung up from `weight`: the larger of one equipment step and
 /// 10%, snapped to what the exercise can load.
-pub(crate) fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeightUnit) -> f32 {
+pub fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeightUnit) -> f32 {
     let Ok(ex) = Exercise::try_from(exercise) else {
         return weight;
     };
@@ -167,7 +167,7 @@ pub(crate) fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeigh
 /// The working sets a calibration answer settles on: the catalog
 /// prescription's sets minus one (the rung that found the weight counts),
 /// at its range bottom and rest, all at `weight`.
-pub(crate) fn working_sets_after_calibration(
+pub fn working_sets_after_calibration(
     workout_id: &str,
     exercise: i32,
     weight: f32,
@@ -213,7 +213,7 @@ fn prescribed_working_sets(
 /// A set id derived from another id: `uuid5(NAMESPACE_OID, "{base}:{n}")`.
 /// Both reducers derive appended sets this way so an optimistic client
 /// copy and the server agree on ids.
-pub(crate) fn derived_set_id(base: &str, n: usize) -> String {
+pub fn derived_set_id(base: &str, n: usize) -> String {
     Uuid::new_v5(&Uuid::NAMESPACE_OID, format!("{base}:{n}").as_bytes()).to_string()
 }
 
@@ -290,11 +290,7 @@ fn replace_pending_calibration(
 /// Splice `sets` in straight after the set `after_id`, ahead of whatever
 /// follows it (another exercise's block included), and renumber. Falls
 /// back to the end when the anchor is missing.
-pub(crate) fn insert_sets_after(
-    workout_ref: &mut ActiveWorkout,
-    after_id: &str,
-    sets: Vec<ProposedSet>,
-) {
+pub fn insert_sets_after(workout_ref: &mut ActiveWorkout, after_id: &str, sets: Vec<ProposedSet>) {
     let at = workout_ref
         .proposed_sets
         .iter()
@@ -382,7 +378,7 @@ fn completed_proposed_ids(workout_ref: &ActiveWorkout) -> std::collections::Hash
 /// `client_working_set_ids` are consumed in block order for the working
 /// sets, so an offline client's optimistic sets keep their ids and the
 /// completions queued against them reconcile when the mutation lands.
-pub(crate) fn apply_add_exercises(
+pub fn apply_add_exercises(
     workout_ref: &mut ActiveWorkout,
     workout_id: &str,
     plans: &[ExercisePlan],
@@ -421,7 +417,7 @@ pub(crate) fn apply_add_exercises(
 /// completed warmups consume the first (lightest) N rungs of the fresh ladder,
 /// and no recalculated rung sits at or below a warmup already done (the
 /// downward-edit guard) — both carried over from the old group-edit logic.
-pub(crate) fn apply_adjust_exercise_weight(
+pub fn apply_adjust_exercise_weight(
     workout_ref: &mut ActiveWorkout,
     req: &AdjustExerciseWeightRequest,
     unit: AppWeightUnit,
@@ -538,7 +534,7 @@ fn apply_target_reps(workout_ref: &mut ActiveWorkout, req: &AdjustExerciseWeight
 }
 
 /// Cancel an exercise's pending sets. Completed sets stay — the work happened.
-pub(crate) fn apply_remove_exercise(
+pub fn apply_remove_exercise(
     workout_ref: &mut ActiveWorkout,
     req: &RemoveExerciseRequest,
 ) -> Result<(), WorkoutError> {
@@ -556,7 +552,7 @@ pub(crate) fn apply_remove_exercise(
 
 /// Reorder the exercise blocks: listed exercises take the given order; anything
 /// unlisted keeps its relative order after them. Stable within a block.
-pub(crate) fn apply_reorder_exercises(
+pub fn apply_reorder_exercises(
     workout_ref: &mut ActiveWorkout,
     req: &ReorderExercisesRequest,
 ) -> Result<(), WorkoutError> {
@@ -671,7 +667,7 @@ mod warmup_tests {
 #[cfg(test)]
 mod plan_op_tests {
     use super::*;
-    use schlift::workout::v1::Workout;
+    use crate::pb::Workout;
 
     const SQUAT: i32 = 1;
     const BENCH: i32 = 2;

@@ -1,7 +1,7 @@
 //! One workout, hydrated: the record every derived computation reads
 //! (progression, volume, recovery, weight history).
 
-use schlift::workout::v1::{CompletedSet, ProposedSet, Workout};
+use crate::pb::{CompletedSet, ProposedSet, Workout};
 
 #[derive(Clone, Debug)]
 pub struct WorkoutRecord {

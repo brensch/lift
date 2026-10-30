@@ -19,7 +19,16 @@ impl From<Status> for ServerError {
 
 impl From<crate::workout::WorkoutError> for ServerError {
     fn from(error: crate::workout::WorkoutError) -> Self {
-        Status::from(error).into()
+        workout_status(error).into()
+    }
+}
+
+/// A domain error from schlift-core as the gRPC status a client sees.
+pub(crate) fn workout_status(error: crate::workout::WorkoutError) -> Status {
+    use crate::workout::WorkoutError;
+    match error {
+        WorkoutError::FailedPrecondition(message) => Status::failed_precondition(message),
+        WorkoutError::Internal(message) => Status::internal(message),
     }
 }
 

@@ -19,8 +19,8 @@ built, it is called out explicitly under "Not implemented".
 
 Progression, templates and volume are specified in
 [`docs/plans/composable-workouts.md`](../plans/composable-workouts.md), which
-this refactor implemented; the code lives in `src/exercise_catalog.rs`,
-`src/exercise_progress.rs` and `src/volume.rs`.
+this refactor implemented; the code lives in `core/src/exercise_catalog.rs`,
+`core/src/exercise_progress.rs` and `core/src/volume.rs`.
 
 ## Conventions used here
 

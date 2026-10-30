@@ -1,0 +1,17 @@
+[package]
+name = "schlift-core"
+version = "0.1.0"
+edition = "2021"
+
+# The domain, with no IO: the proto messages, the workout reducer and
+# planner, progression, summaries, volume and recovery. The server links it,
+# and the app will too, so every rule has one implementation.
+
+[dependencies]
+prost = "0.13.4"
+uuid = { version = "1.11.0", features = ["v4", "v5", "fast-rng"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+
+[build-dependencies]
+prost-build = "0.13.4"

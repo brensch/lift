@@ -170,7 +170,7 @@ erDiagram
 ```
 
 - A template holds exercises only; sets/reps/rest/weight resolve from the
-  prescription (`src/exercise_catalog.rs`) and the tracker at start time.
+  prescription (`core/src/exercise_catalog.rs`) and the tracker at start time.
 - A tracker row is optional: no row means catalog opener weight and the
   derived prescription.
 - `progression_applied` is the idempotency ledger. `EndWorkout` claims the
@@ -186,7 +186,7 @@ erDiagram
 can pick from: `groups` (key + label, in display order) and `templates`
 (stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
 exercises as `Exercise` enum names without the `EXERCISE_` prefix). The
-backend embeds the file at build time (`src/template_library.rs`; `cargo
+backend embeds the file at build time (`core/src/template_library.rs`; `cargo
 test` fails on an unknown exercise name) and mirrors it into the
 `template_library` table on startup (`src/db/library.rs`), so the table is
 never edited by hand and the YAML wins on every restart.

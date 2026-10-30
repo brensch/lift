@@ -192,7 +192,7 @@ participant blobs. Do not build on those proto fields expecting server values.
 
 ## Error handling
 
-`WorkoutError` (`src/workout/mod.rs:26`) is a small enum of
+`WorkoutError` (`core/src/workout/mod.rs:26`) is a small enum of
 `FailedPrecondition` / `Internal` / `NotFound` carrying a `&'static str`, with a
 `From<WorkoutError> for Status`. Domain code returns `WorkoutError`; handlers
 use `?` to convert. `internal_error` maps DB errors to `Status::internal`.

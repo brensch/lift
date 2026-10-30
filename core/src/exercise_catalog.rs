@@ -6,10 +6,10 @@
 //! model, recovery, the picker's equipment filter and the progression
 //! step all read from here — there is no second classification anywhere.
 
+use crate::pb::{EquipmentKind, Exercise, ExerciseCategory, MuscleGroup};
 use crate::weight_units::{
     bar_weight, kg_to_pounds, round_to_unit_increment, snap_loadable_lb, AppWeightUnit,
 };
-use schlift::workout::v1::{EquipmentKind, Exercise, ExerciseCategory, MuscleGroup};
 
 /// How a move is loaded. Decides the smallest step you can actually add,
 /// the opener with no history, and whether "add weight" is even the right

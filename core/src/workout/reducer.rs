@@ -1,10 +1,10 @@
 use super::*;
-use crate::progress::compute_next_up_set;
-use crate::weight_units::AppWeightUnit;
-use schlift::workout::v1::{
+use crate::pb::{
     EditCompletedSetRequest, Effort, EffortPrompt, RateExerciseRequest, SkipWarmupsRequest,
     StartSetRequest, Workout,
 };
+use crate::progress::compute_next_up_set;
+use crate::weight_units::AppWeightUnit;
 use uuid::Uuid;
 
 const STATE_ALL_DONE: i32 = 1;
@@ -13,7 +13,7 @@ const STATE_READY: i32 = 5;
 const STATE_YAPPING: i32 = 6;
 const STATE_LIFTING: i32 = 7;
 
-pub(crate) fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
+pub fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
     proposed_sets
         .iter()
         .filter(|set| !set.cancelled)
@@ -21,7 +21,7 @@ pub(crate) fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<Propose
         .collect()
 }
 
-pub(crate) fn workout_plan_change_stats_from_sets(
+pub fn workout_plan_change_stats_from_sets(
     proposed_sets: &[ProposedSet],
 ) -> WorkoutPlanChangeStats {
     let cancelled_total = proposed_sets.iter().filter(|set| set.cancelled).count() as i32;
@@ -40,7 +40,7 @@ pub(crate) fn workout_plan_change_stats_from_sets(
     }
 }
 
-pub(crate) fn is_final_set_of_exercise_after_completion(
+pub fn is_final_set_of_exercise_after_completion(
     proposed_set_id: &str,
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
@@ -81,7 +81,7 @@ fn last_done_set(completed_sets: &[CompletedSet]) -> Option<&CompletedSet> {
 
 /// Whether "how was that" is asked about this done set: every working
 /// set and every calibration rung, never a warmup.
-pub(crate) fn is_prompt_worthy(done: &CompletedSet, proposed_sets: &[ProposedSet]) -> bool {
+pub fn is_prompt_worthy(done: &CompletedSet, proposed_sets: &[ProposedSet]) -> bool {
     proposed_sets
         .iter()
         .find(|set| set.id == done.proposed_set_id && !set.cancelled)
@@ -91,7 +91,7 @@ pub(crate) fn is_prompt_worthy(done: &CompletedSet, proposed_sets: &[ProposedSet
 /// The question on screen: the latest done set, while it is
 /// prompt-worthy, whatever the rest state, carrying its current answer
 /// (unspecified until one is given). A newer Done replaces it.
-pub(crate) fn effort_prompt_from_state(
+pub fn effort_prompt_from_state(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> Option<EffortPrompt> {
@@ -115,7 +115,7 @@ pub(crate) fn effort_prompt_from_state(
 /// set that is still pending; otherwise, after a done set, RESTING while its
 /// rest runs and YAPPING once it has run out; READY before any set; ALL_DONE
 /// with nothing left. Mirrored in the app's `WorkoutProvider`.
-pub(crate) fn workout_state_snapshot(
+pub fn workout_state_snapshot(
     workout: &Workout,
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
@@ -196,7 +196,7 @@ pub(crate) fn workout_state_snapshot(
     }
 }
 
-pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWorkoutResponse {
+pub fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWorkoutResponse {
     let now = now_unix();
     let state_snapshot = Some(workout_state_snapshot(
         &active.workout,
@@ -223,7 +223,7 @@ pub(crate) fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWor
     }
 }
 
-pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkoutResponse {
+pub fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkoutResponse {
     let resp = get_workout_response_from_active(active);
     StartWorkoutResponse {
         id: active.workout.id.clone(),
@@ -236,7 +236,7 @@ pub(crate) fn start_workout_response_from_active(active: &ActiveWorkout) -> Star
     }
 }
 
-pub(crate) fn active_from_get_workout_response(
+pub fn active_from_get_workout_response(
     resp: GetWorkoutResponse,
 ) -> Result<ActiveWorkout, WorkoutError> {
     let workout = resp
@@ -257,7 +257,7 @@ pub(crate) fn active_from_get_workout_response(
 /// "Skip all warmups": the exercise's undone warmups are marked skipped.
 /// Nothing is removed; they stay in the plan, nothing waits on them
 /// (`is_passed_warmup`), and doing one later still records it.
-pub(crate) fn apply_skip_warmups_to_active(
+pub fn apply_skip_warmups_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &SkipWarmupsRequest,
 ) -> Result<(), WorkoutError> {
@@ -280,7 +280,7 @@ pub(crate) fn apply_skip_warmups_to_active(
     Ok(())
 }
 
-pub(crate) fn apply_start_set_to_active(
+pub fn apply_start_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &StartSetRequest,
     now: i64,
@@ -312,7 +312,7 @@ pub(crate) fn apply_start_set_to_active(
 /// Log a set as done. A rating given with the Done answers "how was that"
 /// for it there and then, exactly as `RateExercise` would (on a calibration
 /// rung that appends the next rung or the working sets, in [unit]).
-pub(crate) fn apply_complete_set_to_active(
+pub fn apply_complete_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &CompleteSetRequest,
     unit: AppWeightUnit,
@@ -424,7 +424,7 @@ fn rest_seconds_after(proposed: &ProposedSet, actual_reps: i32, is_final: bool) 
 /// Correct a done set after the fact: reps and weight change, and the rest
 /// is recomputed from `ended_at` by the same rule Done used (fewer reps
 /// than planned switches to the failure rest). An unknown set is a no-op.
-pub(crate) fn apply_edit_completed_set_to_active(
+pub fn apply_edit_completed_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &EditCompletedSetRequest,
     unit: AppWeightUnit,
@@ -487,7 +487,7 @@ pub(crate) fn apply_edit_completed_set_to_active(
 /// appends for the new one; when the plan no longer holds exactly that
 /// append (the weight was typed, the exercise removed) only the answer
 /// changes.
-pub(crate) fn apply_rate_exercise_to_active(
+pub fn apply_rate_exercise_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &RateExerciseRequest,
     unit: AppWeightUnit,
@@ -578,7 +578,7 @@ pub(super) fn close_open_rungs(workout_ref: &mut ActiveWorkout, exercise: i32) {
 /// No question survives the end of a workout: everything still open is
 /// answered "right" before progression reads the efforts. A rung closed
 /// here appends nothing — pending rows on a finished workout are wrong.
-pub(crate) fn resolve_all_effort(workout_ref: &mut ActiveWorkout) {
+pub fn resolve_all_effort(workout_ref: &mut ActiveWorkout) {
     resolve_unanswered(workout_ref, false);
 }
 
@@ -678,7 +678,7 @@ fn ramp_append(
 /// here, hard settles one rung down (the opener if this was the first);
 /// the sixth rung settles whatever the answer. Ids are
 /// `uuid5(NAMESPACE_OID, "{completed_set_id}:{n}")`, shared with the app.
-pub(crate) fn would_append(
+pub fn would_append(
     proposed_sets: &[ProposedSet],
     rung: &ProposedSet,
     completed_set_id: &str,
@@ -723,7 +723,7 @@ pub(crate) fn would_append(
 /// The set an unanswered calibration rung is waiting on: the first set
 /// "right" would append. `compute_next_up_set` puts it ahead of every
 /// other pending set, and the workout is not done while it exists.
-pub(crate) fn awaiting_ramp_set(
+pub fn awaiting_ramp_set(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> Option<ProposedSet> {
@@ -746,7 +746,7 @@ pub(crate) fn awaiting_ramp_set(
     .next()
 }
 
-pub(crate) fn apply_delete_completed_set_to_active(
+pub fn apply_delete_completed_set_to_active(
     workout_ref: &mut ActiveWorkout,
     req: &DeleteCompletedSetRequest,
 ) -> Result<(), WorkoutError> {
@@ -762,7 +762,7 @@ pub(crate) fn apply_delete_completed_set_to_active(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use schlift::workout::v1::Workout;
+    use crate::pb::Workout;
 
     fn proposed(id: &str, order: i32, warmup: bool) -> ProposedSet {
         ProposedSet {
