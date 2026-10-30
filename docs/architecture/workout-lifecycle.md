@@ -9,7 +9,7 @@ actually doing) to a *completed workout* (which advances the trackers).
 ```mermaid
 graph LR
     tmpl["Template<br/>exercises only"] -->|"StartWorkout resolves<br/>trackers + prescription"| active["Active workout"]
-    active -->|"StartSet / CompleteSet"| active
+    active -->|"CompleteSet (Done)<br/>RateExercise (how was that)"| active
     active -->|"EndWorkout"| done["Completed workout"]
     done -->|"advance_tracker<br/>(double progression)"| trk["Exercise trackers<br/>one per exercise"]
     trk --> tmpl
@@ -41,29 +41,107 @@ sets.
 
 ## Set state machine
 
-A single set moves through these states. There is no status enum — state is
-derived from which rows exist and whether their timestamps are zero.
+A set is pending, lifting, done or cancelled (an exercise removed
+mid-workout). There is no status enum:
+state is derived from which rows exist and from the workout's one lifting
+marker (`Workout.lifting_set_id` / `lifting_started_at`).
+
+On the phone a set is a **circle** with a number in it (StrongLifts' whole
+interface): tap the up-next circle to start the set, tap it again when it
+is done (every rep), and once more for each rep missed. The tap after zero
+undoes the set. A finding-weight rung stops at zero instead, since the plan
+it settled hangs off it.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Proposed: generate_sets_for_group
-    Proposed --> InProgress: StartSet<br/>(inserts CompletedSet, ended_at = 0)
-    InProgress --> Done: CompleteSet<br/>(sets ended_at, actual_reps, rest_until)
-    Proposed --> Cancelled: CancelProposedSet<br/>(soft delete, cancelled = 1)
-    Done --> Proposed: DeleteCompletedSet<br/>(removes CompletedSet row)
+    [*] --> Pending: generate_sets_for_exercise
+    Pending --> Lifting: StartSet<br/>(sets the workout's lifting marker)
+    Lifting --> Done: CompleteSet<br/>(inserts CompletedSet: started_at, ended_at, rest_until; clears the marker)
+    Pending --> Done: CompleteSet<br/>(never started: started_at = 0)
+    Done --> Done: EditCompletedSet<br/>(a tap per missed rep; rest recomputed)
+    Done --> Done: RateExercise<br/>(a rung's "how many were left")
+    Pending --> Cancelled: RemoveExercise<br/>(its undone sets, soft delete)
+    Done --> Pending: DeleteCompletedSet<br/>(the tap after zero)
     Done --> [*]
     Cancelled --> [*]
 ```
 
 | State | How you detect it |
 |---|---|
-| Proposed | `ProposedSet` exists, `cancelled = 0`, no matching `CompletedSet` |
-| In progress | Matching `CompletedSet` with `ended_at = 0` |
-| Done | Matching `CompletedSet` with `ended_at != 0` |
+| Pending | `ProposedSet` exists, `cancelled = 0`, no matching `CompletedSet` |
+| Lifting | `Workout.lifting_set_id` names it and it isn't done |
+| Done | Matching `CompletedSet` |
 | Cancelled | `ProposedSet.cancelled = 1` |
 
-`StartSet` creating the `CompletedSet` row up front is the non-obvious part: the
-row exists before the user has lifted anything, holding only `started_at`.
+The workout's state comes from the lifting marker, then from one moment —
+when the last set was done — and that set's prescribed rest:
+
+| State | When | Timer |
+|---|---|---|
+| **Ready** | No set done yet: the first set is up | none |
+| **Lifting** | A set is started and not done | counts up from `lifting_started_at` (orange) |
+| **Resting** | The last done set's rest is still running | counts down to `rest_until` (blue) |
+| **Yapping** | That rest has run out; the next set isn't started | counts up from `rest_until` (pink) |
+| **All done** | Nothing left to do | none |
+
+The reducer's `workout_state_snapshot` derives this plus the
+`effort_prompt`; the app mirrors it offline (`WorkoutProvider`) and re-derives
+when a rest runs out, so resting turns into yapping on the device clock. The
+snapshot keeps `rest_until` through yapping so the count-up survives a reload.
+The summary splits the time between sets three ways
+(`compute_workout_summary`): `lifting_seconds` from each start to its Done,
+`resting_seconds` for the prescribed rest, `yapping_seconds` from the rest's
+end to the next set's start. The completed screen shows them, and the
+heart-rate chart shades yapping pink.
+
+Any set can be done in any order, and warmups are never removed. An
+undone warmup is behind you (`is_passed_warmup`) once it is skipped —
+"Skip" on the warmup row sends `SkipWarmups`, which sets `ProposedSet.skipped` on
+the exercise's undone warmups — or once one of the exercise's working sets
+is done. They stay in the plan, but nothing
+waits on them: they are not up next, they don't keep the exercise open (the
+last working set still gets the short end-of-exercise rest), and they don't
+hold the workout off ALL_DONE. Up next (`compute_next_up_set`) is the
+first open set in plan order: the order is the person's (they drag
+exercises into it), so whatever is on top is next.
+
+Each exercise's header shows what it's set to (weight × reps) and a pencil
+for its sheet. Changing weight or reps there applies to the rest of the
+workout (`AdjustExerciseWeight`, with `target_reps`) and to the account's
+tracker (`SetExerciseTracker`, with `target_reps`), so next time starts from
+it too. An exercise already in the workout can't be added again.
+
+The live workout page lists every exercise full width, its sets as
+circles in two rows, labelled down the left edge: WARMUP, ending in "Skip"
+while any is open, and WORKING. A warmup behind you shows as a
+dash and can still be done. Up next is always the rule above, the same on
+the server and the phone; the way to do a different set is to start it (the
+lifting marker is the server's record of the choice). Unfinished exercises drag into a new order. The banner under
+it has no buttons: a status box per partner (three in view, the rest
+scroll) and yours at the bottom. During an account's first workout a line
+on top says what to tap next (`FirstWorkout`, per account on the device).
+
+### Effort and calibration
+
+Working sets are not rated in the app: progression reads the reps
+(`advance_tracker`'s double progression — all reps on every set moves the
+weight or the rep target, a miss repeats, three hard sessions running is a
+planned 10% deload). The reducer still opens `effort_prompt` after a
+working set; unanswered, it resolves to *right* at the next mutation
+(`resolve_stale_effort`) or at `EndWorkout`.
+
+A loaded exercise with no performed history starts as a **calibration
+ramp** instead of a warmup ladder plus working sets: one 5-rep rung
+(`ProposedSet.calibration = 1`) at the catalog opener (or 60% of the
+onboarding seed). After each rung the app asks how many more reps were in
+the tank — 0–1 (hard), 2–3 (right), 4+ (easy) — and the answer decides what
+is appended (`record_effort`): 4+ adds the next rung, 2–3 makes this the
+working weight, 0–1 takes the previous rung; then the prescription's
+working sets minus one. Six rungs is the cap. On a watch the rung's finish
+is the answer: three Done buttons, each carrying it as
+`CompleteSetRequest.effort`. Rungs count as warmups for volume and
+summaries. The design record is
+[`docs/plans/one-tap-sets.md`](../plans/one-tap-sets.md).
 
 ## Starting a workout
 
@@ -128,8 +206,7 @@ used when the app has been offline or has queued watch intents.
 
 ```mermaid
 graph LR
-    m["WorkoutMutation oneof"] --> t1["StartSet → apply_start_set_to_active"]
-    m --> t2["CompleteSet → apply_complete_set_to_active"]
+    m["WorkoutMutation oneof"] --> t2["CompleteSet → apply_complete_set_to_active"]
     m --> t3["DeleteCompletedSet → apply_delete_completed_set_to_active"]
     m --> t4["CancelProposedSet → apply_cancel_proposed_set_to_active"]
     m --> t5["EndWorkout → set end_time"]
@@ -137,7 +214,13 @@ graph LR
     m --> t7["AdjustExerciseWeight → apply_adjust_exercise_weight"]
     m --> t8["RemoveExercise → apply_remove_exercise"]
     m --> t9["ReorderExercises → apply_reorder_exercises"]
+    m --> t10["RateExercise → apply_rate_exercise_to_active"]
+    m --> t11["SkipRest → apply_skip_rest_to_active"]
+    m --> t12["EditCompletedSet → apply_edit_completed_set_to_active"]
 ```
+
+Every mutation first runs `resolve_stale_effort` against its own timestamp,
+so an unanswered question never outlives the rest it belonged to.
 
 Each mutation carries a client-generated `event_id` for dedupe and an optional
 `client_created_at` so a queued action keeps its original timestamp rather than

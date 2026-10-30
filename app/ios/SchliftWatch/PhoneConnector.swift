@@ -13,9 +13,6 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     @Published var snapshot: Workout_V1_WearWorkoutSnapshot?
     @Published private(set) var latestBpm: Double?
     @Published private(set) var isActionPending = false
-    /// Live HK workout-session state, surfaced on the watch UI so we can see exactly what the
-    /// session is doing (running / stopped / ended) rather than guessing.
-    @Published private(set) var sessionStateLabel: String = "—"
 
     private var heartbeatTimer: Timer?
     private let workoutSessionManager = WorkoutSessionManager()
@@ -48,26 +45,10 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         workoutSessionManager.onHeartRateSample = { [weak self] sample in
             self?.bufferAndFlushHRSample(sample)
         }
-        workoutSessionManager.onSessionStateChanged = { [weak self] raw in
-            self?.sessionStateLabel = PhoneConnector.sessionStateName(raw)
-        }
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
             session.activate()
-        }
-    }
-
-    /// Maps HKWorkoutSessionState raw values to a short label for the on-watch readout.
-    private static func sessionStateName(_ raw: Int) -> String {
-        switch raw {
-        case 1: return "notStarted"
-        case 2: return "running"
-        case 3: return "ended"
-        case 4: return "paused"
-        case 5: return "prepared"
-        case 6: return "stopped"
-        default: return "state \(raw)"
         }
     }
 
@@ -182,8 +163,8 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     func synchronizedNowMs() -> Int64 {
         // The watch's wall clock is NTP-synced with the phone, so it is already a
         // faithful estimate of "phone now" — which is exactly what restUntil /
-        // activeStartedAt / workoutStartTime (phone wall-clock seconds) are
-        // compared against. We deliberately do NOT anchor on snapshot.emittedAt:
+        // workoutStartTime (phone wall-clock seconds) are compared against. We
+        // deliberately do NOT anchor on snapshot.emittedAt:
         // snapshots routinely arrive stale (the phone replies to snapshot_request
         // with cached bytes, and pushes are delayed while the phone app is
         // suspended), so anchoring would repeatedly drag this clock back to the
@@ -269,16 +250,17 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    /// What a tap can change. A snapshot with a different key re-enables the buttons
+    /// before the 2 s safety timeout; one with the same key is the phone re-sending.
     private func meaningfulSnapshotKey(_ snapshot: Workout_V1_WearWorkoutSnapshot) -> String {
         let currentSet = snapshot.youCard.hasDisplaySet ? snapshot.youCard.displaySet : nil
         return [
             snapshot.workoutID,
             "\(snapshot.state.rawValue)",
-            "\(snapshot.activeStartedAt)",
             "\(snapshot.restUntil)",
-            "\(snapshot.lastRestEnd)",
+            "\(snapshot.liftingStartedAt)",
             snapshot.youCard.stateLabel,
-            "\(snapshot.actions.count)",
+            snapshot.actions.map { "\($0.type.rawValue)" }.joined(separator: ","),
             currentSet?.id ?? "",
             currentSet.map { "\($0.targetReps)" } ?? "",
             currentSet.map { "\($0.targetWeight)" } ?? "",

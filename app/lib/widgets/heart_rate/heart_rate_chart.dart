@@ -8,11 +8,12 @@ import 'package:flutter/material.dart';
 import '../../gen/workout/v1/wearable.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../services/health_service.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
 import 'legend.dart';
 import 'models.dart';
 import 'zone_summary.dart';
 import 'trend_painter.dart';
+import '../../theme/app_icons.dart';
 
 class HeartRateChart extends StatefulWidget {
   final List<HeartRateSample> heartRateSamples;
@@ -151,18 +152,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
 
   String _stateSnapshotKey(WorkoutStateSnapshot? snapshot) {
     if (snapshot == null) return 'null';
-    return [
-      snapshot.state.value,
-      snapshot.activeStartedAt.toInt(),
-      snapshot.restUntil.toInt(),
-      snapshot.lastRestEnd.toInt(),
-    ].join(':');
+    return '${snapshot.state.value}:${snapshot.restUntil.toInt()}';
   }
 
   String _completedSetListKey(List<CompletedSet> sets) {
     if (sets.isEmpty) return '0';
     final last = sets.last;
-    return '${sets.length}:${last.startedAt.toInt()}:${last.endedAt.toInt()}:${last.restUntil.toInt()}';
+    return '${sets.length}:${last.endedAt.toInt()}:${last.restUntil.toInt()}';
   }
 
   Future<void> _loadZoneProfile() async {
@@ -178,8 +174,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final heartRateSamples = _uiHeartRateSamples;
-    final completedSets = _uiCompletedSets;
-    final stateSnapshot = _uiStateSnapshot;
     final startMs = widget.workoutStartTime.toInt() * 1000;
     final localNow = DateTime.now();
     final effectiveNow = widget.followLiveClock
@@ -245,19 +239,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final currentBpm = spots.last.y;
     final currentZone = zoneFor(currentBpm, zones);
     final zoneColor = _zoneColorForBpm(currentBpm, zones);
-    final activityBands = _clipVerticalAnnotations(
-      _buildActivityBands(startMs),
-      minX: minX,
-      maxX: maxX,
-    );
-    final liveBands = _clipVerticalAnnotations(
-      _buildLiveActivityBands(
-        startMs,
-        effectiveNow,
-        viewEndSec: maxX,
-        completedSets: completedSets,
-        stateSnapshot: stateSnapshot,
-      ),
+    final restBands = _clipVerticalAnnotations(
+      _buildRestBands(startMs),
       minX: minX,
       maxX: maxX,
     );
@@ -271,8 +254,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
         Text(
           'HEART RATE',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.bold,
             letterSpacing: 1.5,
             color: colorScheme.tertiary,
           ),
@@ -281,8 +264,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
         Text(
           '${currentBpm.round()}',
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+            fontSize: context.tokens.size.titleLg,
+            fontWeight: context.tokens.weight.heavy,
             height: 1.0,
             color: zoneColor,
           ),
@@ -291,8 +274,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
         Text(
           'BPM',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.bold,
             color: colorScheme.tertiary,
           ),
         ),
@@ -302,13 +285,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: zoneColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: context.tokens.br(4),
             ),
             child: Text(
               '${currentZone.name} ${currentZone.label}',
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+                fontSize: context.tokens.size.caption,
+                fontWeight: context.tokens.weight.bold,
                 letterSpacing: 0.5,
                 color: zoneColor,
               ),
@@ -322,8 +305,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
           Text(
             _zoneProfile!.hasRestingHeartRate ? 'HRR' : '%MAX',
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
+              fontSize: context.tokens.size.caption,
+              fontWeight: context.tokens.weight.bold,
               letterSpacing: 0.5,
               color: colorScheme.tertiary,
             ),
@@ -335,13 +318,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: colorScheme.onSurface.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: context.tokens.br(4),
             ),
             child: Text(
               'zzz ${_zoneProfile!.restingHeartRateBpm!.round()}',
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+                fontSize: context.tokens.size.caption,
+                fontWeight: context.tokens.weight.bold,
                 letterSpacing: 0.3,
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
@@ -351,9 +334,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
         if (widget.collapsible) ...[
           const SizedBox(width: 6),
           Icon(
-            _collapsed
-                ? Icons.keyboard_arrow_down_rounded
-                : Icons.keyboard_arrow_up_rounded,
+            _collapsed ? AppIcons.expandDown : AppIcons.expandUp,
             color: colorScheme.tertiary,
           ),
         ],
@@ -365,8 +346,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
         Text(
           'HEART RATE',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.bold,
             letterSpacing: 1.5,
             color: colorScheme.tertiary,
           ),
@@ -384,8 +365,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
         Text(
           '${currentBpm.round()}',
           style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
+            fontSize: context.tokens.size.titleLg,
+            fontWeight: context.tokens.weight.heavy,
             height: 1.0,
             color: zoneColor,
           ),
@@ -394,13 +375,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
         Text(
           'BPM',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.bold,
             color: colorScheme.tertiary,
           ),
         ),
         const SizedBox(width: 6),
-        Icon(Icons.keyboard_arrow_down_rounded, color: colorScheme.tertiary),
+        Icon(AppIcons.expandDown, color: colorScheme.tertiary),
       ],
     );
 
@@ -410,7 +391,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
           ? null
           : BoxDecoration(
               color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: context.tokens.br(12),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.35),
               ),
@@ -419,7 +400,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.tokens.br(8),
             onTap: widget.collapsible
                 ? () => setState(() => _collapsed = !_collapsed)
                 : null,
@@ -535,7 +516,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                               child: Text(
                                                 '$bpm',
                                                 style: TextStyle(
-                                                  fontSize: 9,
+                                                  fontSize: context
+                                                      .tokens
+                                                      .size
+                                                      .caption,
                                                   color: colorScheme.onSurface
                                                       .withValues(alpha: 0.4),
                                                 ),
@@ -560,8 +544,14 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                                 child: Text(
                                                   z.name,
                                                   style: TextStyle(
-                                                    fontSize: 9,
-                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: context
+                                                        .tokens
+                                                        .size
+                                                        .caption,
+                                                    fontWeight: context
+                                                        .tokens
+                                                        .weight
+                                                        .bold,
                                                     color: colorScheme.onSurface
                                                         .withValues(
                                                           alpha: 0.35,
@@ -593,7 +583,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                             child: Text(
                                               formatElapsedHms(value.round()),
                                               style: TextStyle(
-                                                fontSize: 9,
+                                                fontSize:
+                                                    context.tokens.size.caption,
                                                 color: colorScheme.onSurface
                                                     .withValues(alpha: 0.45),
                                               ),
@@ -607,10 +598,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                   borderData: FlBorderData(show: false),
                                   rangeAnnotations: RangeAnnotations(
                                     horizontalRangeAnnotations: const [],
-                                    verticalRangeAnnotations: [
-                                      ...activityBands,
-                                      ...liveBands,
-                                    ],
+                                    verticalRangeAnnotations: restBands,
                                   ),
                                   extraLinesData: ExtraLinesData(
                                     verticalLines: [
@@ -655,16 +643,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                 runSpacing: 4,
                                 children: [
                                   HeartRateLegendItem(
-                                    label: 'Lift',
-                                    color: AppTheme.workoutLiftingFg,
-                                  ),
-                                  HeartRateLegendItem(
                                     label: 'Rest',
-                                    color: AppTheme.workoutRestingFg,
-                                  ),
-                                  HeartRateLegendItem(
-                                    label: 'Yap',
-                                    color: AppTheme.workoutYappingFg,
+                                    color: context.tokens.workoutRestingFg,
                                   ),
                                 ],
                               ),
@@ -754,202 +734,53 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return filtered.isEmpty ? samples.take(2).toList() : filtered;
   }
 
-  List<VerticalRangeAnnotation> _buildActivityBands(int startMs) {
-    final bands = <VerticalRangeAnnotation>[];
-    final sorted =
-        _uiCompletedSets
-            .where((c) => c.startedAt != Int64.ZERO && c.endedAt != Int64.ZERO)
-            .toList()
-          ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+  /// Two bands per done set: resting (blue) from its completion to its rest
+  /// target, cut short by the next Done; then yapping (pink) from the rest
+  /// target to the next Done, if the next set came after the rest ran out.
+  List<VerticalRangeAnnotation> _buildRestBands(int startMs) {
+    final sorted = _uiCompletedSets.toList()
+      ..sort((a, b) => a.endedAt.compareTo(b.endedAt));
     final deduped = <CompletedSet>[];
-    final seenPhaseKeys = <String>{};
+    final seenKeys = <String>{};
     for (final c in sorted) {
-      final key =
-          '${c.startedAt.toInt()}:${c.endedAt.toInt()}:${c.restUntil.toInt()}';
-      if (seenPhaseKeys.add(key)) {
+      if (seenKeys.add('${c.endedAt.toInt()}:${c.restUntil.toInt()}')) {
         deduped.add(c);
       }
     }
 
-    final liftColor = AppTheme.workoutLiftingFg;
-    final restColor = AppTheme.workoutRestingFg;
-    final yapColor = AppTheme.workoutYappingFg;
-    final activeLiftStartSec = _activeLiftStartSec(startMs);
-
+    final restColor = context.tokens.workoutRestingFg;
+    final yapColor = context.tokens.workoutYappingFg;
+    final bands = <VerticalRangeAnnotation>[];
     for (var i = 0; i < deduped.length; i++) {
       final c = deduped[i];
-      final liftStart = (c.startedAt.toInt() * 1000 - startMs) / 1000.0;
-      final liftEnd = (c.endedAt.toInt() * 1000 - startMs) / 1000.0;
-
-      if (liftEnd > liftStart) {
+      final restStart = (c.endedAt.toInt() * 1000 - startMs) / 1000.0;
+      final rawRestEnd = c.restUntil == Int64.ZERO
+          ? restStart
+          : (c.restUntil.toInt() * 1000 - startMs) / 1000.0;
+      final nextDone = i + 1 < deduped.length
+          ? (deduped[i + 1].endedAt.toInt() * 1000 - startMs) / 1000.0
+          : double.infinity;
+      final restEnd = min(rawRestEnd, nextDone);
+      if (restEnd > restStart) {
         bands.add(
           VerticalRangeAnnotation(
-            x1: liftStart,
-            x2: liftEnd,
-            color: liftColor.withValues(alpha: 0.12),
+            x1: restStart,
+            x2: restEnd,
+            color: restColor.withValues(alpha: 0.12),
           ),
         );
       }
-
-      if (c.restUntil != Int64.ZERO) {
-        final rawRestEnd = (c.restUntil.toInt() * 1000 - startMs) / 1000.0;
-        var nextLiftStart = i + 1 < deduped.length
-            ? (deduped[i + 1].startedAt.toInt() * 1000 - startMs) / 1000.0
-            : double.infinity;
-        if (i == deduped.length - 1 && activeLiftStartSec != null) {
-          nextLiftStart = min(nextLiftStart, activeLiftStartSec);
-        }
-        final restEnd = min(rawRestEnd, nextLiftStart);
-        if (restEnd > liftEnd) {
-          bands.add(
-            VerticalRangeAnnotation(
-              x1: liftEnd,
-              x2: restEnd,
-              color: restColor.withValues(alpha: 0.12),
-            ),
-          );
-        }
-      }
-
-      if (i > 0) {
-        final prev = deduped[i - 1];
-        final prevLiftEnd = (prev.endedAt.toInt() * 1000 - startMs) / 1000.0;
-        final prevRawRestEnd = prev.restUntil != Int64.ZERO
-            ? (prev.restUntil.toInt() * 1000 - startMs) / 1000.0
-            : prevLiftEnd;
-        final prevEnd = min(prevRawRestEnd, liftStart);
-        if (liftStart > prevEnd + 1) {
-          bands.add(
-            VerticalRangeAnnotation(
-              x1: prevEnd,
-              x2: liftStart,
-              color: yapColor.withValues(alpha: 0.12),
-            ),
-          );
-        }
-      }
-    }
-    return bands;
-  }
-
-  List<VerticalRangeAnnotation> _buildLiveActivityBands(
-    int startMs,
-    DateTime now, {
-    required double viewEndSec,
-    required List<CompletedSet> completedSets,
-    required WorkoutStateSnapshot? stateSnapshot,
-  }) {
-    final snapshot = stateSnapshot;
-    if (snapshot == null) return const [];
-
-    final nowSec = (now.millisecondsSinceEpoch - startMs) / 1000.0;
-    if (nowSec <= 0) return const [];
-
-    double toSecFromUnix(int unixSeconds) =>
-        ((unixSeconds * 1000) - startMs) / 1000.0;
-
-    final liftColor = AppTheme.workoutLiftingFg;
-    final yapColor = AppTheme.workoutYappingFg;
-
-    final completedWithEnd = completedSets
-        .where((c) => c.endedAt != Int64.ZERO)
-        .toList();
-    final lastEndedAt = completedWithEnd.fold<int>(
-      0,
-      (acc, c) => max(acc, c.endedAt.toInt()),
-    );
-    CompletedSet? latestCompleted;
-    for (final c in completedWithEnd) {
-      if (latestCompleted == null || c.endedAt > latestCompleted.endedAt) {
-        latestCompleted = c;
-      }
-    }
-
-    final bands = <VerticalRangeAnnotation>[];
-
-    if (snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING) {
-      final startedAt = snapshot.activeStartedAt.toInt();
-      if (startedAt > 0) {
-        final x1 = max(0.0, toSecFromUnix(startedAt));
-        final lastRestEnd = snapshot.lastRestEnd.toInt();
-        final latestEndedAtUnix =
-            latestCompleted?.endedAt.toInt() ?? lastEndedAt;
-        final prescribedRestEndUnix =
-            (latestCompleted != null &&
-                latestCompleted.restUntil.toInt() > latestEndedAtUnix)
-            ? latestCompleted.restUntil.toInt()
-            : latestEndedAtUnix;
-        final effectiveRestEndUnix = max(
-          latestEndedAtUnix,
-          lastRestEnd > 0 ? lastRestEnd : prescribedRestEndUnix,
+      final yapStart = max(rawRestEnd, restStart);
+      if (nextDone.isFinite && nextDone > yapStart) {
+        bands.add(
+          VerticalRangeAnnotation(
+            x1: yapStart,
+            x2: nextDone,
+            color: yapColor.withValues(alpha: 0.12),
+          ),
         );
-
-        final gapStartUnix = effectiveRestEndUnix > 0
-            ? effectiveRestEndUnix
-            : (lastRestEnd > 0 ? lastRestEnd : lastEndedAt);
-        if (gapStartUnix > 0) {
-          final yapStart = max(0.0, toSecFromUnix(gapStartUnix));
-          if (x1 > yapStart) {
-            bands.add(
-              VerticalRangeAnnotation(
-                x1: yapStart,
-                x2: x1,
-                color: yapColor.withValues(alpha: 0.12),
-              ),
-            );
-          }
-        }
-        if (nowSec > x1) {
-          bands.add(
-            VerticalRangeAnnotation(
-              x1: x1,
-              x2: nowSec,
-              color: liftColor.withValues(alpha: 0.12),
-            ),
-          );
-        }
-      }
-      return bands;
-    }
-
-    if (snapshot.state == WorkoutState.WORKOUT_STATE_RESTING) {
-      final restUntilUnix = snapshot.restUntil.toInt();
-      if (restUntilUnix > 0) {
-        final restUntilSec = max(0.0, toSecFromUnix(restUntilUnix));
-        // Avoid double-painting rest over the persisted rest band from the most
-        // recent completed set. That historical band already extends to restUntil
-        // (and is truncated if the next phase started early).
-        if (nowSec > restUntilSec) {
-          bands.add(
-            VerticalRangeAnnotation(
-              x1: restUntilSec,
-              x2: min(nowSec, viewEndSec),
-              color: yapColor.withValues(alpha: 0.12),
-            ),
-          );
-        }
-      }
-
-      return bands;
-    }
-
-    if (snapshot.state == WorkoutState.WORKOUT_STATE_READY) {
-      final lastRestEnd = snapshot.lastRestEnd.toInt();
-      final gapStartUnix = lastRestEnd > 0 ? lastRestEnd : lastEndedAt;
-      if (gapStartUnix > 0) {
-        final x1 = max(0.0, toSecFromUnix(gapStartUnix));
-        if (nowSec > x1) {
-          bands.add(
-            VerticalRangeAnnotation(
-              x1: x1,
-              x2: nowSec,
-              color: yapColor.withValues(alpha: 0.12),
-            ),
-          );
-        }
       }
     }
-
     return bands;
   }
 
@@ -992,8 +823,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
       child: Text(
         label,
         style: TextStyle(
-          fontWeight: FontWeight.w900,
-          fontSize: 11,
+          fontWeight: context.tokens.weight.heavy,
+          fontSize: context.tokens.size.small,
           letterSpacing: 0.4,
           color: isSelected ? colorScheme.primary : colorScheme.onSurface,
         ),
@@ -1025,15 +856,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final restUntil = snapshot.restUntil.toInt();
     if (restUntil <= 0) return null;
     return ((restUntil * 1000) - startMs) / 1000.0;
-  }
-
-  double? _activeLiftStartSec(int startMs) {
-    final snapshot = _uiStateSnapshot;
-    if (snapshot == null) return null;
-    if (snapshot.state != WorkoutState.WORKOUT_STATE_LIFTING) return null;
-    final startedAt = snapshot.activeStartedAt.toInt();
-    if (startedAt <= 0) return null;
-    return ((startedAt * 1000) - startMs) / 1000.0;
   }
 
   List<VerticalRangeAnnotation> _clipVerticalAnnotations(

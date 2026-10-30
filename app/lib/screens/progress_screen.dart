@@ -10,8 +10,10 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
+import '../widgets/common/flat.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/app_icons.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
 /// lifted over time, with the current weight, the gain since you started, and a
@@ -50,22 +52,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
       final pts = s.points.where((p) => p.date.isAfter(cutoff)).toList();
       if (pts.isEmpty) continue;
       out.add(
-        _ExerciseProgress(exercise: s.exercise, points: pts, color: s.color),
+        _ExerciseProgress(
+          exercise: s.exercise,
+          points: pts,
+          colorIndex: s.colorIndex,
+        ),
       );
     }
     return out;
   }
-
-  // A calm, distinct colour per exercise (cycled by index).
-  static const _palette = [
-    Color(0xFF60A5FA), // blue
-    Color(0xFFF59E0B), // amber
-    Color(0xFF34D399), // green
-    Color(0xFFF472B6), // pink
-    Color(0xFFA78BFA), // violet
-    Color(0xFF22D3EE), // cyan
-    Color(0xFFFB7185), // rose
-  ];
 
   @override
   void initState() {
@@ -95,7 +90,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   ),
                 )
                 .toList(),
-            color: _palette[i % _palette.length],
+            colorIndex: i,
           ),
         );
       }
@@ -120,13 +115,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: const Text(
-            'Progress',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-          ),
+          title: PageTitle('Progress'),
         ),
         body: body,
       ),
@@ -143,41 +135,40 @@ class _ProgressScreenState extends State<ProgressScreen> {
 
     return scaffold(
       ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          _SummaryHeader(
-            workoutCount: _workoutCount,
-            totalVolume: _totalVolume,
-            since: _series!
-                .expand((s) => s.points)
-                .map((p) => p.date)
-                .reduce((a, b) => a.isBefore(b) ? a : b),
-            unit: unit,
-            cs: cs,
+          FlatSection(
+            child: _SummaryHeader(
+              workoutCount: _workoutCount,
+              totalVolume: _totalVolume,
+              since: _series!
+                  .expand((s) => s.points)
+                  .map((p) => p.date)
+                  .reduce((a, b) => a.isBefore(b) ? a : b),
+              unit: unit,
+              cs: cs,
+            ),
           ),
-          const SizedBox(height: 14),
-          _WindowSelector(
+          FlatTabs(
             labels: [for (final w in _windows) w.label],
             selected: _windowIdx,
             onSelect: (i) => setState(() => _windowIdx = i),
-            cs: cs,
           ),
-          const SizedBox(height: 14),
           if (shown.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 40),
               child: Center(
                 child: Text(
                   'No lifts in the last ${_windows[_windowIdx].label}.',
-                  style: TextStyle(color: cs.tertiary, fontSize: 14),
+                  style: TextStyle(
+                    color: cs.tertiary,
+                    fontSize: context.tokens.size.body,
+                  ),
                 ),
               ),
             )
           else
-            for (final s in shown) ...[
-              _ExerciseCard(series: s, unit: unit, cs: cs),
-              const SizedBox(height: 10),
-            ],
+            for (final s in shown) _ExerciseCard(series: s, unit: unit, cs: cs),
         ],
       ),
     );
@@ -203,9 +194,10 @@ class _SummaryHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _headStat('$workoutCount', 'workouts', cs),
+        _headStat(context, '$workoutCount', 'workouts', cs),
         const SizedBox(width: 24),
         _headStat(
+          context,
           _compactVolume(totalVolume),
           '${weightUnitSuffix(unit)} lifted',
           cs,
@@ -215,7 +207,10 @@ class _SummaryHeader extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(
             'since ${_shortDate(since)}',
-            style: TextStyle(color: cs.tertiary, fontSize: 12),
+            style: TextStyle(
+              color: cs.tertiary,
+              fontSize: context.tokens.size.small,
+            ),
           ),
         ),
       ],
@@ -228,88 +223,31 @@ class _SummaryHeader extends StatelessWidget {
     return v.round().toString();
   }
 
-  Widget _headStat(String value, String label, ColorScheme cs) => Column(
+  Widget _headStat(
+    BuildContext context,
+    String value,
+    String label,
+    ColorScheme cs,
+  ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
         value,
-        style: const TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.w900,
+        style: TextStyle(
+          fontSize: context.tokens.size.titleLg,
+          fontWeight: context.tokens.weight.heavy,
           height: 1,
         ),
       ),
-      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+      Text(
+        label,
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: context.tokens.size.small,
+        ),
+      ),
     ],
   );
-}
-
-/// Segmented control for the chart time-scale (1M / 3M / 6M / 1Y / All).
-class _WindowSelector extends StatelessWidget {
-  final List<String> labels;
-  final int selected;
-  final ValueChanged<int> onSelect;
-  final ColorScheme cs;
-  const _WindowSelector({
-    required this.labels,
-    required this.selected,
-    required this.onSelect,
-    required this.cs,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: AppTheme.brSm,
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onSelect(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(vertical: 7),
-                  decoration: BoxDecoration(
-                    color: i == selected ? cs.surface : Colors.transparent,
-                    borderRadius: AppTheme.brSm,
-                    boxShadow: i == selected
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.18),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: Text(
-                      labels[i],
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: i == selected
-                            ? FontWeight.w900
-                            : FontWeight.w700,
-                        color: i == selected
-                            ? cs.onSurface
-                            : cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ExerciseCard extends StatelessWidget {
@@ -325,119 +263,114 @@ class _ExerciseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = exerciseNames[series.exercise] ?? '?';
-    final emoji = exerciseEmojis[series.exercise] ?? '🏋️';
     final gain = series.gain;
-    final gainColor = gain > 0 ? AppTheme.accentGreen : cs.tertiary;
+    final gainColor = gain > 0 ? context.tokens.accentGreen : cs.tertiary;
     final gainText = gain == 0
         ? ''
         : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';
 
+    // A full-width row, split from the next by a hairline.
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: AppTheme.brMd,
         onTap: () => context.push('/exercise/${series.exercise.value}'),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            borderRadius: AppTheme.brMd,
-            border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
+            border: Border(bottom: BorderSide(color: context.tokens.hairline)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // LEFT — name + current (with gain)
-              SizedBox(
-                width: 104,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(emoji, style: const TextStyle(fontSize: 14)),
-                        const SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13.5,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            formatWeight(series.current, unit),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 15,
-                              letterSpacing: -0.3,
-                              color: series.color,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (gainText.isNotEmpty) ...[
-                          const SizedBox(width: 5),
-                          Text(
-                            gainText,
-                            style: TextStyle(
-                              color: gainColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              // MIDDLE — bounded trend graph (not full width)
-              Expanded(
-                child: SizedBox(
-                  height: 38,
-                  child: series.points.length >= 2
-                      ? _Chart(
-                          series: series,
-                          unit: unit,
-                          cs: cs,
-                          compact: true,
-                        )
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '1 session',
-                            style: TextStyle(color: cs.tertiary, fontSize: 11),
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // RIGHT — 1RM + best, stacked tight
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
+              // The name across the full width, the current weight and the
+              // gain on the right.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
-                  _rightStat('1RM', formatWeight(series.bestOneRm, unit), cs),
-                  const SizedBox(height: 4),
-                  _rightStat('BEST', formatWeight(series.best, unit), cs),
+                  Expanded(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.bodyLg,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  if (gainText.isNotEmpty) ...[
+                    Text(
+                      gainText,
+                      style: context.tokens.mono(
+                        TextStyle(
+                          color: gainColor,
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    formatWeight(series.current, unit),
+                    style: context.tokens.mono(
+                      TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.title,
+                        color: series.colorIn(context.tokens),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // The trend, then the bests.
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: series.points.length >= 2
+                          ? _Chart(
+                              series: series,
+                              unit: unit,
+                              cs: cs,
+                              compact: true,
+                            )
+                          : Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '1 session',
+                                style: TextStyle(
+                                  color: cs.tertiary,
+                                  fontSize: context.tokens.size.small,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _rightStat(
+                        context,
+                        '1RM',
+                        formatWeight(series.bestOneRm, unit),
+                        cs,
+                      ),
+                      const SizedBox(height: 4),
+                      _rightStat(
+                        context,
+                        'BEST',
+                        formatWeight(series.best, unit),
+                        cs,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -447,7 +380,12 @@ class _ExerciseCard extends StatelessWidget {
     );
   }
 
-  Widget _rightStat(String label, String value, ColorScheme cs) => Row(
+  Widget _rightStat(
+    BuildContext context,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) => Row(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.baseline,
     textBaseline: TextBaseline.alphabetic,
@@ -455,18 +393,18 @@ class _ExerciseCard extends StatelessWidget {
       Text(
         label,
         style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
+          fontSize: context.tokens.size.caption,
+          fontWeight: context.tokens.weight.heavy,
           letterSpacing: 0.6,
           color: cs.tertiary,
         ),
       ),
-      const SizedBox(width: 6),
+      SizedBox(width: 6),
       Text(
         value,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w900,
+        style: TextStyle(
+          fontSize: context.tokens.size.body,
+          fontWeight: context.tokens.weight.heavy,
           fontFeatures: [FontFeature.tabularFigures()],
         ),
       ),
@@ -513,27 +451,16 @@ class _Chart extends StatelessWidget {
               spots: spots,
               isCurved: true,
               curveSmoothness: 0.2,
-              color: series.color,
+              color: series.colorIn(context.tokens),
               barWidth: 2.5,
               dotData: FlDotData(
                 show: true,
                 checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
                 getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
                   radius: 3,
-                  color: series.color,
+                  color: series.colorIn(context.tokens),
                   strokeWidth: 0,
-                  strokeColor: series.color,
-                ),
-              ),
-              belowBarData: BarAreaData(
-                show: true,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    series.color.withValues(alpha: 0.22),
-                    series.color.withValues(alpha: 0.0),
-                  ],
+                  strokeColor: series.colorIn(context.tokens),
                 ),
               ),
             ),
@@ -561,7 +488,10 @@ class _Chart extends StatelessWidget {
               interval: ((maxW - minW) / 2).clamp(1, double.infinity),
               getTitlesWidget: (v, meta) => Text(
                 formatWeight(v, unit),
-                style: TextStyle(fontSize: 10, color: cs.tertiary),
+                style: TextStyle(
+                  fontSize: context.tokens.size.caption,
+                  color: cs.tertiary,
+                ),
               ),
             ),
           ),
@@ -583,7 +513,10 @@ class _Chart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     _shortDate(pts[i].date),
-                    style: TextStyle(fontSize: 10, color: cs.tertiary),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.caption,
+                      color: cs.tertiary,
+                    ),
                   ),
                 );
               },
@@ -600,8 +533,8 @@ class _Chart extends StatelessWidget {
                 '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${_shortDate(p.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
+                  fontWeight: context.tokens.weight.bold,
+                  fontSize: context.tokens.size.small,
                 ),
               );
             }).toList(),
@@ -612,27 +545,16 @@ class _Chart extends StatelessWidget {
             spots: spots,
             isCurved: true,
             curveSmoothness: 0.2,
-            color: series.color,
+            color: series.colorIn(context.tokens),
             barWidth: 3,
             dotData: FlDotData(
               show: true,
               checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
               getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
                 radius: 4,
-                color: series.color,
+                color: series.colorIn(context.tokens),
                 strokeWidth: 2,
                 strokeColor: cs.surface,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  series.color.withValues(alpha: 0.28),
-                  series.color.withValues(alpha: 0.0),
-                ],
               ),
             ),
           ),
@@ -650,16 +572,22 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('📈', style: const TextStyle(fontSize: 40)),
+        Text('📈', style: TextStyle(fontSize: context.tokens.size.display)),
         const SizedBox(height: 12),
         Text(
           'No workout history yet',
-          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: cs.onSurface,
+            fontWeight: context.tokens.weight.heavy,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Finish a workout and your progress shows up here.',
-          style: TextStyle(color: cs.tertiary, fontSize: 13),
+          style: TextStyle(
+            color: cs.tertiary,
+            fontSize: context.tokens.size.body,
+          ),
         ),
       ],
     ),
@@ -694,12 +622,17 @@ class _Point {
 class _ExerciseProgress {
   final Exercise exercise;
   final List<_Point> points;
-  final Color color;
+
+  /// Index into the theme's series palette, so the colour follows the theme.
+  final int colorIndex;
   _ExerciseProgress({
     required this.exercise,
     required this.points,
-    required this.color,
+    required this.colorIndex,
   });
+
+  Color colorIn(ThemeSpec tokens) =>
+      tokens.series[colorIndex % tokens.series.length];
 
   double get start => points.first.weight;
   double get current => points.last.weight;

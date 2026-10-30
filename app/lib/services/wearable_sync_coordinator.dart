@@ -114,7 +114,10 @@ class WearableSyncCoordinator {
     _inFlightIntents++;
     try {
       if (intent.hasStartSet() && intent.startSet.workoutId == workoutId) {
-        await _workoutProvider.startSet(intent.startSet.setId);
+        await _workoutProvider.startSet(
+          intent.startSet.setId,
+          startedAt: intent.startSet.startedAt.toInt(),
+        );
       } else if (intent.hasCompleteSet() &&
           intent.completeSet.workoutId == workoutId) {
         await _workoutProvider.completeSet(
@@ -122,10 +125,8 @@ class WearableSyncCoordinator {
           intent.completeSet.reps,
           intent.completeSet.actualWeight,
           completedAt: intent.completeSet.completedAt.toInt(),
+          effort: intent.completeSet.effort,
         );
-      } else if (intent.hasSkipWarmup() &&
-          intent.skipWarmup.workoutId == workoutId) {
-        await _workoutProvider.skipWarmup(intent.skipWarmup.setId);
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();
@@ -183,9 +184,6 @@ class WearableSyncCoordinator {
       ..elapsedText = '';
     if (normalized.hasYouCard()) {
       normalized.youCard = normalized.youCard.deepCopy()..timerText = '';
-    }
-    if (normalized.hasGroupCard()) {
-      normalized.groupCard = normalized.groupCard.deepCopy()..timerText = '';
     }
     return normalized.writeToBuffer().join(',');
   }

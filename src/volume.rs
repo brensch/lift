@@ -24,6 +24,7 @@ const SECONDARY_WEIGHT: f32 = 0.5;
 /// Weighted hard sets per muscle in the last 7 days. Counts completed,
 /// non-warmup, non-cancelled sets from every workout in the window — the
 /// in-progress one included, so the display moves while you train.
+/// Calibration rungs count as warmups.
 pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume> {
     let cutoff = now - VOLUME_WINDOW_SECONDS;
     let mut sets: HashMap<MuscleGroup, f32> = HashMap::new();
@@ -41,7 +42,7 @@ pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume
             let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
                 continue;
             };
-            if proposed.warmup || proposed.cancelled {
+            if proposed.warmup || proposed.calibration || proposed.cancelled {
                 continue;
             }
             let Ok(ex) = Exercise::try_from(proposed.exercise) else {
@@ -177,7 +178,6 @@ mod tests {
                 proposed_set_id: id,
                 actual_reps: 10,
                 actual_weight: 100.0,
-                started_at: at - 30,
                 ended_at: at,
                 ..Default::default()
             });

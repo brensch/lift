@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../providers/workout_provider.dart';
+import '../../theme/theme_spec.dart';
 
 Future<void> showTemplateUpdateDialog(
   BuildContext context, {
@@ -88,7 +89,7 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
         _isNew
             ? 'Save as a template?'
             : "Update '${widget.suggestion.templateName}'?",
-        style: const TextStyle(fontWeight: FontWeight.w900),
+        style: TextStyle(fontWeight: context.tokens.weight.heavy),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -104,7 +105,10 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
           const SizedBox(height: 8),
           Text(
             names,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.bold,
+            ),
           ),
           if (_isNew) ...[
             const SizedBox(height: 14),

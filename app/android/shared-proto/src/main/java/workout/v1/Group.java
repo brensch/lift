@@ -6016,16 +6016,27 @@ public final class Group {
     workout.v1.WorkoutOuterClass.ProposedSet getNextUpSet();
 
     /**
-     * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-     * @return The restUntil.
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
+     * @return Whether the stateSnapshot field is set.
      */
-    long getRestUntil();
-
+    boolean hasStateSnapshot();
     /**
-     * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
-     * @return The hasActiveSet.
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
+     * @return The stateSnapshot.
      */
-    boolean getHasActiveSet();
+    workout.v1.WorkoutOuterClass.WorkoutStateSnapshot getStateSnapshot();
   }
   /**
    * Protobuf type {@code workout.v1.ParticipantStatus}
@@ -6413,56 +6424,80 @@ public final class Group {
       
     }
 
-    public static final int REST_UNTIL_FIELD_NUMBER = 8;
-    private long restUntil_;
+    public static final int STATE_SNAPSHOT_FIELD_NUMBER = 10;
+    private workout.v1.WorkoutOuterClass.WorkoutStateSnapshot stateSnapshot_;
     /**
-     * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-     * @return The restUntil.
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
      */
     @java.lang.Override
-    public long getRestUntil() {
-      return restUntil_;
+    public boolean hasStateSnapshot() {
+      return stateSnapshot_ != null;
     }
     /**
-     * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-     * @param value The restUntil to set.
-     */
-    private void setRestUntil(long value) {
-      
-      restUntil_ = value;
-    }
-    /**
-     * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-     */
-    private void clearRestUntil() {
-      
-      restUntil_ = 0L;
-    }
-
-    public static final int HAS_ACTIVE_SET_FIELD_NUMBER = 9;
-    private boolean hasActiveSet_;
-    /**
-     * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
-     * @return The hasActiveSet.
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
      */
     @java.lang.Override
-    public boolean getHasActiveSet() {
-      return hasActiveSet_;
+    public workout.v1.WorkoutOuterClass.WorkoutStateSnapshot getStateSnapshot() {
+      return stateSnapshot_ == null ? workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.getDefaultInstance() : stateSnapshot_;
     }
     /**
-     * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
-     * @param value The hasActiveSet to set.
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
      */
-    private void setHasActiveSet(boolean value) {
+    private void setStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
+      value.getClass();
+  stateSnapshot_ = value;
       
-      hasActiveSet_ = value;
+      }
+    /**
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
+      value.getClass();
+  if (stateSnapshot_ != null &&
+          stateSnapshot_ != workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.getDefaultInstance()) {
+        stateSnapshot_ =
+          workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.newBuilder(stateSnapshot_).mergeFrom(value).buildPartial();
+      } else {
+        stateSnapshot_ = value;
+      }
+      
     }
     /**
-     * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
+     * <pre>
+     * Their workout's state, exactly as their own phone sees it: lifting,
+     * resting, yapping, ready or all done, with the timestamps the timers run
+     * from.
+     * </pre>
+     *
+     * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
      */
-    private void clearHasActiveSet() {
+    private void clearStateSnapshot() {  stateSnapshot_ = null;
       
-      hasActiveSet_ = false;
     }
 
     public static workout.v1.Group.ParticipantStatus parseFrom(
@@ -6955,58 +6990,85 @@ public final class Group {
       }
 
       /**
-       * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-       * @return The restUntil.
+       * <pre>
+       * Their workout's state, exactly as their own phone sees it: lifting,
+       * resting, yapping, ready or all done, with the timestamps the timers run
+       * from.
+       * </pre>
+       *
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
        */
       @java.lang.Override
-      public long getRestUntil() {
-        return instance.getRestUntil();
+      public boolean hasStateSnapshot() {
+        return instance.hasStateSnapshot();
       }
       /**
-       * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-       * @param value The restUntil to set.
-       * @return This builder for chaining.
-       */
-      public Builder setRestUntil(long value) {
-        copyOnWrite();
-        instance.setRestUntil(value);
-        return this;
-      }
-      /**
-       * <code>int64 rest_until = 8 [json_name = "restUntil"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearRestUntil() {
-        copyOnWrite();
-        instance.clearRestUntil();
-        return this;
-      }
-
-      /**
-       * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
-       * @return The hasActiveSet.
+       * <pre>
+       * Their workout's state, exactly as their own phone sees it: lifting,
+       * resting, yapping, ready or all done, with the timestamps the timers run
+       * from.
+       * </pre>
+       *
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
        */
       @java.lang.Override
-      public boolean getHasActiveSet() {
-        return instance.getHasActiveSet();
+      public workout.v1.WorkoutOuterClass.WorkoutStateSnapshot getStateSnapshot() {
+        return instance.getStateSnapshot();
       }
       /**
-       * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
-       * @param value The hasActiveSet to set.
-       * @return This builder for chaining.
+       * <pre>
+       * Their workout's state, exactly as their own phone sees it: lifting,
+       * resting, yapping, ready or all done, with the timestamps the timers run
+       * from.
+       * </pre>
+       *
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
        */
-      public Builder setHasActiveSet(boolean value) {
+      public Builder setStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
         copyOnWrite();
-        instance.setHasActiveSet(value);
+        instance.setStateSnapshot(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * Their workout's state, exactly as their own phone sees it: lifting,
+       * resting, yapping, ready or all done, with the timestamps the timers run
+       * from.
+       * </pre>
+       *
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
+       */
+      public Builder setStateSnapshot(
+          workout.v1.WorkoutOuterClass.WorkoutStateSnapshot.Builder builderForValue) {
+        copyOnWrite();
+        instance.setStateSnapshot(builderForValue.build());
         return this;
       }
       /**
-       * <code>bool has_active_set = 9 [json_name = "hasActiveSet"];</code>
-       * @return This builder for chaining.
+       * <pre>
+       * Their workout's state, exactly as their own phone sees it: lifting,
+       * resting, yapping, ready or all done, with the timestamps the timers run
+       * from.
+       * </pre>
+       *
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
        */
-      public Builder clearHasActiveSet() {
+      public Builder mergeStateSnapshot(workout.v1.WorkoutOuterClass.WorkoutStateSnapshot value) {
         copyOnWrite();
-        instance.clearHasActiveSet();
+        instance.mergeStateSnapshot(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Their workout's state, exactly as their own phone sees it: lifting,
+       * resting, yapping, ready or all done, with the timestamps the timers run
+       * from.
+       * </pre>
+       *
+       * <code>.workout.v1.WorkoutStateSnapshot state_snapshot = 10 [json_name = "stateSnapshot"];</code>
+       */
+      public Builder clearStateSnapshot() {  copyOnWrite();
+        instance.clearStateSnapshot();
         return this;
       }
 
@@ -7034,12 +7096,11 @@ public final class Group {
               "completedSets_",
               workout.v1.WorkoutOuterClass.CompletedSet.class,
               "nextUpSet_",
-              "restUntil_",
-              "hasActiveSet_",
+              "stateSnapshot_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\t\b\u0000\u0002\u0000\u0001\t\u0002\u0208\u0003\t\u0005" +
-                "\u001b\u0006\u001b\u0007\t\b\u0002\t\u0007";
+                "\u0000\u0007\u0000\u0000\u0001\n\u0007\u0000\u0002\u0000\u0001\t\u0002\u0208\u0003" +
+                "\t\u0005\u001b\u0006\u001b\u0007\t\n\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

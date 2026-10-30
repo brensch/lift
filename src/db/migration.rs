@@ -152,10 +152,12 @@ const MAIN_LIFTS: [(Exercise, &str); 5] = [
 use crate::template_library::default_templates;
 
 const FLAT_MIGRATION_NAME: &str = "flat_workouts_v1";
+const ONE_TAP_MIGRATION_NAME: &str = "one_tap_sets_v1";
 
 pub(super) async fn run(pool: &Pool<Sqlite>) -> DbResult<()> {
     let pending = !migration_applied(pool, MIGRATION_NAME).await?
-        || !migration_applied(pool, FLAT_MIGRATION_NAME).await?;
+        || !migration_applied(pool, FLAT_MIGRATION_NAME).await?
+        || !migration_applied(pool, ONE_TAP_MIGRATION_NAME).await?;
     if pending {
         // The migrations drop tables and are not transactional. Take an
         // online copy of the file first so a failed or regretted run can
@@ -164,6 +166,7 @@ pub(super) async fn run(pool: &Pool<Sqlite>) -> DbResult<()> {
     }
     composable_workouts(pool).await?;
     flat_workouts(pool).await?;
+    one_tap_sets(pool).await?;
     Ok(())
 }
 
@@ -230,6 +233,24 @@ async fn flat_workouts(pool: &Pool<Sqlite>) -> DbResult<()> {
                 .await?;
         }
     }
+
+    mark_migration(pool, NAME).await
+}
+
+/// A set being lifted lives on the workout now (`workouts.lifting_set_id`),
+/// not as an unfinished completed set: rows never finished (`ended_at = 0`)
+/// are deleted. `completed_sets.started_at` stays — it is the set's start,
+/// copied from the workout when the set is done — and every insert names
+/// it, so old files' NOT NULL-without-default declaration is fine.
+async fn one_tap_sets(pool: &Pool<Sqlite>) -> DbResult<()> {
+    const NAME: &str = ONE_TAP_MIGRATION_NAME;
+    if migration_applied(pool, NAME).await? {
+        return Ok(());
+    }
+
+    sqlx::query("DELETE FROM completed_sets WHERE ended_at = 0")
+        .execute(pool)
+        .await?;
 
     mark_migration(pool, NAME).await
 }
@@ -501,7 +522,7 @@ async fn load_history(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<Vec<Workou
         .collect();
 
         let completed_sets: Vec<CompletedSet> = sqlx::query(
-            "SELECT id, proposed_set_id, actual_reps, actual_weight, started_at, ended_at
+            "SELECT id, proposed_set_id, actual_reps, actual_weight, ended_at
              FROM completed_sets WHERE workout_id = ?",
         )
         .bind(&workout.id)
@@ -514,9 +535,9 @@ async fn load_history(pool: &Pool<Sqlite>, user_id: &str) -> DbResult<Vec<Workou
             proposed_set_id: row.get(1),
             actual_reps: row.get(2),
             actual_weight: row.get(3),
-            started_at: row.get(4),
-            ended_at: row.get(5),
+            ended_at: row.get(4),
             rest_until: 0,
+            ..Default::default()
         })
         .collect();
 
@@ -1056,10 +1077,10 @@ mod tests {
             templates[1].exercises,
             vec![Exercise::BenchPress as i32, Exercise::BarbellRow as i32]
         );
-        // Six defaults follow.
-        assert_eq!(templates.len(), 2 + 6);
+        // The two defaults follow.
+        assert_eq!(templates.len(), 2 + 2);
         let names: Vec<&str> = templates.iter().map(|t| t.name.as_str()).collect();
-        assert!(names.contains(&"Push") && names.contains(&"Full Body"));
+        assert!(names.contains(&"StrongLifts A") && names.contains(&"StrongLifts B"));
     }
 
     /// The migration drops the old tables, keeps every workout row, adds
@@ -1161,6 +1182,19 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(messages, 1, "the message row survives the column drop");
+        // Finished sets keep their start time: it is a set's lifting start.
+        let started_at: i64 =
+            sqlx::query_scalar("SELECT started_at FROM completed_sets WHERE workout_id = 'w1'")
+                .fetch_one(&db.read_pool)
+                .await
+                .unwrap();
+        assert!(started_at > 0, "completed_sets.started_at is kept");
+        let completed: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM completed_sets WHERE workout_id = 'w1'")
+                .fetch_one(&db.read_pool)
+                .await
+                .unwrap();
+        assert_eq!(completed, 1);
         // The kept proposed_sets rows survived the column drops.
         let sets: i64 =
             sqlx::query_scalar("SELECT COUNT(*) FROM proposed_sets WHERE workout_id = 'w1'")

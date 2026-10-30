@@ -17,7 +17,7 @@ ExerciseTracker tracker(
 
 void main() {
   test('one exercise: setup + sets + rests between them', () {
-    // 75 setup + 3×45 lifting + 2×180 rest = 570 s.
+    // 75 setup + 3×45 per set + 2×180 rest = 570 s.
     final t = tracker(Exercise.EXERCISE_LATERAL_RAISE, rest: 180);
     expect(estimatedExerciseSeconds(t), 75 + 3 * 45 + 2 * 180);
   });

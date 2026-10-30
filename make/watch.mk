@@ -1,6 +1,8 @@
 # Apple Watch: project generation, builds, simulator.
 # Split from the top-level Makefile; variables live there.
 
+.PHONY: watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
+
 # One-time setup: install xcodegen + swift-protobuf, generate xcodeproj
 watch-setup:
 	@echo "=== Apple Watch: checking dependencies ==="

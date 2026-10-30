@@ -13,8 +13,9 @@ impl ServerDb {
         let mut tx = self.write_pool.begin().await?;
 
         sqlx::query(
-            "INSERT INTO workouts (id, user_id, name, start_time, end_time, session_id, template_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO workouts (id, user_id, name, start_time, end_time, session_id, template_id,
+             lifting_set_id, lifting_started_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&workout.id)
         .bind(user_id)
@@ -23,6 +24,8 @@ impl ServerDb {
         .bind(workout.end_time)
         .bind(&workout.session_id)
         .bind(&workout.template_id)
+        .bind(&workout.lifting_set_id)
+        .bind(workout.lifting_started_at)
         .execute(&mut *tx)
         .await?;
 
@@ -52,8 +55,8 @@ impl ServerDb {
         sqlx::query(
             "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order,
              exercise, target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             rest_after_failure, calibration, skipped)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&set.id)
         .bind(user_id)
@@ -66,17 +69,22 @@ impl ServerDb {
         .bind(set.cancelled as i32)
         .bind(set.rest_after_success)
         .bind(set.rest_after_failure)
+        .bind(set.calibration as i32)
+        .bind(set.skipped as i32)
         .execute(&mut **tx)
         .await?;
         Ok(())
     }
 
-    /// Insert a single completed set.
-    pub async fn insert_completed_set(&self, user_id: &str, set: &CompletedSet) -> DbResult<()> {
+    async fn insert_completed_set_tx(
+        tx: &mut sqlx::Transaction<'_, Sqlite>,
+        user_id: &str,
+        set: &CompletedSet,
+    ) -> DbResult<()> {
         sqlx::query(
             "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id,
-             actual_reps, actual_weight, started_at, ended_at, rest_until)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             actual_reps, actual_weight, ended_at, rest_until, effort, started_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&set.id)
         .bind(user_id)
@@ -84,67 +92,12 @@ impl ServerDb {
         .bind(&set.proposed_set_id)
         .bind(set.actual_reps)
         .bind(set.actual_weight as f64)
-        .bind(set.started_at)
         .bind(set.ended_at)
         .bind(set.rest_until)
-        .execute(&self.write_pool)
+        .bind(set.effort)
+        .bind(set.started_at)
+        .execute(&mut **tx)
         .await?;
-        Ok(())
-    }
-
-    /// Update a completed set (for CompleteSet: fills in ended_at, actual_reps/weight, rest_until).
-    pub async fn update_completed_set(
-        &self,
-        set_id: &str,
-        actual_reps: i32,
-        actual_weight: f32,
-        ended_at: i64,
-        rest_until: i64,
-    ) -> DbResult<()> {
-        sqlx::query(
-            "UPDATE completed_sets SET actual_reps = ?, actual_weight = ?, ended_at = ?, rest_until = ? WHERE id = ?",
-        )
-        .bind(actual_reps)
-        .bind(actual_weight as f64)
-        .bind(ended_at)
-        .bind(rest_until)
-        .bind(set_id)
-        .execute(&self.write_pool)
-        .await?;
-        Ok(())
-    }
-
-    /// Delete a completed set by id. User-scoped.
-    pub async fn delete_completed_set(
-        &self,
-        user_id: &str,
-        set_id: &str,
-        workout_id: &str,
-    ) -> DbResult<()> {
-        sqlx::query("DELETE FROM completed_sets WHERE id = ? AND workout_id = ? AND user_id = ?")
-            .bind(set_id)
-            .bind(workout_id)
-            .bind(user_id)
-            .execute(&self.write_pool)
-            .await?;
-        Ok(())
-    }
-
-    /// Cancel a proposed set. User-scoped.
-    pub async fn cancel_proposed_set(
-        &self,
-        user_id: &str,
-        set_id: &str,
-        workout_id: &str,
-    ) -> DbResult<()> {
-        sqlx::query(
-            "UPDATE proposed_sets SET cancelled = 1 WHERE id = ? AND workout_id = ? AND user_id = ?",
-        )
-        .bind(set_id)
-        .bind(workout_id)
-        .bind(user_id)
-            .execute(&self.write_pool)
-            .await?;
         Ok(())
     }
 
@@ -200,11 +153,13 @@ impl ServerDb {
         let mut tx = self.write_pool.begin().await?;
 
         // Update workout row
-        sqlx::query("UPDATE workouts SET name = ?, start_time = ?, end_time = ?, session_id = ? WHERE id = ? AND user_id = ?")
+        sqlx::query("UPDATE workouts SET name = ?, start_time = ?, end_time = ?, session_id = ?, lifting_set_id = ?, lifting_started_at = ? WHERE id = ? AND user_id = ?")
             .bind(&workout.name)
             .bind(workout.start_time)
             .bind(workout.end_time)
             .bind(&workout.session_id)
+            .bind(&workout.lifting_set_id)
+            .bind(workout.lifting_started_at)
             .bind(&workout.id)
             .bind(user_id)
             .execute(&mut *tx)
@@ -227,22 +182,7 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         for set in completed_sets {
-            sqlx::query(
-                "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id,
-                 actual_reps, actual_weight, started_at, ended_at, rest_until)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&set.id)
-            .bind(user_id)
-            .bind(&set.workout_id)
-            .bind(&set.proposed_set_id)
-            .bind(set.actual_reps)
-            .bind(set.actual_weight as f64)
-            .bind(set.started_at)
-            .bind(set.ended_at)
-            .bind(set.rest_until)
-            .execute(&mut *tx)
-            .await?;
+            Self::insert_completed_set_tx(&mut tx, user_id, set).await?;
         }
 
         tx.commit().await?;
@@ -264,7 +204,8 @@ impl ServerDb {
     /// Load a workout row by id.
     pub async fn get_workout(&self, user_id: &str, workout_id: &str) -> DbResult<Option<Workout>> {
         let row = sqlx::query(
-            "SELECT id, name, start_time, end_time, session_id, template_id
+            "SELECT id, name, start_time, end_time, session_id, template_id,
+             lifting_set_id, lifting_started_at
              FROM workouts WHERE id = ? AND user_id = ?",
         )
         .bind(workout_id)
@@ -278,6 +219,8 @@ impl ServerDb {
             end_time: r.get("end_time"),
             session_id: r.get("session_id"),
             template_id: r.get("template_id"),
+            lifting_set_id: r.get("lifting_set_id"),
+            lifting_started_at: r.get("lifting_started_at"),
         }))
     }
 
@@ -305,6 +248,7 @@ impl ServerDb {
                 end_time: r.get("end_time"),
                 session_id: r.get("session_id"),
                 template_id: r.get("template_id"),
+                ..Default::default()
             })
             .collect();
         workouts.reverse();
@@ -316,7 +260,7 @@ impl ServerDb {
         let rows = sqlx::query(
             "SELECT id, workout_id, workout_order, exercise,
              target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure
+             rest_after_failure, calibration, skipped
              FROM proposed_sets WHERE workout_id = ? ORDER BY workout_order",
         )
         .bind(workout_id)
@@ -335,6 +279,8 @@ impl ServerDb {
                 cancelled: r.get::<i32, _>("cancelled") != 0,
                 rest_after_success: r.get("rest_after_success"),
                 rest_after_failure: r.get("rest_after_failure"),
+                calibration: r.get::<i32, _>("calibration") != 0,
+                skipped: r.get::<i32, _>("skipped") != 0,
             });
         }
         Ok(sets)
@@ -344,8 +290,8 @@ impl ServerDb {
     pub async fn get_completed_sets(&self, workout_id: &str) -> DbResult<Vec<CompletedSet>> {
         let rows = sqlx::query(
             "SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight,
-             started_at, ended_at, rest_until
-             FROM completed_sets WHERE workout_id = ? ORDER BY started_at",
+             ended_at, rest_until, effort, started_at
+             FROM completed_sets WHERE workout_id = ? ORDER BY ended_at",
         )
         .bind(workout_id)
         .fetch_all(&self.read_pool)
@@ -358,9 +304,10 @@ impl ServerDb {
                 proposed_set_id: r.get("proposed_set_id"),
                 actual_reps: r.get("actual_reps"),
                 actual_weight: r.get::<f64, _>("actual_weight") as f32,
-                started_at: r.get("started_at"),
                 ended_at: r.get("ended_at"),
                 rest_until: r.get("rest_until"),
+                effort: r.get("effort"),
+                started_at: r.get("started_at"),
             });
         }
         Ok(sets)
@@ -381,14 +328,14 @@ impl ServerDb {
 
         use crate::progress::compute_next_up_set;
         use crate::workout::{
-            active_proposed_sets, workout_plan_change_stats_from_sets,
-            workout_state_snapshot_from_state,
+            active_proposed_sets, workout_plan_change_stats_from_sets, workout_state_snapshot,
         };
 
         let now = now_unix();
         let active_proposed = active_proposed_sets(&proposed_sets);
         let next_up_set = compute_next_up_set(&active_proposed, &completed_sets);
-        let state_snapshot = Some(workout_state_snapshot_from_state(
+        let state_snapshot = Some(workout_state_snapshot(
+            &workout,
             &proposed_sets,
             &completed_sets,
             now,
@@ -416,64 +363,7 @@ impl ServerDb {
         }))
     }
 
-    /// Get a proposed set by id (for StartSet to look up target values).
-    /// User-scoped: a set id from someone else's workout resolves to None.
-    pub async fn get_proposed_set(
-        &self,
-        user_id: &str,
-        set_id: &str,
-    ) -> DbResult<Option<ProposedSet>> {
-        let row = sqlx::query(
-            "SELECT id, workout_id, workout_order, exercise,
-             target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure
-             FROM proposed_sets WHERE id = ? AND user_id = ?",
-        )
-        .bind(set_id)
-        .bind(user_id)
-        .fetch_optional(&self.read_pool)
-        .await?;
-        Ok(row.map(|r| ProposedSet {
-            id: r.get("id"),
-            workout_id: r.get("workout_id"),
-            workout_order: r.get("workout_order"),
-            exercise: r.get("exercise"),
-            target_reps: r.get("target_reps"),
-            target_weight: r.get::<f64, _>("target_weight") as f32,
-            warmup: r.get::<i32, _>("warmup") != 0,
-            cancelled: r.get::<i32, _>("cancelled") != 0,
-            rest_after_success: r.get("rest_after_success"),
-            rest_after_failure: r.get("rest_after_failure"),
-        }))
-    }
-
-    /// Find the in-progress completed set for a proposed_set_id.
-    pub async fn find_in_progress_completed_set(
-        &self,
-        workout_id: &str,
-        proposed_set_id: &str,
-    ) -> DbResult<Option<CompletedSet>> {
-        let row = sqlx::query(
-            "SELECT id, workout_id, proposed_set_id, actual_reps, actual_weight,
-             started_at, ended_at, rest_until
-             FROM completed_sets WHERE workout_id = ? AND proposed_set_id = ? AND ended_at = 0",
-        )
-        .bind(workout_id)
-        .bind(proposed_set_id)
-        .fetch_optional(&self.read_pool)
-        .await?;
-        Ok(row.map(|r| CompletedSet {
-            id: r.get("id"),
-            workout_id: r.get("workout_id"),
-            proposed_set_id: r.get("proposed_set_id"),
-            actual_reps: r.get("actual_reps"),
-            actual_weight: r.get::<f64, _>("actual_weight") as f32,
-            started_at: r.get("started_at"),
-            ended_at: r.get("ended_at"),
-            rest_until: r.get("rest_until"),
-        }))
-    }
-
+    /// Get a proposed set by id (for CompleteSet to look up target values).
     /// List finished workouts for a user.
     /// Every finished workout with its proposed + completed sets loaded, newest
     /// first. Powers the server-side summary/progress rollups so the app never
@@ -509,6 +399,7 @@ impl ServerDb {
                 end_time: r.get("end_time"),
                 session_id: r.get("session_id"),
                 template_id: r.get("template_id"),
+                ..Default::default()
             })
             .collect())
     }
@@ -660,7 +551,8 @@ impl ServerDb {
     ) -> DbResult<std::collections::HashMap<i32, crate::exercise_progress::TrackerState>> {
         let rows = sqlx::query(
             "SELECT exercise, working_weight, current_reps, consecutive_misses,
-             last_performed_at, override_sets, override_rep_low, override_rep_high
+             last_performed_at, override_sets, override_rep_low, override_rep_high,
+             consecutive_hard
              FROM exercise_trackers WHERE user_id = ?",
         )
         .bind(user_id)
@@ -679,6 +571,7 @@ impl ServerDb {
                         override_sets: r.get("override_sets"),
                         override_rep_low: r.get("override_rep_low"),
                         override_rep_high: r.get("override_rep_high"),
+                        consecutive_hard: r.get("consecutive_hard"),
                     },
                 )
             })
@@ -696,8 +589,8 @@ impl ServerDb {
             "INSERT INTO exercise_trackers
              (user_id, exercise, working_weight, current_reps, consecutive_misses,
               last_performed_at, override_sets, override_rep_low, override_rep_high,
-              updated_at, source)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              consecutive_hard, updated_at, source)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(user_id, exercise) DO UPDATE SET
                working_weight = excluded.working_weight,
                current_reps = excluded.current_reps,
@@ -706,6 +599,7 @@ impl ServerDb {
                override_sets = excluded.override_sets,
                override_rep_low = excluded.override_rep_low,
                override_rep_high = excluded.override_rep_high,
+               consecutive_hard = excluded.consecutive_hard,
                updated_at = excluded.updated_at,
                source = excluded.source",
         )
@@ -718,6 +612,7 @@ impl ServerDb {
         .bind(state.override_sets)
         .bind(state.override_rep_low)
         .bind(state.override_rep_high)
+        .bind(state.consecutive_hard)
         .bind(now_unix())
         .bind(source)
         .execute(&self.write_pool)

@@ -5,12 +5,13 @@ system works, [`docs/makefile.md`](docs/makefile.md) for how to run, build and
 ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. This file is only the rules that are easy to get wrong.
 
 - **Build locally.** To put a build on a phone or emulator, use the Makefile on
-  this machine (`make deploy-android-dev`, `make run-android`) and `adb`. Do not
+  this machine and `adb`. `make dev` is the fast loop: local backend, debug app,
+  hot reload on save. `make deploy-android-dev` is the release dev app. Do not
   push a tag and wait for CI to produce an APK. CI is for PR checks, backend
   deploys and store uploads.
-- **Never run `make deploy-android` against a phone with the real app.** On a
-  signature mismatch — guaranteed against a Play install — it uninstalls
-  `com.brensch.schlift`.
+- **Never uninstall `com.brensch.schlift` from a phone.** `make deploy-android`
+  cannot install over the Play build (signature mismatch) and stops there; do
+  not "fix" that by uninstalling the real app.
 - **Format and lint before you push: `make fmt`, then `make lint-check`.**
   Every language has a formatter and a linter (Dart, Rust, TypeScript, Python,
   shell, Kotlin, Swift, protobuf) and CI fails on anything unformatted or
@@ -41,5 +42,9 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   and `report_auth_failure` — do not copy them.
 - **A new table with a `user_id` column** must be added to
   `delete_user_account_and_data` (`src/db/auth.rs`); a test fails if it is not.
+- **No hard-coded colours, fonts, text sizes, weights or radii in widgets.**
+  Read them from the theme (`context.tokens`, the colour scheme); new tokens
+  go in `ThemeSpec`, values in `schlift_spec.dart`.
+  See "Theming" in [`docs/architecture/app.md`](docs/architecture/app.md).
 - **Releases are tag-driven**; never hand-bump `pubspec.yaml`. See
   [`docs/releasing.md`](docs/releasing.md).

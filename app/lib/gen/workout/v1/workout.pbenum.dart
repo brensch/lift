@@ -377,6 +377,33 @@ class Exercise extends $pb.ProtobufEnum {
   const Exercise._(super.value, super.name);
 }
 
+/// The one opinion the app asks for: after the final working set of an
+/// exercise, and after every calibration set.
+class Effort extends $pb.ProtobufEnum {
+  static const Effort EFFORT_UNSPECIFIED =
+      Effort._(0, _omitEnumNames ? '' : 'EFFORT_UNSPECIFIED');
+  static const Effort EFFORT_EASY =
+      Effort._(1, _omitEnumNames ? '' : 'EFFORT_EASY');
+  static const Effort EFFORT_RIGHT =
+      Effort._(2, _omitEnumNames ? '' : 'EFFORT_RIGHT');
+  static const Effort EFFORT_HARD =
+      Effort._(3, _omitEnumNames ? '' : 'EFFORT_HARD');
+
+  static const $core.List<Effort> values = <Effort>[
+    EFFORT_UNSPECIFIED,
+    EFFORT_EASY,
+    EFFORT_RIGHT,
+    EFFORT_HARD,
+  ];
+
+  static final $core.List<Effort?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static Effort? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Effort._(super.value, super.name);
+}
+
 class UserMessageKind extends $pb.ProtobufEnum {
   static const UserMessageKind USER_MESSAGE_KIND_UNSPECIFIED =
       UserMessageKind._(
@@ -564,28 +591,39 @@ class ProgressionReasonKind extends $pb.ProtobufEnum {
   const ProgressionReasonKind._(super.value, super.name);
 }
 
+/// A set is pending, done or cancelled. The workout's state is derived from
+/// one moment, when the last set was done, and that set's prescribed rest:
+///   READY    no set done yet (the first set is up)
+///   LIFTING  a set has been started and not yet done (counts up)
+///   RESTING  the last done set's rest is still running (counts down)
+///   YAPPING  that rest has run out and the next set isn't started (counts up)
+///   ALL_DONE nothing left to do
+/// There is no in-progress set.
 class WorkoutState extends $pb.ProtobufEnum {
   static const WorkoutState WORKOUT_STATE_UNSPECIFIED =
       WorkoutState._(0, _omitEnumNames ? '' : 'WORKOUT_STATE_UNSPECIFIED');
   static const WorkoutState WORKOUT_STATE_ALL_DONE =
       WorkoutState._(1, _omitEnumNames ? '' : 'WORKOUT_STATE_ALL_DONE');
-  static const WorkoutState WORKOUT_STATE_LIFTING =
-      WorkoutState._(2, _omitEnumNames ? '' : 'WORKOUT_STATE_LIFTING');
   static const WorkoutState WORKOUT_STATE_RESTING =
       WorkoutState._(3, _omitEnumNames ? '' : 'WORKOUT_STATE_RESTING');
   static const WorkoutState WORKOUT_STATE_READY =
       WorkoutState._(5, _omitEnumNames ? '' : 'WORKOUT_STATE_READY');
+  static const WorkoutState WORKOUT_STATE_YAPPING =
+      WorkoutState._(6, _omitEnumNames ? '' : 'WORKOUT_STATE_YAPPING');
+  static const WorkoutState WORKOUT_STATE_LIFTING =
+      WorkoutState._(7, _omitEnumNames ? '' : 'WORKOUT_STATE_LIFTING');
 
   static const $core.List<WorkoutState> values = <WorkoutState>[
     WORKOUT_STATE_UNSPECIFIED,
     WORKOUT_STATE_ALL_DONE,
-    WORKOUT_STATE_LIFTING,
     WORKOUT_STATE_RESTING,
     WORKOUT_STATE_READY,
+    WORKOUT_STATE_YAPPING,
+    WORKOUT_STATE_LIFTING,
   ];
 
   static final $core.List<WorkoutState?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 5);
+      $pb.ProtobufEnum.$_initByValueList(values, 7);
   static WorkoutState? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

@@ -1,7 +1,8 @@
 use super::*;
 use crate::exercise_catalog::{category, load_style, primary_muscle};
 use crate::exercise_progress::{
-    advance_tracker, resolve_tracker, session_outcomes, weight_history, TrackerState,
+    advance_tracker, calibration_start_weight, resolve_tracker, session_outcomes, weight_history,
+    TrackerState,
 };
 use crate::history::WorkoutRecord;
 use crate::recovery::per_muscle_recovery;
@@ -157,7 +158,8 @@ impl ServerWorkoutService {
     /// Resolve exercises into plans: weights from the trackers, sets/reps/
     /// rest from the prescription, and the layoff deload applied at
     /// resolution time only (never written back — it sticks only once the
-    /// user trains).
+    /// user trains). A loaded exercise never performed gets a calibration
+    /// plan instead: one rung at the ramp start.
     async fn exercise_plans(
         &self,
         user_id: &str,
@@ -179,14 +181,19 @@ impl ServerWorkoutService {
             if exercise == Exercise::Unspecified {
                 continue;
             }
-            let resolved = resolve_tracker(exercise, states.get(exercise_value), unit);
-            let weight = layoff_adjusted_weight(
-                exercise,
-                resolved.working_weight,
-                resolved.last_performed_at,
-                now,
-                unit,
-            );
+            let state = states.get(exercise_value);
+            let resolved = resolve_tracker(exercise, state, unit);
+            let calibration = calibration_start_weight(exercise, state, unit);
+            let weight = match calibration {
+                Some(ramp_start) => ramp_start,
+                None => layoff_adjusted_weight(
+                    exercise,
+                    resolved.working_weight,
+                    resolved.last_performed_at,
+                    now,
+                    unit,
+                ),
+            };
             plans.push(ExercisePlan {
                 exercise: *exercise_value,
                 working_weight: weight,
@@ -195,19 +202,21 @@ impl ServerWorkoutService {
                 rest_success: resolved.rest_seconds,
                 rest_failure: resolved.rest_seconds_failure,
                 include_warmup: resolved.include_warmup,
+                calibration: calibration.is_some(),
             });
         }
         Ok(plans)
     }
 
-    /// Load a workout, apply one plan-shaping change, persist, and answer
-    /// with the full visible plan — the shared spine of the four plan ops.
-    async fn apply_plan_op(
+    /// Load a workout, apply one change through the reducer, persist the
+    /// whole state and refresh the session participant — the shared spine
+    /// of every single-mutation RPC. Returns the state after the change.
+    async fn apply_mutation(
         &self,
         user_id: &str,
         workout_id: &str,
         apply: impl FnOnce(&mut ActiveWorkout) -> Result<(), crate::workout::WorkoutError>,
-    ) -> ServerResult<WorkoutPlanResponse> {
+    ) -> ServerResult<ActiveWorkout> {
         let resp = self
             .db
             .load_workout_full(user_id, workout_id)
@@ -228,19 +237,29 @@ impl ServerWorkoutService {
             .await
             .map_err(internal_error)?;
 
-        let visible = active_proposed_sets(&active.proposed_sets);
-        let next_up = compute_next_up_set(&visible, &active.completed_sets);
-        let snapshot = Some(workout_state_snapshot_from_state(
-            &active.proposed_sets,
-            &active.completed_sets,
-            now_unix(),
-        ));
-
         let session_id = self.get_session_id_for_user(user_id).await?;
         if !session_id.is_empty() {
             refresh_participant_for_user(&self.db, user_id, &session_id, Some(workout_id)).await?;
         }
+        Ok(active)
+    }
 
+    /// Apply one plan-shaping change and answer with the full visible plan.
+    async fn apply_plan_op(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        apply: impl FnOnce(&mut ActiveWorkout) -> Result<(), crate::workout::WorkoutError>,
+    ) -> ServerResult<WorkoutPlanResponse> {
+        let active = self.apply_mutation(user_id, workout_id, apply).await?;
+        let visible = active_proposed_sets(&active.proposed_sets);
+        let next_up = compute_next_up_set(&visible, &active.completed_sets);
+        let snapshot = Some(workout_state_snapshot(
+            &active.workout,
+            &active.proposed_sets,
+            &active.completed_sets,
+            now_unix(),
+        ));
         Ok(WorkoutPlanResponse {
             proposed_sets: visible,
             next_up_set: next_up,
@@ -286,6 +305,7 @@ impl ServerWorkoutService {
                     primary_muscle: primary_muscle(exercise) as i32,
                     category: category(exercise) as i32,
                     equipment: load_style(exercise).to_proto() as i32,
+                    consecutive_hard: resolved.consecutive_hard,
                 }
             })
             .collect();
@@ -338,43 +358,6 @@ impl ServerWorkoutService {
             suggestion_reason,
             onboarded,
         })
-    }
-
-    /// Load proposed_sets + completed_sets for a workout and compute next_up + snapshot.
-    async fn load_sets_and_compute(
-        &self,
-        user_id: &str,
-        workout_id: &str,
-    ) -> ServerResult<(
-        Vec<ProposedSet>,
-        Vec<CompletedSet>,
-        Option<ProposedSet>,
-        Option<WorkoutStateSnapshot>,
-    )> {
-        // Ownership gate: everything below is keyed by workout_id alone.
-        self.db
-            .get_workout(user_id, workout_id)
-            .await
-            .map_err(internal_error)?
-            .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let proposed_sets = self
-            .db
-            .get_proposed_sets(workout_id)
-            .await
-            .map_err(internal_error)?;
-        let completed_sets = self
-            .db
-            .get_completed_sets(workout_id)
-            .await
-            .map_err(internal_error)?;
-        let active_proposed = active_proposed_sets(&proposed_sets);
-        let next_up = compute_next_up_set(&active_proposed, &completed_sets);
-        let snapshot = Some(workout_state_snapshot_from_state(
-            &proposed_sets,
-            &completed_sets,
-            now_unix(),
-        ));
-        Ok((proposed_sets, completed_sets, next_up, snapshot))
     }
 
     /// Read the caller's current session id (the single source of truth for group membership).
@@ -442,6 +425,7 @@ impl WorkoutService for ServerWorkoutService {
             end_time: 0,
             session_id: session_id.clone(),
             template_id: req.template_id.clone(),
+            ..Default::default()
         };
         // Warmups snap to loadable weights in the user's unit, so we need it here.
         let unit = self.get_weight_unit(&user_id).await?;
@@ -515,31 +499,36 @@ impl WorkoutService for ServerWorkoutService {
         // the session link is no longer reachable via get_active_workout_id.
         let session_id = self.get_session_id_for_user(&user_id).await?;
 
+        // Every open "how was that" closes as "right" before progression
+        // reads the efforts — the plan is persisted so the answer sticks.
+        let resp = self
+            .db
+            .load_workout_full(&user_id, &req.workout_id)
+            .await
+            .map_err(internal_error)?
+            .ok_or_else(|| Status::not_found("Workout not found"))?;
+        let mut active = active_from_get_workout_response(resp)?;
+        active.workout.end_time = ended_at;
+        resolve_all_effort(&mut active);
+        self.db
+            .persist_workout_state(
+                &user_id,
+                &active.workout,
+                &active.proposed_sets,
+                &active.completed_sets,
+            )
+            .await
+            .map_err(internal_error)?;
         self.db
             .end_workout(&user_id, &req.workout_id, ended_at)
             .await
             .map_err(internal_error)?;
 
-        let workout = self
-            .db
-            .get_workout(&user_id, &req.workout_id)
-            .await
-            .map_err(internal_error)?
-            .ok_or_else(|| Status::not_found("Workout not found"))?;
-        let proposed_sets = self
-            .db
-            .get_proposed_sets(&req.workout_id)
-            .await
-            .map_err(internal_error)?;
-        let completed_sets = self
-            .db
-            .get_completed_sets(&req.workout_id)
-            .await
-            .map_err(internal_error)?;
+        let workout = active.workout.clone();
         let workout_record = WorkoutRecord {
             workout: workout.clone(),
-            proposed_sets,
-            completed_sets,
+            proposed_sets: active.proposed_sets,
+            completed_sets: active.completed_sets,
         };
         let completion_messages = self
             .apply_progression_for_workout(&user_id, &workout_record)
@@ -671,99 +660,7 @@ impl WorkoutService for ServerWorkoutService {
         }))
     }
 
-    // ── Individual Set RPCs (targeted single-row SQL operations) ──
-
-    async fn start_set(
-        &self,
-        request: Request<StartSetRequest>,
-    ) -> Result<Response<StartSetResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "StartSet", %user_id, workout_id = %req.workout_id, proposed_set_id = %req.proposed_set_id, "request");
-        if req.workout_id.is_empty() || req.proposed_set_id.is_empty() {
-            return Err(Status::invalid_argument(
-                "workout_id and proposed_set_id are required",
-            ));
-        }
-
-        // Look up proposed set for target values
-        let proposed = self
-            .db
-            .get_proposed_set(&user_id, &req.proposed_set_id)
-            .await
-            .map_err(internal_error)?
-            .ok_or_else(|| Status::failed_precondition("Proposed set not found"))?;
-        if proposed.cancelled {
-            return Err(Status::failed_precondition("Proposed set is cancelled"));
-        }
-
-        // Check for existing in-progress set
-        if self
-            .db
-            .find_in_progress_completed_set(&req.workout_id, &req.proposed_set_id)
-            .await
-            .map_err(internal_error)?
-            .is_some()
-        {
-            // Already started - load and return current state
-            let (_, _, next_up, snapshot) = self
-                .load_sets_and_compute(&user_id, &req.workout_id)
-                .await?;
-            let existing = self
-                .db
-                .find_in_progress_completed_set(&req.workout_id, &req.proposed_set_id)
-                .await
-                .map_err(internal_error)?;
-            return Ok(Response::new(StartSetResponse {
-                completed_set: existing,
-                next_up_set: next_up,
-                state_snapshot: snapshot,
-                user_messages: self
-                    .load_workout_messages(&user_id, &req.workout_id)
-                    .await?,
-            }));
-        }
-
-        let started_at = if req.started_at > 0 {
-            req.started_at
-        } else {
-            now_unix()
-        };
-        let completed_set = CompletedSet {
-            id: Uuid::new_v4().to_string(),
-            workout_id: req.workout_id.clone(),
-            proposed_set_id: req.proposed_set_id.clone(),
-            actual_reps: proposed.target_reps,
-            actual_weight: proposed.target_weight,
-            started_at,
-            ended_at: 0,
-            rest_until: 0,
-        };
-
-        self.db
-            .insert_completed_set(&user_id, &completed_set)
-            .await
-            .map_err(internal_error)?;
-
-        let (_, _, next_up, snapshot) = self
-            .load_sets_and_compute(&user_id, &req.workout_id)
-            .await?;
-
-        let session_id = self.get_session_id_for_user(&user_id).await?;
-        if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
-                .await?;
-        }
-
-        Ok(Response::new(StartSetResponse {
-            completed_set: Some(completed_set),
-            next_up_set: next_up,
-            state_snapshot: snapshot,
-            user_messages: self
-                .load_workout_messages(&user_id, &req.workout_id)
-                .await?,
-        }))
-    }
+    // ── Individual Set RPCs (one reducer transition each) ──
 
     async fn complete_set(
         &self,
@@ -773,93 +670,46 @@ impl WorkoutService for ServerWorkoutService {
         let req = request.into_inner();
         info!(rpc = "CompleteSet", %user_id, workout_id = %req.workout_id, proposed_set_id = %req.proposed_set_id, actual_reps = req.actual_reps, actual_weight = req.actual_weight, "request");
 
-        let proposed = self
-            .db
-            .get_proposed_set(&user_id, &req.proposed_set_id)
-            .await
-            .map_err(internal_error)?
-            .ok_or_else(|| Status::failed_precondition("Proposed set not found"))?;
-
         let ended_at = if req.completed_at > 0 {
             req.completed_at
         } else {
             now_unix()
         };
+        // A Done can settle a calibration rung (a rating given with it, or
+        // a rung missed), which snaps to the user's unit.
+        let unit = self.get_weight_unit(&user_id).await?;
+        let active = self
+            .apply_mutation(&user_id, &req.workout_id, |active| {
+                apply_complete_set_to_active(active, &req, unit)?;
+                // The target may be one the resolution just appended (a
+                // rung's `{done_id}:0`), so it is checked after applying.
+                if !active
+                    .completed_sets
+                    .iter()
+                    .any(|set| set.proposed_set_id == req.proposed_set_id)
+                {
+                    return Err(crate::workout::WorkoutError::failed_precondition(
+                        "Proposed set not found",
+                    ));
+                }
+                Ok(())
+            })
+            .await?;
+        let completed_set = active
+            .completed_sets
+            .iter()
+            .filter(|set| set.proposed_set_id == req.proposed_set_id)
+            .max_by_key(|set| set.ended_at)
+            .cloned();
 
-        // Compute rest_until
-        let proposed_sets = self
-            .db
-            .get_proposed_sets(&req.workout_id)
-            .await
-            .map_err(internal_error)?;
-        let completed_sets = self
-            .db
-            .get_completed_sets(&req.workout_id)
-            .await
-            .map_err(internal_error)?;
-
-        let is_final = is_final_set_of_exercise_after_completion(
-            &req.proposed_set_id,
-            &proposed_sets,
-            &completed_sets,
-        );
-        let mut rest_seconds = if req.actual_reps >= proposed.target_reps {
-            proposed.rest_after_success as i64
-        } else {
-            proposed.rest_after_failure as i64
-        };
-        if is_final {
-            rest_seconds = END_OF_EXERCISE_REST_SECONDS;
-        }
-        let rest_until = ended_at + rest_seconds;
-
-        // Find existing in-progress set and update it, or create new
-        if let Some(existing) = self
-            .db
-            .find_in_progress_completed_set(&req.workout_id, &req.proposed_set_id)
-            .await
-            .map_err(internal_error)?
+        if let Some(proposed) = active
+            .proposed_sets
+            .iter()
+            .find(|set| set.id == req.proposed_set_id)
         {
-            self.db
-                .update_completed_set(
-                    &existing.id,
-                    req.actual_reps,
-                    req.actual_weight,
-                    ended_at,
-                    rest_until,
-                )
-                .await
-                .map_err(internal_error)?;
-
-            let completed_set = CompletedSet {
-                id: existing.id,
-                workout_id: req.workout_id.clone(),
-                proposed_set_id: req.proposed_set_id.clone(),
-                actual_reps: req.actual_reps,
-                actual_weight: req.actual_weight,
-                started_at: existing.started_at,
-                ended_at,
-                rest_until,
-            };
-
-            let (_, _, next_up, snapshot) = self
-                .load_sets_and_compute(&user_id, &req.workout_id)
-                .await?;
-
-            let session_id = self.get_session_id_for_user(&user_id).await?;
-            if !session_id.is_empty() {
-                refresh_participant_for_user(
-                    &self.db,
-                    &user_id,
-                    &session_id,
-                    Some(&req.workout_id),
-                )
-                .await?;
-            }
-
             let session_messages = session_messages_for_completed_set(
                 &req.workout_id,
-                &proposed,
+                proposed,
                 req.actual_reps,
                 ended_at,
             );
@@ -869,67 +719,16 @@ impl WorkoutService for ServerWorkoutService {
                     .await
                     .map_err(internal_error)?;
             }
-            Ok(Response::new(CompleteSetResponse {
-                completed_set: Some(completed_set),
-                next_up_set: next_up,
-                state_snapshot: snapshot,
-                user_messages: self
-                    .load_workout_messages(&user_id, &req.workout_id)
-                    .await?,
-            }))
-        } else {
-            // No in-progress set - create a completed set directly
-            let completed_set = CompletedSet {
-                id: Uuid::new_v4().to_string(),
-                workout_id: req.workout_id.clone(),
-                proposed_set_id: req.proposed_set_id.clone(),
-                actual_reps: req.actual_reps,
-                actual_weight: req.actual_weight,
-                started_at: ended_at,
-                ended_at,
-                rest_until,
-            };
-            self.db
-                .insert_completed_set(&user_id, &completed_set)
-                .await
-                .map_err(internal_error)?;
-
-            let (_, _, next_up, snapshot) = self
-                .load_sets_and_compute(&user_id, &req.workout_id)
-                .await?;
-
-            let session_id = self.get_session_id_for_user(&user_id).await?;
-            if !session_id.is_empty() {
-                refresh_participant_for_user(
-                    &self.db,
-                    &user_id,
-                    &session_id,
-                    Some(&req.workout_id),
-                )
-                .await?;
-            }
-
-            let session_messages = session_messages_for_completed_set(
-                &req.workout_id,
-                &proposed,
-                req.actual_reps,
-                ended_at,
-            );
-            if !session_messages.is_empty() {
-                self.db
-                    .upsert_user_message_events(&user_id, &session_messages)
-                    .await
-                    .map_err(internal_error)?;
-            }
-            Ok(Response::new(CompleteSetResponse {
-                completed_set: Some(completed_set),
-                next_up_set: next_up,
-                state_snapshot: snapshot,
-                user_messages: self
-                    .load_workout_messages(&user_id, &req.workout_id)
-                    .await?,
-            }))
         }
+        let state = get_workout_response_from_active(&active);
+        Ok(Response::new(CompleteSetResponse {
+            completed_set,
+            next_up_set: state.next_up_set,
+            state_snapshot: state.state_snapshot,
+            user_messages: self
+                .load_workout_messages(&user_id, &req.workout_id)
+                .await?,
+        }))
     }
 
     async fn delete_completed_set(
@@ -940,56 +739,15 @@ impl WorkoutService for ServerWorkoutService {
         let req = request.into_inner();
         info!(rpc = "DeleteCompletedSet", %user_id, workout_id = %req.workout_id, "request");
 
-        self.db
-            .delete_completed_set(&user_id, &req.completed_set_id, &req.workout_id)
-            .await
-            .map_err(internal_error)?;
-
-        let (_, _, next_up, snapshot) = self
-            .load_sets_and_compute(&user_id, &req.workout_id)
+        let active = self
+            .apply_mutation(&user_id, &req.workout_id, |active| {
+                apply_delete_completed_set_to_active(active, &req)
+            })
             .await?;
-
-        let session_id = self.get_session_id_for_user(&user_id).await?;
-        if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
-                .await?;
-        }
-
+        let state = get_workout_response_from_active(&active);
         Ok(Response::new(DeleteCompletedSetResponse {
-            next_up_set: next_up,
-            state_snapshot: snapshot,
-            user_messages: self
-                .load_workout_messages(&user_id, &req.workout_id)
-                .await?,
-        }))
-    }
-
-    async fn cancel_proposed_set(
-        &self,
-        request: Request<CancelProposedSetRequest>,
-    ) -> Result<Response<CancelProposedSetResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "CancelProposedSet", %user_id, workout_id = %req.workout_id, "request");
-
-        self.db
-            .cancel_proposed_set(&user_id, &req.proposed_set_id, &req.workout_id)
-            .await
-            .map_err(internal_error)?;
-
-        let (_, _, next_up, snapshot) = self
-            .load_sets_and_compute(&user_id, &req.workout_id)
-            .await?;
-
-        let session_id = self.get_session_id_for_user(&user_id).await?;
-        if !session_id.is_empty() {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, Some(&req.workout_id))
-                .await?;
-        }
-
-        Ok(Response::new(CancelProposedSetResponse {
-            next_up_set: next_up,
-            state_snapshot: snapshot,
+            next_up_set: state.next_up_set,
+            state_snapshot: state.state_snapshot,
             user_messages: self
                 .load_workout_messages(&user_id, &req.workout_id)
                 .await?,
@@ -1081,18 +839,12 @@ impl WorkoutService for ServerWorkoutService {
             .mutations
             .first()
             .ok_or_else(|| Status::invalid_argument("mutations are required"))?;
-        let workout_id = match first_mutation.mutation.as_ref() {
-            Some(Mutation::StartSet(m)) => m.workout_id.clone(),
-            Some(Mutation::CompleteSet(m)) => m.workout_id.clone(),
-            Some(Mutation::CancelProposedSet(m)) => m.workout_id.clone(),
-            Some(Mutation::DeleteCompletedSet(m)) => m.workout_id.clone(),
-            Some(Mutation::EndWorkout(m)) => m.workout_id.clone(),
-            Some(Mutation::AddExercises(m)) => m.workout_id.clone(),
-            Some(Mutation::AdjustExerciseWeight(m)) => m.workout_id.clone(),
-            Some(Mutation::RemoveExercise(m)) => m.workout_id.clone(),
-            Some(Mutation::ReorderExercises(m)) => m.workout_id.clone(),
-            None => return Err(Status::invalid_argument("mutation payload missing")),
-        };
+        let workout_id = first_mutation
+            .mutation
+            .as_ref()
+            .map(mutation_workout_id)
+            .ok_or_else(|| Status::invalid_argument("mutation payload missing"))?
+            .to_string();
         info!(rpc = "AppendWorkoutMutations", %user_id, %workout_id, mutation_count = req.mutations.len(), "request");
 
         // For batch mutations, load full state and use reducers (same as before)
@@ -1127,13 +879,18 @@ impl WorkoutService for ServerWorkoutService {
         let mut applied = Vec::with_capacity(req.mutations.len());
         let mut generated_messages = Vec::<UserMessage>::new();
 
-        // Plan edits generate/regenerate warmups, which snap to the user's
-        // unit — but the common batch (start/complete a set) doesn't, so only
-        // pay the settings read when a plan op is actually present.
+        // Plan edits generate/regenerate warmups, and a calibration rung
+        // settles on an answer (a rating, a Done carrying one, or a rung
+        // missed on a Done or an edit) — all snap to the user's unit. Only
+        // pay the settings read when one of those can be present.
         let unit = if req.mutations.iter().any(|m| {
             matches!(
                 &m.mutation,
-                Some(Mutation::AddExercises(_)) | Some(Mutation::AdjustExerciseWeight(_))
+                Some(Mutation::AddExercises(_))
+                    | Some(Mutation::AdjustExerciseWeight(_))
+                    | Some(Mutation::RateExercise(_))
+                    | Some(Mutation::CompleteSet(_))
+                    | Some(Mutation::EditCompletedSet(_))
             )
         }) {
             self.get_weight_unit(&user_id).await?
@@ -1152,15 +909,13 @@ impl WorkoutService for ServerWorkoutService {
             // a finished workout, a rejected weight) must be consumed, not
             // retried forever — one poison mutation would wedge every set
             // completion queued behind it. Skips are logged and acked.
-            let applied_result: Result<(), Status> = match mutation
+            let now = mutation_time(&mutation);
+            let payload = mutation
                 .mutation
-                .ok_or_else(|| Status::invalid_argument("mutation missing"))?
-            {
-                Mutation::StartSet(req) => {
-                    apply_start_set_to_active(&mut active, &req).map_err(Into::into)
-                }
+                .ok_or_else(|| Status::invalid_argument("mutation missing"))?;
+            let applied_result: Result<(), Status> = match payload {
                 Mutation::CompleteSet(req) => {
-                    let result = apply_complete_set_to_active(&mut active, &req);
+                    let result = apply_complete_set_to_active(&mut active, &req, unit);
                     if result.is_ok() {
                         if let Some(proposed) = active
                             .proposed_sets
@@ -1171,29 +926,24 @@ impl WorkoutService for ServerWorkoutService {
                                 &workout_id,
                                 proposed,
                                 req.actual_reps,
-                                if req.completed_at > 0 {
-                                    req.completed_at
-                                } else {
-                                    now_unix()
-                                },
+                                now,
                             ));
                         }
                     }
                     result.map_err(Into::into)
                 }
+                Mutation::StartSet(req) => {
+                    apply_start_set_to_active(&mut active, &req, now).map_err(Into::into)
+                }
+                Mutation::SkipWarmups(req) => {
+                    apply_skip_warmups_to_active(&mut active, &req).map_err(Into::into)
+                }
                 Mutation::DeleteCompletedSet(req) => {
                     apply_delete_completed_set_to_active(&mut active, &req).map_err(Into::into)
                 }
-                Mutation::CancelProposedSet(req) => {
-                    apply_cancel_proposed_set_to_active(&mut active, &req).map_err(Into::into)
-                }
-                Mutation::EndWorkout(req) => {
-                    let ended_at = if req.ended_at > 0 {
-                        req.ended_at
-                    } else {
-                        now_unix()
-                    };
-                    active.workout.end_time = ended_at;
+                Mutation::EndWorkout(_) => {
+                    active.workout.end_time = now;
+                    resolve_all_effort(&mut active);
                     Ok(())
                 }
                 Mutation::AddExercises(req) => {
@@ -1217,6 +967,12 @@ impl WorkoutService for ServerWorkoutService {
                 }
                 Mutation::ReorderExercises(req) => {
                     apply_reorder_exercises(&mut active, &req).map_err(Into::into)
+                }
+                Mutation::RateExercise(req) => {
+                    apply_rate_exercise_to_active(&mut active, &req, unit).map_err(Into::into)
+                }
+                Mutation::EditCompletedSet(req) => {
+                    apply_edit_completed_set_to_active(&mut active, &req, unit).map_err(Into::into)
                 }
             };
             if let Err(error) = applied_result {
@@ -1425,14 +1181,15 @@ impl WorkoutService for ServerWorkoutService {
                 req.working_weight.max(0.0),
                 unit,
             ),
-            // A manual correction restarts the rep climb at the range
-            // bottom; resolution clamps 0 there.
-            current_reps: 0,
+            // A manual correction sets the rep target, or (0) restarts the
+            // climb at the range bottom; resolution clamps 0 there.
+            current_reps: req.target_reps.clamp(0, 100),
             consecutive_misses: 0,
             last_performed_at: previous.last_performed_at,
             override_sets: req.override_sets.max(0),
             override_rep_low: req.override_rep_low.max(0),
             override_rep_high: req.override_rep_high.max(0),
+            consecutive_hard: 0,
         };
         self.db
             .upsert_tracker_state(&user_id, req.exercise, &state, "manual")
@@ -1457,6 +1214,7 @@ impl WorkoutService for ServerWorkoutService {
                 primary_muscle: primary_muscle(exercise) as i32,
                 category: category(exercise) as i32,
                 equipment: load_style(exercise).to_proto() as i32,
+                consecutive_hard: resolved.consecutive_hard,
             }),
         }))
     }
@@ -1620,6 +1378,42 @@ impl WorkoutService for ServerWorkoutService {
         Ok(Response::new(DismissUserMessagesResponse {
             dismissed_message_keys: dismissed,
         }))
+    }
+}
+
+/// The workout a queued mutation targets.
+fn mutation_workout_id(mutation: &Mutation) -> &str {
+    match mutation {
+        Mutation::CompleteSet(m) => &m.workout_id,
+        Mutation::DeleteCompletedSet(m) => &m.workout_id,
+        Mutation::EndWorkout(m) => &m.workout_id,
+        Mutation::AddExercises(m) => &m.workout_id,
+        Mutation::AdjustExerciseWeight(m) => &m.workout_id,
+        Mutation::RemoveExercise(m) => &m.workout_id,
+        Mutation::ReorderExercises(m) => &m.workout_id,
+        Mutation::RateExercise(m) => &m.workout_id,
+        Mutation::EditCompletedSet(m) => &m.workout_id,
+        Mutation::StartSet(m) => &m.workout_id,
+        Mutation::SkipWarmups(m) => &m.workout_id,
+    }
+}
+
+/// When a queued mutation happened: its own timestamp where it carries
+/// one, else the client clock it was queued at, else now — so a batch
+/// flushed after a long offline stretch keeps its original times.
+fn mutation_time(mutation: &WorkoutMutation) -> i64 {
+    let own = match mutation.mutation.as_ref() {
+        Some(Mutation::CompleteSet(m)) => m.completed_at,
+        Some(Mutation::StartSet(m)) => m.started_at,
+        Some(Mutation::EndWorkout(m)) => m.ended_at,
+        _ => 0,
+    };
+    if own > 0 {
+        own
+    } else if mutation.client_created_at > 0 {
+        mutation.client_created_at
+    } else {
+        now_unix()
     }
 }
 

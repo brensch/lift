@@ -147,7 +147,7 @@ mod tests {
         }
         // Defaults keep the pre-library behaviour: at least one full body
         // template lands for a client that never asked.
-        assert!(defaults().iter().any(|t| t.id == "full_body"));
+        assert!(defaults().iter().any(|t| t.id == "stronglifts_a"));
     }
 
     #[test]

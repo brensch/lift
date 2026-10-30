@@ -168,9 +168,9 @@ class WatchBridgeManager: NSObject, WCSessionDelegate {
             return
         }
 
-        // All HealthKit permissions are requested ONCE by the Flutter `health` plugin
-        // (HealthService.requestWorkoutHealthPermissions), which the Dart side awaits before
-        // calling openWatchApp. Authorization is shared across the paired iPhone + Watch app,
+        // All HealthKit permissions are requested ONCE, on the permissions screen after
+        // sign-in, by the Flutter `health` plugin (HealthService.requestWorkoutHealthPermissions).
+        // Authorization is shared across the paired iPhone + Watch app,
         // so that single grant covers the workout-share access startWatchApp needs. We do NOT
         // request here: a competing native request was racing the plugin's grant and leaving
         // workout-write (and heart-rate-read) unset in Health settings.

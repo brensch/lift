@@ -116,3 +116,5 @@ set. Investigation (direct SQLite query) confirmed the skip DOES persist —
 subtlety: `GetWorkout` excludes cancelled sets from the returned plan, so a client
 sees the warmup *count decrease* (12 → 11), not a `cancelled=true` flag. The test
 now asserts the reduction. No product bug; worth knowing when reading getWorkout.
+(Superseded: skipping warmups was removed. Warmups stay in the plan and a
+working set moves past them; see `docs/plans/one-tap-sets.md` §13.)

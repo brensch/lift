@@ -7,6 +7,8 @@
 #
 # Languages: dart rust web python shell kotlin swift proto
 
+.PHONY: lint-tools fmt fmt-check lint lint-check
+
 LANGS ?=
 
 # Pinned ruff, shellcheck, shfmt, ktlint, swiftformat and swiftlint in .tools/bin.

@@ -56,9 +56,10 @@ erDiagram
         TEXT proposed_set_id FK
         INTEGER actual_reps
         REAL actual_weight
-        INTEGER started_at
-        INTEGER ended_at "0 = in progress"
+        INTEGER ended_at
         INTEGER rest_until
+        INTEGER effort "0 unanswered, 1 easy, 2 right, 3 hard"
+        INTEGER rest_skipped
     }
     active_workout_current {
         TEXT user_id PK
@@ -68,10 +69,12 @@ erDiagram
 
 Key points:
 
-- **`end_time = 0` means in progress.** Same for `completed_sets.ended_at`.
-  There is no separate status column anywhere; zero-as-null is the convention.
-- **`completed_sets` is created on `StartSet`**, not on completion, with
-  `ended_at = 0`. A row with `ended_at = 0` is the set currently being performed.
+- **`end_time = 0` means in progress.** There is no separate status column
+  anywhere; zero-as-null is the convention.
+- **`completed_sets` is created on `CompleteSet`** (the Done tap). A set is
+  pending until that row exists; there is no in-progress row.
+- **`proposed_sets.calibration`** marks a calibration rung (see the workout
+  lifecycle); rungs count as warmups for volume.
 - **`proposed_sets.cancelled`** is a soft delete — skipped warmups and removed
   sets stay in the table so ordering and history remain stable.
 - **`active_workout_current`** is the fast path for "does this user have a

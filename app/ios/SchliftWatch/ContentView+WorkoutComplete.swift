@@ -1,75 +1,49 @@
 import SwiftUI
 
-extension ContentView {
-    func workoutCompleteScreen(
-        summary: Workout_V1_WearCompletionSummary,
-        onPrimary: (() -> Void)?,
-        primaryLabel: String
-    ) -> some View {
-        // Match Android's WorkoutCompleteScreen: stats take 2/3, the white action button
-        // takes a fixed 1/3. We size the two columns explicitly via GeometryReader because
-        // SwiftUI's layoutPriority is NOT proportional — it let the stats column eat the full
-        // width and collapsed the button column to ~0pt (the "missing End workout button").
-        GeometryReader { geo in
-            HStack(spacing: 0) {
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text("Complete")
-                        .font(displayFontName(size: 26))
-                        .foregroundColor(.white)
-                        .watchAutoShrink()
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+/// ALL_DONE with a completion summary: "Done" in green, the summary on one line, and
+/// End workout while the phone still offers it. Once it fires,
+/// `endLocalSession` records the workout as ended and `ContentView` returns to idle.
+struct WorkoutDoneScreen: View {
+    @EnvironmentObject private var connector: PhoneConnector
 
-                    Spacer().frame(height: 6)
+    let snapshot: Workout_V1_WearWorkoutSnapshot
+    let now: Date
 
-                    completionMetric(label: "Time", value: summary.durationText)
-                    completionMetric(label: "Sets", value: "\(summary.completedWorkingSets)")
-                    completionMetric(label: "Vol", value: "\(summary.totalVolumeLb)lb")
-
-                    // Diagnostic: live HK session state — should go to "ended" after End and
-                    // stay there (no flicker back to "running").
-                    Text("hk: \(connector.sessionStateLabel)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.gray)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 6))
-                .frame(width: geo.size.width * 2.0 / 3.0, height: geo.size.height)
-
-                Button {
-                    onPrimary?()
-                } label: {
-                    Text(primaryLabel)
-                        .font(displayFontName(size: 16))
-                        .foregroundColor(.black)
-                        .watchAutoShrink(lines: 2)
-                        .multilineTextAlignment(.leading)
-                        .padding(.leading, 8)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .frame(width: geo.size.width / 3.0, height: geo.size.height)
-                .background(Color.white)
-                .disabled(onPrimary == nil)
-            }
-        }
-        .background(Color.black)
-        .edgesIgnoringSafeArea(.all)
+    private var endAction: Workout_V1_WearAction? {
+        snapshot.actions.first { $0.type == .endWorkout }
     }
 
-    private func completionMetric(label: String, value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.custom(bodyFont, size: 13))
-                .foregroundColor(Color(red: 0x9C / 255, green: 0xA3 / 255, blue: 0xAF / 255))
-                .watchAutoShrink(minScale: 0.7)
+    var body: some View {
+        let summary = snapshot.completionSummary
 
-            Spacer()
+        WatchScreen(snapshot: snapshot, now: now) {
+            VStack(spacing: 2) {
+                Spacer(minLength: 0)
 
-            Text(value)
-                .font(displayFontName(size: 18))
-                .foregroundColor(.white)
-                .watchAutoShrink()
+                Text("Done")
+                    .font(displayFontName(size: 26))
+                    .foregroundColor(WatchPalette.doneGreen)
+                    .watchAutoShrink()
+
+                Text("\(summary.durationText) · \(summary.completedWorkingSets) sets · \(volumeText(summary))")
+                    .font(textFontName(size: 14))
+                    .foregroundColor(WatchPalette.grey)
+                    .watchAutoShrink(minScale: 0.6)
+
+                Spacer(minLength: 4)
+
+                if let end = endAction {
+                    WatchPrimaryButton(label: end.label, height: 48, enabled: !connector.isActionPending) {
+                        connector.sendIntent(action: end)
+                    }
+                }
+            }
         }
-        .padding(.vertical, 1)
+    }
+
+    /// The phone renders the volume in the user's unit; the lb figure is the fallback
+    /// for a phone that has not sent `volumeText` yet.
+    private func volumeText(_ summary: Workout_V1_WearCompletionSummary) -> String {
+        summary.volumeText.isEmpty ? "\(summary.totalVolumeLb)lb" : summary.volumeText
     }
 }

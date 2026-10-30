@@ -52,6 +52,9 @@
 		9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C0B02B8A3792430DE97AC0B /* Assets.xcassets */; };
 		A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */; };
 		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
+		93E9CCF5A489F2841B27389D /* RestScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9BF7B69DD87CE929608165 /* RestScreen.swift */; };
+		7DE03297A9BF40E9A53A7A09 /* ReadyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E338110C5A3D1663CD753EF5 /* ReadyScreen.swift */; };
+		197FAB54AB60A8D588057A54 /* LiftingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE719B08D95666835A48690 /* LiftingScreen.swift */; };
 		118AC1A05598FCE8A9DFCFDB /* ContentView+ActionButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */; };
 		464448B5D5D77E3331A589FA /* ContentView+MainLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11D9410141672EB4995757A /* ContentView+MainLayout.swift */; };
 		DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */; };
@@ -153,6 +156,9 @@
 		B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Variable.ttf"; sourceTree = "<group>"; };
 		C129A9FB18F81555600E71B3 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		C791F424CC08582321BD3041 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5B9BF7B69DD87CE929608165 /* RestScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RestScreen.swift"; sourceTree = "<group>"; };
+		E338110C5A3D1663CD753EF5 /* ReadyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadyScreen.swift"; sourceTree = "<group>"; };
+		5BE719B08D95666835A48690 /* LiftingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LiftingScreen.swift"; sourceTree = "<group>"; };
 		95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+ActionButtons.swift"; sourceTree = "<group>"; };
 		F11D9410141672EB4995757A /* ContentView+MainLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MainLayout.swift"; sourceTree = "<group>"; };
 		77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+WorkoutComplete.swift"; sourceTree = "<group>"; };
@@ -274,6 +280,9 @@
 			children = (
 				1C0B02B8A3792430DE97AC0B /* Assets.xcassets */,
 				C791F424CC08582321BD3041 /* ContentView.swift */,
+				5B9BF7B69DD87CE929608165 /* RestScreen.swift */,
+				E338110C5A3D1663CD753EF5 /* ReadyScreen.swift */,
+				5BE719B08D95666835A48690 /* LiftingScreen.swift */,
 				95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */,
 				F11D9410141672EB4995757A /* ContentView+MainLayout.swift */,
 				77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */,
@@ -554,6 +563,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */,
+				93E9CCF5A489F2841B27389D /* RestScreen.swift in Sources */,
+				7DE03297A9BF40E9A53A7A09 /* ReadyScreen.swift in Sources */,
+				197FAB54AB60A8D588057A54 /* LiftingScreen.swift in Sources */,
 				118AC1A05598FCE8A9DFCFDB /* ContentView+ActionButtons.swift in Sources */,
 				464448B5D5D77E3331A589FA /* ContentView+MainLayout.swift in Sources */,
 				DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */,

@@ -8,6 +8,7 @@ import '../logic/utils.dart';
 import '../services/app_logger.dart';
 import '../services/error_modal_service.dart';
 import '../services/multiplayer_service.dart';
+import '../theme/schlift_spec.dart';
 
 /// Tracks the caller's current multiplayer session.
 ///
@@ -192,10 +193,10 @@ class MultiplayerProvider extends ChangeNotifier {
       await checkForSession();
       Fluttertoast.showToast(
         msg: "JOINED GROUP",
-        backgroundColor: Colors.green.shade600,
-        textColor: Colors.white,
+        backgroundColor: schliftSpec.success,
+        textColor: schliftSpec.onPrimary,
         gravity: ToastGravity.TOP,
-        fontSize: 14.0,
+        fontSize: schliftSpec.size.body,
       );
       return null;
     } catch (e) {

@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../theme/theme_spec.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -18,8 +19,8 @@ class SectionHeader extends StatelessWidget {
           child: Text(
             title,
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 0.1,
               color: colorScheme.onSurface.withValues(alpha: 0.78),
             ),
@@ -42,7 +43,7 @@ class EmptySectionText extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 13,
+        fontSize: context.tokens.size.body,
         height: 1.35,
         color: colorScheme.onSurface.withValues(alpha: 0.62),
       ),

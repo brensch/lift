@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { ProposedSet, WorkoutState } from "./workout_pb";
+import type { Effort, ProposedSet, WorkoutState } from "./workout_pb";
 import { file_workout_v1_workout } from "./workout_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,27 +12,18 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/wearable.proto.
  */
 export const file_workout_v1_wearable: GenFile = /*@__PURE__*/
-  fileDesc("Chl3b3Jrb3V0L3YxL3dlYXJhYmxlLnByb3RvEgp3b3Jrb3V0LnYxItUBCg5XZWFyU3RhdHVzQ2FyZBISCgpzaWRlX2xhYmVsGAEgASgJEg4KBmhlYWRlchgCIAEoCRITCgtzdGF0ZV9sYWJlbBgDIAEoCRISCgp0aW1lcl90ZXh0GAQgASgJEhMKC2lzX2NvbXBsZXRlGAUgASgIEiwKC2Rpc3BsYXlfc2V0GAYgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIZChFjdXJyZW50X2dyb3VwX3NldBgHIAEoBRIYChB0b3RhbF9ncm91cF9zZXRzGAggASgFIqYBCgpXZWFyQWN0aW9uEigKBHR5cGUYASABKA4yGi53b3Jrb3V0LnYxLldlYXJBY3Rpb25UeXBlEioKBXN0eWxlGAIgASgOMhsud29ya291dC52MS5XZWFyQWN0aW9uU3R5bGUSDQoFbGFiZWwYAyABKAkSDgoGc2V0X2lkGAQgASgJEgwKBHJlcHMYBSABKAUSFQoNYWN0dWFsX3dlaWdodBgGIAEoAiK7AwoTV2VhcldvcmtvdXRTbmFwc2hvdBISCgp3b3Jrb3V0X2lkGAEgASgJEhIKCmVtaXR0ZWRfYXQYAiABKAMSJwoFc3RhdGUYAyABKA4yGC53b3Jrb3V0LnYxLldvcmtvdXRTdGF0ZRIaChJ3b3Jrb3V0X3N0YXJ0X3RpbWUYBCABKAMSGQoRYWN0aXZlX3N0YXJ0ZWRfYXQYBSABKAMSEgoKcmVzdF91bnRpbBgGIAEoAxIVCg1sYXN0X3Jlc3RfZW5kGAcgASgDEhQKDGVsYXBzZWRfdGV4dBgIIAEoCRIsCgh5b3VfY2FyZBgJIAEoCzIaLndvcmtvdXQudjEuV2VhclN0YXR1c0NhcmQSLgoKZ3JvdXBfY2FyZBgKIAEoCzIaLndvcmtvdXQudjEuV2VhclN0YXR1c0NhcmQSJwoHYWN0aW9ucxgLIAMoCzIWLndvcmtvdXQudjEuV2VhckFjdGlvbhI9ChJjb21wbGV0aW9uX3N1bW1hcnkYDCABKAsyIS53b3Jrb3V0LnYxLldlYXJDb21wbGV0aW9uU3VtbWFyeRIVCg1uZXh0X3VwX2Vtb2ppGA0gASgJImcKFVdlYXJDb21wbGV0aW9uU3VtbWFyeRIVCg1kdXJhdGlvbl90ZXh0GAEgASgJEh4KFmNvbXBsZXRlZF93b3JraW5nX3NldHMYAiABKAUSFwoPdG90YWxfdm9sdW1lX2xiGAMgASgFIjQKDlN0YXJ0U2V0SW50ZW50EhIKCndvcmtvdXRfaWQYASABKAkSDgoGc2V0X2lkGAIgASgJInIKEUNvbXBsZXRlU2V0SW50ZW50EhIKCndvcmtvdXRfaWQYASABKAkSDgoGc2V0X2lkGAIgASgJEgwKBHJlcHMYAyABKAUSFQoNYWN0dWFsX3dlaWdodBgEIAEoAhIUCgxjb21wbGV0ZWRfYXQYBSABKAMiNgoQU2tpcFdhcm11cEludGVudBISCgp3b3Jrb3V0X2lkGAEgASgJEg4KBnNldF9pZBgCIAEoCSImChBFbmRXb3Jrb3V0SW50ZW50EhIKCndvcmtvdXRfaWQYASABKAkijAIKCldlYXJJbnRlbnQSEQoJaW50ZW50X2lkGAEgASgJEg8KB3NlbnRfYXQYAiABKAMSLwoJc3RhcnRfc2V0GAogASgLMhoud29ya291dC52MS5TdGFydFNldEludGVudEgAEjUKDGNvbXBsZXRlX3NldBgLIAEoCzIdLndvcmtvdXQudjEuQ29tcGxldGVTZXRJbnRlbnRIABIzCgtza2lwX3dhcm11cBgMIAEoCzIcLndvcmtvdXQudjEuU2tpcFdhcm11cEludGVudEgAEjMKC2VuZF93b3Jrb3V0GA0gASgLMhwud29ya291dC52MS5FbmRXb3Jrb3V0SW50ZW50SABCCAoGaW50ZW50ImsKD0hlYXJ0UmF0ZVNhbXBsZRISCgpzYW1wbGVkX2F0GAEgASgDEgsKA2JwbRgCIAEoAhI3CgxhdmFpbGFiaWxpdHkYAyABKA4yIS53b3Jrb3V0LnYxLkhlYXJ0UmF0ZUF2YWlsYWJpbGl0eSKBAQoPV2VhclNlbnNvckJhdGNoEhAKCGJhdGNoX2lkGAEgASgJEhIKCndvcmtvdXRfaWQYAiABKAkSDwoHc2VudF9hdBgDIAEoAxI3ChJoZWFydF9yYXRlX3NhbXBsZXMYBCADKAsyGy53b3Jrb3V0LnYxLkhlYXJ0UmF0ZVNhbXBsZSJPChJXZWFyU2Vuc29yQmF0Y2hBY2sSEAoIYmF0Y2hfaWQYASABKAkSEgoKd29ya291dF9pZBgCIAEoCRITCgtyZWNlaXZlZF9hdBgDIAEoAyq5AQoOV2VhckFjdGlvblR5cGUSIAocV0VBUl9BQ1RJT05fVFlQRV9VTlNQRUNJRklFRBAAEh4KGldFQVJfQUNUSU9OX1RZUEVfU1RBUlRfU0VUEAESIQodV0VBUl9BQ1RJT05fVFlQRV9DT01QTEVURV9TRVQQAhIgChxXRUFSX0FDVElPTl9UWVBFX1NLSVBfV0FSTVVQEAMSIAocV0VBUl9BQ1RJT05fVFlQRV9FTkRfV09SS09VVBAEKpYBCg9XZWFyQWN0aW9uU3R5bGUSIQodV0VBUl9BQ1RJT05fU1RZTEVfVU5TUEVDSUZJRUQQABIdChlXRUFSX0FDVElPTl9TVFlMRV9QUklNQVJZEAESHwobV0VBUl9BQ1RJT05fU1RZTEVfU0VDT05EQVJZEAISIAocV0VBUl9BQ1RJT05fU1RZTEVfUkVQX09QVElPThADKrcBChVIZWFydFJhdGVBdmFpbGFiaWxpdHkSJwojSEVBUlRfUkFURV9BVkFJTEFCSUxJVFlfVU5TUEVDSUZJRUQQABIlCiFIRUFSVF9SQVRFX0FWQUlMQUJJTElUWV9BVkFJTEFCTEUQARIlCiFIRUFSVF9SQVRFX0FWQUlMQUJJTElUWV9BQ1FVSVJJTkcQAhInCiNIRUFSVF9SQVRFX0FWQUlMQUJJTElUWV9VTkFWQUlMQUJMRRADYgZwcm90bzM", [file_workout_v1_workout]);
+  fileDesc("Chl3b3Jrb3V0L3YxL3dlYXJhYmxlLnByb3RvEgp3b3Jrb3V0LnYxIq8CCg5XZWFyU3RhdHVzQ2FyZBITCgtzdGF0ZV9sYWJlbBgDIAEoCRISCgp0aW1lcl90ZXh0GAQgASgJEiwKC2Rpc3BsYXlfc2V0GAYgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIVCg1leGVyY2lzZV9uYW1lGAkgASgJEhAKCHNldF9saW5lGAogASgJEhAKCHNldF90ZXh0GAsgASgJEhUKDXlhcHBpbmdfbGFiZWwYDCABKAlKBAgBEAJKBAgCEANKBAgFEAZKBAgHEAhKBAgIEAlKBAgNEA5SCnNpZGVfbGFiZWxSBmhlYWRlclILaXNfY29tcGxldGVSEWN1cnJlbnRfZ3JvdXBfc2V0UhB0b3RhbF9ncm91cF9zZXRzUgpkb25lX2xhYmVsIsoBCgpXZWFyQWN0aW9uEigKBHR5cGUYASABKA4yGi53b3Jrb3V0LnYxLldlYXJBY3Rpb25UeXBlEioKBXN0eWxlGAIgASgOMhsud29ya291dC52MS5XZWFyQWN0aW9uU3R5bGUSDQoFbGFiZWwYAyABKAkSDgoGc2V0X2lkGAQgASgJEgwKBHJlcHMYBSABKAUSFQoNYWN0dWFsX3dlaWdodBgGIAEoAhIiCgZlZmZvcnQYByABKA4yEi53b3Jrb3V0LnYxLkVmZm9ydCLKAwoTV2VhcldvcmtvdXRTbmFwc2hvdBISCgp3b3Jrb3V0X2lkGAEgASgJEhIKCmVtaXR0ZWRfYXQYAiABKAMSJwoFc3RhdGUYAyABKA4yGC53b3Jrb3V0LnYxLldvcmtvdXRTdGF0ZRIaChJ3b3Jrb3V0X3N0YXJ0X3RpbWUYBCABKAMSEgoKcmVzdF91bnRpbBgGIAEoAxIaChJsaWZ0aW5nX3N0YXJ0ZWRfYXQYDyABKAMSFAoMZWxhcHNlZF90ZXh0GAggASgJEiwKCHlvdV9jYXJkGAkgASgLMhoud29ya291dC52MS5XZWFyU3RhdHVzQ2FyZBInCgdhY3Rpb25zGAsgAygLMhYud29ya291dC52MS5XZWFyQWN0aW9uEj0KEmNvbXBsZXRpb25fc3VtbWFyeRgMIAEoCzIhLndvcmtvdXQudjEuV2VhckNvbXBsZXRpb25TdW1tYXJ5EhUKDW5leHRfdXBfZW1vamkYDSABKAlKBAgFEAZKBAgHEAhKBAgKEAtKBAgOEA9SEWFjdGl2ZV9zdGFydGVkX2F0Ug1sYXN0X3Jlc3RfZW5kUgpncm91cF9jYXJkUg1lZmZvcnRfcHJvbXB0InwKFVdlYXJDb21wbGV0aW9uU3VtbWFyeRIVCg1kdXJhdGlvbl90ZXh0GAEgASgJEh4KFmNvbXBsZXRlZF93b3JraW5nX3NldHMYAiABKAUSFwoPdG90YWxfdm9sdW1lX2xiGAMgASgFEhMKC3ZvbHVtZV90ZXh0GAQgASgJIpYBChFDb21wbGV0ZVNldEludGVudBISCgp3b3Jrb3V0X2lkGAEgASgJEg4KBnNldF9pZBgCIAEoCRIMCgRyZXBzGAMgASgFEhUKDWFjdHVhbF93ZWlnaHQYBCABKAISFAoMY29tcGxldGVkX2F0GAUgASgDEiIKBmVmZm9ydBgGIAEoDjISLndvcmtvdXQudjEuRWZmb3J0IkgKDlN0YXJ0U2V0SW50ZW50EhIKCndvcmtvdXRfaWQYASABKAkSDgoGc2V0X2lkGAIgASgJEhIKCnN0YXJ0ZWRfYXQYAyABKAMiJgoQRW5kV29ya291dEludGVudBISCgp3b3Jrb3V0X2lkGAEgASgJIqgCCgpXZWFySW50ZW50EhEKCWludGVudF9pZBgBIAEoCRIPCgdzZW50X2F0GAIgASgDEjUKDGNvbXBsZXRlX3NldBgLIAEoCzIdLndvcmtvdXQudjEuQ29tcGxldGVTZXRJbnRlbnRIABIzCgtlbmRfd29ya291dBgNIAEoCzIcLndvcmtvdXQudjEuRW5kV29ya291dEludGVudEgAEi8KCXN0YXJ0X3NldBgRIAEoCzIaLndvcmtvdXQudjEuU3RhcnRTZXRJbnRlbnRIAEIICgZpbnRlbnRKBAgKEAtKBAgMEA1KBAgOEA9KBAgPEBBKBAgQEBFSCmZld2VyX3JlcHNSCXNraXBfcmVzdFINcmF0ZV9leGVyY2lzZVILc2tpcF93YXJtdXAiawoPSGVhcnRSYXRlU2FtcGxlEhIKCnNhbXBsZWRfYXQYASABKAMSCwoDYnBtGAIgASgCEjcKDGF2YWlsYWJpbGl0eRgDIAEoDjIhLndvcmtvdXQudjEuSGVhcnRSYXRlQXZhaWxhYmlsaXR5IoEBCg9XZWFyU2Vuc29yQmF0Y2gSEAoIYmF0Y2hfaWQYASABKAkSEgoKd29ya291dF9pZBgCIAEoCRIPCgdzZW50X2F0GAMgASgDEjcKEmhlYXJ0X3JhdGVfc2FtcGxlcxgEIAMoCzIbLndvcmtvdXQudjEuSGVhcnRSYXRlU2FtcGxlIk8KEldlYXJTZW5zb3JCYXRjaEFjaxIQCghiYXRjaF9pZBgBIAEoCRISCgp3b3Jrb3V0X2lkGAIgASgJEhMKC3JlY2VpdmVkX2F0GAMgASgDKqwCCg5XZWFyQWN0aW9uVHlwZRIgChxXRUFSX0FDVElPTl9UWVBFX1VOU1BFQ0lGSUVEEAASIQodV0VBUl9BQ1RJT05fVFlQRV9DT01QTEVURV9TRVQQAhIgChxXRUFSX0FDVElPTl9UWVBFX0VORF9XT1JLT1VUEAQSHgoaV0VBUl9BQ1RJT05fVFlQRV9TVEFSVF9TRVQQCCIECAEQASIECAMQAyIECAUQBSIECAYQBiIECAcQByobV0VBUl9BQ1RJT05fVFlQRV9GRVdFUl9SRVBTKhpXRUFSX0FDVElPTl9UWVBFX1NLSVBfUkVTVCoeV0VBUl9BQ1RJT05fVFlQRV9SQVRFX0VYRVJDSVNFKhxXRUFSX0FDVElPTl9UWVBFX1NLSVBfV0FSTVVQKpgBCg9XZWFyQWN0aW9uU3R5bGUSIQodV0VBUl9BQ1RJT05fU1RZTEVfVU5TUEVDSUZJRUQQABIdChlXRUFSX0FDVElPTl9TVFlMRV9QUklNQVJZEAESHwobV0VBUl9BQ1RJT05fU1RZTEVfU0VDT05EQVJZEAIiBAgDEAMqHFdFQVJfQUNUSU9OX1NUWUxFX1JFUF9PUFRJT04qtwEKFUhlYXJ0UmF0ZUF2YWlsYWJpbGl0eRInCiNIRUFSVF9SQVRFX0FWQUlMQUJJTElUWV9VTlNQRUNJRklFRBAAEiUKIUhFQVJUX1JBVEVfQVZBSUxBQklMSVRZX0FWQUlMQUJMRRABEiUKIUhFQVJUX1JBVEVfQVZBSUxBQklMSVRZX0FDUVVJUklORxACEicKI0hFQVJUX1JBVEVfQVZBSUxBQklMSVRZX1VOQVZBSUxBQkxFEANiBnByb3RvMw", [file_workout_v1_workout]);
 
 /**
+ * Everything the watch prints is a string the phone rendered. The watch
+ * lays them out; it never derives text from the workout.
+ *
  * @generated from message workout.v1.WearStatusCard
  */
 export type WearStatusCard = Message<"workout.v1.WearStatusCard"> & {
   /**
-   * e.g. "YOU", "GROUP"
+   * "Lifting", "Resting" or "Yapping" in those states, else empty
    *
-   * @generated from field: string side_label = 1;
-   */
-  sideLabel: string;
-
-  /**
-   * optional
-   *
-   * @generated from field: string header = 2;
-   */
-  header: string;
-
-  /**
    * @generated from field: string state_label = 3;
    */
   stateLabel: string;
@@ -45,30 +36,42 @@ export type WearStatusCard = Message<"workout.v1.WearStatusCard"> & {
   timerText: string;
 
   /**
-   * @generated from field: bool is_complete = 5;
-   */
-  isComplete: boolean;
-
-  /**
-   * optional
+   * the next pending set, if any
    *
    * @generated from field: workout.v1.ProposedSet display_set = 6;
    */
   displaySet?: ProposedSet | undefined;
 
   /**
-   * optional, 1-based
+   * of display_set
    *
-   * @generated from field: int32 current_group_set = 7;
+   * @generated from field: string exercise_name = 9;
    */
-  currentGroupSet: number;
+  exerciseName: string;
 
   /**
-   * optional
+   * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
    *
-   * @generated from field: int32 total_group_sets = 8;
+   * @generated from field: string set_line = 10;
    */
-  totalGroupSets: number;
+  setLine: string;
+
+  /**
+   * display_set in the user's unit, e.g. "60 kg × 5"
+   *
+   * @generated from field: string set_text = 11;
+   */
+  setText: string;
+
+  /**
+   * What the watch switches to on its own when the countdown reaches zero
+   * (RESTING becoming YAPPING), before the next snapshot arrives.
+   *
+   * "Yapping"
+   *
+   * @generated from field: string yapping_label = 12;
+   */
+  yappingLabel: string;
 };
 
 /**
@@ -105,18 +108,25 @@ export type WearAction = Message<"workout.v1.WearAction"> & {
   setId: string;
 
   /**
-   * used for COMPLETE_SET rep buttons
+   * COMPLETE_SET: the reps Done records (the target)
    *
    * @generated from field: int32 reps = 5;
    */
   reps: number;
 
   /**
-   * optional override for COMPLETE_SET
+   * COMPLETE_SET: the weight Done records (the target)
    *
    * @generated from field: float actual_weight = 6;
    */
   actualWeight: number;
+
+  /**
+   * COMPLETE_SET: the rating this Done gives (UNSPECIFIED on a warmup)
+   *
+   * @generated from field: workout.v1.Effort effort = 7;
+   */
+  effort: Effort;
 };
 
 /**
@@ -136,7 +146,7 @@ export type WearWorkoutSnapshot = Message<"workout.v1.WearWorkoutSnapshot"> & {
   workoutId: string;
 
   /**
-   * Unix seconds
+   * Unix milliseconds (the watches sync their clock to it)
    *
    * @generated from field: int64 emitted_at = 2;
    */
@@ -153,19 +163,18 @@ export type WearWorkoutSnapshot = Message<"workout.v1.WearWorkoutSnapshot"> & {
   workoutStartTime: bigint;
 
   /**
-   * @generated from field: int64 active_started_at = 5;
-   */
-  activeStartedAt: bigint;
-
-  /**
+   * RESTING counts down to it, YAPPING counts up from it
+   *
    * @generated from field: int64 rest_until = 6;
    */
   restUntil: bigint;
 
   /**
-   * @generated from field: int64 last_rest_end = 7;
+   * LIFTING counts up from it
+   *
+   * @generated from field: int64 lifting_started_at = 15;
    */
-  lastRestEnd: bigint;
+  liftingStartedAt: bigint;
 
   /**
    * @generated from field: string elapsed_text = 8;
@@ -176,13 +185,6 @@ export type WearWorkoutSnapshot = Message<"workout.v1.WearWorkoutSnapshot"> & {
    * @generated from field: workout.v1.WearStatusCard you_card = 9;
    */
   youCard?: WearStatusCard | undefined;
-
-  /**
-   * optional
-   *
-   * @generated from field: workout.v1.WearStatusCard group_card = 10;
-   */
-  groupCard?: WearStatusCard | undefined;
 
   /**
    * @generated from field: repeated workout.v1.WearAction actions = 11;
@@ -229,6 +231,13 @@ export type WearCompletionSummary = Message<"workout.v1.WearCompletionSummary"> 
    * @generated from field: int32 total_volume_lb = 3;
    */
   totalVolumeLb: number;
+
+  /**
+   * phone-rendered in the user's unit, e.g. "1,500 kg"
+   *
+   * @generated from field: string volume_text = 4;
+   */
+  volumeText: string;
 };
 
 /**
@@ -237,28 +246,6 @@ export type WearCompletionSummary = Message<"workout.v1.WearCompletionSummary"> 
  */
 export const WearCompletionSummarySchema: GenMessage<WearCompletionSummary> = /*@__PURE__*/
   messageDesc(file_workout_v1_wearable, 3);
-
-/**
- * @generated from message workout.v1.StartSetIntent
- */
-export type StartSetIntent = Message<"workout.v1.StartSetIntent"> & {
-  /**
-   * @generated from field: string workout_id = 1;
-   */
-  workoutId: string;
-
-  /**
-   * @generated from field: string set_id = 2;
-   */
-  setId: string;
-};
-
-/**
- * Describes the message workout.v1.StartSetIntent.
- * Use `create(StartSetIntentSchema)` to create a new message.
- */
-export const StartSetIntentSchema: GenMessage<StartSetIntent> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 4);
 
 /**
  * @generated from message workout.v1.CompleteSetIntent
@@ -290,6 +277,13 @@ export type CompleteSetIntent = Message<"workout.v1.CompleteSetIntent"> & {
    * @generated from field: int64 completed_at = 5;
    */
   completedAt: bigint;
+
+  /**
+   * the rating given with this Done (UNSPECIFIED on a warmup)
+   *
+   * @generated from field: workout.v1.Effort effort = 6;
+   */
+  effort: Effort;
 };
 
 /**
@@ -297,12 +291,12 @@ export type CompleteSetIntent = Message<"workout.v1.CompleteSetIntent"> & {
  * Use `create(CompleteSetIntentSchema)` to create a new message.
  */
 export const CompleteSetIntentSchema: GenMessage<CompleteSetIntent> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 5);
+  messageDesc(file_workout_v1_wearable, 4);
 
 /**
- * @generated from message workout.v1.SkipWarmupIntent
+ * @generated from message workout.v1.StartSetIntent
  */
-export type SkipWarmupIntent = Message<"workout.v1.SkipWarmupIntent"> & {
+export type StartSetIntent = Message<"workout.v1.StartSetIntent"> & {
   /**
    * @generated from field: string workout_id = 1;
    */
@@ -312,14 +306,21 @@ export type SkipWarmupIntent = Message<"workout.v1.SkipWarmupIntent"> & {
    * @generated from field: string set_id = 2;
    */
   setId: string;
+
+  /**
+   * Unix seconds, time of the tap
+   *
+   * @generated from field: int64 started_at = 3;
+   */
+  startedAt: bigint;
 };
 
 /**
- * Describes the message workout.v1.SkipWarmupIntent.
- * Use `create(SkipWarmupIntentSchema)` to create a new message.
+ * Describes the message workout.v1.StartSetIntent.
+ * Use `create(StartSetIntentSchema)` to create a new message.
  */
-export const SkipWarmupIntentSchema: GenMessage<SkipWarmupIntent> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 6);
+export const StartSetIntentSchema: GenMessage<StartSetIntent> = /*@__PURE__*/
+  messageDesc(file_workout_v1_wearable, 5);
 
 /**
  * @generated from message workout.v1.EndWorkoutIntent
@@ -336,7 +337,7 @@ export type EndWorkoutIntent = Message<"workout.v1.EndWorkoutIntent"> & {
  * Use `create(EndWorkoutIntentSchema)` to create a new message.
  */
 export const EndWorkoutIntentSchema: GenMessage<EndWorkoutIntent> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 7);
+  messageDesc(file_workout_v1_wearable, 6);
 
 /**
  * @generated from message workout.v1.WearIntent
@@ -361,28 +362,22 @@ export type WearIntent = Message<"workout.v1.WearIntent"> & {
    */
   intent: {
     /**
-     * @generated from field: workout.v1.StartSetIntent start_set = 10;
-     */
-    value: StartSetIntent;
-    case: "startSet";
-  } | {
-    /**
      * @generated from field: workout.v1.CompleteSetIntent complete_set = 11;
      */
     value: CompleteSetIntent;
     case: "completeSet";
   } | {
     /**
-     * @generated from field: workout.v1.SkipWarmupIntent skip_warmup = 12;
-     */
-    value: SkipWarmupIntent;
-    case: "skipWarmup";
-  } | {
-    /**
      * @generated from field: workout.v1.EndWorkoutIntent end_workout = 13;
      */
     value: EndWorkoutIntent;
     case: "endWorkout";
+  } | {
+    /**
+     * @generated from field: workout.v1.StartSetIntent start_set = 17;
+     */
+    value: StartSetIntent;
+    case: "startSet";
   } | { case: undefined; value?: undefined };
 };
 
@@ -391,7 +386,7 @@ export type WearIntent = Message<"workout.v1.WearIntent"> & {
  * Use `create(WearIntentSchema)` to create a new message.
  */
 export const WearIntentSchema: GenMessage<WearIntent> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 8);
+  messageDesc(file_workout_v1_wearable, 7);
 
 /**
  * @generated from message workout.v1.HeartRateSample
@@ -420,7 +415,7 @@ export type HeartRateSample = Message<"workout.v1.HeartRateSample"> & {
  * Use `create(HeartRateSampleSchema)` to create a new message.
  */
 export const HeartRateSampleSchema: GenMessage<HeartRateSample> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 9);
+  messageDesc(file_workout_v1_wearable, 8);
 
 /**
  * @generated from message workout.v1.WearSensorBatch
@@ -456,7 +451,7 @@ export type WearSensorBatch = Message<"workout.v1.WearSensorBatch"> & {
  * Use `create(WearSensorBatchSchema)` to create a new message.
  */
 export const WearSensorBatchSchema: GenMessage<WearSensorBatch> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 10);
+  messageDesc(file_workout_v1_wearable, 9);
 
 /**
  * @generated from message workout.v1.WearSensorBatchAck
@@ -485,7 +480,7 @@ export type WearSensorBatchAck = Message<"workout.v1.WearSensorBatchAck"> & {
  * Use `create(WearSensorBatchAckSchema)` to create a new message.
  */
 export const WearSensorBatchAckSchema: GenMessage<WearSensorBatchAck> = /*@__PURE__*/
-  messageDesc(file_workout_v1_wearable, 11);
+  messageDesc(file_workout_v1_wearable, 10);
 
 /**
  * @generated from enum workout.v1.WearActionType
@@ -497,24 +492,23 @@ export enum WearActionType {
   UNSPECIFIED = 0,
 
   /**
-   * @generated from enum value: WEAR_ACTION_TYPE_START_SET = 1;
-   */
-  START_SET = 1,
-
-  /**
+   * set_id + reps + weight + effort
+   *
    * @generated from enum value: WEAR_ACTION_TYPE_COMPLETE_SET = 2;
    */
   COMPLETE_SET = 2,
 
   /**
-   * @generated from enum value: WEAR_ACTION_TYPE_SKIP_WARMUP = 3;
-   */
-  SKIP_WARMUP = 3,
-
-  /**
    * @generated from enum value: WEAR_ACTION_TYPE_END_WORKOUT = 4;
    */
   END_WORKOUT = 4,
+
+  /**
+   * set_id
+   *
+   * @generated from enum value: WEAR_ACTION_TYPE_START_SET = 8;
+   */
+  START_SET = 8,
 }
 
 /**
@@ -541,11 +535,6 @@ export enum WearActionStyle {
    * @generated from enum value: WEAR_ACTION_STYLE_SECONDARY = 2;
    */
   SECONDARY = 2,
-
-  /**
-   * @generated from enum value: WEAR_ACTION_STYLE_REP_OPTION = 3;
-   */
-  REP_OPTION = 3,
 }
 
 /**

@@ -1,12 +1,12 @@
 // Feature test: a workout done while paired with a friend shows "with <name>" in
 // History — the durable training-together history, surfaced where you browse.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
+import 'package:schlift/theme/app_icons.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +31,7 @@ void main() {
     await me.doWorkout('Squat day', [MapEntry(Exercise.EXERCISE_SQUAT, 45.0)]);
 
     // History should list the workout with "with bob_...".
-    await s.tap(find.byIcon(Icons.menu));
+    await s.tap(find.byIcon(AppIcons.menu));
     await s.tapText('History');
     final sawPartner = await s.waitForText('👥 with bob_$stamp', seconds: 10);
     await s.shot(

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../../gen/workout/v1/wearable.pb.dart';
 import 'models.dart';
+import '../../theme/theme_spec.dart';
 
 class ZoneSummary extends StatelessWidget {
   final List<HeartRateSample> samples;
@@ -51,15 +52,15 @@ class ZoneSummary extends StatelessWidget {
           Text(
             'TIME IN ZONE',
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+              fontSize: context.tokens.size.small,
+              fontWeight: context.tokens.weight.bold,
               letterSpacing: 1.5,
               color: colorScheme.tertiary,
             ),
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: context.tokens.br(6),
             child: SizedBox(
               height: 12,
               child: Row(
@@ -95,8 +96,8 @@ class ZoneSummary extends StatelessWidget {
                       Text(
                         '${z.name}  ${formatElapsedHms((zoneSeconds[z.name] ?? 0).round())}',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.bold,
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
@@ -125,8 +126,8 @@ class StatTile extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.titleLg,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: -0.5,
               color: colorScheme.onSurface,
             ),
@@ -135,8 +136,8 @@ class StatTile extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontSize: context.tokens.size.small,
+              fontWeight: context.tokens.weight.bold,
               letterSpacing: 0.8,
               color: colorScheme.tertiary,
             ),

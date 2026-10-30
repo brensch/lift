@@ -4,12 +4,22 @@
 //! rep target inside the prescription's range, and the miss streak. After
 //! a workout the tracker advances: reps first, then load.
 //!
+//! Session effort tunes it: hard if any working set was rated hard,
+//! otherwise the last working set's answer, right when unset:
+//!
 //! | Outcome | Next state |
 //! |---|---|
-//! | Every planned set hit its target, lowest reps `m >= range top` | weight + one equipment step, reps back to the range bottom |
-//! | Every planned set hit its target, `m < top` | rep target becomes `m + 1` |
-//! | A set missed or was skipped | hold; two misses running → weight × 0.9, reps to the bottom |
-//! | No load (bodyweight) | reps only, weight stays 0 |
+//! | Cleared, easy, lowest reps `m >= range top` | weight + two steps, reps to the bottom |
+//! | Cleared, easy, `m < top` | weight + one step, reps to the bottom |
+//! | Cleared, right, `m >= top` | weight + one step, reps to the bottom |
+//! | Cleared, right, `m < top` | rep target becomes `m + 1` |
+//! | Cleared, hard | hold weight and reps; `consecutive_hard + 1` |
+//! | Not cleared | hold; two misses running → weight × 0.9, reps to the bottom; `consecutive_hard + 1` |
+//! | Bailed, or not cleared only because of misses done early | hold |
+//! | No load (bodyweight) | reps only, weight stays 0; easy moves reps by 2 |
+//!
+//! Any outcome that is not hard resets `consecutive_hard`; three hards
+//! running deload 10% and reset both counters — the planned deload.
 //!
 //! The weight basis is always the weight you *performed* (the last working
 //! set you completed), not the stored weight — a mid-session edit carries
@@ -23,10 +33,16 @@ use crate::exercise_catalog::{
 };
 use crate::history::{workout_time, WorkoutRecord};
 use crate::weight_units::AppWeightUnit;
-use schlift::workout::v1::{Exercise, ProposedSet};
+use schlift::workout::v1::{Effort, Exercise, ProposedSet};
 
 /// How many misses at a weight before backing off it.
 const MISSES_BEFORE_DELOAD: i32 = 2;
+/// How many sessions rated hard in a row before the planned deload.
+const HARDS_BEFORE_DELOAD: i32 = 3;
+/// A calibration ramp starts here when the tracker was seeded at
+/// onboarding but never performed: 60% of the seed, never under the
+/// catalog opener.
+const CALIBRATION_SEED_FRACTION: f32 = 0.6;
 /// How far a deload drops.
 const DELOAD_FACTOR: f32 = 0.9;
 /// Rep ceiling for bodyweight moves, which progress by reps alone.
@@ -46,6 +62,8 @@ pub struct TrackerState {
     pub override_sets: i32,
     pub override_rep_low: i32,
     pub override_rep_high: i32,
+    /// Sessions rated hard (or missed) in a row. Three deload.
+    pub consecutive_hard: i32,
 }
 
 /// A tracker with every value filled in: what the next workout will use.
@@ -61,6 +79,7 @@ pub struct ResolvedTracker {
     pub include_warmup: bool,
     pub last_performed_at: i64,
     pub overridden: bool,
+    pub consecutive_hard: i32,
 }
 
 /// The prescription with the tracker's overrides folded in.
@@ -101,6 +120,32 @@ pub fn resolve_tracker(
         include_warmup: p.include_warmup,
         last_performed_at: state.last_performed_at,
         overridden: state.override_sets > 0 || state.override_rep_low > 0,
+        consecutive_hard: state.consecutive_hard,
+    }
+}
+
+/// Where a calibration ramp starts, or None when the exercise does not
+/// calibrate: bodyweight moves never do, and a loaded exercise only on
+/// its first session (`last_performed_at == 0` — the onboarding seed is
+/// not a performance). With a seed the ramp opens at 60% of it, snapped,
+/// never under the catalog opener; without one at the opener itself.
+pub fn calibration_start_weight(
+    ex: Exercise,
+    state: Option<&TrackerState>,
+    unit: AppWeightUnit,
+) -> Option<f32> {
+    if progression_increment_lb(ex, unit) <= 0.0 {
+        return None;
+    }
+    if state.is_some_and(|s| s.last_performed_at > 0) {
+        return None;
+    }
+    let opener = starting_weight_lb(ex, unit);
+    let seed = state.map(|s| s.working_weight).unwrap_or(0.0);
+    if seed > 0.0 {
+        Some(snap_weight_lb(ex, seed * CALIBRATION_SEED_FRACTION, unit).max(opener))
+    } else {
+        Some(opener)
     }
 }
 
@@ -119,12 +164,23 @@ pub struct SessionOutcome {
     pub bailed: bool,
     /// Whether every planned set was completed at its target.
     pub cleared: bool,
+    /// Not cleared only because of misses done early (before the previous
+    /// set's rest ended) — those are excluded from `cleared` without
+    /// counting against it, so the session holds rather than missing.
+    pub held: bool,
+    /// Hard if any working set was rated hard, else the last working
+    /// set's answer, right when never answered.
+    pub effort: Effort,
 }
 
-/// Reduce one workout to per-exercise outcomes. Warmups, cancelled sets
-/// and sets never finished are excluded — they say nothing about whether
-/// you cleared the work. Judgement uses the target stamped on each set,
-/// so an edited session is judged by what was attempted.
+/// Reduce one workout to per-exercise outcomes. Warmups, calibration
+/// rungs, cancelled sets and sets never finished are excluded — they say
+/// nothing about whether you cleared the work. Judgement uses the target
+/// stamped on each set, so an edited session is judged by what was
+/// attempted. A working set done early — before the previous done set's
+/// rest ended — is judged normally when it hits its target; a done-early
+/// miss is excluded from `cleared` and from the miss count, so it holds
+/// the session instead of counting as a miss.
 pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> {
     let proposed_by_id: HashMap<&str, &ProposedSet> = record
         .proposed_sets
@@ -141,7 +197,11 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
 
     let mut planned: HashMap<i32, usize> = HashMap::new();
     let mut bailed: std::collections::HashSet<i32> = std::collections::HashSet::new();
-    for set in record.proposed_sets.iter().filter(|set| !set.warmup) {
+    for set in record
+        .proposed_sets
+        .iter()
+        .filter(|set| !set.warmup && !set.calibration)
+    {
         if set.cancelled {
             // A cancelled working set that was never lifted means the
             // exercise was removed mid-session.
@@ -156,35 +216,53 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
     struct Acc {
         successful: usize,
         completed: usize,
+        /// Misses done early (before the previous set's rest ended):
+        /// unjudged.
+        excused: usize,
         min_reps: i32,
-        last_done: (i64, f32),
+        last_done: (i64, f32, Effort),
         top_weight: f32,
+        any_hard: bool,
     }
     let mut acc: HashMap<i32, Acc> = HashMap::new();
     for completed in record.completed_sets.iter().filter(|set| set.ended_at > 0) {
         let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
             continue;
         };
-        if proposed.warmup || proposed.cancelled {
+        if proposed.warmup || proposed.calibration || proposed.cancelled {
             continue;
         }
         let entry = acc.entry(proposed.exercise).or_insert(Acc {
             successful: 0,
             completed: 0,
+            excused: 0,
             min_reps: i32::MAX,
-            last_done: (0, 0.0),
+            last_done: (0, 0.0, Effort::Unspecified),
             top_weight: 0.0,
+            any_hard: false,
         });
-        entry.completed += 1;
-        entry.min_reps = entry.min_reps.min(completed.actual_reps);
-        if proposed.target_reps > 0 && completed.actual_reps >= proposed.target_reps {
-            entry.successful += 1;
+        if completed.effort() == Effort::Hard {
+            entry.any_hard = true;
         }
         if completed.ended_at >= entry.last_done.0 {
-            entry.last_done = (completed.ended_at, completed.actual_weight);
+            entry.last_done = (
+                completed.ended_at,
+                completed.actual_weight,
+                completed.effort(),
+            );
         }
         if completed.actual_weight > entry.top_weight {
             entry.top_weight = completed.actual_weight;
+        }
+        let hit = proposed.target_reps > 0 && completed.actual_reps >= proposed.target_reps;
+        if !hit && done_early(record, completed.ended_at) {
+            entry.excused += 1;
+            continue;
+        }
+        entry.completed += 1;
+        entry.min_reps = entry.min_reps.min(completed.actual_reps);
+        if hit {
+            entry.successful += 1;
         }
     }
 
@@ -205,12 +283,38 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
                     top_weight: a.top_weight,
                     bailed: bailed.contains(&exercise),
                     cleared: planned_sets > 0
+                        && a.excused == 0
                         && a.completed >= planned_sets
                         && a.successful >= planned_sets,
+                    // Every judged set hit and nothing was left undone;
+                    // only the early misses stop this being a clear.
+                    held: planned_sets > 0
+                        && a.excused > 0
+                        && a.completed + a.excused >= planned_sets
+                        && a.successful >= a.completed,
+                    // Hard anywhere makes the session hard; otherwise the
+                    // last working set speaks, right when unanswered.
+                    effort: match (a.any_hard, a.last_done.2) {
+                        (true, _) => Effort::Hard,
+                        (false, Effort::Unspecified) => Effort::Right,
+                        (false, effort) => effort,
+                    },
                 },
             )
         })
         .collect()
+}
+
+/// Whether a set finished at `ended_at` was done early: before the rest
+/// of the previous done set in the whole workout (any exercise, warmups
+/// included) had ended. A done-early miss is unjudged.
+fn done_early(record: &WorkoutRecord, ended_at: i64) -> bool {
+    record
+        .completed_sets
+        .iter()
+        .filter(|set| set.ended_at > 0 && set.ended_at < ended_at)
+        .max_by_key(|set| set.ended_at)
+        .is_some_and(|set| ended_at < set.rest_until)
 }
 
 /// Advance one tracker by one session — the double-progression rule.
@@ -224,51 +328,93 @@ pub fn advance_tracker(
     let mut next = *state;
     next.last_performed_at = outcome.at;
 
-    // A bail-out (the exercise was removed with sets still pending) is a
-    // hold: record the weight actually lifted, but neither advance nor
-    // count a miss — cutting a session short twice must not deload.
-    if outcome.bailed {
+    // A bail-out (the exercise was removed with sets still pending) or a
+    // session held by sets done early: record the weight actually lifted,
+    // but neither advance nor count a miss — cutting a session short
+    // twice must not deload.
+    if outcome.bailed || outcome.held {
         if outcome.performed_weight > 0.0 {
             next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
         }
         return next;
     }
 
+    let hard = outcome.effort == Effort::Hard;
+    // A miss is a hard session too; anything else breaks the streak.
+    next.consecutive_hard = if hard || !outcome.cleared {
+        state.consecutive_hard + 1
+    } else {
+        0
+    };
+    let planned_deload = next.consecutive_hard >= HARDS_BEFORE_DELOAD;
+
     // Bodyweight (or a set logged with no load): reps are the only lever.
     if outcome.performed_weight <= 0.0 {
         next.working_weight = 0.0;
         next.consecutive_misses = 0;
-        if outcome.cleared {
-            next.current_reps = (outcome.min_reps + 1).clamp(p.rep_low, BODYWEIGHT_REP_CAP);
+        if planned_deload {
+            next.current_reps = p.rep_low;
+            next.consecutive_hard = 0;
+        } else if outcome.cleared {
+            let gain = match outcome.effort {
+                Effort::Easy => 2,
+                Effort::Hard => 0,
+                _ => 1,
+            };
+            next.current_reps = (outcome.min_reps + gain).clamp(p.rep_low, BODYWEIGHT_REP_CAP);
         }
         return next;
     }
 
+    let step = progression_increment_lb(ex, unit);
+    let mut deload = planned_deload;
     if outcome.cleared {
         next.consecutive_misses = 0;
-        if outcome.min_reps >= p.rep_high {
-            // Range topped out on every set: add one equipment step and
-            // drop back to the bottom of the range.
-            let step = progression_increment_lb(ex, unit);
-            next.working_weight = snap_weight_lb(ex, outcome.performed_weight + step, unit);
-            next.current_reps = p.rep_low;
-        } else {
-            // Progress by reps: next target follows the worst set + 1, so
-            // beating the target by more moves the target by more.
-            next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
-            next.current_reps = (outcome.min_reps + 1).clamp(p.rep_low, p.rep_high);
+        let topped = outcome.min_reps >= p.rep_high;
+        match (outcome.effort, topped) {
+            // Easy and topped out: two steps; easy below the top: one
+            // step. Either way reps restart at the bottom of the range.
+            (Effort::Easy, true) => {
+                next.working_weight =
+                    snap_weight_lb(ex, outcome.performed_weight + 2.0 * step, unit);
+                next.current_reps = p.rep_low;
+            }
+            (Effort::Easy, false) => {
+                next.working_weight = snap_weight_lb(ex, outcome.performed_weight + step, unit);
+                next.current_reps = p.rep_low;
+            }
+            // Hard: hold the weight and the rep target.
+            (Effort::Hard, _) => {
+                next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
+            }
+            // Right: range topped out on every set adds one equipment
+            // step and drops back to the bottom of the range.
+            (_, true) => {
+                next.working_weight = snap_weight_lb(ex, outcome.performed_weight + step, unit);
+                next.current_reps = p.rep_low;
+            }
+            // Right: progress by reps — the next target follows the worst
+            // set + 1, so beating the target by more moves it by more.
+            (_, false) => {
+                next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
+                next.current_reps = (outcome.min_reps + 1).clamp(p.rep_low, p.rep_high);
+            }
         }
     } else {
         next.working_weight = snap_weight_lb(ex, outcome.performed_weight, unit);
         next.consecutive_misses = state.consecutive_misses + 1;
         if next.consecutive_misses >= MISSES_BEFORE_DELOAD {
-            // Two misses running: back off a tenth and rebuild through the
-            // rep range rather than grinding the same weight forever.
-            next.working_weight =
-                snap_weight_lb(ex, outcome.performed_weight * DELOAD_FACTOR, unit);
-            next.current_reps = p.rep_low;
-            next.consecutive_misses = 0;
+            deload = true;
         }
+    }
+    if deload {
+        // Two misses running, or three hard sessions: back off a tenth
+        // and rebuild through the rep range rather than grinding the same
+        // weight forever. Both counters restart.
+        next.working_weight = snap_weight_lb(ex, outcome.performed_weight * DELOAD_FACTOR, unit);
+        next.current_reps = p.rep_low;
+        next.consecutive_misses = 0;
+        next.consecutive_hard = 0;
     }
     next
 }
@@ -346,7 +492,6 @@ mod tests {
             proposed_set_id: proposed_id.to_string(),
             actual_reps: reps,
             actual_weight: weight,
-            started_at: ended_at - 30,
             ended_at,
             ..Default::default()
         }
@@ -390,6 +535,297 @@ mod tests {
         let outcomes = session_outcomes(record);
         let outcome = outcomes.get(&(ex as i32)).expect("exercise in session");
         advance_tracker(ex, &state, outcome, AppWeightUnit::Lb)
+    }
+
+    /// The same session with "how was that" answered on its final set.
+    fn rated(mut record: WorkoutRecord, effort: Effort) -> WorkoutRecord {
+        let last = record
+            .completed_sets
+            .iter_mut()
+            .max_by_key(|c| c.ended_at)
+            .unwrap();
+        last.effort = effort as i32;
+        record
+    }
+
+    fn lb(weight: f32) -> f32 {
+        crate::weight_units::snap_loadable_lb(weight, AppWeightUnit::Lb)
+    }
+
+    // ── Effort ──────────────────────────────────────────────────────────────
+
+    /// Easy and topped out: two equipment steps, reps to the bottom.
+    #[test]
+    fn easy_at_the_top_adds_two_steps() {
+        let record = rated(
+            session("w1", 1000, Exercise::Squat, 200.0, 10, &[10, 10, 10]),
+            Effort::Easy,
+        );
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, lb(210.0));
+        assert_eq!(next.current_reps, 6);
+        assert_eq!(next.consecutive_hard, 0);
+    }
+
+    /// Easy below the top still moves the weight — one step — instead of
+    /// grinding up the rep range.
+    #[test]
+    fn easy_below_the_top_adds_one_step_and_resets_reps() {
+        let record = rated(
+            session("w1", 1000, Exercise::Squat, 200.0, 7, &[7, 7, 7]),
+            Effort::Easy,
+        );
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, lb(205.0));
+        assert_eq!(next.current_reps, 6, "not 8: the weight moved instead");
+    }
+
+    /// Right is today's double progression; an unanswered question is right.
+    #[test]
+    fn right_and_unanswered_are_todays_rule() {
+        let below = session("w1", 1000, Exercise::Squat, 200.0, 7, &[7, 7, 7]);
+        let next = advance(Exercise::Squat, TrackerState::default(), &below);
+        assert_eq!((next.working_weight, next.current_reps), (200.0, 8));
+        let next = advance(
+            Exercise::Squat,
+            TrackerState::default(),
+            &rated(below, Effort::Right),
+        );
+        assert_eq!((next.working_weight, next.current_reps), (200.0, 8));
+
+        let topped = rated(
+            session("w2", 2000, Exercise::Squat, 200.0, 10, &[10, 10, 10]),
+            Effort::Right,
+        );
+        let next = advance(Exercise::Squat, TrackerState::default(), &topped);
+        assert_eq!((next.working_weight, next.current_reps), (lb(205.0), 6));
+    }
+
+    /// Hard: cleared or not, nothing moves and the hard streak grows.
+    #[test]
+    fn hard_holds_weight_and_reps() {
+        let record = rated(
+            session("w1", 1000, Exercise::Squat, 200.0, 10, &[10, 10, 10]),
+            Effort::Hard,
+        );
+        let before = TrackerState {
+            working_weight: 200.0,
+            current_reps: 10,
+            ..Default::default()
+        };
+        let next = advance(Exercise::Squat, before, &record);
+        assert_eq!(next.working_weight, 200.0, "topped out but hard: no step");
+        assert_eq!(next.current_reps, 10, "reps hold too");
+        assert_eq!(next.consecutive_hard, 1);
+        assert_eq!(next.consecutive_misses, 0);
+    }
+
+    /// Three hard sessions running is the planned deload: 10% off, reps to
+    /// the bottom, both counters reset — no miss required.
+    #[test]
+    fn three_hards_running_deload() {
+        let hard = |id: &str, at: i64| {
+            rated(
+                session(id, at, Exercise::Squat, 200.0, 8, &[8, 8, 8]),
+                Effort::Hard,
+            )
+        };
+        let s1 = advance(Exercise::Squat, TrackerState::default(), &hard("w1", 1000));
+        let s2 = advance(Exercise::Squat, s1, &hard("w2", 2000));
+        assert_eq!(s2.consecutive_hard, 2);
+        assert_eq!(s2.working_weight, 200.0, "two hards still hold");
+        let s3 = advance(Exercise::Squat, s2, &hard("w3", 3000));
+        assert_eq!(s3.working_weight, lb(180.0), "the third deloads a tenth");
+        assert_eq!(s3.current_reps, 6);
+        assert_eq!(s3.consecutive_hard, 0);
+        assert_eq!(s3.consecutive_misses, 0);
+    }
+
+    /// A right (or easy) session breaks the hard streak; a miss extends it.
+    #[test]
+    fn anything_but_hard_resets_the_hard_streak_and_a_miss_extends_it() {
+        let hard = rated(
+            session("w1", 1000, Exercise::Squat, 200.0, 8, &[8, 8, 8]),
+            Effort::Hard,
+        );
+        let s1 = advance(Exercise::Squat, TrackerState::default(), &hard);
+        assert_eq!(s1.consecutive_hard, 1);
+        let right = session("w2", 2000, Exercise::Squat, 200.0, 8, &[8, 8, 8]);
+        let s2 = advance(Exercise::Squat, s1, &right);
+        assert_eq!(s2.consecutive_hard, 0, "right resets");
+
+        let miss = session("w3", 3000, Exercise::Squat, 200.0, 9, &[9, 9, 8]);
+        let s3 = advance(Exercise::Squat, s2, &miss);
+        assert_eq!(s3.consecutive_hard, 1, "a miss is a hard session too");
+        assert_eq!(s3.consecutive_misses, 1);
+    }
+
+    /// Bodyweight: easy moves reps by two, hard holds, right by one.
+    #[test]
+    fn bodyweight_effort_moves_reps() {
+        let easy = rated(
+            session("w1", 1000, Exercise::PullUp, 0.0, 8, &[8, 8, 8]),
+            Effort::Easy,
+        );
+        let next = advance(Exercise::PullUp, TrackerState::default(), &easy);
+        assert_eq!(next.current_reps, 10, "easy: +2");
+        assert_eq!(next.working_weight, 0.0);
+
+        let hard = rated(
+            session("w2", 2000, Exercise::PullUp, 0.0, 10, &[10, 10, 10]),
+            Effort::Hard,
+        );
+        let next = advance(Exercise::PullUp, next, &hard);
+        assert_eq!(next.current_reps, 10, "hard: hold");
+        assert_eq!(next.consecutive_hard, 1);
+    }
+
+    // ── Done early, session effort, calibration ─────────────────────────────
+
+    /// A miss done early holds: not cleared, no miss counted, no advance.
+    /// The weight lifted is recorded, nothing else moves.
+    #[test]
+    fn a_miss_done_early_is_a_hold() {
+        // Sets end 1 s apart; set 2 (the miss) rests 0 and set 1 rests 10,
+        // so only set 2 was done early.
+        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 8, &[8, 8, 6]);
+        record.completed_sets[1].rest_until = record.completed_sets[1].ended_at + 10;
+        let before = TrackerState {
+            working_weight: 200.0,
+            current_reps: 8,
+            consecutive_misses: 1,
+            consecutive_hard: 1,
+            ..Default::default()
+        };
+        let outcome = session_outcomes(&record)[&(Exercise::Squat as i32)];
+        assert!(!outcome.cleared);
+        assert!(outcome.held);
+        let next = advance(Exercise::Squat, before, &record);
+        assert_eq!(next.working_weight, 200.0);
+        assert_eq!(next.current_reps, 8, "no rep advance");
+        assert_eq!(next.consecutive_misses, 1, "no miss counted");
+        assert_eq!(next.consecutive_hard, 1, "no hard counted");
+        assert_eq!(next.last_performed_at, 1000, "still a session");
+    }
+
+    /// A hit done early is judged like any other: the session clears and
+    /// advances. A miss on a full rest is still a miss.
+    #[test]
+    fn a_hit_done_early_counts_and_advances() {
+        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 8, &[8, 8, 8]);
+        record.completed_sets[0].rest_until = record.completed_sets[0].ended_at + 10;
+        let outcome = session_outcomes(&record)[&(Exercise::Squat as i32)];
+        assert!(outcome.cleared, "set 2 was early but hit: it counts");
+        assert!(!outcome.held);
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.current_reps, 9, "8 cleared → aim 9");
+
+        let mut record = session("w2", 2000, Exercise::Squat, 200.0, 8, &[6, 8, 8]);
+        record.completed_sets[0].rest_until = record.completed_sets[0].ended_at + 10;
+        let outcome = session_outcomes(&record)[&(Exercise::Squat as i32)];
+        assert!(!outcome.cleared);
+        assert!(!outcome.held, "set 1 missed on a full rest: a real miss");
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.consecutive_misses, 1);
+    }
+
+    /// Hard on any working set makes the session hard, even when the last
+    /// set was rated easy; otherwise the last set speaks.
+    #[test]
+    fn any_hard_set_makes_the_session_hard() {
+        let mut record = session("w1", 1000, Exercise::Squat, 200.0, 10, &[10, 10, 10]);
+        record.completed_sets[0].effort = Effort::Hard as i32;
+        record.completed_sets[2].effort = Effort::Easy as i32;
+        let outcome = session_outcomes(&record)[&(Exercise::Squat as i32)];
+        assert_eq!(outcome.effort, Effort::Hard);
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, 200.0, "hard holds");
+
+        let mut record = session("w2", 2000, Exercise::Squat, 200.0, 10, &[10, 10, 10]);
+        record.completed_sets[0].effort = Effort::Easy as i32;
+        record.completed_sets[2].effort = Effort::Right as i32;
+        assert_eq!(
+            session_outcomes(&record)[&(Exercise::Squat as i32)].effort,
+            Effort::Right,
+            "no hard: the last set's answer"
+        );
+    }
+
+    /// Calibration rungs are warmups to progression: the working sets
+    /// that followed decide, and a bailed ramp (no working set done)
+    /// leaves no outcome at all so the tracker stays unset.
+    #[test]
+    fn calibration_rungs_are_ignored_and_a_bailed_ramp_writes_nothing() {
+        let mut record = session("w1", 1000, Exercise::Squat, 95.0, 6, &[6, 6]);
+        for (i, weight) in [45.0, 65.0, 95.0].iter().enumerate() {
+            let id = format!("rung{i}");
+            let mut rung = proposed(&id, Exercise::Squat, *weight, 5, false);
+            rung.calibration = true;
+            record.proposed_sets.push(rung);
+            record
+                .completed_sets
+                .push(completed(&id, 5, *weight, 500 + i as i64));
+        }
+        let outcome = session_outcomes(&record)[&(Exercise::Squat as i32)];
+        assert!(outcome.cleared, "two working sets planned, two hit");
+        assert_eq!(outcome.performed_weight, 95.0);
+        let next = advance(Exercise::Squat, TrackerState::default(), &record);
+        assert_eq!(next.working_weight, 95.0);
+        assert_eq!(next.current_reps, 7);
+        assert_eq!(next.last_performed_at, 1000);
+
+        let mut bailed = record.clone();
+        bailed
+            .completed_sets
+            .retain(|c| c.proposed_set_id.starts_with("rung"));
+        assert!(
+            !session_outcomes(&bailed).contains_key(&(Exercise::Squat as i32)),
+            "rungs alone are no session for the tracker"
+        );
+    }
+
+    /// The ramp opens at the catalog opener with no seed, at 60% of a
+    /// seed that was never performed, and not at all once performed or
+    /// for bodyweight work.
+    #[test]
+    fn calibration_start_follows_the_seed() {
+        let unit = AppWeightUnit::Lb;
+        assert_eq!(
+            calibration_start_weight(Exercise::Squat, None, unit),
+            Some(45.0)
+        );
+        let seeded = TrackerState {
+            working_weight: 180.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            calibration_start_weight(Exercise::Squat, Some(&seeded), unit),
+            Some(lb(108.0)),
+            "60% of the seed, snapped"
+        );
+        let tiny_seed = TrackerState {
+            working_weight: 50.0,
+            ..Default::default()
+        };
+        assert_eq!(
+            calibration_start_weight(Exercise::Squat, Some(&tiny_seed), unit),
+            Some(45.0),
+            "never under the empty bar"
+        );
+        let performed = TrackerState {
+            working_weight: 180.0,
+            last_performed_at: 1,
+            ..Default::default()
+        };
+        assert_eq!(
+            calibration_start_weight(Exercise::Squat, Some(&performed), unit),
+            None
+        );
+        assert_eq!(
+            calibration_start_weight(Exercise::PullUp, None, unit),
+            None,
+            "bodyweight never calibrates"
+        );
     }
 
     /// Removing an exercise mid-session (some sets done, the rest

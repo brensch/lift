@@ -4,6 +4,8 @@ library;
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import '../../theme/theme_spec.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showHealthPermissionDialog(BuildContext context) async {
   final isAndroid = Platform.isAndroid;
@@ -15,9 +17,9 @@ Future<void> showHealthPermissionDialog(BuildContext context) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text(
+      title: Text(
         'Sync Workouts',
-        style: TextStyle(fontWeight: FontWeight.w900),
+        style: TextStyle(fontWeight: context.tokens.weight.heavy),
       ),
       content: Text(
         'Schlift can save workouts to $storeName so they appear in your fitness apps.\n\n$steps',
@@ -67,11 +69,14 @@ Future<void> showHeartRateHelpDialog(BuildContext context) async {
     builder: (ctx) {
       final colorScheme = Theme.of(ctx).colorScheme;
       return AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.favorite, size: 20, color: Color(0xFFE11D48)),
-            SizedBox(width: 8),
-            Text('Heart rate', style: TextStyle(fontWeight: FontWeight.w900)),
+            Icon(AppIcons.heart, size: 20, color: ctx.tokens.heart),
+            const SizedBox(width: 8),
+            Text(
+              'Heart rate',
+              style: TextStyle(fontWeight: context.tokens.weight.heavy),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -91,8 +96,8 @@ Future<void> showHeartRateHelpDialog(BuildContext context) async {
               Text(
                 'STILL NOT SHOWING?',
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                  fontSize: context.tokens.size.small,
+                  fontWeight: context.tokens.weight.bold,
                   letterSpacing: 1.0,
                   color: colorScheme.tertiary,
                 ),
@@ -131,7 +136,7 @@ class HeartRateStep extends StatelessWidget {
             child: Text(
               leading,
               style: TextStyle(
-                fontWeight: FontWeight.w900,
+                fontWeight: context.tokens.weight.heavy,
                 color: colorScheme.primary,
                 height: 1.4,
               ),

@@ -283,6 +283,8 @@ fn build_session(
                     rest_after_success: 60,
                     rest_after_failure: 60,
                     cancelled: false,
+                    calibration: false,
+                    skipped: false,
                 });
                 if done {
                     completed.push(CompletedSet {
@@ -291,9 +293,9 @@ fn build_session(
                         proposed_set_id: id,
                         actual_reps: 5,
                         actual_weight: w,
-                        started_at: clock,
                         ended_at: clock + 25,
                         rest_until: clock + 85,
+                        ..Default::default()
                     });
                     clock += 90;
                 }
@@ -313,6 +315,8 @@ fn build_session(
                 rest_after_success: p.rest_seconds,
                 rest_after_failure: p.rest_seconds_failure,
                 cancelled: false,
+                calibration: false,
+                skipped: false,
             });
             if done {
                 let reps = lift.logged_reps(*ex, session, set_no, p.sets, outcome);
@@ -322,9 +326,9 @@ fn build_session(
                     proposed_set_id: id,
                     actual_reps: reps,
                     actual_weight: lift.weight,
-                    started_at: clock,
                     ended_at: clock + 35,
                     rest_until: clock + 35 + p.rest_seconds as i64,
+                    ..Default::default()
                 });
                 clock += 35 + p.rest_seconds as i64;
             }
@@ -345,6 +349,7 @@ fn build_session(
             end_time: 0,
             session_id: String::new(),
             template_id: template_id.to_string(),
+            ..Default::default()
         },
         proposed,
         completed,
@@ -369,6 +374,7 @@ async fn write_trackers(
                 override_sets: 0,
                 override_rep_low: 0,
                 override_rep_high: 0,
+                consecutive_hard: 0,
             },
             "demo",
         )
@@ -436,9 +442,13 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
         session.workout.end_time = end;
         db.insert_workout(&user_id, &session.workout, &session.proposed)
             .await?;
-        for set in &session.completed {
-            db.insert_completed_set(&user_id, set).await?;
-        }
+        db.persist_workout_state(
+            &user_id,
+            &session.workout,
+            &session.proposed,
+            &session.completed,
+        )
+        .await?;
         // insert_workout marks the workout active; close it like EndWorkout does.
         db.end_workout(&user_id, &session.workout.id, end).await?;
         db.claim_progression(&user_id, &session.workout.id).await?;
@@ -465,16 +475,19 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
             let shift = now + LIVE_REST_ENDS_IN - last.rest_until;
             session.workout.start_time += shift;
             for set in &mut session.completed {
-                set.started_at += shift;
                 set.ended_at += shift;
                 set.rest_until += shift;
             }
         }
         db.insert_workout(&user_id, &session.workout, &session.proposed)
             .await?;
-        for set in &session.completed {
-            db.insert_completed_set(&user_id, set).await?;
-        }
+        db.persist_workout_state(
+            &user_id,
+            &session.workout,
+            &session.proposed,
+            &session.completed,
+        )
+        .await?;
         tracing::info!(username, workout = %session.workout.id, "live session in progress");
     }
 

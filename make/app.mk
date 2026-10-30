@@ -1,115 +1,131 @@
 # Flutter app: phone targets, linux desktop, icons, deps.
 # Split from the top-level Makefile; variables live there.
 
-run-dev:
+.PHONY: dev run-web-dev run-frontend run-app run-android run-android-prod run-android-clean \
+	hot-reload hot-reload-on-save hot-restart run-linux stop-app setup-flutter install-deps check-android-java \
+	icons copy sounds brand deploy-android deploy-android-dev
+
+# The fast loop. The backend under cargo watch (rebuilds and restarts when
+# Rust is saved; log in $(DEV_BACKEND_LOG)), a debug build on the phone, and
+# a hot reload whenever a file under app/lib is saved. R in this terminal or
+# `make hot-restart` for a full restart.
+#
+# Wi-Fi adb drops the debug connection now and then while the app keeps
+# running ("Lost connection to device"). flutter attach cannot find the app
+# again under WSL (it relies on mDNS), so dev reruns run-android, an
+# incremental build and install. Ctrl+C, or q (which ends the app), stops it
+# all.
+DEV_BACKEND_LOG = .tmp/dev-backend.log
+DEBUG_APP_ID = com.brensch.schlift.debug
+dev:
+	@mkdir -p .tmp
+	@echo "Backend log: $(DEV_BACKEND_LOG)"
+	@bash -c '\
+		$(PICK_PHONE) \
+		trap "STOP=1" INT; \
+		cleanup() { kill $$(jobs -p) 2>/dev/null; $(STOP_DEV_BACKEND); }; \
+		trap cleanup EXIT; \
+		$(MAKE) run-backend > "$(DEV_BACKEND_LOG)" 2>&1 & \
+		$(MAKE) hot-reload-on-save & \
+		$(MAKE) run-android PHONE_SERIAL="$$SERIAL"; \
+		app_alive() { for i in 1 2 3; do [ -n "$$(timeout 10 $(ADB) -s "$$SERIAL" shell pidof $(DEBUG_APP_ID) 2>/dev/null)" ] && return 0; done; return 1; }; \
+		while [ -z "$$STOP" ] && app_alive; do \
+			echo "Lost the debug connection with the app still running; starting it again."; \
+			$(MAKE) run-android PHONE_SERIAL="$$SERIAL" || break; \
+		done; \
+	'
+# Killing make does not reach the cargo watch and server under it.
+STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS)
+
+# Backend + web dashboard dev server. `run-frontend` is the web half.
+run-web-dev:
 	@echo "Starting backend and frontend... Press Ctrl+C to stop."
-	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; make run-backend & make run-frontend & wait'
+	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; $(MAKE) run-backend & $(MAKE) run-frontend & wait'
 
 run-frontend:
 	cd web && npm run dev
 
-define EXPORT_JAVA_HOME_FROM_JAVAC
-	if command -v javac >/dev/null 2>&1; then \
-		JAVAC_REAL=$$(readlink -f "$$(command -v javac)"); \
-		export JAVA_HOME="$$(dirname "$$(dirname "$$JAVAC_REAL")")"; \
-		echo "Using JAVA_HOME=$$JAVA_HOME (from javac)"; \
-	else \
-		echo "javac not found. Install a full JDK (e.g. openjdk-17-jdk or openjdk-21-jdk)."; \
-		exit 1; \
-	fi; \
-	if [ ! -x "$$JAVA_HOME/bin/javac" ]; then \
-		echo "JAVA_HOME does not contain javac: $$JAVA_HOME"; \
-		exit 1; \
-	fi; \
-	true;
-endef
-
 run-app:
-	@make stop-app || true
+	@$(MAKE) stop-app || true
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
 		mkdir -p "$(TMP_RUN_DIR)"; \
-		if [ ! -x "$(ADB)" ]; then \
-			echo "adb not found at $(ADB); launching Flutter multi-device without adb prep."; \
-			ANDROID_DEVICE_ARGS=""; \
-		else \
-			ANDROID_DEVICE_ARGS=""; \
+		ANDROID_DEVICE_ARGS=""; \
+		if [ -x "$(ADB)" ]; then \
 			while read -r DEVICE_ID DEVICE_STATE; do \
 				[ "$$DEVICE_STATE" = "device" ] || continue; \
-				CHARACTERISTICS=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-				MODEL=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d "\r"); \
-				if echo "$$CHARACTERISTICS" | grep -q "watch"; then \
-					echo "Skipping Wear OS device: $$DEVICE_ID ($$MODEL)"; \
+				CHARACTERISTICS=$$($(ADB) -s "$$DEVICE_ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r"); \
+				if echo "$$CHARACTERISTICS" | grep -qi watch; then \
+					echo "Skipping Wear OS device: $$DEVICE_ID"; \
 					continue; \
 				fi; \
-				echo "Android device detected: $$DEVICE_ID ($$MODEL)"; \
+				echo "Android device detected: $$DEVICE_ID"; \
 				ANDROID_DEVICE_ARGS="$$ANDROID_DEVICE_ARGS -d $$DEVICE_ID"; \
 				$(ADB) -s "$$DEVICE_ID" reverse tcp:50051 tcp:50051 || true; \
-			done < <($(ADB) devices | awk '\''NR > 1 { print $$1, $$2 }'\''); \
-			if [ -z "$$ANDROID_DEVICE_ARGS" ]; then \
-				echo "No non-watch Android device found; launching Linux only."; \
-			fi; \
+			done < <($(ADB) devices | awk "NR > 1 { print \$$1, \$$2 }"); \
 		fi; \
 		echo "Starting interactive Flutter hot-reload session (linux + non-watch android)..."; \
-		if [ -n "$$ANDROID_DEVICE_ARGS" ]; then \
-			cd app && $(FLUTTER) run -d linux $$ANDROID_DEVICE_ARGS --dart-define=INSTANCE=ubuntu; \
-		else \
-			cd app && $(FLUTTER) run -d linux --dart-define=INSTANCE=ubuntu; \
-		fi; \
+		cd app && $(FLUTTER) run -d linux $$ANDROID_DEVICE_ARGS --dart-define=INSTANCE=ubuntu; \
 	'
 
+# Debug build on the phone, attached, against the local backend through adb
+# reverse. FLUTTER_RUN_ARGS adds flags (run-android-prod uses it). The pid
+# file is what hot-reload / hot-restart signal.
+FLUTTER_PID_FILE = $(CURDIR)/.tmp/flutter-run.pid
+FLUTTER_RUN_ARGS ?=
+# Sends signal $(1) to the run-android session, checking first that the pid
+# in the file is still a flutter process and not a recycled one.
+SIGNAL_FLUTTER = PID=$$(cat "$(FLUTTER_PID_FILE)" 2>/dev/null); \
+	[ -n "$$PID" ] && grep -q flutter_tools "/proc/$$PID/cmdline" 2>/dev/null && kill -$(1) "$$PID"
 run-android:
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
-		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-		if [ -z "$$SERIAL" ]; then \
-			echo "No non-watch Android device found."; \
-			$(ADB) devices; \
-			exit 1; \
-		fi; \
-		echo "Using Android target: $$SERIAL"; \
+		$(PICK_PHONE) \
 		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
-		cd app && $(FLUTTER) run -d "$$SERIAL"; \
+		mkdir -p "$(dir $(FLUTTER_PID_FILE))"; \
+		rm -f "$(FLUTTER_PID_FILE)"; \
+		cd app && $(FLUTTER) run -d "$$SERIAL" --pid-file "$(FLUTTER_PID_FILE)" $(FLUTTER_RUN_ARGS); \
 	'
 
 run-android-prod:
-	@bash -ec '\
-		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
-		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-		if [ -z "$$SERIAL" ]; then \
-			echo "No non-watch Android device found."; \
-			$(ADB) devices; \
-			exit 1; \
-		fi; \
-		echo "Using Android target: $$SERIAL"; \
-		cd app && $(FLUTTER) run -d "$$SERIAL" --dart-define=SERVER_HOST=schlift.com --dart-define=SERVER_PORT=443; \
-	'
+	$(MAKE) run-android FLUTTER_RUN_ARGS="--dart-define=SERVER_HOST=schlift.com --dart-define=SERVER_PORT=443"
 
 run-android-clean:
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
-		SERIAL=$$($(ADB) devices | awk '\''NR > 1 && $$2 == "device" { print $$1 }'\'' | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-		if [ -z "$$SERIAL" ]; then \
-			echo "No non-watch Android device found."; \
-			$(ADB) devices; \
-			exit 1; \
-		fi; \
-		echo "Using Android target: $$SERIAL"; \
 		(cd app/android && ./gradlew :wear:clean :app:clean); \
-		(cd app && $(FLUTTER) clean); \
-		(cd app && $(FLUTTER) pub get); \
-		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
-		(cd app && $(FLUTTER) run -d "$$SERIAL"); \
+		(cd app && $(FLUTTER) clean && $(FLUTTER) pub get); \
 	'
+	$(MAKE) run-android
+
+# Hot reload / hot restart the running run-android session, the same as
+# pressing r / R in its terminal. Dart changes only: native code, pubspec
+# assets and --dart-define changes need a fresh run-android.
+hot-reload:
+	@$(call SIGNAL_FLUTTER,USR1) && echo "Hot reload sent" || { echo "No run-android session running"; exit 1; }
+
+# Polls app/lib once a second and, after a save, hot reloads the run-android
+# session; a save under lib/theme/ or to main.dart hot restarts instead, since
+# the themes and app wiring are built once at startup and a reload would keep
+# the old ones. Runs as part of `make dev`.
+hot-reload-on-save:
+	@bash -c '\
+		STAMP=$$(mktemp); \
+		trap "rm -f $$STAMP" EXIT; \
+		while sleep 1; do \
+			CHANGED=$$(find app/lib -name "*.dart" -newer "$$STAMP"); \
+			[ -n "$$CHANGED" ] || continue; \
+			touch "$$STAMP"; \
+			if echo "$$CHANGED" | grep -qE "app/lib/(theme/|main\.dart)"; then \
+				$(call SIGNAL_FLUTTER,USR2) && echo "[hot restart]"; \
+			else \
+				$(call SIGNAL_FLUTTER,USR1) && echo "[hot reload]"; \
+			fi; \
+		done; \
+	'
+
+hot-restart:
+	@$(call SIGNAL_FLUTTER,USR2) && echo "Hot restart sent" || { echo "No run-android session running"; exit 1; }
 
 run-linux:
 	@bash -ec '\
@@ -149,7 +165,6 @@ setup-flutter:
 	cp .flutter/custom_devices.json $(HOME)/.config/flutter/custom_devices.json
 
 TMP_RUN_DIR = .tmp/run-app
-LINUX_BUNDLE = app/build/linux/x64/debug/bundle/schlift
 LINUX_SOFTWARE_RENDER ?= 1
 
 install-deps:
@@ -228,25 +243,18 @@ brand:
 	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }
 	"$(STORE_VENV)/bin/python" scripts/render_brand.py
 
-# ── Apple Watch (SchliftWatch) ───────────────────────────────────────────
-
+# Release APK of the production package com.brensch.schlift, for an emulator
+# or a phone without the Play install. Play re-signs its installs, so on a
+# phone with the real app this fails with a signature mismatch. It never
+# uninstalls anything to get past that.
 deploy-android:
-	cd app && $(FLUTTER) build apk --release
-	@SERIAL="$$($(ADB) devices | awk 'NR > 1 && $$2 == "device" { print $$1 }' | while read -r ID; do \
-		CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-		if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-	done)"; \
-	if [ -z "$$SERIAL" ]; then \
-		echo "No non-watch Android device found."; \
-		$(ADB) devices; \
-		exit 1; \
-	fi; \
-	echo "Deploying android release to: $$SERIAL"; \
-	if ! $(ADB) -s "$$SERIAL" install -r app/build/app/outputs/flutter-apk/app-release.apk; then \
-		echo "Release install failed. Retrying with uninstall (signature mismatch fallback)..."; \
-		$(ADB) -s "$$SERIAL" uninstall com.brensch.schlift || true; \
-		$(ADB) -s "$$SERIAL" install app/build/app/outputs/flutter-apk/app-release.apk || exit 1; \
-	fi
+	@bash -ec '\
+		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
+		$(PICK_PHONE) \
+		$(DEVICE_TARGET_PLATFORM) \
+		(cd app && $(FLUTTER) build apk --release --target-platform $$PLATFORM); \
+		$(ADB) -s "$$SERIAL" install -r app/build/app/outputs/flutter-apk/app-release.apk; \
+	'
 
 # The side-by-side dev app (com.brensch.schlift.dev, "Schlift Dev", talks to
 # dev.schlift.com), built and installed from this machine. This is the local
@@ -263,15 +271,8 @@ DEV_APP_ID = com.brensch.schlift.dev
 deploy-android-dev:
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
-		SERIAL=$$($(ADB) devices | awk "NR > 1 && \$$2 == \"device\" { print \$$1 }" | while read -r ID; do \
-			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r" | tr "[:upper:]" "[:lower:]"); \
-			if ! echo "$$CH" | grep -q "watch"; then echo "$$ID"; break; fi; \
-		done); \
-		if [ -z "$$SERIAL" ]; then \
-			echo "No non-watch Android device found."; \
-			$(ADB) devices; \
-			exit 1; \
-		fi; \
+		$(PICK_PHONE) \
+		$(DEVICE_TARGET_PLATFORM) \
 		if [ ! -f app/android/key.properties ]; then \
 			echo "Missing app/android/key.properties (release signing). In a git worktree, copy it and the keystore from the main checkout."; \
 			exit 1; \
@@ -279,8 +280,8 @@ deploy-android-dev:
 		INSTALLED=$$($(ADB) -s "$$SERIAL" shell dumpsys package $(DEV_APP_ID) </dev/null 2>/dev/null | grep -o "versionCode=[0-9]*" | head -1 | cut -d= -f2); \
 		CODE=$$(( $${INSTALLED:-500100} + 1 )); \
 		NAME=$$(git describe --tags --match "v*" --abbrev=0 2>/dev/null | sed "s/^v//"); \
-		echo "Building $(DEV_APP_ID) $${NAME:-0.0.0}+$$CODE for $$SERIAL (backend: $(DEV_SERVER_HOST))"; \
-		(cd app && SCHLIFT_DEV=1 $(FLUTTER) build apk --release \
+		echo "Building $(DEV_APP_ID) $${NAME:-0.0.0}+$$CODE ($$PLATFORM) for $$SERIAL (backend: $(DEV_SERVER_HOST))"; \
+		(cd app && SCHLIFT_DEV=1 $(FLUTTER) build apk --release --target-platform $$PLATFORM \
 			--build-name="$${NAME:-0.0.0}" --build-number="$$CODE" \
 			--dart-define=GIT_HASH=$$(git rev-parse --short HEAD) \
 			--dart-define=SERVER_HOST=$(DEV_SERVER_HOST) \

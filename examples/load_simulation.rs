@@ -8,9 +8,8 @@ use schlift::workout::v1::{
     workout_service_client::WorkoutServiceClient, AppendWorkoutHeartRateRequest,
     AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest, Exercise,
     GetActiveWorkoutRequest, GetCurrentSessionRequest, GetHomeRequest, GetMyInviteTokenRequest,
-    GetSettingsRequest, GetWorkoutRequest, JoinViaInviteRequest, StartSetRequest,
-    StartWorkoutRequest, TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint,
-    WorkoutMutation,
+    GetSettingsRequest, GetWorkoutRequest, JoinViaInviteRequest, StartWorkoutRequest,
+    TestLoginRequest, UpdateActiveWorkoutRequest, WorkoutHeartRatePoint, WorkoutMutation,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -525,28 +524,6 @@ async fn run_user_simulation(
 
         for p_set in start_resp.proposed_sets {
             random_sleep(500, 2000).await;
-
-            let mutations = vec![WorkoutMutation {
-                event_id: uuid::Uuid::new_v4().to_string(),
-                client_created_at: 0,
-                mutation: Some(workout_mutation::Mutation::StartSet(StartSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: p_set.id.clone(),
-                    started_at: 0,
-                })),
-            }];
-
-            timed_call(
-                &mut workout_client,
-                &token,
-                &stats,
-                "AppendMutations",
-                |c, req| Box::pin(c.append_workout_mutations(req)),
-                AppendWorkoutMutationsRequest { mutations },
-            )
-            .await?;
-
-            random_sleep(2000, 5000).await;
 
             let hr_samples: Vec<WorkoutHeartRatePoint> = (0..5)
                 .map(|i| WorkoutHeartRatePoint {

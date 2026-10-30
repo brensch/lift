@@ -3,6 +3,8 @@ import WatchConnectivity
 import WatchKit
 
 extension PhoneConnector {
+    /// Every tap goes through here: one intent per action, deduped by `intentID` on the
+    /// phone and gated locally for 2 s or until the next snapshot (`beginPendingAction`).
     func sendIntent(action: Workout_V1_WearAction) {
         // Explicit end from the watch: tear the session down immediately rather than waiting
         // for the phone to echo back an "ended" snapshot. We still send the intent below so
@@ -17,12 +19,29 @@ extension PhoneConnector {
         var intent = Workout_V1_WearIntent()
         intent.intentID = UUID().uuidString
         intent.sentAt = Int64(Date().timeIntervalSince1970)
+        guard fill(&intent, with: action, workoutId: workoutId) else { return }
 
+        guard let data = try? intent.serializedData() else { return }
+        // Do NOT gate on isReachable — sendToPhone falls back to guaranteed transferUserInfo
+        // delivery when the phone app isn't reachable, so the button press is never silently
+        // dropped (the root cause of "I press it and nothing happens" + the watch/phone wedge).
+        beginPendingAction()
+        sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
+    }
+
+    /// Sets the intent's payload from the action the phone sent. False for an action
+    /// type the watch does not know how to send.
+    private func fill(
+        _ intent: inout Workout_V1_WearIntent,
+        with action: Workout_V1_WearAction,
+        workoutId: String
+    ) -> Bool {
         switch action.type {
         case .startSet:
             var startSet = Workout_V1_StartSetIntent()
             startSet.workoutID = workoutId
             startSet.setID = action.setID
+            startSet.startedAt = Int64(Date().timeIntervalSince1970)
             intent.intent = .startSet(startSet)
 
         case .completeSet:
@@ -31,14 +50,9 @@ extension PhoneConnector {
             completeSet.setID = action.setID
             completeSet.reps = action.reps
             completeSet.actualWeight = action.actualWeight
+            completeSet.effort = action.effort
             completeSet.completedAt = Int64(Date().timeIntervalSince1970)
             intent.intent = .completeSet(completeSet)
-
-        case .skipWarmup:
-            var skipWarmup = Workout_V1_SkipWarmupIntent()
-            skipWarmup.workoutID = workoutId
-            skipWarmup.setID = action.setID
-            intent.intent = .skipWarmup(skipWarmup)
 
         case .endWorkout:
             var endWorkout = Workout_V1_EndWorkoutIntent()
@@ -46,15 +60,9 @@ extension PhoneConnector {
             intent.intent = .endWorkout(endWorkout)
 
         default:
-            return
+            return false
         }
-
-        guard let data = try? intent.serializedData() else { return }
-        // Do NOT gate on isReachable — sendToPhone falls back to guaranteed transferUserInfo
-        // delivery when the phone app isn't reachable, so the button press is never silently
-        // dropped (the root cause of "I press it and nothing happens" + the watch/phone wedge).
-        beginPendingAction()
-        sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
+        return true
     }
 
     func handleIncomingMessage(_ message: [String: Any]) {

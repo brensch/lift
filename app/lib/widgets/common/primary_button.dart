@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String label;
@@ -49,7 +49,7 @@ class PrimaryButton extends StatelessWidget {
           ),
           disabledForegroundColor: cs.onSurfaceVariant,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: AppTheme.brMd),
+          shape: RoundedRectangleBorder(borderRadius: context.tokens.brMd),
         ),
         child: loading
             ? SizedBox(
@@ -66,9 +66,9 @@ class PrimaryButton extends StatelessWidget {
                   ],
                   Text(
                     label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15.5,
+                    style: TextStyle(
+                      fontWeight: context.tokens.weight.bold,
+                      fontSize: context.tokens.size.bodyLg,
                       letterSpacing: -0.1,
                     ),
                   ),
@@ -77,8 +77,8 @@ class PrimaryButton extends StatelessWidget {
                     Text(
                       trailing!,
                       style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.body,
                         color: fg.withValues(alpha: 0.55),
                       ),
                     ),

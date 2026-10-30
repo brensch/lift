@@ -11,24 +11,20 @@ class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _restNotificationId = 1;
   static const _nextWorkoutNotificationId = 2;
-  static const _startSetActionId = 'start_next_set';
 
-  /// Callback for when the "Start Set" notification action is tapped.
-  static void Function()? onStartNextSet;
-
-  /// [requestPermissions] gates the Android runtime prompts (notifications,
-  /// exact alarms). The e2e harness passes false: those prompts are native
-  /// dialogs that pause the Flutter surface and hang an integration_test, and it
-  /// still needs the rest — tz setup and plugin init — so rest scheduling works.
-  static Future<void> init({bool requestPermissions = true}) async {
+  /// Sets up timezones and the plugin. Asks for nothing: the prompts are
+  /// [requestPermissions] and [requestExactAlarms], which only
+  /// PermissionsService calls.
+  static Future<void> init() async {
     tz.initializeTimeZones();
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
+    // The plugin's iOS defaults prompt at initialize(); turn them all off.
     const darwinSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestSoundPermission: false,
       requestBadgePermission: false,
     );
     const linuxSettings = LinuxInitializationSettings(
@@ -39,27 +35,37 @@ class NotificationService {
       iOS: darwinSettings,
       linux: linuxSettings,
     );
-    await _plugin.initialize(
-      settings: initSettings,
-      onDidReceiveNotificationResponse: _onNotificationResponse,
-    );
-
-    // Request notification permission (Android 13+)
-    if (requestPermissions) {
-      final android = _plugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >();
-      await android?.requestNotificationsPermission();
-      await android?.requestExactAlarmsPermission();
-    }
+    await _plugin.initialize(settings: initSettings);
   }
 
-  static void _onNotificationResponse(NotificationResponse response) {
-    if (response.actionId == _startSetActionId) {
-      onStartNextSet?.call();
-    }
-  }
+  /// The notification permission prompt (iOS alert, Android 13+ dialog).
+  static Future<void> requestPermissions() =>
+      _bestEffort('requestPermissions', () async {
+        await _plugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >()
+            ?.requestPermissions(alert: true, sound: true);
+        await _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.requestNotificationsPermission();
+      });
+
+  /// Android 14+ denies exact alarms by default, and without them the rest
+  /// notification can land minutes late while the phone sleeps. Granting
+  /// is a settings page, not a dialog, so this skips it when already held.
+  static Future<void> requestExactAlarms() =>
+      _bestEffort('requestExactAlarms', () async {
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+        if (android == null) return;
+        if (await android.canScheduleExactNotifications() ?? false) return;
+        await android.requestExactAlarmsPermission();
+      });
 
   /// Schedules a rest-complete notification for the future.
   /// Used when the app might go into the background.
@@ -99,13 +105,6 @@ class NotificationService {
       enableVibration: true,
       category: AndroidNotificationCategory.alarm,
       fullScreenIntent: true,
-      actions: const [
-        AndroidNotificationAction(
-          _startSetActionId,
-          'Start Set',
-          showsUserInterface: true,
-        ),
-      ],
     );
 
     final darwinDetails = DarwinNotificationDetails(
@@ -114,9 +113,7 @@ class NotificationService {
       presentAlert: true,
     );
 
-    const linuxDetails = LinuxNotificationDetails(
-      defaultActionName: 'Start Set',
-    );
+    const linuxDetails = LinuxNotificationDetails(defaultActionName: 'Open');
 
     final details = NotificationDetails(
       android: androidDetails,

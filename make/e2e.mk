@@ -2,6 +2,8 @@
 # a real backend, capturing a screenshot + step log per interaction and building
 # an HTML report. See docs/testing/e2e-scenarios.md.
 
+.PHONY: e2e e2e-up e2e-run
+
 # e2e-up: bring up everything a run needs — backend (with test-auth dev login),
 # emulator, and the localhost:50051 reverse tunnel. Idempotent.
 e2e-up:

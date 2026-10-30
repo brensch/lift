@@ -4,20 +4,20 @@ import SwiftUI
 let bodyFont = "Manrope-Variable"
 private let displayFont = "SpaceGrotesk-Variable"
 
-private func bodyFontName() -> Font {
-    .custom(bodyFont, size: 14).weight(.medium)
-}
-
 func displayFontName(size: CGFloat, weight: Font.Weight = .bold) -> Font {
     .custom(displayFont, size: size).weight(weight)
 }
 
+func textFontName(size: CGFloat, weight: Font.Weight = .medium) -> Font {
+    .custom(bodyFont, size: size).weight(weight)
+}
+
+/// Routes the phone's snapshot to one of the screens. The phone is authoritative:
+/// every string is laid out as sent and every tap is an intent back to it.
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.isLuminanceReduced) var isLuminanceReduced
     @EnvironmentObject var connector: PhoneConnector
-
-    @State var selectedReps: Int = 0
 
     private var restBoundaryDate: Date? {
         guard let snapshot = connector.snapshot,
@@ -36,21 +36,10 @@ struct ContentView: View {
     var body: some View {
         TimelineView(WatchSchedule(restBoundary: restBoundaryDate, ambient: isLuminanceReduced)) { context in
             Group {
-                if let snapshot = connector.snapshot {
+                if let snapshot = connector.snapshot, !endedLocally(snapshot) {
                     workoutView(snapshot, now: context.date)
                 } else {
-                    VStack(spacing: 8) {
-                        Text("Waiting for phone")
-                            .foregroundColor(.white)
-                            .watchAutoShrink()
-                        // Build version of the WATCH app specifically. The watch app updates
-                        // independently of the phone app, so this is the only reliable way to
-                        // confirm the watch is actually running the latest code.
-                        Text(watchAppVersionString())
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    IdleScreen()
                 }
             }
         }
@@ -70,49 +59,40 @@ struct ContentView: View {
         }
     }
 
+    /// Ended from the watch (End workout tapped) or by the phone's dedicated end command:
+    /// `endLocalSession` records the id the instant it happens, so the watch returns to
+    /// idle without waiting for the phone to echo a fresh snapshot.
+    private func endedLocally(_ snapshot: Workout_V1_WearWorkoutSnapshot) -> Bool {
+        !connector.endedWorkoutID.isEmpty && connector.endedWorkoutID == snapshot.workoutID
+    }
+
     @ViewBuilder
-    private func workoutView(_ data: Workout_V1_WearWorkoutSnapshot, now: Date) -> some View {
-        let currentSet: Workout_V1_ProposedSet? = data.youCard.hasDisplaySet ? data.youCard.displaySet : nil
-        let completeTemplate = data.actions.first { $0.type == .completeSet }
-        let isLiftingCompleteMode = data.state == .lifting && currentSet != nil && completeTemplate != nil
-        let primaryAction = data.actions.first { $0.style == .primary } ?? data.actions.first
-        let completionSummary: Workout_V1_WearCompletionSummary? =
-            data.hasCompletionSummary ? data.completionSummary : nil
-
-        if data.state == .allDone, let summary = completionSummary {
-            // Has the user already ended this workout from the watch? endedWorkoutID is set
-            // (and @Published) the instant they tap, so this flips to the ended state
-            // immediately — no waiting on the phone to echo a fresh snapshot back.
-            let endedLocally = !connector.endedWorkoutID.isEmpty
-                && connector.endedWorkoutID == data.workoutID
-            // Offer "End Workout" only while the workout is genuinely still endable: all sets
-            // done, not yet ended (an End action present), and not already ended from here.
-            let canEnd = !endedLocally && primaryAction != nil
-
-            workoutCompleteScreen(
-                summary: summary,
-                onPrimary: {
-                    if canEnd, let action = primaryAction {
-                        connector.sendIntent(action: action)
-                    } else {
-                        // Already ended — just make sure the local session is torn down.
-                        connector.endLocalSession()
-                    }
-                },
-                primaryLabel: canEnd ? (primaryAction?.label ?? "End Workout") : "Done"
-            )
-        } else {
-            mainLayout(
-                MainLayoutInput(
-                    data: data,
-                    now: now,
-                    currentSet: currentSet,
-                    completeTemplate: completeTemplate,
-                    isLiftingCompleteMode: isLiftingCompleteMode,
-                    primaryAction: primaryAction
-                )
-            )
+    private func workoutView(_ snapshot: Workout_V1_WearWorkoutSnapshot, now: Date) -> some View {
+        // One screen per state: Ready before the first set, Lifting from Start to the
+        // finish, Rest (resting, then yapping) after each set, Done at the end.
+        switch snapshot.state {
+        case .allDone where snapshot.hasCompletionSummary:
+            WorkoutDoneScreen(snapshot: snapshot, now: now)
+        case .lifting:
+            LiftingScreen(snapshot: snapshot, now: now)
+        case .resting, .yapping:
+            RestScreen(snapshot: snapshot, now: now)
+        default:
+            ReadyScreen(snapshot: snapshot, now: now)
         }
+    }
+}
+
+/// No snapshot: the phone has no workout running, or has not reached us yet.
+struct IdleScreen: View {
+    var body: some View {
+        Text("Open Schlift on your phone")
+            .font(textFontName(size: 14))
+            .foregroundColor(WatchPalette.grey)
+            .watchAutoShrink()
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.ignoresSafeArea())
     }
 }
 
@@ -122,15 +102,6 @@ extension View {
             .minimumScaleFactor(minScale)
             .allowsTightening(true)
     }
-}
-
-// MARK: - Helpers
-
-private func watchAppVersionString() -> String {
-    let info = Bundle.main.infoDictionary
-    let version = info?["CFBundleShortVersionString"] as? String ?? "?"
-    let build = info?["CFBundleVersion"] as? String ?? "?"
-    return "watch v\(version) (\(build))"
 }
 
 /// Periodic schedule that also injects an explicit refresh tick at the rest-end

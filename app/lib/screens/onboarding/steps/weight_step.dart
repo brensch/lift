@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../logic/weight_units.dart';
+import '../../../theme/theme_spec.dart';
 
 class WeightStep extends StatelessWidget {
   final WeightUnit unit;
@@ -32,13 +33,16 @@ class WeightStep extends StatelessWidget {
         children: [
           Text(
             t.title,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.headline,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             t.body,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.4,
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
@@ -74,7 +78,7 @@ class WeightStep extends StatelessWidget {
                     onPressed: onNext,
                     child: Text(
                       copy.onboarding.next,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
                     ),
                   ),
                 ),

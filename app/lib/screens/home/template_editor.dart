@@ -14,7 +14,9 @@ import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showTemplateEditor(
   BuildContext context, {
@@ -114,9 +116,6 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusLg),
-        ),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       padding: EdgeInsets.only(
@@ -129,22 +128,22 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
+          Center(child: AppTheme.sheetHandle(context, inset: 20)),
           Row(
             children: [
               Expanded(
                 child: Text(
                   _isNew ? 'New template' : 'Edit template',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.subtitle,
+                    fontWeight: context.tokens.weight.heavy,
                     letterSpacing: -0.3,
                   ),
                 ),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                icon: const Icon(AppIcons.close),
               ),
             ],
           ),
@@ -158,9 +157,12 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                 horizontal: 16,
                 vertical: 12,
               ),
-              border: OutlineInputBorder(borderRadius: AppTheme.brSm),
+              border: OutlineInputBorder(borderRadius: context.tokens.brSm),
             ),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.bold,
+            ),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 14),
@@ -207,10 +209,10 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: _addExercises,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text(
+            icon: const Icon(AppIcons.add, size: 18),
+            label: Text(
               'ADD EXERCISES',
-              style: TextStyle(fontWeight: FontWeight.w800),
+              style: TextStyle(fontWeight: context.tokens.weight.heavy),
             ),
           ),
           const SizedBox(height: 12),
@@ -227,11 +229,11 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
+                  : Text(
                       'SAVE TEMPLATE',
                       style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        fontWeight: context.tokens.weight.heavy,
+                        fontSize: context.tokens.size.bodyLg,
                       ),
                     ),
             ),
@@ -285,23 +287,23 @@ class _ExerciseRow extends StatelessWidget {
       onTap: onTap,
       leading: ReorderableDragStartListener(
         index: index,
-        child: Icon(
-          Icons.drag_indicator,
-          color: cs.onSurface.withValues(alpha: 0.4),
-        ),
+        child: Icon(AppIcons.drag, color: cs.onSurface.withValues(alpha: 0.4)),
       ),
       title: Text(
         exerciseNames[exercise] ?? '?',
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          fontSize: context.tokens.size.body,
+          fontWeight: context.tokens.weight.bold,
+        ),
       ),
       subtitle: detail.isEmpty
           ? null
           : Text(
               '$detail${(resolved?.overridden ?? false) ? '  · custom' : ''}',
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(fontSize: context.tokens.size.small),
             ),
       trailing: IconButton(
-        icon: const Icon(Icons.remove_circle_outline, size: 20),
+        icon: const Icon(AppIcons.removeCircle, size: 20),
         onPressed: onRemove,
       ),
     );
@@ -398,9 +400,6 @@ class _TrackerSheetState extends State<_TrackerSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusLg),
-        ),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       padding: EdgeInsets.only(
@@ -413,29 +412,29 @@ class _TrackerSheetState extends State<_TrackerSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(child: AppTheme.sheetHandle(context)),
+          Center(child: AppTheme.sheetHandle(context, inset: 20)),
           Row(
             children: [
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.subtitle,
+                    fontWeight: context.tokens.weight.heavy,
                     letterSpacing: -0.3,
                   ),
                 ),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                icon: const Icon(AppIcons.close),
               ),
             ],
           ),
           Text(
             'Changes here follow the exercise into every template.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: context.tokens.size.small,
               color: cs.onSurface.withValues(alpha: 0.55),
             ),
           ),
@@ -485,11 +484,11 @@ class _TrackerSheetState extends State<_TrackerSheet> {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text(
+                  : Text(
                       'SAVE',
                       style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        fontWeight: context.tokens.weight.heavy,
+                        fontSize: context.tokens.size.bodyLg,
                       ),
                     ),
             ),
@@ -522,24 +521,30 @@ class _Stepper extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.bold,
+            ),
           ),
         ),
         IconButton(
           onPressed: value > min ? () => onChanged(value - 1) : null,
-          icon: const Icon(Icons.remove_circle_outline),
+          icon: const Icon(AppIcons.removeCircle),
         ),
         SizedBox(
           width: 32,
           child: Text(
             '$value',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
         ),
         IconButton(
           onPressed: value < max ? () => onChanged(value + 1) : null,
-          icon: const Icon(Icons.add_circle_outline),
+          icon: const Icon(AppIcons.addCircle),
         ),
       ],
     );

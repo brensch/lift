@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,8 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/workout_provider.dart';
 import '../services/notification_service.dart';
 import '../services/wearable_bridge_service.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class DebugNotificationsScreen extends StatefulWidget {
   const DebugNotificationsScreen({super.key});
@@ -93,9 +96,12 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Debug: Notifications'),
+            title: PageTitle('Debug: Notifications'),
             actions: [
-              IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+              IconButton(
+                icon: const Icon(AppIcons.refresh),
+                onPressed: _loadData,
+              ),
             ],
           ),
           body: ListView(
@@ -109,29 +115,16 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                   if (state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
                     return 'All done';
                   }
-                  if (state == WorkoutState.WORKOUT_STATE_LIFTING) {
-                    return 'Lifting';
-                  }
                   if (state == WorkoutState.WORKOUT_STATE_RESTING) {
-                    final restUntil = snapshot?.restUntil.toInt() ?? 0;
-                    if (restUntil > 0 &&
-                        restUntil < nowUnix &&
-                        nextSet != null) {
-                      return 'Yapping (+${nowUnix - restUntil}s)';
-                    }
                     return 'Resting (${wp.restSecondsRemaining}s)';
                   }
-                  final lastRestEnd = snapshot?.lastRestEnd.toInt() ?? 0;
-                  if ((state == WorkoutState.WORKOUT_STATE_READY ||
-                          nextSet != null) &&
-                      nextSet != null &&
-                      lastRestEnd > 0 &&
-                      lastRestEnd <= nowUnix) {
-                    return 'Yapping (+${nowUnix - lastRestEnd}s)';
+                  if (state == WorkoutState.WORKOUT_STATE_YAPPING) {
+                    final since = snapshot!.restUntil.toInt();
+                    return 'Yapping (+${nowUnix - since}s)';
                   }
                   if (state == WorkoutState.WORKOUT_STATE_READY ||
                       nextSet != null) {
-                    return 'Next up';
+                    return 'Ready';
                   }
                   return 'Idle';
                 }()),
@@ -199,14 +192,14 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
               _section('Pending OS Notifications (${_pending.length})', [
                 if (_pending.isEmpty) ...[
                   _row('', 'None'),
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(12),
                     child: Text(
                       'NOTE: "None" here means no future notifications are scheduled. '
                       'If a notification fires now, it was likely already in the OS '
                       'delivery pipeline or was just moved from "Pending" to "Active".',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: context.tokens.size.small,
                         fontStyle: FontStyle.italic,
                         color: Colors.grey,
                       ),
@@ -267,8 +260,8 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         Text(
           title,
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
+            fontSize: context.tokens.size.bodyLg,
+            fontWeight: context.tokens.weight.heavy,
             color: colorScheme.primary,
           ),
         ),
@@ -276,7 +269,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.tokens.br(8),
             border: Border.all(
               color: colorScheme.outline.withValues(alpha: 0.3),
             ),
@@ -296,11 +289,19 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
           if (label.isNotEmpty) ...[
             Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.bold,
+                fontSize: context.tokens.size.body,
+              ),
             ),
             const SizedBox(width: 8),
           ],
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 13))),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(fontSize: context.tokens.size.body),
+            ),
+          ),
         ],
       ),
     );
@@ -345,35 +346,47 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
 
   Widget _tableHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
-        children: const [
+        children: [
           SizedBox(
             width: 90,
             child: Text(
               'Time',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.bold,
+                fontSize: context.tokens.size.small,
+              ),
             ),
           ),
           SizedBox(
             width: 70,
             child: Text(
               'Age(s)',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.bold,
+                fontSize: context.tokens.size.small,
+              ),
             ),
           ),
           SizedBox(
             width: 70,
             child: Text(
               'BPM',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.bold,
+                fontSize: context.tokens.size.small,
+              ),
             ),
           ),
           SizedBox(
             width: 100,
             child: Text(
               'Avail',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.bold,
+                fontSize: context.tokens.size.small,
+              ),
             ),
           ),
         ],
@@ -393,19 +406,31 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         children: [
           SizedBox(
             width: 90,
-            child: Text(time, style: const TextStyle(fontSize: 12)),
+            child: Text(
+              time,
+              style: TextStyle(fontSize: context.tokens.size.small),
+            ),
           ),
           SizedBox(
             width: 70,
-            child: Text(ageSec, style: const TextStyle(fontSize: 12)),
+            child: Text(
+              ageSec,
+              style: TextStyle(fontSize: context.tokens.size.small),
+            ),
           ),
           SizedBox(
             width: 70,
-            child: Text(bpm, style: const TextStyle(fontSize: 12)),
+            child: Text(
+              bpm,
+              style: TextStyle(fontSize: context.tokens.size.small),
+            ),
           ),
           SizedBox(
             width: 100,
-            child: Text(availability, style: const TextStyle(fontSize: 12)),
+            child: Text(
+              availability,
+              style: TextStyle(fontSize: context.tokens.size.small),
+            ),
           ),
         ],
       ),

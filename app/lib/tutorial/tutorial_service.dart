@@ -74,7 +74,6 @@ class TutorialWorkoutService extends WorkoutServiceWrapper {
     final completed = <CompletedSet>[];
     for (final set in done.reversed) {
       final ended = t;
-      final started = ended - 35;
       completed.insert(
         0,
         CompletedSet()
@@ -83,11 +82,11 @@ class TutorialWorkoutService extends WorkoutServiceWrapper {
           ..proposedSetId = set.id
           ..actualReps = set.targetReps
           ..actualWeight = set.targetWeight
-          ..startedAt = Int64(started)
           ..endedAt = Int64(ended)
           ..restUntil = Int64(ended + set.restAfterSuccess),
       );
-      t = started - set.restAfterSuccess;
+      // Sets are spaced a rest plus half a minute apart.
+      t = ended - 35 - set.restAfterSuccess;
     }
     _completed = completed;
     return StartWorkoutResponse(
@@ -111,9 +110,13 @@ class TutorialWorkoutService extends WorkoutServiceWrapper {
   WorkoutStateSnapshot _snapshot(int now) {
     final next = _nextUp;
     final last = _completed.isEmpty ? null : _completed.last;
-    if (next != null && last != null && last.restUntil.toInt() > now) {
+    // The app's rule: after a done set, resting while its rest runs and
+    // yapping once it has run out.
+    if (next != null && last != null) {
       return WorkoutStateSnapshot(
-        state: WorkoutState.WORKOUT_STATE_RESTING,
+        state: last.restUntil.toInt() > now
+            ? WorkoutState.WORKOUT_STATE_RESTING
+            : WorkoutState.WORKOUT_STATE_YAPPING,
         displaySet: next,
         restUntil: last.restUntil,
       );
@@ -215,7 +218,7 @@ class TutorialWorkoutService extends WorkoutServiceWrapper {
   Future<List<LibraryTemplate>> listTemplateLibrary() async => [
     LibraryTemplate(
       id: 'stronglifts_a',
-      name: 'StrongLifts 5×5 A',
+      name: 'StrongLifts A',
       blurb: 'Squat, bench, row. The famous one.',
       groupKey: 'programs',
       groupLabel: 'Programs',

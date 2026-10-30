@@ -10,7 +10,7 @@ prost = "0.13.4"
 tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3.31"
 sqlx = { version = "0.8.2", features = ["runtime-tokio", "tls-native-tls", "sqlite"] }
-uuid = { version = "1.11.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+uuid = { version = "1.11.0", features = ["v4", "v5", "fast-rng", "macro-diagnostics"] }
 tower-http = { version = "0.6.2", features = ["cors", "trace", "compression-full"] }
 tower = { version = "0.5.1", features = ["util"] }
 axum = "0.7.9"

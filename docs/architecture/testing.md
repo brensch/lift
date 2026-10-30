@@ -59,7 +59,7 @@ After **every mutation** it re-reads the workout and asserts:
 | `workout_order` is unique among live sets | The "sets jump around" class of bug |
 | Live sets belong to a group that exists | Group deletion leaving orphans |
 | `next_up_set` is live, uncancelled and not already done | Bad next-up derivation |
-| At most one set in progress | Overlapping `StartSet` |
+| No effort question pending after `EndWorkout`; at most six calibration rungs per exercise | Stale prompts, runaway ramps |
 | Weights finite and non-negative, reps non-negative | Arithmetic and rounding faults |
 | No active workout remains after `EndWorkout` | Leaked `active_workout_current` |
 | A re-fired `EndWorkout` moves no tracker | Double progression on retries |

@@ -8,9 +8,10 @@ use crate::db::ServerDb;
 use schlift::workout::v1::{
     AddExercisesRequest, AddLibraryTemplatesRequest, AdjustExerciseWeightRequest,
     AppendWorkoutMutationsRequest, CompleteOnboardingRequest, CompleteSetRequest,
-    DeleteTemplateRequest, EndWorkoutRequest, ExperienceLevel, Gender, GetHomeRequest,
-    ListTemplateLibraryRequest, ReorderTemplatesRequest, SaveTemplateRequest,
-    SetExerciseTrackerRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutTemplate,
+    DeleteTemplateRequest, Effort, EndWorkoutRequest, ExperienceLevel, Gender, GetHomeRequest,
+    GetWorkoutRequest, ListTemplateLibraryRequest, RateExerciseRequest, ReorderTemplatesRequest,
+    SaveTemplateRequest, SetExerciseTrackerRequest, StartSetRequest, StartWorkoutRequest,
+    WeightUnit, WorkoutMutation, WorkoutState, WorkoutTemplate,
 };
 
 fn authed<T>(token: &str, msg: T) -> Request<T> {
@@ -56,6 +57,28 @@ async fn home(svc: &ServerWorkoutService, token: &str) -> GetHomeResponse {
         .into_inner()
 }
 
+/// Stamp `last_performed_at` on the trackers so the next start prescribes
+/// the ordinary block rather than a calibration ramp (a loaded exercise
+/// never performed always calibrates). Weights and overrides are kept.
+async fn mark_performed(
+    svc: &ServerWorkoutService,
+    user_id: &str,
+    exercises: &[Exercise],
+    at: i64,
+) {
+    let states = svc.db.get_tracker_states(user_id).await.unwrap();
+    for exercise in exercises {
+        let mut state = states.get(&(*exercise as i32)).copied().unwrap_or_default();
+        state.last_performed_at = at;
+        svc.db
+            .upsert_tracker_state(user_id, *exercise as i32, &state, "test")
+            .await
+            .unwrap();
+    }
+}
+
+const STRONGLIFTS_A: [Exercise; 3] = [Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow];
+
 fn tracker(home: &GetHomeResponse, exercise: Exercise) -> ExerciseTracker {
     home.trackers
         .iter()
@@ -84,6 +107,7 @@ async fn complete_all_working_sets(
                 actual_reps: reps_for(set),
                 actual_weight: weight_for(set),
                 completed_at: ts,
+                effort: 0,
             },
         ))
         .await
@@ -164,7 +188,7 @@ mod home_and_onboarding {
             .map(|t| t.library_id.as_str())
             .collect();
         assert_eq!(ids, vec!["stronglifts_a", "butt_stuff"]);
-        assert_eq!(home.templates[0].name, "StrongLifts 5×5 A");
+        assert_eq!(home.templates[0].name, "StrongLifts A");
         assert_eq!(
             home.templates[0].exercises,
             vec![
@@ -306,9 +330,9 @@ mod home_and_onboarding {
             .unwrap();
 
         assert!(response.onboarded);
-        assert_eq!(response.templates.len(), 6);
+        assert_eq!(response.templates.len(), 2);
         let names: Vec<&str> = response.templates.iter().map(|t| t.name.as_str()).collect();
-        assert!(names.contains(&"Full Body") && names.contains(&"Push"));
+        assert!(names.contains(&"StrongLifts A") && names.contains(&"StrongLifts B"));
 
         // 100 kg ≈ 220 lb × 0.95 squat ratio ≈ 210, snapped loadable.
         let squat = tracker(&response, Exercise::Squat);
@@ -320,7 +344,7 @@ mod home_and_onboarding {
 
         // Repeat call: idempotent, nothing duplicated.
         let again = onboard(&svc, &token, WeightUnit::Lb).await;
-        assert_eq!(again.templates.len(), 6);
+        assert_eq!(again.templates.len(), 2);
     }
 
     /// A kilogram user's weights land on the kilogram grid — the defect the
@@ -357,7 +381,7 @@ mod home_and_onboarding {
 mod templates {
     use super::*;
 
-    fn template(name: &str, exercises: &[Exercise]) -> WorkoutTemplate {
+    pub(super) fn template(name: &str, exercises: &[Exercise]) -> WorkoutTemplate {
         WorkoutTemplate {
             name: name.to_string(),
             exercises: exercises.iter().map(|e| *e as i32).collect(),
@@ -466,14 +490,32 @@ mod template_workout_loop {
     /// weight — on every template containing the exercise.
     #[tokio::test]
     async fn topping_the_range_moves_the_weight_for_next_time() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         let before = onboard(&svc, &token, WeightUnit::Lb).await;
-        let lower = before
-            .templates
-            .iter()
-            .find(|t| t.name == "Lower")
+        mark_performed(
+            &svc,
+            &user_id,
+            &[Exercise::Squat, Exercise::Crunch, Exercise::CalfRaise],
+            900,
+        )
+        .await;
+        // A barbell compound, a core move and a dumbbell move in one
+        // template, so one session exercises every progression class.
+        let lower = svc
+            .save_template(authed(
+                &token,
+                SaveTemplateRequest {
+                    template: Some(super::templates::template(
+                        "Lower",
+                        &[Exercise::Squat, Exercise::Crunch, Exercise::CalfRaise],
+                    )),
+                },
+            ))
+            .await
             .unwrap()
-            .clone();
+            .into_inner()
+            .template
+            .unwrap();
         let squat_before = tracker(&before, Exercise::Squat).working_weight;
 
         let started = svc
@@ -564,9 +606,14 @@ mod template_workout_loop {
     /// weight.
     #[tokio::test]
     async fn clearing_mid_range_moves_reps_not_weight() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         let before = onboard(&svc, &token, WeightUnit::Lb).await;
-        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+        mark_performed(&svc, &user_id, &STRONGLIFTS_A, 900).await;
+        let legs = before
+            .templates
+            .iter()
+            .find(|t| t.name == "StrongLifts A")
+            .unwrap();
 
         let started = svc
             .start_workout(authed(
@@ -613,9 +660,14 @@ mod template_workout_loop {
     /// A re-fired EndWorkout must not advance a tracker twice.
     #[tokio::test]
     async fn end_workout_is_idempotent() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         let before = onboard(&svc, &token, WeightUnit::Lb).await;
-        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+        mark_performed(&svc, &user_id, &STRONGLIFTS_A, 900).await;
+        let legs = before
+            .templates
+            .iter()
+            .find(|t| t.name == "StrongLifts A")
+            .unwrap();
 
         let started = svc
             .start_workout(authed(
@@ -665,9 +717,14 @@ mod template_workout_loop {
     /// A manual tracker write sticks and drives the next start.
     #[tokio::test]
     async fn a_manual_override_drives_the_next_start() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         let before = onboard(&svc, &token, WeightUnit::Lb).await;
-        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+        mark_performed(&svc, &user_id, &STRONGLIFTS_A, 900).await;
+        let legs = before
+            .templates
+            .iter()
+            .find(|t| t.name == "StrongLifts A")
+            .unwrap();
 
         let set_response = svc
             .set_exercise_tracker(authed(
@@ -678,6 +735,7 @@ mod template_workout_loop {
                     override_sets: 5,
                     override_rep_low: 5,
                     override_rep_high: 8,
+                    target_reps: 0,
                 },
             ))
             .await
@@ -717,9 +775,14 @@ mod template_workout_loop {
     /// without ever writing the reduction to the tracker.
     #[tokio::test]
     async fn a_layoff_reduces_the_start_weight_only() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         let before = onboard(&svc, &token, WeightUnit::Lb).await;
-        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+        mark_performed(&svc, &user_id, &STRONGLIFTS_A, 900_000).await;
+        let legs = before
+            .templates
+            .iter()
+            .find(|t| t.name == "StrongLifts A")
+            .unwrap();
         let day = 24 * 3600;
         let long_ago = 1_000_000;
 
@@ -731,6 +794,7 @@ mod template_workout_loop {
                 override_sets: 0,
                 override_rep_low: 0,
                 override_rep_high: 0,
+                target_reps: 0,
             },
         ))
         .await
@@ -812,9 +876,14 @@ mod template_workout_loop {
     /// muscles, and names them.
     #[tokio::test]
     async fn the_suggestion_chases_the_deficit() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         let before = onboard(&svc, &token, WeightUnit::Lb).await;
-        let legs = before.templates.iter().find(|t| t.name == "Legs").unwrap();
+        mark_performed(&svc, &user_id, &STRONGLIFTS_A, now_unix() - 7200).await;
+        let legs = before
+            .templates
+            .iter()
+            .find(|t| t.name == "StrongLifts A")
+            .unwrap();
 
         // Train legs now; every other muscle is behind.
         let started = svc
@@ -858,7 +927,7 @@ mod template_workout_loop {
             .iter()
             .find(|t| t.id == after.suggested_template_id)
             .unwrap();
-        assert_ne!(suggested.name, "Legs", "legs were just trained");
+        assert_ne!(suggested.name, "StrongLifts A", "it was just trained");
         assert!(!after.suggestion_reason.is_empty());
 
         // Volume moved: quads got credited.
@@ -868,6 +937,321 @@ mod template_workout_loop {
             .find(|v| v.muscle == MuscleGroup::Quads as i32)
             .unwrap();
         assert!(quads.completed_sets_7d > 0.0);
+    }
+}
+
+mod calibration_and_effort {
+    use super::*;
+
+    fn mutation_at(m: workout_mutation::Mutation, at: i64) -> WorkoutMutation {
+        WorkoutMutation {
+            event_id: Uuid::new_v4().to_string(),
+            client_created_at: at,
+            mutation: Some(m),
+        }
+    }
+
+    async fn apply(
+        svc: &ServerWorkoutService,
+        token: &str,
+        mutations: Vec<WorkoutMutation>,
+    ) -> GetWorkoutResponse {
+        svc.append_workout_mutations(authed(token, AppendWorkoutMutationsRequest { mutations }))
+            .await
+            .unwrap()
+            .into_inner()
+            .workout_state
+            .unwrap()
+    }
+
+    async fn start(
+        svc: &ServerWorkoutService,
+        token: &str,
+        exercises: &[Exercise],
+    ) -> StartWorkoutResponse {
+        svc.start_workout(authed(
+            token,
+            StartWorkoutRequest {
+                name: "Cal".to_string(),
+                started_at: 1_000,
+                exercises: exercises.iter().map(|e| *e as i32).collect(),
+                template_id: String::new(),
+            },
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+    }
+
+    fn rate(workout_id: &str, completed_set_id: &str, effort: Effort, at: i64) -> WorkoutMutation {
+        mutation_at(
+            Mutation::RateExercise(RateExerciseRequest {
+                workout_id: workout_id.to_string(),
+                completed_set_id: completed_set_id.to_string(),
+                effort: effort as i32,
+            }),
+            at,
+        )
+    }
+
+    fn complete(set: &ProposedSet, at: i64) -> WorkoutMutation {
+        mutation_at(
+            Mutation::CompleteSet(CompleteSetRequest {
+                workout_id: set.workout_id.clone(),
+                proposed_set_id: set.id.clone(),
+                actual_reps: set.target_reps,
+                actual_weight: set.target_weight,
+                completed_at: at,
+                effort: 0,
+            }),
+            at,
+        )
+    }
+
+    /// The onboarding seed is not a performance: the first session of a
+    /// seeded barbell lift is one calibration rung at 60% of the seed,
+    /// snapped — no warmup ladder, no working sets yet.
+    #[tokio::test]
+    async fn a_seeded_barbell_lift_opens_its_ramp_at_sixty_percent() {
+        let (svc, _user_id, token) = setup().await;
+        let seeded = svc
+            .complete_onboarding(authed(
+                &token,
+                CompleteOnboardingRequest {
+                    body_weight_kg: 0.0,
+                    experience: 0,
+                    unit: WeightUnit::Lb as i32,
+                    gender: 0,
+                    library_ids: vec![],
+                    strength: Some(0.5),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .home
+            .unwrap();
+        assert_eq!(
+            tracker(&seeded, Exercise::Squat).working_weight,
+            180.0,
+            "the seed"
+        );
+
+        let started = start(&svc, &token, &[Exercise::Squat]).await;
+        let squat: Vec<&ProposedSet> = started
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Squat as i32)
+            .collect();
+        assert_eq!(squat.len(), 1, "one rung, nothing else");
+        let rung = squat[0];
+        assert!(rung.calibration);
+        assert!(!rung.warmup);
+        assert_eq!(rung.target_reps, 5);
+        assert_eq!(rung.target_weight, 110.0, "60% of 180 snapped loadable");
+        assert_eq!((rung.rest_after_success, rung.rest_after_failure), (90, 90));
+        // The home still says 180: calibration never writes the tracker.
+        assert_eq!(
+            tracker(&home(&svc, &token).await, Exercise::Squat).working_weight,
+            180.0
+        );
+    }
+
+    /// A pull-up has no weight to find.
+    #[tokio::test]
+    async fn bodyweight_never_calibrates() {
+        let (svc, _user_id, token) = setup().await;
+        onboard(&svc, &token, WeightUnit::Lb).await;
+        let started = start(&svc, &token, &[Exercise::PullUp]).await;
+        assert_eq!(started.proposed_sets.len(), 3);
+        assert!(started.proposed_sets.iter().all(|s| !s.calibration));
+    }
+
+    /// The whole ramp through the real handlers and persistence: easy
+    /// climbs a rung, right settles and appends the working sets, the
+    /// efforts survive the round trip, and EndWorkout writes the found
+    /// weight to the tracker with the session stamped as performed.
+    #[tokio::test]
+    async fn the_ramp_finds_a_working_weight_and_the_tracker_keeps_it() {
+        let (svc, _user_id, token) = setup().await;
+        onboard(&svc, &token, WeightUnit::Lb).await;
+        let started = start(&svc, &token, &[Exercise::Squat, Exercise::Crunch]).await;
+        let workout_id = started.workout.unwrap().id;
+        let rung1 = started.proposed_sets[0].clone();
+        assert!(rung1.calibration);
+        assert_eq!(rung1.target_weight, 45.0, "no seed: the empty bar");
+
+        // Done on the rung, then "easy" during its 90 s rest.
+        let state = apply(&svc, &token, vec![complete(&rung1, 1_100)]).await;
+        let done1 = state.completed_sets[0].clone();
+        assert_eq!(done1.rest_until, 1_190, "a rung rests its own 90 s");
+        let state = apply(
+            &svc,
+            &token,
+            vec![rate(&workout_id, &done1.id, Effort::Easy, 1_120)],
+        )
+        .await;
+        let rung2 = state.proposed_sets[1].clone();
+        assert!(rung2.calibration, "easy appends the next rung");
+        assert_eq!(rung2.target_weight, 50.0, "45 + one bar step");
+        assert_eq!(
+            state.proposed_sets[2].exercise,
+            Exercise::Crunch as i32,
+            "spliced in ahead of the next exercise"
+        );
+        assert_eq!(state.completed_sets[0].effort, Effort::Easy as i32);
+
+        // Done on rung two, then "right": this is the weight.
+        let state = apply(&svc, &token, vec![complete(&rung2, 1_200)]).await;
+        let done2 = state.completed_sets[1].clone();
+        let state = apply(
+            &svc,
+            &token,
+            vec![rate(&workout_id, &done2.id, Effort::Right, 1_210)],
+        )
+        .await;
+        let working: Vec<&ProposedSet> = state
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Squat as i32 && !s.calibration)
+            .collect();
+        assert_eq!(working.len(), 2, "three prescribed, the rung counts as one");
+        assert!(working
+            .iter()
+            .all(|s| s.target_weight == 50.0 && s.target_reps == 6));
+        assert!(state.proposed_sets[2..4]
+            .iter()
+            .all(|s| s.exercise == Exercise::Squat as i32));
+
+        let working: Vec<ProposedSet> = working.into_iter().cloned().collect();
+        apply(
+            &svc,
+            &token,
+            vec![
+                complete(&working[0], 1_400),
+                complete(&working[1], 1_600),
+                mutation_at(
+                    Mutation::EndWorkout(EndWorkoutRequest {
+                        workout_id: workout_id.clone(),
+                        ended_at: 1_700,
+                    }),
+                    1_700,
+                ),
+            ],
+        )
+        .await;
+
+        let squat = tracker(&home(&svc, &token).await, Exercise::Squat);
+        assert_eq!(squat.working_weight, 50.0, "the found weight");
+        assert_eq!(squat.target_reps, 7, "6 cleared at right → aim 7");
+        assert_eq!(
+            squat.last_performed_at, 1_700,
+            "now performed: no more ramps"
+        );
+
+        // Persisted as the reducer left it.
+        let stored = svc
+            .get_workout(authed(
+                &token,
+                GetWorkoutRequest {
+                    workout_id: workout_id.clone(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let efforts: Vec<i32> = stored.completed_sets.iter().map(|c| c.effort).collect();
+        assert_eq!(
+            efforts,
+            vec![
+                Effort::Easy as i32,
+                Effort::Right as i32,
+                Effort::Right as i32,
+                Effort::Right as i32,
+            ],
+            "rungs keep their answers; each unanswered set closed as right by the next Done or EndWorkout"
+        );
+        assert_eq!(
+            stored
+                .proposed_sets
+                .iter()
+                .filter(|s| s.calibration)
+                .count(),
+            2
+        );
+        assert_eq!(
+            stored.summary.unwrap().total_volume,
+            2.0 * 6.0 * 50.0,
+            "rungs count as warmups for volume"
+        );
+    }
+
+    /// Answers persist; a late answer still lands because the clock
+    /// resolves nothing; the next Done and EndWorkout close what is open.
+    #[tokio::test]
+    async fn answers_persist_and_open_questions_close_at_done_and_end() {
+        let (svc, user_id, token) = setup().await;
+        onboard(&svc, &token, WeightUnit::Lb).await;
+        mark_performed(&svc, &user_id, &[Exercise::LateralRaise], 900).await;
+        let started = start(&svc, &token, &[Exercise::LateralRaise]).await;
+        let workout_id = started.workout.unwrap().id;
+        let sets = started.proposed_sets.clone();
+        assert_eq!(sets.len(), 3);
+
+        let state = apply(&svc, &token, vec![complete(&sets[0], 1_100)]).await;
+        let first = state.completed_sets[0].clone();
+        // Long after its 90 s rest: still the latest set, still answerable.
+        let state = apply(
+            &svc,
+            &token,
+            vec![rate(&workout_id, &first.id, Effort::Hard, 5_000)],
+        )
+        .await;
+        assert_eq!(state.completed_sets[0].effort, Effort::Hard as i32);
+        assert_eq!(
+            state.state_snapshot.unwrap().effort_prompt.unwrap().effort,
+            Effort::Hard as i32
+        );
+
+        let state = apply(
+            &svc,
+            &token,
+            vec![complete(&sets[1], 5_100), complete(&sets[2], 5_200)],
+        )
+        .await;
+        let efforts: Vec<i32> = state.completed_sets.iter().map(|c| c.effort).collect();
+        assert_eq!(
+            efforts,
+            vec![Effort::Hard as i32, Effort::Right as i32, 0],
+            "set two closed by the third Done; set three still open"
+        );
+
+        svc.end_workout(authed(
+            &token,
+            EndWorkoutRequest {
+                workout_id: workout_id.clone(),
+                ended_at: 5_300,
+            },
+        ))
+        .await
+        .unwrap();
+        let stored = svc
+            .get_workout(authed(&token, GetWorkoutRequest { workout_id }))
+            .await
+            .unwrap()
+            .into_inner();
+        let efforts: Vec<i32> = stored.completed_sets.iter().map(|c| c.effort).collect();
+        assert_eq!(
+            efforts,
+            vec![
+                Effort::Hard as i32,
+                Effort::Right as i32,
+                Effort::Right as i32
+            ]
+        );
+        // Any hard set makes the session hard: the raise holds.
+        let raise = tracker(&home(&svc, &token).await, Exercise::LateralRaise);
+        assert_eq!(raise.consecutive_hard, 1);
     }
 }
 
@@ -887,8 +1271,9 @@ mod offline_queue {
     /// server must adopt the ids so the completion attaches.
     #[tokio::test]
     async fn an_offline_add_and_complete_reconcile_in_one_batch() {
-        let (svc, _user_id, token) = setup().await;
+        let (svc, user_id, token) = setup().await;
         onboard(&svc, &token, WeightUnit::Lb).await;
+        mark_performed(&svc, &user_id, &[Exercise::LateralRaise], 900).await;
         let started = svc
             .start_workout(authed(
                 &token,
@@ -921,6 +1306,7 @@ mod offline_queue {
                             actual_reps: 10,
                             actual_weight: 20.0,
                             completed_at: 1_100,
+                            effort: 0,
                         })),
                     ],
                 },
@@ -991,6 +1377,7 @@ mod offline_queue {
                         actual_reps: first_set.target_reps,
                         actual_weight: first_set.target_weight,
                         completed_at: 1_100,
+                        effort: 0,
                     })),
                     mutation(Mutation::RemoveExercise(RemoveExerciseRequest {
                         workout_id: workout_id.clone(),
@@ -1067,6 +1454,7 @@ mod offline_queue {
                                 workout_id: workout_id.clone(),
                                 exercise: Exercise::LateralRaise as i32,
                                 working_weight: -50.0,
+                                target_reps: 0,
                             },
                         )),
                         mutation(Mutation::CompleteSet(CompleteSetRequest {
@@ -1075,6 +1463,7 @@ mod offline_queue {
                             actual_reps: 10,
                             actual_weight: 20.0,
                             completed_at: 1_100,
+                            effort: 0,
                         })),
                     ],
                 },
@@ -1098,5 +1487,120 @@ mod offline_queue {
             state.proposed_sets.iter().all(|s| s.target_weight >= 0.0),
             "the rejected weight never landed"
         );
+    }
+}
+
+mod lifting {
+    use super::*;
+
+    fn at(m: workout_mutation::Mutation, t: i64) -> WorkoutMutation {
+        WorkoutMutation {
+            event_id: Uuid::new_v4().to_string(),
+            client_created_at: t,
+            mutation: Some(m),
+        }
+    }
+
+    /// A fresh read of the workout, from the database.
+    async fn read(svc: &ServerWorkoutService, token: &str, workout_id: &str) -> GetWorkoutResponse {
+        svc.get_workout(authed(
+            token,
+            GetWorkoutRequest {
+                workout_id: workout_id.to_string(),
+            },
+        ))
+        .await
+        .unwrap()
+        .into_inner()
+    }
+
+    /// Start → LIFTING survives a round trip through the database, and the
+    /// Done that ends it keeps the start and the rating given with it.
+    #[tokio::test]
+    async fn a_started_set_is_lifting_and_its_done_keeps_the_start() {
+        let (svc, _user_id, token) = setup().await;
+        let started = svc
+            .start_workout(authed(
+                &token,
+                StartWorkoutRequest {
+                    name: "Lift".to_string(),
+                    started_at: 1_000,
+                    exercises: vec![Exercise::Squat as i32],
+                    template_id: String::new(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+        let workout_id = started.workout.as_ref().unwrap().id.clone();
+        let set = started
+            .proposed_sets
+            .iter()
+            .find(|s| !s.warmup && !s.cancelled)
+            .or_else(|| started.proposed_sets.first())
+            .unwrap()
+            .clone();
+
+        svc.append_workout_mutations(authed(
+            &token,
+            AppendWorkoutMutationsRequest {
+                mutations: vec![at(
+                    workout_mutation::Mutation::StartSet(StartSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        started_at: 1_100,
+                    }),
+                    1_100,
+                )],
+            },
+        ))
+        .await
+        .unwrap();
+
+        let lifting = read(&svc, &token, &workout_id).await;
+        let snap = lifting.state_snapshot.unwrap();
+        assert_eq!(
+            snap.state,
+            WorkoutState::Lifting as i32,
+            "persisted and reloaded"
+        );
+        assert_eq!(snap.display_set.unwrap().id, set.id);
+        assert_eq!(snap.lifting_started_at, 1_100);
+
+        svc.append_workout_mutations(authed(
+            &token,
+            AppendWorkoutMutationsRequest {
+                mutations: vec![at(
+                    workout_mutation::Mutation::CompleteSet(CompleteSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        actual_reps: set.target_reps,
+                        actual_weight: set.target_weight,
+                        completed_at: 1_140,
+                        effort: Effort::Hard as i32,
+                    }),
+                    1_140,
+                )],
+            },
+        ))
+        .await
+        .unwrap();
+
+        let done = read(&svc, &token, &workout_id).await;
+        let row = done
+            .completed_sets
+            .iter()
+            .find(|c| c.proposed_set_id == set.id)
+            .expect("done");
+        assert_eq!(row.started_at, 1_100, "the start is kept on the done set");
+        if !set.warmup {
+            assert_eq!(row.effort, Effort::Hard as i32, "rated with the Done");
+        }
+        assert_ne!(
+            done.state_snapshot.unwrap().state,
+            WorkoutState::Lifting as i32,
+            "Done ends the lifting"
+        );
+        assert!(done.workout.unwrap().lifting_set_id.is_empty());
     }
 }

@@ -56,6 +56,10 @@ message Workout {
   // The template this workout was started from ("" = started empty). Lets
   // the app offer "update your template?" when the session diverged.
   string template_id = 6;
+  // The set being lifted: set by StartSet, cleared by its Done (or by
+  // removing the set). "" when nothing is in progress.
+  string lifting_set_id = 7;
+  int64 lifting_started_at = 8; // Unix seconds; 0 when lifting_set_id is ""
 }
 
 enum Exercise {
@@ -163,6 +167,13 @@ message ProposedSet {
   int32 rest_after_success = 9;
   int32 rest_after_failure = 10;
   bool cancelled = 11;
+  // A calibration rung: a 5-rep set on the first session of a loaded
+  // exercise, answered with an Effort that decides the next rung or the
+  // working weight. Counts as a warmup for volume and summaries.
+  bool calibration = 15;
+  // A warmup the person chose not to do ("skip all warmups"). It stays in
+  // the plan and on screen, nothing waits on it, and it can still be done.
+  bool skipped = 16;
   reserved 8, 12, 13, 14;
   reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint";
 }
@@ -173,9 +184,26 @@ message CompletedSet {
   string proposed_set_id = 3;
   int32 actual_reps = 4;
   float actual_weight = 5;
-  int64 started_at = 6;
   int64 ended_at = 7;
   int64 rest_until = 8;
+  // "How was that": recorded on the final working set of an exercise
+  // on every working set and calibration rung. UNSPECIFIED until answered;
+  // recorded as RIGHT at the next Done or at EndWorkout.
+  Effort effort = 9;
+  // When the set was started (its StartSet), 0 if it was done without
+  // one. Lifting is started_at → ended_at.
+  int64 started_at = 11;
+  reserved 6, 10;
+  reserved "rest_skipped";
+}
+
+// The one opinion the app asks for: after the final working set of an
+// exercise, and after every calibration set.
+enum Effort {
+  EFFORT_UNSPECIFIED = 0;
+  EFFORT_EASY = 1;
+  EFFORT_RIGHT = 2;
+  EFFORT_HARD = 3;
 }
 
 enum UserMessageKind {
@@ -301,16 +329,20 @@ message ExerciseSummary {
 
 // Server-computed rollup for a whole workout. The client renders this directly
 // instead of aggregating raw sets. Volume/per-exercise cover working sets only;
-// the time breakdown covers every completed set (warmups included).
+// resting and yapping cover every completed set (warmups included).
 message WorkoutSummary {
   float total_volume = 1; // lb
   int64 duration_seconds = 2;
-  int64 lifting_seconds = 3;
   int64 resting_seconds = 4;
-  int64 yapping_seconds = 5; // between-set time that isn't lifting or resting
-  float volume_per_minute = 6; // lb per lifting-minute
-  float work_rest_ratio = 7;
+  // Between consecutive done sets, the time after the prescribed rest ended
+  // until the next set was started (or done, if it never was): the YAPPING
+  // state, summed.
+  int64 yapping_seconds = 9;
+  // Start to Done, summed over every set that was started: LIFTING.
+  int64 lifting_seconds = 10;
   repeated ExerciseSummary exercises = 8; // sorted by volume, heaviest first
+  reserved 3, 5, 6, 7;
+  reserved "volume_per_minute", "work_rest_ratio";
 }
 
 message GetWorkoutResponse {
@@ -332,20 +364,46 @@ message WorkoutPlanChangeStats {
   int32 cancelled_working = 3;
 }
 
+// A set is pending, done or cancelled. The workout's state is derived from
+// one moment, when the last set was done, and that set's prescribed rest:
+//   READY    no set done yet (the first set is up)
+//   LIFTING  a set has been started and not yet done (counts up)
+//   RESTING  the last done set's rest is still running (counts down)
+//   YAPPING  that rest has run out and the next set isn't started (counts up)
+//   ALL_DONE nothing left to do
+// There is no in-progress set.
 enum WorkoutState {
   WORKOUT_STATE_UNSPECIFIED = 0;
   WORKOUT_STATE_ALL_DONE = 1;
-  WORKOUT_STATE_LIFTING = 2;
   WORKOUT_STATE_RESTING = 3;
   WORKOUT_STATE_READY = 5;
+  WORKOUT_STATE_YAPPING = 6;
+  WORKOUT_STATE_LIFTING = 7;
+  reserved 2;
 }
 
 message WorkoutStateSnapshot {
   WorkoutState state = 1;
-  ProposedSet display_set = 2;
-  int64 active_started_at = 3;
+  ProposedSet display_set = 2; // the next pending set, if any
+  // When the last done set's rest ends: RESTING counts down to it, YAPPING
+  // counts up from it. 0 when READY or ALL_DONE.
   int64 rest_until = 4;
-  int64 last_rest_end = 5;
+  // Set while the app is waiting on "how was that" for a done set.
+  EffortPrompt effort_prompt = 6;
+  // When LIFTING: when the set was started; the lifting timer counts up
+  // from it. 0 otherwise.
+  int64 lifting_started_at = 7;
+  reserved 3, 5;
+  reserved "active_started_at", "last_rest_end";
+}
+
+// The latest done set while it can still be rated (a working set or a
+// calibration rung), whatever the rest state. Cleared by the next Done.
+message EffortPrompt {
+  Exercise exercise = 1;
+  string completed_set_id = 2;
+  bool calibration = 3; // the answer decides the next rung, not progression
+  Effort effort = 4; // the current answer, UNSPECIFIED until one is given
 }
 
 message ListWorkoutsRequest {}
@@ -430,6 +488,7 @@ message AdjustExerciseWeightRequest {
   string workout_id = 1;
   Exercise exercise = 2;
   float working_weight = 3; // lb
+  int32 target_reps = 4; // the remaining working sets' reps; 0 = unchanged
 }
 
 // Cancel an exercise's pending sets. Completed sets stay.
@@ -445,22 +504,19 @@ message ReorderExercisesRequest {
   repeated Exercise exercises = 2;
 }
 
-message StartSetRequest {
+// Begin a set: the workout is LIFTING it until its Done. Starting another
+// set moves the start to it; starting a done or cancelled set is a no-op.
+// Skip the exercise's undone warmups: they're marked skipped, never
+// removed, and doing one later still records it.
+message SkipWarmupsRequest {
   string workout_id = 1;
-
-  string proposed_set_id = 2;
-
-  int64 started_at = 3; // Unix seconds; if 0, server uses current time
+  Exercise exercise = 2;
 }
 
-message StartSetResponse {
-  CompletedSet completed_set = 1;
-
-  ProposedSet next_up_set = 2;
-
-  WorkoutStateSnapshot state_snapshot = 3;
-
-  repeated UserMessage user_messages = 4;
+message StartSetRequest {
+  string workout_id = 1;
+  string proposed_set_id = 2;
+  int64 started_at = 3; // Unix seconds from the client; 0 = server now
 }
 
 message CompleteSetRequest {
@@ -473,6 +529,10 @@ message CompleteSetRequest {
   float actual_weight = 4;
 
   int64 completed_at = 5; // Unix seconds; if 0, server uses current time
+
+  // How it went, given with the Done itself (Easy / Good / Hard). Applied as
+  // the answer to "how was that" for this set; ignored on a warmup.
+  Effort effort = 6;
 }
 
 message CompleteSetResponse {
@@ -497,15 +557,20 @@ message DeleteCompletedSetResponse {
   repeated UserMessage user_messages = 3;
 }
 
-message CancelProposedSetRequest {
+// Answer "how was that" for an exercise. Lands on the done set the
+// effort prompt names (the final working set, or the calibration rung).
+message RateExerciseRequest {
   string workout_id = 1;
-  string proposed_set_id = 2;
+  string completed_set_id = 2;
+  Effort effort = 3;
 }
 
-message CancelProposedSetResponse {
-  ProposedSet next_up_set = 1;
-  WorkoutStateSnapshot state_snapshot = 2;
-  repeated UserMessage user_messages = 3;
+// Correct a done set after the fact (fewer reps, a different weight).
+message EditCompletedSetRequest {
+  string workout_id = 1;
+  string completed_set_id = 2;
+  int32 actual_reps = 3;
+  float actual_weight = 4;
 }
 
 message EndWorkoutRequest {
@@ -583,6 +648,7 @@ message ExerciseTracker {
   MuscleGroup primary_muscle = 13;
   ExerciseCategory category = 14;
   EquipmentKind equipment = 15;
+  int32 consecutive_hard = 16; // sessions rated hard in a row; 3 deloads
 }
 
 // Weighted hard sets for one muscle over the rolling last 7 days.
@@ -651,6 +717,8 @@ message SetExerciseTrackerRequest {
   int32 override_sets = 3; // 0 = derived
   int32 override_rep_low = 4; // 0 = derived
   int32 override_rep_high = 5; // 0 = derived
+  // The current rep target; 0 restarts the climb at the range bottom.
+  int32 target_reps = 6;
 }
 message SetExerciseTrackerResponse {
   ExerciseTracker tracker = 1;
@@ -709,17 +777,22 @@ message WorkoutMutation {
   string event_id = 1;
   int64 client_created_at = 2; // Unix seconds from client clock
   oneof mutation {
-    StartSetRequest start_set = 10;
     CompleteSetRequest complete_set = 11;
-    CancelProposedSetRequest cancel_proposed_set = 12;
     DeleteCompletedSetRequest delete_completed_set = 13;
     EndWorkoutRequest end_workout = 14;
     AddExercisesRequest add_exercises = 17;
     AdjustExerciseWeightRequest adjust_exercise_weight = 18;
     RemoveExerciseRequest remove_exercise = 19;
     ReorderExercisesRequest reorder_exercises = 20;
+    RateExerciseRequest rate_exercise = 21;
+    EditCompletedSetRequest edit_completed_set = 23;
+    StartSetRequest start_set = 24;
+    SkipWarmupsRequest skip_warmups = 25;
   }
-  reserved 15, 16;
+  // 12 was cancel_proposed_set (skipping a warmup): warmups are never
+  // removed now, doing a working set just moves past them.
+  reserved 10, 12, 15, 16, 22;
+  reserved "skip_rest", "cancel_proposed_set";
 }
 
 message AppendWorkoutMutationsRequest {
@@ -760,10 +833,8 @@ service WorkoutService {
   rpc RemoveExercise(RemoveExerciseRequest) returns (WorkoutPlanResponse);
   rpc ReorderExercises(ReorderExercisesRequest) returns (WorkoutPlanResponse);
 
-  rpc StartSet(StartSetRequest) returns (StartSetResponse);
   rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);
   rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
-  rpc CancelProposedSet(CancelProposedSetRequest) returns (CancelProposedSetResponse);
   rpc AppendWorkoutMutations(AppendWorkoutMutationsRequest) returns (AppendWorkoutMutationsResponse);
   rpc AppendWorkoutHeartRate(AppendWorkoutHeartRateRequest) returns (AppendWorkoutHeartRateResponse);
   rpc GetWorkoutHeartRate(GetWorkoutHeartRateRequest) returns (GetWorkoutHeartRateResponse);

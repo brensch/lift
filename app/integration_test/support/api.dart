@@ -6,6 +6,7 @@
 //
 // On the emulator, 127.0.0.1:50051 reaches the host backend via `adb reverse`.
 
+import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:schlift/gen/workout/v1/auth.pbgrpc.dart';
 import 'package:schlift/gen/workout/v1/group.pbgrpc.dart';
@@ -178,6 +179,12 @@ class Peer {
 
   /// Complete every pending working (non-warmup) set at its target — used to log
   /// a full, successful workout so progression should advance.
+  ///
+  /// A first session of a loaded exercise opens with a calibration rung rather
+  /// than working sets (docs/plans/one-tap-sets.md §7). The rung is answered
+  /// "Right" here, which makes the server append the working sets at that
+  /// weight; they are then completed like any other. An unanswered rung would
+  /// leave the tracker unset, so the next session would calibrate again.
   Future<int> completeAllWorkingSets() async {
     if (workoutId == null) return 0;
     var done = 0;
@@ -194,12 +201,15 @@ class Peer {
       );
       if (pending.isEmpty) break;
       final set = pending.first;
+      // Done carries the rating, as the app's Easy / Good / Hard does; a
+      // rung needs one to settle the working weight.
       await _api.workout.completeSet(
         CompleteSetRequest()
           ..workoutId = workoutId!
           ..proposedSetId = set.id
           ..actualReps = set.targetReps
-          ..actualWeight = set.targetWeight,
+          ..actualWeight = set.targetWeight
+          ..effort = Effort.EFFORT_RIGHT,
         options: _opts,
       );
       done++;
@@ -230,6 +240,22 @@ class Peer {
         ..actualWeight = set.targetWeight,
       options: _opts,
     );
+  }
+
+  /// Copy library templates (templates/library.yaml ids) onto the user's home.
+  Future<void> addLibraryTemplates(List<String> libraryIds) async {
+    await _api.workout.addLibraryTemplates(
+      AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
+      options: _opts,
+    );
+  }
+
+  /// Whether [exercise] has ever been performed (a tracker with a session
+  /// behind it). Before that, a loaded exercise opens with a calibration rung
+  /// instead of warmups + working sets.
+  Future<bool> hasPerformed(Exercise exercise) async {
+    final tracker = await trackerFor(exercise);
+    return tracker != null && tracker.lastPerformedAt > Int64.ZERO;
   }
 
   Future<void> endWorkout() async {

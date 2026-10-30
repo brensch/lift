@@ -149,12 +149,6 @@ pub(super) fn build_participant_status(
     workout_resp: Option<&GetWorkoutResponse>,
 ) -> ParticipantStatus {
     if let Some(resp) = workout_resp {
-        let rest_until = resp
-            .state_snapshot
-            .as_ref()
-            .map(|s| s.rest_until)
-            .unwrap_or(0);
-        let has_active_set = resp.completed_sets.iter().any(|set| set.ended_at == 0);
         ParticipantStatus {
             user: Some(user),
             active_workout_id: resp
@@ -166,8 +160,7 @@ pub(super) fn build_participant_status(
             proposed_sets: resp.proposed_sets.clone(),
             completed_sets: resp.completed_sets.clone(),
             next_up_set: resp.next_up_set.clone(),
-            rest_until,
-            has_active_set,
+            state_snapshot: resp.state_snapshot.clone(),
         }
     } else {
         ParticipantStatus {
@@ -177,15 +170,14 @@ pub(super) fn build_participant_status(
             proposed_sets: Vec::new(),
             completed_sets: Vec::new(),
             next_up_set: None,
-            rest_until: 0,
-            has_active_set: false,
+            state_snapshot: None,
         }
     }
 }
 
 /// Write an updated participant snapshot for `user_id` into session `session_id`.
 /// If `workout_id` is provided, the snapshot reflects that specific workout (used after
-/// StartSet/CompleteSet/EndWorkout where the caller already knows the workout). Otherwise
+/// CompleteSet/EndWorkout where the caller already knows the workout). Otherwise
 /// the caller's active workout (if any) is used.
 pub(super) async fn refresh_participant_for_user(
     db: &ServerDb,

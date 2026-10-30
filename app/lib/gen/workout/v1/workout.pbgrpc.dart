@@ -112,13 +112,6 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$reorderExercises, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.StartSetResponse> startSet(
-    $0.StartSetRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$startSet, request, options: options);
-  }
-
   $grpc.ResponseFuture<$0.CompleteSetResponse> completeSet(
     $0.CompleteSetRequest request, {
     $grpc.CallOptions? options,
@@ -131,13 +124,6 @@ class WorkoutServiceClient extends $grpc.Client {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$deleteCompletedSet, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.CancelProposedSetResponse> cancelProposedSet(
-    $0.CancelProposedSetRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$cancelProposedSet, request, options: options);
   }
 
   $grpc.ResponseFuture<$0.AppendWorkoutMutationsResponse>
@@ -288,11 +274,6 @@ class WorkoutServiceClient extends $grpc.Client {
           '/workout.v1.WorkoutService/ReorderExercises',
           ($0.ReorderExercisesRequest value) => value.writeToBuffer(),
           $0.WorkoutPlanResponse.fromBuffer);
-  static final _$startSet =
-      $grpc.ClientMethod<$0.StartSetRequest, $0.StartSetResponse>(
-          '/workout.v1.WorkoutService/StartSet',
-          ($0.StartSetRequest value) => value.writeToBuffer(),
-          $0.StartSetResponse.fromBuffer);
   static final _$completeSet =
       $grpc.ClientMethod<$0.CompleteSetRequest, $0.CompleteSetResponse>(
           '/workout.v1.WorkoutService/CompleteSet',
@@ -303,11 +284,6 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/DeleteCompletedSet',
       ($0.DeleteCompletedSetRequest value) => value.writeToBuffer(),
       $0.DeleteCompletedSetResponse.fromBuffer);
-  static final _$cancelProposedSet = $grpc.ClientMethod<
-          $0.CancelProposedSetRequest, $0.CancelProposedSetResponse>(
-      '/workout.v1.WorkoutService/CancelProposedSet',
-      ($0.CancelProposedSetRequest value) => value.writeToBuffer(),
-      $0.CancelProposedSetResponse.fromBuffer);
   static final _$appendWorkoutMutations = $grpc.ClientMethod<
           $0.AppendWorkoutMutationsRequest, $0.AppendWorkoutMutationsResponse>(
       '/workout.v1.WorkoutService/AppendWorkoutMutations',
@@ -470,13 +446,6 @@ abstract class WorkoutServiceBase extends $grpc.Service {
             ($core.List<$core.int> value) =>
                 $0.ReorderExercisesRequest.fromBuffer(value),
             ($0.WorkoutPlanResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.StartSetRequest, $0.StartSetResponse>(
-        'StartSet',
-        startSet_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) => $0.StartSetRequest.fromBuffer(value),
-        ($0.StartSetResponse value) => value.writeToBuffer()));
     $addMethod(
         $grpc.ServiceMethod<$0.CompleteSetRequest, $0.CompleteSetResponse>(
             'CompleteSet',
@@ -495,15 +464,6 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.DeleteCompletedSetRequest.fromBuffer(value),
         ($0.DeleteCompletedSetResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.CancelProposedSetRequest,
-            $0.CancelProposedSetResponse>(
-        'CancelProposedSet',
-        cancelProposedSet_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.CancelProposedSetRequest.fromBuffer(value),
-        ($0.CancelProposedSetResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.AppendWorkoutMutationsRequest,
             $0.AppendWorkoutMutationsResponse>(
         'AppendWorkoutMutations',
@@ -709,14 +669,6 @@ abstract class WorkoutServiceBase extends $grpc.Service {
   $async.Future<$0.WorkoutPlanResponse> reorderExercises(
       $grpc.ServiceCall call, $0.ReorderExercisesRequest request);
 
-  $async.Future<$0.StartSetResponse> startSet_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.StartSetRequest> $request) async {
-    return startSet($call, await $request);
-  }
-
-  $async.Future<$0.StartSetResponse> startSet(
-      $grpc.ServiceCall call, $0.StartSetRequest request);
-
   $async.Future<$0.CompleteSetResponse> completeSet_Pre($grpc.ServiceCall $call,
       $async.Future<$0.CompleteSetRequest> $request) async {
     return completeSet($call, await $request);
@@ -733,15 +685,6 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.DeleteCompletedSetResponse> deleteCompletedSet(
       $grpc.ServiceCall call, $0.DeleteCompletedSetRequest request);
-
-  $async.Future<$0.CancelProposedSetResponse> cancelProposedSet_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.CancelProposedSetRequest> $request) async {
-    return cancelProposedSet($call, await $request);
-  }
-
-  $async.Future<$0.CancelProposedSetResponse> cancelProposedSet(
-      $grpc.ServiceCall call, $0.CancelProposedSetRequest request);
 
   $async.Future<$0.AppendWorkoutMutationsResponse> appendWorkoutMutations_Pre(
       $grpc.ServiceCall $call,

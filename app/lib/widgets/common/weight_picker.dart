@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../plate_visualization.dart';
+import '../../theme/theme_spec.dart';
+import '../../theme/app_icons.dart';
 
 class WeightDisplayBox extends StatelessWidget {
   final double weight;
@@ -29,14 +31,14 @@ class WeightDisplayBox extends StatelessWidget {
     );
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: context.tokens.br(8),
       child: Container(
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: context.tokens.br(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -54,15 +56,21 @@ class WeightDisplayBox extends StatelessWidget {
               displayWeight % 1 == 0
                   ? displayWeight.toStringAsFixed(0)
                   : displayWeight.toStringAsFixed(1),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              style: TextStyle(
+                fontSize: context.tokens.size.subtitle,
+                fontWeight: context.tokens.weight.heavy,
+              ),
             ),
             const SizedBox(width: 4),
             Text(
               weightUnitSuffix(unit),
-              style: TextStyle(fontSize: 12, color: colorScheme.tertiary),
+              style: TextStyle(
+                fontSize: context.tokens.size.small,
+                color: colorScheme.tertiary,
+              ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.edit, size: 14, color: colorScheme.tertiary),
+            Icon(AppIcons.edit, size: 14, color: colorScheme.tertiary),
           ],
         ),
       ),
@@ -135,10 +143,7 @@ class WeightPickerState extends State<WeightPicker> {
     final sliderDivisions = (maxDisplay / smallStep).round();
 
     return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      decoration: BoxDecoration(color: colorScheme.surface),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         top: 24,
@@ -151,13 +156,16 @@ class WeightPickerState extends State<WeightPicker> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'SET WEIGHT',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: context.tokens.weight.heavy,
+                  fontSize: context.tokens.size.bodyLg,
+                ),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                icon: const Icon(AppIcons.close),
               ),
             ],
           ),
@@ -174,9 +182,9 @@ class WeightPickerState extends State<WeightPicker> {
                   controller: _textController,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w900,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.display,
+                    fontWeight: context.tokens.weight.heavy,
                   ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
@@ -193,8 +201,8 @@ class WeightPickerState extends State<WeightPicker> {
               Text(
                 weightUnitSuffix(unit).toUpperCase(),
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
+                  fontSize: context.tokens.size.bodyLg,
+                  fontWeight: context.tokens.weight.heavy,
                   color: colorScheme.tertiary,
                 ),
               ),
@@ -266,9 +274,12 @@ class WeightAdjustBtn extends StatelessWidget {
       onPressed: onPressed,
       style: FilledButton.styleFrom(
         minimumSize: const Size(64, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: context.tokens.br(12)),
       ),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+      child: Text(
+        label,
+        style: TextStyle(fontWeight: context.tokens.weight.heavy),
+      ),
     );
   }
 }

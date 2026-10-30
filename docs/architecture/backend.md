@@ -146,7 +146,7 @@ graph LR
     subgraph "WorkoutService"
         w1["StartWorkout / EndWorkout"]
         w2["GetWorkout / GetActiveWorkout / ListWorkouts"]
-        w3["StartSet / CompleteSet<br/>DeleteCompletedSet / CancelProposedSet"]
+        w3["CompleteSet / RateExercise / SkipRest<br/>EditCompletedSet / DeleteCompletedSet / CancelProposedSet"]
         w4["AppendWorkoutMutations<br/>RehydrateWorkoutFromEvents"]
         w5["GetProposedWorkoutSchedule"]
         w6["heart rate, drafts, profile groups, messages"]

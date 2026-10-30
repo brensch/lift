@@ -410,7 +410,7 @@ mod account_deletion_tests {
             ("passkey_credentials", format!("(credential_id, user_id, credential_json, created_at) VALUES ('{u}-cred', ?, '{{}}', 1)")),
             ("workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-w1', ?, 'W', 1)")),
             ("proposed_sets", format!("(id, user_id, workout_id, workout_order, exercise, target_reps, target_weight) VALUES ('{u}-p1', ?, '{u}-w1', 0, 1, 5, 100.0)")),
-            ("completed_sets", format!("(id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, started_at) VALUES ('{u}-c1', ?, '{u}-w1', '{u}-p1', 5, 100.0, 1)")),
+            ("completed_sets", format!("(id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, ended_at) VALUES ('{u}-c1', ?, '{u}-w1', '{u}-p1', 5, 100.0, 1)")),
             ("active_workout_current", format!("(user_id, workout_id) VALUES (?, '{u}-w1')")),
             ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
             ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),

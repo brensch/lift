@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
 import '../logic/audio.dart';
 import '../providers/sound_provider.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class SoundSettingsScreen extends StatelessWidget {
   const SoundSettingsScreen({super.key});
@@ -13,12 +16,7 @@ class SoundSettingsScreen extends StatelessWidget {
     final presets = getPresets();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Pick sound',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-        ),
-      ),
+      appBar: AppBar(title: PageTitle('Pick sound')),
       body: ListView.separated(
         itemCount: presets.length,
         separatorBuilder: (_, __) =>
@@ -29,13 +27,15 @@ class SoundSettingsScreen extends StatelessWidget {
 
           return ListTile(
             leading: Icon(
-              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              isSelected ? AppIcons.checkCircle : AppIcons.circle,
               color: isSelected ? colorScheme.primary : colorScheme.tertiary,
             ),
             title: Text(
               entry.value.name,
               style: TextStyle(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: isSelected
+                    ? context.tokens.weight.bold
+                    : context.tokens.weight.regular,
               ),
             ),
             onTap: () {

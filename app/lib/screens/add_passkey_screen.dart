@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../widgets/common/flat.dart';
 import 'package:go_router/go_router.dart';
 import 'package:passkeys/exceptions.dart';
 import 'package:provider/provider.dart';
 
 import '../logic/utils.dart';
 import '../services/auth_service.dart';
+import '../theme/theme_spec.dart';
 
 class AddPasskeyScreen extends StatefulWidget {
   const AddPasskeyScreen({super.key});
@@ -57,12 +59,7 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Add Passkey',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-        ),
-      ),
+      appBar: AppBar(title: PageTitle('Add Passkey')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -89,11 +86,14 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.tokens.br(8),
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(color: colorScheme.error, fontSize: 13),
+                  style: TextStyle(
+                    color: colorScheme.error,
+                    fontSize: context.tokens.size.body,
+                  ),
                 ),
               ),
             ],
