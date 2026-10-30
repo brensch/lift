@@ -150,43 +150,41 @@ class ExerciseSection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: _padding),
       child: Row(
         children: [
-          // The name takes the room it needs before the target does.
+          // The name takes the room it needs before the target does; finding
+          // weight, when it is, on its own line under it.
           Expanded(
-            child: Row(
-              children: [
-                Flexible(
-                  child: GestureDetector(
-                    onTap: onEdit,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        exerciseNames[block.exercise] ?? '?',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: t.size.subtitle,
-                          fontWeight: t.weight.bold,
-                          color: finished ? t.muted : t.text,
+            child: GestureDetector(
+              onTap: onEdit,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      exerciseNames[block.exercise] ?? '?',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: t.size.subtitle,
+                        fontWeight: t.weight.bold,
+                        color: finished ? t.muted : t.text,
+                      ),
+                    ),
+                    if (calibrating)
+                      Text(
+                        copy.workout.calibrationLine.toUpperCase(),
+                        style: t.mono(
+                          TextStyle(
+                            fontSize: t.size.caption,
+                            fontWeight: t.weight.bold,
+                            letterSpacing: 0.5,
+                            color: t.primary,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
-                if (calibrating) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    copy.workout.calibrationLine.toUpperCase(),
-                    style: t.mono(
-                      TextStyle(
-                        fontSize: t.size.caption,
-                        fontWeight: t.weight.bold,
-                        letterSpacing: 0.5,
-                        color: t.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
           // The pencil, then the target flush with the right margin.
