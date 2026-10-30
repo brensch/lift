@@ -1,6 +1,8 @@
 # Release signing and store artifacts (Android/Wear AABs).
 # Split from the top-level Makefile; variables live there.
 
+.PHONY: print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release build-aabs-release ci-android-release-local ci-android-clean-signing
+
 print-cert-hashes:
 	@echo "=== Debug keystore ==="
 	@echo "SHA256 (colon-separated):"

@@ -22,7 +22,7 @@ debug app points at `localhost:50051`, which on the device means *the device*.
 ~/android-sdk/platform-tools/adb reverse tcp:50051 tcp:50051
 ```
 
-`make run-android`, `make run-app` and `make android-agent-start` all do this
+`make dev`, `make run-android`, `make run-app` and `make android-agent-start` all do this
 automatically. Nearly every "connection refused" is this mapping missing.
 
 ```bash
@@ -68,17 +68,37 @@ times, then **Settings → Developer options → USB debugging**. Connect over U
 and accept the prompt on the device.
 
 ```bash
-make run-backend      # terminal 1
-make run-android      # terminal 2 — sets up adb reverse automatically
+make dev    # backend + debug app + hot reload on save, one terminal
 ```
 
-With several devices attached, target one explicitly:
+`make dev` is the fast loop: the backend rebuilds and restarts about two
+seconds after a Rust save, and a save under `app/lib` hot reloads the phone in
+under a second. A proto change regenerates the Rust side by itself; run
+`make proto-dart` and then `make hot-restart` for the app. Native code,
+pubspec changes and `--dart-define`s need a fresh `make dev`. The halves run
+on their own as `make run-backend` and `make run-android`.
+
+With several devices attached, `PHONE_SERIAL=<serial> make dev`.
+
+### Getting the phone onto adb under WSL2
+
+**USB** goes through `usbipd`: `usbipd.exe list` on the Windows side, then
+`usbipd.exe attach --wsl --busid <id>`. The phone's USB mode must be **File
+transfer**. It falls back to charging only on every replug, and in that mode
+the attach connects and drops at once (`vhci_hcd: connection closed` in
+`dmesg`). If it still drops, `usbipd bind --force --busid <id>` in an admin
+PowerShell.
+
+**Wireless debugging** avoids usbipd. WSL's NAT network does not see mDNS, so
+`adb mdns services` finds nothing: take the addresses from the phone. In
+**Developer options → Wireless debugging → Pair device with pairing code**:
 
 ```bash
-flutter devices
-~/android-sdk/platform-tools/adb -s <serial> reverse tcp:50051 tcp:50051
-cd app && flutter run -d <device-id>
+~/android-sdk/platform-tools/adb pair <ip>:<pairing port> <code>
+~/android-sdk/platform-tools/adb connect <ip>:<port on the main Wireless debugging screen>
 ```
+
+The connect port changes whenever wireless debugging restarts.
 
 ### Release APK
 
@@ -96,9 +116,9 @@ cd app && flutter build apk --release
 adb install app/build/app/outputs/flutter-apk/app-release.apk
 ```
 
-It will not install over a Play-installed app (Play re-signs the app, so the
-signatures differ), and `make deploy-android` responds to that by uninstalling
-`com.brensch.schlift` — do not run it against a phone with the real app. See
+It will not install over a Play-installed app: Play re-signs the app, so the
+signatures differ. `make deploy-android` reports that failure and stops; it
+never uninstalls. See
 [`makefile.md`](makefile.md). For signed store builds see
 [`releasing.md`](releasing.md).
 

@@ -1,83 +1,99 @@
-// Bug hunt: after finishing a workout, does the app's home actually show the
-// advanced weight? Completes the working sets, ends the workout from the UI, and
-// checks that home renders the *new* squat weight (not the stale one).
+// Bug hunt: after finishing a workout, do the summary and the tracker agree?
+// A fresh user's first session calibrates each lift: the onboarding seed is
+// only a guess, the rung answered "Right" is the working weight, and that is
+// what EndWorkout must write to the tracker (docs/plans/one-tap-sets.md §7).
+// Starts in the UI, completes every set via the API peer (rung answered Right,
+// then the appended working sets), ends from the UI, and checks the summary
+// shows the calibrated weight and the backend tracker now holds it, performed.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:schlift/gen/workout/v1/workout.pbenum.dart';
 import 'support/scenario.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('workout — home shows the advanced weight after finishing', (
+  testWidgets('workout — summary and tracker agree after finishing', (
     tester,
   ) async {
     final s = Scenario(binding, tester, 'workout_home_after_finish');
     final username = 'after_${DateTime.now().millisecondsSinceEpoch}';
 
-    await s.launch();
-    await s.devLogin(username);
-    await s.completeOnboarding();
+    await s.run(() async {
+      await s.launch();
+      await s.devLogin(username);
+      await s.completeOnboarding();
 
-    final api = await s.api.login(username);
-    // Home starts at 45; assert it's showing that before we begin.
-    expect(
-      s.isVisible('45 lb'),
-      isTrue,
-      reason: 'home should show the starting squat weight',
-    );
+      final api = await s.api.login(username);
+      final before = (await api.trackerFor(Exercise.EXERCISE_SQUAT))!;
+      s.note(
+        'Backend squat before',
+        detail: '${before.workingWeight} lb (never performed)',
+        kind: 'api',
+      );
 
-    // Start in the UI, complete the working sets via API, then finish from the UI.
-    await s.tapText('START WORKOUT');
-    await s.waitForText('est. time', seconds: 8);
-    await s.tap(find.text('START WORKOUT').last);
-    expect(await s.waitForText('End Workout', seconds: 10), isTrue);
-    await api.adoptActiveWorkout();
-    await api.completeAllWorkingSets();
+      // Start in the UI, complete every set via API, then finish from the UI.
+      await s.startWorkoutFromHome();
+      await api.adoptActiveWorkout();
+      final completed = await api.completeAllWorkingSets();
+      s.note('Completed via API', detail: '$completed sets', kind: 'api');
+      await s.settle(seconds: 3); // let the app poll the backend's state
+      await s.shot('All sets done by the API peer');
 
-    await s.tapText('End Workout');
-    if (await s.waitForText(
-      'This will end your current workout.',
-      seconds: 6,
-    )) {
-      await s.tap(find.text('End Workout').last);
-    }
-    // The summary should show the progression the completed work earned.
-    expect(
-      await s.waitForText('Session snapshot', seconds: 10),
-      isTrue,
-      reason: 'finishing should land on the workout summary',
-    );
-    await s.shot(
-      'Summary — progression applied',
-      note: 'The summary reports each lift advancing 45 → 50.',
-    );
+      await s.endWorkoutAndWaitForSummary();
+      await s.shot(
+        'Summary after the calibrated session',
+        note: 'Rungs count as warmups; the working sets carry the weight.',
+      );
 
-    // Backend should have advanced.
-    final squatTracker = await api.trackerFor(Exercise.EXERCISE_SQUAT);
-    final backendSquat = squatTracker?.workingWeight ?? 0;
-    s.note(
-      'Backend squat after finish',
-      detail: '$backendSquat lb',
-      kind: 'api',
-    );
-    expect(
-      backendSquat,
-      greaterThan(45),
-      reason: 'finishing a full workout should advance squat past 45',
-    );
+      // The heaviest working set the peer completed is the calibrated weight.
+      final detail = (await api.workoutDetail())!;
+      final proposedById = {for (final p in detail.proposedSets) p.id: p};
+      var calibrated = 0.0;
+      for (final c in detail.completedSets) {
+        final p = proposedById[c.proposedSetId];
+        if (p != null && !p.warmup && !p.calibration) {
+          if (c.actualWeight > calibrated) calibrated = c.actualWeight;
+        }
+      }
+      if (calibrated <= 0) {
+        throw StateError('no working set was completed after the rung');
+      }
 
-    // The summary should render that advance (e.g. "Squat 45 lb -> 50 lb").
-    final shown = '${backendSquat.toStringAsFixed(0)} lb';
-    expect(
-      find.textContaining(shown),
-      findsWidgets,
-      reason: 'the summary should show the advanced weight ("$shown")',
-    );
+      // Backend: the tracker is now that weight, and performed.
+      final after = (await api.trackerFor(Exercise.EXERCISE_SQUAT))!;
+      s.note(
+        'Backend squat after finish',
+        detail:
+            '${after.workingWeight} lb, performed=${after.lastPerformedAt > Int64.ZERO}',
+        kind: 'api',
+      );
+      expect(
+        after.lastPerformedAt > Int64.ZERO,
+        isTrue,
+        reason:
+            'finishing should mark the lift performed (no more calibration)',
+      );
+      expect(
+        after.workingWeight,
+        calibrated,
+        reason:
+            'the tracker should hold the calibrated working weight, not the '
+            'onboarding seed (${before.workingWeight})',
+      );
 
-    s.note('Post-finish progression display verified', kind: 'assert');
-    await s.report();
+      // The summary should render that weight (e.g. "Heaviest set: 110 lb").
+      final shown = '${calibrated.toStringAsFixed(0)} lb';
+      expect(
+        find.textContaining(shown),
+        findsWidgets,
+        reason: 'the summary should show the calibrated weight ("$shown")',
+      );
+
+      s.note('Calibration result landed on the tracker', kind: 'assert');
+    });
   });
 }

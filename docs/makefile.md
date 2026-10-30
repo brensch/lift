@@ -18,21 +18,43 @@ Variables worth knowing (all overridable, `make VAR=value target`):
 | `BUN` | `~/.bun/bin/bun` | Not on `PATH` |
 | `ANDROID_SDK` | `~/android-sdk` | |
 | `ADB` | `$(ANDROID_SDK)/platform-tools/adb` | Not on `PATH`. A phone on wireless debugging shows up as `192.168.x.x:port` |
-| `ANDROID_SERIAL`, `WEAR_SERIAL` | auto-detected | Pick a device when several are attached |
+| `PHONE_SERIAL`, `WEAR_SERIAL` | auto-detected | Pick the phone or watch when several are attached. Otherwise the first non-watch / watch device on adb |
+| `ANDROID_SERIAL` | `emulator-5554` | The emulator the agent, e2e and store targets drive |
 | `DEV_SERVER_HOST` | `dev.schlift.com` | Backend the dev app is compiled against |
 
 Release builds of the app default to `schlift.com:443`; debug builds default to
 `localhost:50051`. Override either with `--dart-define=SERVER_HOST=… SERVER_PORT=…`.
+
+## The fast loop
+
+```bash
+make dev
+```
+
+The backend under `cargo watch` (log in `.tmp/dev-backend.log`), a debug build
+on the phone against it through `adb reverse`, and a hot reload whenever a
+`.dart` file under `app/lib` is saved. A Rust save is serving again in about
+two seconds; a Dart save is on the phone in under one. Ctrl+C stops all of it.
+
+| Target | |
+|---|---|
+| `make hot-reload` / `make hot-restart` | Signal the running `run-android` session, the same as `r` / `R` in its terminal. |
+| `make hot-reload-on-save` | The watcher `dev` runs. A save under `app/lib/theme/` or to `main.dart` hot *restarts*: the themes and app wiring are built once at startup, so a reload would keep the old ones. |
+
+Hot reload covers Dart code. A proto change: `make proto-dart`, then
+`make hot-restart` (the backend regenerates its side by itself). Native code,
+pubspec and `--dart-define` changes need a fresh `make dev`.
 
 ## Getting a build onto a phone
 
 | Target | What you get |
 |---|---|
 | `make deploy-android-dev` | **The one to use on a real phone.** Release build of the side-by-side dev app (`com.brensch.schlift.dev`, "Schlift Dev") pointed at `dev.schlift.com`, installed over whatever dev build is there. Same package and release key as the CI dev build, so it upgrades in place and keeps the login. Picks a build number one above the installed one, so adb never refuses it as a downgrade. Never uninstalls anything. |
-| `make run-android` | `flutter run` (debug, attached, hot reload) on the first non-watch device, with `adb reverse tcp:50051` so it talks to the **local** backend (`make run-backend`). |
+| *(both release targets)* | Build only the connected device's ABI (`--target-platform`), not all three. |
+| `make run-android` | `flutter run` (debug, attached, hot reload) on the phone, with `adb reverse tcp:50051` so it talks to the **local** backend (`make run-backend`). The phone half of `make dev`. `FLUTTER_RUN_ARGS` adds flags. |
 | `make run-android-prod` | Same, but compiled against `schlift.com:443`. |
-| `make run-android-clean` | `flutter clean` first. |
-| `make deploy-android` | Release APK of the **production package** `com.brensch.schlift`. ⚠️ If the install fails it **uninstalls `com.brensch.schlift` and retries**. An app installed from Play is re-signed by Play App Signing, so a locally signed APK *always* mismatches it — on a phone with the real app from Play, this target wipes it. Only for emulators and phones without the Play install. |
+| `make run-android-clean` | `gradlew clean` + `flutter clean` first. |
+| `make deploy-android` | Release APK of the **production package** `com.brensch.schlift`, for emulators and phones without the Play install. Play re-signs its installs, so on a phone with the real app the install fails with a signature mismatch; the target stops there and never uninstalls. |
 | `make run-linux`, `make run-app`, `make stop-app` | Desktop build / run / stop. |
 
 `deploy-android-dev` needs release signing: `app/android/key.properties` and the
@@ -48,11 +70,11 @@ channel that does come from CI, because it runs on the server.
 
 | Target | |
 |---|---|
-| `make run-backend` | `cargo watch` dev server on `:50051` with `--features test-auth` (dev login). Kills any running `schlift` first. |
+| `make run-backend` | `cargo watch` dev server on `:50051` with `--features test-auth` (dev login). Rebuilds on a save under `src/`, `proto/`, `templates/` or the Cargo files, nothing else. Kills any running `schlift` first. |
 | `make run-backend-release` | Same, release build, no watch. |
-| `make run-backend-scratch` | Deletes `data/scratch.sqlite*`, then runs. |
+| `make run-backend-scratch` | Same as `run-backend` without the watch, on an empty database in `.tmp/scratch-backend` wiped every start. |
 | `make agent-backend-start` / `agent-backend-stop` | Background instance with a pidfile and a log, waits for `/api/health`. Uses `:50051`, so it collides with any other backend on the machine. |
-| `make run-dev` | Backend + web dev server together. `make run-frontend` is the web half. |
+| `make run-web-dev` | Backend + web dev server together. `make run-frontend` is the web half. |
 | `make run-prod` | `docker-compose up --build`. |
 | `make check` | `cargo check` + web build. |
 | `make fuzz-api` | API invariant fuzzer (`FUZZ_USERS`, `FUZZ_SESSIONS`, `FUZZ_SEED`). `make fuzz-api-ci` is the fixed-seed run CI does. |
@@ -61,6 +83,11 @@ channel that does come from CI, because it runs on the server.
 For a throwaway instance that collides with nothing, skip make:
 `DATA_DIR=<scratch dir> PORT=50077 ./target/debug/schlift` (build with
 `cargo build --features test-auth` for dev login).
+
+If the backend fails to build with missing proto types or fields that the
+`.proto` plainly has, the generated code is stale: cargo reruns `build.rs`
+only when a `.proto` is newer than its last run, which a branch switch or a
+file copied with its old mtime can defeat. `touch proto/workout/v1/*.proto`.
 
 The binary is also the admin CLI: `schlift admin add|remove|list <username>`
 ([`architecture/analytics.md`](architecture/analytics.md)).
@@ -117,7 +144,7 @@ is tag-driven CI — [`releasing.md`](releasing.md).
 ## Wear OS and Apple Watch
 
 `run-wear`, `run-wear-logs`, `run-wear-debug`, `build-wear-release`,
-`deploy-wear`, `android-wear-avd-create`, `android-wear-emulator-start`,
+`deploy-wear` (never uninstalls, like `deploy-android`), `android-wear-avd-create`, `android-wear-emulator-start`,
 `android-wear-run-emulator`, `android-wear-pairing-notes`; and on macOS
 `watch-setup`, `watch-generate`, `watch-build`, `watch-build-release`,
 `watch-sim`, `watch-sim-list`.

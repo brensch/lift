@@ -1,6 +1,8 @@
 # Protobuf generation for every client.
 # Split from the top-level Makefile; variables live there.
 
+.PHONY: proto-dart proto-android proto-swift proto-all
+
 proto-dart:
 	@echo "=== Generating Dart protobuf files with buf ==="
 	cd proto && PATH="$(HOME)/flutter-sdk/bin:$(HOME)/.pub-cache/bin:$$PATH" buf generate --template buf.gen.dart.yaml

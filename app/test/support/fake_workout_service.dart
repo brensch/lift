@@ -4,6 +4,7 @@
 /// test hold mutations in the offline queue.
 library;
 
+import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/services/grpc_client.dart';
@@ -44,6 +45,12 @@ class FakeWorkoutService extends WorkoutServiceWrapper {
 
   @override
   Future<GetHomeResponse> getHome() async => homeResponse;
+
+  @override
+  Future<EndWorkoutResponse> endWorkout(String workoutId) async =>
+      EndWorkoutResponse(
+        workout: Workout(id: workoutId, name: 'Test', endTime: Int64(2000)),
+      );
 
   @override
   Future<AppendWorkoutMutationsResponse> appendWorkoutMutations(

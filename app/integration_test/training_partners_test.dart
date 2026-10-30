@@ -62,7 +62,8 @@ void main() {
     );
 
     // Now prove the APP surfaces it: leave the session, then open the multiplayer
-    // sheet — the peer should appear under "TRAINED WITH" for a one-tap re-pair.
+    // sheet — the peer should appear under "FRIENDS" (people you've trained
+    // with) for a one-tap re-pair.
     await me.leaveSession();
     expect(
       await s.waitForText('Multiplayer', seconds: 12),
@@ -70,17 +71,17 @@ void main() {
       reason: 'app should return to solo after leaving',
     );
     await s.tapText('Multiplayer');
-    final sawList = await s.waitForText('TRAINED WITH', seconds: 8);
+    final sawList = await s.waitForText('FRIENDS', seconds: 8);
     await s.shot(
-      'Trained-with list in the app',
+      'Friends list in the app',
       note: sawList
           ? 'The peer is offered for a one-tap re-pair.'
-          : 'WARNING: the trained-with list did not render.',
+          : 'WARNING: the friends list did not render.',
     );
     expect(
       sawList,
       isTrue,
-      reason: 'the multiplayer sheet should show the trained-with list',
+      reason: 'the multiplayer sheet should show the friends list',
     );
     expect(
       s.isVisible('bob_$stamp'),

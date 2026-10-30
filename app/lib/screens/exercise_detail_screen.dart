@@ -9,6 +9,7 @@ import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/theme_spec.dart';
 
 /// One lift, in depth: tap a card on Progress to see its full history — a
 /// weight / estimated-1RM trend you can toggle between, personal bests, and a
@@ -28,8 +29,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   List<_Session>? _sessions;
   bool _isLoading = true;
   _Metric _metric = _Metric.weight;
-
-  static const _accent = Color(0xFF60A5FA);
 
   @override
   void initState() {
@@ -82,12 +81,15 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         appBar: AppBar(
           title: Row(
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 18)),
+              Text(
+                emoji,
+                style: TextStyle(fontSize: context.tokens.size.subtitle),
+              ),
               const SizedBox(width: 8),
               Text(
                 name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
+                style: TextStyle(
+                  fontWeight: context.tokens.weight.heavy,
                   letterSpacing: -0.5,
                 ),
               ),
@@ -137,7 +139,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 'current top set',
                 cs,
                 big: true,
-                color: _accent,
+                color: context.tokens.series.first,
               ),
               const Spacer(),
               _headStat(
@@ -161,7 +163,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 sessions: sessions,
                 metric: _metric,
                 unit: unit,
-                color: _accent,
+                color: context.tokens.series.first,
                 cs: cs,
               ),
             )
@@ -191,8 +193,8 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             'EVERY SESSION',
             style: TextStyle(
               color: cs.tertiary,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+              fontSize: context.tokens.size.small,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 0.8,
             ),
           ),
@@ -223,12 +225,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         value,
         style: TextStyle(
           fontSize: big ? 30 : 18,
-          fontWeight: FontWeight.w900,
+          fontWeight: context.tokens.weight.heavy,
           height: 1,
           color: color,
         ),
       ),
-      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+      Text(
+        label,
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: context.tokens.size.small,
+        ),
+      ),
     ],
   );
 
@@ -239,15 +247,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         label.toUpperCase(),
         style: TextStyle(
           color: cs.tertiary,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+          fontSize: context.tokens.size.caption,
+          fontWeight: context.tokens.weight.bold,
           letterSpacing: 0.5,
         ),
       ),
       const SizedBox(height: 2),
       Text(
         value,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+        style: TextStyle(
+          fontWeight: context.tokens.weight.heavy,
+          fontSize: context.tokens.size.body,
+        ),
       ),
     ],
   );
@@ -276,14 +287,14 @@ class _MetricToggle extends StatelessWidget {
               color: active
                   ? cs.primary.withValues(alpha: 0.18)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: context.tokens.br(8),
             ),
             alignment: Alignment.center,
             child: Text(
               label,
               style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
+                fontWeight: context.tokens.weight.heavy,
+                fontSize: context.tokens.size.body,
                 color: active ? cs.primary : cs.tertiary,
               ),
             ),
@@ -296,7 +307,7 @@ class _MetricToggle extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: context.tokens.br(10),
       ),
       child: Row(
         children: [
@@ -356,7 +367,10 @@ class _TrendChart extends StatelessWidget {
               interval: interval,
               getTitlesWidget: (v, meta) => Text(
                 formatWeight(v, unit),
-                style: TextStyle(fontSize: 10, color: cs.tertiary),
+                style: TextStyle(
+                  fontSize: context.tokens.size.caption,
+                  color: cs.tertiary,
+                ),
               ),
             ),
           ),
@@ -381,7 +395,10 @@ class _TrendChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     _shortDate(sessions[i].date),
-                    style: TextStyle(fontSize: 10, color: cs.tertiary),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.caption,
+                      color: cs.tertiary,
+                    ),
                   ),
                 );
               },
@@ -398,8 +415,8 @@ class _TrendChart extends StatelessWidget {
                 '${formatWeight(_value(ses), unit)} ${weightUnitSuffix(unit)}\n${_shortDate(ses.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
+                  fontWeight: context.tokens.weight.bold,
+                  fontSize: context.tokens.size.small,
                 ),
               );
             }).toList(),
@@ -463,8 +480,8 @@ class _SessionRow extends StatelessWidget {
               _shortDate(session.date),
               style: TextStyle(
                 color: cs.tertiary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontSize: context.tokens.size.small,
+                fontWeight: context.tokens.weight.bold,
               ),
             ),
           ),
@@ -472,12 +489,18 @@ class _SessionRow extends StatelessWidget {
           Expanded(
             child: Text(
               '${formatWeight(session.topWeight, unit)} $suffix × ${session.topReps}',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+              style: TextStyle(
+                fontWeight: context.tokens.weight.heavy,
+                fontSize: context.tokens.size.body,
+              ),
             ),
           ),
           Text(
             '${session.sets} sets · ${_compactVol(session.volume)} $suffix',
-            style: TextStyle(color: cs.tertiary, fontSize: 12),
+            style: TextStyle(
+              color: cs.tertiary,
+              fontSize: context.tokens.size.small,
+            ),
           ),
         ],
       ),

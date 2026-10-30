@@ -12,7 +12,9 @@ import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
 import 'template_editor.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showTemplateLibrary(
   BuildContext context, {
@@ -82,8 +84,8 @@ class _LibrarySheetState extends State<_LibrarySheet> {
       builder: (context, controller) => Container(
         decoration: BoxDecoration(
           color: AppTheme.sheetColor(context),
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTheme.radiusLg),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(context.tokens.radiusLg),
           ),
           border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
         ),
@@ -97,16 +99,16 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                 Expanded(
                   child: Text(
                     t.sheetTitle,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.subtitle,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: -0.3,
                     ),
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(AppIcons.close),
                 ),
               ],
             ),
@@ -188,8 +190,8 @@ class _GroupHeading extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
+          fontSize: context.tokens.size.small,
+          fontWeight: context.tokens.weight.heavy,
           letterSpacing: 1.4,
           color: cs.tertiary,
         ),
@@ -211,7 +213,7 @@ class _Note extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: context.tokens.size.body,
           color: cs.onSurface.withValues(alpha: 0.6),
         ),
       ),
@@ -229,17 +231,17 @@ class _MakeYourOwnTile extends StatelessWidget {
     final t = copy.library;
     return InkWell(
       onTap: onTap,
-      borderRadius: AppTheme.brMd,
+      borderRadius: context.tokens.brMd,
       child: Container(
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
         decoration: BoxDecoration(
-          borderRadius: AppTheme.brMd,
+          borderRadius: context.tokens.brMd,
           border: Border.all(color: cs.primary, width: 2),
         ),
         child: Row(
           children: [
-            Icon(Icons.edit_outlined, size: 20, color: cs.primary),
+            Icon(AppIcons.edit, size: 20, color: cs.primary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -247,25 +249,22 @@ class _MakeYourOwnTile extends StatelessWidget {
                 children: [
                   Text(
                     t.makeYourOwn,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.bodyLg,
+                      fontWeight: context.tokens.weight.heavy,
                     ),
                   ),
                   Text(
                     t.makeYourOwnHint,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: context.tokens.size.small,
                       color: cs.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: cs.onSurface.withValues(alpha: 0.5),
-            ),
+            Icon(AppIcons.forward, color: cs.onSurface.withValues(alpha: 0.5)),
           ],
         ),
       ),
@@ -302,13 +301,13 @@ class LibraryEntryTile extends StatelessWidget {
         .join(' · ');
     return InkWell(
       onTap: tick != null ? onAdd : null,
-      borderRadius: AppTheme.brMd,
+      borderRadius: context.tokens.brMd,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
         decoration: BoxDecoration(
           color: outlined ? cs.primary.withValues(alpha: 0.08) : null,
-          borderRadius: AppTheme.brMd,
+          borderRadius: context.tokens.brMd,
           border: Border.all(
             color: outlined ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: outlined ? 2 : 1,
@@ -323,9 +322,9 @@ class LibraryEntryTile extends StatelessWidget {
                 children: [
                   Text(
                     entry.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.bodyLg,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: -0.2,
                     ),
                   ),
@@ -335,7 +334,7 @@ class LibraryEntryTile extends StatelessWidget {
                       child: Text(
                         entry.blurb,
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: context.tokens.size.small,
                           color: cs.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
@@ -345,7 +344,7 @@ class LibraryEntryTile extends StatelessWidget {
                     child: Text(
                       names,
                       style: TextStyle(
-                        fontSize: 11.5,
+                        fontSize: context.tokens.size.small,
                         height: 1.35,
                         color: cs.onSurface.withValues(alpha: 0.5),
                       ),
@@ -356,18 +355,15 @@ class LibraryEntryTile extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             if (tick != null)
-              Icon(
-                tick ? Icons.check_circle : Icons.circle_outlined,
-                color: tick ? cs.primary : cs.outline,
-              )
+              SelectBox(selected: tick, colorScheme: cs)
             else if (added)
               Text(
                 t.added,
                 style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
+                  fontSize: context.tokens.size.small,
+                  fontWeight: context.tokens.weight.heavy,
                   letterSpacing: 0.8,
-                  color: AppTheme.successFg,
+                  color: context.tokens.successFg,
                 ),
               )
             else
@@ -386,9 +382,9 @@ class LibraryEntryTile extends StatelessWidget {
                         )
                       : Text(
                           t.add,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
+                          style: TextStyle(
+                            fontSize: context.tokens.size.small,
+                            fontWeight: context.tokens.weight.heavy,
                           ),
                         ),
                 ),
@@ -396,6 +392,40 @@ class LibraryEntryTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A square tick box for multi-select lists. Deliberately not a circle, which
+/// reads as a radio button (pick one) when the user can pick many.
+class SelectBox extends StatelessWidget {
+  final bool selected;
+  final ColorScheme colorScheme;
+
+  const SelectBox({
+    super.key,
+    required this.selected,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = colorScheme;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        color: selected ? cs.primary : Colors.transparent,
+        borderRadius: context.tokens.br(5),
+        border: Border.all(
+          color: selected ? cs.primary : cs.outline,
+          width: 1.5,
+        ),
+      ),
+      child: selected
+          ? Icon(AppIcons.check, size: 16, color: cs.onPrimary)
+          : null,
     );
   }
 }

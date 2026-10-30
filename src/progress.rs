@@ -15,7 +15,8 @@ fn estimate_one_rep_max(weight: f32, reps: i32) -> f32 {
 
 /// Roll a finished (or in-progress) workout up into the render-ready summary the
 /// client displays. Volume and per-exercise stats cover **working sets only**;
-/// the time breakdown covers every completed set (you spend time on warmups too).
+/// lifting, resting and yapping time cover every done set (you rest after
+/// warmups too).
 pub fn compute_workout_summary(
     workout: &Workout,
     proposed_sets: &[ProposedSet],
@@ -24,16 +25,15 @@ pub fn compute_workout_summary(
     let proposed_by_id: HashMap<&str, &ProposedSet> =
         proposed_sets.iter().map(|p| (p.id.as_str(), p)).collect();
 
-    // Chronological completed sets that actually started, so rest can be capped
-    // at when the next set began.
-    let mut ordered: Vec<&CompletedSet> = completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0 && c.started_at != 0)
-        .collect();
-    ordered.sort_by_key(|c| c.started_at);
+    // Chronological done sets, so rest can be capped at when the next set was
+    // done.
+    let mut ordered: Vec<&CompletedSet> =
+        completed_sets.iter().filter(|c| c.ended_at != 0).collect();
+    ordered.sort_by_key(|c| c.ended_at);
 
-    let mut lifting_seconds: i64 = 0;
     let mut resting_seconds: i64 = 0;
+    let mut yapping_seconds: i64 = 0;
+    let mut lifting_seconds: i64 = 0;
     let mut total_volume: f32 = 0.0;
     let mut ex_index: HashMap<i32, usize> = HashMap::new();
     let mut exercises: Vec<ExerciseSummary> = Vec::new();
@@ -45,27 +45,46 @@ pub fn compute_workout_summary(
             None => continue,
         };
 
-        // Lifting time — every set.
-        if c.ended_at > c.started_at {
+        // When the next set began: its Start, or its Done if it was never
+        // started. Rest and yapping both stop there, and at workout end.
+        let cap = |t: i64| {
+            if workout.end_time != 0 {
+                t.min(workout.end_time)
+            } else {
+                t
+            }
+        };
+        let next_start = ordered.get(i + 1).map(|next| {
+            cap(if next.started_at > 0 {
+                next.started_at
+            } else {
+                next.ended_at
+            })
+        });
+
+        // Lifting — Start to Done, for a set that was started.
+        if c.started_at > 0 && c.ended_at > c.started_at {
             lifting_seconds += c.ended_at - c.started_at;
         }
-        // Rest time — capped at the next set's start and at workout end.
-        if c.rest_until > c.ended_at {
-            let mut rest_end = c.rest_until;
-            if i + 1 < ordered.len() && ordered[i + 1].started_at < rest_end {
-                rest_end = ordered[i + 1].started_at;
-            }
-            if workout.end_time != 0 && workout.end_time < rest_end {
-                rest_end = workout.end_time;
-            }
-            let secs = rest_end - c.ended_at;
-            if secs > 0 {
-                resting_seconds += secs;
+
+        // Resting — Done to the rest's end, cut short by the next set.
+        let rest_end = cap(next_start.map_or(c.rest_until, |n| n.min(c.rest_until)));
+        if rest_end > c.ended_at {
+            resting_seconds += rest_end - c.ended_at;
+        }
+
+        // Yapping — once the rest has run out, until the next set began.
+        // The last set has none.
+        if let Some(next_start) = next_start {
+            let yap_start = c.rest_until.max(c.ended_at);
+            if next_start > yap_start {
+                yapping_seconds += next_start - yap_start;
             }
         }
 
-        // Volume + per-exercise rollup — working sets only.
-        if proposed.warmup {
+        // Volume + per-exercise rollup — working sets only (a calibration
+        // rung is a warmup here).
+        if proposed.warmup || proposed.calibration {
             continue;
         }
         let set_volume = c.actual_reps as f32 * c.actual_weight;
@@ -94,32 +113,10 @@ pub fn compute_workout_summary(
         }
     }
 
-    // Yapping = the gap between sets that isn't lifting or (prescribed) resting.
-    let mut yapping_seconds: i64 = 0;
-    for i in 0..ordered.len().saturating_sub(1) {
-        let cur = ordered[i];
-        let next = ordered[i + 1];
-        let gap_start = if cur.rest_until > cur.ended_at {
-            cur.rest_until
-        } else {
-            cur.ended_at
-        };
-        if next.started_at > gap_start {
-            yapping_seconds += next.started_at - gap_start;
-        }
-    }
-
     let duration_seconds = if workout.end_time != 0 && workout.start_time != 0 {
         workout.end_time - workout.start_time
     } else {
         0
-    };
-    let lifting_minutes = (lifting_seconds / 60).max(1) as f32;
-    let volume_per_minute = total_volume / lifting_minutes;
-    let work_rest_ratio = if resting_seconds > 0 {
-        lifting_seconds as f32 / resting_seconds as f32
-    } else {
-        lifting_seconds as f32
     };
 
     exercises.sort_by(|a, b| {
@@ -131,11 +128,9 @@ pub fn compute_workout_summary(
     WorkoutSummary {
         total_volume,
         duration_seconds,
-        lifting_seconds,
         resting_seconds,
         yapping_seconds,
-        volume_per_minute,
-        work_rest_ratio,
+        lifting_seconds,
         exercises,
     }
 }
@@ -175,7 +170,7 @@ pub fn compute_exercise_progress(
                 Some(p) => *p,
                 None => continue,
             };
-            if p.warmup {
+            if p.warmup || p.calibration {
                 continue;
             }
             let a = per_ex.entry(p.exercise).or_insert(Acc {
@@ -230,19 +225,61 @@ pub fn compute_exercise_progress(
     series
 }
 
+/// An exercise's undone warmup once it was skipped ("skip all warmups") or
+/// one of the exercise's working sets (or rungs) is done: behind you. It
+/// stays in the plan and can still be done; nothing waits on it.
+pub fn is_passed_warmup(
+    set: &ProposedSet,
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+) -> bool {
+    let done = |id: &str| {
+        completed_sets
+            .iter()
+            .any(|c| c.proposed_set_id == id && c.ended_at > 0)
+    };
+    set.warmup
+        && !done(&set.id)
+        && (set.skipped
+            || proposed_sets
+                .iter()
+                .any(|p| p.exercise == set.exercise && !p.warmup && done(&p.id)))
+}
+
+/// The set up next — the one source of truth for `next_up_set` and the
+/// snapshot's `display_set` (multiplayer peers read it too). While the
+/// latest done set is an unanswered calibration rung it is the first set
+/// "right" would append (`{done_id}:0`), whatever else is pending, so nobody
+/// jumps past their own working sets. Otherwise any set can be done in any
+/// order, so it carries on with the exercise of the latest done set while
+/// that has sets left, then the first open set in plan order. Passed
+/// warmups are not open; with nothing open the workout is done.
 pub fn compute_next_up_set(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> Option<ProposedSet> {
-    // Find first proposed set that doesn't have a matching completed set
-    proposed_sets
+    if let Some(next) = crate::workout::awaiting_ramp_set(proposed_sets, completed_sets) {
+        return Some(next);
+    }
+    let open: Vec<&ProposedSet> = proposed_sets
         .iter()
-        .find(|p| {
+        .filter(|p| {
             !completed_sets
                 .iter()
                 .any(|c| c.proposed_set_id == p.id && c.ended_at > 0)
+                && !is_passed_warmup(p, proposed_sets, completed_sets)
         })
-        .cloned()
+        .collect();
+    let latest_exercise = completed_sets
+        .iter()
+        .filter(|c| c.ended_at > 0)
+        .max_by_key(|c| c.ended_at)
+        .and_then(|c| proposed_sets.iter().find(|p| p.id == c.proposed_set_id))
+        .map(|p| p.exercise);
+    latest_exercise
+        .and_then(|ex| open.iter().find(|p| p.exercise == ex))
+        .or_else(|| open.first())
+        .map(|p| (*p).clone())
 }
 
 #[cfg(test)]
@@ -257,19 +294,11 @@ mod summary_tests {
             ..Default::default()
         }
     }
-    fn completed(
-        pid: &str,
-        reps: i32,
-        weight: f32,
-        started: i64,
-        ended: i64,
-        rest_until: i64,
-    ) -> CompletedSet {
+    fn completed(pid: &str, reps: i32, weight: f32, ended: i64, rest_until: i64) -> CompletedSet {
         CompletedSet {
             proposed_set_id: pid.to_string(),
             actual_reps: reps,
             actual_weight: weight,
-            started_at: started,
             ended_at: ended,
             rest_until,
             ..Default::default()
@@ -289,12 +318,13 @@ mod summary_tests {
             proposed("a", 1, false), // work: 100x5
             proposed("b", 1, false), // work: 100x5
         ];
-        // warmup 1000..1030 (rest to 1060); work 1060..1090 (rest to 1150, next
-        // starts 1150); work 1150..1180 (rest to 1240).
+        // warmup done at 1030 (rest to 1060); work done at 1090 (rest to 1150,
+        // but the next set is done at 1130 so the rest is cut short); work done
+        // at 1130 (rest to 1190).
         let completed_sets = vec![
-            completed("w", 5, 45.0, 1000, 1030, 1060),
-            completed("a", 5, 100.0, 1060, 1090, 1150),
-            completed("b", 5, 100.0, 1150, 1180, 1240),
+            completed("w", 5, 45.0, 1030, 1060),
+            completed("a", 5, 100.0, 1090, 1150),
+            completed("b", 5, 100.0, 1130, 1190),
         ];
         let s = compute_workout_summary(&workout, &proposed_sets, &completed_sets);
 
@@ -307,12 +337,62 @@ mod summary_tests {
         // Epley best: 100*(1+5/30) = 116.666...
         assert!((s.exercises[0].best_one_rep_max - 116.6667).abs() < 0.01);
         assert_eq!(s.exercises[0].heaviest_set_weight, 100.0);
-        // Lifting time counts every set: 30 + 30 + 30 = 90.
-        assert_eq!(s.lifting_seconds, 90);
-        // Rest: warmup 30..60 = 30; set a 90..150 = 60; set b 180..240 but workout
-        // ends at 300 so full 60. Total 150.
-        assert_eq!(s.resting_seconds, 150);
+        // Rest counts every set, warmup included: warmup 1030..1060 = 30; set a
+        // 1090..1150 but set b was done at 1130, so 40; set b 1130..1190 = 60.
+        // Total 130.
+        assert_eq!(s.resting_seconds, 130);
+        // Yapping is what's left between sets once the rest has run out: the
+        // warmup's rest ended at 1060 and set a was done at 1090, so 30; set
+        // a was done before its rest ended; set b is the last set. Total 30.
+        assert_eq!(s.yapping_seconds, 30);
         assert_eq!(s.duration_seconds, 300);
+    }
+
+    #[test]
+    fn started_sets_split_into_lifting_resting_and_yapping() {
+        // a: started 1000, done 1030, rest to 1090. b: started 1100, done
+        // 1130, rest to 1190.
+        let workout = Workout {
+            start_time: 1000,
+            end_time: 1300,
+            ..Default::default()
+        };
+        let proposed_sets = vec![proposed("a", 1, false), proposed("b", 1, false)];
+        let completed_sets = vec![
+            CompletedSet {
+                started_at: 1000,
+                ..completed("a", 5, 100.0, 1030, 1090)
+            },
+            CompletedSet {
+                started_at: 1100,
+                ..completed("b", 5, 100.0, 1130, 1190)
+            },
+        ];
+        let s = compute_workout_summary(&workout, &proposed_sets, &completed_sets);
+        // Lifting: Start to Done, 30 + 30.
+        assert_eq!(s.lifting_seconds, 60);
+        // Resting: a 1030..1090, b 1130..1190.
+        assert_eq!(s.resting_seconds, 120);
+        // Yapping: a's rest ended at 1090 and b was *started* at 1100.
+        assert_eq!(s.yapping_seconds, 10);
+    }
+
+    #[test]
+    fn yapping_stops_at_workout_end() {
+        // Rest ends at 1060; the next set's done time (1500) is after the
+        // workout ended (1200), so yapping is 1060..1200 = 140.
+        let workout = Workout {
+            start_time: 1000,
+            end_time: 1200,
+            ..Default::default()
+        };
+        let proposed_sets = vec![proposed("a", 1, false), proposed("b", 1, false)];
+        let completed_sets = vec![
+            completed("a", 5, 100.0, 1030, 1060),
+            completed("b", 5, 100.0, 1500, 1560),
+        ];
+        let s = compute_workout_summary(&workout, &proposed_sets, &completed_sets);
+        assert_eq!(s.yapping_seconds, 140);
     }
 
     #[test]
@@ -320,6 +400,22 @@ mod summary_tests {
         let s = compute_workout_summary(&Workout::default(), &[], &[]);
         assert_eq!(s.total_volume, 0.0);
         assert!(s.exercises.is_empty());
-        assert_eq!(s.lifting_seconds, 0);
+        assert_eq!(s.resting_seconds, 0);
+        assert_eq!(s.duration_seconds, 0);
+    }
+
+    #[test]
+    fn rest_is_capped_at_workout_end() {
+        // The final set's rest runs past end_time: only the part inside the
+        // workout counts.
+        let workout = Workout {
+            start_time: 1000,
+            end_time: 1200,
+            ..Default::default()
+        };
+        let proposed_sets = vec![proposed("a", 1, false)];
+        let completed_sets = vec![completed("a", 5, 100.0, 1180, 1300)];
+        let s = compute_workout_summary(&workout, &proposed_sets, &completed_sets);
+        assert_eq!(s.resting_seconds, 20);
     }
 }

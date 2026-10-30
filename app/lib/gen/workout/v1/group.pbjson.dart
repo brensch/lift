@@ -340,13 +340,21 @@ const ParticipantStatus$json = {
       '6': '.workout.v1.ProposedSet',
       '10': 'nextUpSet'
     },
-    {'1': 'rest_until', '3': 8, '4': 1, '5': 3, '10': 'restUntil'},
-    {'1': 'has_active_set', '3': 9, '4': 1, '5': 8, '10': 'hasActiveSet'},
+    {
+      '1': 'state_snapshot',
+      '3': 10,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WorkoutStateSnapshot',
+      '10': 'stateSnapshot'
+    },
   ],
   '9': [
     {'1': 4, '2': 5},
+    {'1': 8, '2': 9},
+    {'1': 9, '2': 10},
   ],
-  '10': ['exercise_groups'],
+  '10': ['exercise_groups', 'rest_until', 'has_active_set'],
 };
 
 /// Descriptor for `ParticipantStatus`. Decode as a `google.protobuf.DescriptorProto`.
@@ -357,8 +365,9 @@ final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     'JvcG9zZWRfc2V0cxgFIAMoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXRSDHByb3Bvc2VkU2V0'
     'cxI/Cg5jb21wbGV0ZWRfc2V0cxgGIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0Ug1jb2'
     '1wbGV0ZWRTZXRzEjcKC25leHRfdXBfc2V0GAcgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNl'
-    'dFIJbmV4dFVwU2V0Eh0KCnJlc3RfdW50aWwYCCABKANSCXJlc3RVbnRpbBIkCg5oYXNfYWN0aX'
-    'ZlX3NldBgJIAEoCFIMaGFzQWN0aXZlU2V0SgQIBBAFUg9leGVyY2lzZV9ncm91cHM=');
+    'dFIJbmV4dFVwU2V0EkcKDnN0YXRlX3NuYXBzaG90GAogASgLMiAud29ya291dC52MS5Xb3Jrb3'
+    'V0U3RhdGVTbmFwc2hvdFINc3RhdGVTbmFwc2hvdEoECAQQBUoECAgQCUoECAkQClIPZXhlcmNp'
+    'c2VfZ3JvdXBzUgpyZXN0X3VudGlsUg5oYXNfYWN0aXZlX3NldA==');
 
 @$core.Deprecated('Use trainingPartnerDescriptor instead')
 const TrainingPartner$json = {

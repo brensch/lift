@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class SetLog extends StatelessWidget {
   final List<ProposedSet> proposedSets;
@@ -39,8 +39,7 @@ class SetLog extends StatelessWidget {
     2: FixedColumnWidth(24), // owner emoji
     3: FlexColumnWidth(), // exercise name
     4: FixedColumnWidth(96), // result (weight × reps)
-    5: FixedColumnWidth(50), // duration
-    6: FixedColumnWidth(26), // delete
+    5: FixedColumnWidth(26), // delete
   };
 
   @override
@@ -50,12 +49,12 @@ class SetLog extends StatelessWidget {
     final proposedById = <String, ProposedSet>{
       for (final p in proposedSets) p.id: p,
     };
-    final done = completedSets.where((c) => c.endedAt != Int64.ZERO).toList()
+    final done = completedSets.toList()
       ..sort((a, b) => b.endedAt.compareTo(a.endedAt));
 
     if (done.isEmpty) {
       if (!stickyHeader) return const SizedBox.shrink();
-      return _emptyState(colorScheme);
+      return _emptyState(context, colorScheme);
     }
 
     final hasOwners = done.any(
@@ -67,8 +66,8 @@ class SetLog extends StatelessWidget {
       child: Text(
         'COMPLETED SETS',
         style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
+          fontSize: context.tokens.size.small,
+          fontWeight: context.tokens.weight.bold,
           letterSpacing: 1.5,
           color: colorScheme.tertiary,
         ),
@@ -95,7 +94,7 @@ class SetLog extends StatelessWidget {
             columnWidths: _columnWidths,
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             border: rowDivider,
-            children: [_headerRow(colorScheme), ...bodyRows],
+            children: [_headerRow(context, colorScheme), ...bodyRows],
           ),
         ],
       );
@@ -108,7 +107,7 @@ class SetLog extends StatelessWidget {
         Table(
           columnWidths: _columnWidths,
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-          children: [_headerRow(colorScheme)],
+          children: [_headerRow(context, colorScheme)],
         ),
         Divider(
           height: 1,
@@ -131,19 +130,19 @@ class SetLog extends StatelessWidget {
     );
   }
 
-  Widget _emptyState(ColorScheme colorScheme) {
+  Widget _emptyState(BuildContext context, ColorScheme colorScheme) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('🏋️', style: TextStyle(fontSize: 40)),
+          Text('🏋️', style: TextStyle(fontSize: context.tokens.size.display)),
           const SizedBox(height: 14),
           Text(
             'No completed sets yet.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontSize: context.tokens.size.bodyLg,
+              fontWeight: context.tokens.weight.heavy,
               color: colorScheme.onSurface,
             ),
           ),
@@ -152,8 +151,8 @@ class SetLog extends StatelessWidget {
             'Get schlifting mate',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.bold,
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -162,7 +161,7 @@ class SetLog extends StatelessWidget {
     );
   }
 
-  TableRow _headerRow(ColorScheme colorScheme) {
+  TableRow _headerRow(BuildContext context, ColorScheme colorScheme) {
     Widget label(String text, TextAlign align, EdgeInsets padding) {
       return Padding(
         padding: padding,
@@ -170,8 +169,8 @@ class SetLog extends StatelessWidget {
           text,
           textAlign: align,
           style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
+            fontSize: context.tokens.size.caption,
+            fontWeight: context.tokens.weight.heavy,
             letterSpacing: 0.6,
             color: colorScheme.tertiary.withValues(alpha: 0.7),
           ),
@@ -195,7 +194,6 @@ class SetLog extends StatelessWidget {
           TextAlign.right,
           const EdgeInsets.only(left: 10, bottom: 8),
         ),
-        label('DUR', TextAlign.right, headerPad),
         const SizedBox.shrink(),
       ],
     );
@@ -225,8 +223,8 @@ class SetLog extends StatelessWidget {
     Color resultColor = colorScheme.onSurface;
     if (!isWarmup && proposed != null) {
       resultColor = completed.actualReps >= proposed.targetReps
-          ? AppTheme.successFg
-          : AppTheme.warningFg;
+          ? context.tokens.successFg
+          : context.tokens.warningFg;
     } else if (isWarmup) {
       resultColor = colorScheme.onSurface.withValues(alpha: 0.7);
     }
@@ -236,11 +234,6 @@ class SetLog extends StatelessWidget {
     );
     final timeStr =
         '${finishTime.hour.toString().padLeft(2, '0')}:${finishTime.minute.toString().padLeft(2, '0')}';
-
-    final durationSecs = (completed.endedAt - completed.startedAt).toInt();
-    final durationStr = durationSecs < 60
-        ? '${durationSecs}s'
-        : '${durationSecs ~/ 60}m${(durationSecs % 60).toString().padLeft(2, '0')}s';
 
     final canDelete =
         onDelete != null &&
@@ -258,8 +251,8 @@ class SetLog extends StatelessWidget {
             timeStr,
             textAlign: TextAlign.right,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontSize: context.tokens.size.small,
+              fontWeight: context.tokens.weight.bold,
               color: colorScheme.tertiary,
             ),
           ),
@@ -269,7 +262,7 @@ class SetLog extends StatelessWidget {
           child: Text(
             isWarmup ? '🔥' : '🏋️',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15),
+            style: TextStyle(fontSize: context.tokens.size.bodyLg),
           ),
         ),
         Padding(
@@ -278,7 +271,7 @@ class SetLog extends StatelessWidget {
               ? Text(
                   ownerEmoji,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 15),
+                  style: TextStyle(fontSize: context.tokens.size.bodyLg),
                 )
               : const SizedBox.shrink(),
         ),
@@ -289,8 +282,8 @@ class SetLog extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: -0.2,
               color: colorScheme.onSurface,
             ),
@@ -302,22 +295,10 @@ class SetLog extends StatelessWidget {
             resultStr,
             textAlign: TextAlign.right,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: -0.2,
               color: resultColor,
-            ),
-          ),
-        ),
-        Padding(
-          padding: cellPad,
-          child: Text(
-            durationStr,
-            textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: colorScheme.tertiary.withValues(alpha: 0.78),
             ),
           ),
         ),
@@ -354,7 +335,7 @@ class SetLog extends StatelessWidget {
         if (confirmed == true) onDelete!(completed.id);
       },
       child: Icon(
-        Icons.delete_outline_rounded,
+        AppIcons.delete,
         size: 18,
         color: colorScheme.outline.withValues(alpha: 0.62),
       ),

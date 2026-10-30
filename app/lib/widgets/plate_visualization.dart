@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../logic/plate_calculator.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
+import '../theme/theme_spec.dart';
 
 Future<void> showPlateBreakdownDialog(
   BuildContext context, {
@@ -16,7 +17,7 @@ Future<void> showPlateBreakdownDialog(
     builder: (context) => AlertDialog(
       title: Text(
         '${formatWeight(weight, unit).toUpperCase()} BREAKDOWN',
-        style: const TextStyle(fontWeight: FontWeight.w900),
+        style: TextStyle(fontWeight: context.tokens.weight.heavy),
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -105,8 +106,8 @@ class PlateVisualization extends StatelessWidget {
                     'Dumbbell setup',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.subtitle,
+                      fontWeight: context.tokens.weight.heavy,
                       color: Colors.grey.shade600,
                       height: 1.8,
                       letterSpacing: 0.5,
@@ -121,8 +122,8 @@ class PlateVisualization extends StatelessWidget {
                     'Bar only',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.subtitle,
+                      fontWeight: context.tokens.weight.heavy,
                       color: Colors.grey.shade600,
                       height: 1.8,
                       letterSpacing: 0.5,
@@ -146,8 +147,8 @@ class PlateVisualization extends StatelessWidget {
                   'Each side:\n$plateDescription',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
+                    fontSize: context.tokens.size.subtitle,
+                    fontWeight: context.tokens.weight.heavy,
                     color: Colors.grey.shade600,
                     height: 1.8,
                     letterSpacing: 0.5,

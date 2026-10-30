@@ -4,6 +4,11 @@
 // half of `make store-capture`; framing and upload happen in
 // scripts/frame_store_screenshots.py and store-assets.yml.
 //
+// It also runs in the plain e2e suite, whose agent backend is not seeded.
+// There `demo` and `demo-live` are brand-new accounts: the script onboards
+// them and seeds a thin history over the API so the same slides render, just
+// with less behind them. The real captures come from `make store-capture`.
+//
 // Slides are numbered by shot order; captions live in store/listing.yaml.
 import 'dart:math' as math;
 
@@ -13,9 +18,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:provider/provider.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
+import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 import 'package:schlift/providers/workout_provider.dart';
 
+import 'support/api.dart';
 import 'support/scenario.dart';
+import 'package:schlift/theme/app_icons.dart';
 
 /// Feed heart rate the way the watch does: a batch of samples into the
 /// provider's wearable ingest path, covering the workout so far. Each call
@@ -56,6 +64,22 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
   await tester.pump(const Duration(milliseconds: 300));
 }
 
+/// On an unseeded backend, give [peer] a few climbing sessions of every
+/// StrongLifts lift so Progress, History and the exercise detail have
+/// something to draw and the next session opens with warmups rather than a
+/// calibration rung.
+/// Returns whether anything was seeded.
+Future<bool> seedThinHistoryIfNeeded(Peer peer, {int sessions = 3}) async {
+  if (await peer.hasPerformed(Exercise.EXERCISE_SQUAT)) return false;
+  for (var i = 0; i < sessions; i++) {
+    await peer.doWorkout('StrongLifts', [
+      for (final lift in Scenario.defaultTemplateLifts)
+        MapEntry(lift, 65 + i * 5.0),
+    ]);
+  }
+  return true;
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -65,17 +89,18 @@ void main() {
       await s.launch();
       await s.devLogin('demo');
       await s.completeOnboarding(); // no-op for the seeded account
-      // A fresh install shows the tutorial once; it is not a store slide.
-      if (await s.waitForText('SKIP', seconds: 6)) {
-        await s.tapText('SKIP');
+      await s.mustSee(Scenario.homeStart, seconds: 12);
+      if (await seedThinHistoryIfNeeded(await s.api.login('demo'))) {
+        s.note('Unseeded backend: thin history seeded for demo', kind: 'api');
+        await s.relaunch(); // home re-reads the trackers and the volume
+        await s.mustSee(Scenario.homeStart, seconds: 12);
       }
-      await s.mustSee('START', seconds: 12);
 
       // 00 — home: volume tracker, templates, the suggested one with its plan.
       await s.shot('Home');
 
       // 01 — progress charts (before the workout, so no timer bar overlays).
-      await s.tap(find.byIcon(Icons.menu));
+      await s.tap(find.byIcon(AppIcons.menu));
       await s.tapText('Progress');
       await s.settle(seconds: 3);
       await s.shot('Progress');
@@ -100,43 +125,43 @@ void main() {
       await s.shot('Exercise detail');
 
       // 03 — history.
-      await s.tap(find.byIcon(Icons.menu));
+      await s.tap(find.byIcon(AppIcons.menu));
       await s.tapText('History');
       await s.settle(seconds: 3);
       await s.shot('History');
 
       // Switch to the account that is 24 minutes into a session (seeded by
-      // SEED_DEMO_USER as `demo-live`); the app resumes straight into it.
-      await s.tap(find.byIcon(Icons.menu));
+      // SEED_DEMO_USER as `demo-live`); the app resumes straight into it. On
+      // an unseeded backend it is a new account: onboard, seed, start one.
+      await s.tap(find.byIcon(AppIcons.menu));
       await s.tapText('Logout');
       await s.devLogin('demo-live');
-      if (!await s.waitForText('Start Early', seconds: 20)) {
-        await s.mustSee('Start Set', seconds: 5);
+      await s.completeOnboarding();
+      if (!await s.waitForText('End workout', seconds: 10)) {
+        final live = await s.api.login('demo-live');
+        if (await seedThinHistoryIfNeeded(live)) {
+          s.note(
+            'Unseeded backend: thin history seeded for demo-live',
+            kind: 'api',
+          );
+        }
+        await s.startWorkoutFromHome();
       }
-      // Skip the next exercise's warmups so the live slides show a working set.
-      for (var i = 0; i < 6 && s.isVisible('Skip'); i++) {
-        if (!s.visibleTexts().any((t) => t == 'Warmup')) break;
-        await s.tapText('Skip');
-        await s.settle(seconds: 1);
-      }
+
       // Heart rate "from the watch": back-fill the whole session so the bar
       // shows a live number and the Heart tab has a trace.
       await feedHeartRate(tester, sinceMs: 0);
 
-      // 04 — mid-session: two exercises done, resting before the next.
+      // 04 — mid-session: exercises done, a working set ready, Start offered
+      // (with the seeded rest still running or not).
+      for (var i = 0; i < 6 && !s.setOffered; i++) {
+        await s.settle(seconds: 1);
+      }
       await s.shot('Workout ready');
 
-      // 05 — a set in progress.
-      await s.tapText(s.isVisible('Start Early') ? 'Start Early' : 'Start Set');
-      await s.settle(seconds: 2);
-      await feedHeartRate(
-        tester,
-        sinceMs: DateTime.now().millisecondsSinceEpoch - 20000,
-      );
-      await s.shot('Set in progress');
-
-      // 06 — rest timer after completing a set.
-      await s.tapText('Complete Set');
+      // 05 — resting after a set: Start, then Good; the countdown runs and
+      // Start is offered for the next set.
+      await s.liftSet();
       await s.settle(seconds: 2);
       await feedHeartRate(
         tester,
@@ -144,7 +169,7 @@ void main() {
       );
       await s.shot('Resting');
 
-      // 07 — the Heart tab: the trace over the session.
+      // 06 — the Heart tab: the trace over the session.
       await s.tapText('Heart');
       await s.settle(seconds: 2);
       await feedHeartRate(
@@ -153,12 +178,14 @@ void main() {
       );
       await s.shot('Heart rate');
 
-      // Leave the account clean for the next capture: end the open workout
-      // through the API rather than the UI so the shots above stay untouched.
-      final peer = await s.api.login('demo-live');
-      if (await peer.adoptActiveWorkout()) {
-        await peer.endWorkout();
-      }
+      // 07 — the completed screen: Duration / Volume / Sets / Rest and the
+      // heart-rate trace with the rests shaded. Ending through the UI also
+      // leaves the account clean for the next capture.
+      await s.tapText('Workout');
+      await s.settle(seconds: 1);
+      await s.endWorkoutAndWaitForSummary();
+      await s.settle(seconds: 2);
+      await s.shot('Workout complete');
     });
   });
 }

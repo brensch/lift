@@ -18,7 +18,7 @@ import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/page_tracker.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
 import '../tutorial/tutorial_service.dart';
 import '../tutorial/tutorial_target.dart';
 import '../widgets/main_layout.dart';
@@ -204,6 +204,8 @@ class _TutorialScreenState extends State<TutorialScreen>
                       animation: _throb,
                       builder: (context, _) => CustomPaint(
                         painter: _SpotlightPainter(
+                          outline: context.tokens.accentRed,
+                          radius: context.tokens.radius(18),
                           target: _target,
                           throb: Curves.easeInOut.transform(_throb.value),
                         ),
@@ -234,10 +236,16 @@ class _TutorialScreenState extends State<TutorialScreen>
 class _SpotlightPainter extends CustomPainter {
   final Rect? target;
   final double throb;
+  final Color outline;
 
-  _SpotlightPainter({required this.target, required this.throb});
+  _SpotlightPainter({
+    required this.target,
+    required this.throb,
+    required this.outline,
+    required Radius radius,
+  }) : _radius = radius;
 
-  static const _radius = Radius.circular(18);
+  final Radius _radius;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -258,7 +266,7 @@ class _SpotlightPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(hole, _radius),
       Paint()
-        ..color = AppTheme.accentRed.withValues(alpha: 0.35 + 0.35 * throb)
+        ..color = outline.withValues(alpha: 0.35 + 0.35 * throb)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6 + 10 * throb
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 + 10 * throb),
@@ -266,7 +274,7 @@ class _SpotlightPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(hole, _radius),
       Paint()
-        ..color = AppTheme.accentRed.withValues(alpha: 0.8 + 0.2 * throb)
+        ..color = outline.withValues(alpha: 0.8 + 0.2 * throb)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3,
     );
@@ -274,7 +282,7 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SpotlightPainter old) =>
-      old.target != target || old.throb != throb;
+      old.target != target || old.throb != throb || old.outline != outline;
 }
 
 /// The explanation with the controls: placed below the target when there
@@ -359,7 +367,7 @@ class _Popover extends StatelessWidget {
       elevation: 16,
       shadowColor: Colors.black,
       shape: RoundedRectangleBorder(
-        borderRadius: AppTheme.brLg,
+        borderRadius: context.tokens.brLg,
         side: BorderSide(color: cs.onSurface.withValues(alpha: 0.35), width: 2),
       ),
       clipBehavior: Clip.antiAlias,
@@ -377,9 +385,9 @@ class _Popover extends StatelessWidget {
                   children: [
                     Text(
                       step.title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                      style: TextStyle(
+                        fontSize: context.tokens.size.title,
+                        fontWeight: context.tokens.weight.heavy,
                         letterSpacing: -0.4,
                         height: 1.15,
                       ),
@@ -388,7 +396,7 @@ class _Popover extends StatelessWidget {
                     Text(
                       step.body,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: context.tokens.size.bodyLg,
                         height: 1.4,
                         color: cs.onSurface.withValues(alpha: 0.75),
                       ),
@@ -403,13 +411,17 @@ class _Popover extends StatelessWidget {
                               builder: (_) => const ScienceScreen(),
                             ),
                           ),
-                          icon: const Text(
+                          icon: Text(
                             '🧠',
-                            style: TextStyle(fontSize: 15),
+                            style: TextStyle(
+                              fontSize: context.tokens.size.bodyLg,
+                            ),
                           ),
                           label: Text(
                             t.papersButton,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                              fontWeight: context.tokens.weight.heavy,
+                            ),
                           ),
                         ),
                       ),
@@ -430,35 +442,49 @@ class _Popover extends StatelessWidget {
                     ),
                     child: Text(
                       t.skip,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
                     ),
                   ),
-                const Spacer(),
-                SizedBox(
-                  height: 40,
-                  child: OutlinedButton(
-                    onPressed: onPrevious,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                    ),
-                    child: Text(
-                      t.previous,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  height: 40,
-                  child: FilledButton(
-                    onPressed: onNext,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                    ),
-                    child: Text(
-                      _last ? t.finish : t.next,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
+                // The labels come from copy.yaml, so a long one wraps the
+                // buttons onto a second line rather than overflowing the card.
+                Expanded(
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      SizedBox(
+                        height: 40,
+                        child: OutlinedButton(
+                          onPressed: onPrevious,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                          ),
+                          child: Text(
+                            t.previous,
+                            style: TextStyle(
+                              fontWeight: context.tokens.weight.heavy,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 40,
+                        child: FilledButton(
+                          onPressed: onNext,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                          ),
+                          child: Text(
+                            _last ? t.finish : t.next,
+                            style: TextStyle(
+                              fontWeight: context.tokens.weight.heavy,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

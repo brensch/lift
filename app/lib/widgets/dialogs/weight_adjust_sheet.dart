@@ -15,6 +15,8 @@ import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showWeightAdjustSheet(
   BuildContext context, {
@@ -48,7 +50,12 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   late double _weight;
   bool _isSaving = false;
 
-  List<ProposedSet> get _workingSets => widget.block.workingSets.toList();
+  /// The sets the weight is read from: the working sets, or — mid-ramp,
+  /// before any exist — the calibration rungs.
+  List<ProposedSet> get _workingSets {
+    final working = widget.block.workingSets.toList();
+    return working.isNotEmpty ? working : widget.block.calibrationSets.toList();
+  }
 
   @override
   void initState() {
@@ -93,8 +100,8 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusLg),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.tokens.radiusLg),
         ),
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
@@ -114,9 +121,9 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
               Expanded(
                 child: Text(
                   exerciseNames[widget.block.exercise] ?? 'Adjust weight',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.subtitle,
+                    fontWeight: context.tokens.weight.heavy,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -128,13 +135,13 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
                     widget.onDelete!();
                   },
                   icon: Icon(
-                    Icons.delete_outline_rounded,
+                    AppIcons.delete,
                     color: cs.error.withValues(alpha: 0.8),
                   ),
                 ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                icon: const Icon(AppIcons.close),
               ),
             ],
           ),
@@ -143,7 +150,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             'session, and finishing at the new weight updates your '
             'progression.',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: context.tokens.size.small,
               color: cs.onSurface.withValues(alpha: 0.55),
             ),
           ),
@@ -152,7 +159,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _StepButton(
-                icon: Icons.remove,
+                icon: AppIcons.remove,
                 onTap: () => setState(() {
                   _weight = (_weight - step).clamp(0, 2000);
                 }),
@@ -162,15 +169,15 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
                 child: Text(
                   formatWeight(_weight, unit, includeUnit: true),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.titleLg,
+                    fontWeight: context.tokens.weight.heavy,
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
               _StepButton(
-                icon: Icons.add,
+                icon: AppIcons.add,
                 onTap: () => setState(() {
                   _weight = (_weight + step).clamp(0, 2000);
                 }),
@@ -190,9 +197,9 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
                     )
                   : Text(
                       _dirty ? 'UPDATE' : 'DONE',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.heavy,
+                        fontSize: context.tokens.size.bodyLg,
                       ),
                     ),
             ),
@@ -234,7 +241,7 @@ Future<bool> showDeleteExerciseDialog(
         builder: (ctx) => AlertDialog(
           title: Text(
             'Remove $exerciseName?',
-            style: const TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(fontWeight: context.tokens.weight.heavy),
           ),
           content: const Text(
             'This will remove its remaining sets. Sets you already did stay.',

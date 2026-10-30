@@ -9,14 +9,14 @@ tutorial:
   skip: SKIP
   next: NEXT
   previous: BACK
-  finish: LET'S LIFT
+  finish: LET'S SCHLIFT
   papers_button: READ THE PAPERS
 
   # The walkthrough runs over the real screens with a sample account behind
   # them. Each step points at one `target` (an id the screens know: see
-  # TutorialTarget in the code) on a `screen` (home, then workout), with the
-  # explanation in a popover beside it. `action: start_workout` opens the
-  # sample session (already two exercises in, mid-rest) before the step.
+  # TutorialTarget in the code) on a `screen` (home), with the explanation
+  # in a popover beside it. The tour ends at Start; the workout screen
+  # explains itself.
   steps:
     - screen: home
       target: home_volume
@@ -36,37 +36,8 @@ tutorial:
       body: The last thing I want is for you to have to worry about numbers. I track them for you - sets × reps @ weight. Just decide what you want to work on.
     - screen: home
       target: home_start
-      title: Start 
-      body: Pressing Start is how you Start. Cool.
-    - screen: workout
-      action: start_workout
-      target: workout_current
-      title: Whatcha up to
-      body: Summary of what you're up to if someone asks how many sets you have left. It's also shown on the watch app.
-    - screen: workout
-      target: workout_all
-      title: what's up next
-      body: All the activities for the rest of the workout are here. Drag them to rearrange if someone is camping the squat rack.
-    - screen: workout
-      target: bar_status
-      title: Your current set
-      body: The weight and the reps to hit, plus time left resting/time spent yapping etc. Beautifully colour coded for maximum aesthetics.
-    - screen: workout
-      target: bar_plates
-      title: Plate maths
-      body: I calculate how many plates to use to make up the weight. This feature costs money in other apps, I give it to you for free since I'm such a nice guy.
-    - screen: workout
-      target: bar_timer
-      title: Elapsed / heart rate
-      body: How long you've been going, and your heart rate from the watch if you're wearing one.
-    - screen: workout
-      target: bar_button
-      title: Tap to start/finish sets
-      body: You can also do that from your watch.
-    - screen: workout
-      target: workout_tabs
-      title: Log and heart
-      body: Everything you've lifted this session, and your heart rate over time.
+      title: Start
+      body: Pressing Start is how you Start. Let's get schlifting!
 
 # The template library: templates/library.yaml, offered during setup and
 # from the Add chip on the home screen.
@@ -119,6 +90,12 @@ login:
   dev_login: Dev Login
 
 # Setup after signing up: marker, unit, a little about you, your workouts.
+# The one-time page right after sign-in. Its button asks the phone for every
+# permission the app uses, back to back: notifications, then Health (and on
+# Android 14+ the alarms setting that keeps the rest timer on time).
+permissions:
+  title: Studies show that people who give this app the permissions it needs get 23% more huge
+  button: GRANT PERMISSIONS
 onboarding:
   next: NEXT
   back: BACK
@@ -218,3 +195,42 @@ lost_passkey:
   button: Lost passkey?
   title: Lost passkey
   body: This is so sad that you've lost your passkey. I have empathy for you during this difficult time. Make sure you check your password manager, your phone should have saved it for you when you signed up. If you deleted it, please tell Brendan your previous username and he will fix it for you.
+
+# The live workout: the set circles and status bars on the phone, and every
+# screen on the watch. A set is a circle: tap to start it, tap again when
+# it's done, once more for each rep you missed. {n} and {m} are substituted
+# by the code.
+workout:
+  start: Start
+  done: Done
+  ready: Ready
+  lifting: Lifting
+  yapping: Yapping
+  resting: Resting
+  all_done: All done
+  end_workout: End workout
+  set_line: Set {n} of {m}
+  warmup_line: Warmup {n} of {m}
+  warmup_label: WARMUP
+  working_label: WORKING
+  # Down the plates of whoever is up next on the rack.
+  next_label: NEXT
+  skip_warmups: Skip all warmups
+  calibration_line: Finding weight
+  set_weight: I know my weight
+  empty_bar: Bar
+  # Finding weight: after each rung, how much was left in the tank. The
+  # answer picks the next rung or settles the working weight.
+  reps_left_question: How many more could you have done?
+  reps_left_none: 0–1
+  reps_left_some: 2–3
+  reps_left_lots: 4+
+  # Shown at the top of the bottom banner during someone's first workout
+  # only, for whatever they are doing at that moment.
+  hints:
+    ready: Tap the orange circle to start the set.
+    lifting: Tap the circle again when the set is done.
+    resting: Missed reps? Tap that circle once for each.
+    yapping: Rest is over. Tap the next circle to start.
+    finding_weight: Answer above so I can find your weight.
+    all_done: That's everything. End the workout when you're ready.

@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../../../logic/user_profile.dart';
+import '../../../theme/theme_spec.dart';
 
 class ProfilePreviewCard extends StatelessWidget {
   final String emoji;
@@ -22,7 +23,7 @@ class ProfilePreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: context.tokens.br(16),
         border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -32,12 +33,15 @@ class ProfilePreviewCard extends StatelessWidget {
             height: 88,
             decoration: BoxDecoration(
               color: accent,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(16),
+              borderRadius: BorderRadius.horizontal(
+                left: context.tokens.radius(16),
               ),
             ),
             alignment: Alignment.center,
-            child: Text(emoji, style: const TextStyle(fontSize: 28)),
+            child: Text(
+              emoji,
+              style: TextStyle(fontSize: context.tokens.size.headline),
+            ),
           ),
           Expanded(
             child: Padding(
@@ -48,17 +52,17 @@ class ProfilePreviewCard extends StatelessWidget {
                   Text(
                     'Group workout preview',
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.body,
+                      fontWeight: context.tokens.weight.heavy,
                       color: cs.tertiary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Your emoji replaces the vertical name and your colour owns the sidebar.',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.body,
+                      fontWeight: context.tokens.weight.bold,
                     ),
                   ),
                 ],
@@ -88,7 +92,7 @@ class EmojiChoiceChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: context.tokens.br(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 52,
@@ -98,13 +102,16 @@ class EmojiChoiceChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: context.tokens.br(14),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
             width: selected ? 2 : 1,
           ),
         ),
-        child: Text(emoji, style: const TextStyle(fontSize: 26)),
+        child: Text(
+          emoji,
+          style: TextStyle(fontSize: context.tokens.size.titleLg),
+        ),
       ),
     );
   }
@@ -128,7 +135,7 @@ class ColorChoiceDot extends StatelessWidget {
     final color = profileColorFromHex(hex);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: context.tokens.br(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 38,

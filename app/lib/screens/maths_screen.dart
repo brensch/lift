@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/health_service.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class MathsScreen extends StatelessWidget {
   const MathsScreen({super.key});
@@ -24,12 +26,15 @@ class MathsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Calorie maths',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: context.tokens.weight.heavy,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       body: ListView(
@@ -37,9 +42,12 @@ class MathsScreen extends StatelessWidget {
         children: [
           _SectionLabel('CALORIE ESTIMATION', cs),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'How we estimate calories burned',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.titleLg,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -48,7 +56,7 @@ class MathsScreen extends StatelessWidget {
             'Sports Exerc 43(8):1575–81). Traditional strength training has a '
             'MET value of 3.5.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.5,
               color: cs.onSurface.withValues(alpha: 0.7),
             ),
@@ -72,9 +80,12 @@ class MathsScreen extends StatelessWidget {
           ],
           _SectionLabel('WHAT ABOUT TONNAGE?', cs),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Volume and calorie burn',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.title,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -94,7 +105,7 @@ class MathsScreen extends StatelessWidget {
             'selection, and body composition that no formula can capture without '
             'direct measurement.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.5,
               color: cs.onSurface.withValues(alpha: 0.7),
             ),
@@ -102,9 +113,12 @@ class MathsScreen extends StatelessWidget {
           const SizedBox(height: 20),
           _SectionLabel('ACCURACY', cs),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Why this is an estimate',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.title,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -119,7 +133,7 @@ class MathsScreen extends StatelessWidget {
             'roughly the midpoint of the 4–10 kcal/min range observed across '
             'studies.',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.5,
               color: cs.onSurface.withValues(alpha: 0.7),
             ),
@@ -127,13 +141,13 @@ class MathsScreen extends StatelessWidget {
           const SizedBox(height: 20),
           _SectionLabel('REFERENCES', cs),
           const SizedBox(height: 8),
-          ..._references(cs),
+          ..._references(context, cs),
         ],
       ),
     );
   }
 
-  List<Widget> _references(ColorScheme cs) {
+  List<Widget> _references(BuildContext context, ColorScheme cs) {
     final refs = [
       'Ainsworth BE et al. (2011). 2011 Compendium of Physical Activities: A Second Update of Codes and MET Values. Med Sci Sports Exerc, 43(8):1575–81.',
       'Haddock CK & Wilkin LD (2006). Resistance training volume and post exercise energy expenditure. Int J Sports Med, 27(2):143–8.',
@@ -150,14 +164,14 @@ class MathsScreen extends StatelessWidget {
                   '• ',
                   style: TextStyle(
                     color: cs.primary,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: context.tokens.weight.heavy,
                   ),
                 ),
                 Expanded(
                   child: Text(
                     r,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: context.tokens.size.small,
                       height: 1.5,
                       color: cs.onSurface.withValues(alpha: 0.6),
                     ),
@@ -182,8 +196,8 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w900,
+        fontSize: context.tokens.size.small,
+        fontWeight: context.tokens.weight.heavy,
         letterSpacing: 1.4,
         color: cs.tertiary,
       ),
@@ -202,7 +216,7 @@ class _FormulaCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cs.primaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: context.tokens.br(16),
         border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -211,8 +225,8 @@ class _FormulaCard extends StatelessWidget {
           Text(
             'FORMULA',
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.caption,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 1.2,
               color: cs.primary,
             ),
@@ -220,19 +234,26 @@ class _FormulaCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             'calories = MET × 3.5 × weight_kg × minutes ÷ 200',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'monospace',
-              color: cs.onSurface,
+            style: context.tokens.mono(
+              TextStyle(
+                fontSize: context.tokens.size.bodyLg,
+                fontWeight: context.tokens.weight.bold,
+                color: cs.onSurface,
+              ),
             ),
           ),
           const SizedBox(height: 14),
-          _row(cs, 'MET', '3.5 (traditional strength training)'),
-          _row(cs, '3.5', 'ml O₂ per kg per min at 1 MET (standard constant)'),
-          _row(cs, 'weight_kg', 'your bodyweight in kilograms'),
-          _row(cs, 'minutes', 'total workout duration'),
+          _row(context, cs, 'MET', '3.5 (traditional strength training)'),
           _row(
+            context,
+            cs,
+            '3.5',
+            'ml O₂ per kg per min at 1 MET (standard constant)',
+          ),
+          _row(context, cs, 'weight_kg', 'your bodyweight in kilograms'),
+          _row(context, cs, 'minutes', 'total workout duration'),
+          _row(
+            context,
             cs,
             '÷ 200',
             'converts ml O₂/min to kcal/min (5 kcal/L O₂ ÷ 1000 × 40)',
@@ -242,7 +263,12 @@ class _FormulaCard extends StatelessWidget {
     );
   }
 
-  Widget _row(ColorScheme cs, String term, String definition) {
+  Widget _row(
+    BuildContext context,
+    ColorScheme cs,
+    String term,
+    String definition,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -252,11 +278,12 @@ class _FormulaCard extends StatelessWidget {
             width: 90,
             child: Text(
               term,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'monospace',
-                color: cs.primary,
+              style: context.tokens.mono(
+                TextStyle(
+                  fontSize: context.tokens.size.small,
+                  fontWeight: context.tokens.weight.heavy,
+                  color: cs.primary,
+                ),
               ),
             ),
           ),
@@ -264,7 +291,7 @@ class _FormulaCard extends StatelessWidget {
             child: Text(
               definition,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: context.tokens.size.small,
                 color: cs.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -294,7 +321,7 @@ class _ExampleCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: context.tokens.br(16),
         border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -303,8 +330,8 @@ class _ExampleCard extends StatelessWidget {
           Text(
             'EXAMPLE: ${durationMinutes.toInt()} MIN SESSION',
             style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.caption,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 1.2,
               color: cs.tertiary,
             ),
@@ -312,18 +339,19 @@ class _ExampleCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             '3.5 × 3.5 × ${bodyWeightKg.toStringAsFixed(1)} × ${durationMinutes.toInt()} ÷ 200',
-            style: TextStyle(
-              fontSize: 13,
-              fontFamily: 'monospace',
-              color: cs.onSurface.withValues(alpha: 0.6),
+            style: context.tokens.mono(
+              TextStyle(
+                fontSize: context.tokens.size.body,
+                color: cs.onSurface.withValues(alpha: 0.6),
+              ),
             ),
           ),
           const SizedBox(height: 6),
           Text(
             '≈ $calories kcal',
             style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.headline,
+              fontWeight: context.tokens.weight.heavy,
               color: cs.primary,
             ),
           ),
@@ -344,16 +372,19 @@ class _NoWeightCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.errorContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: context.tokens.br(12),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: cs.error, size: 20),
+          Icon(AppIcons.info, color: cs.error, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               'Set your bodyweight in Settings → Body weight to get a personalised calorie estimate.',
-              style: TextStyle(fontSize: 13, color: cs.onSurface),
+              style: TextStyle(
+                fontSize: context.tokens.size.body,
+                color: cs.onSurface,
+              ),
             ),
           ),
         ],

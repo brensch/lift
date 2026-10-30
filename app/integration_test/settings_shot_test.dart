@@ -1,10 +1,10 @@
 // Captures the Settings screen for review (debug tiles, U5).
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'support/scenario.dart';
+import 'package:schlift/theme/app_icons.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +15,7 @@ void main() {
     await s.devLogin('set_${DateTime.now().millisecondsSinceEpoch}');
     await s.completeOnboarding();
 
-    await s.tap(find.byIcon(Icons.menu));
+    await s.tap(find.byIcon(AppIcons.menu));
     expect(await s.waitForText('Settings', seconds: 6), isTrue);
     await s.tapText('Settings');
     await s.settle(seconds: 2);

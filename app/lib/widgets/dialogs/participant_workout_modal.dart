@@ -2,19 +2,22 @@
 library;
 
 import 'dart:async';
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import '../../gen/workout/v1/group.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/theme_spec.dart';
 import '../exercise_block_widget.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showParticipantWorkoutModal(
   BuildContext context,
   ParticipantStatus participant,
 ) async {
   final blocks = _participantBlocks(participant);
-  final activeSetId = _participantActiveSetId(participant);
+  final nextSetId = participant.hasNextUpSet()
+      ? participant.nextUpSet.id
+      : null;
   final displayName = participant.user.name.isNotEmpty
       ? participant.user.name
       : participant.user.id;
@@ -30,8 +33,8 @@ Future<void> showParticipantWorkoutModal(
       return Container(
         decoration: BoxDecoration(
           color: AppTheme.sheetColor(ctx),
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTheme.radiusLg),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(context.tokens.radiusLg),
           ),
           border: Border.all(color: colorScheme.outline.withValues(alpha: 0.5)),
         ),
@@ -53,8 +56,8 @@ Future<void> showParticipantWorkoutModal(
                     child: Text(
                       "$displayName's Workout",
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                        fontSize: context.tokens.size.title,
+                        fontWeight: context.tokens.weight.heavy,
                         letterSpacing: -0.5,
                         color: colorScheme.onSurface,
                       ),
@@ -62,7 +65,7 @@ Future<void> showParticipantWorkoutModal(
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                   ),
                 ],
               ),
@@ -73,7 +76,10 @@ Future<void> showParticipantWorkoutModal(
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   child: Text(
                     'No workout data available.',
-                    style: TextStyle(fontSize: 14, color: colorScheme.tertiary),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.body,
+                      color: colorScheme.tertiary,
+                    ),
                   ),
                 )
               else
@@ -83,7 +89,7 @@ Future<void> showParticipantWorkoutModal(
                       ExerciseBlockWidget(
                         block: blocks[i],
                         completedSets: participant.completedSets,
-                        activeSetId: activeSetId,
+                        nextSetId: nextSetId,
                       ),
                       if (i < blocks.length - 1) const SizedBox(height: 8),
                     ],
@@ -103,13 +109,4 @@ List<ExerciseBlock> _participantBlocks(ParticipantStatus participant) {
   final proposedSets = participant.proposedSets.toList()
     ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
   return blocksFromSets(proposedSets);
-}
-
-String? _participantActiveSetId(ParticipantStatus participant) {
-  for (final completed in participant.completedSets) {
-    if (completed.endedAt == Int64.ZERO) {
-      return completed.proposedSetId;
-    }
-  }
-  return null;
 }

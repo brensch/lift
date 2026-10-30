@@ -158,19 +158,16 @@ export function generateDemoData(): DashboardData {
         }
       }
 
-      const liftingS = setCount * (30 + Math.floor(rand() * 15));
       const restingS = setCount * (140 + Math.floor(rand() * 60));
-      const yappingS = Math.floor((liftingS + restingS) * (0.1 + rand() * 0.3));
-      const durationS = liftingS + restingS + yappingS + 300;
+      const workingS = setCount * (40 + Math.floor(rand() * 30));
+      const durationS = restingS + workingS + 300;
 
       workouts.push({
         id: `demo-${w}-${dow}`,
         name: `Workout ${dayLabel}`,
         startS: dateS,
         durationS,
-        liftingS,
         restingS,
-        yappingS,
         volumeLb: workoutVolume,
         topExercise,
         heaviestSetLb,

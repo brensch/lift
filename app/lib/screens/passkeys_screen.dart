@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../gen/workout/v1/auth.pb.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class PasskeysScreen extends StatefulWidget {
   const PasskeysScreen({super.key});
@@ -82,14 +84,14 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: colorScheme.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: context.tokens.br(8),
               ),
               child: Text(
                 'Make sure you have one of the remaining passkeys before deleting anything. If you don\'t have a valid passkey you cannot recover your account.',
                 style: TextStyle(
                   color: colorScheme.error,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontSize: context.tokens.size.body,
+                  fontWeight: context.tokens.weight.bold,
                 ),
               ),
             ),
@@ -98,7 +100,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
               'Are you sure? This cannot be undone.',
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
-                fontSize: 14,
+                fontSize: context.tokens.size.body,
               ),
             ),
           ],
@@ -159,9 +161,12 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Passkeys',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: context.tokens.weight.heavy,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       body: _loading
@@ -178,13 +183,13 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: colorScheme.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.br(8),
                         ),
                         child: Text(
                           _error!,
                           style: TextStyle(
                             color: colorScheme.error,
-                            fontSize: 13,
+                            fontSize: context.tokens.size.body,
                           ),
                         ),
                       ),
@@ -194,7 +199,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _openAddPasskey,
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(AppIcons.add, size: 18),
                       label: const Text('Add Passkey'),
                     ),
                   ),
@@ -222,7 +227,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.tokens.br(8),
                           ),
                           child: Row(
                             children: [
@@ -236,7 +241,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  Icons.key,
+                                  AppIcons.key,
                                   size: 18,
                                   color: colorScheme.primary,
                                 ),
@@ -252,9 +257,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                           pk.name.isNotEmpty
                                               ? pk.name
                                               : 'Passkey ${i + 1}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 14,
+                                          style: TextStyle(
+                                            fontWeight:
+                                                context.tokens.weight.bold,
+                                            fontSize: context.tokens.size.body,
                                           ),
                                         ),
                                         if (pk.hasCreatedAtIp()) ...[
@@ -267,16 +273,21 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                             decoration: BoxDecoration(
                                               color: colorScheme.onSurface
                                                   .withValues(alpha: 0.08),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
+                                              borderRadius: context.tokens.br(
+                                                4,
+                                              ),
                                             ),
                                             child: Text(
                                               pk.createdAtIp,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontFamily: 'monospace',
-                                                color: colorScheme
-                                                    .onSurfaceVariant,
+                                              style: context.tokens.mono(
+                                                TextStyle(
+                                                  fontSize: context
+                                                      .tokens
+                                                      .size
+                                                      .caption,
+                                                  color: colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -292,7 +303,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                           'Added ${_formatDate(pk.createdAt.toInt())}',
                                       ].join(' · '),
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: context.tokens.size.small,
                                         color: colorScheme.onSurfaceVariant,
                                       ),
                                     ),
@@ -312,7 +323,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                         ),
                                       )
                                     : Icon(
-                                        Icons.delete_outline,
+                                        AppIcons.delete,
                                         size: 20,
                                         color: canDelete
                                             ? colorScheme.onSurfaceVariant

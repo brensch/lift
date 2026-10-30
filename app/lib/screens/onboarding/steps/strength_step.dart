@@ -11,6 +11,7 @@ import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../gen/workout/v1/workout.pb.dart';
 import '../../../logic/starting_weights.dart';
 import '../../../logic/weight_units.dart';
+import '../../../theme/theme_spec.dart';
 
 class StrengthStep extends StatelessWidget {
   final WeightUnit unit;
@@ -59,13 +60,16 @@ class StrengthStep extends StatelessWidget {
         children: [
           Text(
             t.title,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.headline,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             t.body,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.4,
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
@@ -82,7 +86,10 @@ class StrengthStep extends StatelessWidget {
                     children: [
                       Text(
                         creatureFor(strength),
-                        style: const TextStyle(fontSize: 72, height: 1.1),
+                        style: TextStyle(
+                          fontSize: context.tokens.size.giant,
+                          height: 1.1,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       for (final (ex, key) in _shown)
@@ -94,8 +101,8 @@ class StrengthStep extends StatelessWidget {
                               Text(
                                 labels[key] ?? key,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: context.tokens.size.small,
+                                  fontWeight: context.tokens.weight.heavy,
                                   letterSpacing: 0.6,
                                   color: cs.onSurface.withValues(alpha: 0.55),
                                 ),
@@ -106,9 +113,9 @@ class StrengthStep extends StatelessWidget {
                                   unit,
                                   includeUnit: true,
                                 ),
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w900,
+                                style: TextStyle(
+                                  fontSize: context.tokens.size.titleLg,
+                                  fontWeight: context.tokens.weight.heavy,
                                   fontFeatures: [FontFeature.tabularFigures()],
                                 ),
                               ),
@@ -119,7 +126,7 @@ class StrengthStep extends StatelessWidget {
                       Text(
                         t.note,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: context.tokens.size.small,
                           height: 1.35,
                           color: cs.onSurface.withValues(alpha: 0.5),
                         ),
@@ -174,7 +181,7 @@ class StrengthStep extends StatelessWidget {
                     onPressed: onNext,
                     child: Text(
                       copy.onboarding.next,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
                     ),
                   ),
                 ),

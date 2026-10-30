@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import 'home/home_screen.dart';
 import 'workout/workout_screen.dart';
+import '../theme/theme_spec.dart';
 
 class WorkoutTab extends StatefulWidget {
   const WorkoutTab({super.key});
@@ -132,9 +133,12 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'Could not finish startup',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.title,
+                      fontWeight: context.tokens.weight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),

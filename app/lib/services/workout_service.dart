@@ -69,17 +69,6 @@ class WorkoutServiceWrapper {
     );
   }
 
-  Future<StartSetResponse> startSet(
-    String workoutId,
-    String proposedSetId,
-  ) async {
-    return await _client.workoutService.startSet(
-      StartSetRequest()
-        ..workoutId = workoutId
-        ..proposedSetId = proposedSetId,
-    );
-  }
-
   Future<CompleteSetResponse> completeSet(
     String workoutId,
     String proposedSetId,
@@ -133,17 +122,6 @@ class WorkoutServiceWrapper {
       DeleteCompletedSetRequest()
         ..workoutId = workoutId
         ..completedSetId = completedSetId,
-    );
-  }
-
-  Future<CancelProposedSetResponse> cancelProposedSet(
-    String workoutId,
-    String proposedSetId,
-  ) async {
-    return await _client.workoutService.cancelProposedSet(
-      CancelProposedSetRequest()
-        ..workoutId = workoutId
-        ..proposedSetId = proposedSetId,
     );
   }
 

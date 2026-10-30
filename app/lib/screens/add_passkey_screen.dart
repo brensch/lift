@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../logic/utils.dart';
 import '../services/auth_service.dart';
+import '../theme/theme_spec.dart';
 
 class AddPasskeyScreen extends StatefulWidget {
   const AddPasskeyScreen({super.key});
@@ -58,9 +59,12 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Add Passkey',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: context.tokens.weight.heavy,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       body: SafeArea(
@@ -89,11 +93,14 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.tokens.br(8),
                 ),
                 child: Text(
                   _error!,
-                  style: TextStyle(color: colorScheme.error, fontSize: 13),
+                  style: TextStyle(
+                    color: colorScheme.error,
+                    fontSize: context.tokens.size.body,
+                  ),
                 ),
               ),
             ],

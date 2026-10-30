@@ -1,7 +1,6 @@
 /// Pure session/workout-state logic: snapshot-state predicates, participant ordering, and the client-side "who lifts next" derivation. No Flutter imports.
 library;
 
-import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../widgets/participant_ticker.dart';
@@ -25,30 +24,24 @@ String formatElapsedClock(int totalSeconds) {
 bool isAllDoneState(int state) =>
     state == WorkoutState.WORKOUT_STATE_ALL_DONE.value;
 
-bool isLiftingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_LIFTING.value;
-
 bool isRestingState(int state) =>
     state == WorkoutState.WORKOUT_STATE_RESTING.value;
 
 bool isReadyState(int state) => state == WorkoutState.WORKOUT_STATE_READY.value;
+
+/// A set has been started and isn't done yet.
+bool isLiftingState(int state) =>
+    state == WorkoutState.WORKOUT_STATE_LIFTING.value;
+
+/// The last set's rest has run out and the next set isn't started.
+bool isYappingState(int state) =>
+    state == WorkoutState.WORKOUT_STATE_YAPPING.value;
 
 int compareParticipantsByNextWorkout(
   ParticipantStatus a,
   ParticipantStatus b, {
   required int nowUnix,
 }) {
-  final aHasActiveSet =
-      a.hasActiveSet ||
-      a.completedSets.any((completed) => completed.endedAt == Int64.ZERO);
-  final bHasActiveSet =
-      b.hasActiveSet ||
-      b.completedSets.any((completed) => completed.endedAt == Int64.ZERO);
-
-  if (aHasActiveSet != bHasActiveSet) {
-    return aHasActiveSet ? -1 : 1;
-  }
-
   final aScheduled = participantScheduledStartUnix(a, nowUnix: nowUnix);
   final bScheduled = participantScheduledStartUnix(b, nowUnix: nowUnix);
   if (aScheduled != null && bScheduled != null && aScheduled != bScheduled) {
@@ -72,15 +65,15 @@ int compareParticipantsStable(ParticipantStatus a, ParticipantStatus b) {
   return a.user.id.compareTo(b.user.id);
 }
 
-/// Returns the userId of whoever is "next to lift" across all session members.
-/// Tiebreak: earliest scheduledStart, then lexicographic userId.
+/// Returns the userId of whoever is "next to lift" across all session members:
+/// of those waiting (not lifting, not finished), the earliest scheduled start.
+/// Tiebreak: lexicographic userId.
 String? computeNextToLiftUserId({
   required String? myUserId,
   required List<ParticipantStatus> others,
   required int nowUnix,
   required int stateValue,
   required int restUntil,
-  required int lastRestEnd,
   required ProposedSet? nextSet,
 }) {
   String? bestId;
@@ -104,13 +97,12 @@ String? computeNextToLiftUserId({
   }
 
   if (myUserId != null && myUserId.isNotEmpty) {
+    // Lifting is on the rack already, not waiting for it.
     final myStart =
-        !isLiftingState(stateValue) &&
-            !isAllDoneState(stateValue) &&
+        !isAllDoneState(stateValue) &&
+            !isLiftingState(stateValue) &&
             nextSet != null
-        ? (restUntil > 0
-              ? restUntil
-              : (lastRestEnd > 0 ? lastRestEnd : nowUnix))
+        ? (restUntil > 0 ? restUntil : nowUnix)
         : null;
     if (myStart != null && isCandidate(myUserId, myStart)) {
       bestId = myUserId;

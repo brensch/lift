@@ -3,7 +3,8 @@
 //!
 //! This exists to find the bugs unit tests do not: ones that need a specific
 //! *sequence* of operations (edit a plan mid-set, delete a completed set, skip
-//! warmups, reorder groups, end twice) against real persistence.
+//! warmups, reorder groups, rate or re-rate a set, edit a done set,
+//! end twice) against real persistence.
 //!
 //! It spawns its own backend on its own port with its own SQLite file, so it
 //! never touches a dev database.
@@ -22,12 +23,14 @@ use clap::Parser;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use schlift::workout::v1::{
-    auth_service_client::AuthServiceClient, workout_service_client::WorkoutServiceClient,
-    AddExercisesRequest, AdjustExerciseWeightRequest, CancelProposedSetRequest,
-    CompleteOnboardingRequest, CompleteSetRequest, DeleteCompletedSetRequest, EndWorkoutRequest,
-    Exercise, ExperienceLevel, GetActiveWorkoutRequest, GetHomeRequest, GetWorkoutRequest,
-    GetWorkoutResponse, RemoveExerciseRequest, ReorderExercisesRequest, StartSetRequest,
-    StartWorkoutRequest, TestLoginRequest, WeightUnit,
+    auth_service_client::AuthServiceClient, workout_mutation::Mutation,
+    workout_service_client::WorkoutServiceClient, AddExercisesRequest, AdjustExerciseWeightRequest,
+    AppendWorkoutMutationsRequest, CompleteOnboardingRequest, CompleteSetRequest, CompletedSet,
+    DeleteCompletedSetRequest, EditCompletedSetRequest, Effort, EndWorkoutRequest, Exercise,
+    ExperienceLevel, GetActiveWorkoutRequest, GetHomeRequest, GetWorkoutRequest,
+    GetWorkoutResponse, RateExerciseRequest, RemoveExerciseRequest, ReorderExercisesRequest,
+    SkipWarmupsRequest, StartSetRequest, StartWorkoutRequest, TestLoginRequest, WeightUnit,
+    WorkoutMutation, WorkoutState,
 };
 use tonic::transport::Channel;
 use tonic::Request;
@@ -271,53 +274,116 @@ async fn run_user(
                 .cloned()
                 .collect();
 
+            let done: Vec<CompletedSet> = state
+                .completed_sets
+                .iter()
+                .filter(|c| c.ended_at != 0)
+                .cloned()
+                .collect();
+
             let action = rng.gen_range(0..100);
             let step_name;
+            // What a mutation promised, checked against the state after it.
+            let mut expect: Option<Expectation> = None;
 
-            if pending.is_empty() && action < 70 {
+            if pending.is_empty() && action < 60 {
                 break;
-            } else if action < 45 && !pending.is_empty() {
-                // Start then complete a set.
-                let set = &pending[rng.gen_range(0..pending.len())];
-                step_name = format!("complete_set({})", set.id);
+            } else if action < 38 && !pending.is_empty() {
+                // Complete a set: usually the one Done points at (which may
+                // be a rung's would-be `{done_id}:0`, not yet in the plan),
+                // sometimes any pending set out of order.
+                let set = match state.next_up_set.as_ref() {
+                    Some(next) if rng.gen_bool(0.6) => next,
+                    _ => &pending[rng.gen_range(0..pending.len())],
+                };
+                // Usually Start first (the app's flow); sometimes only Start,
+                // leaving the set lifting for whatever comes next; sometimes
+                // a Done with no Start (a watch Done), with or without a
+                // rating.
+                let started = rng.gen_bool(0.7);
+                if started {
+                    now += 20;
+                    let _ = wk
+                        .append_workout_mutations(authed(
+                            &token,
+                            AppendWorkoutMutationsRequest {
+                                mutations: vec![mutation_at(
+                                    Mutation::StartSet(StartSetRequest {
+                                        workout_id: workout_id.clone(),
+                                        proposed_set_id: set.id.clone(),
+                                        started_at: now,
+                                    }),
+                                    now,
+                                )],
+                            },
+                        ))
+                        .await;
+                }
+                if started && rng.gen_bool(0.2) {
+                    step_name = format!("start_set({})", set.id);
+                } else {
+                    let effort = if rng.gen_bool(0.5) {
+                        [Effort::Easy, Effort::Right, Effort::Hard][rng.gen_range(0..3)] as i32
+                    } else {
+                        0
+                    };
+                    step_name = format!("complete_set({}, effort {effort})", set.id);
+                    now += 45;
+                    let _ = wk
+                        .complete_set(authed(
+                            &token,
+                            CompleteSetRequest {
+                                workout_id: workout_id.clone(),
+                                proposed_set_id: set.id.clone(),
+                                actual_reps: rng.gen_range(0..12),
+                                actual_weight: set.target_weight,
+                                completed_at: now,
+                                effort,
+                            },
+                        ))
+                        .await;
+                    now += 90;
+                }
+            } else if action < 43 && pending.iter().any(|p| p.warmup) {
+                // Skip all of an exercise's warmups: they're marked, never
+                // removed.
+                let warm: Vec<_> = pending.iter().filter(|p| p.warmup).collect();
+                let exercise = warm[rng.gen_range(0..warm.len())].exercise;
+                step_name = format!("skip_warmups({exercise})");
                 let _ = wk
-                    .start_set(authed(
+                    .append_workout_mutations(authed(
                         &token,
-                        StartSetRequest {
-                            workout_id: workout_id.clone(),
-                            proposed_set_id: set.id.clone(),
-                            started_at: now,
+                        AppendWorkoutMutationsRequest {
+                            mutations: vec![mutation_at(
+                                Mutation::SkipWarmups(SkipWarmupsRequest {
+                                    workout_id: workout_id.clone(),
+                                    exercise,
+                                }),
+                                now,
+                            )],
                         },
                     ))
                     .await;
-                now += 45;
+            } else if action < 46 && !pending.is_empty() {
+                // Any set, in any order: warmups are never removed, a
+                // working set just moves past them.
+                let set = &pending[rng.gen_range(0..pending.len())];
+                step_name = format!("complete_set_out_of_order({})", set.id);
                 let _ = wk
                     .complete_set(authed(
                         &token,
                         CompleteSetRequest {
                             workout_id: workout_id.clone(),
                             proposed_set_id: set.id.clone(),
-                            actual_reps: rng.gen_range(0..12),
+                            actual_reps: set.target_reps,
                             actual_weight: set.target_weight,
                             completed_at: now,
+                            effort: 0,
                         },
                     ))
                     .await;
                 now += 90;
-            } else if action < 60 && !pending.is_empty() {
-                // Skip a set.
-                let set = &pending[rng.gen_range(0..pending.len())];
-                step_name = format!("cancel_proposed_set({})", set.id);
-                let _ = wk
-                    .cancel_proposed_set(authed(
-                        &token,
-                        CancelProposedSetRequest {
-                            workout_id: workout_id.clone(),
-                            proposed_set_id: set.id.clone(),
-                        },
-                    ))
-                    .await;
-            } else if action < 72 && !state.completed_sets.is_empty() {
+            } else if action < 54 && !state.completed_sets.is_empty() {
                 // Undo a completed set.
                 let c = &state.completed_sets[rng.gen_range(0..state.completed_sets.len())];
                 step_name = format!("delete_completed_set({})", c.id);
@@ -330,7 +396,7 @@ async fn run_user(
                         },
                     ))
                     .await;
-            } else if action < 80 && !state.proposed_sets.is_empty() {
+            } else if action < 62 && !state.proposed_sets.is_empty() {
                 // Adjust a weight mid-workout, as the app does.
                 let s = &state.proposed_sets[rng.gen_range(0..state.proposed_sets.len())];
                 let weight = (rng.gen_range(9..60) * 5) as f32;
@@ -345,7 +411,7 @@ async fn run_user(
                         },
                     ))
                     .await;
-            } else if action < 88 {
+            } else if action < 70 {
                 // Add or remove an exercise mid-workout.
                 if rng.gen_bool(0.5) || state.proposed_sets.is_empty() {
                     let exercise = random_exercise(&mut rng) as i32;
@@ -373,7 +439,7 @@ async fn run_user(
                         ))
                         .await;
                 }
-            } else if !state.proposed_sets.is_empty() {
+            } else if action < 76 && !state.proposed_sets.is_empty() {
                 // Reorder the exercise blocks.
                 let mut exercises: Vec<i32> = Vec::new();
                 for s in &state.proposed_sets {
@@ -394,6 +460,78 @@ async fn run_user(
                         },
                     ))
                     .await;
+            } else if action < 88 && !done.is_empty() {
+                // Answer, or change the answer, for a done set. Usually the
+                // latest (what the chips target); sometimes an older set
+                // or a warmup, which must change nothing. Time plays no
+                // part: the clock resolves nothing.
+                let latest = done.iter().max_by_key(|c| c.ended_at).cloned().unwrap();
+                let c = if rng.gen_bool(0.7) {
+                    latest.clone()
+                } else {
+                    done[rng.gen_range(0..done.len())].clone()
+                };
+                let effort = [Effort::Easy, Effort::Right, Effort::Hard][rng.gen_range(0..3)];
+                let lands = c.id == latest.id && prompt_worthy(&state, &c);
+                step_name = format!("rate_exercise({}, {effort:?})", c.id);
+                expect = Some(if lands {
+                    Expectation::Rated {
+                        completed_set_id: c.id.clone(),
+                        effort,
+                    }
+                } else {
+                    Expectation::RateNoop {
+                        completed_set_id: c.id.clone(),
+                        effort_before: c.effort,
+                        proposed_before: state.proposed_sets.len(),
+                    }
+                });
+                let _ = wk
+                    .append_workout_mutations(authed(
+                        &token,
+                        AppendWorkoutMutationsRequest {
+                            mutations: vec![mutation_at(
+                                Mutation::RateExercise(RateExerciseRequest {
+                                    workout_id: workout_id.clone(),
+                                    completed_set_id: c.id.clone(),
+                                    effort: effort as i32,
+                                }),
+                                now,
+                            )],
+                        },
+                    ))
+                    .await;
+            } else if !done.is_empty() {
+                // Correct a done set after the fact.
+                let c = &done[rng.gen_range(0..done.len())];
+                let reps = rng.gen_range(0..12);
+                let weight = if rng.gen_bool(0.3) {
+                    (rng.gen_range(9..60) * 5) as f32
+                } else {
+                    c.actual_weight
+                };
+                step_name = format!("edit_completed_set({})", c.id);
+                expect = Some(Expectation::Edited {
+                    completed_set_id: c.id.clone(),
+                    reps,
+                    weight,
+                });
+                let _ = wk
+                    .append_workout_mutations(authed(
+                        &token,
+                        AppendWorkoutMutationsRequest {
+                            mutations: vec![mutation_at(
+                                Mutation::EditCompletedSet(EditCompletedSetRequest {
+                                    workout_id: workout_id.clone(),
+                                    completed_set_id: c.id.clone(),
+                                    actual_reps: reps,
+                                    actual_weight: weight,
+                                }),
+                                now,
+                            )],
+                        },
+                    ))
+                    .await;
             } else {
                 continue;
             }
@@ -407,7 +545,11 @@ async fn run_user(
                 ))
                 .await
             {
-                check_invariants(&after.into_inner(), &username, &step_name, &mut violations);
+                let after = after.into_inner();
+                check_invariants(&after, &username, &step_name, &mut violations);
+                if let Some(expectation) = expect {
+                    check_expectation(&after, &expectation, &username, &step_name, &mut violations);
+                }
             }
         }
 
@@ -447,6 +589,31 @@ async fn run_user(
                             ),
                         });
                     }
+                }
+            }
+        }
+
+        // No question survives EndWorkout: every done set that asked has
+        // an answer, "right" by default.
+        if let Ok(ended) = wk
+            .get_workout(authed(
+                &token,
+                GetWorkoutRequest {
+                    workout_id: workout_id.clone(),
+                },
+            ))
+            .await
+        {
+            let ended = ended.into_inner();
+            for c in ended.completed_sets.iter().filter(|c| c.ended_at != 0) {
+                if prompt_worthy(&ended, c) && c.effort == Effort::Unspecified as i32 {
+                    violations.push(Violation {
+                        user: username.clone(),
+                        workout_id: workout_id.clone(),
+                        step: "end_workout".into(),
+                        invariant: "an effort prompt was left pending after EndWorkout",
+                        detail: format!("completed set {} has no effort", c.id),
+                    });
                 }
             }
         }
@@ -510,6 +677,132 @@ fn authed<T>(token: &str, msg: T) -> Request<T> {
     req
 }
 
+fn mutation_at(mutation: Mutation, at: i64) -> WorkoutMutation {
+    WorkoutMutation {
+        event_id: uuid::Uuid::new_v4().to_string(),
+        client_created_at: at,
+        mutation: Some(mutation),
+    }
+}
+
+/// Client-side mirror of the reducer's prompt rule: every working set and
+/// every calibration rung asks "how was that"; warmups never do.
+fn prompt_worthy(state: &GetWorkoutResponse, done: &CompletedSet) -> bool {
+    state
+        .proposed_sets
+        .iter()
+        .find(|p| p.id == done.proposed_set_id && !p.cancelled)
+        .is_some_and(|p| p.calibration || !p.warmup)
+}
+
+/// What one of the new mutations promised about the state after it.
+enum Expectation {
+    /// The latest done set, prompt-worthy: it carries the new answer.
+    Rated {
+        completed_set_id: String,
+        effort: Effort,
+    },
+    /// Not the latest done set, or a warmup: nothing changes.
+    RateNoop {
+        completed_set_id: String,
+        effort_before: i32,
+        proposed_before: usize,
+    },
+    Edited {
+        completed_set_id: String,
+        reps: i32,
+        weight: f32,
+    },
+}
+
+fn check_expectation(
+    state: &GetWorkoutResponse,
+    expectation: &Expectation,
+    user: &str,
+    step: &str,
+    out: &mut Vec<Violation>,
+) {
+    let workout_id = state
+        .workout
+        .as_ref()
+        .map(|w| w.id.clone())
+        .unwrap_or_default();
+    let mut push = |invariant: &'static str, detail: String| {
+        out.push(Violation {
+            user: user.to_string(),
+            workout_id: workout_id.clone(),
+            step: step.to_string(),
+            invariant,
+            detail,
+        });
+    };
+    let find = |id: &str| state.completed_sets.iter().find(|c| c.id == id);
+    match expectation {
+        Expectation::Rated {
+            completed_set_id,
+            effort,
+        } => {
+            if let Some(c) = find(completed_set_id) {
+                if c.effort != *effort as i32 {
+                    push(
+                        "rate_exercise on a set that asked did not record the answer",
+                        format!("set {} effort {} wanted {effort:?}", c.id, c.effort),
+                    );
+                }
+            }
+        }
+        Expectation::RateNoop {
+            completed_set_id,
+            effort_before,
+            proposed_before,
+        } => {
+            if let Some(c) = find(completed_set_id) {
+                if c.effort != *effort_before {
+                    push(
+                        "rate_exercise on a set that never asked changed its effort",
+                        format!("set {} effort {} -> {}", c.id, effort_before, c.effort),
+                    );
+                }
+            }
+            if state.proposed_sets.len() != *proposed_before {
+                push(
+                    "rate_exercise on a set that never asked changed the plan",
+                    format!(
+                        "{proposed_before} proposed sets -> {}",
+                        state.proposed_sets.len()
+                    ),
+                );
+            }
+        }
+        Expectation::Edited {
+            completed_set_id,
+            reps,
+            weight,
+        } => {
+            if let Some(c) = find(completed_set_id) {
+                if c.actual_reps != *reps || (c.actual_weight - weight).abs() > 0.01 {
+                    push(
+                        "edit_completed_set did not land",
+                        format!(
+                            "set {} is {}x{} wanted {reps}x{weight}",
+                            c.id, c.actual_reps, c.actual_weight
+                        ),
+                    );
+                }
+                if c.rest_until < c.ended_at {
+                    push(
+                        "edit_completed_set put the rest before the set ended",
+                        format!(
+                            "set {} rest_until {} < ended_at {}",
+                            c.id, c.rest_until, c.ended_at
+                        ),
+                    );
+                }
+            }
+        }
+    }
+}
+
 /// Everything we assert about a workout's state, checked after every mutation.
 fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mut Vec<Violation>) {
     let workout_id = state
@@ -539,6 +832,16 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
         }
     }
 
+    // Only a warmup is ever skipped, and a skipped one is never up next.
+    for p in state.proposed_sets.iter().filter(|p| p.skipped) {
+        if !p.warmup {
+            push("a working set is marked skipped", p.id.clone());
+        }
+        if state.next_up_set.as_ref().is_some_and(|n| n.id == p.id) {
+            push("a skipped warmup is up next", p.id.clone());
+        }
+    }
+
     // A proposed set may be completed at most once.
     let mut seen: HashMap<&str, usize> = HashMap::new();
     for c in &state.completed_sets {
@@ -563,8 +866,45 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
         );
     }
 
-    // next_up must be a live, not-yet-completed set.
-    if let Some(next) = state.next_up_set.as_ref() {
+    // next_up must be a live, not-yet-completed set — or, while the latest
+    // done set is an unanswered calibration rung, the set its "right" would
+    // append first: uuid5("{done_id}:0").
+    let awaiting = state
+        .completed_sets
+        .iter()
+        .filter(|c| c.ended_at != 0)
+        .max_by_key(|c| c.ended_at)
+        .filter(|c| {
+            c.effort == Effort::Unspecified as i32
+                && state
+                    .proposed_sets
+                    .iter()
+                    .any(|p| p.id == c.proposed_set_id && p.calibration)
+        })
+        .map(|c| {
+            uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, format!("{}:0", c.id).as_bytes())
+                .to_string()
+        });
+    if let Some(expected) = awaiting.as_ref() {
+        match state.next_up_set.as_ref() {
+            Some(next) if &next.id == expected => {}
+            other => push(
+                "an unanswered rung does not point next_up_set at its {done}:0",
+                format!("expected {expected} got {:?}", other.map(|n| &n.id)),
+            ),
+        }
+        let display = state
+            .state_snapshot
+            .as_ref()
+            .and_then(|snap| snap.display_set.as_ref())
+            .map(|d| &d.id);
+        if display != Some(expected) {
+            push(
+                "display_set and next_up_set disagree",
+                format!("display {display:?} next_up {expected}"),
+            );
+        }
+    } else if let Some(next) = state.next_up_set.as_ref() {
         let completed: HashSet<&str> = state
             .completed_sets
             .iter()
@@ -586,17 +926,121 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
         }
     }
 
-    // At most one set in progress at a time.
-    let in_progress = state
+    // A set being lifted lives on the workout, never as an unfinished row.
+    if let Some(c) = state.completed_sets.iter().find(|c| c.ended_at == 0) {
+        push(
+            "a completed set has no ended_at",
+            format!("completed {}", c.id),
+        );
+    }
+    // A done set's start, if any, is not after its Done.
+    for c in &state.completed_sets {
+        if c.started_at > c.ended_at {
+            push(
+                "a done set was started after it ended",
+                format!("{} started {} ended {}", c.id, c.started_at, c.ended_at),
+            );
+        }
+    }
+    // LIFTING exactly when the marker points at a pending set, with that set
+    // and its start.
+    let workout = state.workout.clone().unwrap_or_default();
+    let marker_pending = !workout.lifting_set_id.is_empty()
+        && state
+            .proposed_sets
+            .iter()
+            .any(|p| p.id == workout.lifting_set_id && !p.cancelled)
+        && !state
+            .completed_sets
+            .iter()
+            .any(|c| c.proposed_set_id == workout.lifting_set_id);
+    if let Some(snap) = state.state_snapshot.as_ref() {
+        let lifting = snap.state == WorkoutState::Lifting as i32;
+        if lifting != marker_pending {
+            push(
+                "LIFTING disagrees with the workout's lifting marker",
+                format!(
+                    "state {} marker {:?} pending {marker_pending}",
+                    snap.state, workout.lifting_set_id
+                ),
+            );
+        } else if lifting
+            && (snap.display_set.as_ref().map(|d| d.id.as_str())
+                != Some(workout.lifting_set_id.as_str())
+                || snap.lifting_started_at != workout.lifting_started_at)
+        {
+            push(
+                "LIFTING does not show the set being lifted and its start",
+                format!(
+                    "display {:?} marker {} started {} vs {}",
+                    snap.display_set.as_ref().map(|d| &d.id),
+                    workout.lifting_set_id,
+                    snap.lifting_started_at,
+                    workout.lifting_started_at
+                ),
+            );
+        }
+    }
+
+    // The prompt is the latest done set while it is prompt-worthy, with its
+    // current answer; every older prompt-worthy set was answered by a Done.
+    let latest = state
         .completed_sets
         .iter()
-        .filter(|c| c.ended_at == 0)
-        .count();
-    if in_progress > 1 {
+        .filter(|c| c.ended_at != 0)
+        .max_by_key(|c| c.ended_at);
+    let prompt = state
+        .state_snapshot
+        .as_ref()
+        .and_then(|snap| snap.effort_prompt.as_ref());
+    match (latest.filter(|c| prompt_worthy(state, c)), prompt) {
+        (Some(c), Some(p)) if p.completed_set_id == c.id && p.effort == c.effort => {}
+        (None, None) => {}
+        (expected, got) => push(
+            "effort_prompt does not describe the latest prompt-worthy done set",
+            format!(
+                "expected {:?} got {:?}",
+                expected.map(|c| (&c.id, c.effort)),
+                got.map(|p| (&p.completed_set_id, p.effort))
+            ),
+        ),
+    }
+    for c in state.completed_sets.iter().filter(|c| c.ended_at != 0) {
+        if Some(&c.id) != latest.map(|l| &l.id)
+            && prompt_worthy(state, c)
+            && c.effort == Effort::Unspecified as i32
+        {
+            push(
+                "an older prompt-worthy set was left unanswered past a Done",
+                format!("set {}", c.id),
+            );
+        }
+    }
+
+    // The calibration ramp is capped at six rungs per exercise.
+    let mut rungs: HashMap<i32, usize> = HashMap::new();
+    for s in state
+        .proposed_sets
+        .iter()
+        .filter(|s| s.calibration && !s.cancelled)
+    {
+        *rungs.entry(s.exercise).or_default() += 1;
+    }
+    for (exercise, count) in rungs.iter().filter(|(_, n)| **n > 6) {
         push(
-            "more than one set is in progress",
-            format!("{in_progress} sets have ended_at = 0"),
+            "more than six calibration rungs for one exercise",
+            format!("exercise {exercise} has {count} rungs"),
         );
+    }
+
+    // An effort is one of the three answers or unanswered.
+    for c in &state.completed_sets {
+        if !(0..=3).contains(&c.effort) {
+            push(
+                "completed set has an unknown effort value",
+                format!("set {} effort {}", c.id, c.effort),
+            );
+        }
     }
 
     // Weights and reps must be sane.

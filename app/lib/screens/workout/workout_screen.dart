@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +7,11 @@ import 'package:flutter/material.dart';
 import '../../tutorial/tutorial_target.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
+import '../../logic/session_state.dart';
 import '../../logic/user_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/workout_provider.dart';
@@ -18,9 +21,9 @@ import '../../widgets/dialogs/end_workout_dialog.dart';
 import '../../widgets/dialogs/weight_adjust_sheet.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
-import 'current_exercise_card.dart';
-import 'exercise_list_card.dart';
+import 'exercise_section.dart';
 import 'workout_panels.dart';
+import '../../theme/theme_spec.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -30,17 +33,9 @@ class WorkoutScreen extends StatefulWidget {
 }
 
 class _WorkoutScreenState extends State<WorkoutScreen> {
-  final PageController _pageController = PageController();
+  /// The view on show: the workout, the log, or heart rate. Picked by its
+  /// header; there is no swiping between them.
   int _page = 0;
-  // While the user is touching the heart-rate chart we lock horizontal paging
-  // so the chart's own pan/zoom gesture wins instead of the page swipe.
-  bool _lockPager = false;
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +49,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
 
     final blocks = wp.exerciseBlocks;
-    final activeSetId = wp.activeSetId;
     final isEnded = wp.isWorkoutEnded;
     final focusedBlock = _focusedBlock(wp, blocks);
     // Completed blocks stay pinned (green) at the top of the list; only the
@@ -94,13 +88,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
     final hasHeartRate = wp.wearHeartRateSamples.isNotEmpty;
 
-    // Overall progress across every working set, for the session strip's bar.
-    var totalWorking = 0;
-    var doneWorking = 0;
+    // Overall progress for the session strip's bar: every set still in the
+    // plan (warmups and calibration rungs included, cancelled ones not), so
+    // each Done moves it. An exercise still finding its weight has no
+    // working sets yet; its planned ones count as still to come.
+    var totalSets = 0;
+    var doneSets = 0;
     for (final g in blocks) {
-      final working = g.sets.where((s) => !s.warmup);
-      totalWorking += working.length;
-      doneWorking += working
+      final sets = g.sets.where((s) => !s.cancelled).toList();
+      totalSets += sets.length;
+      final calibrating =
+          sets.any((s) => s.calibration) &&
+          !sets.any((s) => !s.warmup && !s.calibration);
+      if (calibrating) totalSets += wp.trackerFor(g.exercise)?.sets ?? 0;
+      doneSets += sets
           .where(
             (s) => wp.completedSets.any(
               (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
@@ -108,48 +109,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           )
           .length;
     }
-    final overallProgress = totalWorking == 0
-        ? 0.0
-        : doneWorking / totalWorking;
+    final overallProgress = totalSets == 0 ? 0.0 : doneSets / totalSets;
 
-    // Compose the session-strip header out of the "YYYY/MM/DD - Name" workout
-    // name: bold title, a faded exercise summary, and the date pulled to the side.
-    var sessionTitle = wp.workout!.name;
-    var sessionDate = '';
-    final nameMatch = RegExp(
-      r'^(\d{4})/(\d{2})/(\d{2})\s*[-–—]\s*(.*)$',
-    ).firstMatch(wp.workout!.name);
-    if (nameMatch != null) {
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      final mo = int.tryParse(nameMatch.group(2)!) ?? 0;
-      final day = int.tryParse(nameMatch.group(3)!) ?? 0;
-      if (mo >= 1 && mo <= 12) sessionDate = '${months[mo - 1]} $day';
-      sessionTitle = nameMatch.group(4)!.trim();
-    }
-    final seenExercises = <int>{};
-    final exerciseShort = <String>[];
-    for (final g in blocks) {
-      final ex = g.exercise;
-      if (ex == Exercise.EXERCISE_UNSPECIFIED) continue;
-      if (seenExercises.add(ex.value)) {
-        final s = shortNames[ex] ?? exerciseNames[ex];
-        if (s != null && s.isNotEmpty) exerciseShort.add(s);
-      }
-    }
-    final sessionSubtitle = exerciseShort.join(' · ');
+    // The header shows the workout's name, without the "YYYY/MM/DD - "
+    // prefix workouts are stored with.
+    final sessionTitle =
+        RegExp(
+          r'^\d{4}/\d{2}/\d{2}\s*[-–—]\s*(.*)$',
+        ).firstMatch(wp.workout!.name)?.group(1)?.trim() ??
+        wp.workout!.name;
 
     final loggedCount = wp.completedSets
         .where((c) => c.endedAt != Int64.ZERO)
@@ -161,262 +129,139 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     ];
 
     final workout = wp.workout!;
+    final divider = Divider(
+      height: 1,
+      thickness: 1,
+      color: context.tokens.hairline,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Session strip: workout name + one slim overall-progress bar ──
+        // ── Session strip: workout name with overall progress beside it ──
         const SizedBox(height: 8),
-        SessionStrip(
-          title: sessionTitle,
-          subtitle: sessionSubtitle,
-          dateLabel: sessionDate,
-          progress: overallProgress,
+        ValueListenableBuilder<DateTime>(
+          valueListenable: wp.clock,
+          builder: (context, now, _) {
+            final elapsed = workout.startTime == Int64.ZERO
+                ? 0
+                : (isEnded
+                          ? workout.endTime.toInt()
+                          : now.millisecondsSinceEpoch ~/ 1000) -
+                      workout.startTime.toInt();
+            final heart = wp.wearHeartRateSamples.isNotEmpty
+                ? wp.wearHeartRateSamples.last
+                : null;
+            return SessionStrip(
+              title: sessionTitle,
+              progress: overallProgress,
+              elapsedText: formatElapsedClock(max(0, elapsed)),
+              heartRateText: !isEnded && heart != null && heart.bpm > 0
+                  ? '${heart.bpm.round()}'
+                  : null,
+            );
+          },
         ),
         const SizedBox(height: 8),
-        // ── Named, swipeable page tabs ──
+        // ── The views, by name ──
         TutorialTarget(
           id: 'workout_tabs',
           child: PageTabs(
             tabs: pageTabs,
             index: _page,
-            onTap: (i) => _pageController.animateToPage(
-              i,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            ),
+            onTap: (i) => setState(() => _page = i),
           ),
         ),
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
-        // ── Swipeable pages ──
+        // ── The view on show (the others keep their scroll position) ──
         Expanded(
-          child: PageView(
-            controller: _pageController,
-            onPageChanged: (i) => setState(() => _page = i),
-            physics: _lockPager
-                ? const NeverScrollableScrollPhysics()
-                : const PageScrollPhysics(),
+          child: IndexedStack(
+            index: _page,
             children: [
-              // ════ PAGE 1 — the workout ════
+              // ════ PAGE 1 — the workout: every exercise, full width ════
               ListView(
                 physics: const ClampingScrollPhysics(),
                 padding: EdgeInsets.zero,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        const gutter = 16.0;
-                        final available = constraints.maxWidth - gutter;
-                        final leftWidth = available * 0.6;
-                        final rightWidth = available * 0.4;
-                        final showBracket =
-                            focusedBlock != null && unfinishedBlocks.isNotEmpty;
-
-                        return Stack(
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // ── LEFT: current exercise detail ──
-                                SizedBox(
-                                  width: leftWidth,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const ColumnLabel('Current'),
-                                      const SizedBox(height: 8),
-                                      if (focusedBlock != null)
-                                        TutorialTarget(
-                                          id: 'workout_current',
-                                          child: CurrentExerciseCard(
-                                            block: focusedBlock,
-                                            completedSets: wp.completedSets,
-                                            activeSetId: activeSetId,
-                                            onEdit: () => _editBlock(
-                                              context,
-                                              wp,
-                                              focusedBlock,
-                                            ),
-                                          ),
-                                        )
-                                      else
-                                        const EmptyPanel(
-                                          text: 'No active exercise.',
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: gutter),
-                                // ── RIGHT: ordered, draggable list ──
-                                TutorialTarget(
-                                  id: 'workout_all',
-                                  child: SizedBox(
-                                    width: rightWidth,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        const ColumnLabel(
-                                          'All exercises',
-                                          align: TextAlign.right,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        // Completed — pinned at the top, green, static.
-                                        for (final block in completedBlocks)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 8,
-                                            ),
-                                            child: ExerciseListCard(
-                                              block: block,
-                                              completedSets: wp.completedSets,
-                                              completed: true,
-                                              draggable: false,
-                                            ),
-                                          ),
-                                        // Unfinished — draggable.
-                                        if (unfinishedBlocks.isNotEmpty)
-                                          ReorderableListView.builder(
-                                            shrinkWrap: true,
-                                            physics:
-                                                const NeverScrollableScrollPhysics(),
-                                            buildDefaultDragHandles: false,
-                                            itemCount: unfinishedBlocks.length,
-                                            // onReorderItem hands back a newIndex
-                                            // already adjusted for the removed item,
-                                            // so no manual `newIndex -= 1`.
-                                            onReorderItem:
-                                                (oldIndex, newIndex) {
-                                                  if (isEnded ||
-                                                      unfinishedBlocks.length <
-                                                          2) {
-                                                    return;
-                                                  }
-                                                  HapticFeedback.mediumImpact();
-                                                  final items =
-                                                      List<ExerciseBlock>.from(
-                                                        unfinishedBlocks,
-                                                      );
-                                                  final item = items.removeAt(
-                                                    oldIndex,
-                                                  );
-                                                  items.insert(newIndex, item);
-                                                  wp.reorderExercises([
-                                                    ...completedBlocks.map(
-                                                      (b) => b.exercise,
-                                                    ),
-                                                    ...items.map(
-                                                      (b) => b.exercise,
-                                                    ),
-                                                  ]);
-                                                },
-                                            proxyDecorator:
-                                                (child, index, animation) {
-                                                  return AnimatedBuilder(
-                                                    animation: animation,
-                                                    builder: (context, child) {
-                                                      final animValue = Curves
-                                                          .easeInOut
-                                                          .transform(
-                                                            animation.value,
-                                                          );
-                                                      final elevation =
-                                                          lerpDouble(
-                                                            0,
-                                                            4,
-                                                            animValue,
-                                                          )!;
-                                                      return Material(
-                                                        elevation: elevation,
-                                                        color:
-                                                            Colors.transparent,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              8,
-                                                            ),
-                                                        child: child,
-                                                      );
-                                                    },
-                                                    child: child,
-                                                  );
-                                                },
-                                            itemBuilder: (context, idx) {
-                                              final block =
-                                                  unfinishedBlocks[idx];
-                                              return Padding(
-                                                key: ValueKey(
-                                                  'reorder-${block.stableId}',
-                                                ),
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 8,
-                                                ),
-                                                child: ExerciseListCard(
-                                                  block: block,
-                                                  completedSets:
-                                                      wp.completedSets,
-                                                  completed: false,
-                                                  draggable: true,
-                                                  dragIndex: idx,
-                                                  onEdit: () => _editBlock(
-                                                    context,
-                                                    wp,
-                                                    block,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          )
-                                        else if (completedBlocks.isEmpty)
-                                          const EmptyPanel(
-                                            text: 'No exercises remaining.',
-                                          ),
-                                        if (!isEnded) ...[
-                                          const SizedBox(height: 8),
-                                          AddExerciseButton(
-                                            onTap: () =>
-                                                _showAddExercise(context, wp),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            // ── Connector: links the Current detail card to the first
-                            // unfinished item. Each list card is ExerciseListCard.height
-                            // tall with an 8px gap, so it tracks down past completed cards.
-                            if (showBracket)
-                              Positioned(
-                                // Overlap both card edges by 1px so the line meets their
-                                // borders and reads as a single continuous outline.
-                                left: leftWidth - 1,
-                                width: gutter + 2,
-                                top:
-                                    21.0 +
-                                    ExerciseListCard.height / 2 +
-                                    completedBlocks.length *
-                                        (ExerciseListCard.height + 8.0),
-                                height: 1.5,
-                                child: BracketConnector(
-                                  color: colorScheme.outline.withValues(
-                                    alpha: 0.55,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
+                  // Done exercises stay pinned at the top; the rest drag
+                  // into any order (the grip, or a long press anywhere).
+                  for (final block in completedBlocks) ...[
+                    ExerciseSection(
+                      key: ValueKey('section-${block.stableId}'),
+                      block: block,
+                      wp: wp,
+                      focused: false,
+                      finished: true,
+                      onEdit: isEnded
+                          ? null
+                          : () => _editBlock(context, wp, block),
                     ),
+                    divider,
+                  ],
+                  ReorderableListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: unfinishedBlocks.length,
+                    // onReorderItem hands back a newIndex already adjusted
+                    // for the removed item, so no manual `newIndex -= 1`.
+                    onReorderItem: (oldIndex, newIndex) {
+                      if (isEnded || unfinishedBlocks.length < 2) return;
+                      HapticFeedback.mediumImpact();
+                      final items = List<ExerciseBlock>.from(unfinishedBlocks);
+                      items.insert(newIndex, items.removeAt(oldIndex));
+                      wp.reorderExercises([
+                        ...completedBlocks.map((b) => b.exercise),
+                        ...items.map((b) => b.exercise),
+                      ]);
+                    },
+                    proxyDecorator: (child, index, animation) =>
+                        AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) => Material(
+                            elevation: lerpDouble(
+                              0,
+                              6,
+                              Curves.easeInOut.transform(animation.value),
+                            )!,
+                            color: context.tokens.background,
+                            child: child,
+                          ),
+                          child: child,
+                        ),
+                    itemBuilder: (context, idx) {
+                      final block = unfinishedBlocks[idx];
+                      return Column(
+                        key: ValueKey('reorder-${block.stableId}'),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ExerciseSection(
+                            block: block,
+                            wp: wp,
+                            focused: focusedBlock?.stableId == block.stableId,
+                            finished: false,
+                            dragIndex: isEnded || unfinishedBlocks.length < 2
+                                ? null
+                                : idx,
+                            onEdit: isEnded
+                                ? null
+                                : () => _editBlock(context, wp, block),
+                          ),
+                          divider,
+                        ],
+                      );
+                    },
                   ),
+                  if (!isEnded) ...[
+                    AddExerciseRow(onTap: () => _showAddExercise(context, wp)),
+                    divider,
+                  ],
 
-                  // End workout — a rare, one-way action, so demoted to a quiet
-                  // link rather than a full-width button competing mid-screen.
+                  // End workout: a rare, one-way action, so a quiet link
+                  // rather than a full-width button.
                   if (!isEnded)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                       child: Center(
                         child: TextButton(
                           onPressed: () => endWorkout(context),
@@ -430,11 +275,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                               vertical: 4,
                             ),
                           ),
-                          child: const Text(
-                            'End workout',
+                          child: Text(
+                            copy.workout.endWorkout,
                             style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                              fontWeight: context.tokens.weight.bold,
+                              fontSize: context.tokens.size.body,
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -462,26 +307,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   children: [
-                    // Lock page-swiping while touching the chart so its own
-                    // left/right pan/zoom gesture takes priority.
-                    Listener(
-                      onPointerDown: (_) {
-                        if (!_lockPager) setState(() => _lockPager = true);
-                      },
-                      onPointerUp: (_) {
-                        if (_lockPager) setState(() => _lockPager = false);
-                      },
-                      onPointerCancel: (_) {
-                        if (_lockPager) setState(() => _lockPager = false);
-                      },
-                      child: HeartRateChart(
-                        heartRateSamples: wp.wearHeartRateSamples,
-                        completedSets: wp.completedSets,
-                        workoutStartTime: workout.startTime,
-                        now: wp.now,
-                        stateSnapshot: wp.stateSnapshot,
-                        fullView: true,
-                      ),
+                    HeartRateChart(
+                      heartRateSamples: wp.wearHeartRateSamples,
+                      completedSets: wp.completedSets,
+                      workoutStartTime: workout.startTime,
+                      now: wp.now,
+                      stateSnapshot: wp.stateSnapshot,
+                      fullView: true,
                     ),
                   ],
                 )
@@ -518,10 +350,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ? wp.stateSnapshot!.displaySet
         : wp.nextPendingSet;
     if (focusedSet == null) return null;
+    // The would-be set a rung is waiting on is not in the plan yet; its
+    // exercise's block is still the one in focus.
     return blocks.cast<ExerciseBlock?>().firstWhere(
-      (block) => block!.sets.any((set) => set.id == focusedSet.id),
-      orElse: () => null,
-    );
+          (block) => block!.sets.any((set) => set.id == focusedSet.id),
+          orElse: () => null,
+        ) ??
+        blocks.cast<ExerciseBlock?>().firstWhere(
+          (block) => block!.exercise == focusedSet.exercise,
+          orElse: () => null,
+        );
   }
 
   Future<void> _confirmRemoveExercise(

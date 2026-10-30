@@ -16,9 +16,17 @@ class ExerciseBlock {
 
   String get stableId => 'exercise-${exercise.value}';
 
-  Iterable<ProposedSet> get workingSets => sets.where((s) => !s.warmup);
+  /// The sets that count: not warmups, not calibration rungs.
+  Iterable<ProposedSet> get workingSets => sets.where(isWorkingSet);
   Iterable<ProposedSet> get warmupSets => sets.where((s) => s.warmup);
+
+  /// The ramp of a first-session exercise, in order.
+  Iterable<ProposedSet> get calibrationSets => sets.where((s) => s.calibration);
 }
+
+/// A working set: neither a warmup nor a calibration rung. Rungs count as
+/// warmups for volume and summaries, like the server's `session_outcomes`.
+bool isWorkingSet(ProposedSet set) => !set.warmup && !set.calibration;
 
 /// Group visible sets by exercise, ordered by first appearance. Legacy
 /// interleaved supersets collapse into one block per exercise.

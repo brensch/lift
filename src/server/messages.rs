@@ -157,7 +157,9 @@ pub(super) fn session_messages_for_completed_set(
     ended_at: i64,
 ) -> Vec<UserMessage> {
     let mut out = Vec::new();
-    if actual_reps >= proposed_set.target_reps {
+    // A calibration rung is a question, not a target: falling short of
+    // its five reps is answered by the effort prompt, never flagged.
+    if proposed_set.calibration || actual_reps >= proposed_set.target_reps {
         return out;
     }
     let mut message = build_message(

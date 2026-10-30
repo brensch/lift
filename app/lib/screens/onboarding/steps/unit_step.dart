@@ -7,6 +7,7 @@ import '../../../gen/copy.dart';
 import 'dart:async';
 import '../../../gen/workout/v1/settings.pb.dart';
 import '../widgets/selection_cards.dart';
+import '../../../theme/theme_spec.dart';
 
 class UnitStep extends StatelessWidget {
   final WeightUnit selectedUnit;
@@ -32,13 +33,16 @@ class UnitStep extends StatelessWidget {
         children: [
           Text(
             copy.onboarding.unit.title,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: context.tokens.size.headline,
+              fontWeight: context.tokens.weight.heavy,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             copy.onboarding.unit.body,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: context.tokens.size.body,
               height: 1.4,
               color: cs.onSurface.withValues(alpha: 0.6),
             ),
@@ -80,7 +84,7 @@ class UnitStep extends StatelessWidget {
                     onPressed: onNext,
                     child: Text(
                       copy.onboarding.next,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
                     ),
                   ),
                 ),

@@ -1,5 +1,3 @@
-.PHONY: fuzz-api fuzz-api-ci run-dev run-backend run-backend-release run-frontend run-app run-android run-android-prod run-android-clean run-linux run-wear run-wear-logs run-wear-debug run-prod check install-deps check-android-java proto-dart proto-android proto-swift proto-all icons print-cert-hashes ci-android-prepare-signing ci-android-check-signing ci-android-build-release ci-android-release-local ci-android-clean-signing build-wear-release deploy-wear deploy-android deploy-android-dev build-aabs-release android-sdk-check android-phone-avd-create android-phone-play-avd-create android-phone-play-emulator-start android-wear-avd-create android-emulator-start android-emulator-stop android-emulator-wait android-emulator-unlock android-emulator-reverse android-screenshot android-tap android-text android-run-emulator agent-backend-start agent-backend-stop android-agent-start android-agent-stop android-wear-emulator-start android-wear-run-emulator android-wear-pairing-notes watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list e2e e2e-up e2e-run lint-tools fmt fmt-check lint lint-check
-
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
 BUN = $(HOME)/.bun/bin/bun
@@ -36,6 +34,75 @@ AGENT_BACKEND_LOG ?= $(AGENT_TMP_DIR)/backend.log
 DEBUG_KEYSTORE = $(HOME)/.android/debug.keystore
 DEBUG_ALIAS = androiddebugkey
 DEBUG_STOREPASS = android
+
+# Phone targets pick the first adb device that is not a watch; watch targets
+# the first that is. Set PHONE_SERIAL / WEAR_SERIAL to choose explicitly.
+# ANDROID_SERIAL above is the emulator the agent and e2e targets drive.
+PHONE_SERIAL ?=
+WEAR_SERIAL ?=
+
+# Shell snippets for recipes. Each one is spliced into a `bash -ec '...'`
+# script (so no single quotes inside) and ends with `;`.
+
+# JAVA_HOME from the javac on PATH, so Gradle gets a full JDK.
+define EXPORT_JAVA_HOME_FROM_JAVAC
+	if command -v javac >/dev/null 2>&1; then \
+		JAVAC_REAL=$$(readlink -f "$$(command -v javac)"); \
+		export JAVA_HOME="$$(dirname "$$(dirname "$$JAVAC_REAL")")"; \
+		echo "Using JAVA_HOME=$$JAVA_HOME (from javac)"; \
+	else \
+		echo "javac not found. Install a full JDK (e.g. openjdk-17-jdk or openjdk-21-jdk)."; \
+		exit 1; \
+	fi; \
+	if [ ! -x "$$JAVA_HOME/bin/javac" ]; then \
+		echo "JAVA_HOME does not contain javac: $$JAVA_HOME"; \
+		exit 1; \
+	fi;
+endef
+
+# Sets SERIAL to the phone ($(1) = PHONE_SERIAL, grep flag -v) or the watch
+# ($(1) = WEAR_SERIAL, no flag), or exits.
+define PICK_ADB_DEVICE
+	SERIAL="$($(1))"; \
+	if [ -z "$$SERIAL" ]; then \
+		SERIAL=$$($(ADB) devices | awk "NR > 1 && \$$2 == \"device\" { print \$$1 }" | while read -r ID; do \
+			CH=$$($(ADB) -s "$$ID" shell getprop ro.build.characteristics </dev/null 2>/dev/null | tr -d "\r"); \
+			if echo "$$CH" | grep -qi $(2) watch; then echo "$$ID"; break; fi; \
+		done); \
+	fi; \
+	if [ -z "$$SERIAL" ]; then \
+		echo "No $(3) on adb. Set $(1) to pick one."; \
+		$(ADB) devices; \
+		exit 1; \
+	fi; \
+	echo "Using $(3): $$SERIAL";
+endef
+PICK_PHONE = $(call PICK_ADB_DEVICE,PHONE_SERIAL,-v,phone)
+PICK_WATCH = $(call PICK_ADB_DEVICE,WEAR_SERIAL,,watch)
+
+# Sets PLATFORM to the Flutter --target-platform for $$SERIAL. A release APK
+# for one ABI builds much faster than the default three.
+define DEVICE_TARGET_PLATFORM
+	case "$$($(ADB) -s "$$SERIAL" shell getprop ro.product.cpu.abi </dev/null | tr -d "\r")" in \
+		arm64-v8a) PLATFORM=android-arm64 ;; \
+		x86_64) PLATFORM=android-x64 ;; \
+		*) PLATFORM=android-arm ;; \
+	esac;
+endef
+
+# Environment for a local backend with dev login, trusting passkeys from the
+# debug-signed app plus the two release signing keys.
+DEBUG_APK_KEY_HASH = $(shell keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=')
+DEBUG_CERT_SHA256 = $(shell keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //')
+RELEASE_APK_ORIGINS = android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk
+BACKEND_DEV_ENV = \
+	RUST_LOG=info \
+	TEST_AUTH_ENABLED=1 \
+	WEBAUTHN_RP_ID=schlift.com \
+	WEBAUTHN_RP_ORIGIN=https://schlift.com \
+	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$(DEBUG_APK_KEY_HASH) \
+	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$(DEBUG_APK_KEY_HASH),$(RELEASE_APK_ORIGINS) \
+	ANDROID_CERT_SHA256=$(DEBUG_CERT_SHA256)
 
 # Targets are grouped by concern under make/. Variables above are shared.
 include make/backend.mk

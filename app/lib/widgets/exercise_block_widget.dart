@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:fixnum/fixnum.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 /// Read-only view of one exercise's block of sets — used for looking at a
 /// session partner's workout. Your own workout renders through
@@ -14,13 +14,15 @@ import '../theme/app_theme.dart';
 class ExerciseBlockWidget extends StatefulWidget {
   final ExerciseBlock block;
   final List<CompletedSet> completedSets;
-  final String? activeSetId;
+
+  /// The partner's next pending set, drawn a touch bolder than the rest.
+  final String? nextSetId;
 
   const ExerciseBlockWidget({
     super.key,
     required this.block,
     required this.completedSets,
-    this.activeSetId,
+    this.nextSetId,
   });
 
   @override
@@ -28,8 +30,6 @@ class ExerciseBlockWidget extends StatefulWidget {
 }
 
 class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
-  static const _activeLiftFg = AppTheme.workoutLiftingFg;
-  static const _activeLiftBg = AppTheme.workoutLiftingBg;
   bool _isManualExpanded = false;
 
   @override
@@ -39,15 +39,11 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
     final warmupSets = widget.block.warmupSets.toList();
 
     final completedWorkingSets = workingSets
-        .where(
-          (s) => widget.completedSets.any(
-            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-          ),
-        )
+        .where((s) => widget.completedSets.any((c) => c.proposedSetId == s.id))
         .length;
     final completedWorkingReps = workingSets.fold<int>(0, (sum, s) {
       final completed = widget.completedSets.cast<CompletedSet?>().firstWhere(
-        (c) => c!.proposedSetId == s.id && c.endedAt != Int64.ZERO,
+        (c) => c!.proposedSetId == s.id,
         orElse: () => null,
       );
       return sum + (completed?.actualReps ?? 0);
@@ -59,35 +55,25 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
     final remainingWorkingRepsMin =
         (targetWorkingRepsMin - completedWorkingReps).clamp(0, 1 << 30);
     final completedWarmupSets = warmupSets
-        .where(
-          (s) => widget.completedSets.any(
-            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-          ),
-        )
+        .where((s) => widget.completedSets.any((c) => c.proposedSetId == s.id))
         .length;
 
     final allCompleted =
         workingSets.isNotEmpty && completedWorkingSets == workingSets.length;
-    final hasActiveSet = widget.block.sets.any(
-      (s) => s.id == widget.activeSetId,
-    );
-    final isExpanded = hasActiveSet || _isManualExpanded || !allCompleted;
+    final isExpanded = _isManualExpanded || !allCompleted;
 
-    Color barColor = colorScheme.outline.withValues(alpha: 0.25);
-    if (allCompleted) {
-      barColor = AppTheme.successFg;
-    } else if (hasActiveSet) {
-      barColor = _activeLiftFg;
-    }
+    final barColor = allCompleted
+        ? context.tokens.successFg
+        : colorScheme.outline.withValues(alpha: 0.25);
 
     // ── COLLAPSED (completed) ──────────────────────────────────────────────
     if (allCompleted && !isExpanded) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: context.tokens.br(8),
         child: Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.tokens.br(8),
             border: Border.all(
               color: colorScheme.outline.withValues(alpha: 0.4),
             ),
@@ -111,9 +97,9 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.check_circle_outline_rounded,
+                            AppIcons.checkCircle,
                             size: 13,
-                            color: AppTheme.successFg,
+                            color: context.tokens.successFg,
                           ),
                           const SizedBox(width: 7),
                           Expanded(
@@ -121,8 +107,8 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                               (exerciseNames[widget.block.exercise] ??
                                   'Unknown'),
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
+                                fontSize: context.tokens.size.bodyLg,
+                                fontWeight: context.tokens.weight.heavy,
                                 letterSpacing: -0.3,
                                 color: colorScheme.tertiary,
                               ),
@@ -149,7 +135,7 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                     ),
                     child: Center(
                       child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
+                        AppIcons.expandDown,
                         size: 18,
                         color: colorScheme.onSurface.withValues(alpha: 0.25),
                       ),
@@ -163,19 +149,14 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
       );
     }
 
-    // ── EXPANDED (active / upcoming / manually expanded completed) ──────────
+    // ── EXPANDED (upcoming / manually expanded completed) ───────────────────
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: context.tokens.br(8),
       child: Container(
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: hasActiveSet
-                ? _activeLiftFg.withValues(alpha: 0.6)
-                : colorScheme.outline.withValues(alpha: 0.4),
-            width: hasActiveSet ? 1.5 : 1,
-          ),
+          borderRadius: context.tokens.br(8),
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.4)),
         ),
         child: IntrinsicHeight(
           child: Row(
@@ -205,8 +186,10 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                                         (exerciseNames[widget.block.exercise] ??
                                             'Unknown'),
                                         style: TextStyle(
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w900,
+                                          fontSize:
+                                              context.tokens.size.subtitle,
+                                          fontWeight:
+                                              context.tokens.weight.heavy,
                                           letterSpacing: -0.4,
                                           color: allCompleted
                                               ? colorScheme.tertiary
@@ -222,11 +205,11 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                                       ? '$completedWarmupSets/${warmupSets.length} Warmups   $completedWorkingSets/${workingSets.length} Sets'
                                       : '$completedWorkingSets/${workingSets.length} Sets',
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                                    fontSize: context.tokens.size.small,
+                                    fontWeight: context.tokens.weight.bold,
                                     letterSpacing: 0.4,
                                     color: allCompleted
-                                        ? AppTheme.successFg
+                                        ? context.tokens.successFg
                                         : colorScheme.tertiary,
                                   ),
                                 ),
@@ -234,8 +217,8 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                                   Text(
                                     'Target $targetWorkingRepsMin reps • $completedWorkingReps done • $remainingWorkingRepsMin to go',
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: context.tokens.size.small,
+                                      fontWeight: context.tokens.weight.bold,
                                       color: colorScheme.tertiary.withValues(
                                         alpha: 0.72,
                                       ),
@@ -275,7 +258,7 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
                     ),
                     child: Center(
                       child: Icon(
-                        Icons.keyboard_arrow_up_rounded,
+                        AppIcons.expandUp,
                         size: 18,
                         color: colorScheme.onSurface.withValues(alpha: 0.25),
                       ),
@@ -292,10 +275,10 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
   Widget _buildChip(BuildContext context, ProposedSet set) {
     final colorScheme = Theme.of(context).colorScheme;
     final completed = widget.completedSets.cast<CompletedSet?>().firstWhere(
-      (c) => c!.proposedSetId == set.id && c.endedAt != Int64.ZERO,
+      (c) => c!.proposedSetId == set.id,
       orElse: () => null,
     );
-    final isActive = set.id == widget.activeSetId;
+    final isNext = set.id == widget.nextSetId;
 
     final unit = context.watch<SettingsProvider>().weightUnit;
     final String weight = formatWeight(set.targetWeight.toDouble(), unit);
@@ -308,33 +291,31 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
 
     if (completed != null) {
       final hitTarget = completed.actualReps >= set.targetReps;
-      bg = hitTarget ? AppTheme.successBg : AppTheme.warningBg;
-      fg = hitTarget ? AppTheme.successFg : AppTheme.warningFg;
+      bg = hitTarget ? context.tokens.successBg : context.tokens.warningBg;
+      fg = hitTarget ? context.tokens.successFg : context.tokens.warningFg;
       borderColor = fg.withValues(alpha: 0.2);
       text = set.warmup ? 'W' : (hitTarget ? '✓' : '${completed.actualReps}');
-      fontWeight = FontWeight.w800;
+      fontWeight = context.tokens.weight.heavy;
     } else if (set.warmup) {
-      bg = isActive ? AppTheme.warmupLight : Colors.transparent;
-      fg = isActive
-          ? AppTheme.warmupFg
+      bg = isNext ? context.tokens.warmupLight : Colors.transparent;
+      fg = isNext
+          ? context.tokens.warmupFg
           : colorScheme.tertiary.withValues(alpha: 0.6);
-      borderColor = isActive
-          ? AppTheme.warmupFg.withValues(alpha: 0.6)
+      borderColor = isNext
+          ? context.tokens.warmupFg.withValues(alpha: 0.6)
           : colorScheme.outline.withValues(alpha: 0.25);
       text = 'W:${set.targetReps}@$weight';
-      fontWeight = isActive ? FontWeight.w800 : FontWeight.w600;
-    } else if (isActive) {
-      bg = _activeLiftBg;
-      fg = _activeLiftFg;
-      borderColor = _activeLiftFg.withValues(alpha: 0.5);
-      text = '${set.targetReps}@$weight';
-      fontWeight = FontWeight.w800;
+      fontWeight = isNext
+          ? context.tokens.weight.heavy
+          : context.tokens.weight.bold;
     } else {
       bg = Colors.transparent;
-      fg = colorScheme.onSurface.withValues(alpha: 0.75);
-      borderColor = colorScheme.outline.withValues(alpha: 0.25);
+      fg = colorScheme.onSurface.withValues(alpha: isNext ? 1 : 0.75);
+      borderColor = colorScheme.outline.withValues(alpha: isNext ? 0.6 : 0.25);
       text = '${set.targetReps}@$weight';
-      fontWeight = FontWeight.w600;
+      fontWeight = isNext
+          ? context.tokens.weight.heavy
+          : context.tokens.weight.bold;
     }
 
     return Container(
@@ -342,12 +323,12 @@ class _ExerciseBlockWidgetState extends State<ExerciseBlockWidget> {
       decoration: BoxDecoration(
         color: bg,
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: context.tokens.br(5),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: context.tokens.size.body,
           color: fg,
           fontWeight: fontWeight,
           letterSpacing: -0.2,

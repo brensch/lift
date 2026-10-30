@@ -142,8 +142,7 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
 
   const volumeLb = workouts.reduce((s, w) => s + w.volumeLb, 0);
   const gymS = workouts.reduce((s, w) => s + w.durationS, 0);
-  const liftingS = workouts.reduce((s, w) => s + w.liftingS, 0);
-  const yappingS = workouts.reduce((s, w) => s + w.yappingS, 0);
+  const restingS = workouts.reduce((s, w) => s + w.restingS, 0);
   const spanDays = Math.max(1, (endS - startS) / DAY_S);
   const perWeek = (workouts.length / spanDays) * 7;
   const prs = exercises.filter((e) => e.isPr);
@@ -295,11 +294,7 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
             <Stat
               label="In the gym"
               value={formatDuration(gymS)}
-              sub={
-                gymS > 0
-                  ? `${Math.round((liftingS / gymS) * 100)}% lifting · ${Math.round((yappingS / gymS) * 100)}% yapping`
-                  : undefined
-              }
+              sub={gymS > 0 ? `${Math.round((restingS / gymS) * 100)}% resting` : undefined}
             />
             <Stat
               label="Best est. 1RM"
@@ -497,9 +492,8 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                 {bottomTab === "time" && (
                   <div className="hidden xl:flex items-center gap-3 text-[11px] text-muted">
                     {[
-                      ["Lifting", SERIES_1],
+                      ["Working", SERIES_1],
                       ["Resting", SERIES_2],
-                      ["Yapping", SERIES_3],
                     ].map(([l, c]) => (
                       <span key={l} className="flex items-center gap-1">
                         <span
@@ -519,9 +513,12 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                       label: formatDate(w.startS),
                       title: `${w.name} — ${formatDateFull(w.startS)}`,
                       segments: [
-                        { label: "Lifting", color: SERIES_1, seconds: w.liftingS },
+                        {
+                          label: "Working",
+                          color: SERIES_1,
+                          seconds: Math.max(0, w.durationS - w.restingS),
+                        },
                         { label: "Resting", color: SERIES_2, seconds: w.restingS },
-                        { label: "Yapping", color: SERIES_3, seconds: w.yappingS },
                       ],
                     }))}
                   />

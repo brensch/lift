@@ -9,6 +9,7 @@ import 'package:app_links/app_links.dart' as app_links;
 
 import 'services/app_logger.dart';
 import 'services/notification_service.dart';
+import 'services/permissions_service.dart';
 import 'services/page_tracker.dart';
 import 'services/grpc_client.dart';
 import 'widgets/dialogs/template_update_dialog.dart';
@@ -24,9 +25,10 @@ import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/sound_provider.dart';
-import 'providers/theme_provider.dart';
-import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
+import 'screens/permissions_screen.dart';
+import 'screens/wordmark_lab_screen.dart';
+import 'theme/app_theme.dart';
 import 'screens/workout_tab.dart';
 import 'screens/completed_workout_screen.dart';
 import 'screens/progress_screen.dart';
@@ -67,6 +69,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await NotificationService.init();
+  await PermissionsService.instance.load();
   // Stamp every RPC with the app version for the server's update gate.
   try {
     final info = await PackageInfo.fromPlatform();
@@ -102,7 +105,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   late final MultiplayerProvider _multiplayerProvider;
   late final SettingsProvider _settingsProvider;
   late final SoundProvider _soundProvider;
-  late final ThemeProvider _themeProvider;
   late final WearableBridgeService _wearableBridgeService;
   late final WearableSyncCoordinator _wearableSyncCoordinator;
   late final GoRouter _router;
@@ -114,9 +116,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   bool _wasLoggedIn = false;
 
   Future<void> _syncBodyWeightOnAppLoad() async {
-    final importedKg = await _authProvider.syncBodyWeightFromHealth(
-      requestPermissions: false,
-    );
+    final importedKg = await _authProvider.syncBodyWeightFromHealth();
     if (importedKg != null) {
       _workoutProvider.setBodyWeightKg(importedKg);
     }
@@ -152,7 +152,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
     );
-    _themeProvider = ThemeProvider();
     _wearableBridgeService = createWearableBridgeService();
     _wearableSyncCoordinator = WearableSyncCoordinator(
       workoutProvider: _workoutProvider,
@@ -221,7 +220,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         PageTracker.instance.onLogout();
         _settingsProvider.clear();
         unawaited(_soundProvider.reset());
-        unawaited(_themeProvider.reset());
         _workoutProvider.clear();
         _multiplayerProvider.stopSync(
           clearSession: true,
@@ -244,6 +242,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         _authProvider,
         _settingsProvider,
         _workoutProvider,
+        PermissionsService.instance,
       ]),
       redirect: (context, state) {
         // Hold on a blank page until the saved session has been read (a few
@@ -262,6 +261,13 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         if (!loggedIn && !isLogin) return '/login';
         if (loggedIn && isLogin) return '/';
 
+        // Every permission, once per install, before anything else.
+        final isPermissions = state.matchedLocation == '/permissions';
+        if (loggedIn && PermissionsService.instance.needsRequest) {
+          return isPermissions ? null : '/permissions';
+        }
+        if (isPermissions) return '/';
+
         // Route brand-new users to setup: the server says a user is
         // onboarded once they have any templates or workouts.
         final home = _workoutProvider.home;
@@ -274,6 +280,14 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       routes: [
         GoRoute(path: '/starting', builder: (_, __) => const Scaffold()),
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+        GoRoute(
+          path: '/wordmarks',
+          builder: (_, __) => const WordmarkLabScreen(),
+        ),
+        GoRoute(
+          path: '/permissions',
+          builder: (_, __) => const PermissionsScreen(),
+        ),
         GoRoute(
           path: '/onboarding',
           builder: (_, __) => const OnboardingScreen(),
@@ -398,7 +412,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _multiplayerProvider.dispose();
     _settingsProvider.dispose();
     _soundProvider.dispose();
-    _themeProvider.dispose();
     super.dispose();
   }
 
@@ -418,17 +431,12 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           value: _settingsProvider,
         ),
         ChangeNotifierProvider<SoundProvider>.value(value: _soundProvider),
-        ChangeNotifierProvider<ThemeProvider>.value(value: _themeProvider),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) => MaterialApp.router(
-          title: 'Schlift',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: themeProvider.themeMode,
-          routerConfig: _router,
-        ),
+      child: MaterialApp.router(
+        title: 'Schlift',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.theme,
+        routerConfig: _router,
       ),
     );
   }

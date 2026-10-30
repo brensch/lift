@@ -10,8 +10,9 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
-import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/app_icons.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
 /// lifted over time, with the current weight, the gain since you started, and a
@@ -50,22 +51,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
       final pts = s.points.where((p) => p.date.isAfter(cutoff)).toList();
       if (pts.isEmpty) continue;
       out.add(
-        _ExerciseProgress(exercise: s.exercise, points: pts, color: s.color),
+        _ExerciseProgress(
+          exercise: s.exercise,
+          points: pts,
+          colorIndex: s.colorIndex,
+        ),
       );
     }
     return out;
   }
-
-  // A calm, distinct colour per exercise (cycled by index).
-  static const _palette = [
-    Color(0xFF60A5FA), // blue
-    Color(0xFFF59E0B), // amber
-    Color(0xFF34D399), // green
-    Color(0xFFF472B6), // pink
-    Color(0xFFA78BFA), // violet
-    Color(0xFF22D3EE), // cyan
-    Color(0xFFFB7185), // rose
-  ];
 
   @override
   void initState() {
@@ -95,7 +89,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   ),
                 )
                 .toList(),
-            color: _palette[i % _palette.length],
+            colorIndex: i,
           ),
         );
       }
@@ -120,12 +114,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: const Text(
+          title: Text(
             'Progress',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+            style: TextStyle(
+              fontWeight: context.tokens.weight.heavy,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
         body: body,
@@ -169,7 +166,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
               child: Center(
                 child: Text(
                   'No lifts in the last ${_windows[_windowIdx].label}.',
-                  style: TextStyle(color: cs.tertiary, fontSize: 14),
+                  style: TextStyle(
+                    color: cs.tertiary,
+                    fontSize: context.tokens.size.body,
+                  ),
                 ),
               ),
             )
@@ -203,9 +203,10 @@ class _SummaryHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _headStat('$workoutCount', 'workouts', cs),
+        _headStat(context, '$workoutCount', 'workouts', cs),
         const SizedBox(width: 24),
         _headStat(
+          context,
           _compactVolume(totalVolume),
           '${weightUnitSuffix(unit)} lifted',
           cs,
@@ -215,7 +216,10 @@ class _SummaryHeader extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(
             'since ${_shortDate(since)}',
-            style: TextStyle(color: cs.tertiary, fontSize: 12),
+            style: TextStyle(
+              color: cs.tertiary,
+              fontSize: context.tokens.size.small,
+            ),
           ),
         ),
       ],
@@ -228,18 +232,29 @@ class _SummaryHeader extends StatelessWidget {
     return v.round().toString();
   }
 
-  Widget _headStat(String value, String label, ColorScheme cs) => Column(
+  Widget _headStat(
+    BuildContext context,
+    String value,
+    String label,
+    ColorScheme cs,
+  ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
         value,
-        style: const TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.w900,
+        style: TextStyle(
+          fontSize: context.tokens.size.titleLg,
+          fontWeight: context.tokens.weight.heavy,
           height: 1,
         ),
       ),
-      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+      Text(
+        label,
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: context.tokens.size.small,
+        ),
+      ),
     ],
   );
 }
@@ -263,7 +278,7 @@ class _WindowSelector extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: AppTheme.brSm,
+        borderRadius: context.tokens.brSm,
       ),
       child: Row(
         children: [
@@ -278,7 +293,7 @@ class _WindowSelector extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   decoration: BoxDecoration(
                     color: i == selected ? cs.surface : Colors.transparent,
-                    borderRadius: AppTheme.brSm,
+                    borderRadius: context.tokens.brSm,
                     boxShadow: i == selected
                         ? [
                             BoxShadow(
@@ -293,10 +308,10 @@ class _WindowSelector extends StatelessWidget {
                     child: Text(
                       labels[i],
                       style: TextStyle(
-                        fontSize: 12.5,
+                        fontSize: context.tokens.size.small,
                         fontWeight: i == selected
-                            ? FontWeight.w900
-                            : FontWeight.w700,
+                            ? context.tokens.weight.heavy
+                            : context.tokens.weight.bold,
                         color: i == selected
                             ? cs.onSurface
                             : cs.onSurfaceVariant,
@@ -327,7 +342,7 @@ class _ExerciseCard extends StatelessWidget {
     final name = exerciseNames[series.exercise] ?? '?';
     final emoji = exerciseEmojis[series.exercise] ?? '🏋️';
     final gain = series.gain;
-    final gainColor = gain > 0 ? AppTheme.accentGreen : cs.tertiary;
+    final gainColor = gain > 0 ? context.tokens.accentGreen : cs.tertiary;
     final gainText = gain == 0
         ? ''
         : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';
@@ -335,12 +350,12 @@ class _ExerciseCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: AppTheme.brMd,
+        borderRadius: context.tokens.brMd,
         onTap: () => context.push('/exercise/${series.exercise.value}'),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: AppTheme.brMd,
+            borderRadius: context.tokens.brMd,
             border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
             color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
           ),
@@ -355,16 +370,19 @@ class _ExerciseCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(emoji, style: const TextStyle(fontSize: 14)),
+                        Text(
+                          emoji,
+                          style: TextStyle(fontSize: context.tokens.size.body),
+                        ),
                         const SizedBox(width: 5),
                         Expanded(
                           child: Text(
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13.5,
+                            style: TextStyle(
+                              fontWeight: context.tokens.weight.heavy,
+                              fontSize: context.tokens.size.body,
                               letterSpacing: -0.2,
                             ),
                           ),
@@ -382,10 +400,10 @@ class _ExerciseCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 15,
+                              fontWeight: context.tokens.weight.heavy,
+                              fontSize: context.tokens.size.bodyLg,
                               letterSpacing: -0.3,
-                              color: series.color,
+                              color: series.colorIn(context.tokens),
                               fontFeatures: const [
                                 FontFeature.tabularFigures(),
                               ],
@@ -398,8 +416,8 @@ class _ExerciseCard extends StatelessWidget {
                             gainText,
                             style: TextStyle(
                               color: gainColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                              fontSize: context.tokens.size.small,
+                              fontWeight: context.tokens.weight.heavy,
                             ),
                           ),
                         ],
@@ -424,7 +442,10 @@ class _ExerciseCard extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             '1 session',
-                            style: TextStyle(color: cs.tertiary, fontSize: 11),
+                            style: TextStyle(
+                              color: cs.tertiary,
+                              fontSize: context.tokens.size.small,
+                            ),
                           ),
                         ),
                 ),
@@ -435,9 +456,19 @@ class _ExerciseCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _rightStat('1RM', formatWeight(series.bestOneRm, unit), cs),
+                  _rightStat(
+                    context,
+                    '1RM',
+                    formatWeight(series.bestOneRm, unit),
+                    cs,
+                  ),
                   const SizedBox(height: 4),
-                  _rightStat('BEST', formatWeight(series.best, unit), cs),
+                  _rightStat(
+                    context,
+                    'BEST',
+                    formatWeight(series.best, unit),
+                    cs,
+                  ),
                 ],
               ),
             ],
@@ -447,7 +478,12 @@ class _ExerciseCard extends StatelessWidget {
     );
   }
 
-  Widget _rightStat(String label, String value, ColorScheme cs) => Row(
+  Widget _rightStat(
+    BuildContext context,
+    String label,
+    String value,
+    ColorScheme cs,
+  ) => Row(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.baseline,
     textBaseline: TextBaseline.alphabetic,
@@ -455,18 +491,18 @@ class _ExerciseCard extends StatelessWidget {
       Text(
         label,
         style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w800,
+          fontSize: context.tokens.size.caption,
+          fontWeight: context.tokens.weight.heavy,
           letterSpacing: 0.6,
           color: cs.tertiary,
         ),
       ),
-      const SizedBox(width: 6),
+      SizedBox(width: 6),
       Text(
         value,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w900,
+        style: TextStyle(
+          fontSize: context.tokens.size.body,
+          fontWeight: context.tokens.weight.heavy,
           fontFeatures: [FontFeature.tabularFigures()],
         ),
       ),
@@ -513,16 +549,16 @@ class _Chart extends StatelessWidget {
               spots: spots,
               isCurved: true,
               curveSmoothness: 0.2,
-              color: series.color,
+              color: series.colorIn(context.tokens),
               barWidth: 2.5,
               dotData: FlDotData(
                 show: true,
                 checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
                 getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
                   radius: 3,
-                  color: series.color,
+                  color: series.colorIn(context.tokens),
                   strokeWidth: 0,
-                  strokeColor: series.color,
+                  strokeColor: series.colorIn(context.tokens),
                 ),
               ),
               belowBarData: BarAreaData(
@@ -531,8 +567,8 @@ class _Chart extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    series.color.withValues(alpha: 0.22),
-                    series.color.withValues(alpha: 0.0),
+                    series.colorIn(context.tokens).withValues(alpha: 0.22),
+                    series.colorIn(context.tokens).withValues(alpha: 0.0),
                   ],
                 ),
               ),
@@ -561,7 +597,10 @@ class _Chart extends StatelessWidget {
               interval: ((maxW - minW) / 2).clamp(1, double.infinity),
               getTitlesWidget: (v, meta) => Text(
                 formatWeight(v, unit),
-                style: TextStyle(fontSize: 10, color: cs.tertiary),
+                style: TextStyle(
+                  fontSize: context.tokens.size.caption,
+                  color: cs.tertiary,
+                ),
               ),
             ),
           ),
@@ -583,7 +622,10 @@ class _Chart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     _shortDate(pts[i].date),
-                    style: TextStyle(fontSize: 10, color: cs.tertiary),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.caption,
+                      color: cs.tertiary,
+                    ),
                   ),
                 );
               },
@@ -600,8 +642,8 @@ class _Chart extends StatelessWidget {
                 '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${_shortDate(p.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
+                  fontWeight: context.tokens.weight.bold,
+                  fontSize: context.tokens.size.small,
                 ),
               );
             }).toList(),
@@ -612,14 +654,14 @@ class _Chart extends StatelessWidget {
             spots: spots,
             isCurved: true,
             curveSmoothness: 0.2,
-            color: series.color,
+            color: series.colorIn(context.tokens),
             barWidth: 3,
             dotData: FlDotData(
               show: true,
               checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
               getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
                 radius: 4,
-                color: series.color,
+                color: series.colorIn(context.tokens),
                 strokeWidth: 2,
                 strokeColor: cs.surface,
               ),
@@ -630,8 +672,8 @@ class _Chart extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  series.color.withValues(alpha: 0.28),
-                  series.color.withValues(alpha: 0.0),
+                  series.colorIn(context.tokens).withValues(alpha: 0.28),
+                  series.colorIn(context.tokens).withValues(alpha: 0.0),
                 ],
               ),
             ),
@@ -650,16 +692,22 @@ class _EmptyState extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('📈', style: const TextStyle(fontSize: 40)),
+        Text('📈', style: TextStyle(fontSize: context.tokens.size.display)),
         const SizedBox(height: 12),
         Text(
           'No workout history yet',
-          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: cs.onSurface,
+            fontWeight: context.tokens.weight.heavy,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Finish a workout and your progress shows up here.',
-          style: TextStyle(color: cs.tertiary, fontSize: 13),
+          style: TextStyle(
+            color: cs.tertiary,
+            fontSize: context.tokens.size.body,
+          ),
         ),
       ],
     ),
@@ -694,12 +742,17 @@ class _Point {
 class _ExerciseProgress {
   final Exercise exercise;
   final List<_Point> points;
-  final Color color;
+
+  /// Index into the theme's series palette, so the colour follows the theme.
+  final int colorIndex;
   _ExerciseProgress({
     required this.exercise,
     required this.points,
-    required this.color,
+    required this.colorIndex,
   });
+
+  Color colorIn(ThemeSpec tokens) =>
+      tokens.series[colorIndex % tokens.series.length];
 
   double get start => points.first.weight;
   double get current => points.last.weight;

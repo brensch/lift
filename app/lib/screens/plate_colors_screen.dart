@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/plate_visualization.dart';
+import '../theme/theme_spec.dart';
 
 const List<MapEntry<String, Color>> _colorOptions = [
   MapEntry('Red', Colors.red),
@@ -61,9 +62,12 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Plate colours',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: context.tokens.weight.heavy,
+            letterSpacing: -0.5,
+          ),
         ),
         actions: [
           if (_dirty)
@@ -72,7 +76,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
               child: Text(
                 'Save',
                 style: TextStyle(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: context.tokens.weight.heavy,
                   color: colorScheme.primary,
                 ),
               ),
@@ -115,7 +119,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
                   color: colorScheme.surfaceContainerHighest.withValues(
                     alpha: 0.3,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: context.tokens.br(12),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
                     onTap: () => _showColorPicker(context, weight),
@@ -143,7 +147,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
                                     : '$weight',
                                 style: TextStyle(
                                   color: plateTextColor,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: context.tokens.weight.heavy,
                                   fontSize: weight >= 10 ? 12 : 11,
                                   letterSpacing: -0.3,
                                 ),
@@ -189,7 +193,7 @@ class _PlateColorsScreenState extends State<PlateColorsScreen> {
                 height: 40,
                 decoration: BoxDecoration(
                   color: option.value,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.tokens.br(8),
                   border: Border.all(
                     color: isSelected
                         ? colorScheme.primary

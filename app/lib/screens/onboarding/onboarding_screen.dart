@@ -31,6 +31,7 @@ import 'steps/strength_step.dart';
 import 'steps/templates_step.dart';
 import 'steps/unit_step.dart';
 import 'steps/weight_step.dart';
+import '../../theme/theme_spec.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -306,7 +307,7 @@ class _StepDots extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
             color: i == step ? cs.primary : cs.onSurface.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: context.tokens.br(4),
           ),
         );
       }),

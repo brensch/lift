@@ -8,6 +8,8 @@ import '../logic/whimsical_emojis.dart';
 import '../providers/auth_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 class ProfileMarkerScreen extends StatefulWidget {
   const ProfileMarkerScreen({super.key});
@@ -89,12 +91,15 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Profile Marker',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: context.tokens.weight.heavy,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
       body: SafeArea(
@@ -107,22 +112,25 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   Text(
                     'GROUP LOOK',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.small,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: 1.4,
                       color: cs.tertiary,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Pick your colour and emoji',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.headline,
+                      fontWeight: context.tokens.weight.heavy,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'This controls the badge and side stripe used for you in group workouts.',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: context.tokens.size.body,
                       height: 1.4,
                       color: cs.onSurface.withValues(alpha: 0.6),
                     ),
@@ -138,8 +146,8 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                       Text(
                         'EMOJIS',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.heavy,
                           letterSpacing: 1.2,
                           color: cs.tertiary,
                         ),
@@ -147,7 +155,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                       const Spacer(),
                       TextButton.icon(
                         onPressed: _refreshEmojiChoices,
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        icon: const Icon(AppIcons.refresh, size: 18),
                         label: const Text('Refresh'),
                       ),
                     ],
@@ -170,8 +178,8 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   Text(
                     'COLOURS',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.small,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: 1.2,
                       color: cs.tertiary,
                     ),
@@ -213,9 +221,11 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
+                      : Text(
                           'SAVE',
-                          style: TextStyle(fontWeight: FontWeight.w900),
+                          style: TextStyle(
+                            fontWeight: context.tokens.weight.heavy,
+                          ),
                         ),
                 ),
               ),
@@ -240,7 +250,7 @@ class _ProfilePreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: context.tokens.br(16),
         border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -250,12 +260,15 @@ class _ProfilePreviewCard extends StatelessWidget {
             height: 88,
             decoration: BoxDecoration(
               color: accent,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(16),
+              borderRadius: BorderRadius.horizontal(
+                left: context.tokens.radius(16),
               ),
             ),
             alignment: Alignment.center,
-            child: Text(emoji, style: const TextStyle(fontSize: 28)),
+            child: Text(
+              emoji,
+              style: TextStyle(fontSize: context.tokens.size.headline),
+            ),
           ),
           Expanded(
             child: Padding(
@@ -266,15 +279,18 @@ class _ProfilePreviewCard extends StatelessWidget {
                   Text(
                     'Workout card preview',
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.body,
+                      fontWeight: context.tokens.weight.heavy,
                       color: cs.tertiary,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Your emoji appears in the rounded side rail and the selected colour fills that rail.',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: context.tokens.size.body,
+                      fontWeight: context.tokens.weight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -302,7 +318,7 @@ class _EmojiChoiceChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: context.tokens.br(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 52,
@@ -312,13 +328,16 @@ class _EmojiChoiceChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : cs.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: context.tokens.br(14),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
             width: selected ? 2 : 1,
           ),
         ),
-        child: Text(emoji, style: const TextStyle(fontSize: 26)),
+        child: Text(
+          emoji,
+          style: TextStyle(fontSize: context.tokens.size.titleLg),
+        ),
       ),
     );
   }
@@ -341,7 +360,7 @@ class _ColorChoiceDot extends StatelessWidget {
     final color = profileColorFromHex(hex);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: context.tokens.br(999),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 38,

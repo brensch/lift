@@ -1,5 +1,6 @@
 import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
+import '../theme/theme_spec.dart';
 
 class ErrorModalService {
   static final GlobalKey<NavigatorState> rootNavigatorKey =
@@ -18,7 +19,7 @@ class ErrorModalService {
         builder: (ctx) => AlertDialog(
           title: Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(fontWeight: context.tokens.weight.heavy),
           ),
           content: Text(message),
           actions: [

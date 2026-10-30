@@ -11,6 +11,8 @@ import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/top_level_back_scope.dart';
+import '../theme/theme_spec.dart';
+import '../theme/app_icons.dart';
 
 /// History: past workouts as rich cards — date, the lifts you did, and totals
 /// (volume, sets, duration) — instead of a bare list.
@@ -86,12 +88,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(AppIcons.back),
             onPressed: () => context.go('/'),
           ),
-          title: const Text(
+          title: Text(
             'History',
-            style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+            style: TextStyle(
+              fontWeight: context.tokens.weight.heavy,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
         body: body,
@@ -107,13 +112,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🗒️', style: TextStyle(fontSize: 40)),
+              Text(
+                '🗒️',
+                style: TextStyle(fontSize: context.tokens.size.display),
+              ),
               const SizedBox(height: 12),
               Text(
                 'No completed workouts yet',
                 style: TextStyle(
                   color: cs.onSurface,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: context.tokens.weight.heavy,
                 ),
               ),
             ],
@@ -175,8 +183,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               label.toUpperCase(),
               style: TextStyle(
                 color: cs.tertiary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+                fontSize: context.tokens.size.small,
+                fontWeight: context.tokens.weight.heavy,
                 letterSpacing: 0.8,
               ),
             ),
@@ -195,13 +203,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
     children: [
       Text(
         value,
-        style: const TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.w900,
+        style: TextStyle(
+          fontSize: context.tokens.size.titleLg,
+          fontWeight: context.tokens.weight.heavy,
           height: 1,
         ),
       ),
-      Text(label, style: TextStyle(color: cs.tertiary, fontSize: 12)),
+      Text(
+        label,
+        style: TextStyle(
+          color: cs.tertiary,
+          fontSize: context.tokens.size.small,
+        ),
+      ),
     ],
   );
 }
@@ -228,9 +242,9 @@ class _HistoryCard extends StatelessWidget {
 
     return Material(
       color: cs.surfaceContainerHighest.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: context.tokens.br(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: context.tokens.br(16),
         onTap: () => context.push(
           '/workout/${item.workout.id}/completed?isHistory=true',
         ),
@@ -249,15 +263,18 @@ class _HistoryCard extends StatelessWidget {
                       '$title$more',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.heavy,
+                        fontSize: context.tokens.size.bodyLg,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${_relativeDay(date)} · ${_formatDuration(item.duration)}',
-                      style: TextStyle(color: cs.tertiary, fontSize: 12),
+                      style: TextStyle(
+                        color: cs.tertiary,
+                        fontSize: context.tokens.size.small,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -266,19 +283,24 @@ class _HistoryCard extends StatelessWidget {
                       children: [
                         if (item.volume > 0)
                           _chip(
+                            context,
                             '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
                             cs,
                           ),
                         if (item.workingSets > 0)
-                          _chip('${item.workingSets} sets', cs),
+                          _chip(context, '${item.workingSets} sets', cs),
                         if (item.partners.isNotEmpty)
-                          _chip('👥 with ${_names(item.partners)}', cs),
+                          _chip(
+                            context,
+                            '👥 with ${_names(item.partners)}',
+                            cs,
+                          ),
                       ],
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: cs.tertiary),
+              Icon(AppIcons.forward, color: cs.tertiary),
             ],
           ),
         ),
@@ -286,18 +308,18 @@ class _HistoryCard extends StatelessWidget {
     );
   }
 
-  Widget _chip(String text, ColorScheme cs) => Container(
+  Widget _chip(BuildContext context, String text, ColorScheme cs) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
     decoration: BoxDecoration(
       color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: context.tokens.br(999),
     ),
     child: Text(
       text,
       style: TextStyle(
         color: cs.onSurface.withValues(alpha: 0.85),
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
+        fontSize: context.tokens.size.small,
+        fontWeight: context.tokens.weight.bold,
       ),
     ),
   );
@@ -348,7 +370,7 @@ class _DateBadge extends StatelessWidget {
       height: 52,
       decoration: BoxDecoration(
         color: cs.primary.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: context.tokens.br(12),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -357,16 +379,16 @@ class _DateBadge extends StatelessWidget {
             months[date.month - 1],
             style: TextStyle(
               color: cs.primary,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
+              fontSize: context.tokens.size.caption,
+              fontWeight: context.tokens.weight.heavy,
               letterSpacing: 0.5,
             ),
           ),
           Text(
             '${date.day}',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+            style: TextStyle(
+              fontSize: context.tokens.size.title,
+              fontWeight: context.tokens.weight.heavy,
               height: 1,
             ),
           ),

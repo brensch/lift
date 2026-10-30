@@ -12,8 +12,13 @@ void main() {
     // On Android the surface must be converted before it can be captured.
     await binding.convertFlutterSurfaceToImage();
     await tester.pumpWidget(const SchliftApp());
-    await tester.pump(const Duration(seconds: 1));
-    await tester.pump(const Duration(seconds: 1));
+    // The first launch after install can take a while to paint the login
+    // screen (the emulator renders in software), so poll rather than assume.
+    var seen = false;
+    for (var i = 0; i < 30 && !seen; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+      seen = find.text('Dev Login').evaluate().isNotEmpty;
+    }
     await binding.takeScreenshot('smoke_00_login');
 
     expect(find.text('Dev Login'), findsWidgets);

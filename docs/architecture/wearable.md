@@ -59,15 +59,16 @@ same contract is generated for Dart, Kotlin and Swift.
 graph TD
     snap["WearWorkoutSnapshot"]
     snap --> ids["workout_id, emitted_at, state"]
-    snap --> times["workout_start_time, active_started_at<br/>rest_until, last_rest_end"]
+    snap --> times["workout_start_time, rest_until<br/>(the rest's end, kept through yapping),<br/>lifting_started_at"]
     snap --> you["you_card: WearStatusCard"]
-    snap --> group["group_card: WearStatusCard (optional)"]
     snap --> acts["actions: [WearAction]"]
     snap --> comp["completion_summary (optional)"]
     snap --> emoji["next_up_emoji"]
 ```
 
-A `WearStatusCard` carries `state_label`, `timer_text`, and a `display_set` —
+A `WearStatusCard` carries `state_label`, `timer_text`, `exercise_name`,
+`set_line` ("Set 2 of 3", "Finding weight"), `set_text` (the set in the
+user's unit; the watch never formats a weight) and a `display_set` —
 strings the watch prints directly. A `WearAction` carries its own `label`,
 `style` and `set_id`, so the watch renders buttons without knowing what a warmup
 is or when a set is skippable.
@@ -78,8 +79,21 @@ state change. `WearableSyncCoordinator._publishSnapshot({force})` rebuilds via
 `WearableSnapshotBuilder` whenever the workout changes.
 
 Timers are sent as **absolute Unix timestamps** (`rest_until`,
-`active_started_at`), not durations, so the watch counts down against its own
-clock without drifting as messages are delayed.
+`lifting_started_at`), not durations, so the watch counts down against its own clock without drifting as
+messages are delayed. When the countdown reaches zero the watch flips to
+yapping on its own (pink, counting up from `rest_until`, labelled with the
+snapshot's `yapping_label`) until the next snapshot arrives.
+
+The watch has one screen per state: Ready (the set and Start), Lifting (an
+orange count-up and the finish: Done, or for a finding-weight rung three
+Done buttons carrying how many reps were left), Rest for both resting and
+yapping (the timer and Start), Done on `ALL_DONE`, and Idle with no
+snapshot. Every button is a `WearAction` the phone built: `START_SET`, then
+`COMPLETE_SET` (with `effort` on a rung's finishes). Missed reps are
+recorded on the phone (a tap per rep on the set's circle). Wear OS draws
+them in `WearScreens.kt`; watchOS in `ReadyScreen.swift`,
+`LiftingScreen.swift`, `RestScreen.swift` and
+`ContentView+WorkoutComplete.swift`.
 
 ## Intents: watch → phone
 
@@ -104,13 +118,14 @@ sequenceDiagram
     end
 ```
 
-Intent types: `StartSetIntent`, `CompleteSetIntent`, `SkipWarmupIntent`,
-`EndWorkoutIntent`.
+Intent types: `StartSetIntent` (Start), `CompleteSetIntent` (Done, with
+`effort` on a rung's finish), `SkipWarmupIntent`, `EndWorkoutIntent`.
 
 Every intent carries a client-generated `intent_id` for dedupe, because the
 platform transports can deliver more than once. `CompleteSetIntent` also carries
-`completed_at` — **the time of the first tap** — so a delayed delivery records
-when you actually finished the set, not when the message arrived.
+`completed_at` and `StartSetIntent` `started_at` — **the time of the tap** —
+so a delayed delivery records when you actually started or finished the set,
+not when the message arrived.
 
 Intents arriving while the phone app isn't ready are queued and replayed rather
 than dropped.

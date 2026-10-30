@@ -6,7 +6,9 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_spec.dart';
 import 'participant_ticker.dart';
+import '../theme/app_icons.dart';
 
 String _shareUrl(String inviteToken) =>
     'https://schlift.com/?join=$inviteToken';
@@ -105,8 +107,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         Text(
           'IN YOUR SESSION',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.heavy,
             letterSpacing: 1.5,
             color: cs.tertiary,
           ),
@@ -115,14 +117,17 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-            borderRadius: AppTheme.brMd,
+            borderRadius: context.tokens.brMd,
           ),
           child: Column(
             children: [
               for (final p in participants)
                 Builder(
                   builder: (_) {
-                    final status = describeParticipantStatus(p);
+                    final status = describeParticipantStatus(
+                      p,
+                      tokens: context.tokens,
+                    );
                     final name = participantDisplayName(p);
                     return ListTile(
                       dense: true,
@@ -132,8 +137,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                         child: Text(
                           name.isNotEmpty ? name[0].toUpperCase() : '?',
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                            fontSize: context.tokens.size.small,
+                            fontWeight: context.tokens.weight.bold,
                             color:
                                 ThemeData.estimateBrightnessForColor(
                                       status.stateColor,
@@ -146,16 +151,16 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                       ),
                       title: Text(
                         name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                        style: TextStyle(
+                          fontWeight: context.tokens.weight.bold,
+                          fontSize: context.tokens.size.body,
                         ),
                       ),
                       trailing: Text(
                         status.stateLabel,
                         style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.heavy,
                           color: status.stateColor,
                         ),
                       ),
@@ -180,8 +185,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         Text(
           'FRIENDS',
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.heavy,
             letterSpacing: 1.5,
             color: cs.tertiary,
           ),
@@ -191,9 +196,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           'People you’ve trained with. Tap Ask and they get a request to join '
           'your session.',
           style: TextStyle(
-            fontSize: 12.5,
+            fontSize: context.tokens.size.small,
             height: 1.35,
-            fontWeight: FontWeight.w600,
+            fontWeight: context.tokens.weight.bold,
             color: cs.onSurfaceVariant,
           ),
         ),
@@ -203,7 +208,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
             decoration: BoxDecoration(
-              borderRadius: AppTheme.brMd,
+              borderRadius: context.tokens.brMd,
               border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
             ),
             child: Text(
@@ -211,9 +216,9 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               'code or open their link) and they’ll show up here to re-invite '
               'in one tap.',
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: context.tokens.size.small,
                 height: 1.4,
-                fontWeight: FontWeight.w600,
+                fontWeight: context.tokens.weight.bold,
                 color: cs.tertiary,
               ),
             ),
@@ -222,7 +227,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-              borderRadius: AppTheme.brMd,
+              borderRadius: context.tokens.brMd,
             ),
             child: Column(
               children: [
@@ -235,22 +240,25 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                         p.user.name.isNotEmpty
                             ? p.user.name[0].toUpperCase()
                             : '?',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                        style: TextStyle(
+                          fontSize: context.tokens.size.small,
+                          fontWeight: context.tokens.weight.bold,
                         ),
                       ),
                     ),
                     title: Text(
                       p.user.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                      style: TextStyle(
+                        fontWeight: context.tokens.weight.bold,
+                        fontSize: context.tokens.size.body,
                       ),
                     ),
                     subtitle: Text(
                       _partnerSubtitle(p),
-                      style: TextStyle(fontSize: 11.5, color: cs.tertiary),
+                      style: TextStyle(
+                        fontSize: context.tokens.size.small,
+                        color: cs.tertiary,
+                      ),
                     ),
                     trailing: _joiningPartnerId == p.user.id
                         ? const SizedBox(
@@ -292,8 +300,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
         constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
         decoration: BoxDecoration(
           color: AppTheme.sheetColor(context),
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppTheme.radiusLg),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(context.tokens.radiusLg),
           ),
           border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
         ),
@@ -307,17 +315,17 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Multiplayer',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                      fontSize: context.tokens.size.title,
+                      fontWeight: context.tokens.weight.heavy,
                       letterSpacing: -0.5,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
+                    icon: const Icon(AppIcons.close),
                   ),
                 ],
               ),
@@ -328,7 +336,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     SizedBox(
                       height: 320,
                       child: ClipRRect(
-                        borderRadius: AppTheme.brMd,
+                        borderRadius: context.tokens.brMd,
                         child: MobileScanner(onDetect: _handleScan),
                       ),
                     ),
@@ -336,8 +344,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     Text(
                       'Point at your friend’s code',
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                        fontSize: context.tokens.size.body,
+                        fontWeight: context.tokens.weight.bold,
                         color: cs.onSurfaceVariant,
                       ),
                     ),
@@ -361,12 +369,12 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   height: 60,
                   child: FilledButton.icon(
                     onPressed: () => setState(() => _isScanning = true),
-                    icon: const Icon(Icons.photo_camera_rounded, size: 24),
-                    label: const Text(
+                    icon: const Icon(AppIcons.camera, size: 24),
+                    label: Text(
                       'Scan',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        fontSize: context.tokens.size.bodyLg,
+                        fontWeight: context.tokens.weight.heavy,
                       ),
                     ),
                   ),
@@ -378,7 +386,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: AppTheme.brMd,
+                      borderRadius: context.tokens.brMd,
                       border: Border.all(color: cs.outline),
                     ),
                     child: QrImageView(
@@ -392,7 +400,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                 Center(
                   child: TextButton.icon(
                     onPressed: () => _shareInvite(inviteToken),
-                    icon: const Icon(Icons.ios_share_rounded, size: 18),
+                    icon: const Icon(AppIcons.export, size: 18),
                     label: const Text('Share link'),
                   ),
                 ),

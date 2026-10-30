@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/multiplayer_provider.dart';
+import '../theme/theme_spec.dart';
 
 /// A prompt shown at the top of the app when a training partner asks to train
 /// together. The recipient approves or declines; approving pairs them into a
@@ -28,15 +29,18 @@ class JoinRequestBanner extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
           child: Row(
             children: [
-              const Text('🏋️', style: TextStyle(fontSize: 20)),
+              Text(
+                '🏋️',
+                style: TextStyle(fontSize: context.tokens.size.title),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   '$name wants to train with you',
                   style: TextStyle(
                     color: cs.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontWeight: context.tokens.weight.bold,
+                    fontSize: context.tokens.size.body,
                   ),
                 ),
               ),

@@ -8,10 +8,13 @@ import 'package:fixnum/fixnum.dart';
 import 'package:grpc/grpc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
+import '../logic/first_workout.dart';
 import '../logic/audio.dart';
 import '../logic/exercise_blocks.dart';
+import '../logic/exercise_prescription.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
@@ -23,6 +26,7 @@ import '../logic/exercises.dart';
 import '../logic/utils.dart';
 import '../services/grpc_client.dart' show isAppUpdateRequiredError;
 import '../services/app_logger.dart';
+import '../theme/schlift_spec.dart';
 
 /// Offered after a session whose exercises diverged from its template (or
 /// that started empty): "save this as/into a template?". Computed at
@@ -113,20 +117,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutProvider(this._service, this._settingsProvider, {bool sandbox = false})
     : _sandbox = sandbox {
     WidgetsBinding.instance.addObserver(this);
-    if (!sandbox) NotificationService.onStartNextSet = _onStartNextSet;
     _restoreLocalCacheFuture = sandbox
         ? Future<void>.value()
         : _restoreLocalCache();
   }
 
   final bool _sandbox;
-
-  void _onStartNextSet() {
-    final next = nextPendingSet;
-    if (next != null) {
-      startSet(next.id);
-    }
-  }
 
   void _setNow(DateTime value) {
     _now = value;
@@ -137,11 +133,27 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   // The local apply gives instant feedback; the server response (with the
   // authoritative plan, warmups included) replaces it a beat later.
 
+  /// Where an added exercise's calibration ramp starts, or null when it
+  /// does not calibrate. Mirrors `calibration_start_weight` fed from the
+  /// tracker the server reads (`exercise_plans` in src/server/workout.rs).
+  double? _calibrationStartFor(Exercise exercise) {
+    final tracker = trackerFor(exercise);
+    return calibrationStartWeight(
+      exercise,
+      seedWeightLb: tracker?.workingWeight ?? 0,
+      performedBefore: (tracker?.lastPerformedAt ?? Int64.ZERO) > Int64.ZERO,
+      unit: _settingsProvider.weightUnit,
+    );
+  }
+
   /// How many working sets an optimistic add plans for one exercise. The
   /// SAME formula generates the client set ids in addPrescribedExercises —
-  /// if they diverge, the ids misalign with the sets.
+  /// if they diverge, the ids misalign with the sets. A calibrating
+  /// exercise is one rung, and the server hands that rung the first id.
   int _prescribedSetCount(Exercise exercise) =>
-      (trackerFor(exercise)?.sets ?? 3).clamp(1, 10);
+      _calibrationStartFor(exercise) != null
+      ? 1
+      : (trackerFor(exercise)?.sets ?? 3).clamp(1, 10);
 
   void _applyLocalAddExercises(
     List<Exercise> exercises,
@@ -157,6 +169,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     for (final exercise in exercises) {
       final tracker = trackerFor(exercise);
       final count = _prescribedSetCount(exercise);
+      final rampStart = _calibrationStartFor(exercise);
       for (var i = 0; i < count; i++) {
         final id = idIndex < workingSetIds.length
             ? workingSetIds[idIndex++]
@@ -164,6 +177,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         // Replaying a mutation the server already applied must not
         // duplicate the sets.
         if (existingIds.contains(id)) continue;
+        if (rampStart != null) {
+          _activeProposedSets.add(
+            calibrationSet(
+              id: id,
+              workoutId: workout.id,
+              exercise: exercise,
+              weightLb: rampStart,
+            )..workoutOrder = order++,
+          );
+          continue;
+        }
         _activeProposedSets.add(
           ProposedSet()
             ..id = id
@@ -188,6 +212,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _applyLocalAdjustExerciseWeight(Exercise exercise, double weightLb) {
+    if (_applyLocalTypedCalibrationWeight(exercise, weightLb)) {
+      _refreshDerivedState();
+      return;
+    }
     final completedIds = _activeCompletedSets
         .map((c) => c.proposedSetId)
         .toSet();
@@ -199,6 +227,96 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Pending warmups keep their old rungs for ~one round trip; the server
     // response swaps in the recalculated ladder without a blink.
     _refreshDerivedState();
+  }
+
+  /// "I know my weight": a typed weight while the exercise is mid-ramp — a
+  /// pending calibration rung, or a done rung whose question is still
+  /// unanswered — ends the ramp. Unanswered done rungs are recorded right
+  /// (nothing appended), the pending rungs go, and the prescription's full
+  /// working sets take their place at the snapped weight. Their ids derive
+  /// from the first pending rung, else the unanswered done rung, so both
+  /// reducers agree. No warmup ladder: the ramp was the warmup. Returns
+  /// false when the exercise is not mid-ramp, leaving the ordinary adjust
+  /// to run. Mirrors the calibration branch of `apply_adjust_exercise_weight`.
+  bool _applyLocalTypedCalibrationWeight(Exercise exercise, double weightLb) {
+    final workout = _activeWorkout;
+    if (workout == null) return false;
+    _sortState();
+    final pendingRungs = _activeProposedSets
+        .where(
+          (s) =>
+              s.exercise == exercise &&
+              s.calibration &&
+              !s.cancelled &&
+              !_isDoneSet(s.id),
+        )
+        .toList();
+    bool isRungOf(CompletedSet c, {required bool liveOnly}) {
+      final p = _proposedById(c.proposedSetId);
+      return p != null &&
+          p.exercise == exercise &&
+          p.calibration &&
+          (!liveOnly || !p.cancelled);
+    }
+
+    bool isOpen(CompletedSet c) =>
+        c.endedAt != Int64.ZERO && c.effort == Effort.EFFORT_UNSPECIFIED;
+    // The latest unanswered done rung of this exercise.
+    CompletedSet? open;
+    for (final c in _activeCompletedSets) {
+      if (!isOpen(c) || !isRungOf(c, liveOnly: true)) continue;
+      if (open == null || c.endedAt >= open.endedAt) open = c;
+    }
+    final String baseId;
+    int at;
+    if (pendingRungs.isNotEmpty) {
+      baseId = pendingRungs.first.id;
+      at = _activeProposedSets.indexWhere((s) => s.id == baseId);
+    } else if (open != null) {
+      final rungId = open.proposedSetId;
+      final idx = _activeProposedSets.indexWhere((s) => s.id == rungId);
+      if (idx < 0) return false;
+      baseId = open.id;
+      at = idx + 1;
+    } else {
+      return false;
+    }
+    // close_open_rungs: every unanswered done rung of the exercise.
+    for (final c in _activeCompletedSets) {
+      if (isOpen(c) && isRungOf(c, liveOnly: false)) {
+        c.effort = Effort.EFFORT_RIGHT;
+      }
+    }
+
+    final pendingIds = pendingRungs.map((s) => s.id).toSet();
+    _activeProposedSets.removeWhere((s) => pendingIds.contains(s.id));
+    final p = prescriptionFor(exercise);
+    final weight = snapWeightLb(
+      exercise,
+      weightLb,
+      _settingsProvider.weightUnit,
+    );
+    final working = [
+      for (var n = 0; n < (p.sets < 1 ? 1 : p.sets); n++)
+        ProposedSet()
+          ..id = appendedSetId(baseId, n)
+          ..workoutId = workout.id
+          ..exercise = exercise
+          ..targetReps = p.repLow
+          ..targetWeight = weight
+          ..warmup = false
+          ..restAfterSuccess = p.restSeconds
+          ..restAfterFailure = p.restSecondsFailure
+          ..cancelled = false
+          ..calibration = false,
+    ];
+    // Pending rungs only ever sit after the done ones, so `at` is unmoved.
+    if (at > _activeProposedSets.length) at = _activeProposedSets.length;
+    _activeProposedSets.insertAll(at, working);
+    for (var i = 0; i < _activeProposedSets.length; i++) {
+      _activeProposedSets[i].workoutOrder = i;
+    }
+    return true;
   }
 
   void _applyLocalRemoveExercise(Exercise exercise) {
@@ -250,10 +368,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _wasResting = false;
       return;
     }
-    if (snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING) {
-      _wasResting = false;
-      return;
-    }
     final nowUnix = _now.millisecondsSinceEpoch ~/ 1000;
     final isCurrentlyResting =
         snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
@@ -279,94 +393,411 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return sets;
   }
 
+  /// An exercise's undone warmup once it was skipped or one of the
+  /// exercise's working sets is done: behind you, never removed, still
+  /// doable. Mirrors `is_passed_warmup`.
+  bool isPassedWarmup(ProposedSet set) =>
+      set.warmup &&
+      !_isDoneSet(set.id) &&
+      (set.skipped ||
+          _activeProposedSets.any(
+            (p) =>
+                p.exercise == set.exercise &&
+                !p.cancelled &&
+                !p.warmup &&
+                _isDoneSet(p.id),
+          ));
+
+  /// The set up next: carry on with the exercise of the latest done set
+  /// while it has sets left, else the first open set in plan order. Passed
+  /// warmups are not open. Mirrors `compute_next_up_set` (the rung case is
+  /// [_awaitingRampSet]).
   ProposedSet? _firstUncompletedSet() {
-    final completedIds = _activeCompletedSets
-        .where((c) => c.endedAt != Int64.ZERO)
-        .map((c) => c.proposedSetId)
-        .toSet();
-    for (final set in _visibleProposedSetsSorted()) {
-      if (!completedIds.contains(set.id)) return set;
+    final open = _visibleProposedSetsSorted()
+        .where((s) => !_isDoneSet(s.id) && !isPassedWarmup(s))
+        .toList();
+    final last = _lastDoneSet();
+    final exercise = last == null
+        ? null
+        : _proposedById(last.proposedSetId)?.exercise;
+    if (exercise != null) {
+      for (final s in open) {
+        if (s.exercise == exercise) return s;
+      }
     }
-    return null;
+    return open.isEmpty ? null : open.first;
   }
 
-  /// The tiny optimistic layer: after a local set change, reflect a set in
-  /// progress (LIFTING) or advance the highlight to the next set. The
-  /// authoritative snapshot — crucially the rest timer — comes from the server
-  /// response a beat later, so no rest maths is duplicated here.
+  /// The tiny optimistic layer: after a local set change, advance the
+  /// highlight to the next set and derive the state the same way
+  /// `workout_state_snapshot_from_state` in `src/workout/reducer.rs` does.
+  /// The authoritative snapshot comes from the server response a beat later.
   void _refreshDerivedState() {
     _sortState();
     final nextUp = _firstUncompletedSet();
     _backendNextUpSet = nextUp;
+    final now = _nowSecs;
+    // The question outlives the state: a calibration rung can be the last
+    // set in the plan (ALL_DONE) and its answer is what appends the rest.
+    final prompt = _effortPromptFromState();
 
-    CompletedSet? active;
-    for (final s in _activeCompletedSets) {
-      if (s.endedAt == Int64.ZERO &&
-          (active == null || s.startedAt > active.startedAt)) {
-        active = s;
+    // A started set that is still pending is being lifted, whatever the
+    // rest: the timer counts up from its start. Mirrors the LIFTING branch
+    // of `workout_state_snapshot`.
+    final workout = _activeWorkout;
+    final liftingId = workout?.liftingSetId ?? '';
+    if (liftingId.isNotEmpty) {
+      final lifting = _proposedById(liftingId);
+      final done = _activeCompletedSets.any(
+        (c) => c.proposedSetId == liftingId && c.endedAt != Int64.ZERO,
+      );
+      if (lifting != null && !lifting.cancelled && !done) {
+        _applyStateSnapshot(
+          WorkoutStateSnapshot(
+            state: WorkoutState.WORKOUT_STATE_LIFTING,
+            displaySet: lifting,
+            effortPrompt: prompt,
+            liftingStartedAt: workout!.liftingStartedAt,
+          ),
+        );
+        _rebuildBlocksCache();
+        return;
       }
     }
-    if (active != null) {
-      final displaySet = _visibleProposedSetsSorted()
-          .cast<ProposedSet?>()
-          .firstWhere(
-            (p) => p?.id == active!.proposedSetId,
-            orElse: () => null,
-          );
+
+    // A rung still asking decides what is next, whatever else is pending:
+    // its "right" appends the working sets straight after it, and the
+    // first of them is what Done will log — never past the user's own
+    // working sets. The next-up set follows it. Mirrors
+    // `awaiting_ramp_set`.
+    final awaiting = _awaitingRampSet();
+    if (awaiting != null) {
+      _backendNextUpSet = awaiting.$1;
+      // A rung was just done, so this is resting or, once its rest has
+      // run out, yapping.
+      final resting = awaiting.$2 > Int64(now);
       _applyStateSnapshot(
         WorkoutStateSnapshot(
-          state: WorkoutState.WORKOUT_STATE_LIFTING,
-          displaySet: displaySet,
-          activeStartedAt: active.startedAt,
+          state: resting
+              ? WorkoutState.WORKOUT_STATE_RESTING
+              : WorkoutState.WORKOUT_STATE_YAPPING,
+          displaySet: awaiting.$1,
+          restUntil: awaiting.$2,
+          effortPrompt: prompt,
         ),
       );
       _rebuildBlocksCache();
       return;
     }
 
-    // Resting: the most-recently-finished set still has a rest target in the
-    // future. The target was stored locally on completion, so the countdown
-    // keeps running off the device clock even with no connection.
-    CompletedSet? lastDone;
-    for (final s in _activeCompletedSets) {
-      if (s.endedAt != Int64.ZERO &&
-          (lastDone == null || s.endedAt > lastDone.endedAt)) {
-        lastDone = s;
-      }
-    }
-    // Only rest when there's a next set to rest *before*. After the final set
-    // there's nothing to start, so fall through to ALL_DONE rather than showing a
-    // rest state whose Start button would re-open the just-finished set. Mirrors
-    // workout_state_snapshot_from_state in src/workout/reducer.rs.
-    if (nextUp != null &&
-        lastDone != null &&
-        lastDone.restUntil > Int64(_nowSecs)) {
+    // Nothing pending: the workout is finished.
+    if (nextUp == null) {
       _applyStateSnapshot(
         WorkoutStateSnapshot(
-          state: WorkoutState.WORKOUT_STATE_RESTING,
+          state: WorkoutState.WORKOUT_STATE_ALL_DONE,
+          effortPrompt: prompt,
+        ),
+      );
+      _rebuildBlocksCache();
+      return;
+    }
+
+    // After a done set: resting while its rest runs, yapping once it has run
+    // out, both timed from that rest's end (down to it, up from it). The
+    // target was stored locally on completion, so the timers keep running
+    // off the device clock even with no connection. Mirrors
+    // `workout_state_snapshot_from_state`.
+    final lastDone = _lastDoneSet();
+    if (lastDone != null) {
+      final restEnd = lastDone.restUntil > lastDone.endedAt
+          ? lastDone.restUntil
+          : lastDone.endedAt;
+      _applyStateSnapshot(
+        WorkoutStateSnapshot(
+          state: restEnd > Int64(now)
+              ? WorkoutState.WORKOUT_STATE_RESTING
+              : WorkoutState.WORKOUT_STATE_YAPPING,
           displaySet: nextUp,
-          restUntil: lastDone.restUntil,
+          restUntil: restEnd,
+          effortPrompt: prompt,
         ),
       );
       _rebuildBlocksCache();
       return;
     }
 
-    // Ready for the next set, or all done. When a set is up next, carry the
-    // previous rest's end (its restUntil) as lastRestEnd so the "yapping" count-up
-    // survives a re-derive — mirrors the READY branch in reducer.rs.
+    // Nothing done yet: the first set is ready.
+
     _applyStateSnapshot(
       WorkoutStateSnapshot(
-        state: nextUp == null
-            ? WorkoutState.WORKOUT_STATE_ALL_DONE
-            : WorkoutState.WORKOUT_STATE_READY,
+        state: WorkoutState.WORKOUT_STATE_READY,
         displaySet: nextUp,
-        lastRestEnd: nextUp != null && lastDone != null
-            ? lastDone.restUntil
-            : Int64.ZERO,
+        effortPrompt: prompt,
       ),
     );
     _rebuildBlocksCache();
+  }
+
+  /// A server snapshot is a photo of one instant. Once the rest it
+  /// describes has run out the server would say YAPPING, so re-derive from
+  /// the sets at the current clock. Nothing is resolved by rest ending.
+  void _rederiveWhenRestEnds() {
+    final snapshot = _stateSnapshot;
+    if (snapshot == null || !hasActiveWorkout) return;
+    if (snapshot.state != WorkoutState.WORKOUT_STATE_RESTING ||
+        snapshot.restUntil > Int64(_nowSecs)) {
+      return;
+    }
+    _refreshDerivedState();
+    notifyListeners();
+  }
+
+  // ── Effort and calibration: the Dart half of src/workout/reducer.rs ──
+
+  /// The most recently finished set, by `ended_at`. Ties go to the later
+  /// row, as Rust's `max_by_key` does.
+  CompletedSet? _lastDoneSet() {
+    CompletedSet? last;
+    for (final s in _activeCompletedSets) {
+      if (s.endedAt == Int64.ZERO) continue;
+      if (last == null || s.endedAt >= last.endedAt) last = s;
+    }
+    return last;
+  }
+
+  bool _isDoneSet(String proposedId) => _activeCompletedSets.any(
+    (c) => c.proposedSetId == proposedId && c.endedAt != Int64.ZERO,
+  );
+
+  ProposedSet? _proposedById(String id) {
+    for (final set in _activeProposedSets) {
+      if (set.id == id) return set;
+    }
+    return null;
+  }
+
+  /// Whether "how was that" is asked after this done set: every working
+  /// set and every calibration rung, never a warmup. Mirrors
+  /// `is_prompt_worthy`.
+  bool _isPromptWorthy(CompletedSet done) {
+    if (done.endedAt == Int64.ZERO) return false;
+    final proposed = _proposedById(done.proposedSetId);
+    if (proposed == null || proposed.cancelled) return false;
+    return proposed.calibration || !proposed.warmup;
+  }
+
+  /// The question on screen: the latest done set while it is prompt-worthy,
+  /// whatever the rest state, with its current answer. Mirrors
+  /// `effort_prompt_from_state`.
+  EffortPrompt? _effortPromptFromState() {
+    final last = _lastDoneSet();
+    if (last == null || !_isPromptWorthy(last)) return null;
+    final proposed = _proposedById(last.proposedSetId);
+    if (proposed == null) return null;
+    return EffortPrompt(
+      exercise: proposed.exercise,
+      completedSetId: last.id,
+      calibration: proposed.calibration,
+      effort: last.effort,
+    );
+  }
+
+  /// Every prompt-worthy done set still unanswered is recorded "right",
+  /// oldest first. CompleteSet runs this with [extendRamp] (an unanswered
+  /// rung appends the next sets before the Done lands); EndWorkout runs it
+  /// without — pending rows on a finished workout are wrong. Nothing else
+  /// resolves. Mirrors `resolve_unanswered`.
+  void _resolveUnanswered({required bool extendRamp}) {
+    while (true) {
+      CompletedSet? open;
+      for (final set in _activeCompletedSets) {
+        if (set.effort != Effort.EFFORT_UNSPECIFIED || !_isPromptWorthy(set)) {
+          continue;
+        }
+        // Rust's min_by_key keeps the first of equal keys.
+        if (open == null || set.endedAt < open.endedAt) open = set;
+      }
+      if (open == null) return;
+      _applyEffort(open, Effort.EFFORT_RIGHT, extendRamp: extendRamp);
+    }
+  }
+
+  /// Answer "how was that" for the latest done set — or change the
+  /// answer, until the next Done. Any other set is a no-op. On a rung a
+  /// changed answer takes back what the old one appended, but only when the
+  /// exercise's pending sets are exactly that append (otherwise — weight
+  /// typed, exercise removed — only the answer changes), then appends for
+  /// the new one. Mirrors `apply_rate_exercise_to_active`.
+  void _recordEffort(String completedSetId, Effort effort) {
+    final workout = _activeWorkout;
+    if (workout == null || effort == Effort.EFFORT_UNSPECIFIED) return;
+    if (workout.endTime > Int64.ZERO) return;
+    final done = _lastDoneSet();
+    if (done == null || done.id != completedSetId) return;
+    if (!_isPromptWorthy(done)) return;
+    final old = done.effort;
+    if (old == effort) return;
+    final rung = _proposedById(done.proposedSetId);
+    if (rung == null || !rung.calibration) {
+      done.effort = effort;
+      return;
+    }
+    if (old == Effort.EFFORT_UNSPECIFIED) {
+      _applyEffort(done, effort, extendRamp: true);
+      return;
+    }
+    final previous = _rampAppend(
+      workout.id,
+      done,
+      rung,
+      old,
+    ).map((s) => s.id).toSet();
+    final pending = _activeProposedSets
+        .where(
+          (s) =>
+              s.exercise == rung.exercise && !s.cancelled && !_isDoneSet(s.id),
+        )
+        .map((s) => s.id)
+        .toSet();
+    if (previous.length != pending.length || !previous.containsAll(pending)) {
+      done.effort = effort;
+      return;
+    }
+    _activeProposedSets.removeWhere((s) => previous.contains(s.id));
+    for (var i = 0; i < _activeProposedSets.length; i++) {
+      _activeProposedSets[i].workoutOrder = i;
+    }
+    _applyEffort(done, effort, extendRamp: true);
+  }
+
+  /// Store [effort] on [done]; with [extendRamp], on a calibration rung
+  /// apply the ramp rule: easy climbs a rung, right settles here, hard
+  /// settles one rung down (the opener if this was the first). The sixth
+  /// rung settles whatever the answer.
+  void _applyEffort(
+    CompletedSet done,
+    Effort effort, {
+    required bool extendRamp,
+  }) {
+    done.effort = effort;
+    final workout = _activeWorkout;
+    final rung = _proposedById(done.proposedSetId);
+    if (workout == null || rung == null || !rung.calibration || !extendRamp) {
+      return;
+    }
+    final appended = _rampAppend(workout.id, done, rung, effort);
+    _insertSetsAfter(rung.id, appended);
+  }
+
+  /// What an answer on a rung appends, with ids derived from the done set
+  /// so both reducers (and the phone's would-be Done target) agree.
+  List<ProposedSet> _rampAppend(
+    String workoutId,
+    CompletedSet done,
+    ProposedSet rung,
+    Effort effort,
+  ) {
+    _sortState();
+    final rungs = _activeProposedSets
+        .where(
+          (s) => s.exercise == rung.exercise && s.calibration && !s.cancelled,
+        )
+        .toList();
+    var position = rungs.indexWhere((s) => s.id == rung.id);
+    if (position < 0) position = 0;
+    final effective = position + 1 >= maxCalibrationRungs
+        ? Effort.EFFORT_RIGHT
+        : effort;
+    final unit = _settingsProvider.weightUnit;
+    var n = 0;
+    String nextId() => appendedSetId(done.id, n++);
+    switch (effective) {
+      case Effort.EFFORT_EASY:
+        return [
+          calibrationSet(
+            id: nextId(),
+            workoutId: workoutId,
+            exercise: rung.exercise,
+            weightLb: nextCalibrationWeight(
+              rung.exercise,
+              rung.targetWeight.toDouble(),
+              unit,
+            ),
+          ),
+        ];
+      case Effort.EFFORT_HARD:
+        final previous = position == 0
+            ? rung.targetWeight
+            : rungs[position - 1].targetWeight;
+        return workingSetsAfterCalibration(
+          workoutId: workoutId,
+          exercise: rung.exercise,
+          weightLb: previous.toDouble(),
+          newId: nextId,
+        );
+      default:
+        return workingSetsAfterCalibration(
+          workoutId: workoutId,
+          exercise: rung.exercise,
+          weightLb: rung.targetWeight.toDouble(),
+          newId: nextId,
+        );
+    }
+  }
+
+  /// The set an unanswered calibration rung is waiting on — the first set
+  /// "right" would append — and that rung's rest end. Mirrors
+  /// `awaiting_ramp_set`.
+  (ProposedSet, Int64)? _awaitingRampSet() {
+    final last = _lastDoneSet();
+    final workout = _activeWorkout;
+    if (last == null || workout == null) return null;
+    if (last.effort != Effort.EFFORT_UNSPECIFIED) return null;
+    final rung = _proposedById(last.proposedSetId);
+    if (rung == null || !rung.calibration || rung.cancelled) return null;
+    final next = _rampAppend(workout.id, last, rung, Effort.EFFORT_RIGHT);
+    if (next.isEmpty) return null;
+    return (next.first, last.restUntil);
+  }
+
+  /// Splice [sets] in straight after the set [afterId], ahead of whatever
+  /// follows it (another exercise's block included), and renumber. Falls
+  /// back to the end when the anchor is missing. Mirrors `insert_sets_after`.
+  void _insertSetsAfter(String afterId, List<ProposedSet> sets) {
+    final anchor = _activeProposedSets.indexWhere((s) => s.id == afterId);
+    final at = anchor < 0 ? _activeProposedSets.length : anchor + 1;
+    _activeProposedSets.insertAll(at, sets);
+    for (var i = 0; i < _activeProposedSets.length; i++) {
+      _activeProposedSets[i].workoutOrder = i;
+    }
+  }
+
+  /// Correct a done set after the fact: reps and weight change, and the
+  /// rest is recomputed from `endedAt` by the same rule Done used. An
+  /// unknown set is a no-op. Mirrors `apply_edit_completed_set_to_active`.
+  void _applyLocalEditCompletedSet(
+    String completedSetId,
+    int actualReps,
+    double actualWeight,
+  ) {
+    final idx = _activeCompletedSets.indexWhere(
+      (c) => c.id == completedSetId && c.endedAt != Int64.ZERO,
+    );
+    if (idx == -1) return;
+    final set = _activeCompletedSets[idx];
+    final proposed = _proposedById(set.proposedSetId);
+    if (proposed == null) return;
+    final isFinal = _isFinalSetOfExerciseAfterCompletion(proposed.id);
+    final rest = _restSecondsAfter(proposed, actualReps, isFinal);
+    set
+      ..actualReps = actualReps
+      ..actualWeight = actualWeight
+      ..restUntil = set.endedAt + Int64(rest);
+    // Tapped down below a rung's target: the miss answers it, hard.
+    if (_missedRung(proposed, actualReps)) {
+      _recordEffort(completedSetId, Effort.EFFORT_HARD);
+    }
+    _refreshDerivedState();
   }
 
   void _rebuildBlocksCache() {
@@ -392,12 +823,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String? _workoutIdForMutation(WorkoutMutation mutation) {
     final payload = mutation.whichMutation();
     switch (payload) {
-      case WorkoutMutation_Mutation.startSet:
-        return mutation.startSet.workoutId;
       case WorkoutMutation_Mutation.completeSet:
         return mutation.completeSet.workoutId;
-      case WorkoutMutation_Mutation.cancelProposedSet:
-        return mutation.cancelProposedSet.workoutId;
       case WorkoutMutation_Mutation.deleteCompletedSet:
         return mutation.deleteCompletedSet.workoutId;
       case WorkoutMutation_Mutation.endWorkout:
@@ -410,6 +837,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         return mutation.removeExercise.workoutId;
       case WorkoutMutation_Mutation.reorderExercises:
         return mutation.reorderExercises.workoutId;
+      case WorkoutMutation_Mutation.rateExercise:
+        return mutation.rateExercise.workoutId;
+      case WorkoutMutation_Mutation.editCompletedSet:
+        return mutation.editCompletedSet.workoutId;
+      case WorkoutMutation_Mutation.startSet:
+        return mutation.startSet.workoutId;
+      case WorkoutMutation_Mutation.skipWarmups:
+        return mutation.skipWarmups.workoutId;
       case WorkoutMutation_Mutation.notSet:
         return null;
     }
@@ -422,20 +857,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     for (final mutation in _pendingMutations) {
       if (_workoutIdForMutation(mutation) != workout.id) continue;
       switch (mutation.whichMutation()) {
-        case WorkoutMutation_Mutation.startSet:
-          _applyLocalStartSet(
-            mutation.startSet.proposedSetId,
-            startedAt: mutation.startSet.startedAt.toInt(),
-          );
         case WorkoutMutation_Mutation.completeSet:
           _applyLocalCompleteSet(
             mutation.completeSet.proposedSetId,
             mutation.completeSet.actualReps,
             mutation.completeSet.actualWeight,
             completedAt: mutation.completeSet.completedAt.toInt(),
+            effort: mutation.completeSet.effort,
           );
-        case WorkoutMutation_Mutation.cancelProposedSet:
-          _applyLocalSkipWarmup(mutation.cancelProposedSet.proposedSetId);
+        case WorkoutMutation_Mutation.startSet:
+          _applyLocalStartSet(
+            mutation.startSet.proposedSetId,
+            mutation.startSet.startedAt.toInt(),
+          );
+        case WorkoutMutation_Mutation.skipWarmups:
+          _applyLocalSkipWarmups(mutation.skipWarmups.exercise);
         case WorkoutMutation_Mutation.deleteCompletedSet:
           _applyLocalDeleteCompletedSet(
             mutation.deleteCompletedSet.completedSetId,
@@ -454,6 +890,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           _applyLocalRemoveExercise(mutation.removeExercise.exercise);
         case WorkoutMutation_Mutation.reorderExercises:
           _applyLocalReorderExercises(mutation.reorderExercises.exercises);
+        case WorkoutMutation_Mutation.rateExercise:
+          _recordEffort(
+            mutation.rateExercise.completedSetId,
+            mutation.rateExercise.effort,
+          );
+          _refreshDerivedState();
+        case WorkoutMutation_Mutation.editCompletedSet:
+          _applyLocalEditCompletedSet(
+            mutation.editCompletedSet.completedSetId,
+            mutation.editCompletedSet.actualReps,
+            mutation.editCompletedSet.actualWeight,
+          );
         case WorkoutMutation_Mutation.endWorkout:
         case WorkoutMutation_Mutation.notSet:
           continue;
@@ -663,38 +1111,46 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   bool isSetDone(String setId) {
-    return _activeCompletedSets.any(
-      (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
-    );
-  }
-
-  bool isSetActive(String setId) {
-    return _activeCompletedSets.any(
-      (c) => c.proposedSetId == setId && c.endedAt == Int64.ZERO,
-    );
-  }
-
-  String? get activeSetId {
-    final snapshot = _stateSnapshot;
-    if (snapshot == null) return null;
-    if (snapshot.state != WorkoutState.WORKOUT_STATE_LIFTING) return null;
-    if (!snapshot.hasDisplaySet()) return null;
-    return snapshot.displaySet.id;
+    return _activeCompletedSets.any((c) => c.proposedSetId == setId);
   }
 
   ProposedSet? get nextPendingSet {
     return _backendNextUpSet;
   }
 
-  /// Returns true if warmup can be skipped for the given proposed set.
-  bool canSkipWarmup(String proposedSetId) {
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p!.id == proposedSetId,
-      orElse: () => null,
-    );
-    if (proposed == null || !proposed.warmup) return false;
-    return true;
+  /// The open "how was that", or null. Live only while the rest it belongs
+  /// to is running — exactly when the server would carry it.
+  /// The question on screen, with its current answer, or null.
+  EffortPrompt? get effortPrompt {
+    final snapshot = _stateSnapshot;
+    if (snapshot == null || !snapshot.hasEffortPrompt()) return null;
+    return snapshot.effortPrompt;
   }
+
+  /// The latest done set: the one whose rest is running or just ran.
+  CompletedSet? get lastDoneSet => _lastDoneSet();
+
+  /// The set up next: the state's display set — the next pending set, or
+  /// while a rung is still asking, the set its "right" would append
+  /// (`{done}:0`), so the circle and the banner show it before anything is
+  /// sent. Derived by the same rule as the server's; the way to do another
+  /// set is to start it.
+  ProposedSet? get doneTargetSet {
+    final snapshot = _stateSnapshot;
+    if (snapshot != null && snapshot.hasDisplaySet()) {
+      return snapshot.displaySet;
+    }
+    return _backendNextUpSet;
+  }
+
+  /// When the last done set's rest ends (or ended): the yapping count-up
+  /// runs from here. Zero before the first set.
+  Int64 get lastRestEnd => _lastDoneSet()?.restUntil ?? Int64.ZERO;
+
+  ProposedSet? proposedSetById(String id) => _proposedById(id);
+
+  /// The user's display unit; the watch snapshot formats weights with it.
+  WeightUnit get weightUnit => _settingsProvider.weightUnit;
 
   int get restSecondsRemaining {
     final snapshot = _stateSnapshot;
@@ -703,12 +1159,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final remaining =
         snapshot.restUntil.toInt() - (_now.millisecondsSinceEpoch ~/ 1000);
     return remaining > 0 ? remaining : 0;
-  }
-
-  int? get lastRestEndTimestamp {
-    final snapshot = _stateSnapshot;
-    if (snapshot == null || snapshot.lastRestEnd == Int64.ZERO) return null;
-    return snapshot.lastRestEnd.toInt();
   }
 
   void _applyStateSnapshot(WorkoutStateSnapshot? snapshot) {
@@ -762,7 +1212,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     var tick = 0;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _setNow(DateTime.now());
+      // _checkRestSound reads the snapshot synchronously before its first
+      // await, so it still sees the rest end if the re-derivation below
+      // moves the state on.
       unawaited(_checkRestSound());
+      _rederiveWhenRestEnds();
       unawaited(_flushPendingWearHeartRateUploads());
       // Every few seconds, reconcile our local active workout against the
       // backend so a workout ended elsewhere (the watch, another device, or the
@@ -876,8 +1330,25 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _loadWorkoutRetryScheduled = false;
   String? _lastLoadUserId;
 
+  /// True until this account has finished a workout: the banner explains
+  /// each step during the first one only. Someone who has lifted before
+  /// (any exercise performed) is never new, whatever this device recorded.
+  bool get isFirstWorkout =>
+      !_firstWorkoutDone &&
+      !trackers.any((t) => t.lastPerformedAt > Int64.ZERO);
+  // Until the device flag is read, assume done: no hint flashes up.
+  bool _firstWorkoutDone = true;
+
+  Future<void> _loadFirstWorkout(String userId) async {
+    final done = await FirstWorkout.isDone(userId);
+    if (done == _firstWorkoutDone) return;
+    _firstWorkoutDone = done;
+    notifyListeners();
+  }
+
   Future<void> loadActiveWorkout(String userId) async {
     _lastLoadUserId = userId;
+    if (!_sandbox) unawaited(_loadFirstWorkout(userId));
     await _restoreLocalCacheFuture;
     _isLoading = true;
     _lastLoadError = null;
@@ -1060,24 +1531,22 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutMutation _buildMutation({
     required String workoutId,
     required int createdAt,
-    StartSetRequest? startSet,
     CompleteSetRequest? completeSet,
-    CancelProposedSetRequest? cancelProposedSet,
     DeleteCompletedSetRequest? deleteCompletedSet,
     AddExercisesRequest? addExercises,
     AdjustExerciseWeightRequest? adjustExerciseWeight,
     RemoveExerciseRequest? removeExercise,
     ReorderExercisesRequest? reorderExercises,
+    RateExerciseRequest? rateExercise,
+    EditCompletedSetRequest? editCompletedSet,
+    StartSetRequest? startSet,
+    SkipWarmupsRequest? skipWarmups,
   }) {
     final mutation = WorkoutMutation()
       ..eventId = _uuid.v4()
       ..clientCreatedAt = Int64(createdAt);
-    if (startSet != null) {
-      mutation.startSet = startSet;
-    } else if (completeSet != null) {
+    if (completeSet != null) {
       mutation.completeSet = completeSet;
-    } else if (cancelProposedSet != null) {
-      mutation.cancelProposedSet = cancelProposedSet;
     } else if (deleteCompletedSet != null) {
       mutation.deleteCompletedSet = deleteCompletedSet;
     } else if (addExercises != null) {
@@ -1088,73 +1557,101 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       mutation.removeExercise = removeExercise;
     } else if (reorderExercises != null) {
       mutation.reorderExercises = reorderExercises;
+    } else if (rateExercise != null) {
+      mutation.rateExercise = rateExercise;
+    } else if (editCompletedSet != null) {
+      mutation.editCompletedSet = editCompletedSet;
+    } else if (startSet != null) {
+      mutation.startSet = startSet;
+    } else if (skipWarmups != null) {
+      mutation.skipWarmups = skipWarmups;
     }
     return mutation;
   }
 
   int get _nowSecs => _now.millisecondsSinceEpoch ~/ 1000;
 
-  // Tiny optimistic set edits: mutate the local lists so the tap registers
-  // instantly, then _refreshDerivedState advances the highlight. Rest timing and
-  // the authoritative state come from the server response — no rest maths here.
-  void _applyLocalStartSet(String proposedSetId, {int? startedAt}) {
-    if (_activeWorkout == null) return;
-    final alreadyActive = _activeCompletedSets.any(
-      (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
-    );
-    if (alreadyActive) return;
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p?.id == proposedSetId && !(p?.cancelled ?? true),
-      orElse: () => null,
-    );
-    if (proposed == null) return;
-    _activeCompletedSets.add(
-      CompletedSet()
-        ..id = _uuid.v4()
-        ..workoutId = _activeWorkout!.id
-        ..proposedSetId = proposedSetId
-        ..actualReps = proposed.targetReps
-        ..actualWeight = proposed.targetWeight
-        ..startedAt = Int64(startedAt ?? _nowSecs)
-        ..endedAt = Int64.ZERO
-        ..restUntil = Int64.ZERO,
-    );
+  /// Mirrors `apply_start_set_to_active`: open questions resolve first;
+  /// re-starting the set being lifted keeps its first start; a done,
+  /// cancelled or unknown set is a no-op.
+  void _applyLocalStartSet(String proposedSetId, int startedAt) {
+    final workout = _activeWorkout;
+    if (workout == null) return;
+    _resolveUnanswered(extendRamp: true);
+    final proposed = _proposedById(proposedSetId);
+    final pending =
+        proposed != null &&
+        !proposed.cancelled &&
+        !_activeCompletedSets.any((c) => c.proposedSetId == proposedSetId);
+    if (pending && workout.liftingSetId != proposedSetId) {
+      workout
+        ..liftingSetId = proposedSetId
+        ..liftingStartedAt = Int64(startedAt);
+    }
     _refreshDerivedState();
   }
 
+  // Tiny optimistic set edit: mutate the local list so the tap registers
+  // instantly, then _refreshDerivedState advances the highlight. Mirrors
+  // `apply_complete_set_to_active` in `src/workout/reducer.rs`: one done
+  // row per set with the rest target and its start stored on it; any Done
+  // ends the lifting; a rating given with it is recorded there and then.
   void _applyLocalCompleteSet(
     String proposedSetId,
     int actualReps,
     double actualWeight, {
     int? completedAt,
+    Effort effort = Effort.EFFORT_UNSPECIFIED,
   }) {
     if (_activeWorkout == null) return;
-    final endedAt = Int64(completedAt ?? _nowSecs);
-    final idx = _activeCompletedSets.indexWhere(
-      (c) => c.proposedSetId == proposedSetId && c.endedAt == Int64.ZERO,
+    // Done is idempotent: a set already logged is never logged twice.
+    final alreadyDone = _activeCompletedSets.any(
+      (c) => c.proposedSetId == proposedSetId,
     );
+    if (alreadyDone) return;
+    // Every open question is answered "right" first, extending a ramp — so
+    // a Done on the `{done}:0` an unanswered rung shows finds its set.
+    _resolveUnanswered(extendRamp: true);
+    // Set gone (skipped/cancelled, or a stale/duplicate at-least-once
+    // intent): a no-op, as on the server.
+    final proposed = _proposedById(proposedSetId);
+    if (proposed == null || proposed.cancelled) {
+      _refreshDerivedState();
+      return;
+    }
+    final endedAt = Int64(completedAt ?? _nowSecs);
     final restUntil = _localRestUntil(proposedSetId, actualReps, endedAt);
-    if (idx != -1) {
-      _activeCompletedSets[idx]
+    final workout = _activeWorkout!;
+    final startedAt = workout.liftingSetId == proposedSetId
+        ? workout.liftingStartedAt
+        : Int64.ZERO;
+    workout
+      ..liftingSetId = ''
+      ..liftingStartedAt = Int64.ZERO;
+    final id = _uuid.v4();
+    _activeCompletedSets.add(
+      CompletedSet()
+        ..id = id
+        ..workoutId = workout.id
+        ..proposedSetId = proposedSetId
         ..actualReps = actualReps
         ..actualWeight = actualWeight
         ..endedAt = endedAt
-        ..restUntil = restUntil;
-    } else {
-      _activeCompletedSets.add(
-        CompletedSet()
-          ..id = _uuid.v4()
-          ..workoutId = _activeWorkout!.id
-          ..proposedSetId = proposedSetId
-          ..actualReps = actualReps
-          ..actualWeight = actualWeight
-          ..startedAt = endedAt
-          ..endedAt = endedAt
-          ..restUntil = restUntil,
-      );
-    }
+        ..restUntil = restUntil
+        ..startedAt = startedAt,
+    );
+    // A rung short of its target has answered for itself: too heavy.
+    final answer = _missedRung(proposed, actualReps)
+        ? Effort.EFFORT_HARD
+        : effort;
+    if (answer != Effort.EFFORT_UNSPECIFIED) _recordEffort(id, answer);
     _refreshDerivedState();
   }
+
+  /// A finding-weight rung done short of its target: the miss answers "how
+  /// many more could you have done" — none, hard. Mirrors `missed_rung`.
+  bool _missedRung(ProposedSet proposed, int actualReps) =>
+      proposed.calibration && actualReps < proposed.targetReps;
 
   /// The rest-timer target for a just-completed set, computed locally so the
   /// countdown starts on the transition and survives signal loss — it's a
@@ -1167,47 +1664,47 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       60; // END_OF_EXERCISE_REST_SECONDS
 
   Int64 _localRestUntil(String proposedSetId, int actualReps, Int64 endedAt) {
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p?.id == proposedSetId && !p!.cancelled,
-      orElse: () => null,
-    );
-    if (proposed == null) return Int64.ZERO;
-    var restSeconds = actualReps >= proposed.targetReps
+    final proposed = _proposedById(proposedSetId);
+    if (proposed == null || proposed.cancelled) return Int64.ZERO;
+    final isFinal = _isFinalSetOfExerciseAfterCompletion(proposedSetId);
+    return endedAt + Int64(_restSecondsAfter(proposed, actualReps, isFinal));
+  }
+
+  /// How long to rest after a set: the success rest when the target was
+  /// hit, the failure rest otherwise, and the short between-exercise rest
+  /// after an exercise's final set. A calibration rung always rests its
+  /// own 90 s — the ramp continues after the answer, so it is never final.
+  /// Mirrors `rest_seconds_after`.
+  int _restSecondsAfter(ProposedSet proposed, int actualReps, bool isFinal) {
+    if (proposed.calibration) return proposed.restAfterSuccess;
+    if (isFinal) return _endOfExerciseRestSeconds;
+    return actualReps >= proposed.targetReps
         ? proposed.restAfterSuccess
         : proposed.restAfterFailure;
-    if (_isFinalSetOfExerciseAfterCompletion(proposed)) {
-      restSeconds = _endOfExerciseRestSeconds;
-    }
-    return endedAt + Int64(restSeconds);
   }
 
   /// True when every other live set of this exercise is already completed —
   /// so finishing this one ends the exercise. Mirrors
   /// `is_final_set_of_exercise_after_completion` in the Rust reducer.
-  bool _isFinalSetOfExerciseAfterCompletion(ProposedSet current) {
+  bool _isFinalSetOfExerciseAfterCompletion(String proposedSetId) {
+    final current = _proposedById(proposedSetId);
+    if (current == null || current.cancelled) return false;
     for (final set in _activeProposedSets) {
+      // Finishing a working set puts the exercise's undone warmups behind
+      // you: they don't keep it open.
       if (set.exercise != current.exercise ||
           set.cancelled ||
-          set.id == current.id) {
+          set.id == current.id ||
+          (set.warmup && !current.warmup)) {
         continue;
       }
-      final done = _activeCompletedSets.any(
-        (c) => c.proposedSetId == set.id && c.endedAt != Int64.ZERO,
-      );
-      if (!done) return false;
+      if (!_isDoneSet(set.id)) return false;
     }
     return true;
   }
 
   void _applyLocalDeleteCompletedSet(String completedSetId) {
     _activeCompletedSets.removeWhere((c) => c.id == completedSetId);
-    _refreshDerivedState();
-  }
-
-  void _applyLocalSkipWarmup(String proposedSetId) {
-    final idx = _activeProposedSets.indexWhere((s) => s.id == proposedSetId);
-    if (idx == -1 || !_activeProposedSets[idx].warmup) return;
-    _activeProposedSets[idx].cancelled = true;
     _refreshDerivedState();
   }
 
@@ -1232,10 +1729,45 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     onSessionRefreshNeeded?.call();
   }
 
-  Future<void> startSet(String proposedSetId) async {
+  /// "Skip all warmups" for [exercise]: its undone warmups are marked
+  /// skipped — kept, out of the way, still doable. Mirrors
+  /// `apply_skip_warmups_to_active`.
+  Future<void> skipWarmups(Exercise exercise) async {
     if (_activeWorkout == null) return;
-    final startedAt = _now.millisecondsSinceEpoch ~/ 1000;
-    _applyLocalStartSet(proposedSetId, startedAt: startedAt);
+    _applyLocalSkipWarmups(exercise);
+    _queueMutation(
+      _buildMutation(
+        workoutId: _activeWorkout!.id,
+        createdAt: _nowSecs,
+        skipWarmups: SkipWarmupsRequest()
+          ..workoutId = _activeWorkout!.id
+          ..exercise = exercise,
+      ),
+      immediate: true,
+    );
+    await _persistLocalCache();
+    notifyListeners();
+    onSessionRefreshNeeded?.call();
+  }
+
+  void _applyLocalSkipWarmups(Exercise exercise) {
+    for (final s in _activeProposedSets) {
+      if (s.exercise == exercise &&
+          s.warmup &&
+          !s.cancelled &&
+          !_isDoneSet(s.id)) {
+        s.skipped = true;
+      }
+    }
+    _refreshDerivedState();
+  }
+
+  /// Begin a set: the workout is LIFTING it until its Done, the timer
+  /// counting up from now. Mirrors `apply_start_set_to_active`.
+  Future<void> startSet(String proposedSetId, {int? startedAt}) async {
+    if (_activeWorkout == null) return;
+    startedAt ??= _nowSecs;
+    _applyLocalStartSet(proposedSetId, startedAt);
     _queueMutation(
       _buildMutation(
         workoutId: _activeWorkout!.id,
@@ -1252,11 +1784,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     onSessionRefreshNeeded?.call();
   }
 
+  /// Log a set as done. [effort] (Easy / Good / Hard) answers "how was
+  /// that" for it in the same mutation; leave it unspecified for a warmup.
   Future<void> completeSet(
     String proposedSetId,
     int actualReps,
     double actualWeight, {
     int? completedAt,
+    Effort effort = Effort.EFFORT_UNSPECIFIED,
   }) async {
     if (_activeWorkout == null) return;
     final endedAt = completedAt ?? (_now.millisecondsSinceEpoch ~/ 1000);
@@ -1265,6 +1800,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       actualReps,
       actualWeight,
       completedAt: endedAt,
+      effort: effort,
     );
     _queueMutation(
       _buildMutation(
@@ -1275,7 +1811,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..proposedSetId = proposedSetId
           ..actualReps = actualReps
           ..actualWeight = actualWeight
-          ..completedAt = Int64(endedAt),
+          ..completedAt = Int64(endedAt)
+          ..effort = effort,
       ),
       immediate: true,
     );
@@ -1303,23 +1840,74 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     onSessionRefreshNeeded?.call();
   }
 
-  Future<void> skipWarmup(String proposedSetId) async {
+  /// Correct a done set: fewer reps than planned, a different weight. The
+  /// rest is recomputed from when the set ended. The range checks are the
+  /// server's (`apply_edit_completed_set_to_active`), which would reject
+  /// anything outside them.
+  Future<void> editCompletedSet(
+    String completedSetId,
+    int actualReps,
+    double actualWeight,
+  ) async {
     if (_activeWorkout == null) return;
-    final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
-      (p) => p!.id == proposedSetId,
-      orElse: () => null,
-    );
-    if (proposed == null) return;
-    if (!proposed.warmup) return;
-    final createdAt = _now.millisecondsSinceEpoch ~/ 1000;
-    _applyLocalSkipWarmup(proposedSetId);
+    if (actualReps < 0 || actualWeight < 0 || actualWeight > 2000) return;
+    final createdAt = _nowSecs;
+    _applyLocalEditCompletedSet(completedSetId, actualReps, actualWeight);
     _queueMutation(
       _buildMutation(
         workoutId: _activeWorkout!.id,
         createdAt: createdAt,
-        cancelProposedSet: CancelProposedSetRequest()
+        editCompletedSet: EditCompletedSetRequest()
           ..workoutId = _activeWorkout!.id
-          ..proposedSetId = proposedSetId,
+          ..completedSetId = completedSetId
+          ..actualReps = actualReps
+          ..actualWeight = actualWeight,
+      ),
+      immediate: true,
+    );
+    await _persistLocalCache();
+    notifyListeners();
+    onSessionRefreshNeeded?.call();
+  }
+
+  /// A tap on a done set's circle, StrongLifts style: each tap takes one
+  /// rep off (one per rep missed), and the tap after zero undoes the set.
+  /// A finding-weight rung stops at zero instead: the plan it settled hangs
+  /// off it.
+  Future<void> tapDoneSet(String completedSetId) async {
+    final done = _activeCompletedSets.cast<CompletedSet?>().firstWhere(
+      (c) => c!.id == completedSetId && c.endedAt != Int64.ZERO,
+      orElse: () => null,
+    );
+    if (done == null) return;
+    if (done.actualReps > 0) {
+      await editCompletedSet(
+        completedSetId,
+        done.actualReps - 1,
+        done.actualWeight,
+      );
+      return;
+    }
+    if (_proposedById(done.proposedSetId)?.calibration ?? true) return;
+    await deleteCompletedSet(completedSetId);
+  }
+
+  /// Answer "how was that" for a done set. On a calibration rung the
+  /// answer also shapes the plan (another rung, or the working sets).
+  Future<void> rateExercise(String completedSetId, Effort effort) async {
+    if (_activeWorkout == null) return;
+    if (effort == Effort.EFFORT_UNSPECIFIED) return;
+    final createdAt = _nowSecs;
+    _recordEffort(completedSetId, effort);
+    _refreshDerivedState();
+    _queueMutation(
+      _buildMutation(
+        workoutId: _activeWorkout!.id,
+        createdAt: createdAt,
+        rateExercise: RateExerciseRequest()
+          ..workoutId = _activeWorkout!.id
+          ..completedSetId = completedSetId
+          ..effort = effort,
       ),
       immediate: true,
     );
@@ -1402,10 +1990,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// changed (or nothing was done).
   TemplateUpdateSuggestion? _computeTemplateUpdateSuggestion(Workout ended) {
     // Exercises with at least one completed working set, in workout order.
-    final doneSetIds = _activeCompletedSets
-        .where((c) => c.endedAt != Int64.ZERO)
-        .map((c) => c.proposedSetId)
-        .toSet();
+    final doneSetIds = _activeCompletedSets.map((c) => c.proposedSetId).toSet();
     final ordered = List<ProposedSet>.from(
       _activeProposedSets.where(
         (p) => !p.warmup && !p.cancelled && doneSetIds.contains(p.id),
@@ -1452,12 +2037,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _flushPendingWearHeartRateUploads(force: true);
       if (!_sandbox) await NotificationService.cancelAll();
       _wasResting = false;
+      // The server closes every open question as "right" at EndWorkout
+      // without extending a ramp; keep the local rows in step.
+      _resolveUnanswered(extendRamp: false);
       final response = await _service.endWorkout(_activeWorkout!.id);
       final ended = response.workout;
       _pendingTemplateUpdate = _computeTemplateUpdateSuggestion(ended);
       _activeWorkout = ended;
       _pendingMutations.clear();
       _stopTimer();
+      final userId = _lastLoadUserId;
+      if (!_sandbox && userId != null) {
+        _firstWorkoutDone = true;
+        unawaited(FirstWorkout.markDone(userId));
+      }
       await _persistLocalCache();
       notifyListeners();
 
@@ -1498,12 +2091,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       var totalVolumeKg = 0.0;
       var workingSets = 0;
       for (final cs in _activeCompletedSets) {
-        if (cs.endedAt == Int64.ZERO) continue;
         final proposed = _activeProposedSets.cast<ProposedSet?>().firstWhere(
           (p) => p!.id == cs.proposedSetId,
           orElse: () => null,
         );
-        if (proposed != null && !proposed.warmup) {
+        if (proposed != null && isWorkingSet(proposed)) {
           totalVolumeKg += cs.actualWeight * cs.actualReps;
           workingSets++;
         }
@@ -1526,16 +2118,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           msg: 'Successfully uploaded to $storeName',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
+          backgroundColor: schliftSpec.success,
+          textColor: schliftSpec.onPrimary,
         );
       } else if (result == HealthWriteResult.permissionDenied) {
         Fluttertoast.showToast(
           msg: 'Health Connect permission denied. Enable in settings',
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.orange,
-          textColor: Colors.white,
+          backgroundColor: schliftSpec.warning,
+          textColor: schliftSpec.onPrimary,
         );
       }
     } catch (e, st) {
@@ -1544,8 +2136,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         msg: 'Failed to sync workout to Health Connect',
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
+        backgroundColor: schliftSpec.error,
+        textColor: schliftSpec.onPrimary,
       );
     }
   }

@@ -146,9 +146,13 @@ message ParticipantStatus {
 
   ProposedSet next_up_set = 7;
 
-  int64 rest_until = 8;
+  // Their workout's state, exactly as their own phone sees it: lifting,
+  // resting, yapping, ready or all done, with the timestamps the timers run
+  // from.
+  WorkoutStateSnapshot state_snapshot = 10;
 
-  bool has_active_set = 9;
+  reserved 8, 9;
+  reserved "rest_until", "has_active_set";
 }
 
 // ── Training-together history ──
