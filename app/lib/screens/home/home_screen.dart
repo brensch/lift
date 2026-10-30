@@ -583,6 +583,20 @@ class _VolumeRow extends StatelessWidget {
             ),
           ),
         ),
+        // Hours still recovering, just left of the bar; the slot is kept
+        // empty when there are none so every bar lines up.
+        SizedBox(
+          width: 52,
+          child: recovering
+              ? Align(
+                  alignment: Alignment.centerRight,
+                  child: _RecoveryChip(
+                    hours: recovery!.hoursRemaining.toInt(),
+                    urgent: targeted,
+                  ),
+                )
+              : null,
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
@@ -641,20 +655,7 @@ class _VolumeRow extends StatelessWidget {
             ),
           ),
         ),
-        // Hours still recovering, beside the bar; the slot is kept empty
-        // when there are none so every bar lines up.
-        SizedBox(
-          width: 52,
-          child: recovering
-              ? Align(
-                  alignment: Alignment.centerRight,
-                  child: _RecoveryChip(
-                    hours: recovery!.hoursRemaining.toInt(),
-                    urgent: targeted,
-                  ),
-                )
-              : null,
-        ),
+        const SizedBox(width: 8),
         SizedBox(
           width: 44,
           child: Text.rich(
