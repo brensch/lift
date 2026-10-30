@@ -170,18 +170,31 @@ class ExerciseSection extends StatelessWidget {
                         color: finished ? t.muted : t.text,
                       ),
                     ),
-                    if (calibrating)
+                    if (calibrating) ...[
                       Text(
                         copy.workout.calibrationLine.toUpperCase(),
                         style: t.mono(
                           TextStyle(
-                            fontSize: t.size.caption,
+                            fontSize: t.size.small,
                             fontWeight: t.weight.bold,
                             letterSpacing: 0.5,
                             color: t.primary,
                           ),
                         ),
                       ),
+                      // What to do, on the exercise you're on.
+                      if (focused && !finished)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            copy.workout.calibrationHint,
+                            style: TextStyle(
+                              fontSize: t.size.body,
+                              color: t.muted,
+                            ),
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),
