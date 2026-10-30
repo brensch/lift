@@ -1,9 +1,7 @@
-/// One exercise of the live workout, full width: its name, then its sets
-/// as circles in two rows — the warmups, then the working sets — each
-/// labelled down its left edge. Nothing about weights here; the banner
-/// shows the set you are on, and tapping the name opens the weight sheet.
-/// A long press on any part that isn't a button drags the exercise to a new
-/// place in the order.
+/// One exercise of the live workout, full width: its name, what it's set
+/// to (weight × reps) with a pencil for the weight sheet and a grip to drag
+/// it to a new place in the order, then its sets as circles in two rows —
+/// the warmups, then the working sets — each labelled down its left edge.
 library;
 
 import 'package:flutter/material.dart';
@@ -210,6 +208,15 @@ class ExerciseSection extends StatelessWidget {
                 ),
               ),
             ),
+          // The grip: drags the exercise straight away.
+          if (dragIndex != null)
+            ReorderableDragStartListener(
+              index: dragIndex!,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: Icon(AppIcons.drag, size: t.size.title, color: t.muted),
+              ),
+            ),
         ],
       ),
     );
@@ -259,21 +266,9 @@ class ExerciseSection extends StatelessWidget {
       ),
     );
 
-    // A long press anywhere the circles, name and buttons don't take lifts
-    // the exercise to drag it to a new place.
-    final background = focused ? t.panel : Colors.transparent;
-    final index = dragIndex;
-    if (index == null) return ColoredBox(color: background, child: content);
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: ReorderableDelayedDragStartListener(
-            index: index,
-            child: ColoredBox(color: background),
-          ),
-        ),
-        content,
-      ],
+    return ColoredBox(
+      color: focused ? t.panel : Colors.transparent,
+      child: content,
     );
   }
 }

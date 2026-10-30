@@ -227,7 +227,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 padding: EdgeInsets.zero,
                 children: [
                   // Done exercises stay pinned at the top; the rest drag
-                  // into any order (the grip, or a long press anywhere).
+                  // into any order by their grip.
                   for (final block in completedBlocks) ...[
                     ExerciseSection(
                       key: ValueKey('section-${block.stableId}'),
