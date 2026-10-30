@@ -96,7 +96,7 @@ heart-rate chart shades yapping pink.
 
 Any set can be done in any order, and warmups are never removed. An
 undone warmup is behind you (`is_passed_warmup`) once it is skipped —
-"Skip all warmups" sends `SkipWarmups`, which sets `ProposedSet.skipped` on
+"Skip" on the warmup row sends `SkipWarmups`, which sets `ProposedSet.skipped` on
 the exercise's undone warmups — or once one of the exercise's working sets
 is done. They stay in the plan, but nothing
 waits on them: they are not up next, they don't keep the exercise open (the
@@ -106,8 +106,8 @@ with the exercise of the latest done set while it has sets left, then the
 first open set in plan order.
 
 The live workout page lists every exercise full width, its sets as
-circles in two rows, labelled down the left edge: WARMUP, ending in "Skip
-all warmups" while any is open, and WORKING. A warmup behind you shows as a
+circles in two rows, labelled down the left edge: WARMUP, ending in "Skip"
+while any is open, and WORKING. A warmup behind you shows as a
 dash and can still be done. Up next is always the rule above, the same on
 the server and the phone; the way to do a different set is to start it (the
 lifting marker is the server's record of the choice). Unfinished exercises drag into a new order. The banner under

@@ -1729,7 +1729,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     onSessionRefreshNeeded?.call();
   }
 
-  /// "Skip all warmups" for [exercise]: its undone warmups are marked
+  /// Skip [exercise]'s warmups (the warmup row's "Skip"): its undone warmups are marked
   /// skipped — kept, out of the way, still doable. Mirrors
   /// `apply_skip_warmups_to_active`.
   Future<void> skipWarmups(Exercise exercise) async {

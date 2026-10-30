@@ -76,7 +76,7 @@ the warmup ladder seed a session through the API first.
 | `solo_workout_test.dart` | START opens the live bar on a calibration rung; Done logs it; "How was that?" is asked and Right appends the working sets. |
 | `solo_workout_finish_test.dart` | Done, then End workout through the confirm dialog → the summary with Duration / Volume / Sets / Rest. |
 | `solo_workout_full_test.dart` | Plays an entire workout (Done / Skip rest / Right, bounded) to "All sets complete"; the backend holds exactly one completion per set; ends on the summary. |
-| `skip_warmups_test.dart` | With API-seeded history the next session opens with warmups; "Skip all warmups" marks them skipped (none removed), up next moves to the first working set, and a skipped warmup can still be done. |
+| `skip_warmups_test.dart` | With API-seeded history the next session opens with warmups; "Skip" on the warmup row marks them skipped (none removed), up next moves to the first working set, and a skipped warmup can still be done. |
 | `crash_recovery_test.dart` | Done, then a cold relaunch resumes the live workout with the set still recorded. |
 | `workout_backend_sync_test.dart` | A set logged with Done is in the backend's active workout. |
 | `workout_home_after_finish_test.dart` | Sets completed by an API peer (rung answered Right, then the working sets), ended from the UI: the summary and the tracker agree on the advanced weight. |

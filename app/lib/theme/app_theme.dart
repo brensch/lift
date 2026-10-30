@@ -88,7 +88,7 @@ class AppTheme {
         // Page titles in the buttons' face, regular weight.
         titleTextStyle: GoogleFonts.getFont(
           s.buttonFont,
-          fontSize: s.size.title,
+          fontSize: s.size.titleLg,
           fontWeight: s.weight.regular,
           color: s.text,
         ),

@@ -1,5 +1,5 @@
 // Skipping warmups marks them, it never removes them. Each exercise shows
-// its warmups and working sets in two rows; "Skip all warmups" at the end of
+// its warmups and working sets in two rows; "Skip" at the end of
 // the warmup row marks the undone ones skipped, so the next set is the first
 // working set — while every warmup stays in the plan and can still be done.
 //
@@ -52,7 +52,7 @@ void main() {
       expect(first.warmup, isTrue, reason: 'a performed lift opens warm');
       await s.shot('Warmups showing');
 
-      // Skip all warmups: up next becomes the first working set.
+      // Skip the warmups: up next becomes the first working set.
       await s.tapText(copy.workout.skipWarmups);
       await s.settle(seconds: 2);
       await s.shot('Warmups skipped');

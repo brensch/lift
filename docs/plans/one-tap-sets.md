@@ -419,7 +419,7 @@ is a fact.
 
 Skipping no longer removes anything (`CancelProposedSet`, the watch's
 SKIP_WARMUP action and its intent are gone). Each exercise shows its
-warmups and working sets in two rows; "Skip all warmups" marks the undone
+warmups and working sets in two rows; "Skip" on the warmup row marks the undone
 warmups skipped (`SkipWarmups`, `ProposedSet.skipped`), and doing a working
 set moves past them too. Either way they stay in the plan and can still be
 done. Any set can be done in any order. On a watch the rung's finish carries the answer. Details:

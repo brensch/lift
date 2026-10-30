@@ -215,7 +215,7 @@ workout:
   working_label: WORKING
   # Down the plates of whoever is up next on the rack.
   next_label: NEXT
-  skip_warmups: Skip all warmups
+  skip_warmups: Skip
   calibration_line: Finding weight
   set_weight: I know my weight
   empty_bar: Bar

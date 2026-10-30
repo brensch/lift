@@ -374,7 +374,7 @@ class _CircleRowState extends State<_CircleRow> {
   }
 }
 
-/// "Skip all warmups", at the end of the warmup row.
+/// "Skip" at the end of the warmup row: skips the undone warmups.
 class _SkipButton extends StatelessWidget {
   final VoidCallback onTap;
 

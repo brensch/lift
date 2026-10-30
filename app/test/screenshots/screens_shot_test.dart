@@ -115,7 +115,7 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 300));
     }
-    expect(find.textContaining('Workout science'), findsWidgets);
+    expect(find.textContaining('WORKOUT SCIENCE'), findsWidgets);
     // The header's shaking multiplayer button sleeps in a loop; tear the
     // tree down and let its last sleep elapse so no timer is left pending.
     await tester.pumpWidget(const SizedBox());
