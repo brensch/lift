@@ -11,7 +11,6 @@ import '../../providers/multiplayer_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../screens/workout/exercise_section.dart';
 import '../../screens/workout/section_workout.dart';
-import '../../theme/app_icons.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_spec.dart';
 import '../common/flat.dart';
@@ -119,10 +118,6 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(AppIcons.close),
                   ),
                 ],
               ),
