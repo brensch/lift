@@ -333,17 +333,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 ],
               ),
               // ════ PAGE 2 — completed sets ════
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: SetLog(
-                  proposedSets: logProposedSets,
-                  completedSets: logCompletedSets,
-                  onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
-                  deletableWorkoutId: wp.workout?.id,
-                  workoutOwnerLabels: workoutOwnerLabels,
-                  workoutOwnerEmojis: workoutOwnerEmojis,
-                  stickyHeader: true,
-                ),
+              SetLog(
+                proposedSets: logProposedSets,
+                completedSets: logCompletedSets,
+                onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
+                deletableWorkoutId: wp.workout?.id,
+                workoutOwnerLabels: workoutOwnerLabels,
+                workoutOwnerEmojis: workoutOwnerEmojis,
+                stickyHeader: true,
               ),
               // ════ PAGE 3 — heart rate (full detail) ════
               if (hasHeartRate)

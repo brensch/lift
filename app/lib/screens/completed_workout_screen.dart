@@ -286,16 +286,12 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             ),
             for (final exercise in summary.exerciseSummaries)
               _ExerciseSummaryRow(exercise: exercise),
-            FlatSection(
-              label: 'Set log',
-              divider: false,
-              child: SetLog(
-                proposedSets: ownProposedSets,
-                completedSets: ownCompletedSets,
-                workoutOwnerEmojis: {
-                  workout.id: normalizedProfileEmoji(auth.profileEmoji),
-                },
-              ),
+            SetLog(
+              proposedSets: ownProposedSets,
+              completedSets: ownCompletedSets,
+              workoutOwnerEmojis: {
+                workout.id: normalizedProfileEmoji(auth.profileEmoji),
+              },
             ),
           ],
         ),
