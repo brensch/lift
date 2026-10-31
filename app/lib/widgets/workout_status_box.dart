@@ -92,7 +92,7 @@ class StatusBox extends StatelessWidget {
             color: profileColor,
             child: Text(
               emoji,
-              style: TextStyle(fontSize: t.size.headline, height: 1),
+              style: TextStyle(fontSize: t.size.displayLg, height: 1),
             ),
           ),
           const SizedBox(width: 12),
