@@ -214,6 +214,12 @@ class WearableSnapshotBuilder {
       restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
       nextSet: nextSet,
     );
+    snapshot.ambientCopy = WearAmbientCopy(
+      minLeft: copy.workout.watchMinLeft,
+      underAMin: copy.workout.watchUnderAMin,
+      minOver: copy.workout.watchMinOver,
+      restUntil: copy.workout.watchRestUntil,
+    );
     snapshot.nextUpEmoji = nextUp.emoji;
     if (nextUp.me) snapshot.upNextText = copy.workout.upNext;
 

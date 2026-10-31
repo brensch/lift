@@ -19,17 +19,16 @@ struct ContentView: View {
     @Environment(\.isLuminanceReduced) var isLuminanceReduced
     @EnvironmentObject var connector: PhoneConnector
 
+    /// When rest ends (or ended), on this watch's clock.
     private var restBoundaryDate: Date? {
         guard let snapshot = connector.snapshot,
-              snapshot.state == .resting,
+              snapshot.state == .resting || snapshot.state == .yapping,
               snapshot.restUntil > 0
         else {
             return nil
         }
         let restUntilMs = snapshot.restUntil * 1000
-        let nowMs = connector.synchronizedNowMs()
-        let deltaMs = restUntilMs - nowMs
-        guard deltaMs > 0 else { return nil }
+        let deltaMs = restUntilMs - connector.synchronizedNowMs()
         return Date().addingTimeInterval(TimeInterval(deltaMs) / 1000.0)
     }
 
@@ -108,7 +107,10 @@ struct WatchSchedule: TimelineSchedule {
     let ambient: Bool
 
     func entries(from startDate: Date, mode _: TimelineScheduleMode) -> AnyIterator<Date> {
-        let interval: TimeInterval = ambient ? 60 : 1
+        if ambient {
+            return ambientEntries(from: startDate)
+        }
+        let interval: TimeInterval = 1
         var cursor = startDate
         var boundaryEmitted = false
         let boundary = restBoundary
@@ -126,6 +128,25 @@ struct WatchSchedule: TimelineSchedule {
             }
             let entry = cursor
             cursor = cursor.addingTimeInterval(interval)
+            return entry
+        }
+    }
+
+    /// Dimmed, the face is redrawn about once a minute: on each whole minute of rest
+    /// (so its minute count turns over on time), else on the clock's minute. A moment
+    /// past the turn, so the count has already changed.
+    private func ambientEntries(from startDate: Date) -> AnyIterator<Date> {
+        let anchor = restBoundary ?? Date(timeIntervalSinceReferenceDate: 0)
+        let phase = anchor.timeIntervalSince(startDate).truncatingRemainder(dividingBy: 60)
+        var cursor = startDate.addingTimeInterval((phase < 0 ? phase + 60 : phase) + 0.3)
+        var first = true
+        return AnyIterator {
+            if first {
+                first = false
+                return startDate
+            }
+            let entry = cursor
+            cursor = cursor.addingTimeInterval(60)
             return entry
         }
     }

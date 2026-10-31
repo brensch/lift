@@ -254,6 +254,98 @@ class WearStatusCard extends $pb.GeneratedMessage {
 
 /// One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
 /// the phone does what a tap on its own circle does.
+/// The dimmed face counts rest in whole minutes: it is redrawn about once a
+/// minute, so seconds would be wrong most of the time.
+class WearAmbientCopy extends $pb.GeneratedMessage {
+  factory WearAmbientCopy({
+    $core.String? minLeft,
+    $core.String? underAMin,
+    $core.String? minOver,
+    $core.String? restUntil,
+  }) {
+    final result = create();
+    if (minLeft != null) result.minLeft = minLeft;
+    if (underAMin != null) result.underAMin = underAMin;
+    if (minOver != null) result.minOver = minOver;
+    if (restUntil != null) result.restUntil = restUntil;
+    return result;
+  }
+
+  WearAmbientCopy._();
+
+  factory WearAmbientCopy.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WearAmbientCopy.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WearAmbientCopy',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'minLeft')
+    ..aOS(2, _omitFieldNames ? '' : 'underAMin')
+    ..aOS(3, _omitFieldNames ? '' : 'minOver')
+    ..aOS(4, _omitFieldNames ? '' : 'restUntil')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearAmbientCopy clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearAmbientCopy copyWith(void Function(WearAmbientCopy) updates) =>
+      super.copyWith((message) => updates(message as WearAmbientCopy))
+          as WearAmbientCopy;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WearAmbientCopy create() => WearAmbientCopy._();
+  @$core.override
+  WearAmbientCopy createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WearAmbientCopy getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WearAmbientCopy>(create);
+  static WearAmbientCopy? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get minLeft => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set minLeft($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMinLeft() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMinLeft() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get underAMin => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set underAMin($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUnderAMin() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUnderAMin() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get minOver => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set minOver($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasMinOver() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearMinOver() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get restUntil => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set restUntil($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasRestUntil() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearRestUntil() => $_clearField(4);
+}
+
 class WearSetCircle extends $pb.GeneratedMessage {
   factory WearSetCircle({
     $core.String? setId,
@@ -685,6 +777,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     WearDoneSet? lastDone,
     $core.Iterable<WearSetCircle>? circles,
     $core.String? upNextText,
+    WearAmbientCopy? ambientCopy,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -701,6 +794,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     if (lastDone != null) result.lastDone = lastDone;
     if (circles != null) result.circles.addAll(circles);
     if (upNextText != null) result.upNextText = upNextText;
+    if (ambientCopy != null) result.ambientCopy = ambientCopy;
     return result;
   }
 
@@ -737,6 +831,8 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     ..pPM<WearSetCircle>(17, _omitFieldNames ? '' : 'circles',
         subBuilder: WearSetCircle.create)
     ..aOS(20, _omitFieldNames ? '' : 'upNextText')
+    ..aOM<WearAmbientCopy>(21, _omitFieldNames ? '' : 'ambientCopy',
+        subBuilder: WearAmbientCopy.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -880,6 +976,18 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   $core.bool hasUpNextText() => $_has(13);
   @$pb.TagNumber(20)
   void clearUpNextText() => $_clearField(20);
+
+  /// The words the dimmed (always-on) face prints around its minute count.
+  @$pb.TagNumber(21)
+  WearAmbientCopy get ambientCopy => $_getN(14);
+  @$pb.TagNumber(21)
+  set ambientCopy(WearAmbientCopy value) => $_setField(21, value);
+  @$pb.TagNumber(21)
+  $core.bool hasAmbientCopy() => $_has(14);
+  @$pb.TagNumber(21)
+  void clearAmbientCopy() => $_clearField(21);
+  @$pb.TagNumber(21)
+  WearAmbientCopy ensureAmbientCopy() => $_ensure(14);
 }
 
 class WearCompletionSummary extends $pb.GeneratedMessage {

@@ -3249,6 +3249,835 @@ public final class Wearable {
     }
   }
 
+  public interface WearAmbientCopyOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.WearAmbientCopy)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     * @return The minLeft.
+     */
+    java.lang.String getMinLeft();
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     * @return The bytes for minLeft.
+     */
+    com.google.protobuf.ByteString
+        getMinLeftBytes();
+
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     * @return The underAMin.
+     */
+    java.lang.String getUnderAMin();
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     * @return The bytes for underAMin.
+     */
+    com.google.protobuf.ByteString
+        getUnderAMinBytes();
+
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     * @return The minOver.
+     */
+    java.lang.String getMinOver();
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     * @return The bytes for minOver.
+     */
+    com.google.protobuf.ByteString
+        getMinOverBytes();
+
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     * @return The restUntil.
+     */
+    java.lang.String getRestUntil();
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     * @return The bytes for restUntil.
+     */
+    com.google.protobuf.ByteString
+        getRestUntilBytes();
+  }
+  /**
+   * <pre>
+   * One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
+   * the phone does what a tap on its own circle does.
+   * The dimmed face counts rest in whole minutes: it is redrawn about once a
+   * minute, so seconds would be wrong most of the time.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.WearAmbientCopy}
+   */
+  public  static final class WearAmbientCopy extends
+      com.google.protobuf.GeneratedMessageLite<
+          WearAmbientCopy, WearAmbientCopy.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.WearAmbientCopy)
+      WearAmbientCopyOrBuilder {
+    private WearAmbientCopy() {
+      minLeft_ = "";
+      underAMin_ = "";
+      minOver_ = "";
+      restUntil_ = "";
+    }
+    public static final int MIN_LEFT_FIELD_NUMBER = 1;
+    private java.lang.String minLeft_;
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     * @return The minLeft.
+     */
+    @java.lang.Override
+    public java.lang.String getMinLeft() {
+      return minLeft_;
+    }
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     * @return The bytes for minLeft.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMinLeftBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(minLeft_);
+    }
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     * @param value The minLeft to set.
+     */
+    private void setMinLeft(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      minLeft_ = value;
+    }
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     */
+    private void clearMinLeft() {
+      
+      minLeft_ = getDefaultInstance().getMinLeft();
+    }
+    /**
+     * <pre>
+     * "{n} min": rest left, rounded up
+     * </pre>
+     *
+     * <code>string min_left = 1 [json_name = "minLeft"];</code>
+     * @param value The bytes for minLeft to set.
+     */
+    private void setMinLeftBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      minLeft_ = value.toStringUtf8();
+      
+    }
+
+    public static final int UNDER_A_MIN_FIELD_NUMBER = 2;
+    private java.lang.String underAMin_;
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     * @return The underAMin.
+     */
+    @java.lang.Override
+    public java.lang.String getUnderAMin() {
+      return underAMin_;
+    }
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     * @return The bytes for underAMin.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getUnderAMinBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(underAMin_);
+    }
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     * @param value The underAMin to set.
+     */
+    private void setUnderAMin(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      underAMin_ = value;
+    }
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     */
+    private void clearUnderAMin() {
+      
+      underAMin_ = getDefaultInstance().getUnderAMin();
+    }
+    /**
+     * <pre>
+     * the last minute of rest
+     * </pre>
+     *
+     * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+     * @param value The bytes for underAMin to set.
+     */
+    private void setUnderAMinBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      underAMin_ = value.toStringUtf8();
+      
+    }
+
+    public static final int MIN_OVER_FIELD_NUMBER = 3;
+    private java.lang.String minOver_;
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     * @return The minOver.
+     */
+    @java.lang.Override
+    public java.lang.String getMinOver() {
+      return minOver_;
+    }
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     * @return The bytes for minOver.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMinOverBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(minOver_);
+    }
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     * @param value The minOver to set.
+     */
+    private void setMinOver(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      minOver_ = value;
+    }
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     */
+    private void clearMinOver() {
+      
+      minOver_ = getDefaultInstance().getMinOver();
+    }
+    /**
+     * <pre>
+     * "+{n} min": past the end of rest
+     * </pre>
+     *
+     * <code>string min_over = 3 [json_name = "minOver"];</code>
+     * @param value The bytes for minOver to set.
+     */
+    private void setMinOverBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      minOver_ = value.toStringUtf8();
+      
+    }
+
+    public static final int REST_UNTIL_FIELD_NUMBER = 4;
+    private java.lang.String restUntil_;
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     * @return The restUntil.
+     */
+    @java.lang.Override
+    public java.lang.String getRestUntil() {
+      return restUntil_;
+    }
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     * @return The bytes for restUntil.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRestUntilBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(restUntil_);
+    }
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     * @param value The restUntil to set.
+     */
+    private void setRestUntil(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      restUntil_ = value;
+    }
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     */
+    private void clearRestUntil() {
+      
+      restUntil_ = getDefaultInstance().getRestUntil();
+    }
+    /**
+     * <pre>
+     * "till {time}": when rest ends, the watch's clock
+     * </pre>
+     *
+     * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+     * @param value The bytes for restUntil to set.
+     */
+    private void setRestUntilBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      restUntil_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearAmbientCopy parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.WearAmbientCopy prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
+     * the phone does what a tap on its own circle does.
+     * The dimmed face counts rest in whole minutes: it is redrawn about once a
+     * minute, so seconds would be wrong most of the time.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.WearAmbientCopy}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.WearAmbientCopy, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.WearAmbientCopy)
+        workout.v1.Wearable.WearAmbientCopyOrBuilder {
+      // Construct using workout.v1.Wearable.WearAmbientCopy.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * "{n} min": rest left, rounded up
+       * </pre>
+       *
+       * <code>string min_left = 1 [json_name = "minLeft"];</code>
+       * @return The minLeft.
+       */
+      @java.lang.Override
+      public java.lang.String getMinLeft() {
+        return instance.getMinLeft();
+      }
+      /**
+       * <pre>
+       * "{n} min": rest left, rounded up
+       * </pre>
+       *
+       * <code>string min_left = 1 [json_name = "minLeft"];</code>
+       * @return The bytes for minLeft.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMinLeftBytes() {
+        return instance.getMinLeftBytes();
+      }
+      /**
+       * <pre>
+       * "{n} min": rest left, rounded up
+       * </pre>
+       *
+       * <code>string min_left = 1 [json_name = "minLeft"];</code>
+       * @param value The minLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMinLeft(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMinLeft(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * "{n} min": rest left, rounded up
+       * </pre>
+       *
+       * <code>string min_left = 1 [json_name = "minLeft"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMinLeft() {
+        copyOnWrite();
+        instance.clearMinLeft();
+        return this;
+      }
+      /**
+       * <pre>
+       * "{n} min": rest left, rounded up
+       * </pre>
+       *
+       * <code>string min_left = 1 [json_name = "minLeft"];</code>
+       * @param value The bytes for minLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMinLeftBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMinLeftBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * the last minute of rest
+       * </pre>
+       *
+       * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+       * @return The underAMin.
+       */
+      @java.lang.Override
+      public java.lang.String getUnderAMin() {
+        return instance.getUnderAMin();
+      }
+      /**
+       * <pre>
+       * the last minute of rest
+       * </pre>
+       *
+       * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+       * @return The bytes for underAMin.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getUnderAMinBytes() {
+        return instance.getUnderAMinBytes();
+      }
+      /**
+       * <pre>
+       * the last minute of rest
+       * </pre>
+       *
+       * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+       * @param value The underAMin to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUnderAMin(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setUnderAMin(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * the last minute of rest
+       * </pre>
+       *
+       * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearUnderAMin() {
+        copyOnWrite();
+        instance.clearUnderAMin();
+        return this;
+      }
+      /**
+       * <pre>
+       * the last minute of rest
+       * </pre>
+       *
+       * <code>string under_a_min = 2 [json_name = "underAMin"];</code>
+       * @param value The bytes for underAMin to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUnderAMinBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setUnderAMinBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * "+{n} min": past the end of rest
+       * </pre>
+       *
+       * <code>string min_over = 3 [json_name = "minOver"];</code>
+       * @return The minOver.
+       */
+      @java.lang.Override
+      public java.lang.String getMinOver() {
+        return instance.getMinOver();
+      }
+      /**
+       * <pre>
+       * "+{n} min": past the end of rest
+       * </pre>
+       *
+       * <code>string min_over = 3 [json_name = "minOver"];</code>
+       * @return The bytes for minOver.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMinOverBytes() {
+        return instance.getMinOverBytes();
+      }
+      /**
+       * <pre>
+       * "+{n} min": past the end of rest
+       * </pre>
+       *
+       * <code>string min_over = 3 [json_name = "minOver"];</code>
+       * @param value The minOver to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMinOver(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMinOver(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * "+{n} min": past the end of rest
+       * </pre>
+       *
+       * <code>string min_over = 3 [json_name = "minOver"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMinOver() {
+        copyOnWrite();
+        instance.clearMinOver();
+        return this;
+      }
+      /**
+       * <pre>
+       * "+{n} min": past the end of rest
+       * </pre>
+       *
+       * <code>string min_over = 3 [json_name = "minOver"];</code>
+       * @param value The bytes for minOver to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMinOverBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMinOverBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * "till {time}": when rest ends, the watch's clock
+       * </pre>
+       *
+       * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+       * @return The restUntil.
+       */
+      @java.lang.Override
+      public java.lang.String getRestUntil() {
+        return instance.getRestUntil();
+      }
+      /**
+       * <pre>
+       * "till {time}": when rest ends, the watch's clock
+       * </pre>
+       *
+       * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+       * @return The bytes for restUntil.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRestUntilBytes() {
+        return instance.getRestUntilBytes();
+      }
+      /**
+       * <pre>
+       * "till {time}": when rest ends, the watch's clock
+       * </pre>
+       *
+       * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+       * @param value The restUntil to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRestUntil(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRestUntil(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * "till {time}": when rest ends, the watch's clock
+       * </pre>
+       *
+       * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRestUntil() {
+        copyOnWrite();
+        instance.clearRestUntil();
+        return this;
+      }
+      /**
+       * <pre>
+       * "till {time}": when rest ends, the watch's clock
+       * </pre>
+       *
+       * <code>string rest_until = 4 [json_name = "restUntil"];</code>
+       * @param value The bytes for restUntil to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRestUntilBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRestUntilBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.WearAmbientCopy)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.WearAmbientCopy();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "minLeft_",
+              "underAMin_",
+              "minOver_",
+              "restUntil_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0208\u0004\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.WearAmbientCopy> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.WearAmbientCopy.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearAmbientCopy>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.WearAmbientCopy)
+    private static final workout.v1.Wearable.WearAmbientCopy DEFAULT_INSTANCE;
+    static {
+      WearAmbientCopy defaultInstance = new WearAmbientCopy();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        WearAmbientCopy.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.WearAmbientCopy getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<WearAmbientCopy> PARSER;
+
+    public static com.google.protobuf.Parser<WearAmbientCopy> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface WearSetCircleOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.WearSetCircle)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -3307,11 +4136,6 @@ public final class Wearable {
     boolean getWarmup();
   }
   /**
-   * <pre>
-   * One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
-   * the phone does what a tap on its own circle does.
-   * </pre>
-   *
    * Protobuf type {@code workout.v1.WearSetCircle}
    */
   public  static final class WearSetCircle extends
@@ -3599,11 +4423,6 @@ public final class Wearable {
     }
 
     /**
-     * <pre>
-     * One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
-     * the phone does what a tap on its own circle does.
-     * </pre>
-     *
      * Protobuf type {@code workout.v1.WearSetCircle}
      */
     public static final class Builder extends
@@ -6438,6 +7257,25 @@ public final class Wearable {
      */
     com.google.protobuf.ByteString
         getUpNextTextBytes();
+
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     * @return Whether the ambientCopy field is set.
+     */
+    boolean hasAmbientCopy();
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     * @return The ambientCopy.
+     */
+    workout.v1.Wearable.WearAmbientCopy getAmbientCopy();
   }
   /**
    * Protobuf type {@code workout.v1.WearWorkoutSnapshot}
@@ -7277,6 +8115,72 @@ public final class Wearable {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       upNextText_ = value.toStringUtf8();
+      
+    }
+
+    public static final int AMBIENT_COPY_FIELD_NUMBER = 21;
+    private workout.v1.Wearable.WearAmbientCopy ambientCopy_;
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     */
+    @java.lang.Override
+    public boolean hasAmbientCopy() {
+      return ambientCopy_ != null;
+    }
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.WearAmbientCopy getAmbientCopy() {
+      return ambientCopy_ == null ? workout.v1.Wearable.WearAmbientCopy.getDefaultInstance() : ambientCopy_;
+    }
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     */
+    private void setAmbientCopy(workout.v1.Wearable.WearAmbientCopy value) {
+      value.getClass();
+  ambientCopy_ = value;
+      
+      }
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeAmbientCopy(workout.v1.Wearable.WearAmbientCopy value) {
+      value.getClass();
+  if (ambientCopy_ != null &&
+          ambientCopy_ != workout.v1.Wearable.WearAmbientCopy.getDefaultInstance()) {
+        ambientCopy_ =
+          workout.v1.Wearable.WearAmbientCopy.newBuilder(ambientCopy_).mergeFrom(value).buildPartial();
+      } else {
+        ambientCopy_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * The words the dimmed (always-on) face prints around its minute count.
+     * </pre>
+     *
+     * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+     */
+    private void clearAmbientCopy() {  ambientCopy_ = null;
       
     }
 
@@ -8251,6 +9155,77 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <pre>
+       * The words the dimmed (always-on) face prints around its minute count.
+       * </pre>
+       *
+       * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+       */
+      @java.lang.Override
+      public boolean hasAmbientCopy() {
+        return instance.hasAmbientCopy();
+      }
+      /**
+       * <pre>
+       * The words the dimmed (always-on) face prints around its minute count.
+       * </pre>
+       *
+       * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.WearAmbientCopy getAmbientCopy() {
+        return instance.getAmbientCopy();
+      }
+      /**
+       * <pre>
+       * The words the dimmed (always-on) face prints around its minute count.
+       * </pre>
+       *
+       * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+       */
+      public Builder setAmbientCopy(workout.v1.Wearable.WearAmbientCopy value) {
+        copyOnWrite();
+        instance.setAmbientCopy(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * The words the dimmed (always-on) face prints around its minute count.
+       * </pre>
+       *
+       * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+       */
+      public Builder setAmbientCopy(
+          workout.v1.Wearable.WearAmbientCopy.Builder builderForValue) {
+        copyOnWrite();
+        instance.setAmbientCopy(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The words the dimmed (always-on) face prints around its minute count.
+       * </pre>
+       *
+       * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+       */
+      public Builder mergeAmbientCopy(workout.v1.Wearable.WearAmbientCopy value) {
+        copyOnWrite();
+        instance.mergeAmbientCopy(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The words the dimmed (always-on) face prints around its minute count.
+       * </pre>
+       *
+       * <code>.workout.v1.WearAmbientCopy ambient_copy = 21 [json_name = "ambientCopy"];</code>
+       */
+      public Builder clearAmbientCopy() {  copyOnWrite();
+        instance.clearAmbientCopy();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearWorkoutSnapshot)
     }
     @java.lang.Override
@@ -8283,11 +9258,12 @@ public final class Wearable {
               "circles_",
               workout.v1.Wearable.WearSetCircle.class,
               "upNextText_",
+              "ambientCopy_",
             };
             java.lang.String info =
-                "\u0000\u000e\u0000\u0000\u0001\u0014\u000e\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
+                "\u0000\u000f\u0000\u0000\u0001\u0015\u000f\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
                 "\u0003\f\u0004\u0002\u0006\u0002\b\u0208\t\t\u000b\u001b\f\t\r\u0208\u000f\u0002" +
-                "\u0010\t\u0011\u001b\u0014\u0208";
+                "\u0010\t\u0011\u001b\u0014\u0208\u0015\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

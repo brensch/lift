@@ -176,6 +176,23 @@ final $typed_data.Uint8List wearStatusCardDescriptor = $convert.base64Decode(
     'X2xhYmVsUgZoZWFkZXJSC2lzX2NvbXBsZXRlUhFjdXJyZW50X2dyb3VwX3NldFIQdG90YWxfZ3'
     'JvdXBfc2V0c1IKZG9uZV9sYWJlbA==');
 
+@$core.Deprecated('Use wearAmbientCopyDescriptor instead')
+const WearAmbientCopy$json = {
+  '1': 'WearAmbientCopy',
+  '2': [
+    {'1': 'min_left', '3': 1, '4': 1, '5': 9, '10': 'minLeft'},
+    {'1': 'under_a_min', '3': 2, '4': 1, '5': 9, '10': 'underAMin'},
+    {'1': 'min_over', '3': 3, '4': 1, '5': 9, '10': 'minOver'},
+    {'1': 'rest_until', '3': 4, '4': 1, '5': 9, '10': 'restUntil'},
+  ],
+};
+
+/// Descriptor for `WearAmbientCopy`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wearAmbientCopyDescriptor = $convert.base64Decode(
+    'Cg9XZWFyQW1iaWVudENvcHkSGQoIbWluX2xlZnQYASABKAlSB21pbkxlZnQSHgoLdW5kZXJfYV'
+    '9taW4YAiABKAlSCXVuZGVyQU1pbhIZCghtaW5fb3ZlchgDIAEoCVIHbWluT3ZlchIdCgpyZXN0'
+    'X3VudGlsGAQgASgJUglyZXN0VW50aWw=');
+
 @$core.Deprecated('Use wearSetCircleDescriptor instead')
 const WearSetCircle$json = {
   '1': 'WearSetCircle',
@@ -350,6 +367,14 @@ const WearWorkoutSnapshot$json = {
       '10': 'circles'
     },
     {'1': 'up_next_text', '3': 20, '4': 1, '5': 9, '10': 'upNextText'},
+    {
+      '1': 'ambient_copy',
+      '3': 21,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WearAmbientCopy',
+      '10': 'ambientCopy'
+    },
   ],
   '9': [
     {'1': 5, '2': 6},
@@ -375,9 +400,10 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'bGV0aW9uU3VtbWFyeVIRY29tcGxldGlvblN1bW1hcnkSIgoNbmV4dF91cF9lbW9qaRgNIAEoCV'
     'ILbmV4dFVwRW1vamkSNAoJbGFzdF9kb25lGBAgASgLMhcud29ya291dC52MS5XZWFyRG9uZVNl'
     'dFIIbGFzdERvbmUSMwoHY2lyY2xlcxgRIAMoCzIZLndvcmtvdXQudjEuV2VhclNldENpcmNsZV'
-    'IHY2lyY2xlcxIgCgx1cF9uZXh0X3RleHQYFCABKAlSCnVwTmV4dFRleHRKBAgFEAZKBAgHEAhK'
-    'BAgSEBNKBAgTEBRKBAgKEAtKBAgOEA9SEWFjdGl2ZV9zdGFydGVkX2F0Ug1sYXN0X3Jlc3RfZW'
-    '5kUgpncm91cF9jYXJkUg1lZmZvcnRfcHJvbXB0');
+    'IHY2lyY2xlcxIgCgx1cF9uZXh0X3RleHQYFCABKAlSCnVwTmV4dFRleHQSPgoMYW1iaWVudF9j'
+    'b3B5GBUgASgLMhsud29ya291dC52MS5XZWFyQW1iaWVudENvcHlSC2FtYmllbnRDb3B5SgQIBR'
+    'AGSgQIBxAISgQIEhATSgQIExAUSgQIChALSgQIDhAPUhFhY3RpdmVfc3RhcnRlZF9hdFINbGFz'
+    'dF9yZXN0X2VuZFIKZ3JvdXBfY2FyZFINZWZmb3J0X3Byb21wdA==');
 
 @$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
 const WearCompletionSummary$json = {

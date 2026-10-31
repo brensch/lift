@@ -669,9 +669,69 @@ private fun Bar(
     }
 }
 
-/** Ambient: the face dimmed to what matters, grey on black. */
+/**
+ * Rest on the dimmed face, in whole minutes: it is redrawn about once a
+ * minute, so seconds would be wrong most of the time. [until] is when rest
+ * ends, which stays right however late the redraw comes.
+ */
+internal data class AmbientRest(
+    val minutes: String,
+    val until: String,
+)
+
+internal fun ambientRest(snapshot: Wearable.WearWorkoutSnapshot): AmbientRest? {
+    val restUntilMs = snapshot.restUntil.toLong() * 1000L
+    if (restUntilMs <= 0L) return null
+    val words = snapshot.ambientCopy
+    val nowMs = WearDataRepository.synchronizedNowUnixMillis()
+    val leftMs = restUntilMs - nowMs
+    val minutes =
+        when {
+            leftMs > MINUTE_MS -> words.minLeft.replace("{n}", "${(leftMs + MINUTE_MS - 1) / MINUTE_MS}")
+            leftMs > 0L -> words.underAMin
+            else -> words.minOver.replace("{n}", "${maxOf(1L, (-leftMs + MINUTE_MS - 1) / MINUTE_MS)}")
+        }
+    // restUntil is the phone's clock; the end as this watch's clock reads it.
+    val endsAt = restUntilMs - (nowMs - System.currentTimeMillis())
+    val time =
+        java.text
+            .SimpleDateFormat("H:mm", java.util.Locale.getDefault())
+            .format(java.util.Date(endsAt))
+    // Once rest is over its end is past: no "till".
+    val until = if (leftMs > 0L) words.restUntil.replace("{time}", time) else ""
+    return AmbientRest(minutes = minutes, until = until)
+}
+
+/**
+ * How long the dimmed face waits before redrawing: to the next whole minute
+ * of rest (so the count turns over on time), else the next minute on the
+ * clock.
+ */
+internal fun ambientDelayMs(snapshot: Wearable.WearWorkoutSnapshot?): Long {
+    val restUntilMs = (snapshot?.restUntil ?: 0).toLong() * 1000L
+    val nowMs = WearDataRepository.synchronizedNowUnixMillis()
+    val phase =
+        if (restUntilMs > 0L) {
+            Math.floorMod(restUntilMs - nowMs, MINUTE_MS)
+        } else {
+            MINUTE_MS - Math.floorMod(System.currentTimeMillis(), MINUTE_MS)
+        }
+    // A moment past the turn, so the count has already changed.
+    return phase + AMBIENT_SLACK_MS
+}
+
+private const val MINUTE_MS = 60_000L
+private const val AMBIENT_SLACK_MS = 300L
+
+/**
+ * Ambient: the face dimmed to what matters, grey on black: the stage, rest
+ * in minutes and when it ends, the exercise, the weight × reps.
+ */
 @Composable
-internal fun AmbientScreen(face: WearFace) {
+internal fun AmbientScreen(
+    face: WearFace,
+    rest: AmbientRest?,
+) {
     BoxWithConstraints(
         modifier =
             Modifier
@@ -680,18 +740,29 @@ internal fun AmbientScreen(face: WearFace) {
         contentAlignment = Alignment.Center,
     ) {
         val d = minOf(maxWidth, maxHeight)
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            FitText(text = face.label.uppercase(), size = (d * 0.07f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
+        Column(
+            modifier = Modifier.padding(horizontal = d * 0.12f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            FitText(text = face.label.uppercase(), size = (d * 0.065f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
+            if (rest != null) {
+                FitText(text = rest.minutes, size = (d * 0.17f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
+                if (rest.until.isNotEmpty()) {
+                    FitText(text = rest.until, size = (d * 0.065f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
+                }
+                Spacer(modifier = Modifier.height(d * 0.04f))
+            }
             FitText(
-                text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" "),
-                size = (d * 0.07f).asSp(),
+                text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" · "),
+                size = (d * 0.06f).asSp(),
                 color = WearPalette.AmbientText,
+                weight = FontWeight.Medium,
                 family = WearBodyFontFamily,
                 align = TextAlign.Center,
             )
             FitText(
                 text = if (face.weight == "?") "?" else "${face.weight} × ${face.reps}",
-                size = (d * 0.13f).asSp(),
+                size = (d * 0.09f).asSp(),
                 color = WearPalette.AmbientText,
                 align = TextAlign.Center,
             )

@@ -22,6 +22,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -51,6 +52,10 @@ class MainActivity : ComponentActivity() {
     private var keepScreenOnForWorkout = false
     private var isAmbientMode by mutableStateOf(false)
 
+    // Bumped by the system's own ambient update (about once a minute), which
+    // redraws the dimmed face even if the tick's timer slept through.
+    private var ambientUpdates by mutableIntStateOf(0)
+
     private val ambientCallback =
         object : AmbientLifecycleObserver.AmbientLifecycleCallback {
             override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
@@ -65,6 +70,7 @@ class MainActivity : ComponentActivity() {
 
             override fun onUpdateAmbient() {
                 logLifecycleEvent("ambient onUpdate")
+                ambientUpdates += 1
             }
         }
     private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
@@ -120,6 +126,7 @@ class MainActivity : ComponentActivity() {
                 onTapSet = { setId -> sendTap(setId) },
                 setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
                 isAmbientMode = isAmbientMode,
+                ambientUpdates = ambientUpdates,
             )
         }
     }
@@ -495,13 +502,20 @@ private fun WearApp(
     onTapSet: (String) -> Unit,
     setWorkoutKeepScreenOn: (Boolean) -> Unit,
     isAmbientMode: Boolean,
+    ambientUpdates: Int,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
     val latestBpm by WearDataRepository.latestBpm.collectAsState()
-    val nowTick by produceState(initialValue = System.currentTimeMillis() / 1000) {
+    // Every second; dimmed, once a minute, on the minute rest turns over.
+    val nowTick by produceState(
+        initialValue = System.currentTimeMillis() / 1000,
+        isAmbientMode,
+        snapshot?.restUntil,
+        ambientUpdates,
+    ) {
         while (true) {
             value = System.currentTimeMillis() / 1000
-            delay(1000)
+            delay(if (isAmbientMode) ambientDelayMs(snapshot) else 1000L)
         }
     }
     LaunchedEffect(snapshot) {
@@ -710,7 +724,7 @@ private fun WorkoutScreens(
     PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
     when {
         isAmbientMode -> {
-            AmbientScreen(face = face)
+            AmbientScreen(face = face, rest = if (resting) ambientRest(data) else null)
         }
 
         else -> {

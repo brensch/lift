@@ -72,6 +72,15 @@ enum WearCircleState {
   WEAR_CIRCLE_STATE_SKIPPED = 7; // a warmup passed
 }
 
+// The dimmed face counts rest in whole minutes: it is redrawn about once a
+// minute, so seconds would be wrong most of the time.
+message WearAmbientCopy {
+  string min_left = 1; // "{n} min": rest left, rounded up
+  string under_a_min = 2; // the last minute of rest
+  string min_over = 3; // "+{n} min": past the end of rest
+  string rest_until = 4; // "till {time}": when rest ends, the watch's clock
+}
+
 // One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
 // the phone does what a tap on its own circle does.
 message WearSetCircle {
@@ -132,6 +141,8 @@ message WearWorkoutSnapshot {
   // The phone's "up next" chip, when the wearer lifts next in a session;
   // empty otherwise (solo, or someone else is next).
   string up_next_text = 20;
+  // The words the dimmed (always-on) face prints around its minute count.
+  WearAmbientCopy ambient_copy = 21;
   reserved 10, 14;
   reserved "group_card", "effort_prompt";
 }

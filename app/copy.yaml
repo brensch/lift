@@ -248,6 +248,12 @@ workout:
   watch_cue_fix: −1 rep
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
+  # The dimmed (always-on) watch face counts rest in whole minutes, since it
+  # only redraws about once a minute. Placeholders.
+  watch_min_left: "{n} min"
+  watch_under_a_min: "<1 min"
+  watch_min_over: "+{n} min"
+  watch_rest_until: "till {time}"
   empty_bar: Bar
   # Shown at the top of the bottom banner during someone's first workout
   # only, for whatever they are doing at that moment.
