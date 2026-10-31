@@ -89,8 +89,8 @@ class ExerciseSection extends StatelessWidget {
     final targetSet =
         working.where((s) => !w.isDone(s.id)).firstOrNull ?? working.lastOrNull;
 
-    // The header: the name (tap it, or the pencil, for the weight sheet),
-    // finding weight if it is, and what it's set to now.
+    // The header: the name (tap it, or the pencil, for the weight sheet)
+    // and what it's set to now.
     final header = Padding(
       padding: const EdgeInsets.symmetric(horizontal: _padding),
       child: Row(

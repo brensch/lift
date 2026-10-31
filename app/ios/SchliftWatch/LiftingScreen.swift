@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// LIFTING: the set in progress. An orange count-up from Start, the set, and its
-/// finishes: one Done, or for a finding-weight rung how many reps were left (0–1 /
-/// 2–3 / 4+), each logging the rung and answering for it in one tap.
+/// LIFTING: the set in progress. An orange count-up from Start, the set, and the
+/// finish the phone offers (Done), logging it in one tap.
 struct LiftingScreen: View {
     @EnvironmentObject private var connector: PhoneConnector
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced

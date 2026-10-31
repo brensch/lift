@@ -50,7 +50,7 @@ export type WearStatusCard = Message<"workout.v1.WearStatusCard"> & {
   exerciseName: string;
 
   /**
-   * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+   * "Set 2 of 3", "Warmup 1 of 4"
    *
    * @generated from field: string set_line = 10;
    */

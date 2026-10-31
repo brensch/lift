@@ -606,9 +606,7 @@ private fun WorkoutScreens(
             )
         }
 
-        // Started: count up from Start; the finish logs the set. Done, or for a
-        // finding-weight rung how many reps were left (0–1 / 2–3 / 4+), in the
-        // order the phone sends them.
+        // Started: count up from Start; Done logs the set.
         WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING -> {
             LiftingScreen(
                 status = status,

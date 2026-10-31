@@ -231,7 +231,6 @@ workout:
   # Down the plates of whoever is up next on the rack.
   next_label: NEXT
   skip_warmups: Skip
-  calibration_line: Finding weight
   # Asked when someone starts the first set of an exercise they have never
   # done: give their weight, or find it with 5-rep sets. {exercise} is its
   # name.

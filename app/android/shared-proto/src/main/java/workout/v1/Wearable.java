@@ -421,7 +421,7 @@ public final class Wearable {
 
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -430,7 +430,7 @@ public final class Wearable {
     java.lang.String getSetLine();
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -773,7 +773,7 @@ public final class Wearable {
     private java.lang.String setLine_;
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -785,7 +785,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -798,7 +798,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -812,7 +812,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -823,7 +823,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+     * "Set 2 of 3", "Warmup 1 of 4"
      * </pre>
      *
      * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -1355,7 +1355,7 @@ public final class Wearable {
 
       /**
        * <pre>
-       * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+       * "Set 2 of 3", "Warmup 1 of 4"
        * </pre>
        *
        * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -1367,7 +1367,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+       * "Set 2 of 3", "Warmup 1 of 4"
        * </pre>
        *
        * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -1380,7 +1380,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+       * "Set 2 of 3", "Warmup 1 of 4"
        * </pre>
        *
        * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -1395,7 +1395,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+       * "Set 2 of 3", "Warmup 1 of 4"
        * </pre>
        *
        * <code>string set_line = 10 [json_name = "setLine"];</code>
@@ -1408,7 +1408,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+       * "Set 2 of 3", "Warmup 1 of 4"
        * </pre>
        *
        * <code>string set_line = 10 [json_name = "setLine"];</code>

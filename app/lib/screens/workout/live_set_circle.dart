@@ -79,7 +79,7 @@ class LiveSetCircle extends StatelessWidget {
   }
 
   /// The opening set of an exercise never done before: nothing of its
-  /// finding-weight sets is lifted yet.
+  /// calibration sets is lifted yet.
   static bool _firstEver(SectionWorkout w, ProposedSet set) =>
       set.calibration &&
       !w.proposedSets.any(
@@ -91,7 +91,7 @@ class LiveSetCircle extends StatelessWidget {
 }
 
 /// First time doing an exercise: give the weight you lift (the working sets
-/// start there, warmups first) or let the finding-weight sets work it out.
+/// start there, warmups first) or let the calibration sets work it out.
 Future<void> showFirstTimeDialog(
   BuildContext context,
   WorkoutProvider wp,

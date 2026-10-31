@@ -37,7 +37,7 @@ message WearStatusCard {
   string timer_text = 4; // optional
   ProposedSet display_set = 6; // the next pending set, if any
   string exercise_name = 9; // of display_set
-  string set_line = 10; // "Set 2 of 3", "Warmup 1 of 4", "Finding weight"
+  string set_line = 10; // "Set 2 of 3", "Warmup 1 of 4"
   string set_text = 11; // display_set in the user's unit, e.g. "60 kg × 5"
   // What the watch switches to on its own when the countdown reaches zero
   // (RESTING becoming YAPPING), before the next snapshot arrives.

@@ -63,7 +63,7 @@ The live-workout model is one-tap sets (`docs/plans/one-tap-sets.md`): Done
 logs the ready set as prescribed and starts the rest; the rest offers Fewer
 reps / Skip rest; nothing is rated; all done is End workout. A
 brand-new user's first session of a loaded lift is a calibration ramp
-("Finding weight": 5-rep rungs until a rep is missed), not warmups + working sets, so scenarios that need
+(5-rep rungs until a rep is missed), not warmups + working sets, so scenarios that need
 the warmup ladder seed a session through the API first.
 
 | File | What it proves |

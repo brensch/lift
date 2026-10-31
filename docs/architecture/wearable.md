@@ -69,7 +69,7 @@ graph TD
 ```
 
 A `WearStatusCard` carries `state_label`, `timer_text`, `exercise_name`,
-`set_line` ("Set 2 of 3", "Finding weight"), `set_text` (the set in the
+`set_line` ("Set 2 of 3"), `set_text` (the set in the
 user's unit; the watch never formats a weight) and a `display_set` —
 strings the watch prints directly. A `WearAction` carries its own `label`,
 `style` and `set_id`, so the watch renders buttons without knowing what a warmup
@@ -87,11 +87,10 @@ yapping on its own (pink, counting up from `rest_until`, labelled with the
 snapshot's `yapping_label`) until the next snapshot arrives.
 
 The watch has one screen per state: Ready (the set and Start), Lifting (an
-orange count-up and the finish: Done, or for a finding-weight rung three
-Done buttons carrying how many reps were left), Rest for both resting and
+orange count-up and Done), Rest for both resting and
 yapping (the timer and Start), Done on `ALL_DONE`, and Idle with no
 snapshot. Every button is a `WearAction` the phone built: `START_SET`, then
-`COMPLETE_SET` (with `effort` on a rung's finishes). Missed reps are
+`COMPLETE_SET`. Missed reps are
 recorded on the phone (a tap per rep on the set's circle). Wear OS draws
 them in `WearScreens.kt`; watchOS in `ReadyScreen.swift`,
 `LiftingScreen.swift`, `RestScreen.swift` and

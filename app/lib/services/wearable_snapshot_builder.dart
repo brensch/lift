@@ -1,9 +1,7 @@
 /// The watch's whole world, built from the phone's state. Both watch apps
 /// render this snapshot and nothing else, so what goes in here is the
 /// contract: READY / LIFTING / RESTING / YAPPING / ALL_DONE, one status
-/// card, and the actions each state offers: Start, then the finish (Done,
-/// or for a finding-weight rung how many reps were left, which answers for
-/// it in the same tap).
+/// card, and the actions each state offers: Start, then Done.
 library;
 
 import 'dart:math';

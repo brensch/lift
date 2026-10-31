@@ -346,7 +346,7 @@ pub fn apply_complete_set_to_active(
         effort: Effort::Unspecified as i32,
         started_at,
     });
-    // A finding-weight rung settles the moment it's done (`would_append`).
+    // A calibration rung settles the moment it's done (`would_append`).
     if proposed.calibration {
         settle_rung(workout_ref, &completed_set_id, unit);
     }
@@ -421,7 +421,7 @@ pub fn apply_edit_completed_set_to_active(
     Ok(())
 }
 
-/// A finding-weight rung, done: append what its reps call for (see
+/// A calibration rung, done: append what its reps call for (see
 /// `would_append`) straight after it.
 fn settle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: AppWeightUnit) {
     let Some(rung) = rung_of(workout_ref, completed_set_id) else {

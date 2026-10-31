@@ -384,9 +384,8 @@ internal fun RestScreen(
 }
 
 /**
- * LIFTING: the set in progress, counting up in orange from Start, and its
- * finishes. Most sets have one (Done); a finding-weight rung three (how many
- * reps were left), each logging the rung and answering for it in one tap.
+ * LIFTING: the set in progress, counting up in orange from Start, and the
+ * finish the phone offers (Done), logging it in one tap.
  */
 @Composable
 internal fun LiftingScreen(

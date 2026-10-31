@@ -1,6 +1,5 @@
 // Scenario: play an ENTIRE workout end to end — start it, then drive every set
-// on its circle (tap to start, tap when done, answering each finding-weight
-// rung) until the workout is ALL_DONE, then end it. This is the guard for the whole
+// on its circle (tap to start, tap when done) until the workout is ALL_DONE, then end it. This is the guard for the whole
 // live-workout state machine: a workout that never terminates (a set that
 // re-opens itself and loops) blows the bounded step budget and fails here, and
 // a peer on the same account cross-checks that every set was completed exactly

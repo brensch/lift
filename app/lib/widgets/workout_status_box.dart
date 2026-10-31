@@ -1,8 +1,8 @@
 /// One person's status in the workout banner. A band across the top in the
 /// colour of the stage they're at — their emoji on their own colour, the
 /// stage, the clock — readable from across the gym; under it, calm, the set
-/// in front of them: (yours) its circle, what it is, weight × reps, and the
-/// plates to load. Yours and every partner's are the same box; tap a
+/// in front of them: (yours) its circle with the reps in it, what it is,
+/// the weight, big, and the plates to load. Yours and every partner's are the same box; tap a
 /// partner's to see their workout.
 library;
 
@@ -130,16 +130,18 @@ class StatusBox extends StatelessWidget {
           color: t.muted,
         ),
       );
-      final weightSize = t.size.displayLg;
+      // The weight alone, as big as it goes: the reps are in the circle
+      // (a partner's box, with no circle, says them after it).
+      final weightSize = t.size.giant;
       final load = Text.rich(
         TextSpan(
           children: [
             TextSpan(text: formatWeight(set.targetWeight.toDouble(), unit)),
             TextSpan(
-              text: ' ${weightUnitSuffix(unit)} ',
-              style: TextStyle(fontSize: weightSize * 0.5),
+              text: ' ${weightUnitSuffix(unit)}',
+              style: TextStyle(fontSize: weightSize * 0.4),
             ),
-            TextSpan(text: '× ${set.targetReps}'),
+            if (circle == null) TextSpan(text: ' × ${set.targetReps}'),
           ],
         ),
         maxLines: 1,

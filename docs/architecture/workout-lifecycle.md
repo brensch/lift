@@ -54,7 +54,7 @@ marker (`Workout.lifting_set_id` / `lifting_started_at`).
 On the phone a set is a **circle** with a number in it (StrongLifts' whole
 interface): tap the up-next circle to start the set, tap it again when it
 is done (every rep), and once more for each rep missed. The tap after zero
-undoes the set. A finding-weight rung stops at zero instead, since the plan
+undoes the set. A calibration rung stops at zero instead, since the plan
 it settled hangs off it.
 
 ```mermaid

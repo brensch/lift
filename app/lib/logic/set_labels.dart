@@ -1,5 +1,5 @@
 /// The two lines that describe a set to a person: "Set 2 of 3" / "Warmup 1
-/// of 4" / "Finding weight", and the set itself in the user's unit,
+/// of 4", and the set itself in the user's unit,
 /// "135 lb × 5". The phone bar and the watch snapshot both read these so
 /// the two devices say the same thing.
 library;
@@ -10,15 +10,15 @@ import '../gen/workout/v1/workout.pb.dart';
 import 'weight_units.dart';
 
 /// The 1-based position of [set] among its exercise's sets of the same
-/// kind (warmup or working), or the calibration line for a ramp rung.
+/// kind: warmups, calibration sets (counted as they are added), or working
+/// sets.
 String setLineFor(ProposedSet set, Iterable<ProposedSet> proposedSets) {
-  if (set.calibration) return copy.workout.calibrationLine;
   final peers =
       proposedSets
           .where(
             (s) =>
                 !s.cancelled &&
-                !s.calibration &&
+                s.calibration == set.calibration &&
                 s.exercise == set.exercise &&
                 s.warmup == set.warmup,
           )

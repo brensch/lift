@@ -575,7 +575,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// A tap on a done set's circle, StrongLifts style: each tap takes one
   /// rep off (one per rep missed), and the tap after zero undoes the set.
-  /// A finding-weight rung stops at zero instead: the plan it settled hangs
+  /// A calibration rung stops at zero instead: the plan it settled hangs
   /// off it.
   Future<void> tapDoneSet(String completedSetId) async {
     final done = _doneById(completedSetId);
