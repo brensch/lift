@@ -19,7 +19,8 @@ RAW_DIR = ROOT / "store" / "screenshots" / "raw"
 # field -> (limit, which stores read it)
 LIMITS = {
     "name": (30, "both"),
-    "tagline": (30, "App Store subtitle, feature graphic byline, Play one-liner"),
+    "tagline": (30, "feature graphic byline, website, Play one-liner"),
+    "app_store_subtitle": (30, "App Store subtitle"),
     "promotional_text": (170, "App Store promo, Play one-liner"),
     "keywords": (100, "App Store"),
     "about": (3000, "both, opens the description"),
@@ -28,6 +29,9 @@ LIMITS = {
 DESCRIPTION_LIMIT = 4000
 PLAY_SHORT_LIMIT = 80
 RETIRED = ("subtitle", "short_description", "feature_graphic_byline", "description")
+# Apple rejects a price in the name or subtitle, "free" included (2.3.7).
+APP_STORE_PRICE_FREE = ("name", "app_store_subtitle")
+PRICE_WORDS = ("free", "price", "discount", "sale", "$", "cheap")
 
 
 def feature_text(item) -> str:
@@ -81,6 +85,15 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
             problems.append(f"{field}: {len(text)} characters, {store} allows {limit}")
         if field == "keywords" and " ," in text:
             problems.append("keywords: remove the space before a comma; it counts against the 100")
+
+    for field in APP_STORE_PRICE_FREE:
+        text = str(listing.get(field, "")).lower()
+        words = text.replace(".", " ").replace(",", " ").split()
+        found = [w for w in PRICE_WORDS if w in words or (w == "$" and w in text)]
+        if found:
+            problems.append(
+                f"{field}: mentions a price ({', '.join(found)}); App Store rejects that"
+            )
 
     for field in RETIRED:
         if field in listing:

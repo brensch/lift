@@ -331,7 +331,7 @@ def push_text(asc: AppStoreConnect, app_id: str, version: dict, listing: dict) -
                         "id": loc["id"],
                         "attributes": {
                             "name": listing["name"].strip(),
-                            "subtitle": listing["tagline"].strip(),
+                            "subtitle": listing["app_store_subtitle"].strip(),
                         },
                     }
                 },
