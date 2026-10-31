@@ -350,7 +350,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     if (!widget.isHistory) {
       final wp = context.read<WorkoutProvider>();
       if (wp.workout?.id == widget.workoutId && !wp.hasActiveWorkout) {
-        wp.clear();
+        wp.dismissEndedWorkout();
       }
     }
     final navigator = Navigator.of(context);
