@@ -235,8 +235,10 @@ workout:
   # done: give their weight, or find it with 5-rep sets. {exercise} is its
   # name.
   first_time_title: First time doing {exercise}.
-  first_time_lift: Bro I lift
+  first_time_lift: I know I do
   first_time_test: Dunno. Test me
+  # In your status box while that first set waits for the answer.
+  first_time_status: First time!
   empty_bar: Bar
   # Shown at the top of the bottom banner during someone's first workout
   # only, for whatever they are doing at that moment.

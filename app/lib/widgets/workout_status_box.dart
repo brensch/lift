@@ -39,6 +39,10 @@ class StatusBox extends StatelessWidget {
   /// start and log it from here.
   final Widget? circle;
 
+  /// Yours, on the first set of an exercise never done: there's no weight
+  /// yet, so the box says so instead of weight and plates.
+  final bool firstTime;
+
   const StatusBox({
     super.key,
     required this.emoji,
@@ -50,6 +54,7 @@ class StatusBox extends StatelessWidget {
     this.plan = const [],
     this.upNext = false,
     this.circle,
+    this.firstTime = false,
   });
 
   @override
@@ -161,7 +166,19 @@ class StatusBox extends StatelessWidget {
       // (yours), or said after the weight (a partner's).
       final line = Row(
         children: [
-          if (set.targetWeight > 0) ...[
+          if (firstTime)
+            Expanded(
+              child: Text(
+                copy.workout.firstTimeStatus,
+                style: TextStyle(
+                  fontSize: t.size.display,
+                  fontWeight: t.weight.heavy,
+                  color: t.text,
+                  height: 1.1,
+                ),
+              ),
+            ),
+          if (!firstTime && set.targetWeight > 0) ...[
             // Up next on the rack: NEXT down the plates' left edge.
             if (upNext) ...[
               RotatedBox(
@@ -183,17 +200,19 @@ class StatusBox extends StatelessWidget {
             _Plates(weight: set.targetWeight.toDouble(), upNext: upNext),
             const SizedBox(width: 12),
           ],
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              // Yours sits against × and the circle, as one "45 lb × 5".
-              alignment: circle == null
-                  ? Alignment.centerLeft
-                  : Alignment.centerRight,
-              child: load,
+          if (!firstTime)
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                // Yours sits against × and the circle, as one "45 lb × 5".
+                alignment: circle == null
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
+                child: load,
+              ),
             ),
-          ),
-          if (circle != null) ...[
+          if (circle != null && firstTime) circle!,
+          if (circle != null && !firstTime) ...[
             const SizedBox(width: 8),
             Text(
               '×',

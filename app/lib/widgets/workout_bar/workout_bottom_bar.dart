@@ -346,6 +346,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                 workout: SectionWorkout.mine(wp),
                                 set: you.set!,
                               ),
+                        firstTime:
+                            you.set != null &&
+                            LiveSetCircle.isFirstEver(
+                              SectionWorkout.mine(wp),
+                              you.set!,
+                            ),
                       ),
                     ),
                     if (allDone && wp.activeWorkout?.endTime == Int64.ZERO) ...[

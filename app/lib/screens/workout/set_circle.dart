@@ -36,6 +36,9 @@ class SetCircle extends StatefulWidget {
   final int number;
   final SetCircleState state;
 
+  /// Shown instead of [number]: "?" while the weight isn't known yet.
+  final String? text;
+
   /// A warmup: quieter, no progression rides on it.
   final bool small;
 
@@ -49,6 +52,7 @@ class SetCircle extends StatefulWidget {
     super.key,
     required this.number,
     required this.state,
+    this.text,
     this.small = false,
     this.onTap,
     this.nextColor,
@@ -152,7 +156,10 @@ class _SetCircleState extends State<SetCircle>
               ),
             ),
             child: Text(
-              widget.state == SetCircleState.skipped ? '–' : '${widget.number}',
+              widget.text ??
+                  (widget.state == SetCircleState.skipped
+                      ? '–'
+                      : '${widget.number}'),
               style: t.mono(
                 TextStyle(
                   fontSize: t.size.headline,
