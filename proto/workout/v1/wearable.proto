@@ -42,8 +42,40 @@ message WearStatusCard {
   // What the watch switches to on its own when the countdown reaches zero
   // (RESTING becoming YAPPING), before the next snapshot arrives.
   string yapping_label = 12; // "Yapping"
+  string weight_text = 14; // display_set's weight in the user's unit, "225" ("?" on a first time)
+  string unit_text = 15; // "lb" / "kg"
+  string reps_text = 16; // display_set's target reps, "5" ("?" on a first time)
+  // What a tap on the big button does now: "Lift", "Done", "Go early",
+  // "Test me".
+  string cue = 17;
+  // The opening set of an exercise never done: no weight yet. A tap starts
+  // the calibration sets; giving the weight is done on the phone.
+  bool first_time = 18;
+  // The plates for display_set, one side, heaviest (loaded first) first;
+  // empty off a barbell or on an empty bar. Shown when the weight is tapped.
+  repeated WearPlate plates = 19;
+  string plates_text = 20; // "45 · 25 each side", "Empty bar"; empty off a barbell
+  string bar_text = 21; // "Bar 45 lb"; empty off a barbell
   reserved 1, 2, 5, 7, 8, 13;
   reserved "side_label", "header", "is_complete", "current_group_set", "total_group_sets", "done_label";
+}
+
+// One plate on the bar, as the phone draws it.
+message WearPlate {
+  string label = 1; // "45"
+  string color_hex = 2; // "#F44336", the user's plate colour
+  float size = 3; // 0..1 of the heaviest plate: how tall to draw it
+}
+
+// The set just done, for the watch's fix window: for a few seconds after
+// it ended each tap on the big button takes a rep off it.
+message WearDoneSet {
+  string completed_set_id = 1;
+  int32 reps = 2; // logged
+  int32 target_reps = 3;
+  float actual_weight = 4;
+  int64 ended_at = 5; // Unix seconds
+  string cue = 6; // "−1 rep"
 }
 
 message WearAction {
@@ -72,6 +104,7 @@ message WearWorkoutSnapshot {
   repeated WearAction actions = 11;
   WearCompletionSummary completion_summary = 12; // optional
   string next_up_emoji = 13; // profile emoji of the next-to-lift participant (empty if solo)
+  WearDoneSet last_done = 16; // the most recent done set, if any
   reserved 10, 14;
   reserved "group_card", "effort_prompt";
 }
@@ -98,6 +131,14 @@ message StartSetIntent {
   int64 started_at = 3; // Unix seconds, time of the tap
 }
 
+// Set a done set's reps: the fix window's taps, one rep off each.
+message EditCompletedSetIntent {
+  string workout_id = 1;
+  string completed_set_id = 2;
+  int32 reps = 3;
+  float actual_weight = 4;
+}
+
 message EndWorkoutIntent {
   string workout_id = 1;
 }
@@ -110,6 +151,7 @@ message WearIntent {
     CompleteSetIntent complete_set = 11;
     EndWorkoutIntent end_workout = 13;
     StartSetIntent start_set = 17;
+    EditCompletedSetIntent edit_completed_set = 18;
   }
   reserved 10, 12, 14, 15, 16;
   reserved "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup";

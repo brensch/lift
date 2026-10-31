@@ -1,8 +1,6 @@
 package com.brensch.schlift.wear
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,18 +8,17 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,10 +26,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -42,570 +39,578 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import workout.v1.Wearable
-import workout.v1.WorkoutOuterClass
+import kotlin.math.abs
+import kotlin.math.sqrt
 
-// One spec for every screen (docs/plans/one-tap-sets.md, 8.1): vertical,
-// full-bleed, black. One status row at the top, one primary number, one
-// primary action, everything else small and grey. The watch lays out strings
-// the phone rendered; it never derives text from the workout.
+// The watch face, one layout for every state (the "split"): information rows
+// on the left, split by thin lines; the right is one big button in the
+// state's colour with the reps on it. Colours and fonts are the phone app's
+// (app/lib/theme/schlift_spec.dart). The watch lays out strings the phone
+// rendered; it never derives text from the workout.
 
 internal val WearBodyFontFamily =
-    FontFamily(
-        Font(R.font.manrope_variable, weight = FontWeight.Normal),
-        Font(R.font.manrope_variable, weight = FontWeight.Medium),
-        Font(R.font.manrope_variable, weight = FontWeight.SemiBold),
-        Font(R.font.manrope_variable, weight = FontWeight.Bold),
-    )
-
-internal val WearDisplayFontFamily =
     FontFamily(
         Font(R.font.space_grotesk_variable, weight = FontWeight.Medium),
         Font(R.font.space_grotesk_variable, weight = FontWeight.Bold),
     )
 
+internal val WearMonoFontFamily =
+    FontFamily(
+        Font(R.font.space_mono_regular, weight = FontWeight.Normal),
+        Font(R.font.space_mono_bold, weight = FontWeight.Bold),
+    )
+
+/** The phone app's tokens. */
 internal object WearPalette {
-    val Background = Color.Black
-    val Text = Color.White
-    val Muted = Color(0xFF9CA3AF)
-    val Resting = Color(0xFF3B82F6)
-    val Yapping = Color(0xFFD94F8C)
+    val Ground = Color(0xFFDBDAD2)
+    val Panel = Color(0xFFEDECE5)
+    val Hairline = Color(0xFFA8A79F)
+    val Rule = Color(0xFF74746E)
+    val Text = Color(0xFF111111)
+    val Muted = Color(0xFF4A4A44)
+    val OnDark = Color(0xFFFFFFFF)
+    val Ready = Color(0xFF3D8B4A)
+    val ReadyInk = Color(0xFF2F6E3A)
     val Lifting = Color(0xFFFF4F00)
-    val Done = Color(0xFF16A34A)
+    val LiftingInk = Color(0xFFC23C00)
+    val Resting = Color(0xFF3C5FB0)
+    val Yapping = Color(0xFFD94F8C)
+    val YappingInk = Color(0xFFB0306B)
+    val Fix = Color(0xFFD99A00)
+    val FirstTime = Color(0xFF111111)
+    val Ambient = Color.Black
+    val AmbientText = Color(0xFFB7B6AC)
 }
 
-/** What the status row prints. [ambient] hides the row and every countdown. */
-internal data class WearStatus(
-    val elapsedText: String,
+/** Everything the split face prints. */
+internal data class SplitFace(
+    val label: String,
+    val labelColor: Color,
+    // Empty: no timer (ready, or ambient).
+    val timer: String,
     val bpm: Float?,
-    val nextUpEmoji: String,
-    val ambient: Boolean,
+    val elapsed: String,
+    val clock: String,
+    val exercise: String,
+    val position: String,
+    val weight: String,
+    val unit: String,
+    // Empty when solo.
+    val upNext: String,
+    val reps: String,
+    val cue: String,
+    val buttonColor: Color,
+    val buttonInk: Color,
+    // 0..1 of the fix window left: the bar down the button's inner edge.
+    val window: Float,
+    val hasPlates: Boolean,
 )
 
-// Round faces: content near the top and bottom edges has less width, so the
-// insets are fractions of the face rather than fixed dp. The status row sits
-// where the chord at the *top* of its 16sp glyphs is still ~58% of the face
-// wide (the display mask cuts anything outside the circle); the body inset
-// and bottom pad keep a full-width pill button's rounded ends inside the
-// circle, including the thinner 44dp effort pills, whose ends reach further
-// into the corner.
-private const val STATUS_TOP_FRACTION = 0.10f
-private const val STATUS_INSET_FRACTION = 0.21f
-private const val BODY_INSET_FRACTION = 0.14f
-private const val BODY_BOTTOM_FRACTION = 0.12f
-private val StatusRowHeight = 20.dp
+// The left column's share of the face, and its rows' heights, as fractions
+// of the face.
+private const val LEFT_FRACTION = 0.57f
+private const val TOP_PAD = 0.11f
+private const val STAGE_ROW = 0.25f
+private const val STATS_ROW = 0.11f
+private const val EXERCISE_ROW = 0.09f
+private const val WEIGHT_ROW = 0.15f
 
-// Spec sizes assume a face tall enough for them. On a smaller face the body
-// scales down uniformly so the hierarchy survives instead of clipping.
-private const val MIN_BODY_SCALE = 0.6f
+/**
+ * How far in from the left a line between [top] and [bottom] (fractions of
+ * the face, 0 at the top) must start to stay inside a round face: the chord
+ * at whichever edge is nearer the rim. Nothing on a square face.
+ */
+private fun roundInset(
+    face: Dp,
+    round: Boolean,
+    top: Float,
+    bottom: Float,
+): Dp {
+    if (!round) return 6.dp
+    val off = maxOf(abs(top - 0.5f), abs(bottom - 0.5f)).coerceAtMost(0.5f)
+    val chord = sqrt(1f - (2f * off) * (2f * off))
+    return face * (0.5f * (1f - chord)) + 6.dp
+}
 
 @Composable
-fun AutoResizingText(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = Color.Unspecified,
-    fontSize: TextUnit = 16.sp,
-    fontWeight: FontWeight? = null,
-    fontFamily: FontFamily? = null,
-    textAlign: TextAlign? = null,
-    overflow: TextOverflow = TextOverflow.Clip,
-    maxLines: Int = Int.MAX_VALUE,
-    minFontSize: TextUnit = 8.sp,
-) {
-    var currentFontSize by remember(text, fontSize) { mutableStateOf(fontSize) }
-    var readyToDraw by remember(text, fontSize) { mutableStateOf(false) }
+private fun Dp.asSp(): TextUnit = with(LocalDensity.current) { this@asSp.toSp() }
 
+/** Shrinks until it fits on one line. */
+@Composable
+internal fun FitText(
+    text: String,
+    size: TextUnit,
+    modifier: Modifier = Modifier,
+    color: Color = WearPalette.Text,
+    weight: FontWeight = FontWeight.Bold,
+    family: FontFamily = WearMonoFontFamily,
+    align: TextAlign = TextAlign.End,
+) {
+    var current by remember(text, size) { mutableStateOf(size) }
+    var ready by remember(text, size) { mutableStateOf(false) }
     Text(
         text = text,
-        modifier =
-            modifier.drawWithContent {
-                if (readyToDraw) drawContent()
-            },
+        modifier = modifier.drawWithContent { if (ready) drawContent() },
         color = color,
-        fontSize = currentFontSize,
-        fontWeight = fontWeight,
-        fontFamily = fontFamily,
-        textAlign = textAlign,
-        overflow = overflow,
-        softWrap = maxLines > 1,
-        maxLines = maxLines,
-        onTextLayout = { textLayoutResult ->
-            if (textLayoutResult.hasVisualOverflow && currentFontSize > minFontSize) {
-                currentFontSize = (currentFontSize.value * 0.9f).sp
+        fontSize = current,
+        fontWeight = weight,
+        fontFamily = family,
+        textAlign = align,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
+        onTextLayout = { layout ->
+            if (layout.hasVisualOverflow && current.value > 7f) {
+                current = (current.value * 0.9f).sp
             } else {
-                readyToDraw = true
+                ready = true
             }
         },
     )
 }
 
+/** A full-width line. */
+@Composable
+private fun Rule(color: Color = WearPalette.Hairline) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(color),
+    )
+}
+
 /**
- * The shell every workout screen shares: status row on top, then the body.
- * [designBodyHeight] is what the body needs at spec sizes; the body receives
- * a scale factor of 1 when it fits and less when the face is shorter. The
- * effort question is the one screen without the row ([showStatusRow]); its
- * first line already carries the countdown and the three buttons need the
- * height.
+ * The split face. A tap on the right half runs [onTap]; on the weight, with
+ * plates to show, [onWeight].
  */
 @Composable
-private fun Screen(
-    status: WearStatus,
-    designBodyHeight: Dp,
-    showStatusRow: Boolean = true,
-    body: @Composable ColumnScope.(scale: Float) -> Unit,
+internal fun SplitScreen(
+    face: SplitFace,
+    enabled: Boolean,
+    onTap: () -> Unit,
+    onWeight: () -> Unit,
+) {
+    val round = LocalConfiguration.current.isScreenRound
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(WearPalette.Ground),
+    ) {
+        val d = minOf(maxWidth, maxHeight)
+
+        // One right-aligned line between [top] and [bottom] of the face.
+        @Composable
+        fun Line(
+            top: Float,
+            bottom: Float,
+            content: @Composable (Modifier) -> Unit,
+        ) {
+            content(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = roundInset(d, round, top, bottom), end = 8.dp),
+            )
+        }
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier =
+                    Modifier
+                        .width(d * LEFT_FRACTION)
+                        .fillMaxHeight(),
+            ) {
+                Spacer(modifier = Modifier.height(d * TOP_PAD))
+                // The stage and its clock.
+                val stageTop = TOP_PAD
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(d * STAGE_ROW),
+                    verticalArrangement = Arrangement.Bottom,
+                ) {
+                    Line(stageTop, stageTop + 0.07f) { m ->
+                        FitText(text = face.label.uppercase(), size = (d * 0.062f).asSp(), color = face.labelColor, modifier = m)
+                    }
+                    if (face.timer.isNotEmpty()) {
+                        Line(stageTop + 0.07f, stageTop + STAGE_ROW) { m ->
+                            FitText(text = face.timer, size = (d * 0.17f).asSp(), modifier = m)
+                        }
+                    }
+                }
+                Rule()
+                // Heart rate | workout length.
+                val statsTop = TOP_PAD + STAGE_ROW
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(d * STATS_ROW)
+                            .background(WearPalette.Panel)
+                            .padding(start = roundInset(d, round, statsTop, statsTop + STATS_ROW)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // A drawn heart: a "♥" character falls back to the emoji font.
+                    Row(
+                        modifier = Modifier.weight(1f).padding(end = 6.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = null,
+                            tint = heartRateColor(face.bpm),
+                            modifier = Modifier.size(d * 0.06f),
+                        )
+                        FitText(
+                            text = face.bpm?.let { "${it.toInt()}" } ?: "--",
+                            size = (d * 0.075f).asSp(),
+                            color = heartRateColor(face.bpm),
+                        )
+                    }
+                    Box(
+                        modifier =
+                            Modifier
+                                .width(1.dp)
+                                .fillMaxHeight()
+                                .background(WearPalette.Hairline),
+                    )
+                    FitText(
+                        text = face.elapsed,
+                        size = (d * 0.075f).asSp(),
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    )
+                }
+                Rule()
+                // Exercise and where in it.
+                val exerciseTop = statsTop + STATS_ROW
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(d * EXERCISE_ROW)
+                            .background(WearPalette.Panel),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Line(exerciseTop, exerciseTop + EXERCISE_ROW) { m ->
+                        FitText(
+                            text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" "),
+                            size = (d * 0.066f).asSp(),
+                            family = WearBodyFontFamily,
+                            modifier = m,
+                        )
+                    }
+                }
+                Rule()
+                // The weight; tap it for the plates.
+                val weightTop = exerciseTop + EXERCISE_ROW
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(d * WEIGHT_ROW)
+                            .background(WearPalette.Panel)
+                            .clickable(enabled = face.hasPlates, onClick = onWeight),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Line(weightTop, weightTop + WEIGHT_ROW) { m ->
+                        FitText(
+                            text = if (face.weight == "?") "?" else "${face.weight} ${face.unit}",
+                            size = (d * 0.15f).asSp(),
+                            modifier = m,
+                        )
+                    }
+                }
+                Rule()
+                // The time, and who's up next.
+                val clockTop = weightTop + WEIGHT_ROW
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 3.dp)) {
+                    Line(clockTop, clockTop + 0.075f) { m ->
+                        FitText(text = face.clock, size = (d * 0.062f).asSp(), color = WearPalette.Muted, modifier = m)
+                    }
+                    if (face.upNext.isNotEmpty()) {
+                        Line(clockTop + 0.075f, clockTop + 0.15f) { m ->
+                            FitText(text = face.upNext, size = (d * 0.058f).asSp(), color = WearPalette.Muted, modifier = m)
+                        }
+                    }
+                }
+            }
+            Box(
+                modifier =
+                    Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(WearPalette.Rule),
+            )
+            BigButton(face = face, faceSize = d, enabled = enabled, onTap = onTap)
+        }
+    }
+}
+
+/** The right half: the reps, huge, and what a tap does. */
+@Composable
+private fun RowScope.BigButton(
+    face: SplitFace,
+    faceSize: Dp,
+    enabled: Boolean,
+    onTap: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .background(face.buttonColor)
+                .clickable(enabled = enabled, onClick = onTap),
+    ) {
+        // The fix window drains down the inner edge.
+        Box(
+            modifier =
+                Modifier
+                    .width(8.dp)
+                    .fillMaxHeight()
+                    .background(if (face.window > 0f) WearPalette.Rule else face.buttonColor),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            if (face.window > 0f) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(face.window.coerceIn(0f, 1f))
+                            .background(face.buttonInk),
+                )
+            }
+        }
+        Column(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .padding(end = faceSize * 0.07f),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            FitText(text = face.reps, size = (faceSize * 0.32f).asSp(), color = face.buttonInk, align = TextAlign.Center)
+            FitText(text = face.cue.uppercase(), size = (faceSize * 0.06f).asSp(), color = face.buttonInk, align = TextAlign.Center)
+        }
+    }
+}
+
+/** The bar loaded, the plates each side, the bar's own weight. Tap to close. */
+@Composable
+internal fun PlateScreen(
+    card: Wearable.WearStatusCard,
+    onClose: () -> Unit,
 ) {
     BoxWithConstraints(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(WearPalette.Background),
+                .background(WearPalette.Ground)
+                .clickable(onClick = onClose),
     ) {
-        val statusTop = maxHeight * STATUS_TOP_FRACTION
-        val statusInset = maxWidth * STATUS_INSET_FRACTION
-        val bodyInset = maxWidth * BODY_INSET_FRACTION
-        val bodyBottom = maxHeight * BODY_BOTTOM_FRACTION
-        // Without the status row the body starts where the row would have, so
-        // its first line keeps the same clearance from the top of the circle.
-        val bodyTop = if (showStatusRow) 0.dp else statusTop
-        val statusHeight = if (showStatusRow) StatusRowHeight else 0.dp
-        val bodyHeight = maxHeight - statusTop - statusHeight - bodyBottom
-        val scale = (bodyHeight / designBodyHeight).coerceIn(MIN_BODY_SCALE, 1f)
-        Column(modifier = Modifier.fillMaxSize()) {
-            if (showStatusRow) {
-                StatusRow(
-                    status = status,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = statusTop, start = statusInset, end = statusInset)
-                            .heightIn(min = StatusRowHeight),
-                )
+        val d = minOf(maxWidth, maxHeight)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            FitText(text = "${card.weightText} ${card.unitText}", size = (d * 0.14f).asSp(), align = TextAlign.Center)
+            Spacer(modifier = Modifier.height(6.dp))
+            Rule()
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(d * 0.30f)
+                        .background(Color.White),
+                contentAlignment = Alignment.Center,
+            ) {
+                Bar(plates = card.platesList, height = d * 0.26f)
             }
+            Rule()
+            Spacer(modifier = Modifier.height(6.dp))
+            FitText(
+                text = card.platesText,
+                size = (d * 0.07f).asSp(),
+                align = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = d * 0.12f),
+            )
+            FitText(text = card.barText, size = (d * 0.06f).asSp(), color = WearPalette.Muted, align = TextAlign.Center)
+        }
+    }
+}
+
+/** A barbell drawn loaded: plates out from the collars, sized by weight. */
+@Composable
+private fun Bar(
+    plates: List<Wearable.WearPlate>,
+    height: Dp,
+) {
+    @Composable
+    fun Plate(plate: Wearable.WearPlate) {
+        Box(
+            modifier =
+                Modifier
+                    .padding(horizontal = 1.dp)
+                    .width(4.dp + 7.dp * plate.size)
+                    .height(height * (0.32f + 0.68f * plate.size))
+                    .background(parseHex(plate.colorHex)),
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.width(12.dp).height(4.dp).background(WearPalette.Hairline))
+        plates.reversed().forEach { Plate(it) }
+        Box(modifier = Modifier.width(5.dp).height(12.dp).background(WearPalette.Rule))
+        Box(modifier = Modifier.width(36.dp).height(3.dp).background(WearPalette.Muted))
+        Box(modifier = Modifier.width(5.dp).height(12.dp).background(WearPalette.Rule))
+        plates.forEach { Plate(it) }
+        Box(modifier = Modifier.width(12.dp).height(4.dp).background(WearPalette.Hairline))
+    }
+}
+
+/** Ambient: the face dimmed to what matters, grey on black. */
+@Composable
+internal fun AmbientScreen(face: SplitFace) {
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(WearPalette.Ambient),
+        contentAlignment = Alignment.Center,
+    ) {
+        val d = minOf(maxWidth, maxHeight)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            FitText(text = face.label.uppercase(), size = (d * 0.07f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
+            FitText(
+                text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" "),
+                size = (d * 0.07f).asSp(),
+                color = WearPalette.AmbientText,
+                family = WearBodyFontFamily,
+                align = TextAlign.Center,
+            )
+            FitText(
+                text = if (face.weight == "?") "?" else "${face.weight} × ${face.reps}",
+                size = (d * 0.13f).asSp(),
+                color = WearPalette.AmbientText,
+                align = TextAlign.Center,
+            )
+        }
+    }
+}
+
+/** ALL_DONE: the summary on the left, End workout as the big half. */
+@Composable
+internal fun DoneScreen(
+    summary: Wearable.WearCompletionSummary?,
+    label: String,
+    endWorkout: Wearable.WearAction?,
+    enabled: Boolean,
+    onAction: (Wearable.WearAction) -> Unit,
+) {
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(WearPalette.Ground),
+    ) {
+        val d = minOf(maxWidth, maxHeight)
+        val round = LocalConfiguration.current.isScreenRound
+        Row(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier =
                     Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(top = bodyTop, start = bodyInset, end = bodyInset, bottom = bodyBottom),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                        .width(d * LEFT_FRACTION)
+                        .fillMaxHeight()
+                        .padding(end = 8.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.End,
             ) {
-                body(scale)
+                DoneLine(d, round, 0.32f, label.uppercase(), 0.07f, WearPalette.ReadyInk)
+                if (summary != null) {
+                    DoneLine(d, round, 0.40f, summary.durationText, 0.13f, WearPalette.Text)
+                    DoneLine(d, round, 0.55f, "${summary.completedWorkingSets} sets", 0.075f, WearPalette.Muted)
+                    DoneLine(d, round, 0.64f, summary.volumeText.ifEmpty { "${summary.totalVolumeLb} lb" }, 0.075f, WearPalette.Muted)
+                }
+            }
+            Box(
+                modifier =
+                    Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(WearPalette.Rule),
+            )
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(if (endWorkout != null) WearPalette.Ready else WearPalette.Panel)
+                        .clickable(enabled = enabled && endWorkout != null) { endWorkout?.let(onAction) }
+                        .padding(end = d * 0.07f),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (endWorkout != null) {
+                    FitText(
+                        text = endWorkout.label.uppercase(),
+                        size = (d * 0.07f).asSp(),
+                        color = WearPalette.OnDark,
+                        align = TextAlign.Center,
+                    )
+                }
             }
         }
     }
 }
 
-/** Elapsed time left, heart rate right in its band colour. A spacer in ambient. */
 @Composable
-private fun StatusRow(
-    status: WearStatus,
-    modifier: Modifier,
-) {
-    if (status.ambient) {
-        Spacer(modifier = modifier)
-        return
-    }
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StatusItem(icon = Icons.Filled.HourglassBottom, text = status.elapsedText, color = WearPalette.Muted)
-        Spacer(modifier = Modifier.weight(1f))
-        if (status.nextUpEmoji.isNotEmpty()) {
-            Text(text = status.nextUpEmoji, fontSize = 14.sp, maxLines = 1)
-            Spacer(modifier = Modifier.weight(1f))
-        }
-        StatusItem(
-            icon = Icons.Filled.Favorite,
-            text = status.bpm?.let { "${it.toInt()}" } ?: "--",
-            color = heartRateColor(status.bpm),
-        )
-    }
-}
-
-@Composable
-private fun StatusItem(
-    icon: ImageVector,
+private fun ColumnScope.DoneLine(
+    d: Dp,
+    round: Boolean,
+    top: Float,
     text: String,
+    size: Float,
     color: Color,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(14.dp),
-        )
-        Spacer(modifier = Modifier.width(3.dp))
-        Text(
-            text = text,
-            color = color,
-            fontSize = 16.sp,
-            fontFamily = WearDisplayFontFamily,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-        )
-    }
+    FitText(
+        text = text,
+        size = (d * size).asSp(),
+        color = color,
+        modifier = Modifier.fillMaxWidth().padding(start = roundInset(d, round, top, top + size)),
+    )
 }
 
-/** No snapshot, or the workout is over: one grey line. */
+/** No snapshot, or the workout is over. */
 @Composable
 internal fun IdleScreen() {
     Box(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(WearPalette.Background)
-                .padding(horizontal = 24.dp),
+                .background(WearPalette.Ground)
+                .padding(horizontal = 28.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = "Open Schlift on your phone",
             color = WearPalette.Muted,
-            fontSize = 14.sp,
+            fontSize = 15.sp,
+            fontFamily = WearBodyFontFamily,
             textAlign = TextAlign.Center,
             maxLines = 2,
         )
     }
 }
 
-/** READY: the next set and Start. */
-@Composable
-internal fun ReadyScreen(
-    status: WearStatus,
-    exerciseName: String,
-    setText: String,
-    setLine: String,
-    startSet: Wearable.WearAction?,
-    actionsEnabled: Boolean,
-    onAction: (Wearable.WearAction) -> Unit,
-) {
-    Screen(status = status, designBodyHeight = 172.dp) { scale ->
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            AutoResizingText(
-                text = exerciseName,
-                color = WearPalette.Text,
-                fontSize = 18.sp * scale,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                minFontSize = 11.sp,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AutoResizingText(
-                text = setText,
-                color = WearPalette.Text,
-                fontSize = 34.sp * scale,
-                fontWeight = FontWeight.Bold,
-                fontFamily = WearDisplayFontFamily,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            AutoResizingText(
-                text = setLine,
-                color = WearPalette.Muted,
-                fontSize = 14.sp * scale,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp * scale))
-        PrimaryButton(
-            label = startSet?.label ?: "Start",
-            enabled = actionsEnabled && startSet != null,
-            onClick = { startSet?.let(onAction) },
-            scale = scale,
-        )
-    }
-}
-
-/**
- * After a set: RESTING counts down in blue, then YAPPING counts up in pink
- * once the rest has run out. The timer is the biggest thing; Start lifts
- * the next set, early or late.
- */
-@Composable
-internal fun RestScreen(
-    status: WearStatus,
-    timer: RestTimer,
-    label: String,
-    nextSetText: String,
-    startSet: Wearable.WearAction?,
-    actionsEnabled: Boolean,
-    onAction: (Wearable.WearAction) -> Unit,
-) {
-    val timerColor = if (timer.countingUp) WearPalette.Yapping else WearPalette.Resting
-    Screen(status = status, designBodyHeight = 144.dp) { scale ->
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TimerBlock(text = timer.text, label = label, color = timerColor, ambient = status.ambient, scale = scale)
-            if (nextSetText.isNotEmpty()) {
-                AutoResizingText(
-                    text = "Next: $nextSetText",
-                    color = WearPalette.Text,
-                    fontSize = 14.sp * scale,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        if (startSet != null) {
-            Spacer(modifier = Modifier.height(8.dp * scale))
-            PrimaryButton(
-                label = startSet.label,
-                enabled = actionsEnabled,
-                onClick = { onAction(startSet) },
-                scale = scale,
-                height = 48.dp,
-            )
-        }
-    }
-}
-
-/**
- * LIFTING: the set in progress, counting up in orange from Start, and the
- * finish the phone offers (Done), logging it in one tap.
- */
-@Composable
-internal fun LiftingScreen(
-    status: WearStatus,
-    timerText: String,
-    label: String,
-    exerciseName: String,
-    setText: String,
-    finishes: List<Wearable.WearAction>,
-    actionsEnabled: Boolean,
-    onAction: (Wearable.WearAction) -> Unit,
-) {
-    Screen(status = status, designBodyHeight = 160.dp) { scale ->
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TimerBlock(text = timerText, label = label, color = WearPalette.Lifting, ambient = status.ambient, scale = scale)
-            AutoResizingText(
-                text = if (setText.isEmpty()) exerciseName else "$exerciseName $setText",
-                color = WearPalette.Text,
-                fontSize = 14.sp * scale,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp * scale))
-        if (finishes.size == 1) {
-            PrimaryButton(
-                label = finishes.single().label,
-                enabled = actionsEnabled,
-                onClick = { onAction(finishes.single()) },
-                scale = scale,
-                height = 48.dp,
-            )
-        } else {
-            FinishRow(finishes = finishes, actionsEnabled = actionsEnabled, onAction = onAction, scale = scale)
-        }
-    }
-}
-
-/** A big timer over its state label, both in the state's colour. */
-@Composable
-private fun TimerBlock(
-    text: String,
-    label: String,
-    color: Color,
-    ambient: Boolean,
-    scale: Float,
-) {
-    if (!ambient && text.isNotEmpty()) {
-        AutoResizingText(
-            text = text,
-            color = color,
-            fontSize = 40.sp * scale,
-            fontWeight = FontWeight.Bold,
-            fontFamily = WearDisplayFontFamily,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-    if (label.isNotEmpty()) {
-        AutoResizingText(
-            text = label,
-            color = color,
-            fontSize = 14.sp * scale,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-/** ALL_DONE: the summary and End workout while the phone still offers it. */
-@Composable
-internal fun DoneScreen(
-    status: WearStatus,
-    summary: Wearable.WearCompletionSummary?,
-    endWorkout: Wearable.WearAction?,
-    actionsEnabled: Boolean,
-    onAction: (Wearable.WearAction) -> Unit,
-) {
-    // Title 34 + summary 23, button 56 at spec sizes.
-    Screen(status = status, designBodyHeight = 113.dp) { scale ->
-        Column(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "Done",
-                color = WearPalette.Done,
-                fontSize = 26.sp * scale,
-                fontWeight = FontWeight.Bold,
-                fontFamily = WearDisplayFontFamily,
-                maxLines = 1,
-            )
-            if (summary != null) {
-                Spacer(modifier = Modifier.height(4.dp * scale))
-                AutoResizingText(
-                    text = formatSummaryLine(summary),
-                    color = WearPalette.Muted,
-                    fontSize = 14.sp * scale,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
-        if (endWorkout != null) {
-            Spacer(modifier = Modifier.height(8.dp * scale))
-            PrimaryButton(
-                label = endWorkout.label,
-                enabled = actionsEnabled,
-                onClick = { onAction(endWorkout) },
-                scale = scale,
-                height = 48.dp,
-            )
-        }
-    }
-}
-
-// ── Shared button styles ──
-
-/** The one primary action on a screen: full width, white, black bold text. */
-@Composable
-private fun PrimaryButton(
-    label: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    scale: Float,
-    height: Dp = 56.dp,
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .height(height * scale),
-        shape = RoundedCornerShape(50),
-        colors =
-            ButtonDefaults.buttonColors(
-                backgroundColor = WearPalette.Text,
-                contentColor = WearPalette.Background,
-                disabledBackgroundColor = WearPalette.Text.copy(alpha = 0.5f),
-                disabledContentColor = WearPalette.Background.copy(alpha = 0.6f),
-            ),
-    ) {
-        AutoResizingText(
-            text = label,
-            fontSize = 20.sp * scale,
-            fontWeight = FontWeight.Bold,
-            fontFamily = WearDisplayFontFamily,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier.padding(horizontal = 12.dp),
-        )
-    }
-}
-
-/** A rung's three finishes in one row: white pills like the primary, each a Done. */
-@Composable
-private fun FinishRow(
-    finishes: List<Wearable.WearAction>,
-    actionsEnabled: Boolean,
-    onAction: (Wearable.WearAction) -> Unit,
-    scale: Float,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        finishes.forEach { action ->
-            Box(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .height(44.dp * scale)
-                        .clip(RoundedCornerShape(50))
-                        .background(WearPalette.Text.copy(alpha = if (actionsEnabled) 1f else 0.5f))
-                        .clickable(enabled = actionsEnabled, onClick = { onAction(action) }),
-                contentAlignment = Alignment.Center,
-            ) {
-                AutoResizingText(
-                    text = action.label,
-                    color = WearPalette.Background,
-                    fontSize = 15.sp * scale,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = WearDisplayFontFamily,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    minFontSize = 9.sp,
-                    modifier = Modifier.padding(horizontal = 2.dp),
-                )
-            }
-        }
-    }
-}
-
-// ── Text the watch assembles: timers from timestamps, and the summary line
-// joined from phone-rendered parts. It never formats a weight. ──
-
-/** "48:12 · 14 sets · 5,650 kg"; the lb figure only if the phone sent no volume text. */
-private fun formatSummaryLine(summary: Wearable.WearCompletionSummary): String {
-    val volume = summary.volumeText.ifEmpty { "${summary.totalVolumeLb}lb" }
-    return "${summary.durationText} · ${summary.completedWorkingSets} sets · $volume"
-}
+// ── Text the watch assembles: timers from timestamps. It never formats a
+// weight. ──
 
 /** Elapsed since the workout started, against the phone-synchronised clock. */
 internal fun deriveElapsedText(snapshot: Wearable.WearWorkoutSnapshot): String {
@@ -664,12 +669,15 @@ private fun formatElapsedDuration(totalSeconds: Int): String {
     }
 }
 
+/** Heart rate in the app's colours: easy green, working ochre, hard orange, max magenta. */
 private fun heartRateColor(bpm: Float?): Color {
-    if (bpm == null || bpm <= 0f) return Color(0xFF94A3B8)
+    if (bpm == null || bpm <= 0f) return WearPalette.Muted
     return when {
-        bpm < 110f -> Color(0xFF22C55E)
-        bpm < 140f -> Color(0xFFFACC15)
-        bpm < 165f -> Color(0xFFF97316)
-        else -> Color(0xFFEF4444)
+        bpm < 110f -> WearPalette.ReadyInk
+        bpm < 140f -> Color(0xFF8D5A00)
+        bpm < 165f -> WearPalette.LiftingInk
+        else -> Color(0xFFC2185B)
     }
 }
+
+private fun parseHex(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(WearPalette.Muted)

@@ -126,6 +126,15 @@ class WearableSyncCoordinator {
           intent.completeSet.actualWeight,
           completedAt: intent.completeSet.completedAt.toInt(),
         );
+      } else if (intent.hasEditCompletedSet() &&
+          intent.editCompletedSet.workoutId == workoutId) {
+        // The fix window: reps taken off the set just done. Zero is still
+        // a done set (with no reps); the watch never undoes one.
+        await _workoutProvider.editCompletedSet(
+          intent.editCompletedSet.completedSetId,
+          intent.editCompletedSet.reps.clamp(0, 100),
+          intent.editCompletedSet.actualWeight,
+        );
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();

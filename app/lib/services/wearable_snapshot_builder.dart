@@ -1,7 +1,9 @@
 /// The watch's whole world, built from the phone's state. Both watch apps
 /// render this snapshot and nothing else, so what goes in here is the
 /// contract: READY / LIFTING / RESTING / YAPPING / ALL_DONE, one status
-/// card, and the actions each state offers: Start, then Done.
+/// card (the set's weight, reps and plates, and what a tap does), the
+/// actions each state offers (Start, then Done), and the set just done for
+/// the watch's few seconds of taking reps off it.
 library;
 
 import 'dart:math';
@@ -14,6 +16,7 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
+import '../logic/plate_calculator.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
 import '../logic/user_profile.dart';
@@ -70,15 +73,49 @@ class WearableSnapshotBuilder {
       ProposedSet set, {
       String stateLabel = '',
       String timerText = '',
-    }) => WearStatusCard(
-      stateLabel: stateLabel,
-      timerText: timerText,
-      displaySet: set,
-      exerciseName: exerciseNames[set.exercise] ?? '?',
-      setLine: setLineFor(set, proposedSets),
-      setText: setTextFor(set, unit),
-      yappingLabel: copy.workout.yapping,
-    );
+      String cue = '',
+    }) {
+      final firstTime = _isFirstEver(set, proposedSets, completedSets);
+      final barbell =
+          workoutProvider.trackerFor(set.exercise)?.equipment ==
+          EquipmentKind.EQUIPMENT_KIND_BARBELL;
+      final weight = set.targetWeight.toDouble();
+      final plates = barbell && !firstTime
+          ? calcPlatesPerSide(weight, unit).plates
+          : const <double>[];
+      String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
+      final heaviest = standardPlates(unit).first;
+      return WearStatusCard(
+        stateLabel: firstTime ? copy.workout.firstTimeStatus : stateLabel,
+        timerText: timerText,
+        displaySet: set,
+        exerciseName: exerciseNames[set.exercise] ?? '?',
+        setLine: setLineFor(set, proposedSets),
+        setText: setTextFor(set, unit),
+        yappingLabel: copy.workout.yapping,
+        weightText: firstTime ? '?' : formatWeight(weight, unit),
+        unitText: weightUnitSuffix(unit),
+        repsText: firstTime ? '?' : '${set.targetReps}',
+        cue: firstTime ? copy.workout.watchCueTest : cue,
+        firstTime: firstTime,
+        plates: [
+          for (final p in plates)
+            WearPlate(
+              label: num(p),
+              colorHex: _hex(workoutProvider.plateColor(p).toARGB32()),
+              size: (p / heaviest).clamp(0.0, 1.0),
+            ),
+        ],
+        platesText: !barbell || firstTime
+            ? ''
+            : plates.isEmpty
+            ? copy.workout.emptyBar
+            : '${plates.map(num).join(' · ')} ${copy.workout.watchEachSide}',
+        barText: !barbell || firstTime
+            ? ''
+            : '${num(standardBarWeight(unit))} ${weightUnitSuffix(unit)}',
+      );
+    }
 
     // The one button logs this set: the next pending one, or on an
     // unanswered rung the set "right" would append ("{done}:0").
@@ -104,13 +141,18 @@ class WearableSnapshotBuilder {
         stateLabel = copy.workout.yapping;
         timerText = formatRestClock(max(0, nowUnix - restEnd));
       } else {
-        stateLabel = '';
+        stateLabel = copy.workout.ready;
         timerText = '';
       }
       snapshot.youCard = card(
         target,
         stateLabel: stateLabel,
         timerText: timerText,
+        cue: lifting
+            ? copy.workout.watchCueDone
+            : isRestingState(stateValue) || isYappingState(stateValue)
+            ? copy.workout.watchCueEarly
+            : copy.workout.watchCueLift,
       );
       if (lifting) {
         actions.add(
@@ -155,6 +197,8 @@ class WearableSnapshotBuilder {
     }
 
     snapshot.actions.addAll(actions);
+    final lastDone = _lastDone(completedSets, proposedSets);
+    if (lastDone != null && !isEnded) snapshot.lastDone = lastDone;
     snapshot.nextUpEmoji = _nextUpEmoji(
       status: multiplayerProvider.sessionStatus,
       myUserId: myUserId,
@@ -166,6 +210,40 @@ class WearableSnapshotBuilder {
     );
 
     return snapshot;
+  }
+
+  /// The opening set of an exercise never done: a calibration set with
+  /// none of its exercise's calibration sets lifted yet.
+  static bool _isFirstEver(
+    ProposedSet set,
+    List<ProposedSet> proposedSets,
+    List<CompletedSet> completedSets,
+  ) {
+    if (!set.calibration) return false;
+    final done = {for (final c in completedSets) c.proposedSetId};
+    return !proposedSets.any(
+      (p) => p.exercise == set.exercise && p.calibration && done.contains(p.id),
+    );
+  }
+
+  /// The set done last, for the watch's fix window.
+  static WearDoneSet? _lastDone(
+    List<CompletedSet> completedSets,
+    List<ProposedSet> proposedSets,
+  ) {
+    if (completedSets.isEmpty) return null;
+    final last = completedSets.reduce((a, b) => b.endedAt > a.endedAt ? b : a);
+    final proposed = proposedSets
+        .where((p) => p.id == last.proposedSetId)
+        .firstOrNull;
+    return WearDoneSet(
+      completedSetId: last.id,
+      reps: last.actualReps,
+      targetReps: proposed?.targetReps ?? last.actualReps,
+      actualWeight: last.actualWeight,
+      endedAt: last.endedAt,
+      cue: copy.workout.watchCueFix,
+    );
   }
 
   /// Whose turn it is in a session, as an emoji for the status row.
@@ -236,6 +314,10 @@ class WearableSnapshotBuilder {
     );
   }
 }
+
+/// "#RRGGBB" for an ARGB colour.
+String _hex(int argb) =>
+    '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
 int _elapsedSeconds(Workout workout, int nowUnix) {
   final start = workout.startTime.toInt();

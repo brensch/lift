@@ -348,6 +348,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The user's display unit; the watch snapshot formats weights with it.
   WeightUnit get weightUnit => _settingsProvider.weightUnit;
 
+  /// The user's colour for a plate of [weight] (in their unit).
+  Color plateColor(double weight) => _settingsProvider.plateColor(weight);
+
   int get restSecondsRemaining {
     final snapshot = _snapshot;
     if (snapshot == null) return 0;
