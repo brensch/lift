@@ -25,6 +25,16 @@ server. No Dart mirror, no parity fixtures.
   session/changeset CDC was considered and rejected for exactly that: it
   ships results, ties both ends to one schema forever, and can't replay).
 
+## Decisions (2026-10-30)
+
+- **Existing accounts are kept.** Their history, templates, trackers and
+  settings are converted into events once, by a throwaway script run
+  against production — not by migration code left in the repo.
+- **One branch, one release.** All phases land on `feat/local-first` and
+  ship together; production stays on 0.11.0 until then.
+- **The web is read-only:** history, progress, summaries, admin analytics,
+  and watching a live workout — all from synced data.
+
 ## Shape
 
 ```mermaid
