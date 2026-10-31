@@ -155,22 +155,16 @@ class StatusBox extends StatelessWidget {
           ),
         ),
       );
-      body = Row(
+      // What it is across the top; under it the circle, the weight and the
+      // plates on one line.
+      final line = Row(
         children: [
           if (circle != null) ...[circle!, const SizedBox(width: 14)],
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                what,
-                const SizedBox(height: 2),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: load,
-                ),
-              ],
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: load,
             ),
           ),
           if (set.targetWeight > 0) ...[
@@ -197,6 +191,11 @@ class StatusBox extends StatelessWidget {
           ],
         ],
       );
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [what, const SizedBox(height: 8), line],
+      );
     }
 
     return Container(
@@ -208,7 +207,7 @@ class StatusBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           band,
-          Padding(padding: EdgeInsets.fromLTRB(14, 16, 14, 18), child: body),
+          Padding(padding: EdgeInsets.fromLTRB(14, 12, 14, 16), child: body),
         ],
       ),
     );
