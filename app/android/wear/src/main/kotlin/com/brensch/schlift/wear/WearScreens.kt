@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,8 +40,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.Button
+import androidx.wear.compose.material.ButtonDefaults
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
+import androidx.wear.compose.material.dialog.Dialog
 import workout.v1.Wearable
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -112,11 +116,11 @@ internal data class SplitFace(
 // The left column's share of the face, and its rows' heights, as fractions
 // of the face.
 private const val LEFT_FRACTION = 0.57f
-private const val TOP_PAD = 0.11f
-private const val STAGE_ROW = 0.25f
-private const val STATS_ROW = 0.11f
-private const val EXERCISE_ROW = 0.09f
-private const val WEIGHT_ROW = 0.15f
+private const val TOP_PAD = 0.10f
+private const val STAGE_ROW = 0.31f
+private const val STATS_ROW = 0.10f
+private const val EXERCISE_ROW = 0.08f
+private const val WEIGHT_ROW = 0.14f
 
 /**
  * How far in from the left a line between [top] and [bottom] (fractions of
@@ -230,7 +234,8 @@ internal fun SplitScreen(
                         .fillMaxHeight(),
             ) {
                 Spacer(modifier = Modifier.height(d * TOP_PAD))
-                // The stage and its clock.
+                // The clock, as big as the top of the face allows: the stage
+                // itself is named on the button.
                 val stageTop = TOP_PAD
                 Column(
                     modifier =
@@ -239,13 +244,8 @@ internal fun SplitScreen(
                             .height(d * STAGE_ROW),
                     verticalArrangement = Arrangement.Bottom,
                 ) {
-                    Line(stageTop, stageTop + 0.07f) { m ->
-                        FitText(text = face.label.uppercase(), size = (d * 0.062f).asSp(), color = face.labelColor, modifier = m)
-                    }
-                    if (face.timer.isNotEmpty()) {
-                        Line(stageTop + 0.07f, stageTop + STAGE_ROW) { m ->
-                            FitText(text = face.timer, size = (d * 0.17f).asSp(), modifier = m)
-                        }
+                    Line(stageTop + STAGE_ROW - 0.2f, stageTop + STAGE_ROW) { m ->
+                        FitText(text = face.timer.ifEmpty { "—" }, size = (d * 0.2f).asSp(), color = face.labelColor, modifier = m)
                     }
                 }
                 Rule()
@@ -407,47 +407,69 @@ private fun RowScope.BigButton(
     }
 }
 
-/** The bar loaded, the plates each side, the bar's own weight. Tap to close. */
+/**
+ * The plates for the set's weight, as a Wear dialog over the face: the bar
+ * drawn loaded on white, the plates each side, the bar's own weight. Swipe it
+ * away or tap the close button.
+ */
 @Composable
-internal fun PlateScreen(
+internal fun PlateDialog(
     card: Wearable.WearStatusCard,
-    onClose: () -> Unit,
+    show: Boolean,
+    onDismiss: () -> Unit,
 ) {
-    BoxWithConstraints(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(WearPalette.Ground)
-                .clickable(onClick = onClose),
-    ) {
-        val d = minOf(maxWidth, maxHeight)
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+    Dialog(showDialog = show, onDismissRequest = onDismiss) {
+        BoxWithConstraints(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(WearPalette.Panel),
         ) {
-            FitText(text = "${card.weightText} ${card.unitText}", size = (d * 0.14f).asSp(), align = TextAlign.Center)
-            Spacer(modifier = Modifier.height(6.dp))
-            Rule()
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(d * 0.30f)
-                        .background(Color.White),
-                contentAlignment = Alignment.Center,
+            val d = minOf(maxWidth, maxHeight)
+            Column(
+                modifier = Modifier.fillMaxSize().padding(top = d * 0.12f, bottom = d * 0.06f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Bar(plates = card.platesList, height = d * 0.26f)
+                FitText(text = "${card.weightText} ${card.unitText}", size = (d * 0.13f).asSp(), align = TextAlign.Center)
+                Spacer(modifier = Modifier.height(4.dp))
+                Rule()
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(d * 0.28f)
+                            .background(Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Bar(plates = card.platesList, height = d * 0.24f)
+                }
+                Rule()
+                Spacer(modifier = Modifier.height(4.dp))
+                FitText(
+                    text = card.platesText,
+                    size = (d * 0.065f).asSp(),
+                    align = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = d * 0.14f),
+                )
+                FitText(text = card.barText, size = (d * 0.055f).asSp(), color = WearPalette.Muted, align = TextAlign.Center)
+                Spacer(modifier = Modifier.weight(1f))
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(d * 0.17f),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            backgroundColor = WearPalette.Text,
+                            contentColor = WearPalette.Panel,
+                        ),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Close",
+                        modifier = Modifier.size(d * 0.08f),
+                    )
+                }
             }
-            Rule()
-            Spacer(modifier = Modifier.height(6.dp))
-            FitText(
-                text = card.platesText,
-                size = (d * 0.07f).asSp(),
-                align = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = d * 0.12f),
-            )
-            FitText(text = card.barText, size = (d * 0.06f).asSp(), color = WearPalette.Muted, align = TextAlign.Center)
         }
     }
 }

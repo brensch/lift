@@ -1,10 +1,8 @@
 import SwiftUI
 
 /// The plates for the set's weight: the bar drawn loaded on white, the plates each
-/// side and the bar's own weight. Shown when the weight is tapped; tap to close.
+/// side and the bar's own weight. Shown in a sheet when the weight is tapped.
 struct PlateScreen: View {
-    @Environment(\.dismiss) private var dismiss
-
     let card: Workout_V1_WearStatusCard
 
     var body: some View {
@@ -34,8 +32,6 @@ struct PlateScreen: View {
             }
         }
         .background(WatchPalette.ground.ignoresSafeArea())
-        .contentShape(Rectangle())
-        .onTapGesture { dismiss() }
     }
 
     /// A barbell drawn loaded: plates out from the collars, sized by weight.

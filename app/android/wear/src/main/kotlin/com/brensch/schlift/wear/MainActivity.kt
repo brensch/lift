@@ -13,6 +13,9 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -656,6 +659,18 @@ private fun WorkoutScreens(
             data.state != WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING &&
             fineNowMs < fixWindowEndMs
     var showPlates by remember(data.workoutId) { mutableStateOf(false) }
+    // The fix window's bar, animated rather than redrawn on a tick so it drains
+    // smoothly; a tap restarts it from full.
+    val windowLeft = remember(lastDone?.completedSetId) { Animatable(0f) }
+    LaunchedEffect(fixWindowEndMs) {
+        val leftMs = fixWindowEndMs - WearDataRepository.synchronizedNowUnixMillis()
+        if (leftMs <= 0L) {
+            windowLeft.snapTo(0f)
+            return@LaunchedEffect
+        }
+        windowLeft.snapTo(leftMs.toFloat() / FIX_WINDOW_MS)
+        windowLeft.animateTo(0f, tween(durationMillis = leftMs.toInt(), easing = LinearEasing))
+    }
 
     val lifting = data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING
     val resting =
@@ -704,29 +719,27 @@ private fun WorkoutScreens(
             unit = card.unitText,
             upNext = if (data.nextUpEmoji.isEmpty()) "" else "next ${data.nextUpEmoji}",
             reps = if (inFixWindow) "$fixReps" else card.repsText,
-            cue = if (inFixWindow) lastDone!!.cue else card.cue,
+            // The button names the stage; in the fix window, what a tap does.
+            cue =
+                when {
+                    inFixWindow -> lastDone!!.cue
+                    yapping -> card.yappingLabel.ifEmpty { card.stateLabel }
+                    else -> card.stateLabel
+                },
             buttonColor = if (inFixWindow) WearPalette.Fix else stageColor,
             buttonInk =
                 when {
                     inFixWindow || (lifting && !card.firstTime) -> WearPalette.Text
                     else -> WearPalette.OnDark
                 },
-            window =
-                if (inFixWindow) {
-                    ((fixWindowEndMs - fineNowMs).toFloat() / FIX_WINDOW_MS).coerceIn(0f, 1f)
-                } else {
-                    0f
-                },
+            window = if (inFixWindow) windowLeft.value else 0f,
             hasPlates = card.platesText.isNotEmpty(),
         )
 
+    PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
     when {
         isAmbientMode -> {
             AmbientScreen(face = face)
-        }
-
-        showPlates -> {
-            PlateScreen(card = card, onClose = { showPlates = false })
         }
 
         else -> {
