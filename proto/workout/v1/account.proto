@@ -65,7 +65,9 @@ message TrackerRecord {
   int32 override_sets = 6;
   int32 override_rep_low = 7;
   int32 override_rep_high = 8;
-  int32 consecutive_hard = 9;
+  // 9 was consecutive_hard: progression reads only whether the reps were hit.
+  reserved 9;
+  reserved "consecutive_hard";
 }
 
 // ─── Sync ────────────────────────────────────────────────────────────────────

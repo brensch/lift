@@ -465,7 +465,6 @@ impl<'a> View<'a> {
             primary_muscle: primary_muscle(exercise) as i32,
             category: category(exercise) as i32,
             equipment: load_style(exercise).to_proto() as i32,
-            consecutive_hard: resolved.consecutive_hard,
         }
     }
 

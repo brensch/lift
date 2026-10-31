@@ -114,7 +114,7 @@ class WearableSnapshotBuilder {
         stateLabel: stateLabel,
         timerText: timerText,
       );
-      if (lifting && !target.calibration) {
+      if (lifting) {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET,
@@ -125,26 +125,6 @@ class WearableSnapshotBuilder {
             actualWeight: target.targetWeight,
           ),
         );
-      } else if (lifting) {
-        // A rung: one Done carrying how many reps were left, the question
-        // the phone asks under the rung.
-        for (final (effort, label) in [
-          (Effort.EFFORT_HARD, copy.workout.repsLeftNone),
-          (Effort.EFFORT_RIGHT, copy.workout.repsLeftSome),
-          (Effort.EFFORT_EASY, copy.workout.repsLeftLots),
-        ]) {
-          actions.add(
-            WearAction(
-              type: WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET,
-              style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
-              label: label,
-              setId: target.id,
-              reps: target.targetReps,
-              actualWeight: target.targetWeight,
-              effort: effort,
-            ),
-          );
-        }
       } else {
         actions.add(
           WearAction(

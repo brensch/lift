@@ -283,12 +283,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 if started && rng.gen_bool(0.2) {
                     step_name = format!("start_set({})", set.id);
                 } else {
-                    let effort = if rng.gen_bool(0.5) {
-                        [Effort::Easy, Effort::Right, Effort::Hard][rng.gen_range(0..3)] as i32
-                    } else {
-                        0
-                    };
-                    step_name = format!("complete_set({}, effort {effort})", set.id);
+                    step_name = format!("complete_set({})", set.id);
                     now += 45;
                     let _ = sim.call(now).complete_set(CompleteSetRequest {
                         workout_id: workout_id.clone(),
@@ -296,7 +291,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                         actual_reps: rng.gen_range(0..12),
                         actual_weight: set.target_weight,
                         completed_at: now,
-                        effort,
+                        effort: 0,
                     });
                     now += 90;
                 }
@@ -388,30 +383,15 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     exercises,
                 });
             } else if action < 88 && !done.is_empty() {
-                // Answer, or change the answer, for a done set. Usually the
-                // latest (what the chips target); sometimes an older set
-                // or a warmup, which must change nothing. Time plays no
-                // part: the clock resolves nothing.
-                let latest = done.iter().max_by_key(|c| c.ended_at).cloned().unwrap();
-                let c = if rng.gen_bool(0.7) {
-                    latest.clone()
-                } else {
-                    done[rng.gen_range(0..done.len())].clone()
-                };
+                // A rating, from an old app: retired, it must change
+                // nothing.
+                let c = done[rng.gen_range(0..done.len())].clone();
                 let effort = [Effort::Easy, Effort::Right, Effort::Hard][rng.gen_range(0..3)];
-                let lands = c.id == latest.id && prompt_worthy(&state, &c);
                 step_name = format!("rate_exercise({}, {effort:?})", c.id);
-                expect = Some(if lands {
-                    Expectation::Rated {
-                        completed_set_id: c.id.clone(),
-                        effort,
-                    }
-                } else {
-                    Expectation::RateNoop {
-                        completed_set_id: c.id.clone(),
-                        effort_before: c.effort,
-                        proposed_before: state.proposed_sets.len(),
-                    }
+                expect = Some(Expectation::RateNoop {
+                    completed_set_id: c.id.clone(),
+                    effort_before: c.effort,
+                    proposed_before: state.proposed_sets.len(),
                 });
                 let _ = sim
                     .call(now)
@@ -497,24 +477,6 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             }
         }
 
-        // No question survives EndWorkout: every done set that asked has
-        // an answer, "right" by default.
-        if let Ok(ended) = sim.view(now).get_workout(GetWorkoutRequest {
-            workout_id: workout_id.clone(),
-        }) {
-            for c in ended.completed_sets.iter().filter(|c| c.ended_at != 0) {
-                if prompt_worthy(&ended, c) && c.effort == Effort::Unspecified as i32 {
-                    violations.push(Violation {
-                        user: username.clone(),
-                        workout_id: workout_id.clone(),
-                        step: "end_workout".into(),
-                        invariant: "an effort prompt was left pending after EndWorkout",
-                        detail: format!("completed set {} has no effort", c.id),
-                    });
-                }
-            }
-        }
-
         // After ending, there must be no active workout left behind.
         {
             let active = sim.view(now).get_active_workout();
@@ -564,24 +526,9 @@ fn mutation_at(mutation: Mutation, at: i64) -> WorkoutMutation {
     }
 }
 
-/// Client-side mirror of the reducer's prompt rule: every working set and
-/// every calibration rung asks "how was that"; warmups never do.
-fn prompt_worthy(state: &GetWorkoutResponse, done: &CompletedSet) -> bool {
-    state
-        .proposed_sets
-        .iter()
-        .find(|p| p.id == done.proposed_set_id && !p.cancelled)
-        .is_some_and(|p| p.calibration || !p.warmup)
-}
-
 /// What one of the new mutations promised about the state after it.
 enum Expectation {
-    /// The latest done set, prompt-worthy: it carries the new answer.
-    Rated {
-        completed_set_id: String,
-        effort: Effort,
-    },
-    /// Not the latest done set, or a warmup: nothing changes.
+    /// A rating: nothing changes.
     RateNoop {
         completed_set_id: String,
         effort_before: i32,
@@ -617,19 +564,6 @@ fn check_expectation(
     };
     let find = |id: &str| state.completed_sets.iter().find(|c| c.id == id);
     match expectation {
-        Expectation::Rated {
-            completed_set_id,
-            effort,
-        } => {
-            if let Some(c) = find(completed_set_id) {
-                if c.effort != *effort as i32 {
-                    push(
-                        "rate_exercise on a set that asked did not record the answer",
-                        format!("set {} effort {} wanted {effort:?}", c.id, c.effort),
-                    );
-                }
-            }
-        }
         Expectation::RateNoop {
             completed_set_id,
             effort_before,
@@ -638,14 +572,14 @@ fn check_expectation(
             if let Some(c) = find(completed_set_id) {
                 if c.effort != *effort_before {
                     push(
-                        "rate_exercise on a set that never asked changed its effort",
+                        "rate_exercise changed a set's effort",
                         format!("set {} effort {} -> {}", c.id, effort_before, c.effort),
                     );
                 }
             }
             if state.proposed_sets.len() != *proposed_before {
                 push(
-                    "rate_exercise on a set that never asked changed the plan",
+                    "rate_exercise changed the plan",
                     format!(
                         "{proposed_before} proposed sets -> {}",
                         state.proposed_sets.len()
@@ -745,45 +679,8 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
         );
     }
 
-    // next_up must be a live, not-yet-completed set — or, while the latest
-    // done set is an unanswered calibration rung, the set its "right" would
-    // append first: uuid5("{done_id}:0").
-    let awaiting = state
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .max_by_key(|c| c.ended_at)
-        .filter(|c| {
-            c.effort == Effort::Unspecified as i32
-                && state
-                    .proposed_sets
-                    .iter()
-                    .any(|p| p.id == c.proposed_set_id && p.calibration)
-        })
-        .map(|c| {
-            uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, format!("{}:0", c.id).as_bytes())
-                .to_string()
-        });
-    if let Some(expected) = awaiting.as_ref() {
-        match state.next_up_set.as_ref() {
-            Some(next) if &next.id == expected => {}
-            other => push(
-                "an unanswered rung does not point next_up_set at its {done}:0",
-                format!("expected {expected} got {:?}", other.map(|n| &n.id)),
-            ),
-        }
-        let display = state
-            .state_snapshot
-            .as_ref()
-            .and_then(|snap| snap.display_set.as_ref())
-            .map(|d| &d.id);
-        if display != Some(expected) {
-            push(
-                "display_set and next_up_set disagree",
-                format!("display {display:?} next_up {expected}"),
-            );
-        }
-    } else if let Some(next) = state.next_up_set.as_ref() {
+    // next_up must be a live, not-yet-completed set.
+    if let Some(next) = state.next_up_set.as_ref() {
         let completed: HashSet<&str> = state
             .completed_sets
             .iter()
@@ -861,39 +758,16 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
         }
     }
 
-    // The prompt is the latest done set while it is prompt-worthy, with its
-    // current answer; every older prompt-worthy set was answered by a Done.
-    let latest = state
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .max_by_key(|c| c.ended_at);
-    let prompt = state
+    // Nothing asks a question any more.
+    if let Some(prompt) = state
         .state_snapshot
         .as_ref()
-        .and_then(|snap| snap.effort_prompt.as_ref());
-    match (latest.filter(|c| prompt_worthy(state, c)), prompt) {
-        (Some(c), Some(p)) if p.completed_set_id == c.id && p.effort == c.effort => {}
-        (None, None) => {}
-        (expected, got) => push(
-            "effort_prompt does not describe the latest prompt-worthy done set",
-            format!(
-                "expected {:?} got {:?}",
-                expected.map(|c| (&c.id, c.effort)),
-                got.map(|p| (&p.completed_set_id, p.effort))
-            ),
-        ),
-    }
-    for c in state.completed_sets.iter().filter(|c| c.ended_at != 0) {
-        if Some(&c.id) != latest.map(|l| &l.id)
-            && prompt_worthy(state, c)
-            && c.effort == Effort::Unspecified as i32
-        {
-            push(
-                "an older prompt-worthy set was left unanswered past a Done",
-                format!("set {}", c.id),
-            );
-        }
+        .and_then(|snap| snap.effort_prompt.as_ref())
+    {
+        push(
+            "an effort prompt was shown",
+            format!("set {}", prompt.completed_set_id),
+        );
     }
 
     // The calibration ramp is capped at six rungs per exercise.

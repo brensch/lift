@@ -31,6 +31,15 @@ CREATE TABLE IF NOT EXISTS events (
 );
 "#;
 
+const DROP_PROJECTIONS: &str = "
+DROP TABLE IF EXISTS workouts;
+DROP TABLE IF EXISTS proposed_sets;
+DROP TABLE IF EXISTS completed_sets;
+DROP TABLE IF EXISTS workout_heart_rate_samples;
+DROP TABLE IF EXISTS exercise_trackers;
+DROP TABLE IF EXISTS workout_templates;
+";
+
 /// A store error, as the app shows it: `code: message`, where code is
 /// invalid_argument, not_found, failed_precondition or storage.
 pub type StoreResult<T> = Result<T, String>;
@@ -51,8 +60,7 @@ impl Store {
     /// else is refused.
     pub fn open(path: &Path, user_id: &str, name: &str) -> StoreResult<Self> {
         let conn = Connection::open(path).map_err(storage)?;
-        conn.execute_batch(&format!("{SCHEMA}{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
-            .map_err(storage)?;
+        conn.execute_batch(SCHEMA).map_err(storage)?;
         let owner: Option<String> = conn
             .query_row("SELECT value FROM meta WHERE key = 'user_id'", [], |r| {
                 r.get(0)
@@ -88,7 +96,31 @@ impl Store {
             account: Account::default(),
         };
         store.account = Account::fold(&store.events_after(0)?);
+        store.reproject()?;
         Ok(store)
+    }
+
+    /// The readable tables, built afresh from the account: they are
+    /// derived, so a change to their shape (or to the rules) needs no
+    /// migration — every open rebuilds them.
+    fn reproject(&mut self) -> StoreResult<()> {
+        let tx = self.conn.transaction().map_err(storage)?;
+        tx.execute_batch(&format!(
+            "{DROP_PROJECTIONS}{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"
+        ))
+        .map_err(storage)?;
+        let mut statements = account_statements(&self.user_id, &self.account);
+        for record in &self.account.workouts {
+            statements.extend(workout_statements(
+                &self.user_id,
+                record,
+                &record.workout.session_id,
+            ));
+        }
+        for statement in statements {
+            run(&tx, statement)?;
+        }
+        tx.commit().map_err(storage)
     }
 
     pub fn seq(&self) -> i64 {
@@ -134,7 +166,11 @@ impl Store {
         let mut statements = account_statements(&self.user_id, &self.account);
         for id in &touched {
             if let Some(record) = self.account.workout(id) {
-                statements.extend(workout_statements(&self.user_id, record, ""));
+                statements.extend(workout_statements(
+                    &self.user_id,
+                    record,
+                    &record.workout.session_id,
+                ));
             }
         }
         for statement in statements {

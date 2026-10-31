@@ -365,9 +365,6 @@ impl Account {
                     return Ok(());
                 }
                 record.workout.end_time = if req.ended_at > 0 { req.ended_at } else { at };
-                // Every open "how was that" closes as "right" before
-                // progression reads the efforts.
-                reducer::resolve_all_effort(&mut record);
                 ended = true;
             }
             Mutation::AddExercises(req) => {
@@ -379,9 +376,8 @@ impl Account {
             }
             Mutation::RemoveExercise(req) => reducer::apply_remove_exercise(&mut record, req)?,
             Mutation::ReorderExercises(req) => reducer::apply_reorder_exercises(&mut record, req)?,
-            Mutation::RateExercise(req) => {
-                reducer::apply_rate_exercise_to_active(&mut record, req, unit)?
-            }
+            // Nothing is rated any more: a set says what it did by its reps.
+            Mutation::RateExercise(_) => {}
             Mutation::EditCompletedSet(req) => {
                 reducer::apply_edit_completed_set_to_active(&mut record, req, unit)?
             }
@@ -490,7 +486,6 @@ impl Account {
             override_sets: req.override_sets.max(0),
             override_rep_low: req.override_rep_low.max(0),
             override_rep_high: req.override_rep_high.max(0),
-            consecutive_hard: 0,
         };
         self.trackers.insert(req.exercise, state);
         Ok(())
@@ -698,7 +693,6 @@ pub fn tracker_state(record: &TrackerRecord) -> TrackerState {
         override_sets: record.override_sets,
         override_rep_low: record.override_rep_low,
         override_rep_high: record.override_rep_high,
-        consecutive_hard: record.consecutive_hard,
     }
 }
 
@@ -712,14 +706,15 @@ pub fn tracker_record(exercise: i32, state: &TrackerState) -> TrackerRecord {
         override_sets: state.override_sets,
         override_rep_low: state.override_rep_low,
         override_rep_high: state.override_rep_high,
-        consecutive_hard: state.consecutive_hard,
     }
 }
 
-/// The layoff deload: 90% after 14 days away from this exercise, 80% after
-/// 30, snapped loadable. Applied when planning only — the tracker is never
-/// written here, so the reduction sticks only when the user performs the
-/// reduced session (progression follows performed weight).
+/// The layoff deload: 90% after 3 weeks away from this exercise, 80% after
+/// 6, snapped loadable. Strength holds for about three weeks of no training
+/// and falls away after (Bosquet et al. 2013). Applied when planning only —
+/// the tracker is never written here, so the reduction sticks only when
+/// the user performs the reduced session (progression follows performed
+/// weight).
 fn layoff_adjusted_weight(
     exercise: Exercise,
     weight: f32,
@@ -731,9 +726,9 @@ fn layoff_adjusted_weight(
         return weight;
     }
     let days = (now - last_performed_at) / (24 * 3600);
-    let factor = if days >= 30 {
+    let factor = if days >= 42 {
         0.8
-    } else if days >= 14 {
+    } else if days >= 21 {
         0.9
     } else {
         return weight;

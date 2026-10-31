@@ -305,6 +305,25 @@ class Scenario {
 
   bool isVisible(String text) => find.text(text).evaluate().isNotEmpty;
 
+  /// The header's multiplayer badge reads [people]: that many in the
+  /// session, you included. No badge when you're alone or not in one.
+  bool showsSessionOf(int people) => find
+      .descendant(of: find.byType(Badge), matching: find.text('$people'))
+      .evaluate()
+      .isNotEmpty;
+
+  /// Poll until the badge reads [people] (it arrives on the Sync stream).
+  Future<bool> waitForSessionOf(int people, {int seconds = 15}) async {
+    for (var i = 0; i < seconds * 2; i++) {
+      if (showsSessionOf(people)) return true;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
+  /// Open the multiplayer sheet from the header.
+  Future<void> openMultiplayer() => tap(find.byTooltip('Multiplayer'));
+
   /// Poll until [text] appears (backend round-trips resolve asynchronously).
   Future<bool> waitForText(String text, {int seconds = 8}) async {
     for (var i = 0; i < seconds * 2; i++) {
@@ -404,12 +423,8 @@ class Scenario {
   /// A set's circle on the workout page.
   Finder circleFor(String setId) => find.byKey(ValueKey('set-circle-$setId'));
 
-  /// Whether a rung is asking how many reps were left.
-  bool get repsLeftAsked => isVisible(copy.workout.repsLeftQuestion);
-
   /// The set whose circle is up next, when one can be started now.
   ProposedSet? get nextSet {
-    if (repsLeftAsked) return null;
     final set = workout.doneTargetSet;
     if (set == null || circleFor(set.id).evaluate().isEmpty) return null;
     return set;
@@ -431,8 +446,8 @@ class Scenario {
   }
 
   /// Every working set of the live workout done at its target through the
-  /// app's own account — a fast-forward past tapping each circle. A
-  /// finding-weight rung is answered "right" so its working sets follow.
+  /// app's own account — a fast-forward past tapping each circle. Full
+  /// finding-weight rungs climb until the sixth settles the working sets.
   Future<int> completeAllWorkingSetsInApp() async {
     var done = 0;
     for (var i = 0; i < 50; i++) {
@@ -442,12 +457,7 @@ class Scenario {
       if (pending.isEmpty) break;
       final set = pending.first;
       await tester.runAsync(
-        () => workout.completeSet(
-          set.id,
-          set.targetReps,
-          set.targetWeight,
-          effort: Effort.EFFORT_RIGHT,
-        ),
+        () => workout.completeSet(set.id, set.targetReps, set.targetWeight),
       );
       done++;
     }
@@ -484,16 +494,17 @@ class Scenario {
   }
 
   /// Lift the next set on its circle: tap to start it, tap again when it is
-  /// done, then once more per [missed] rep. A finding-weight rung then asks
-  /// how many reps were left: [repsLeft] answers (2–3 by default).
-  Future<void> liftSet({int missed = 0, String? repsLeft}) async {
+  /// done, then once more per [missed] rep. On a finding-weight rung a
+  /// missed rep settles the working sets; a full one climbs.
+  Future<void> liftSet({int missed = 0}) async {
     for (var i = 0; i < 16 && !setOffered; i++) {
-      if (repsLeftAsked) await tapText(repsLeft ?? copy.workout.repsLeftSome);
       await settle(seconds: 1);
     }
     final set = nextSet;
     expect(set, isNotNull, reason: 'no set to lift');
     await tap(circleFor(set!.id));
+    // The core answers asynchronously; give it a beat.
+    await settle(seconds: 1);
     expect(
       workout.activeWorkout?.liftingSetId,
       set.id,
@@ -501,10 +512,6 @@ class Scenario {
     );
     for (var i = 0; i <= missed; i++) {
       await tap(circleFor(set.id));
-    }
-    if (set.calibration) {
-      await mustSee(copy.workout.repsLeftQuestion, seconds: 4);
-      await tapText(repsLeft ?? copy.workout.repsLeftSome);
     }
   }
 
@@ -515,6 +522,7 @@ class Scenario {
     await tapText(copy.workout.endWorkout);
     await mustSee('This will end your current workout.', seconds: 6);
     await tap(find.text('End Workout').last); // the dialog's confirm button
-    await mustSee('Session snapshot', seconds: 15);
+    // The summary's first section.
+    await mustSee('SESSION', seconds: 15);
   }
 }

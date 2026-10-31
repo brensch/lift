@@ -125,7 +125,6 @@ class WearableSyncCoordinator {
           intent.completeSet.reps,
           intent.completeSet.actualWeight,
           completedAt: intent.completeSet.completedAt.toInt(),
-          effort: intent.completeSet.effort,
         );
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {

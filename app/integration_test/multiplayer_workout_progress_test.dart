@@ -36,7 +36,7 @@ void main() {
         await bob.completeNextSet(5);
 
         // The app (mid-workout) should now reflect the 2-person session.
-        final sawPeer = await s.waitForText('Multiplayer (2)', seconds: 20);
+        final sawPeer = await s.waitForSessionOf(2, seconds: 20);
         await s.shot(
           'Peer joined mid-workout',
           note: sawPeer

@@ -1794,8 +1794,11 @@ const ExerciseTracker$json = {
       '6': '.workout.v1.EquipmentKind',
       '10': 'equipment'
     },
-    {'1': 'consecutive_hard', '3': 16, '4': 1, '5': 5, '10': 'consecutiveHard'},
   ],
+  '9': [
+    {'1': 16, '2': 17},
+  ],
+  '10': ['consecutive_hard'],
 };
 
 /// Descriptor for `ExerciseTracker`. Decode as a `google.protobuf.DescriptorProto`.
@@ -1811,8 +1814,8 @@ final $typed_data.Uint8List exerciseTrackerDescriptor = $convert.base64Decode(
     'b3ZlcnJpZGRlbhgMIAEoCFIKb3ZlcnJpZGRlbhI+Cg5wcmltYXJ5X211c2NsZRgNIAEoDjIXLn'
     'dvcmtvdXQudjEuTXVzY2xlR3JvdXBSDXByaW1hcnlNdXNjbGUSOAoIY2F0ZWdvcnkYDiABKA4y'
     'HC53b3Jrb3V0LnYxLkV4ZXJjaXNlQ2F0ZWdvcnlSCGNhdGVnb3J5EjcKCWVxdWlwbWVudBgPIA'
-    'EoDjIZLndvcmtvdXQudjEuRXF1aXBtZW50S2luZFIJZXF1aXBtZW50EikKEGNvbnNlY3V0aXZl'
-    'X2hhcmQYECABKAVSD2NvbnNlY3V0aXZlSGFyZA==');
+    'EoDjIZLndvcmtvdXQudjEuRXF1aXBtZW50S2luZFIJZXF1aXBtZW50SgQIEBARUhBjb25zZWN1'
+    'dGl2ZV9oYXJk');
 
 @$core.Deprecated('Use muscleVolumeDescriptor instead')
 const MuscleVolume$json = {

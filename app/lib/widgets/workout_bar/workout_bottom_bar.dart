@@ -81,12 +81,6 @@ _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
 
 /// What to do next, said once: only during the first workout.
 String _hint(WorkoutProvider wp) {
-  final prompt = wp.effortPrompt;
-  if (prompt != null &&
-      prompt.calibration &&
-      prompt.effort == Effort.EFFORT_UNSPECIFIED) {
-    return copy.workout.hints.findingWeight;
-  }
   final state =
       wp.stateSnapshot?.state.value ??
       WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;

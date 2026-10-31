@@ -3,6 +3,7 @@
 // summary. Ending a workout is what drives progression, so this exercises the
 // whole loop.
 
+import 'package:schlift/gen/copy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -34,14 +35,21 @@ void main() {
       await s.tap(find.text('End Workout').last); // dialog's confirm button
 
       // Land on the workout summary.
-      await s.mustSee('Session snapshot', seconds: 15);
+      await s.mustSee('SESSION', seconds: 15);
       await s.shot(
         'Session snapshot',
-        note: 'Workout ended; Duration / Volume / Sets / Rest tiles.',
+        note: 'Workout ended; Duration / Volume / Sets and the time tiles.',
       );
-      for (final tile in ['Duration', 'Volume', 'Sets', 'Rest']) {
+      for (final tile in [
+        'Duration',
+        'Volume',
+        'Sets',
+        copy.workout.lifting,
+        copy.workout.resting,
+        copy.workout.yapping,
+      ]) {
         expect(
-          s.isVisible(tile),
+          s.isVisible(tile.toUpperCase()),
           isTrue,
           reason: 'the summary should show the $tile tile',
         );

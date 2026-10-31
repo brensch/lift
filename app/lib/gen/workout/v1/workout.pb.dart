@@ -4237,7 +4237,6 @@ class ExerciseTracker extends $pb.GeneratedMessage {
     MuscleGroup? primaryMuscle,
     ExerciseCategory? category,
     EquipmentKind? equipment,
-    $core.int? consecutiveHard,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -4256,7 +4255,6 @@ class ExerciseTracker extends $pb.GeneratedMessage {
     if (primaryMuscle != null) result.primaryMuscle = primaryMuscle;
     if (category != null) result.category = category;
     if (equipment != null) result.equipment = equipment;
-    if (consecutiveHard != null) result.consecutiveHard = consecutiveHard;
     return result;
   }
 
@@ -4294,7 +4292,6 @@ class ExerciseTracker extends $pb.GeneratedMessage {
         enumValues: ExerciseCategory.values)
     ..aE<EquipmentKind>(15, _omitFieldNames ? '' : 'equipment',
         enumValues: EquipmentKind.values)
-    ..aI(16, _omitFieldNames ? '' : 'consecutiveHard')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4444,15 +4441,6 @@ class ExerciseTracker extends $pb.GeneratedMessage {
   $core.bool hasEquipment() => $_has(14);
   @$pb.TagNumber(15)
   void clearEquipment() => $_clearField(15);
-
-  @$pb.TagNumber(16)
-  $core.int get consecutiveHard => $_getIZ(15);
-  @$pb.TagNumber(16)
-  set consecutiveHard($core.int value) => $_setSignedInt32(15, value);
-  @$pb.TagNumber(16)
-  $core.bool hasConsecutiveHard() => $_has(15);
-  @$pb.TagNumber(16)
-  void clearConsecutiveHard() => $_clearField(16);
 }
 
 /// Weighted hard sets for one muscle over the rolling last 7 days.

@@ -183,10 +183,10 @@ mod home_and_onboarding {
 
         let squat = tracker(&response, Exercise::Squat);
         assert_eq!(squat.working_weight, 45.0, "empty bar opener");
-        assert_eq!((squat.rep_range_low, squat.rep_range_high), (6, 10));
-        assert_eq!(squat.target_reps, 6, "range bottom");
+        assert_eq!((squat.rep_range_low, squat.rep_range_high), (5, 5));
+        assert_eq!(squat.target_reps, 5, "five by five");
         assert!(squat.include_warmup);
-        assert_eq!(squat.sets, 3);
+        assert_eq!(squat.sets, 5);
 
         let raise = tracker(&response, Exercise::LateralRaise);
         assert_eq!(raise.working_weight, 20.0);
@@ -512,10 +512,10 @@ mod template_workout_loop {
             .collect();
         assert_eq!(squat_sets.iter().filter(|s| s.warmup).count(), 4);
         let squat_working: Vec<&&ProposedSet> = squat_sets.iter().filter(|s| !s.warmup).collect();
-        assert_eq!(squat_working.len(), 3);
+        assert_eq!(squat_working.len(), 5);
         assert!(squat_working
             .iter()
-            .all(|s| s.target_weight == squat_before && s.target_reps == 6));
+            .all(|s| s.target_weight == squat_before && s.target_reps == 5));
         assert!(started
             .proposed_sets
             .iter()
@@ -554,7 +554,7 @@ mod template_workout_loop {
             squat_before + 5.0,
             "one barbell step up"
         );
-        assert_eq!(squat_after.target_reps, 6, "reps reset to the bottom");
+        assert_eq!(squat_after.target_reps, 5, "still five by five");
         assert_eq!(
             squat_after.last_performed_at, ts,
             "stamped with the end time"
@@ -566,10 +566,10 @@ mod template_workout_loop {
         assert_eq!(calf_after.working_weight, 25.0, "20 + one dumbbell step");
     }
 
-    /// Clearing below the top of the range moves the rep target, not the
-    /// weight.
+    /// Every rep of a 5×5 adds a step: the barbell compounds progress
+    /// linearly.
     #[test]
-    fn clearing_mid_range_moves_reps_not_weight() {
+    fn clearing_a_five_by_five_adds_a_step() {
         let mut app = App::new();
         let before = onboard(&mut app, WeightUnit::Lb);
         mark_performed(&mut app, &STRONGLIFTS_A, 900);
@@ -589,8 +589,6 @@ mod template_workout_loop {
             })
             .unwrap();
         let workout = started.workout.unwrap();
-
-        // Exactly the target on every set (target = range bottom on day 1).
         let ts = complete_all_working_sets(
             &mut app,
             &workout.id,
@@ -606,10 +604,46 @@ mod template_workout_loop {
             })
             .unwrap();
 
-        let after = home(&mut app);
-        let squat = tracker(&after, Exercise::Squat);
-        assert_eq!(squat.working_weight, 45.0, "weight holds");
-        assert_eq!(squat.target_reps, 7, "6 cleared → aim 7");
+        let squat = tracker(&home(&mut app), Exercise::Squat);
+        assert_eq!(squat.working_weight, 50.0, "45 + one bar step");
+        assert_eq!(squat.target_reps, 5);
+    }
+
+    /// Clearing below the top of a rep range moves the rep target, not the
+    /// weight.
+    #[test]
+    fn clearing_mid_range_moves_reps_not_weight() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        mark_performed(&mut app, &[Exercise::CalfRaise], 900);
+        let started = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                name: String::new(),
+                started_at: 1_000,
+                exercises: vec![Exercise::CalfRaise as i32],
+                template_id: String::new(),
+            })
+            .unwrap();
+        let workout = started.workout.unwrap();
+        let ts = complete_all_working_sets(
+            &mut app,
+            &workout.id,
+            &started.proposed_sets,
+            |set| set.target_reps,
+            |set| set.target_weight,
+            2_000,
+        );
+        app.call()
+            .end_workout(EndWorkoutRequest {
+                workout_id: workout.id.clone(),
+                ended_at: ts,
+            })
+            .unwrap();
+
+        let calf = tracker(&home(&mut app), Exercise::CalfRaise);
+        assert_eq!(calf.working_weight, 20.0, "weight holds");
+        assert_eq!(calf.target_reps, 9, "8 cleared → aim 9");
     }
 
     /// A re-fired EndWorkout must not advance a tracker twice.
@@ -654,8 +688,8 @@ mod template_workout_loop {
 
         let after = home(&mut app);
         assert_eq!(
-            tracker(&after, Exercise::Squat).target_reps,
-            7,
+            tracker(&after, Exercise::Squat).working_weight,
+            50.0,
             "advanced exactly once"
         );
     }
@@ -709,7 +743,8 @@ mod template_workout_loop {
             .all(|s| s.target_weight == 225.0 && s.target_reps == 5));
     }
 
-    /// Time away reduces the weights offered at start — 80% after 30 days —
+    /// Time away reduces the weights offered at start — 90% after three
+    /// weeks —
     /// without ever writing the reduction to the tracker.
     #[test]
     fn a_layoff_reduces_the_start_weight_only() {
@@ -763,15 +798,15 @@ mod template_workout_loop {
 
         let mid = home(&mut app);
         let squat_weight = tracker(&mid, Exercise::Squat).working_weight;
-        assert_eq!(squat_weight, 200.0, "held after a bottom-of-range clear");
+        assert_eq!(squat_weight, 205.0, "a cleared 5×5 adds a step");
 
-        // 40 days later: the offered weight is 80%, snapped; the tracker
+        // 30 days later: the offered weight is 90%, snapped; the tracker
         // itself is untouched.
         let resumed = app
             .call()
             .start_workout(StartWorkoutRequest {
                 name: String::new(),
-                started_at: ts + 40 * day,
+                started_at: ts + 30 * day,
                 exercises: vec![],
                 template_id: legs.id.clone(),
             })
@@ -785,14 +820,14 @@ mod template_workout_loop {
         assert_eq!(
             offered,
             schlift_core::weight_units::snap_loadable_lb(
-                160.0,
+                184.5,
                 schlift_core::weight_units::AppWeightUnit::Lb
             ),
-            "80% after 30+ days away"
+            "90% after three weeks away"
         );
         assert_eq!(
             tracker(&home(&mut app), Exercise::Squat).working_weight,
-            200.0,
+            205.0,
             "looking never writes"
         );
     }
@@ -886,23 +921,12 @@ mod calibration_and_effort {
             .unwrap()
     }
 
-    fn rate(workout_id: &str, completed_set_id: &str, effort: Effort, at: i64) -> WorkoutMutation {
-        mutation_at(
-            Mutation::RateExercise(RateExerciseRequest {
-                workout_id: workout_id.to_string(),
-                completed_set_id: completed_set_id.to_string(),
-                effort: effort as i32,
-            }),
-            at,
-        )
-    }
-
-    fn complete(set: &ProposedSet, at: i64) -> WorkoutMutation {
+    fn complete(set: &ProposedSet, at: i64, reps: i32) -> WorkoutMutation {
         mutation_at(
             Mutation::CompleteSet(CompleteSetRequest {
                 workout_id: set.workout_id.clone(),
                 proposed_set_id: set.id.clone(),
-                actual_reps: set.target_reps,
+                actual_reps: reps,
                 actual_weight: set.target_weight,
                 completed_at: at,
                 effort: 0,
@@ -966,10 +990,10 @@ mod calibration_and_effort {
         assert!(started.proposed_sets.iter().all(|s| !s.calibration));
     }
 
-    /// The whole ramp through the real handlers and persistence: easy
-    /// climbs a rung, right settles and appends the working sets, the
-    /// efforts survive the round trip, and EndWorkout writes the found
-    /// weight to the tracker with the session stamped as performed.
+    /// The whole ramp through the real handlers and persistence: a full
+    /// rung climbs, a miss settles the working sets at 90% of the heaviest
+    /// full rung, and EndWorkout writes the found weight to the tracker with
+    /// the session stamped as performed.
     #[test]
     fn the_ramp_finds_a_working_weight_and_the_tracker_keeps_it() {
         let mut app = App::new();
@@ -979,87 +1003,64 @@ mod calibration_and_effort {
         let rung1 = started.proposed_sets[0].clone();
         assert!(rung1.calibration);
         assert_eq!(rung1.target_weight, 45.0, "no seed: the empty bar");
+        assert_eq!(rung1.target_reps, 5);
 
-        // Done on the rung, then "easy" during its 90 s rest.
-        let state = apply(&mut app, vec![complete(&rung1, 1_100)]);
-        let done1 = state.completed_sets[0].clone();
-        assert_eq!(done1.rest_until, 1_190, "a rung rests its own 90 s");
-        let state = apply(
-            &mut app,
-            vec![rate(&workout_id, &done1.id, Effort::Easy, 1_120)],
+        // All five on the rung: the next one is spliced in.
+        let state = apply(&mut app, vec![complete(&rung1, 1_100, 5)]);
+        assert_eq!(
+            state.completed_sets[0].rest_until, 1_190,
+            "a rung rests its own 90 s"
         );
         let rung2 = state.proposed_sets[1].clone();
-        assert!(rung2.calibration, "easy appends the next rung");
+        assert!(rung2.calibration, "a full rung climbs");
         assert_eq!(rung2.target_weight, 50.0, "45 + one bar step");
         assert_eq!(
             state.proposed_sets[2].exercise,
             Exercise::Crunch as i32,
             "spliced in ahead of the next exercise"
         );
-        assert_eq!(state.completed_sets[0].effort, Effort::Easy as i32);
 
-        // Done on rung two, then "right": this is the weight.
-        let state = apply(&mut app, vec![complete(&rung2, 1_200)]);
-        let done2 = state.completed_sets[1].clone();
-        let state = apply(
-            &mut app,
-            vec![rate(&workout_id, &done2.id, Effort::Right, 1_210)],
-        );
-        let working: Vec<&ProposedSet> = state
+        // Four on the second rung: the ramp ends under it.
+        let state = apply(&mut app, vec![complete(&rung2, 1_200, 4)]);
+        let working: Vec<ProposedSet> = state
             .proposed_sets
             .iter()
             .filter(|s| s.exercise == Exercise::Squat as i32 && !s.calibration)
+            .cloned()
             .collect();
-        assert_eq!(working.len(), 2, "three prescribed, the rung counts as one");
+        assert_eq!(working.len(), 5, "the full 5×5");
         assert!(working
             .iter()
-            .all(|s| s.target_weight == 50.0 && s.target_reps == 6));
-        assert!(state.proposed_sets[2..4]
-            .iter()
-            .all(|s| s.exercise == Exercise::Squat as i32));
+            .all(|s| s.target_weight == 45.0 && s.target_reps == 5));
 
-        let working: Vec<ProposedSet> = working.into_iter().cloned().collect();
-        apply(
-            &mut app,
-            vec![
-                complete(&working[0], 1_400),
-                complete(&working[1], 1_600),
-                mutation_at(
-                    Mutation::EndWorkout(EndWorkoutRequest {
-                        workout_id: workout_id.clone(),
-                        ended_at: 1_700,
-                    }),
-                    1_700,
-                ),
-            ],
-        );
+        let mut done: Vec<WorkoutMutation> = working
+            .iter()
+            .enumerate()
+            .map(|(n, s)| complete(s, 1_400 + 200 * n as i64, 5))
+            .collect();
+        done.push(mutation_at(
+            Mutation::EndWorkout(EndWorkoutRequest {
+                workout_id: workout_id.clone(),
+                ended_at: 2_500,
+            }),
+            2_500,
+        ));
+        apply(&mut app, done);
 
         let squat = tracker(&home(&mut app), Exercise::Squat);
-        assert_eq!(squat.working_weight, 50.0, "the found weight");
-        assert_eq!(squat.target_reps, 7, "6 cleared at right → aim 7");
+        assert_eq!(squat.working_weight, 50.0, "found at 45, cleared: +5");
+        assert_eq!(squat.target_reps, 5);
         assert_eq!(
-            squat.last_performed_at, 1_700,
+            squat.last_performed_at, 2_500,
             "now performed: no more ramps"
         );
 
-        // Persisted as the reducer left it.
         let stored = app
             .view()
             .get_workout(GetWorkoutRequest {
                 workout_id: workout_id.clone(),
             })
             .unwrap();
-        let efforts: Vec<i32> = stored.completed_sets.iter().map(|c| c.effort).collect();
-        assert_eq!(
-            efforts,
-            vec![
-                Effort::Easy as i32,
-                Effort::Right as i32,
-                Effort::Right as i32,
-                Effort::Right as i32,
-            ],
-            "rungs keep their answers; each unanswered set closed as right by the next Done or EndWorkout"
-        );
         assert_eq!(
             stored
                 .proposed_sets
@@ -1068,71 +1069,6 @@ mod calibration_and_effort {
                 .count(),
             2
         );
-        assert_eq!(
-            stored.summary.unwrap().total_volume,
-            2.0 * 6.0 * 50.0,
-            "rungs count as warmups for volume"
-        );
-    }
-
-    /// Answers persist; a late answer still lands because the clock
-    /// resolves nothing; the next Done and EndWorkout close what is open.
-    #[test]
-    fn answers_persist_and_open_questions_close_at_done_and_end() {
-        let mut app = App::new();
-        onboard(&mut app, WeightUnit::Lb);
-        mark_performed(&mut app, &[Exercise::LateralRaise], 900);
-        let started = start(&mut app, &[Exercise::LateralRaise]);
-        let workout_id = started.workout.unwrap().id;
-        let sets = started.proposed_sets.clone();
-        assert_eq!(sets.len(), 3);
-
-        let state = apply(&mut app, vec![complete(&sets[0], 1_100)]);
-        let first = state.completed_sets[0].clone();
-        // Long after its 90 s rest: still the latest set, still answerable.
-        let state = apply(
-            &mut app,
-            vec![rate(&workout_id, &first.id, Effort::Hard, 5_000)],
-        );
-        assert_eq!(state.completed_sets[0].effort, Effort::Hard as i32);
-        assert_eq!(
-            state.state_snapshot.unwrap().effort_prompt.unwrap().effort,
-            Effort::Hard as i32
-        );
-
-        let state = apply(
-            &mut app,
-            vec![complete(&sets[1], 5_100), complete(&sets[2], 5_200)],
-        );
-        let efforts: Vec<i32> = state.completed_sets.iter().map(|c| c.effort).collect();
-        assert_eq!(
-            efforts,
-            vec![Effort::Hard as i32, Effort::Right as i32, 0],
-            "set two closed by the third Done; set three still open"
-        );
-
-        app.call()
-            .end_workout(EndWorkoutRequest {
-                workout_id: workout_id.clone(),
-                ended_at: 5_300,
-            })
-            .unwrap();
-        let stored = app
-            .view()
-            .get_workout(GetWorkoutRequest { workout_id })
-            .unwrap();
-        let efforts: Vec<i32> = stored.completed_sets.iter().map(|c| c.effort).collect();
-        assert_eq!(
-            efforts,
-            vec![
-                Effort::Hard as i32,
-                Effort::Right as i32,
-                Effort::Right as i32
-            ]
-        );
-        // Any hard set makes the session hard: the raise holds.
-        let raise = tracker(&home(&mut app), Exercise::LateralRaise);
-        assert_eq!(raise.consecutive_hard, 1);
     }
 }
 
@@ -1305,7 +1241,7 @@ mod lifting {
     }
 
     /// Start → LIFTING survives a round trip through the database, and the
-    /// Done that ends it keeps the start and the rating given with it.
+    /// Done that ends it keeps the start.
     #[test]
     fn a_started_set_is_lifting_and_its_done_keeps_the_start() {
         let mut app = App::new();
@@ -1359,7 +1295,7 @@ mod lifting {
                         actual_reps: set.target_reps,
                         actual_weight: set.target_weight,
                         completed_at: 1_140,
-                        effort: Effort::Hard as i32,
+                        effort: 0,
                     }),
                     1_140,
                 )],
@@ -1373,9 +1309,6 @@ mod lifting {
             .find(|c| c.proposed_set_id == set.id)
             .expect("done");
         assert_eq!(row.started_at, 1_100, "the start is kept on the done set");
-        if !set.warmup {
-            assert_eq!(row.effort, Effort::Hard as i32, "rated with the Done");
-        }
         assert_ne!(
             done.state_snapshot.unwrap().state,
             WorkoutState::Lifting as i32,

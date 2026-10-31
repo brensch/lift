@@ -27,14 +27,15 @@ Pure and fast, inline in their modules under `core/src/`:
 - `exercise_catalog.rs` — every exercise is classified (the scan is pinned,
   so a `_ =>` fallback cannot quietly misfile a new lift), and the
   prescription table is asserted per class.
-- `exercise_progress.rs` — the double-progression cases: rep advance
-  follows the worst set, load bump at the top of the range, hold on one
-  miss, 10% deload on two, bodyweight rep-only, performed-weight basis,
-  kg/lb snapping, overrides.
+- `exercise_progress.rs` — the progression cases: a cleared 5×5 adds a
+  step, rep advance follows the worst set, load bump at the top of the
+  range, hold on a miss, 10% deload on the third running, bodyweight
+  rep-only, performed-weight basis, kg/lb snapping, overrides.
 - `volume.rs` — the 7-day window, primary/secondary weighting, and the
   suggestion's deficit scoring and tie-break.
 - `workout/reducer.rs`, `workout/planning.rs` — set transitions, rest,
-  effort and calibration rungs; warmup ladders and plate snapping.
+  calibration rungs (climb, settle, re-settle); warmup ladders and plate
+  snapping.
 - `template_library.rs`, `onboarding.rs`, `progress.rs`, `recovery.rs`,
   `weight_units.rs`.
 
@@ -54,7 +55,7 @@ the same account** — the property the phone and the server both rely on.
 `core/examples/fuzz.rs` runs the core in-process, as the phone does, with
 several simulated users driving randomised but realistic sequences —
 onboard, start from a template or an exercise list, start and complete sets,
-answer or skip effort questions, skip warmups, delete and edit done sets,
+send retired ratings (which must change nothing), skip warmups, delete and edit done sets,
 add/adjust/remove/reorder exercises, end the workout (sometimes twice).
 
 After **every mutation** it re-reads the workout and asserts, among others:
@@ -64,7 +65,7 @@ After **every mutation** it re-reads the workout and asserts, among others:
 | Completed sets reference an existing proposed set, at most one each | Orphans, double completion |
 | `workout_order` is unique among live sets | The "sets jump around" class of bug |
 | `next_up_set` is one of the workout's sets and not already done | Bad next-up derivation |
-| `effort_prompt` describes the latest prompt-worthy done set; none pending after `EndWorkout` | Stale prompts |
+| No snapshot carries an `effort_prompt`; `RateExercise` changes nothing | The retired ratings coming back |
 | At most six calibration rungs per exercise | Runaway ramps |
 | A done set has `ended_at`, wasn't started after it ended, rests after it ended | Time faults |
 | Weights finite and non-negative, reps non-negative | Arithmetic and rounding faults |

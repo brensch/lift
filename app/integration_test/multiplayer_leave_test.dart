@@ -34,7 +34,7 @@ void main() {
     final peer = await s.api.login('peer_$stamp');
     await peer.joinViaInvite(invite);
 
-    final joined = await s.waitForText('Multiplayer (2)', seconds: 15);
+    final joined = await s.waitForSessionOf(2, seconds: 15);
     await s.shot(
       'Peer joined',
       note: joined ? 'Session shows 2 people.' : 'WARNING: join not seen.',
@@ -47,8 +47,7 @@ void main() {
     s.note('App user left the session', kind: 'peer');
 
     final left =
-        await s.waitForText('Multiplayer', seconds: 15) &&
-        !s.isVisible('Multiplayer (2)');
+        await s.waitForText('Multiplayer', seconds: 15) && !s.showsSessionOf(2);
     await s.shot(
       'Left — back to solo',
       note: left
