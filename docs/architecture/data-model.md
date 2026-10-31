@@ -121,17 +121,32 @@ can pick from: `groups` (key + label, in display order) and `templates`
 (stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
 exercises as `Exercise` enum names without the `EXERCISE_` prefix). The core
 embeds the file at build time (`core/src/template_library.rs`; `cargo test`
-fails on an unknown exercise name), so the phone has it offline.
+fails on an unknown exercise name).
 
-- `ListTemplateLibrary` is answered by the core on the phone; there is no
-  server RPC or table for it.
-- `AddLibraryTemplates` copies the requested ids into the account's
-  templates, skipping ids the user already has.
-- `CompleteOnboarding` takes `library_ids`; an empty list means the
-  `default: true` entries.
-- A user's copy is an ordinary template with `library_id` set to the entry
-  it came from. It is editable like any other; `library_id` only marks what
-  is already added. Never reuse or rename an id in the YAML.
+**Editing the defaults:** change the YAML and deploy the backend. The server
+sends its library down every Sync stream on connect; the phone keeps it in
+its account file (`library` table) and the core reads it from there. Until
+the first sync, the copy built into the app stands in.
+
+- A library template in a user's list is **coupled** (`coupled = true`,
+  `library_id` = the entry): its name and exercises are the library's
+  current ones (`View::resolved`). The stored name and exercises are only a
+  fallback for an entry the server no longer has.
+- **The fold never reads the library.** Writes that use it record what they
+  used: `AddLibraryTemplates.entries`, `CompleteOnboarding.library_entries`,
+  and a coupled start carries its exercises in `StartWorkout.exercises`.
+  So the phone and the server fold the same log to the same account
+  whatever library each has.
+- `CloneTemplate` makes a coupled template the user's own **in place**
+  (same id, so the workouts recorded against it stay with it): it stops
+  following the library. A `SaveTemplate` that changes a coupled
+  template's name or exercises does the same; saved unchanged it stays
+  coupled. Templates made from scratch are never coupled.
+- Every workout keeps its own exercises and sets plus `template_id`, so a
+  change to a default never rewrites a past session.
+- In the app's Edit sheet library workouts are ticked in and out
+  (`AddLibraryTemplates` / `DeleteTemplate`); the user's own are edited or
+  deleted. Never reuse or rename an id in the YAML.
 - The website's `/routines` page is rendered from the same YAML at build
   time (`web/scripts/sync-content.mjs`), not from an RPC.
 

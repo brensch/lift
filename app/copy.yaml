@@ -42,11 +42,23 @@ tutorial:
 # The template library: templates/library.yaml, offered during setup and
 # from the Add chip on the home screen.
 library:
-  sheet_title: Add a workout
+  # The home chip that opens the sheet. Placeholder.
+  edit_button: Edit
+  sheet_title: Your workouts
   make_your_own: Make your own
   make_your_own_hint: Pick the exercises, name it whatever.
   add: ADD
   added: ADDED
+  # Your own workouts (cloned or made from scratch), above the library.
+  # Placeholders.
+  yours_heading: Yours
+  # Marks a workout as the user's own, on home and in the sheet.
+  personal: Personalised
+  # Makes a library workout the user's own to edit; it stops following
+  # the library.
+  clone: Clone
+  remove: Remove
+  delete: Delete
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 

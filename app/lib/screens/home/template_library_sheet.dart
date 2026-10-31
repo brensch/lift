@@ -1,7 +1,7 @@
-/// The Add sheet: make a template from scratch, or copy one from the
-/// library (templates/library.yaml on the backend). Copies land in the
-/// user's list tagged with their library id, so the sheet can show what is
-/// already there.
+/// The Edit sheet: the user's workouts. Library workouts
+/// (templates/library.yaml on the server) are ticked in and out and follow
+/// the library; Clone makes one the user's own to edit. Their own workouts
+/// (cloned or made from scratch) are edited or deleted.
 library;
 
 import 'package:flutter/material.dart';
@@ -42,7 +42,7 @@ class _LibrarySheet extends StatefulWidget {
 
 class _LibrarySheetState extends State<_LibrarySheet> {
   late Future<List<LibraryTemplate>> _library;
-  final Set<String> _adding = {};
+  final Set<String> _busy = {};
 
   @override
   void initState() {
@@ -50,29 +50,84 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     _library = context.read<WorkoutProvider>().service.listTemplateLibrary();
   }
 
-  Future<void> _add(LibraryTemplate entry) async {
-    if (_adding.contains(entry.id)) return;
-    setState(() => _adding.add(entry.id));
+  /// Run [action] for [id], one at a time, saying so if it fails.
+  Future<void> _run(String id, Future<void> Function() action) async {
+    if (_busy.contains(id)) return;
+    setState(() => _busy.add(id));
     try {
-      await context.read<WorkoutProvider>().addLibraryTemplates([entry.id]);
+      await action();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Could not add: $e')));
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
-      if (mounted) setState(() => _adding.remove(entry.id));
+      if (mounted) setState(() => _busy.remove(id));
+    }
+  }
+
+  /// Tick a library workout in (it follows the library) or out.
+  Future<void> _toggle(LibraryTemplate entry, WorkoutTemplate? have) {
+    final wp = context.read<WorkoutProvider>();
+    return _run(
+      entry.id,
+      () => have == null
+          ? wp.addLibraryTemplates([entry.id])
+          : wp.deleteTemplate(have.id),
+    );
+  }
+
+  /// Make a library workout the user's own and open it to edit.
+  Future<void> _clone(WorkoutTemplate have) async {
+    final wp = context.read<WorkoutProvider>();
+    final navigator = Navigator.of(context);
+    final parent = navigator.context;
+    final cloned = await wp.cloneTemplate(have.id);
+    navigator.pop();
+    if (parent.mounted) {
+      await showTemplateEditor(parent, template: cloned, provider: wp);
+    }
+  }
+
+  void _edit(WorkoutTemplate? template) {
+    final wp = context.read<WorkoutProvider>();
+    Navigator.pop(context);
+    showTemplateEditor(context, template: template, provider: wp);
+  }
+
+  Future<void> _delete(WorkoutTemplate template) async {
+    final wp = context.read<WorkoutProvider>();
+    final t = copy.library;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${t.delete} ${template.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t.delete),
+          ),
+        ],
+      ),
+    );
+    if (sure == true) {
+      await _run(template.id, () => wp.deleteTemplate(template.id));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
-    final have = {
+    final coupled = {
       for (final t in wp.templates)
-        if (t.libraryId.isNotEmpty) t.libraryId,
+        if (t.coupled) t.libraryId: t,
     };
+    final own = wp.templates.where((t) => !t.coupled).toList();
     final t = copy.library;
 
     return DraggableScrollableSheet(
@@ -117,17 +172,17 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                       bottom: MediaQuery.paddingOf(context).bottom + 24,
                     ),
                     children: [
-                      _MakeYourOwnTile(
-                        onTap: () {
-                          final wp = context.read<WorkoutProvider>();
-                          Navigator.pop(context);
-                          showTemplateEditor(
-                            context,
-                            template: null,
-                            provider: wp,
-                          );
-                        },
-                      ),
+                      _MakeYourOwnTile(onTap: () => _edit(null)),
+                      if (own.isNotEmpty) ...[
+                        _GroupHeading(t.yoursHeading),
+                        for (final template in own)
+                          _OwnTile(
+                            template: template,
+                            busy: _busy.contains(template.id),
+                            onEdit: () => _edit(template),
+                            onDelete: () => _delete(template),
+                          ),
+                      ],
                       if (snap.hasError)
                         _Note(t.loadingFailed)
                       else if (entries == null)
@@ -144,9 +199,15 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                             for (final entry in group.value)
                               LibraryEntryTile(
                                 entry: entry,
-                                added: have.contains(entry.id),
-                                busy: _adding.contains(entry.id),
-                                onAdd: () => _add(entry),
+                                selected: coupled.containsKey(entry.id),
+                                busy: _busy.contains(entry.id),
+                                onAdd: () => _toggle(entry, coupled[entry.id]),
+                                action: coupled[entry.id] == null
+                                    ? null
+                                    : _TextAction(
+                                        label: t.clone,
+                                        onTap: () => _clone(coupled[entry.id]!),
+                                      ),
                               ),
                           ],
                         ),
@@ -265,6 +326,140 @@ class _MakeYourOwnTile extends StatelessWidget {
   }
 }
 
+/// One of the user's own workouts: its name marked as theirs, its
+/// exercises, and edit / delete.
+class _OwnTile extends StatelessWidget {
+  final WorkoutTemplate template;
+  final bool busy;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _OwnTile({
+    required this.template,
+    required this.busy,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final names = template.exercises
+        .map((e) => exerciseNames[e] ?? e.name)
+        .join(' · ');
+    return InkWell(
+      onTap: busy ? null : onEdit,
+      borderRadius: context.tokens.brMd,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+        decoration: BoxDecoration(
+          borderRadius: context.tokens.brMd,
+          border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    template.name,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.bodyLg,
+                      fontWeight: context.tokens.weight.heavy,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  const PersonalTag(),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      names,
+                      style: TextStyle(
+                        fontSize: context.tokens.size.small,
+                        height: 1.35,
+                        color: cs.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: busy ? null : onEdit,
+              icon: Icon(AppIcons.edit, size: 20, color: cs.onSurface),
+            ),
+            IconButton(
+              onPressed: busy ? null : onDelete,
+              icon: Icon(AppIcons.delete, size: 20, color: cs.error),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Marks a workout as the user's own: on home and in the Edit sheet.
+class PersonalTag extends StatelessWidget {
+  const PersonalTag({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.copy, size: 13, color: cs.primary),
+          const SizedBox(width: 4),
+          Text(
+            copy.library.personal.toUpperCase(),
+            style: TextStyle(
+              fontSize: context.tokens.size.small,
+              fontWeight: context.tokens.weight.heavy,
+              letterSpacing: 0.8,
+              color: cs.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TextAction extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _TextAction({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 34,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          side: BorderSide(color: cs.outline),
+        ),
+        child: Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.heavy,
+            color: cs.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// One library entry: name, blurb, its exercises, and ADD / ADDED. Also
 /// used by onboarding in tick mode (`selected` given instead of `added`).
 class LibraryEntryTile extends StatelessWidget {
@@ -274,6 +469,9 @@ class LibraryEntryTile extends StatelessWidget {
   final VoidCallback onAdd;
   final bool? selected;
 
+  /// Beside the tick box (tick mode): the sheet's Clone.
+  final Widget? action;
+
   const LibraryEntryTile({
     super.key,
     required this.entry,
@@ -281,6 +479,7 @@ class LibraryEntryTile extends StatelessWidget {
     this.added = false,
     this.busy = false,
     this.selected,
+    this.action,
   });
 
   @override
@@ -293,7 +492,7 @@ class LibraryEntryTile extends StatelessWidget {
         .map((e) => exerciseNames[e] ?? e.name)
         .join(' · ');
     return InkWell(
-      onTap: tick != null ? onAdd : null,
+      onTap: tick != null && !busy ? onAdd : null,
       borderRadius: context.tokens.brMd,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -347,6 +546,8 @@ class LibraryEntryTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
+            if (action != null)
+              Padding(padding: const EdgeInsets.only(right: 10), child: action),
             if (tick != null)
               SelectBox(selected: tick, colorScheme: cs)
             else if (added)

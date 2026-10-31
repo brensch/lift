@@ -447,13 +447,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
+  /// Make a library template the user's own, to edit. Returns it.
+  Future<WorkoutTemplate> cloneTemplate(String templateId) async {
+    final template = await _service.cloneTemplate(templateId);
+    await refreshHome();
+    return template;
+  }
+
   Future<void> reorderTemplates(List<String> templateIds) async {
     await _service.reorderTemplates(templateIds);
     await refreshHome();
   }
 
-  /// Copies library entries into the user's templates (see
-  /// templates/library.yaml). The answer carries the refreshed home.
+  /// Adds library entries to the user's templates, following the library
+  /// (templates/library.yaml on the server). The answer carries the
+  /// refreshed home.
   Future<void> addLibraryTemplates(List<String> libraryIds) async {
     _home = await _service.addLibraryTemplates(libraryIds);
     notifyListeners();

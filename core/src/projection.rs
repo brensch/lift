@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS workout_templates (
     template_order INTEGER NOT NULL,
     exercises TEXT NOT NULL,
     library_id TEXT NOT NULL DEFAULT '',
+    coupled INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );
@@ -285,8 +286,8 @@ pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
             .join(",");
         out.push(statement(
             "INSERT INTO workout_templates (id, user_id, name, template_order, exercises,
-             library_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+             library_id, coupled, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 t.id.as_str().into(),
                 user_id.into(),
@@ -294,6 +295,7 @@ pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
                 t.order.into(),
                 exercises.into(),
                 t.library_id.as_str().into(),
+                t.coupled.into(),
                 t.created_at.into(),
                 t.updated_at.into(),
             ],

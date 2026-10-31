@@ -141,6 +141,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             gender: rng.gen_range(0..3),
             library_ids: vec![],
             strength: None,
+            library_entries: vec![],
         }) {
         Ok(r) => r.home.map(|h| h.templates).unwrap_or_default(),
         Err(e) => {

@@ -201,14 +201,23 @@ class WorkoutServiceWrapper {
     ListTemplateLibraryResponse.fromBuffer,
   )).templates;
 
-  /// Copies library entries into the user's templates; ones already there
-  /// are skipped. Returns the refreshed home.
+  /// Adds library entries to the user's templates, following the library;
+  /// ones already there are skipped. Returns the refreshed home.
   Future<GetHomeResponse> addLibraryTemplates(List<String> libraryIds) async =>
       (await _call(
         'AddLibraryTemplates',
         AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
         AddLibraryTemplatesResponse.fromBuffer,
       )).home;
+
+  /// Make a library template the user's own (same id, so its history
+  /// stays with it). Returns it.
+  Future<WorkoutTemplate> cloneTemplate(String templateId) async =>
+      (await _call(
+        'CloneTemplate',
+        CloneTemplateRequest()..templateId = templateId,
+        CloneTemplateResponse.fromBuffer,
+      )).template;
 
   Future<List<UserSetting>> getSettings() async => (await _call(
     'GetSettings',

@@ -15,6 +15,7 @@ import '../../tutorial/tutorial_seen.dart';
 import '../../tutorial/tutorial_target.dart';
 import 'package:provider/provider.dart';
 
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
@@ -103,9 +104,18 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// The Add sheet: the library, or a blank template.
-  Future<void> _addTemplate() =>
+  /// The Edit sheet: the user's workouts and the library.
+  Future<void> _editTemplates() =>
       showTemplateLibrary(context, provider: context.read<WorkoutProvider>());
+
+  /// Make a library workout the user's own and open it to edit.
+  Future<void> _cloneTemplate(WorkoutTemplate template) async {
+    final wp = context.read<WorkoutProvider>();
+    final cloned = await wp.cloneTemplate(template.id);
+    if (mounted) {
+      await showTemplateEditor(context, template: cloned, provider: wp);
+    }
+  }
 
   Future<void> _editTemplate(WorkoutTemplate? template) async {
     final wp = context.read<WorkoutProvider>();
@@ -239,10 +249,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   TutorialTarget(
                     id: 'home_add',
                     child: _ActionChip(
-                      icon: AppIcons.add,
-                      label: 'Add',
+                      icon: AppIcons.edit,
+                      label: copy.library.editButton,
                       selected: false,
-                      onTap: _addTemplate,
+                      onTap: _editTemplates,
                     ),
                   ),
                 ],
@@ -268,6 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   isStarting: _isStarting,
                   onStart: () => _start(templateId: selected!.id),
                   onEdit: () => _editTemplate(selected),
+                  onClone: () => _cloneTemplate(selected!),
                   onDelete: () => _confirmDeleteTemplate(selected!),
                 ),
               )
@@ -369,7 +380,9 @@ class _ActionChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? cs.primary.withValues(alpha: 0.12) : null,
+          color: selected
+              ? cs.primary.withValues(alpha: 0.12)
+              : context.tokens.panel,
           borderRadius: context.tokens.br(10),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
@@ -517,6 +530,7 @@ class VolumeCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: context.tokens.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+        color: context.tokens.panel,
       ),
       child: Column(
         children: [
@@ -763,7 +777,9 @@ class TemplateChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? cs.primary.withValues(alpha: 0.12) : null,
+          color: selected
+              ? cs.primary.withValues(alpha: 0.12)
+              : context.tokens.panel,
           borderRadius: context.tokens.br(10),
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
@@ -777,6 +793,11 @@ class TemplateChip extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 3),
                 child: Icon(AppIcons.star, size: 14, color: cs.primary),
+              ),
+            if (!template.coupled)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Icon(AppIcons.copy, size: 14, color: cs.primary),
               ),
             Text(
               template.name,
@@ -816,6 +837,7 @@ class SelectedTemplateCard extends StatelessWidget {
   final bool isStarting;
   final VoidCallback onStart;
   final VoidCallback onEdit;
+  final VoidCallback onClone;
   final VoidCallback onDelete;
 
   const SelectedTemplateCard({
@@ -828,6 +850,7 @@ class SelectedTemplateCard extends StatelessWidget {
     required this.isStarting,
     required this.onStart,
     required this.onEdit,
+    required this.onClone,
     required this.onDelete,
   });
 
@@ -841,14 +864,14 @@ class SelectedTemplateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.6);
+    final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.5);
     final time = estimatedSessionLabel(template, trackers);
 
     return Container(
       decoration: BoxDecoration(
         borderRadius: context.tokens.brMd,
-        border: Border.all(color: accent, width: 2),
-        color: recommended ? cs.primary.withValues(alpha: 0.05) : null,
+        border: Border.all(color: accent),
+        color: context.tokens.panel,
       ),
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
       child: Column(
@@ -888,6 +911,7 @@ class SelectedTemplateCard extends StatelessWidget {
                           ),
                       ],
                     ),
+                    if (!template.coupled) const PersonalTag(),
                     if (recommended)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
@@ -912,12 +936,29 @@ class SelectedTemplateCard extends StatelessWidget {
                 ),
                 onSelected: (value) {
                   if (value == 'edit') onEdit();
+                  if (value == 'clone') onClone();
                   if (value == 'delete') onDelete();
                 },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
+                // A library workout follows the library: clone it to make
+                // it yours. Your own you edit.
+                itemBuilder: (_) => template.coupled
+                    ? [
+                        PopupMenuItem(
+                          value: 'clone',
+                          child: Text(copy.library.clone),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(copy.library.remove),
+                        ),
+                      ]
+                    : [
+                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(copy.library.delete),
+                        ),
+                      ],
               ),
             ],
           ),

@@ -3771,6 +3771,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     $fixnum.Int64? createdAt,
     $fixnum.Int64? updatedAt,
     $core.String? libraryId,
+    $core.bool? coupled,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -3780,6 +3781,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     if (createdAt != null) result.createdAt = createdAt;
     if (updatedAt != null) result.updatedAt = updatedAt;
     if (libraryId != null) result.libraryId = libraryId;
+    if (coupled != null) result.coupled = coupled;
     return result;
   }
 
@@ -3806,6 +3808,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     ..aInt64(5, _omitFieldNames ? '' : 'createdAt')
     ..aInt64(6, _omitFieldNames ? '' : 'updatedAt')
     ..aOS(7, _omitFieldNames ? '' : 'libraryId')
+    ..aOB(8, _omitFieldNames ? '' : 'coupled')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3875,8 +3878,8 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   void clearUpdatedAt() => $_clearField(6);
 
-  /// The library entry this was copied from (templates/library.yaml id),
-  /// empty for one the user made. Only used to show what is already added.
+  /// The library entry this follows (templates/library.yaml id); empty for
+  /// one the user made or cloned.
   @$pb.TagNumber(7)
   $core.String get libraryId => $_getSZ(6);
   @$pb.TagNumber(7)
@@ -3885,6 +3888,18 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
   $core.bool hasLibraryId() => $_has(6);
   @$pb.TagNumber(7)
   void clearLibraryId() => $_clearField(7);
+
+  /// Follows its library entry: the name and exercises shown and started are
+  /// the library's current ones (the stored ones are kept for when the entry
+  /// is gone). False for the user's own templates.
+  @$pb.TagNumber(8)
+  $core.bool get coupled => $_getBF(7);
+  @$pb.TagNumber(8)
+  set coupled($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasCoupled() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCoupled() => $_clearField(8);
 }
 
 /// One entry of the template library (templates/library.yaml): a workout
@@ -4105,14 +4120,16 @@ class ListTemplateLibraryResponse extends $pb.GeneratedMessage {
   $pb.PbList<LibraryTemplate> get templates => $_getList(0);
 }
 
-/// Copies library entries into the caller's templates, skipping any whose
-/// library_id is already present. Returns the refreshed home.
+/// Adds library entries to the caller's templates, coupled, skipping any
+/// whose library_id is already present. Returns the refreshed home.
 class AddLibraryTemplatesRequest extends $pb.GeneratedMessage {
   factory AddLibraryTemplatesRequest({
     $core.Iterable<$core.String>? libraryIds,
+    $core.Iterable<LibraryTemplate>? entries,
   }) {
     final result = create();
     if (libraryIds != null) result.libraryIds.addAll(libraryIds);
+    if (entries != null) result.entries.addAll(entries);
     return result;
   }
 
@@ -4130,6 +4147,8 @@ class AddLibraryTemplatesRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..pPS(1, _omitFieldNames ? '' : 'libraryIds')
+    ..pPM<LibraryTemplate>(2, _omitFieldNames ? '' : 'entries',
+        subBuilder: LibraryTemplate.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4155,6 +4174,147 @@ class AddLibraryTemplatesRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<$core.String> get libraryIds => $_getList(0);
+
+  /// The entries as the library had them, filled in by the core when the
+  /// event is recorded, so a replay never reads the library.
+  @$pb.TagNumber(2)
+  $pb.PbList<LibraryTemplate> get entries => $_getList(1);
+}
+
+/// Make a library template the user's own: it stops following the library
+/// and keeps its id (and so its history). name and exercises are filled in
+/// by the core from the library when the event is recorded.
+class CloneTemplateRequest extends $pb.GeneratedMessage {
+  factory CloneTemplateRequest({
+    $core.String? templateId,
+    $core.String? name,
+    $core.Iterable<Exercise>? exercises,
+  }) {
+    final result = create();
+    if (templateId != null) result.templateId = templateId;
+    if (name != null) result.name = name;
+    if (exercises != null) result.exercises.addAll(exercises);
+    return result;
+  }
+
+  CloneTemplateRequest._();
+
+  factory CloneTemplateRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CloneTemplateRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CloneTemplateRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'templateId')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..pc<Exercise>(3, _omitFieldNames ? '' : 'exercises', $pb.PbFieldType.KE,
+        valueOf: Exercise.valueOf,
+        enumValues: Exercise.values,
+        defaultEnumValue: Exercise.EXERCISE_UNSPECIFIED)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CloneTemplateRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CloneTemplateRequest copyWith(void Function(CloneTemplateRequest) updates) =>
+      super.copyWith((message) => updates(message as CloneTemplateRequest))
+          as CloneTemplateRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CloneTemplateRequest create() => CloneTemplateRequest._();
+  @$core.override
+  CloneTemplateRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CloneTemplateRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CloneTemplateRequest>(create);
+  static CloneTemplateRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get templateId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set templateId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTemplateId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTemplateId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<Exercise> get exercises => $_getList(2);
+}
+
+class CloneTemplateResponse extends $pb.GeneratedMessage {
+  factory CloneTemplateResponse({
+    WorkoutTemplate? template,
+  }) {
+    final result = create();
+    if (template != null) result.template = template;
+    return result;
+  }
+
+  CloneTemplateResponse._();
+
+  factory CloneTemplateResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CloneTemplateResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CloneTemplateResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<WorkoutTemplate>(1, _omitFieldNames ? '' : 'template',
+        subBuilder: WorkoutTemplate.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CloneTemplateResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CloneTemplateResponse copyWith(
+          void Function(CloneTemplateResponse) updates) =>
+      super.copyWith((message) => updates(message as CloneTemplateResponse))
+          as CloneTemplateResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CloneTemplateResponse create() => CloneTemplateResponse._();
+  @$core.override
+  CloneTemplateResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CloneTemplateResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CloneTemplateResponse>(create);
+  static CloneTemplateResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  WorkoutTemplate get template => $_getN(0);
+  @$pb.TagNumber(1)
+  set template(WorkoutTemplate value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTemplate() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTemplate() => $_clearField(1);
+  @$pb.TagNumber(1)
+  WorkoutTemplate ensureTemplate() => $_ensure(0);
 }
 
 class AddLibraryTemplatesResponse extends $pb.GeneratedMessage {
@@ -5319,6 +5479,7 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
     Gender? gender,
     $core.Iterable<$core.String>? libraryIds,
     $core.double? strength,
+    $core.Iterable<LibraryTemplate>? libraryEntries,
   }) {
     final result = create();
     if (bodyWeightKg != null) result.bodyWeightKg = bodyWeightKg;
@@ -5327,6 +5488,7 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
     if (gender != null) result.gender = gender;
     if (libraryIds != null) result.libraryIds.addAll(libraryIds);
     if (strength != null) result.strength = strength;
+    if (libraryEntries != null) result.libraryEntries.addAll(libraryEntries);
     return result;
   }
 
@@ -5352,6 +5514,8 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
     ..aE<Gender>(4, _omitFieldNames ? '' : 'gender', enumValues: Gender.values)
     ..pPS(5, _omitFieldNames ? '' : 'libraryIds')
     ..aD(6, _omitFieldNames ? '' : 'strength', fieldType: $pb.PbFieldType.OF)
+    ..pPM<LibraryTemplate>(7, _omitFieldNames ? '' : 'libraryEntries',
+        subBuilder: LibraryTemplate.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5426,6 +5590,11 @@ class CompleteOnboardingRequest extends $pb.GeneratedMessage {
   $core.bool hasStrength() => $_has(5);
   @$pb.TagNumber(6)
   void clearStrength() => $_clearField(6);
+
+  /// The entries as the library had them, filled in by the core when the
+  /// event is recorded (see AddLibraryTemplatesRequest.entries).
+  @$pb.TagNumber(7)
+  $pb.PbList<LibraryTemplate> get libraryEntries => $_getList(6);
 }
 
 /// The first working weights the setup slider shows: one step per 1% of the

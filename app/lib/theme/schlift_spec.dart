@@ -8,17 +8,17 @@ import 'theme_spec.dart';
 /// by changing a value.
 const schliftSpec = ThemeSpec(
   brightness: Brightness.light,
-  background: Color(0xFFBDBDB7),
-  panel: Color(0xFFD4D4CF),
-  surfaceHigh: Color(0xFFABABA4),
+  background: Color(0xFFDBDAD2),
+  panel: Color(0xFFEDECE5),
+  surfaceHigh: Color(0xFFCAC9C0),
   text: Color(0xFF111111),
   muted: Color(0xFF4A4A44),
   primary: Color(0xFFFF4F00),
   onPrimary: Colors.white,
-  secondary: Color(0xFFABABA4),
-  hairline: Color(0xFF9B9B94),
+  secondary: Color(0xFFCAC9C0),
+  hairline: Color(0xFFB7B6AC),
   outline: Color(0xFF74746E),
-  switchThumbOff: Color(0xFF92928B),
+  switchThumbOff: Color(0xFFADACA2),
   error: Color(0xFFE0301E),
   // State colours keep their hues but sit with the warm grey: less neon,
   // a touch deeper.

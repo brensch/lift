@@ -275,12 +275,18 @@ class _ExerciseRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final resolved = tracker;
+    // A fixed count (5×5) reads as one number, a range as low–high.
+    final reps = resolved == null
+        ? ''
+        : resolved.repRangeLow == resolved.repRangeHigh
+        ? '${resolved.repRangeLow}'
+        : '${resolved.repRangeLow}–${resolved.repRangeHigh}';
     final detail = resolved == null
         ? ''
         : resolved.workingWeight > 0
-        ? '${resolved.sets}×${resolved.repRangeLow}–${resolved.repRangeHigh}'
+        ? '${resolved.sets}×$reps'
               ' @ ${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
-        : '${resolved.sets}×${resolved.repRangeLow}–${resolved.repRangeHigh}';
+        : '${resolved.sets}×$reps';
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 4, right: 0),
       dense: true,
