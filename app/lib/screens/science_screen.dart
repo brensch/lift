@@ -52,12 +52,14 @@ class ScienceScreen extends StatelessWidget {
             ],
           ),
           const _Section(
-            title: 'Effort: stop 1–2 reps before failure',
+            title: 'Effort: the reps decide',
             body:
-                'Sets only count if they are hard. Stop each set with '
-                '1–2 clean reps left. That grows muscle like full failure '
-                'does, with less fatigue. If you had 5 more reps in you, '
-                'it was a warmup.',
+                'Sets only count if they are hard, but you never have to '
+                'rate them. Hitting every target rep is the only signal. '
+                'The weight climbs each session you hit them all, so sets '
+                'get hard on their own, and a missed rep says you got '
+                'there. Sets close to failure grow muscle like full '
+                'failure does, with less fatigue.',
             citations: [
               _Citation(
                 'Grgic et al. (2022): training to failure vs not, '
@@ -67,11 +69,13 @@ class ScienceScreen extends StatelessWidget {
             ],
           ),
           const _Section(
-            title: 'Rep ranges: 6–10, 8–12, 10–15',
+            title: 'Sets and reps: 5×5, 3×8–12',
             body:
-                'Effort decides growth, not the exact load. The ranges '
-                'are practical: 6–10 on barbell compounds, 8–12 on other '
-                'compounds, 10–15 on isolation, 10–20 on core.',
+                'Effort decides growth, not the exact load, so the '
+                'numbers are practical. Barbell compounds are 5 sets of 5 '
+                '(deadlifts 3 of 5): heavy enough for strength, enough '
+                'sets for size. Other loaded work is 3 sets of 8–12, '
+                'bodyweight 3 of 5–15, core 3 of 10–20.',
             citations: [
               _Citation(
                 'Schoenfeld et al. (2017): low- vs high-load training, '
@@ -103,13 +107,14 @@ class ScienceScreen extends StatelessWidget {
             ],
           ),
           const _Section(
-            title: 'Progression: reps first, then load',
+            title: 'Progression: hit every rep',
             body:
-                'Clear every set and the rep target climbs by one. Top '
-                'the range on every set and the weight takes one small '
-                'step while reps reset. Adding reps grows muscle about as '
-                'well as adding load. Progression always follows what you '
-                'actually lifted.',
+                'On a 5×5, every rep of every set means one small step '
+                'up next time. In a rep range, clear every set and the '
+                'rep target climbs by one; top the range and the weight '
+                'takes a step while reps reset. Adding reps grows muscle '
+                'about as well as adding load. Progression always follows '
+                'what you actually lifted.',
             citations: [
               _Citation(
                 'Plotkin et al. (2022): load progression vs repetition '
@@ -125,11 +130,36 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Misses and deloads',
             body:
-                'Miss once and the weight holds. Everyone has bad days. '
-                'Miss twice in a row and the weight drops 10%, then '
-                'rebuilds through the rep range. Grinding a stuck weight '
+                'Miss a rep and the weight holds. Everyone has bad days. '
+                'Miss three sessions in a row and the weight drops 10%, '
+                'then climbs past the stall. Grinding a stuck weight '
                 'forever is how progress dies.',
             citations: [],
+          ),
+          const _Section(
+            title: 'Finding your weight',
+            body:
+                'A lift you have never logged starts light, in sets of '
+                '5, each about 10% heavier than the last. The first '
+                'missed rep ends it: your working sets start at 90% of '
+                'the heaviest set you did in full. Five reps to failure '
+                'is about 85% of your max; a 5×5 sits around 75–80%.',
+            citations: [],
+          ),
+          const _Section(
+            title: 'Time off: 3 and 6 weeks',
+            body:
+                'Strength holds for about three weeks without training, '
+                'then fades. Back after 3 weeks away from a lift, it '
+                'starts at 90%; after 6 weeks, at 80%. Your old numbers '
+                'come back fast.',
+            citations: [
+              _Citation(
+                'Bosquet et al. (2013): training cessation and muscular '
+                    'performance, meta-analysis',
+                'https://pubmed.ncbi.nlm.nih.gov/23347054/',
+              ),
+            ],
           ),
           const _Section(
             title: 'Recovery windows: 48 / 36 / 24 hours',

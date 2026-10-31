@@ -268,8 +268,11 @@ const TrackerRecord$json = {
     {'1': 'override_sets', '3': 6, '4': 1, '5': 5, '10': 'overrideSets'},
     {'1': 'override_rep_low', '3': 7, '4': 1, '5': 5, '10': 'overrideRepLow'},
     {'1': 'override_rep_high', '3': 8, '4': 1, '5': 5, '10': 'overrideRepHigh'},
-    {'1': 'consecutive_hard', '3': 9, '4': 1, '5': 5, '10': 'consecutiveHard'},
   ],
+  '9': [
+    {'1': 9, '2': 10},
+  ],
+  '10': ['consecutive_hard'],
 };
 
 /// Descriptor for `TrackerRecord`. Decode as a `google.protobuf.DescriptorProto`.
@@ -280,8 +283,7 @@ final $typed_data.Uint8List trackerRecordDescriptor = $convert.base64Decode(
     'VSEWNvbnNlY3V0aXZlTWlzc2VzEioKEWxhc3RfcGVyZm9ybWVkX2F0GAUgASgDUg9sYXN0UGVy'
     'Zm9ybWVkQXQSIwoNb3ZlcnJpZGVfc2V0cxgGIAEoBVIMb3ZlcnJpZGVTZXRzEigKEG92ZXJyaW'
     'RlX3JlcF9sb3cYByABKAVSDm92ZXJyaWRlUmVwTG93EioKEW92ZXJyaWRlX3JlcF9oaWdoGAgg'
-    'ASgFUg9vdmVycmlkZVJlcEhpZ2gSKQoQY29uc2VjdXRpdmVfaGFyZBgJIAEoBVIPY29uc2VjdX'
-    'RpdmVIYXJk');
+    'ASgFUg9vdmVycmlkZVJlcEhpZ2hKBAgJEApSEGNvbnNlY3V0aXZlX2hhcmQ=');
 
 @$core.Deprecated('Use syncRequestDescriptor instead')
 const SyncRequest$json = {

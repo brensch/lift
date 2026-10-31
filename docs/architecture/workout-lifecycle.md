@@ -14,9 +14,9 @@ the server replays the same events with the same code when they sync. See
 ```mermaid
 graph LR
     tmpl["Template<br/>exercises only"] -->|"StartWorkout resolves<br/>trackers + prescription"| active["Active workout"]
-    active -->|"CompleteSet (Done)<br/>RateExercise (how was that)"| active
+    active -->|"CompleteSet (Done)<br/>EditCompletedSet (a missed rep)"| active
     active -->|"EndWorkout"| done["Completed workout"]
-    done -->|"advance_tracker<br/>(double progression)"| trk["Exercise trackers<br/>one per exercise"]
+    done -->|"advance_tracker<br/>(all target reps?)"| trk["Exercise trackers<br/>one per exercise"]
     trk --> tmpl
 ```
 
@@ -64,7 +64,6 @@ stateDiagram-v2
     Lifting --> Done: CompleteSet<br/>(inserts CompletedSet: started_at, ended_at, rest_until; clears the marker)
     Pending --> Done: CompleteSet<br/>(never started: started_at = 0)
     Done --> Done: EditCompletedSet<br/>(a tap per missed rep; rest recomputed)
-    Done --> Done: RateExercise<br/>(a rung's "how many were left")
     Pending --> Cancelled: RemoveExercise<br/>(its undone sets, soft delete)
     Done --> Pending: DeleteCompletedSet<br/>(the tap after zero)
     Done --> [*]
@@ -89,8 +88,8 @@ when the last set was done — and that set's prescribed rest:
 | **Yapping** | That rest has run out; the next set isn't started | counts up from `rest_until` (pink) |
 | **All done** | Nothing left to do | none |
 
-The reducer's `workout_state_snapshot` derives this plus the
-`effort_prompt`. A snapshot is one instant, so when the rest it shows runs
+The reducer's `workout_state_snapshot` derives this (its `effort_prompt` is
+retired and always empty). A snapshot is one instant, so when the rest it shows runs
 out `WorkoutProvider` asks the core again (`_reloadWhenRestEnds`), and
 resting turns into yapping on the device clock. The
 snapshot keeps `rest_until` through yapping so the count-up survives a reload.
@@ -127,28 +126,36 @@ it has no buttons: a status box per partner (three in view, the rest
 scroll) and yours at the bottom. During an account's first workout a line
 on top says what to tap next (`FirstWorkout`, per account on the device).
 
-### Effort and calibration
+### Progression and calibration
 
-Working sets are not rated in the app: progression reads the reps
-(`advance_tracker`'s double progression — all reps on every set moves the
-weight or the rep target, a miss repeats, three hard sessions running is a
-planned 10% deload). The reducer still opens `effort_prompt` after a
-working set; unanswered, it resolves to *right* at the next `StartSet` or
-`CompleteSet`, or at `EndWorkout` (`resolve_unanswered`). Nothing else
-resolves it — not the clock.
+Nothing is rated. One signal drives everything: did every working set hit
+its target reps (`core/src/exercise_progress.rs`, which has the full table
+and the sources).
+
+| Class | Prescription | Progression |
+|---|---|---|
+| Barbell compounds | 5×5 (deadlift 3×5) | every rep → one step up next time |
+| Other loaded work | 3×8–12 | every rep → rep target +1; at 12 → one step up, back to 8 |
+| Bodyweight | 3×5–15 | every rep → rep target +1 |
+| Core | 3×10–20 | as other loaded work |
+
+A missed rep holds weight and target; three missed sessions running take
+the weight down 10% (`MISSES_BEFORE_DELOAD`). Time away from an exercise
+lowers the weight offered at the next start — 90% after 3 weeks, 80% after
+6 (Bosquet et al. 2013) — without writing the tracker
+(`layoff_adjusted_weight`). A barbell never goes under the empty bar.
 
 A loaded exercise with no performed history starts as a **calibration
 ramp** instead of a warmup ladder plus working sets: one 5-rep rung
 (`ProposedSet.calibration = 1`) at the catalog opener (or 60% of the
-onboarding seed). After each rung the app asks how many more reps were in
-the tank — 0–1 (hard), 2–3 (right), 4+ (easy) — and the answer decides what
-is appended (`ramp_append`): 4+ adds the next rung, 2–3 makes this the
-working weight, 0–1 takes the previous rung; then the prescription's
-working sets minus one. Six rungs is the cap. On a watch the rung's finish
-is the answer: three Done buttons, each carrying it as
-`CompleteSetRequest.effort`. Rungs count as warmups for volume and
-summaries. The design record is
-[`docs/plans/one-tap-sets.md`](../plans/one-tap-sets.md).
+onboarding seed). Its Done decides what is appended (`would_append`): all
+five reps adds the next rung, about 10% heavier (at least one step); a
+missed rep, or the sixth rung, appends the full prescription of working
+sets at 90% of the heaviest rung done in full
+(`CALIBRATION_SETTLE_FRACTION`). Tapping a rep off a rung re-settles it
+while what it appended is still untouched (`resettle_rung`). Rungs count
+as warmups for volume and summaries. `RateExercise` from an old app is
+accepted and does nothing.
 
 ## Starting a workout
 
@@ -209,7 +216,6 @@ graph LR
     m --> t2["CompleteSet → apply_complete_set_to_active"]
     m --> t3["EditCompletedSet → apply_edit_completed_set_to_active"]
     m --> t4["DeleteCompletedSet → apply_delete_completed_set_to_active"]
-    m --> t5["RateExercise → apply_rate_exercise_to_active"]
     m --> t6["SkipWarmups → apply_skip_warmups_to_active"]
     m --> t7["AddExercises → apply_add_exercises"]
     m --> t8["AdjustExerciseWeight → apply_adjust_exercise_weight"]
@@ -236,8 +242,7 @@ sequenceDiagram
         A-->>App: no change
     else
         A->>A: end_time = ended_at or event time
-        A->>A: resolve_all_effort ("right")
-        A->>A: advance_trackers: session_outcomes →<br/>advance_tracker (double progression)
+        A->>A: advance_trackers: session_outcomes →<br/>advance_tracker (all target reps?)
         A->>A: progression messages, clear active_workout_id
         A-->>App: workout + progression messages
     end

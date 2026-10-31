@@ -81,7 +81,6 @@ CREATE TABLE IF NOT EXISTS exercise_trackers (
     override_sets INTEGER NOT NULL,
     override_rep_low INTEGER NOT NULL,
     override_rep_high INTEGER NOT NULL,
-    consecutive_hard INTEGER NOT NULL,
     PRIMARY KEY(user_id, exercise)
 );
 
@@ -262,8 +261,8 @@ pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
         out.push(statement(
             "INSERT INTO exercise_trackers (user_id, exercise, working_weight, current_reps,
              consecutive_misses, last_performed_at, override_sets, override_rep_low,
-             override_rep_high, consecutive_hard)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             override_rep_high)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 user_id.into(),
                 t.exercise.into(),
@@ -274,7 +273,6 @@ pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
                 t.override_sets.into(),
                 t.override_rep_low.into(),
                 t.override_rep_high.into(),
-                t.consecutive_hard.into(),
             ],
         ));
     }

@@ -220,15 +220,11 @@ workout:
   next_label: NEXT
   skip_warmups: Skip
   calibration_line: Finding weight
-  # Under FINDING WEIGHT on the exercise you're on.
-  calibration_hint: Lift what is suggested, then provide feedback.
+  # Under FINDING WEIGHT on the exercise you're on. Each finding-weight set
+  # is 5 reps: all 5 and the next one is heavier; a missed rep sets the
+  # working weight. Placeholder — rewrite.
+  calibration_hint: Do 5. Get them all and I'll go heavier.
   empty_bar: Bar
-  # Finding weight: after each rung, how much was left in the tank. The
-  # answer picks the next rung or settles the working weight.
-  reps_left_question: How many more could you have done?
-  reps_left_none: 0–1
-  reps_left_some: 2–3
-  reps_left_lots: 4+
   # Shown at the top of the bottom banner during someone's first workout
   # only, for whatever they are doing at that moment.
   hints:
@@ -236,5 +232,4 @@ workout:
     lifting: Tap the circle again when the set is done.
     resting: Missed reps? Tap that circle once for each.
     yapping: Rest is over. Tap the next circle to start.
-    finding_weight: Answer above so I can find your weight.
     all_done: That's everything. End the workout when you're ready.

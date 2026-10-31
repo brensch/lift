@@ -40,8 +40,8 @@ void main() {
       kind: 'peer',
     );
 
-    // The app polls the session ~1 Hz; the multiplayer button should now show 2.
-    final sawPeer = await s.waitForText('Multiplayer (2)', seconds: 15);
+    // The session arrives on the Sync stream; the header badge should read 2.
+    final sawPeer = await s.waitForSessionOf(2, seconds: 15);
     await s.shot(
       'Home — peer detected',
       note: sawPeer
@@ -55,7 +55,7 @@ void main() {
     );
 
     // Open the multiplayer modal — it lists the session participants.
-    await s.tapText('Multiplayer (2)');
+    await s.openMultiplayer();
     await s.settle(seconds: 2);
     await s.shot(
       'Multiplayer modal',

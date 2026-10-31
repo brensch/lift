@@ -547,7 +547,6 @@ class TrackerRecord extends $pb.GeneratedMessage {
     $core.int? overrideSets,
     $core.int? overrideRepLow,
     $core.int? overrideRepHigh,
-    $core.int? consecutiveHard,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
@@ -558,7 +557,6 @@ class TrackerRecord extends $pb.GeneratedMessage {
     if (overrideSets != null) result.overrideSets = overrideSets;
     if (overrideRepLow != null) result.overrideRepLow = overrideRepLow;
     if (overrideRepHigh != null) result.overrideRepHigh = overrideRepHigh;
-    if (consecutiveHard != null) result.consecutiveHard = consecutiveHard;
     return result;
   }
 
@@ -585,7 +583,6 @@ class TrackerRecord extends $pb.GeneratedMessage {
     ..aI(6, _omitFieldNames ? '' : 'overrideSets')
     ..aI(7, _omitFieldNames ? '' : 'overrideRepLow')
     ..aI(8, _omitFieldNames ? '' : 'overrideRepHigh')
-    ..aI(9, _omitFieldNames ? '' : 'consecutiveHard')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -678,15 +675,6 @@ class TrackerRecord extends $pb.GeneratedMessage {
   $core.bool hasOverrideRepHigh() => $_has(7);
   @$pb.TagNumber(8)
   void clearOverrideRepHigh() => $_clearField(8);
-
-  @$pb.TagNumber(9)
-  $core.int get consecutiveHard => $_getIZ(8);
-  @$pb.TagNumber(9)
-  set consecutiveHard($core.int value) => $_setSignedInt32(8, value);
-  @$pb.TagNumber(9)
-  $core.bool hasConsecutiveHard() => $_has(8);
-  @$pb.TagNumber(9)
-  void clearConsecutiveHard() => $_clearField(9);
 }
 
 enum SyncRequest_Kind { events, heartbeat, notSet }

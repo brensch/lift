@@ -320,13 +320,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   ProposedSet? get nextPendingSet => _nextUp;
 
-  /// The question on screen, with its current answer, or null.
-  EffortPrompt? get effortPrompt {
-    final snapshot = _snapshot;
-    if (snapshot == null || !snapshot.hasEffortPrompt()) return null;
-    return snapshot.effortPrompt;
-  }
-
   /// The set up next: the state's display set — the next pending set, or
   /// while a rung is still asking, the set its "right" would append — so
   /// the circle and the banner show it before anything is done.
@@ -526,14 +519,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  /// Log a set as done. [effort] (Easy / Good / Hard) answers "how was
-  /// that" for it at the same time; leave it unspecified for a warmup.
+  /// Log a set as done.
   Future<void> completeSet(
     String proposedSetId,
     int actualReps,
     double actualWeight, {
     int? completedAt,
-    Effort effort = Effort.EFFORT_UNSPECIFIED,
   }) async {
     if (_workout == null) return;
     await _mutate(
@@ -543,8 +534,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..proposedSetId = proposedSetId
           ..actualReps = actualReps
           ..actualWeight = actualWeight
-          ..completedAt = Int64(completedAt ?? 0)
-          ..effort = effort),
+          ..completedAt = Int64(completedAt ?? 0)),
     );
   }
 
@@ -592,19 +582,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (proposedSetById(done.proposedSetId)?.calibration ?? true) return;
     await deleteCompletedSet(completedSetId);
-  }
-
-  /// Answer "how was that" for a done set. On a calibration rung the
-  /// answer also shapes the plan (another rung, or the working sets).
-  Future<void> rateExercise(String completedSetId, Effort effort) async {
-    if (_workout == null || effort == Effort.EFFORT_UNSPECIFIED) return;
-    await _mutate(
-      _mutation()
-        ..rateExercise = (RateExerciseRequest()
-          ..workoutId = _workoutId
-          ..completedSetId = completedSetId
-          ..effort = effort),
-    );
   }
 
   /// Skip [exercise]'s warmups (the warmup row's "Skip"): they're marked

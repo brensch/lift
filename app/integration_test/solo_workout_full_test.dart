@@ -60,7 +60,7 @@ void main() {
           reachedEnd = true;
           break;
         }
-        if (s.setOffered || s.repsLeftAsked) {
+        if (s.setOffered) {
           await s.liftSet();
           dones++;
           if (dones == 1 || dones == 8) {

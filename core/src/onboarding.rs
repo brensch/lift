@@ -198,10 +198,9 @@ mod tests {
         assert!(weights.iter().all(|(_, w)| *w >= 45.0));
     }
 
-    /// The numbers app/test/logic/starting_weights_test.dart asserts too:
-    /// the slider preview and the seeds must agree.
+    /// The strength slider's seeds at its middle and both ends.
     #[test]
-    fn slider_seeds_match_the_app_mirror() {
+    fn slider_seeds_at_the_marks() {
         let w = starting_tracker_weights_for_strength(0.5, AppWeightUnit::Lb);
         let get = |ex: Exercise| w.iter().find(|(e, _)| *e == ex).unwrap().1;
         assert_eq!(get(Exercise::Squat), 180.0);
@@ -214,7 +213,11 @@ mod tests {
         let at =
             |v: &Vec<(Exercise, f32)>, ex: Exercise| v.iter().find(|(e, _)| *e == ex).unwrap().1;
         assert_eq!(at(&chick, Exercise::Squat), 45.0);
-        assert_eq!(at(&chick, Exercise::BenchPress), 35.0);
+        assert_eq!(
+            at(&chick, Exercise::BenchPress),
+            45.0,
+            "never under the empty bar"
+        );
         assert_eq!(at(&gorilla, Exercise::Squat), 315.0);
         assert_eq!(at(&gorilla, Exercise::BenchPress), 225.0);
         // Kilograms snap to the 2.5 kg grid: 180 lb -> 82.5 kg.

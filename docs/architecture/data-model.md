@@ -84,7 +84,7 @@ erDiagram
         INTEGER started_at
         INTEGER ended_at
         INTEGER rest_until
-        INTEGER effort "0 unanswered, 1 easy, 2 right, 3 hard"
+        INTEGER effort "retired: ratings from before 0.12.2"
     }
     workout_heart_rate_samples {
         TEXT id PK
