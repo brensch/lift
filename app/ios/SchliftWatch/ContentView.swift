@@ -1,15 +1,15 @@
 import SwiftUI
 
-// Custom fonts — registered via Info.plist UIAppFonts
-let bodyFont = "Manrope-Variable"
-private let displayFont = "SpaceGrotesk-Variable"
-
-func displayFontName(size: CGFloat, weight: Font.Weight = .bold) -> Font {
-    .custom(displayFont, size: size).weight(weight)
-}
+/// The phone app's fonts, registered via Info.plist UIAppFonts: Space Grotesk for
+/// words, Space Mono for numbers.
+private let bodyFont = "SpaceGrotesk-Variable"
 
 func textFontName(size: CGFloat, weight: Font.Weight = .medium) -> Font {
     .custom(bodyFont, size: size).weight(weight)
+}
+
+func monoFontName(size: CGFloat, weight: Font.Weight = .bold) -> Font {
+    .custom(weight == .regular ? "SpaceMono-Regular" : "SpaceMono-Bold", size: size)
 }
 
 /// Routes the phone's snapshot to one of the screens. The phone is authoritative:
@@ -68,17 +68,12 @@ struct ContentView: View {
 
     @ViewBuilder
     private func workoutView(_ snapshot: Workout_V1_WearWorkoutSnapshot, now: Date) -> some View {
-        // One screen per state: Ready before the first set, Lifting from Start to the
-        // finish, Rest (resting, then yapping) after each set, Done at the end.
+        // One face for every live state (the split), and Done at the end.
         switch snapshot.state {
         case .allDone where snapshot.hasCompletionSummary:
             WorkoutDoneScreen(snapshot: snapshot, now: now)
-        case .lifting:
-            LiftingScreen(snapshot: snapshot, now: now)
-        case .resting, .yapping:
-            RestScreen(snapshot: snapshot, now: now)
         default:
-            ReadyScreen(snapshot: snapshot, now: now)
+            SplitScreen(snapshot: snapshot, now: now)
         }
     }
 }
@@ -87,12 +82,13 @@ struct ContentView: View {
 struct IdleScreen: View {
     var body: some View {
         Text("Open Schlift on your phone")
-            .font(textFontName(size: 14))
-            .foregroundColor(WatchPalette.grey)
-            .watchAutoShrink()
-            .padding(.horizontal, 10)
+            .font(textFontName(size: 15))
+            .foregroundColor(WatchPalette.muted)
+            .watchAutoShrink(lines: 2)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.black.ignoresSafeArea())
+            .background(WatchPalette.ground.ignoresSafeArea())
     }
 }
 

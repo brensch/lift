@@ -29,6 +29,23 @@ extension PhoneConnector {
         sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
     }
 
+    /// A tap in the fix window: [reps] for the set just done. Not gated like the
+    /// other taps: each is its own correction, sent as it happens.
+    func sendFix(completedSetID: String, reps: Int32, weight: Float) {
+        guard let workoutId = snapshot?.workoutID, !workoutId.isEmpty else { return }
+        var fix = Workout_V1_EditCompletedSetIntent()
+        fix.workoutID = workoutId
+        fix.completedSetID = completedSetID
+        fix.reps = reps
+        fix.actualWeight = weight
+        var intent = Workout_V1_WearIntent()
+        intent.intentID = UUID().uuidString
+        intent.sentAt = Int64(Date().timeIntervalSince1970)
+        intent.intent = .editCompletedSet(fix)
+        guard let data = try? intent.serializedData() else { return }
+        sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
+    }
+
     /// Sets the intent's payload from the action the phone sent. False for an action
     /// type the watch does not know how to send.
     private func fill(

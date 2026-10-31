@@ -1,13 +1,48 @@
 import SwiftUI
 
-/// The plan's colours (docs/plans/one-tap-sets.md, section 8): black background,
-/// no accent on Ready, blue resting, amber effort question, green done.
+/// The phone app's tokens (app/lib/theme/schlift_spec.dart).
 enum WatchPalette {
-    static let grey = Color(red: 0x9C / 255, green: 0xA3 / 255, blue: 0xAF / 255) // #9CA3AF
-    static let restingBlue = Color(red: 0x3B / 255, green: 0x82 / 255, blue: 0xF6 / 255) // #3B82F6
-    static let yappingPink = Color(red: 0xD9 / 255, green: 0x4F / 255, blue: 0x8C / 255) // #D94F8C
-    static let liftingOrange = Color(red: 0xFF / 255, green: 0x4F / 255, blue: 0x00 / 255) // #FF4F00
-    static let doneGreen = Color(red: 0x16 / 255, green: 0xA3 / 255, blue: 0x4A / 255) // #16A34A
+    static let ground = Color(rgb: 0xDBDAD2)
+    static let panel = Color(rgb: 0xEDECE5)
+    static let hairline = Color(rgb: 0xA8A79F)
+    static let rule = Color(rgb: 0x74746E)
+    static let text = Color(rgb: 0x111111)
+    static let muted = Color(rgb: 0x4A4A44)
+    static let onDark = Color.white
+    static let ready = Color(rgb: 0x3D8B4A)
+    static let readyInk = Color(rgb: 0x2F6E3A)
+    static let lifting = Color(rgb: 0xFF4F00)
+    static let liftingInk = Color(rgb: 0xC23C00)
+    static let resting = Color(rgb: 0x3C5FB0)
+    static let yapping = Color(rgb: 0xD94F8C)
+    static let yappingInk = Color(rgb: 0xB0306B)
+    static let fix = Color(rgb: 0xD99A00)
+    static let firstTime = Color(rgb: 0x111111)
+    static let ambientText = Color(rgb: 0xB7B6AC)
+}
+
+extension Color {
+    /// A colour from 0xRRGGBB.
+    init(rgb: UInt32) {
+        self.init(
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255
+        )
+    }
+
+    /// A colour from "#RRGGBB"; grey if it doesn't parse.
+    init(hex: String) {
+        let digits = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+        self.init(rgb: UInt32(digits, radix: 16) ?? 0x4A4A44)
+    }
+}
+
+/// Unix milliseconds of the timeline tick being rendered. The watch's wall clock is
+/// what the phone's absolute timestamps (`restUntil`, `workoutStartTime`) are
+/// compared against; see `PhoneConnector.synchronizedNowMs`.
+func watchNowMs(_ now: Date) -> Int64 {
+    Int64(now.timeIntervalSince1970 * 1000)
 }
 
 /// Elapsed workout time, counted live from the phone's start time so it ticks
@@ -67,18 +102,17 @@ private func formatElapsedDuration(_ totalSeconds: Int) -> String {
     return String(format: "%d:%02d", minutes, seconds)
 }
 
+/// Heart rate in the app's colours: easy green, working ochre, hard orange, max magenta.
 func heartRateColor(_ bpm: Double?) -> Color {
-    guard let bpm = bpm, bpm > 0 else {
-        return Color(red: 0x94 / 255, green: 0xA3 / 255, blue: 0xB8 / 255)
-    }
+    guard let bpm = bpm, bpm > 0 else { return WatchPalette.muted }
     switch bpm {
     case ..<110:
-        return Color(red: 0x22 / 255, green: 0xC5 / 255, blue: 0x5E / 255)
+        return WatchPalette.readyInk
     case ..<140:
-        return Color(red: 0xFA / 255, green: 0xCC / 255, blue: 0x15 / 255)
+        return Color(rgb: 0x8D5A00)
     case ..<165:
-        return Color(red: 0xF9 / 255, green: 0x73 / 255, blue: 0x16 / 255)
+        return WatchPalette.liftingInk
     default:
-        return Color(red: 0xEF / 255, green: 0x44 / 255, blue: 0x44 / 255)
+        return Color(rgb: 0xC2185B)
     }
 }
