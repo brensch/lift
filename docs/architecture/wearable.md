@@ -65,15 +65,17 @@ graph TD
     snap --> you["you_card: WearStatusCard"]
     snap --> acts["actions: [WearAction]"]
     snap --> comp["completion_summary (optional)"]
-    snap --> emoji["next_up_emoji"]
+    snap --> circles["circles: [WearSetCircle]<br/>(the exercise in hand's sets)"]
+    snap --> more["last_set_ended_at, up_next_text,<br/>ambient_copy"]
 ```
 
-A `WearStatusCard` carries `state_label`, `timer_text`, `exercise_name`,
-`set_line` ("Set 2 of 3", "Finding weight"), `set_text` (the set in the
-user's unit; the watch never formats a weight) and a `display_set` —
-strings the watch prints directly. A `WearAction` carries its own `label`,
-`style` and `set_id`, so the watch renders buttons without knowing what a warmup
-is or when a set is skippable.
+A `WearStatusCard` carries `state_label`, `exercise_name`, `set_line`
+("Set 2 of 3"), `weight_text` / `unit_text` / `reps_text` (the set in the
+user's unit; the watch never formats a weight), the plates for the weight
+and a `display_set` — strings the watch prints directly. Each
+`WearSetCircle` is a set as the phone's circle draws it: its number and its
+state (pending, next, lifting, full, short, zero, skipped). A `WearAction`
+carries its own `label` and `set_id`.
 
 This keeps watch logic minimal and means UI changes usually need no watch
 release. The cost is that snapshots are chunky and must be republished on every
@@ -86,16 +88,24 @@ messages are delayed. When the countdown reaches zero the watch flips to
 yapping on its own (pink, counting up from `rest_until`, labelled with the
 snapshot's `yapping_label`) until the next snapshot arrives.
 
-The watch has one screen per state: Ready (the set and Start), Lifting (an
-orange count-up and the finish: Done, or for a finding-weight rung three
-Done buttons carrying how many reps were left), Rest for both resting and
-yapping (the timer and Start), Done on `ALL_DONE`, and Idle with no
-snapshot. Every button is a `WearAction` the phone built: `START_SET`, then
-`COMPLETE_SET` (with `effort` on a rung's finishes). Missed reps are
-recorded on the phone (a tap per rep on the set's circle). Wear OS draws
-them in `WearScreens.kt`; watchOS in `ReadyScreen.swift`,
-`LiftingScreen.swift`, `RestScreen.swift` and
-`ContentView+WorkoutComplete.swift`.
+The watch has one face for every live state: the phone's status box stacked
+for the wrist. From the top: the exercise's set circles, the status band
+(stage, UP NEXT! when you lift next in a session, its timer; the rest drains
+the band from `last_set_ended_at` to `rest_until`), the exercise and set, the
+weight (tap for the plates) × the reps in the set's circle, then heart rate,
+workout length and the time. A tap on any circle is a `TapSetIntent`: the
+phone does what a tap on its own circle does (start, done, a rep off, undone),
+so the watch knows no workout rules. The rep circle taps the set in hand.
+Done (on `ALL_DONE`, with `END_WORKOUT`) and Idle (no snapshot) are their own
+screens. Hardware keys (the crown) never act on the face.
+
+Always-on draws the same face dimmed: grey lines and text on black, nothing
+filled. It is redrawn about once a minute, so rest is shown in whole minutes
+(the words are `ambient_copy`) and when it ends, with the redraws lined up to
+the rest's minutes so the count turns over on time.
+
+Wear OS draws it in `WearScreens.kt` (`FaceScreen`); watchOS in
+`FaceScreen.swift` and `ContentView+WorkoutComplete.swift`.
 
 ## Intents: watch → phone
 
@@ -120,8 +130,9 @@ sequenceDiagram
     end
 ```
 
-Intent types: `StartSetIntent` (Start), `CompleteSetIntent` (Done, with
-`effort` on a rung's finish), `SkipWarmupIntent`, `EndWorkoutIntent`.
+Intent types: `TapSetIntent` (a tap on a set's circle), `StartSetIntent`
+and `CompleteSetIntent` (the rep circle when no circle is in hand),
+`EndWorkoutIntent`.
 
 Every intent carries a client-generated `intent_id` for dedupe, because the
 platform transports can deliver more than once. `CompleteSetIntent` also carries

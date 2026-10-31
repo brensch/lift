@@ -130,6 +130,15 @@ const Event$json = {
       '9': 0,
       '10': 'importHistory'
     },
+    {
+      '1': 'clone_template',
+      '3': 22,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.CloneTemplateRequest',
+      '9': 0,
+      '10': 'cloneTemplate'
+    },
   ],
   '8': [
     {'1': 'kind'},
@@ -156,7 +165,8 @@ final $typed_data.Uint8List eventDescriptor = $convert.base64Decode(
     '11cGRhdGVTZXR0aW5nElwKFWRpc21pc3NfdXNlcl9tZXNzYWdlcxgUIAEoCzImLndvcmtvdXQu'
     'djEuRGlzbWlzc1VzZXJNZXNzYWdlc1JlcXVlc3RIAFITZGlzbWlzc1VzZXJNZXNzYWdlcxJCCg'
     '5pbXBvcnRfaGlzdG9yeRgVIAEoCzIZLndvcmtvdXQudjEuSW1wb3J0SGlzdG9yeUgAUg1pbXBv'
-    'cnRIaXN0b3J5QgYKBGtpbmQ=');
+    'cnRIaXN0b3J5EkkKDmNsb25lX3RlbXBsYXRlGBYgASgLMiAud29ya291dC52MS5DbG9uZVRlbX'
+    'BsYXRlUmVxdWVzdEgAUg1jbG9uZVRlbXBsYXRlQgYKBGtpbmQ=');
 
 @$core.Deprecated('Use importHistoryDescriptor instead')
 const ImportHistory$json = {
@@ -342,6 +352,15 @@ const SyncResponse$json = {
       '9': 0,
       '10': 'joinRequests'
     },
+    {
+      '1': 'library',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ListTemplateLibraryResponse',
+      '9': 0,
+      '10': 'library'
+    },
   ],
   '8': [
     {'1': 'kind'},
@@ -353,7 +372,8 @@ final $typed_data.Uint8List syncResponseDescriptor = $convert.base64Decode(
     'CgxTeW5jUmVzcG9uc2USFAoEaGVhZBgBIAEoA0gAUgRoZWFkEkEKB3Nlc3Npb24YAiABKAsyJS'
     '53b3Jrb3V0LnYxLkdldEN1cnJlbnRTZXNzaW9uUmVzcG9uc2VIAFIHc2Vzc2lvbhJKCg1qb2lu'
     'X3JlcXVlc3RzGAMgASgLMiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAUg'
-    'xqb2luUmVxdWVzdHNCBgoEa2luZA==');
+    'xqb2luUmVxdWVzdHMSQwoHbGlicmFyeRgEIAEoCzInLndvcmtvdXQudjEuTGlzdFRlbXBsYXRl'
+    'TGlicmFyeVJlc3BvbnNlSABSB2xpYnJhcnlCBgoEa2luZA==');
 
 @$core.Deprecated('Use pullEventsRequestDescriptor instead')
 const PullEventsRequest$json = {

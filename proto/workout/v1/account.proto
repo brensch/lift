@@ -34,6 +34,7 @@ message Event {
     UpdateSettingRequest update_setting = 19;
     DismissUserMessagesRequest dismiss_user_messages = 20;
     ImportHistory import_history = 21;
+    CloneTemplateRequest clone_template = 22;
   }
 }
 
@@ -107,6 +108,9 @@ message SyncResponse {
     GetCurrentSessionResponse session = 2;
     // Requests to join the caller, whole. Sent on connect and on every change.
     GetJoinRequestsResponse join_requests = 3;
+    // The template library as the server has it: what coupled templates
+    // follow. Sent on connect.
+    ListTemplateLibraryResponse library = 4;
   }
 }
 

@@ -5,6 +5,8 @@ import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
+import '../screens/workout/live_set_circle.dart';
+import '../screens/workout/section_workout.dart';
 import 'wearable_bridge_service.dart';
 import 'wearable_snapshot_builder.dart';
 
@@ -13,7 +15,6 @@ class WearableSyncCoordinator {
   final MultiplayerProvider _multiplayerProvider;
   final WearableBridgeService _bridgeService;
   final String Function() _myUserId;
-  final String Function() _myProfileEmoji;
 
   StreamSubscription? _intentSub;
   StreamSubscription? _sensorSub;
@@ -39,12 +40,10 @@ class WearableSyncCoordinator {
     required MultiplayerProvider multiplayerProvider,
     required WearableBridgeService bridgeService,
     required String Function() myUserId,
-    required String Function() myProfileEmoji,
   }) : _workoutProvider = workoutProvider,
        _multiplayerProvider = multiplayerProvider,
        _bridgeService = bridgeService,
-       _myUserId = myUserId,
-       _myProfileEmoji = myProfileEmoji;
+       _myUserId = myUserId;
 
   Future<void> init() async {
     await _bridgeService.init();
@@ -126,6 +125,18 @@ class WearableSyncCoordinator {
           intent.completeSet.actualWeight,
           completedAt: intent.completeSet.completedAt.toInt(),
         );
+      } else if (intent.hasTapSet() && intent.tapSet.workoutId == workoutId) {
+        // A circle tapped on the watch: what a tap on the phone's does.
+        final set = _workoutProvider.activeProposedSets
+            .where((s) => s.id == intent.tapSet.setId)
+            .firstOrNull;
+        if (set != null) {
+          await LiveSetCircle.tapSet(
+            _workoutProvider,
+            SectionWorkout.mine(_workoutProvider),
+            set,
+          );
+        }
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();
@@ -166,7 +177,6 @@ class WearableSyncCoordinator {
       workoutProvider: _workoutProvider,
       multiplayerProvider: _multiplayerProvider,
       myUserId: userId,
-      myProfileEmoji: _myProfileEmoji(),
     );
 
     if (snapshot == null) return;

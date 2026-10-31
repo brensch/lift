@@ -8,22 +8,28 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +53,10 @@ class MainActivity : ComponentActivity() {
     private var keepScreenOnForWorkout = false
     private var isAmbientMode by mutableStateOf(false)
 
+    // Bumped by the system's own ambient update (about once a minute), which
+    // redraws the dimmed face even if the tick's timer slept through.
+    private var ambientUpdates by mutableIntStateOf(0)
+
     private val ambientCallback =
         object : AmbientLifecycleObserver.AmbientLifecycleCallback {
             override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
@@ -61,6 +71,7 @@ class MainActivity : ComponentActivity() {
 
             override fun onUpdateAmbient() {
                 logLifecycleEvent("ambient onUpdate")
+                ambientUpdates += 1
             }
         }
     private val ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
@@ -113,8 +124,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             WearApp(
                 onAction = { action -> sendAction(action) },
+                onTapSet = { setId -> sendTap(setId) },
                 setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
                 isAmbientMode = isAmbientMode,
+                ambientUpdates = ambientUpdates,
             )
         }
     }
@@ -167,6 +180,20 @@ class MainActivity : ComponentActivity() {
             "onNewIntent",
             "flags=0x${intent.flags.toString(16)} action=${intent.action}",
         )
+    }
+
+    /**
+     * Hardware keys never act on the face. A focused clickable (a set circle,
+     * the rep circle) takes Enter or D-pad centre as a tap, so a crown or
+     * button press could log a set; only touches may. The keys still reach
+     * the system, which handles its own buttons first.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode in ACTIVATING_KEYS) {
+            Log.d(SCHLIFT_WEAR_TAG, "Ignored key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action}")
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onUserLeaveHint() {
@@ -272,13 +299,6 @@ class MainActivity : ComponentActivity() {
             "android.permission.health.READ_HEART_RATE",
         ) == PackageManager.PERMISSION_GRANTED
 
-    private fun hasExerciseSessionHeartRatePermission(): Boolean =
-        if (Build.VERSION.SDK_INT >= 36) {
-            hasReadHeartRatePermission()
-        } else {
-            hasBodySensorsPermission()
-        }
-
     private fun requiredWorkoutPermissions(): List<String> = listOf(Manifest.permission.ACTIVITY_RECOGNITION)
 
     private fun hasWorkoutPermissions(): Boolean =
@@ -355,6 +375,23 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    /** A tap on a set circle: the phone does what a tap there does. */
+    private fun sendTap(setId: String) {
+        val workoutId = WearDataRepository.snapshot.value?.workoutId ?: return
+        send(
+            Wearable.WearIntent
+                .newBuilder()
+                .setTapSet(
+                    Wearable.TapSetIntent
+                        .newBuilder()
+                        .setWorkoutId(workoutId)
+                        .setSetId(setId)
+                        .setTappedAt(System.currentTimeMillis() / 1000)
+                        .build(),
+                ).build(),
+        )
+    }
+
     private fun sendAction(action: Wearable.WearAction) {
         val workoutId = WearDataRepository.snapshot.value?.workoutId ?: return
 
@@ -383,7 +420,6 @@ class MainActivity : ComponentActivity() {
                                 .setSetId(action.setId)
                                 .setReps(action.reps)
                                 .setActualWeight(action.actualWeight)
-                                .setEffort(action.effort)
                                 .setCompletedAt(System.currentTimeMillis() / 1000)
                                 .build(),
                         ).build()
@@ -403,7 +439,15 @@ class MainActivity : ComponentActivity() {
                 else -> {
                     return
                 }
-            }.toBuilder()
+            }
+        send(intent)
+    }
+
+    /** Stamp [unsent] with an id and the time, and send it to the phone. */
+    private fun send(unsent: Wearable.WearIntent) {
+        val intent =
+            unsent
+                .toBuilder()
                 .setIntentId(
                     java.util.UUID
                         .randomUUID()
@@ -462,15 +506,23 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
+    onTapSet: (String) -> Unit,
     setWorkoutKeepScreenOn: (Boolean) -> Unit,
     isAmbientMode: Boolean,
+    ambientUpdates: Int,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
     val latestBpm by WearDataRepository.latestBpm.collectAsState()
-    val nowTick by produceState(initialValue = System.currentTimeMillis() / 1000) {
+    // Every second; dimmed, once a minute, on the minute rest turns over.
+    val nowTick by produceState(
+        initialValue = System.currentTimeMillis() / 1000,
+        isAmbientMode,
+        snapshot?.restUntil,
+        ambientUpdates,
+    ) {
         while (true) {
             value = System.currentTimeMillis() / 1000
-            delay(1000)
+            delay(if (isAmbientMode) ambientDelayMs(snapshot) else 1000L)
         }
     }
     LaunchedEffect(snapshot) {
@@ -521,6 +573,7 @@ private fun WearApp(
             nowTick = nowTick,
             isAmbientMode = isAmbientMode,
             onAction = onAction,
+            onTapSet = onTapSet,
         )
     }
 }
@@ -534,6 +587,7 @@ private fun WorkoutScreens(
     nowTick: Long,
     isAmbientMode: Boolean,
     onAction: (Wearable.WearAction) -> Unit,
+    onTapSet: (String) -> Unit,
 ) {
     val restTimer =
         remember(data.workoutId, data.restUntil, data.youCard.timerText, nowTick) {
@@ -563,6 +617,13 @@ private fun WorkoutScreens(
             onAction(action)
         }
     }
+    val tapSet: (String) -> Unit = { setId ->
+        if (!isActionPending) {
+            pendingActionEmittedAt = data.emittedAt
+            pendingActionStartedAtMs = System.currentTimeMillis()
+            onTapSet(setId)
+        }
+    }
 
     // When the local rest countdown expires, request a fresh snapshot immediately
     // rather than waiting up to 3 s for the next heartbeat, so the screen moves on
@@ -584,72 +645,132 @@ private fun WorkoutScreens(
         }
     }
 
-    val status =
-        WearStatus(
-            elapsedText = elapsedText,
-            bpm = latestBpm,
-            nextUpEmoji = data.nextUpEmoji,
-            ambient = isAmbientMode,
-        )
     val card = data.youCard
 
     fun action(type: Wearable.WearActionType): Wearable.WearAction? = data.actionsList.firstOrNull { it.type == type }
 
-    when (data.state) {
-        WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE -> {
-            DoneScreen(
-                status = status,
-                summary = if (data.hasCompletionSummary()) data.completionSummary else null,
-                endWorkout = action(Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT),
-                actionsEnabled = !isActionPending,
-                onAction = fire,
-            )
-        }
-
-        // Started: count up from Start; the finish logs the set. Done, or for a
-        // finding-weight rung how many reps were left (0–1 / 2–3 / 4+), in the
-        // order the phone sends them.
-        WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING -> {
-            LiftingScreen(
-                status = status,
-                timerText = deriveLiftingTimer(data),
-                label = card.stateLabel,
-                exerciseName = card.exerciseName,
-                setText = card.setText,
-                finishes =
-                    data.actionsList
-                        .filter { it.type == Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET },
-                actionsEnabled = !isActionPending,
-                onAction = fire,
-            )
-        }
-
-        // After a set: resting counts down, then yapping counts up (flipped
-        // locally the second the countdown ends). Start lifts the next set.
-        WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING,
-        WorkoutOuterClass.WorkoutState.WORKOUT_STATE_YAPPING,
-        -> {
-            RestScreen(
-                status = status,
-                timer = restTimer,
-                label = if (restTimer.countingUp) card.yappingLabel.ifEmpty { card.stateLabel } else card.stateLabel,
-                nextSetText = card.setText,
-                startSet = action(Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET),
-                actionsEnabled = !isActionPending,
-                onAction = fire,
-            )
-        }
-
-        else -> {
-            ReadyScreen(
-                status = status,
-                exerciseName = card.exerciseName,
-                setText = card.setText,
-                setLine = card.setLine,
-                startSet = action(Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET),
-                actionsEnabled = !isActionPending,
-                onAction = fire,
-            )
-        }
+    if (data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) {
+        DoneScreen(
+            summary = if (data.hasCompletionSummary()) data.completionSummary else null,
+            label = "All done",
+            endWorkout = action(Wearable.WearActionType.WEAR_ACTION_TYPE_END_WORKOUT),
+            enabled = !isActionPending,
+            onAction = fire,
+        )
+        return
     }
+
+    var showPlates by remember(data.workoutId) { mutableStateOf(false) }
+
+    val lifting = data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING
+    val resting =
+        data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_RESTING ||
+            data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_YAPPING
+    val yapping = resting && restTimer.countingUp
+    val primary =
+        action(Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET)
+            ?: action(Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET)
+
+    // The rest drains the band from the end of the last set to restUntil,
+    // animated rather than redrawn on the tick so it moves smoothly.
+    val restStartMs = data.lastSetEndedAt * 1000L
+    val restUntilMs = data.restUntil.toLong() * 1000L
+    val draining = resting && !yapping && restStartMs in 1 until restUntilMs
+    val bandFill = remember(data.workoutId) { Animatable(1f) }
+    // Dimmed, the band is never drawn draining: no animation to pay for.
+    LaunchedEffect(draining, restStartMs, restUntilMs, isAmbientMode) {
+        if (isAmbientMode) return@LaunchedEffect
+        val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
+        if (!draining || leftMs <= 0L) {
+            bandFill.snapTo(if (draining) 0f else 1f)
+            return@LaunchedEffect
+        }
+        bandFill.snapTo(leftMs.toFloat() / (restUntilMs - restStartMs))
+        bandFill.animateTo(0f, tween(durationMillis = leftMs.toInt(), easing = LinearEasing))
+    }
+
+    val stageColor =
+        when {
+            card.firstTime -> WearPalette.FirstTime
+            lifting -> WearPalette.Lifting
+            yapping -> WearPalette.Yapping
+            resting -> WearPalette.Resting
+            else -> WearPalette.Ready
+        }
+    // The set the rep circle stands for: the one in hand.
+    val inHand =
+        data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_LIFTING }
+            ?: data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_NEXT }
+    // Dimmed (always-on), the same face in grey on black. It is redrawn about
+    // once a minute, so rest is counted in minutes and nothing ticks seconds.
+    val dim = isAmbientMode
+    val rest = if (dim && resting) ambientRest(data) else null
+    val face =
+        WearFace(
+            circles = data.circlesList,
+            upNext = data.upNextText,
+            label = if (yapping) card.yappingLabel.ifEmpty { card.stateLabel } else card.stateLabel,
+            timer =
+                when {
+                    dim -> rest?.minutes ?: ""
+                    card.firstTime -> ""
+                    lifting -> deriveLiftingTimer(data)
+                    resting -> restTimer.text
+                    else -> ""
+                },
+            stageColor = if (dim) WearPalette.Ambient else stageColor,
+            // Resting drains to the stage colour washed toward the panel.
+            trackColor =
+                when {
+                    dim -> WearPalette.Ambient
+                    draining -> lerp(stageColor, WearPalette.Panel, 0.6f)
+                    else -> stageColor
+                },
+            bandInk =
+                when {
+                    dim -> WearPalette.AmbientText
+                    lifting && !card.firstTime -> WearPalette.Text
+                    else -> WearPalette.OnDark
+                },
+            bandFill = if (draining && !dim) bandFill.value else 1f,
+            exercise = card.exerciseName,
+            position = card.setLine,
+            weight = card.weightText.ifEmpty { card.setText },
+            unit = card.unitText,
+            reps = card.repsText,
+            repState = inHand?.state ?: Wearable.WearCircleState.WEAR_CIRCLE_STATE_PENDING,
+            bpm = latestBpm,
+            // Dimmed, when rest ends in place of a ticking length.
+            elapsed = if (dim) rest?.until ?: "" else elapsedText,
+            clock = java.text.SimpleDateFormat("H:mm", java.util.Locale.getDefault()).format(java.util.Date(nowTick * 1000L)),
+            hasPlates = card.platesText.isNotEmpty(),
+        )
+
+    PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
+    FaceScreen(
+        face = face,
+        colors = if (dim) DimColors else LitColors,
+        enabled = !dim && !isActionPending,
+        onTapSet = tapSet,
+        onRep = {
+            when {
+                inHand != null -> tapSet(inHand.setId)
+                else -> primary?.let(fire)
+            }
+        },
+        onWeight = { showPlates = true },
+    )
 }
+
+/** Keys that would press a focused clickable. */
+private val ACTIVATING_KEYS =
+    setOf(
+        KeyEvent.KEYCODE_ENTER,
+        KeyEvent.KEYCODE_NUMPAD_ENTER,
+        KeyEvent.KEYCODE_DPAD_CENTER,
+        KeyEvent.KEYCODE_SPACE,
+        KeyEvent.KEYCODE_STEM_PRIMARY,
+        KeyEvent.KEYCODE_STEM_1,
+        KeyEvent.KEYCODE_STEM_2,
+        KeyEvent.KEYCODE_STEM_3,
+    )

@@ -10,8 +10,9 @@ use tonic::Streaming;
 // One stream per connected phone. Up: the phone's events (and heartbeats).
 // Down: the head the server holds after each, and — whenever it changes,
 // on connect, and every RESEND_EVERY regardless — the caller's session and
-// requests to join them. Every down message is whole, never a diff, so a
-// dropped one is healed by the next.
+// requests to join them; and on connect the template library, which coupled
+// templates follow. Every down message is whole, never a diff, so a dropped
+// one is healed by the next.
 
 /// How often the session and join requests are re-sent even with nothing
 /// heard to change them: the backstop for a missed notification, and how a
@@ -103,6 +104,16 @@ impl Stream {
         if self.send(sync_response::Kind::Head(head)).await.is_err() {
             return Ok(());
         }
+        let library = ListTemplateLibraryResponse {
+            templates: schlift_core::template_library::library().to_vec(),
+        };
+        if self
+            .send(sync_response::Kind::Library(library))
+            .await
+            .is_err()
+        {
+            return Ok(());
+        }
         let mut resend = tokio::time::interval(RESEND_EVERY);
         loop {
             let sent = tokio::select! {
@@ -180,8 +191,14 @@ impl Stream {
         )
         .await?;
         if pushed.ended_workout.is_some() {
+            // Ending is leaving: the final state stays on show to the others
+            // (until it goes idle), and the roster records the leave.
             self.db
                 .clear_user_current_session(&self.user_id)
+                .await
+                .map_err(internal_error)?;
+            self.db
+                .mark_session_member_left(&session_id, &self.user_id)
                 .await
                 .map_err(internal_error)?;
         }

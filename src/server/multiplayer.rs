@@ -13,7 +13,10 @@ use super::*;
 //     caller's current session (db/accounts.rs).
 //   - Any synced event: refresh the caller's blob (sync.rs).
 //   - A synced EndWorkout: refresh the caller's final blob, then delete the
-//     caller's row (sync.rs).
+//     caller's row and stamp left_at (sync.rs): ending is leaving.
+//   - Idle: a member whose blob hasn't been refreshed for SESSION_IDLE_SECONDS
+//     (db/session.rs) is out — their pointer reads as none and their blob is
+//     no longer shown — so a join that never started doesn't linger.
 //   - LeaveCurrentSession: delete caller's row, prune their live blob so peers stop
 //     seeing them, and stamp left_at on the durable session_members roster.
 //
@@ -68,7 +71,7 @@ impl ServerMultiplayerService {
     async fn leave_other_session(&self, user_id: &str, target: &str) -> ServerResult<()> {
         if let Some(current) = self
             .db
-            .get_user_current_session(user_id)
+            .get_user_session_pointer(user_id)
             .await
             .map_err(internal_error)?
         {
@@ -101,6 +104,8 @@ impl ServerMultiplayerService {
             .await
             .map_err(internal_error)?
             .unwrap_or_else(|| Uuid::new_v4().to_string());
+        // An idle anchor starts afresh: their old session gets their leave.
+        self.leave_other_session(anchor, &session_id).await?;
         self.leave_other_session(joiner, &session_id).await?;
         self.place_user_in_session(anchor, &session_id).await?;
         self.place_user_in_session(joiner, &session_id).await?;
@@ -229,7 +234,7 @@ impl MultiplayerService for ServerMultiplayerService {
         // we can prune the live cache and stamp the durable roster.
         let session_id = self
             .db
-            .get_user_current_session(&caller_id)
+            .get_user_session_pointer(&caller_id)
             .await
             .map_err(internal_error)?;
         self.db

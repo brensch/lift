@@ -28,6 +28,33 @@ void main() {
     expect(status.timerText, '0:30');
   });
 
+  test('rest left runs from the last Done to the rest end', () {
+    final done = [CompletedSet(endedAt: Int64(nowUnix - 30))];
+    expect(restLeftFraction(done, nowUnix + 90, nowUnix), closeTo(0.75, 1e-9));
+    expect(restLeftFraction(done, nowUnix - 1, nowUnix), 0.0);
+    expect(restLeftFraction(const [], nowUnix + 90, nowUnix), isNull);
+  });
+
+  test('a partner who has joined but not started is choosing', () {
+    final status = describeParticipantStatus(
+      ParticipantStatus(),
+      tokens: schliftSpec,
+      now: now,
+    );
+    expect(status.stateLabel, copy.workout.choosing);
+    expect(status.isComplete, isFalse);
+  });
+
+  test('a partner whose workout has ended is all done', () {
+    final status = describeParticipantStatus(
+      ParticipantStatus(activeWorkout: Workout(endTime: Int64(nowUnix - 60))),
+      tokens: schliftSpec,
+      now: now,
+    );
+    expect(status.stateLabel, copy.workout.allDone);
+    expect(status.isComplete, isTrue);
+  });
+
   test("a partner's rest that ran out since their last change is yapping", () {
     final status = describeParticipantStatus(
       resting(restUntil: nowUnix - 75),

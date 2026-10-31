@@ -9,7 +9,7 @@ use prost::Message;
 use rusqlite::{params, Connection, OptionalExtension};
 use schlift_core::account::{event_workout_ids, Account};
 use schlift_core::api::{self, Call};
-use schlift_core::pb::Event;
+use schlift_core::pb::{Event, LibraryTemplate, ListTemplateLibraryResponse};
 use schlift_core::projection::{
     account_statements, workout_statements, Statement, Value, ACCOUNT_SCHEMA, WORKOUT_SCHEMA,
 };
@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS events (
     id TEXT NOT NULL,
     at INTEGER NOT NULL,
     event_blob BLOB NOT NULL
+);
+
+-- The template library as the server last sent it (a
+-- ListTemplateLibraryResponse): what coupled templates follow. Absent until
+-- the first sync; the library built into the app stands in.
+CREATE TABLE IF NOT EXISTS library (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    blob BLOB NOT NULL
 );
 "#;
 
@@ -52,6 +60,7 @@ pub struct Store {
     conn: Connection,
     user_id: String,
     account: Account,
+    library: Vec<LibraryTemplate>,
 }
 
 impl Store {
@@ -94,7 +103,18 @@ impl Store {
             conn,
             user_id: user_id.to_string(),
             account: Account::default(),
+            library: schlift_core::template_library::library().to_vec(),
         };
+        let saved: Option<Vec<u8>> = store
+            .conn
+            .query_row("SELECT blob FROM library WHERE id = 1", [], |r| r.get(0))
+            .optional()
+            .map_err(storage)?;
+        if let Some(blob) = saved {
+            store.library = ListTemplateLibraryResponse::decode(blob.as_slice())
+                .map_err(storage)?
+                .templates;
+        }
         store.account = Account::fold(&store.events_after(0)?);
         store.reproject()?;
         Ok(store)
@@ -131,7 +151,7 @@ impl Store {
     /// given, so nothing the app was told happened can be lost.
     pub fn call(&mut self, method: &str, request: &[u8], now: i64) -> StoreResult<Vec<u8>> {
         let event_id = uuid::Uuid::new_v4().to_string();
-        let mut call = Call::new(&mut self.account, now, event_id);
+        let mut call = Call::new(&mut self.account, now, event_id).with_library(&self.library);
         let response = api::call(&mut call, method, request).map_err(|e| {
             let code = match e {
                 schlift_core::account::CoreError::InvalidArgument(_) => "invalid_argument",
@@ -177,6 +197,26 @@ impl Store {
             run(&tx, statement)?;
         }
         tx.commit().map_err(storage)
+    }
+
+    /// Keep the library the server sent (a ListTemplateLibraryResponse).
+    /// Returns whether it differs from the one in use.
+    pub fn set_library(&mut self, packed: &[u8]) -> StoreResult<bool> {
+        let library = ListTemplateLibraryResponse::decode(packed)
+            .map_err(|e| format!("invalid_argument: {e}"))?
+            .templates;
+        if library == self.library {
+            return Ok(false);
+        }
+        self.conn
+            .execute(
+                "INSERT INTO library (id, blob) VALUES (1, ?)
+                 ON CONFLICT(id) DO UPDATE SET blob = excluded.blob",
+                [packed],
+            )
+            .map_err(storage)?;
+        self.library = library;
+        Ok(true)
     }
 
     pub fn events_after(&self, seq: i64) -> StoreResult<Vec<Event>> {

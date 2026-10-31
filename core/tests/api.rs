@@ -12,11 +12,13 @@ use uuid::Uuid;
 /// A plausible "now" for tests that read the clock.
 const NOW: i64 = 1_800_000_000;
 
-/// The phone, minus storage: an account, a clock and the event log.
+/// The phone, minus storage: an account, a clock, the event log and the
+/// template library the server last sent.
 struct App {
     account: Account,
     now: i64,
     log: Vec<Event>,
+    library: Vec<LibraryTemplate>,
 }
 
 impl App {
@@ -25,17 +27,18 @@ impl App {
             account: Account::default(),
             now: NOW,
             log: Vec::new(),
+            library: schlift_core::template_library::library().to_vec(),
         }
     }
 
     fn view(&self) -> View<'_> {
-        View::new(&self.account, self.now)
+        View::new(&self.account, self.now).with_library(&self.library)
     }
 
     fn call(&mut self) -> Recording<'_> {
         let id = Uuid::new_v4().to_string();
         Recording {
-            call: Call::new(&mut self.account, self.now, id),
+            call: Call::new(&mut self.account, self.now, id).with_library(&self.library),
             log: &mut self.log,
         }
     }
@@ -89,6 +92,7 @@ fn onboard(app: &mut App, unit: WeightUnit) -> GetHomeResponse {
             gender: 0,
             library_ids: vec![],
             strength: None,
+            library_entries: vec![],
         })
         .unwrap()
         .home
@@ -213,6 +217,7 @@ mod home_and_onboarding {
                 gender: 0,
                 library_ids: vec!["stronglifts_a".into(), "butt_stuff".into()],
                 strength: None,
+                library_entries: vec![],
             })
             .unwrap()
             .home
@@ -245,6 +250,7 @@ mod home_and_onboarding {
                 gender: 0,
                 library_ids: vec!["nope".into()],
                 strength: None,
+                library_entries: vec![],
             })
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)), "{err:?}");
@@ -271,6 +277,7 @@ mod home_and_onboarding {
             .call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into(), already.clone()],
+                entries: vec![],
             })
             .unwrap()
             .home
@@ -280,31 +287,39 @@ mod home_and_onboarding {
         assert_eq!(added.library_id, "butt_stuff");
         assert_eq!(added.name, "Butt Stuff");
 
-        // The copy is the user's: rename it, and it stays theirs.
+        assert!(added.coupled, "a library workout follows the library");
+
+        // Saved unchanged it still follows; renamed it becomes the user's
+        // own, and the library entry can be added again beside it.
+        app.call()
+            .save_template(SaveTemplateRequest {
+                template: Some(added.clone()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert!(app.account.template(&added.id).unwrap().coupled);
         let mut mine = added.clone();
         mine.name = "Cake Day".into();
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(mine),
+                ..Default::default()
             })
             .unwrap();
         let home = self::home(&mut app);
-        let renamed = home
-            .templates
-            .iter()
-            .find(|t| t.library_id == "butt_stuff")
-            .unwrap();
+        let renamed = home.templates.iter().find(|t| t.id == added.id).unwrap();
         assert_eq!(renamed.name, "Cake Day");
-        // Still counts as present, so adding again does nothing.
+        assert!(!renamed.coupled && renamed.library_id.is_empty());
         let home = app
             .call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into()],
+                entries: vec![],
             })
             .unwrap()
             .home
             .unwrap();
-        assert_eq!(home.templates.len(), before + 1);
+        assert_eq!(home.templates.len(), before + 2);
 
         // Deletion of the copy leaves the library untouched.
         app.call()
@@ -328,6 +343,7 @@ mod home_and_onboarding {
                 gender: Gender::Male as i32,
                 library_ids: vec![],
                 strength: None,
+                library_entries: vec![],
             })
             .unwrap()
             .home
@@ -365,6 +381,7 @@ mod home_and_onboarding {
                 gender: 0,
                 library_ids: vec![],
                 strength: None,
+                library_entries: vec![],
             })
             .unwrap()
             .home
@@ -400,6 +417,7 @@ mod templates {
                     "Arms",
                     &[Exercise::BarbellCurl, Exercise::SkullCrusher],
                 )),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -413,6 +431,7 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(edited),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -424,6 +443,7 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(template("Legs", &[Exercise::Squat])),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -454,6 +474,7 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(template("Empty", &[])),
+                ..Default::default()
             })
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)), "{err:?}");
@@ -485,6 +506,7 @@ mod template_workout_loop {
                     "Lower",
                     &[Exercise::Squat, Exercise::Crunch, Exercise::CalfRaise],
                 )),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -950,6 +972,7 @@ mod calibration_and_effort {
                 gender: 0,
                 library_ids: vec![],
                 strength: Some(0.5),
+                library_entries: vec![],
             })
             .unwrap()
             .home
@@ -981,6 +1004,40 @@ mod calibration_and_effort {
     }
 
     /// A pull-up has no weight to find.
+    /// The first-time "I lift X", before any rung: the ramp gives way to
+    /// the warmup ladder and the full working sets at X.
+    #[test]
+    fn a_weight_given_up_front_skips_the_ramp() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let workout_id = started.workout.unwrap().id;
+        let state = apply(
+            &mut app,
+            vec![mutation_at(
+                Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
+                    workout_id: workout_id.clone(),
+                    exercise: Exercise::Squat as i32,
+                    working_weight: 135.0,
+                    ..Default::default()
+                }),
+                1_050,
+            )],
+        );
+        let squat: Vec<&ProposedSet> = state
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Squat as i32)
+            .collect();
+        assert!(squat.iter().all(|s| !s.calibration), "no ramp left");
+        assert!(squat.iter().any(|s| s.warmup), "a ladder up to it");
+        let working: Vec<_> = squat.iter().filter(|s| !s.warmup).collect();
+        assert_eq!(working.len(), 5);
+        assert!(working
+            .iter()
+            .all(|s| s.target_weight == 135.0 && s.target_reps == 5));
+    }
+
     #[test]
     fn bodyweight_never_calibrates() {
         let mut app = App::new();
@@ -1332,6 +1389,7 @@ mod the_log {
             .call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into(), "nope".into()],
+                entries: vec![],
             })
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)));
@@ -1447,5 +1505,142 @@ mod starting_weights {
                 );
             }
         }
+    }
+}
+
+mod library_coupling {
+    use super::*;
+
+    fn stronglifts_a(app: &mut App) -> WorkoutTemplate {
+        onboard(app, WeightUnit::Lb)
+            .templates
+            .into_iter()
+            .find(|t| t.library_id == "stronglifts_a")
+            .unwrap()
+    }
+
+    /// The server changes a default: the next home shows it, a start runs
+    /// it, and the start's event carries it — so the log replays the same
+    /// without the library (App's Drop checks that).
+    #[test]
+    fn a_library_change_reaches_coupled_templates() {
+        let mut app = App::new();
+        let template = stronglifts_a(&mut app);
+        assert!(template.coupled);
+
+        let entry = app
+            .library
+            .iter_mut()
+            .find(|e| e.id == "stronglifts_a")
+            .unwrap();
+        entry.name = "StrongLifts A+".into();
+        entry.exercises = vec![Exercise::Squat as i32, Exercise::Deadlift as i32];
+
+        let shown = home(&mut app)
+            .templates
+            .into_iter()
+            .find(|t| t.id == template.id)
+            .unwrap();
+        assert_eq!(shown.name, "StrongLifts A+");
+        assert_eq!(shown.exercises.len(), 2);
+
+        let started = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                template_id: template.id.clone(),
+                ..Default::default()
+            })
+            .unwrap();
+        let exercises: std::collections::BTreeSet<i32> =
+            started.proposed_sets.iter().map(|s| s.exercise).collect();
+        assert_eq!(
+            exercises,
+            [Exercise::Squat as i32, Exercise::Deadlift as i32].into()
+        );
+        let workout = started.workout.unwrap();
+        assert_eq!(workout.template_id, template.id, "recorded against it");
+        assert_eq!(
+            workout.name, "StrongLifts A+",
+            "under the library's name of now"
+        );
+    }
+
+    /// Clone makes it the user's own in place: same id (its history stays
+    /// with it), the library's exercises of the moment, and library changes
+    /// no longer reach it.
+    #[test]
+    fn clone_keeps_the_id_and_stops_following() {
+        let mut app = App::new();
+        let template = stronglifts_a(&mut app);
+        let cloned = app
+            .call()
+            .clone_template(CloneTemplateRequest {
+                template_id: template.id.clone(),
+                ..Default::default()
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        assert_eq!(cloned.id, template.id);
+        assert!(!cloned.coupled && cloned.library_id.is_empty());
+        assert_eq!(cloned.exercises, template.exercises);
+
+        app.library
+            .iter_mut()
+            .find(|e| e.id == "stronglifts_a")
+            .unwrap()
+            .exercises = vec![Exercise::Deadlift as i32];
+        let shown = home(&mut app)
+            .templates
+            .into_iter()
+            .find(|t| t.id == template.id)
+            .unwrap();
+        assert_eq!(shown.exercises, template.exercises, "its own now");
+    }
+
+    /// The library moved on; the user edits the template back to the copy
+    /// stored when they added it. That is a change to what they saw, so it
+    /// becomes theirs rather than following the library again.
+    #[test]
+    fn an_edit_back_to_the_stored_copy_is_kept() {
+        let mut app = App::new();
+        let template = stronglifts_a(&mut app);
+        app.library
+            .iter_mut()
+            .find(|e| e.id == "stronglifts_a")
+            .unwrap()
+            .exercises = vec![Exercise::Deadlift as i32];
+
+        let saved = app
+            .call()
+            .save_template(SaveTemplateRequest {
+                template: Some(template.clone()),
+                ..Default::default()
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        assert!(!saved.coupled, "the user's own now");
+        let shown = home(&mut app)
+            .templates
+            .into_iter()
+            .find(|t| t.id == template.id)
+            .unwrap();
+        assert_eq!(shown.exercises, template.exercises, "the edit stands");
+    }
+
+    /// A default the server drops keeps working from what was stored.
+    #[test]
+    fn a_dropped_entry_falls_back_to_the_stored_copy() {
+        let mut app = App::new();
+        let template = stronglifts_a(&mut app);
+        app.library.retain(|e| e.id != "stronglifts_a");
+        let shown = home(&mut app)
+            .templates
+            .into_iter()
+            .find(|t| t.id == template.id)
+            .unwrap();
+        assert_eq!(shown.name, template.name);
+        assert_eq!(shown.exercises, template.exercises);
     }
 }

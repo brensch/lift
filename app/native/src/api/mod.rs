@@ -76,6 +76,12 @@ pub fn restore(handle: u32, packed: Vec<u8>) -> StoreResult<i64> {
     with_store(handle, |store| store.restore(events))
 }
 
+/// The template library the server sent (a packed
+/// ListTemplateLibraryResponse). Returns whether it changed.
+pub fn set_library(handle: u32, packed: Vec<u8>) -> StoreResult<bool> {
+    with_store(handle, |store| store.set_library(&packed))
+}
+
 /// Write the whole account to `dest` (a single SQLite file).
 pub fn export_account(handle: u32, dest: String) -> StoreResult<()> {
     with_store(handle, |store| store.export(&PathBuf::from(dest)))

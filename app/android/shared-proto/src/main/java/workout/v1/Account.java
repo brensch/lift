@@ -195,6 +195,17 @@ public final class Account {
      */
     workout.v1.Account.ImportHistory getImportHistory();
 
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     * @return Whether the cloneTemplate field is set.
+     */
+    boolean hasCloneTemplate();
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     * @return The cloneTemplate.
+     */
+    workout.v1.WorkoutOuterClass.CloneTemplateRequest getCloneTemplate();
+
     public workout.v1.Account.Event.KindCase getKindCase();
   }
   /**
@@ -223,6 +234,7 @@ public final class Account {
       UPDATE_SETTING(19),
       DISMISS_USER_MESSAGES(20),
       IMPORT_HISTORY(21),
+      CLONE_TEMPLATE(22),
       KIND_NOT_SET(0);
       private final int value;
       private KindCase(int value) {
@@ -250,6 +262,7 @@ public final class Account {
           case 19: return UPDATE_SETTING;
           case 20: return DISMISS_USER_MESSAGES;
           case 21: return IMPORT_HISTORY;
+          case 22: return CLONE_TEMPLATE;
           case 0: return KIND_NOT_SET;
           default: return null;
         }
@@ -1037,6 +1050,56 @@ public final class Account {
      */
     private void clearImportHistory() {
       if (kindCase_ == 21) {
+        kindCase_ = 0;
+        kind_ = null;
+      }
+    }
+
+    public static final int CLONE_TEMPLATE_FIELD_NUMBER = 22;
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     */
+    @java.lang.Override
+    public boolean hasCloneTemplate() {
+      return kindCase_ == 22;
+    }
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.CloneTemplateRequest getCloneTemplate() {
+      if (kindCase_ == 22) {
+         return (workout.v1.WorkoutOuterClass.CloneTemplateRequest) kind_;
+      }
+      return workout.v1.WorkoutOuterClass.CloneTemplateRequest.getDefaultInstance();
+    }
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     */
+    private void setCloneTemplate(workout.v1.WorkoutOuterClass.CloneTemplateRequest value) {
+      value.getClass();
+  kind_ = value;
+      kindCase_ = 22;
+    }
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     */
+    private void mergeCloneTemplate(workout.v1.WorkoutOuterClass.CloneTemplateRequest value) {
+      value.getClass();
+  if (kindCase_ == 22 &&
+          kind_ != workout.v1.WorkoutOuterClass.CloneTemplateRequest.getDefaultInstance()) {
+        kind_ = workout.v1.WorkoutOuterClass.CloneTemplateRequest.newBuilder((workout.v1.WorkoutOuterClass.CloneTemplateRequest) kind_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        kind_ = value;
+      }
+      kindCase_ = 22;
+    }
+    /**
+     * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+     */
+    private void clearCloneTemplate() {
+      if (kindCase_ == 22) {
         kindCase_ = 0;
         kind_ = null;
       }
@@ -1906,6 +1969,54 @@ public final class Account {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+       */
+      @java.lang.Override
+      public boolean hasCloneTemplate() {
+        return instance.hasCloneTemplate();
+      }
+      /**
+       * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.CloneTemplateRequest getCloneTemplate() {
+        return instance.getCloneTemplate();
+      }
+      /**
+       * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+       */
+      public Builder setCloneTemplate(workout.v1.WorkoutOuterClass.CloneTemplateRequest value) {
+        copyOnWrite();
+        instance.setCloneTemplate(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+       */
+      public Builder setCloneTemplate(
+          workout.v1.WorkoutOuterClass.CloneTemplateRequest.Builder builderForValue) {
+        copyOnWrite();
+        instance.setCloneTemplate(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+       */
+      public Builder mergeCloneTemplate(workout.v1.WorkoutOuterClass.CloneTemplateRequest value) {
+        copyOnWrite();
+        instance.mergeCloneTemplate(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.CloneTemplateRequest clone_template = 22 [json_name = "cloneTemplate"];</code>
+       */
+      public Builder clearCloneTemplate() {
+        copyOnWrite();
+        instance.clearCloneTemplate();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.Event)
     }
     @java.lang.Override
@@ -1939,11 +2050,13 @@ public final class Account {
               workout.v1.Settings.UpdateSettingRequest.class,
               workout.v1.WorkoutOuterClass.DismissUserMessagesRequest.class,
               workout.v1.Account.ImportHistory.class,
+              workout.v1.WorkoutOuterClass.CloneTemplateRequest.class,
             };
             java.lang.String info =
-                "\u0000\u000f\u0001\u0000\u0001\u0015\u000f\u0000\u0000\u0000\u0001\u0002\u0002\u0208" +
+                "\u0000\u0010\u0001\u0000\u0001\u0016\u0010\u0000\u0000\u0000\u0001\u0002\u0002\u0208" +
                 "\u0003\u0002\n<\u0000\u000b<\u0000\f<\u0000\r<\u0000\u000e<\u0000\u000f<\u0000\u0010" +
-                "<\u0000\u0011<\u0000\u0012<\u0000\u0013<\u0000\u0014<\u0000\u0015<\u0000";
+                "<\u0000\u0011<\u0000\u0012<\u0000\u0013<\u0000\u0014<\u0000\u0015<\u0000\u0016<\u0000" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -5276,6 +5389,27 @@ public final class Account {
      */
     workout.v1.Group.GetJoinRequestsResponse getJoinRequests();
 
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     * @return Whether the library field is set.
+     */
+    boolean hasLibrary();
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     * @return The library.
+     */
+    workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse getLibrary();
+
     public workout.v1.Account.SyncResponse.KindCase getKindCase();
   }
   /**
@@ -5294,6 +5428,7 @@ public final class Account {
       HEAD(1),
       SESSION(2),
       JOIN_REQUESTS(3),
+      LIBRARY(4),
       KIND_NOT_SET(0);
       private final int value;
       private KindCase(int value) {
@@ -5312,6 +5447,7 @@ public final class Account {
           case 1: return HEAD;
           case 2: return SESSION;
           case 3: return JOIN_REQUESTS;
+          case 4: return LIBRARY;
           case 0: return KIND_NOT_SET;
           default: return null;
         }
@@ -5527,6 +5663,81 @@ public final class Account {
      */
     private void clearJoinRequests() {
       if (kindCase_ == 3) {
+        kindCase_ = 0;
+        kind_ = null;
+      }
+    }
+
+    public static final int LIBRARY_FIELD_NUMBER = 4;
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     */
+    @java.lang.Override
+    public boolean hasLibrary() {
+      return kindCase_ == 4;
+    }
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse getLibrary() {
+      if (kindCase_ == 4) {
+         return (workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse) kind_;
+      }
+      return workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse.getDefaultInstance();
+    }
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     */
+    private void setLibrary(workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse value) {
+      value.getClass();
+  kind_ = value;
+      kindCase_ = 4;
+    }
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     */
+    private void mergeLibrary(workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse value) {
+      value.getClass();
+  if (kindCase_ == 4 &&
+          kind_ != workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse.getDefaultInstance()) {
+        kind_ = workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse.newBuilder((workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse) kind_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        kind_ = value;
+      }
+      kindCase_ = 4;
+    }
+    /**
+     * <pre>
+     * The template library as the server has it: what coupled templates
+     * follow. Sent on connect.
+     * </pre>
+     *
+     * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+     */
+    private void clearLibrary() {
+      if (kindCase_ == 4) {
         kindCase_ = 0;
         kind_ = null;
       }
@@ -5841,6 +6052,84 @@ public final class Account {
         return this;
       }
 
+      /**
+       * <pre>
+       * The template library as the server has it: what coupled templates
+       * follow. Sent on connect.
+       * </pre>
+       *
+       * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+       */
+      @java.lang.Override
+      public boolean hasLibrary() {
+        return instance.hasLibrary();
+      }
+      /**
+       * <pre>
+       * The template library as the server has it: what coupled templates
+       * follow. Sent on connect.
+       * </pre>
+       *
+       * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse getLibrary() {
+        return instance.getLibrary();
+      }
+      /**
+       * <pre>
+       * The template library as the server has it: what coupled templates
+       * follow. Sent on connect.
+       * </pre>
+       *
+       * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+       */
+      public Builder setLibrary(workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse value) {
+        copyOnWrite();
+        instance.setLibrary(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The template library as the server has it: what coupled templates
+       * follow. Sent on connect.
+       * </pre>
+       *
+       * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+       */
+      public Builder setLibrary(
+          workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse.Builder builderForValue) {
+        copyOnWrite();
+        instance.setLibrary(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The template library as the server has it: what coupled templates
+       * follow. Sent on connect.
+       * </pre>
+       *
+       * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+       */
+      public Builder mergeLibrary(workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse value) {
+        copyOnWrite();
+        instance.mergeLibrary(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The template library as the server has it: what coupled templates
+       * follow. Sent on connect.
+       * </pre>
+       *
+       * <code>.workout.v1.ListTemplateLibraryResponse library = 4 [json_name = "library"];</code>
+       */
+      public Builder clearLibrary() {
+        copyOnWrite();
+        instance.clearLibrary();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.SyncResponse)
     }
     @java.lang.Override
@@ -5861,10 +6150,11 @@ public final class Account {
               "kindCase_",
               workout.v1.Group.GetCurrentSessionResponse.class,
               workout.v1.Group.GetJoinRequestsResponse.class,
+              workout.v1.WorkoutOuterClass.ListTemplateLibraryResponse.class,
             };
             java.lang.String info =
-                "\u0000\u0003\u0001\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u00015\u0000\u0002<" +
-                "\u0000\u0003<\u0000";
+                "\u0000\u0004\u0001\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u00015\u0000\u0002<" +
+                "\u0000\u0003<\u0000\u0004<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

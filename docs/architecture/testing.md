@@ -65,7 +65,7 @@ After **every mutation** it re-reads the workout and asserts, among others:
 | Completed sets reference an existing proposed set, at most one each | Orphans, double completion |
 | `workout_order` is unique among live sets | The "sets jump around" class of bug |
 | `next_up_set` is one of the workout's sets and not already done | Bad next-up derivation |
-| No snapshot carries an `effort_prompt`; `RateExercise` changes nothing | The retired ratings coming back |
+| `RateExercise` changes nothing | The retired ratings coming back |
 | At most six calibration rungs per exercise | Runaway ramps |
 | A done set has `ended_at`, wasn't started after it ended, rests after it ended | Time faults |
 | Weights finite and non-negative, reps non-negative | Arithmetic and rounding faults |

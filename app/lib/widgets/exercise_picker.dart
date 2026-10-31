@@ -15,8 +15,9 @@ Color bodyPartColor(BuildContext context, BodyPart part) =>
     context.tokens.bodyParts[part.index];
 
 /// Opens the full-height exercise picker as a staged selection: the user
-/// picks freely, nothing applies until SAVE, and dismissing with changes
-/// asks first. Presented on the root navigator so it covers the workout
+/// picks freely, nothing applies until SAVE (the big button at the
+/// bottom), and dismissing it (swipe, tap outside, back) with changes asks
+/// first. Presented on the root navigator so it covers the workout
 /// bottom bar. [onSave] receives the final selection.
 Future<void> showExercisePicker({
   required BuildContext context,
@@ -31,8 +32,8 @@ Future<void> showExercisePicker({
     isScrollControlled: true,
     useRootNavigator: true,
     // Dismissal goes through the X so unsaved changes can ask first.
-    isDismissible: false,
-    enableDrag: false,
+    isDismissible: true,
+    enableDrag: true,
     backgroundColor: Colors.transparent,
     builder: (ctx) => _ExercisePickerSheet(
       initialSelected: initialSelected,
@@ -186,140 +187,155 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     final colorScheme = Theme.of(context).colorScheme;
     final filtered = _filtered;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
-          child: Column(
-            children: [
-              // grab handle
-              AppTheme.sheetHandle(context),
-              // header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 12, 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Select exercises',
-                        style: TextStyle(
-                          fontSize: context.tokens.size.subtitle,
-                          fontWeight: context.tokens.weight.heavy,
-                          letterSpacing: -0.3,
+    // Leaving with changes asks first, however it's left.
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) {
+          return Container(
+            decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
+            child: Column(
+              children: [
+                // grab handle
+                AppTheme.sheetHandle(context),
+                // header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Select exercises',
+                          style: TextStyle(
+                            fontSize: context.tokens.size.subtitle,
+                            fontWeight: context.tokens.weight.heavy,
+                            letterSpacing: -0.3,
+                          ),
                         ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: _dirty ? _save : null,
-                      child: Text(
-                        'SAVE',
-                        style: TextStyle(
-                          fontWeight: context.tokens.weight.heavy,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: _close,
-                      icon: const Icon(AppIcons.close),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // search
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search exercises…',
-                    prefixIcon: const Icon(AppIcons.search, size: 20),
-                    isDense: true,
-                    filled: true,
-                    fillColor: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: context.tokens.brSm,
-                      borderSide: BorderSide(color: colorScheme.outline),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                // search: on the same 20 inset as the filters and the list
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search exercises…',
+                      prefixIcon: const Icon(AppIcons.search, size: 20),
+                      isDense: true,
+                      filled: true,
+                      fillColor: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: context.tokens.brSm,
+                        borderSide: BorderSide(color: colorScheme.outline),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // body-part filters
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _FilterChip(
-                      label: 'ALL',
-                      color: colorScheme.primary,
-                      selected: _filter == null,
-                      onTap: () => setState(() => _filter = null),
-                    ),
-                    for (final part in BodyPart.values)
+                // body-part filters
+                SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
                       _FilterChip(
-                        label: bodyPartLabels[part]!.toUpperCase(),
-                        color: bodyPartColor(context, part),
-                        selected: _filter == part,
-                        alwaysOutlined: part == BodyPart.ass,
-                        onTap: () => setState(
-                          () => _filter = _filter == part ? null : part,
+                        label: 'ALL',
+                        color: colorScheme.primary,
+                        selected: _filter == null,
+                        onTap: () => setState(() => _filter = null),
+                      ),
+                      for (final part in BodyPart.values)
+                        _FilterChip(
+                          label: bodyPartLabels[part]!.toUpperCase(),
+                          color: bodyPartColor(context, part),
+                          selected: _filter == part,
+                          // In its colour, like the tags on the rows below.
+                          alwaysOutlined: true,
+                          onTap: () => setState(
+                            () => _filter = _filter == part ? null : part,
+                          ),
                         ),
-                      ),
-                    if (_equipment != null)
-                      _FilterChip(
-                        label: _showMachines
-                            ? 'HIDE MACHINES'
-                            : 'SHOW MACHINES',
-                        color: colorScheme.tertiary,
-                        selected: _showMachines,
-                        onTap: () => _setShowMachines(!_showMachines),
-                      ),
-                  ],
+                      if (_equipment != null)
+                        _FilterChip(
+                          label: _showMachines
+                              ? 'HIDE MACHINES'
+                              : 'SHOW MACHINES',
+                          color: colorScheme.tertiary,
+                          selected: _showMachines,
+                          onTap: () => _setShowMachines(!_showMachines),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              // list
-              Expanded(
-                child: filtered.isEmpty
-                    ? Center(
+                const SizedBox(height: 4),
+                // list
+                Expanded(
+                  child: filtered.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No exercises found',
+                            style: TextStyle(color: colorScheme.outline),
+                          ),
+                        )
+                      : ListView.separated(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => Divider(
+                            height: 1,
+                            color: colorScheme.outline.withValues(alpha: 0.15),
+                          ),
+                          itemBuilder: (context, i) {
+                            final info = filtered[i];
+                            return _ExerciseRow(
+                              info: info,
+                              selected: _selected.contains(info.exercise),
+                              onTap: () => _toggle(info.exercise),
+                            );
+                          },
+                        ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton(
+                        onPressed: _dirty ? _save : null,
                         child: Text(
-                          'No exercises found',
-                          style: TextStyle(color: colorScheme.outline),
+                          'SAVE',
+                          style: TextStyle(
+                            fontSize: context.tokens.size.bodyLg,
+                            fontWeight: context.tokens.weight.heavy,
+                          ),
                         ),
-                      )
-                    : ListView.separated(
-                        controller: scrollController,
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => Divider(
-                          height: 1,
-                          color: colorScheme.outline.withValues(alpha: 0.15),
-                        ),
-                        itemBuilder: (context, i) {
-                          final info = filtered[i];
-                          return _ExerciseRow(
-                            info: info,
-                            selected: _selected.contains(info.exercise),
-                            onTap: () => _toggle(info.exercise),
-                          );
-                        },
                       ),
-              ),
-            ],
-          ),
-        );
-      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

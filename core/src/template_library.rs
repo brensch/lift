@@ -1,9 +1,8 @@
 //! The template library: templates/library.yaml, embedded at build time.
-//! Users tick entries during onboarding and add more later; each add
-//! copies the entry into their own templates (tagged with `library_id`),
-//! after which it is theirs to edit. The file is validated by `cargo test`
-//! and again at startup, then mirrored into the `template_library` table
-//! that `ListTemplateLibrary` serves.
+//! The server sends its copy to every phone on sync; a user's library
+//! templates follow it (coupled) until they clone one. The copy built into
+//! the app stands in before the first sync. The file is validated by
+//! `cargo test`. See docs/architecture/data-model.md, "Template library".
 
 use crate::pb::{Exercise, LibraryTemplate};
 use serde::Deserialize;

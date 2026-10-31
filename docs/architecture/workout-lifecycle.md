@@ -54,7 +54,7 @@ marker (`Workout.lifting_set_id` / `lifting_started_at`).
 On the phone a set is a **circle** with a number in it (StrongLifts' whole
 interface): tap the up-next circle to start the set, tap it again when it
 is done (every rep), and once more for each rep missed. The tap after zero
-undoes the set. A finding-weight rung stops at zero instead, since the plan
+undoes the set. A calibration rung stops at zero instead, since the plan
 it settled hangs off it.
 
 ```mermaid
@@ -88,8 +88,7 @@ when the last set was done — and that set's prescribed rest:
 | **Yapping** | That rest has run out; the next set isn't started | counts up from `rest_until` (pink) |
 | **All done** | Nothing left to do | none |
 
-The reducer's `workout_state_snapshot` derives this (its `effort_prompt` is
-retired and always empty). A snapshot is one instant, so when the rest it shows runs
+The reducer's `workout_state_snapshot` derives this. A snapshot is one instant, so when the rest it shows runs
 out `WorkoutProvider` asks the core again (`_reloadWhenRestEnds`), and
 resting turns into yapping on the device clock. The
 snapshot keeps `rest_until` through yapping so the count-up survives a reload.

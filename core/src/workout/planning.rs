@@ -141,6 +141,31 @@ fn make_set(
     }
 }
 
+/// The warmup ladder up to `working_weight`. The last warmup rolls
+/// straight into the first working set, so it rests `rest_s` like one
+/// rather than the short between-warmups rest.
+fn warmup_sets(
+    workout_id: &str,
+    exercise: i32,
+    working_weight: f32,
+    rest_s: i32,
+    unit: AppWeightUnit,
+) -> Vec<ProposedSet> {
+    let defs = generate_warmup_defs(working_weight, unit);
+    let count = defs.len();
+    defs.into_iter()
+        .enumerate()
+        .map(|(idx, (weight, reps))| {
+            let rest = if idx + 1 == count {
+                rest_s
+            } else {
+                WARMUP_REST_SECONDS
+            };
+            make_set(workout_id, exercise, reps, weight, true, rest, rest)
+        })
+        .collect()
+}
+
 /// One rung of the calibration ramp: five reps at `weight`, 90 s rest.
 pub fn calibration_set(workout_id: &str, exercise: i32, weight: f32) -> ProposedSet {
     let mut set = make_set(
@@ -214,9 +239,10 @@ fn prescribed_working_sets(
 /// the exercise still has a rung to lift. The pending rungs go (never
 /// lifted, safe to hard-remove) and the prescription's full working sets
 /// take their place at the snapped weight. Ids are
-/// `uuid5(NAMESPACE_OID, "{first pending rung id}:{n}")`. No warmup
-/// ladder: the done rungs were the warmup. Returns false when there is no
-/// pending rung, leaving the ordinary adjust to run.
+/// `uuid5(NAMESPACE_OID, "{first pending rung id}:{n}")`. Once a rung is
+/// done the rungs were the warmup; typed before any (the first-time
+/// "I lift X"), an exercise that warms up gets its ladder first. Returns
+/// false when there is no pending rung, leaving the ordinary adjust to run.
 fn replace_pending_calibration(
     workout_ref: &mut WorkoutRecord,
     req: &AdjustExerciseWeightRequest,
@@ -235,12 +261,22 @@ fn replace_pending_calibration(
     };
     let base = workout_ref.proposed_sets[at].id.clone();
     let weight = snap_weight_lb(ex, req.working_weight, unit);
-    let mut sets = prescribed_working_sets(
+    let p = prescription(ex);
+    let rung_done = workout_ref
+        .proposed_sets
+        .iter()
+        .any(|s| s.exercise == exercise && s.calibration && done.contains(&s.id));
+    let mut sets = if p.include_warmup && !rung_done {
+        warmup_sets(&req.workout_id, exercise, weight, p.rest_seconds, unit)
+    } else {
+        Vec::new()
+    };
+    sets.extend(prescribed_working_sets(
         &req.workout_id,
         exercise,
         weight,
-        prescription(ex).sets.max(1),
-    );
+        p.sets.max(1),
+    ));
     for (n, set) in sets.iter_mut().enumerate() {
         set.id = derived_id(&base, n);
     }
@@ -293,26 +329,7 @@ fn block_sets(workout_id: &str, plan: &ExercisePlan, unit: AppWeightUnit) -> Vec
     let (rest_s, rest_f) = plan.rest();
     let mut sets = Vec::new();
     if plan.include_warmup {
-        let defs = generate_warmup_defs(plan.working_weight, unit);
-        let count = defs.len();
-        for (idx, (weight, reps)) in defs.into_iter().enumerate() {
-            // The last warmup rolls straight into the first working set, so it
-            // rests like a working set rather than the short between-warmups one.
-            let rest = if idx + 1 == count {
-                rest_s
-            } else {
-                WARMUP_REST_SECONDS
-            };
-            sets.push(make_set(
-                workout_id,
-                plan.exercise,
-                reps,
-                weight,
-                true,
-                rest,
-                rest,
-            ));
-        }
+        sets = warmup_sets(workout_id, plan.exercise, plan.working_weight, rest_s, unit);
     }
     for _ in 0..plan.sets.max(1) {
         sets.push(make_set(

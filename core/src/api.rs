@@ -31,11 +31,13 @@ pub struct Call<'a> {
     pub event_id: String,
     /// What this call recorded, for the host to store and sync.
     pub events: Vec<Event>,
+    /// The template library coupled templates follow.
+    pub library: &'a [LibraryTemplate],
 }
 
 impl<'a> Call<'a> {
     pub fn view(&self) -> View<'_> {
-        View::new(self.account, self.now)
+        View::new(self.account, self.now).with_library(self.library)
     }
 
     pub fn new(account: &'a mut Account, now: i64, event_id: impl Into<String>) -> Self {
@@ -44,7 +46,29 @@ impl<'a> Call<'a> {
             now,
             event_id: event_id.into(),
             events: Vec::new(),
+            library: crate::template_library::library(),
         }
+    }
+
+    /// Follow [library] (the server's) instead of the one built in.
+    pub fn with_library(mut self, library: &'a [LibraryTemplate]) -> Self {
+        self.library = library;
+        self
+    }
+
+    /// The library entries for [ids], as they are now.
+    fn library_entries(&self, ids: &[String]) -> Result<Vec<LibraryTemplate>, CoreError> {
+        ids.iter()
+            .map(|id| {
+                self.library
+                    .iter()
+                    .find(|e| &e.id == id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        CoreError::InvalidArgument(format!("unknown library template {id:?}"))
+                    })
+            })
+            .collect()
     }
 
     /// Record one event: applied to the account and kept, or (on an error)
@@ -77,8 +101,19 @@ impl<'a> Call<'a> {
 
     pub fn start_workout(
         &mut self,
-        req: StartWorkoutRequest,
+        mut req: StartWorkoutRequest,
     ) -> Result<StartWorkoutResponse, CoreError> {
+        // A coupled template starts with the library's exercises and name of
+        // now, recorded on the event.
+        if let Some(template) = self.account.template(&req.template_id) {
+            let resolved = self.view().resolved(template);
+            if req.exercises.is_empty() {
+                req.exercises = resolved.exercises;
+            }
+            if req.name.is_empty() {
+                req.name = resolved.name;
+            }
+        }
         let id = self.record(event::Kind::StartWorkout(req))?;
         let mut response = start_workout_response_from_active(self.view().workout(&id)?, self.now);
         response.user_messages = self.account.workout_messages(&id);
@@ -210,13 +245,25 @@ impl<'a> Call<'a> {
 
     pub fn save_template(
         &mut self,
-        req: SaveTemplateRequest,
+        mut req: SaveTemplateRequest,
     ) -> Result<SaveTemplateResponse, CoreError> {
         let given = req
             .template
             .as_ref()
             .map(|t| t.id.clone())
             .unwrap_or_default();
+        // Saving a coupled template as the library has it changes nothing.
+        if let (Some(existing), Some(saved)) = (self.account.template(&given), &req.template) {
+            let shown = self.view().resolved(existing);
+            if existing.coupled && shown.name == saved.name && shown.exercises == saved.exercises {
+                return Ok(SaveTemplateResponse {
+                    template: Some(shown),
+                });
+            }
+            // Anything else is a real change to what the user sees, even if it
+            // happens to match the copy stored when the template was added.
+            req.unlink = existing.coupled;
+        }
         let event_id = self.record(event::Kind::SaveTemplate(req))?;
         // A new template takes the event's first derived id.
         let id = if given.is_empty() {
@@ -225,6 +272,24 @@ impl<'a> Call<'a> {
             given
         };
         Ok(SaveTemplateResponse {
+            template: self.account.template(&id).cloned(),
+        })
+    }
+
+    pub fn clone_template(
+        &mut self,
+        mut req: CloneTemplateRequest,
+    ) -> Result<CloneTemplateResponse, CoreError> {
+        let template = self
+            .account
+            .template(&req.template_id)
+            .ok_or_else(|| CoreError::NotFound("Template not found".into()))?;
+        let shown = self.view().resolved(template);
+        req.name = shown.name;
+        req.exercises = shown.exercises;
+        let id = req.template_id.clone();
+        self.record(event::Kind::CloneTemplate(req))?;
+        Ok(CloneTemplateResponse {
             template: self.account.template(&id).cloned(),
         })
     }
@@ -258,8 +323,17 @@ impl<'a> Call<'a> {
 
     pub fn complete_onboarding(
         &mut self,
-        req: CompleteOnboardingRequest,
+        mut req: CompleteOnboardingRequest,
     ) -> Result<CompleteOnboardingResponse, CoreError> {
+        req.library_entries = if req.library_ids.is_empty() {
+            self.library
+                .iter()
+                .filter(|e| e.is_default)
+                .cloned()
+                .collect()
+        } else {
+            self.library_entries(&req.library_ids)?
+        };
         self.record(event::Kind::CompleteOnboarding(req))?;
         Ok(CompleteOnboardingResponse {
             home: Some(self.view().get_home()),
@@ -268,8 +342,9 @@ impl<'a> Call<'a> {
 
     pub fn add_library_templates(
         &mut self,
-        req: AddLibraryTemplatesRequest,
+        mut req: AddLibraryTemplatesRequest,
     ) -> Result<AddLibraryTemplatesResponse, CoreError> {
+        req.entries = self.library_entries(&req.library_ids)?;
         self.record(event::Kind::AddLibraryTemplates(req))?;
         Ok(AddLibraryTemplatesResponse {
             home: Some(self.view().get_home()),
@@ -324,11 +399,38 @@ impl<'a> Call<'a> {
 pub struct View<'a> {
     pub account: &'a Account,
     pub now: i64,
+    /// The template library coupled templates follow.
+    pub library: &'a [LibraryTemplate],
 }
 
 impl<'a> View<'a> {
     pub fn new(account: &'a Account, now: i64) -> Self {
-        Self { account, now }
+        Self {
+            account,
+            now,
+            library: crate::template_library::library(),
+        }
+    }
+
+    /// Follow [library] (the server's) instead of the one built in.
+    pub fn with_library(mut self, library: &'a [LibraryTemplate]) -> Self {
+        self.library = library;
+        self
+    }
+
+    /// A template as it's shown and started: a coupled one takes its
+    /// library entry's name and exercises, while the entry exists.
+    pub fn resolved(&self, template: &WorkoutTemplate) -> WorkoutTemplate {
+        let mut out = template.clone();
+        if let Some(entry) = self
+            .library
+            .iter()
+            .find(|e| template.coupled && e.id == template.library_id)
+        {
+            out.name = entry.name.clone();
+            out.exercises = entry.exercises.clone();
+        }
+        out
     }
 
     fn workout(&self, id: &str) -> Result<&'a WorkoutRecord, CoreError> {
@@ -512,7 +614,12 @@ impl<'a> View<'a> {
                 *at = (*at).max(r.workout.start_time);
             }
         }
-        let templates = self.account.templates.clone();
+        let templates: Vec<WorkoutTemplate> = self
+            .account
+            .templates
+            .iter()
+            .map(|t| self.resolved(t))
+            .collect();
         let (suggested_template_id, suggestion_reason) =
             suggest_template(&templates, &volume, &last_started).unwrap_or_default();
 
@@ -553,7 +660,7 @@ impl<'a> View<'a> {
 
     pub fn list_template_library(&self) -> ListTemplateLibraryResponse {
         ListTemplateLibraryResponse {
-            templates: crate::template_library::library().to_vec(),
+            templates: self.library.to_vec(),
         }
     }
 
@@ -602,6 +709,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "SetExerciseTracker" => set_exercise_tracker,
             "CompleteOnboarding" => complete_onboarding,
             "AddLibraryTemplates" => add_library_templates,
+            "CloneTemplate" => clone_template,
             "DismissUserMessages" => dismiss_user_messages,
             "UpdateSetting" => update_setting,
             "ImportHistory" => import_history,
