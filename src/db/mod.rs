@@ -15,6 +15,8 @@ mod analytics;
 mod auth;
 pub use accounts::{Diverged, Pushed};
 mod session;
+#[cfg(test)]
+pub use session::SESSION_IDLE_SECONDS;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
 

@@ -51,6 +51,15 @@ ParticipantVisualStatus describeParticipantStatus(
     state = WorkoutState.WORKOUT_STATE_YAPPING;
   }
 
+  // In the group, no workout started yet: picking one.
+  if (!participant.hasActiveWorkout() && snapshot == null && nextSet == null) {
+    return ParticipantVisualStatus(
+      stateLabel: copy.workout.choosing,
+      stateColor: tokens.muted,
+      sortPriority: 0,
+    );
+  }
+
   if (participant.hasActiveWorkout() &&
       participant.activeWorkout.endTime != Int64.ZERO) {
     return ParticipantVisualStatus(

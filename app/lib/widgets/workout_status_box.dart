@@ -123,12 +123,11 @@ class StatusBox extends StatelessWidget {
       ),
     );
 
-    final Widget body;
+    // No set in front of them (choosing, or all done): the band says it
+    // all.
+    final Widget? body;
     if (set == null) {
-      body = Text(
-        copy.workout.allDone,
-        style: TextStyle(fontSize: t.size.body, color: t.muted),
-      );
+      body = null;
     } else {
       final what = Text(
         '${exerciseNames[set.exercise] ?? '?'} · ${setLineFor(set, plan)}',
@@ -251,7 +250,8 @@ class StatusBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           band,
-          Padding(padding: EdgeInsets.fromLTRB(14, 12, 14, 16), child: body),
+          if (body != null)
+            Padding(padding: EdgeInsets.fromLTRB(14, 12, 14, 16), child: body),
         ],
       ),
     );

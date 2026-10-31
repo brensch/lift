@@ -223,6 +223,8 @@ workout:
   yapping: Yapping
   resting: Resting
   all_done: All done
+  # A partner who is in your group but hasn't started a workout yet.
+  choosing: Choosing workout
   end_workout: End workout
   set_line: Set {n} of {m}
   warmup_line: Warmup {n} of {m}

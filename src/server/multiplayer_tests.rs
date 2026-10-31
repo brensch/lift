@@ -134,6 +134,45 @@ mod session_history_tests {
         assert_eq!(bob_partners[0].user.as_ref().unwrap().id, alice_id);
     }
 
+    /// A member who does nothing for SESSION_IDLE_SECONDS is out on their
+    /// own: the others stop seeing them, and they're no longer in a group.
+    #[tokio::test]
+    async fn an_idle_member_drops_out() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+
+        svc.db
+            .age_session_participant(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
+            .await
+            .unwrap();
+
+        let alice_view = svc
+            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(
+            !has_participant(alice_view.session_status.as_ref().unwrap(), &bob_id),
+            "alice no longer sees idle bob"
+        );
+        let bob_view = svc
+            .get_current_session(authed(&bob_tok, GetCurrentSessionRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(bob_view.session_id.is_empty(), "bob is in no group");
+    }
+
     /// GetSharedSessions lists the sessions two users were both in.
     #[tokio::test]
     async fn shared_sessions_lists_the_pairing() {

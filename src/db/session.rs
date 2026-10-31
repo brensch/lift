@@ -1,5 +1,10 @@
 use super::*;
 
+/// How long a group member can go without doing anything (no synced
+/// write) before they're out of it. A workout writes every set, so only an
+/// abandoned session or a join that never started gets this old.
+pub const SESSION_IDLE_SECONDS: i64 = 3 * 3600;
+
 impl ServerDb {
     // ── Invite tokens ──
 
@@ -58,12 +63,21 @@ impl ServerDb {
         Ok(())
     }
 
+    /// The session the user is in: their pointer, while they've been active
+    /// in it (their live status refreshed — on joining and on every synced
+    /// write) within [`SESSION_IDLE_SECONDS`]. Someone who joined and never
+    /// started, or walked off without ending, drops out on their own.
     pub async fn get_user_current_session(&self, user_id: &str) -> DbResult<Option<String>> {
-        let row: Option<String> =
-            sqlx::query_scalar("SELECT session_id FROM user_current_session WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_optional(&self.read_pool)
-                .await?;
+        let row: Option<String> = sqlx::query_scalar(
+            "SELECT u.session_id FROM user_current_session u
+             JOIN session_participants_current p
+               ON p.session_id = u.session_id AND p.user_id = u.user_id
+             WHERE u.user_id = ? AND p.updated_at > ?",
+        )
+        .bind(user_id)
+        .bind(now_unix() - SESSION_IDLE_SECONDS)
+        .fetch_optional(&self.read_pool)
+        .await?;
         Ok(row)
     }
 
@@ -103,16 +117,19 @@ impl ServerDb {
 
     /// Return the live participant snapshots for this session, most-recently-updated
     /// first. This is the LIVE cache — rows are pruned when a member leaves (see
-    /// [`prune_session_participant`]), so it reflects who is currently in the session.
+    /// [`prune_session_participant`]) and ignored once idle past
+    /// [`SESSION_IDLE_SECONDS`], so it reflects who is currently in the session.
     /// Durable "who was ever here" lives in `session_members`.
     pub async fn get_session_participants(
         &self,
         session_id: &str,
     ) -> DbResult<Vec<ParticipantStatus>> {
         let rows = sqlx::query(
-            "SELECT participant_blob FROM session_participants_current WHERE session_id = ? ORDER BY updated_at DESC",
+            "SELECT participant_blob FROM session_participants_current
+             WHERE session_id = ? AND updated_at > ? ORDER BY updated_at DESC",
         )
         .bind(session_id)
+        .bind(now_unix() - SESSION_IDLE_SECONDS)
         .fetch_all(&self.read_pool)
         .await?;
         let mut out = Vec::with_capacity(rows.len());
@@ -121,6 +138,20 @@ impl ServerDb {
             out.push(ParticipantStatus::decode(blob.as_slice())?);
         }
         Ok(out)
+    }
+
+    /// Push a member's last activity [seconds] into the past: idle tests.
+    #[cfg(test)]
+    pub async fn age_session_participant(&self, user_id: &str, seconds: i64) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE session_participants_current SET updated_at = updated_at - ?
+             WHERE user_id = ?",
+        )
+        .bind(seconds)
+        .bind(user_id)
+        .execute(&self.write_pool)
+        .await?;
+        Ok(())
     }
 
     /// Remove a member's live participant snapshot (on leave). Their durable

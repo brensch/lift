@@ -191,8 +191,14 @@ impl Stream {
         )
         .await?;
         if pushed.ended_workout.is_some() {
+            // Ending is leaving: the final state stays on show to the others
+            // (until it goes idle), and the roster records the leave.
             self.db
                 .clear_user_current_session(&self.user_id)
+                .await
+                .map_err(internal_error)?;
+            self.db
+                .mark_session_member_left(&session_id, &self.user_id)
                 .await
                 .map_err(internal_error)?;
         }

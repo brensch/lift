@@ -13,7 +13,10 @@ use super::*;
 //     caller's current session (db/accounts.rs).
 //   - Any synced event: refresh the caller's blob (sync.rs).
 //   - A synced EndWorkout: refresh the caller's final blob, then delete the
-//     caller's row (sync.rs).
+//     caller's row and stamp left_at (sync.rs): ending is leaving.
+//   - Idle: a member whose blob hasn't been refreshed for SESSION_IDLE_SECONDS
+//     (db/session.rs) is out — their pointer reads as none and their blob is
+//     no longer shown — so a join that never started doesn't linger.
 //   - LeaveCurrentSession: delete caller's row, prune their live blob so peers stop
 //     seeing them, and stamp left_at on the durable session_members roster.
 //

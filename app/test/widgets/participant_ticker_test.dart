@@ -28,6 +28,26 @@ void main() {
     expect(status.timerText, '0:30');
   });
 
+  test('a partner who has joined but not started is choosing', () {
+    final status = describeParticipantStatus(
+      ParticipantStatus(),
+      tokens: schliftSpec,
+      now: now,
+    );
+    expect(status.stateLabel, copy.workout.choosing);
+    expect(status.isComplete, isFalse);
+  });
+
+  test('a partner whose workout has ended is all done', () {
+    final status = describeParticipantStatus(
+      ParticipantStatus(activeWorkout: Workout(endTime: Int64(nowUnix - 60))),
+      tokens: schliftSpec,
+      now: now,
+    );
+    expect(status.stateLabel, copy.workout.allDone);
+    expect(status.isComplete, isTrue);
+  });
+
   test("a partner's rest that ran out since their last change is yapping", () {
     final status = describeParticipantStatus(
       resting(restUntil: nowUnix - 75),
