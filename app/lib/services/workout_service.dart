@@ -185,6 +185,15 @@ class WorkoutServiceWrapper {
     )).home;
   }
 
+  /// The first working weights the setup slider shows, one step per 1% of
+  /// the slider, in [unit].
+  Future<List<StartingWeightsStep>> getStartingWeights(WeightUnit unit) async =>
+      (await _call(
+        'GetStartingWeights',
+        GetStartingWeightsRequest(unit: unit),
+        GetStartingWeightsResponse.fromBuffer,
+      )).steps;
+
   /// The template library everyone picks from.
   Future<List<LibraryTemplate>> listTemplateLibrary() async => (await _call(
     'ListTemplateLibrary',

@@ -530,6 +530,28 @@ impl<'a> View<'a> {
         }
     }
 
+    pub fn get_starting_weights(
+        &self,
+        req: GetStartingWeightsRequest,
+    ) -> Result<GetStartingWeightsResponse, CoreError> {
+        let unit = crate::weight_units::unit_from_proto(req.unit);
+        let steps = (0..=100)
+            .map(|step| StartingWeightsStep {
+                weights: crate::onboarding::starting_tracker_weights_for_strength(
+                    step as f32 / 100.0,
+                    unit,
+                )
+                .into_iter()
+                .map(|(exercise, weight_lb)| ExerciseWeight {
+                    exercise: exercise as i32,
+                    weight_lb,
+                })
+                .collect(),
+            })
+            .collect();
+        Ok(GetStartingWeightsResponse { steps })
+    }
+
     pub fn list_template_library(&self) -> ListTemplateLibraryResponse {
         ListTemplateLibraryResponse {
             templates: crate::template_library::library().to_vec(),
@@ -588,6 +610,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
         reads {
             "GetWorkout" => get_workout,
             "GetWorkoutHeartRate" => get_workout_heart_rate,
+            "GetStartingWeights" => get_starting_weights,
         }
         plain {
             "GetActiveWorkout" => get_active_workout,

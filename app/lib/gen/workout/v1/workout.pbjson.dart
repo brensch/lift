@@ -2137,6 +2137,89 @@ final $typed_data.Uint8List completeOnboardingRequestDescriptor = $convert.base6
     'YXJ5X2lkcxgFIAMoCVIKbGlicmFyeUlkcxIfCghzdHJlbmd0aBgGIAEoAkgAUghzdHJlbmd0aI'
     'gBAUILCglfc3RyZW5ndGg=');
 
+@$core.Deprecated('Use getStartingWeightsRequestDescriptor instead')
+const GetStartingWeightsRequest$json = {
+  '1': 'GetStartingWeightsRequest',
+  '2': [
+    {
+      '1': 'unit',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.WeightUnit',
+      '10': 'unit'
+    },
+  ],
+};
+
+/// Descriptor for `GetStartingWeightsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getStartingWeightsRequestDescriptor =
+    $convert.base64Decode(
+        'ChlHZXRTdGFydGluZ1dlaWdodHNSZXF1ZXN0EioKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLl'
+        'dlaWdodFVuaXRSBHVuaXQ=');
+
+@$core.Deprecated('Use exerciseWeightDescriptor instead')
+const ExerciseWeight$json = {
+  '1': 'ExerciseWeight',
+  '2': [
+    {
+      '1': 'exercise',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.Exercise',
+      '10': 'exercise'
+    },
+    {'1': 'weight_lb', '3': 2, '4': 1, '5': 2, '10': 'weightLb'},
+  ],
+};
+
+/// Descriptor for `ExerciseWeight`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List exerciseWeightDescriptor = $convert.base64Decode(
+    'Cg5FeGVyY2lzZVdlaWdodBIwCghleGVyY2lzZRgBIAEoDjIULndvcmtvdXQudjEuRXhlcmNpc2'
+    'VSCGV4ZXJjaXNlEhsKCXdlaWdodF9sYhgCIAEoAlIId2VpZ2h0TGI=');
+
+@$core.Deprecated('Use startingWeightsStepDescriptor instead')
+const StartingWeightsStep$json = {
+  '1': 'StartingWeightsStep',
+  '2': [
+    {
+      '1': 'weights',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseWeight',
+      '10': 'weights'
+    },
+  ],
+};
+
+/// Descriptor for `StartingWeightsStep`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List startingWeightsStepDescriptor = $convert.base64Decode(
+    'ChNTdGFydGluZ1dlaWdodHNTdGVwEjQKB3dlaWdodHMYASADKAsyGi53b3Jrb3V0LnYxLkV4ZX'
+    'JjaXNlV2VpZ2h0Ugd3ZWlnaHRz');
+
+@$core.Deprecated('Use getStartingWeightsResponseDescriptor instead')
+const GetStartingWeightsResponse$json = {
+  '1': 'GetStartingWeightsResponse',
+  '2': [
+    {
+      '1': 'steps',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.StartingWeightsStep',
+      '10': 'steps'
+    },
+  ],
+};
+
+/// Descriptor for `GetStartingWeightsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getStartingWeightsResponseDescriptor =
+    $convert.base64Decode(
+        'ChpHZXRTdGFydGluZ1dlaWdodHNSZXNwb25zZRI1CgVzdGVwcxgBIAMoCzIfLndvcmtvdXQudj'
+        'EuU3RhcnRpbmdXZWlnaHRzU3RlcFIFc3RlcHM=');
+
 @$core.Deprecated('Use completeOnboardingResponseDescriptor instead')
 const CompleteOnboardingResponse$json = {
   '1': 'CompleteOnboardingResponse',

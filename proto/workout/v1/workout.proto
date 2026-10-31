@@ -741,6 +741,24 @@ message CompleteOnboardingRequest {
   // 1); experience, gender and bodyweight are then ignored for seeding.
   optional float strength = 6;
 }
+
+// The first working weights the setup slider shows: one step per 1% of the
+// slider, chick (0) to gorilla (100), in the unit asked for. Onboarding
+// with `strength` = step / 100 seeds exactly these.
+message GetStartingWeightsRequest {
+  WeightUnit unit = 1;
+}
+message ExerciseWeight {
+  Exercise exercise = 1;
+  float weight_lb = 2;
+}
+message StartingWeightsStep {
+  repeated ExerciseWeight weights = 1;
+}
+message GetStartingWeightsResponse {
+  repeated StartingWeightsStep steps = 1;
+}
+
 message CompleteOnboardingResponse {
   GetHomeResponse home = 1;
 }

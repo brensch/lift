@@ -1474,3 +1474,45 @@ mod the_log {
         assert_eq!(finished[0].end_time, NOW, "ended at the event's time");
     }
 }
+
+mod starting_weights {
+    use super::*;
+
+    /// What the setup slider shows at a step is exactly what onboarding at
+    /// that strength seeds.
+    #[test]
+    fn the_slider_shows_what_onboarding_seeds() {
+        for (unit, step) in [
+            (WeightUnit::Lb, 0),
+            (WeightUnit::Kg, 37),
+            (WeightUnit::Lb, 100),
+        ] {
+            let mut app = App::new();
+            let shown = app
+                .view()
+                .get_starting_weights(GetStartingWeightsRequest { unit: unit as i32 })
+                .unwrap()
+                .steps;
+            assert_eq!(shown.len(), 101);
+            let home = app
+                .call()
+                .complete_onboarding(CompleteOnboardingRequest {
+                    unit: unit as i32,
+                    strength: Some(step as f32 / 100.0),
+                    ..Default::default()
+                })
+                .unwrap()
+                .home
+                .unwrap();
+            for w in &shown[step].weights {
+                let tracker = tracker(&home, w.exercise());
+                assert_eq!(
+                    tracker.working_weight,
+                    w.weight_lb,
+                    "{:?} at {step}",
+                    w.exercise()
+                );
+            }
+        }
+    }
+}

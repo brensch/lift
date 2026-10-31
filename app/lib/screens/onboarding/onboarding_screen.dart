@@ -15,7 +15,7 @@ import 'dart:math';
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart'
-    show ExperienceLevel, LibraryTemplate;
+    show ExperienceLevel, LibraryTemplate, StartingWeightsStep;
 import '../../logic/user_profile.dart';
 import '../../logic/whimsical_emojis.dart';
 import '../../logic/weight_units.dart';
@@ -60,6 +60,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   late String _selectedColorHex;
   WeightUnit _unit = WeightUnit.WEIGHT_UNIT_LB;
   double _strength = 0.5; // chick 0 .. gorilla 1
+
+  /// The slider's weights per unit, from the core, as each unit is shown.
+  final Map<WeightUnit, List<StartingWeightsStep>> _startingWeights = {};
+
+  Future<void> _loadStartingWeights(WeightUnit unit) async {
+    if (_startingWeights.containsKey(unit)) return;
+    final steps = await context
+        .read<WorkoutServiceWrapper>()
+        .getStartingWeights(unit);
+    if (mounted) setState(() => _startingWeights[unit] = steps);
+  }
+
   final TextEditingController _bodyWeightController = TextEditingController();
   late List<String> _emojiChoices;
   List<LibraryTemplate>? _library;
@@ -189,7 +201,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         bodyWeightKg: bodyWeightKg,
         experience: ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
         unit: _unit,
-        strength: _strength,
+        // The step the slider showed, so the seeds are what was on screen.
+        strength: (_strength.clamp(0.0, 1.0) * 100).round() / 100,
         libraryIds: _selectedLibraryIds.toList(),
       );
 
@@ -238,11 +251,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         selectedUnit: _unit,
         onSelect: (unit) async => setState(() => _unit = unit),
         onBack: () => setState(() => _step = 0),
-        onNext: () => setState(() => _step = 2),
+        onNext: () {
+          unawaited(_loadStartingWeights(_unit));
+          setState(() => _step = 2);
+        },
       ),
       StrengthStep(
         unit: _unit,
         strength: _strength,
+        steps: _startingWeights[_unit],
         onChanged: (v) => setState(() => _strength = v),
         onBack: () => setState(() => _step = 1),
         onNext: () => setState(() => _step = 3),

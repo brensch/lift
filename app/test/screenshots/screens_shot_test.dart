@@ -244,6 +244,15 @@ void main() {
     tester,
   ) async {
     var strength = 0.5;
+    // The weights come from the core, as on the phone.
+    final steps = (await tester.runAsync(() async {
+      final core = await LocalCore.memory('slider');
+      final steps = await WorkoutServiceWrapper(
+        FixedCore(core),
+      ).getStartingWeights(WeightUnit.WEIGHT_UNIT_LB);
+      core.close();
+      return steps;
+    }))!;
     await pumpAtPhoneSize(
       tester,
       StatefulBuilder(
@@ -251,6 +260,7 @@ void main() {
           body: StrengthStep(
             unit: WeightUnit.WEIGHT_UNIT_LB,
             strength: strength,
+            steps: steps,
             onChanged: (v) => setState(() => strength = v),
             onBack: () {},
             onNext: () {},
@@ -259,7 +269,7 @@ void main() {
       ),
     );
     await shoot(tester, 'onboarding_strength');
-    // The parity numbers from test/logic/starting_weights_test.dart.
+    // core/src/onboarding.rs's numbers at the midpoint.
     expect(find.text('180 lb'), findsOneWidget);
     expect(find.text('130 lb'), findsOneWidget);
     // Drag up to the gorilla end: the bar maxes out at 315 / 225.
