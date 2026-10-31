@@ -29,6 +29,10 @@ class StatusBox extends StatelessWidget {
   final Color stateColor;
   final String? timerText;
 
+  /// 0..1 of the rest still to go: the band's colour drains from the right as
+  /// it runs out. Null when not resting.
+  final double? restLeft;
+
   /// The set in front of them, and the plan it belongs to (for "Set 2 of
   /// 5"); null when they're done.
   final ProposedSet? set;
@@ -55,6 +59,7 @@ class StatusBox extends StatelessWidget {
     required this.stateLabel,
     required this.stateColor,
     this.timerText,
+    this.restLeft,
     this.set,
     this.plan = const [],
     this.upNext = false,
@@ -100,62 +105,78 @@ class StatusBox extends StatelessWidget {
     final band = SizedBox(
       height: bandHeight,
       child: LayoutBuilder(
-        builder: (context, box) => Container(
-          color: stateColor,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                width: bandHeight,
-                alignment: Alignment.center,
-                color: profileColor,
-                child: Text(
-                  emoji,
-                  style: TextStyle(fontSize: t.size.displayLg, height: 1),
-                ),
+        builder: (context, box) => Stack(
+          fit: StackFit.expand,
+          children: [
+            // Resting: a paler track, and the colour over it shrinking to the
+            // left as the rest runs out (eased across each one-second tick).
+            ColoredBox(
+              color: restLeft == null
+                  ? stateColor
+                  : Color.lerp(stateColor, t.panel, 0.45)!,
+            ),
+            if (restLeft != null)
+              AnimatedFractionallySizedBox(
+                duration: const Duration(seconds: 1),
+                alignment: Alignment.centerLeft,
+                widthFactor: restLeft!.clamp(0.0, 1.0),
+                child: ColoredBox(color: stateColor),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // The stage alone, and UP NEXT straight after it.
-                    Row(
-                      children: [
-                        Flexible(child: stage),
-                        if (upNext) ...[
-                          const SizedBox(width: 8),
-                          const _UpNext(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: bandHeight,
+                  alignment: Alignment.center,
+                  color: profileColor,
+                  child: Text(
+                    emoji,
+                    style: TextStyle(fontSize: t.size.displayLg, height: 1),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // The stage alone, and UP NEXT straight after it.
+                      Row(
+                        children: [
+                          Flexible(child: stage),
+                          if (upNext) ...[
+                            const SizedBox(width: 8),
+                            const _UpNext(),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (timerText != null)
-                // The clock is read from across the gym: the biggest thing
-                // in the band, but never more than a third of it.
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: box.maxWidth / 3),
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8, right: 12),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        timerText!,
-                        style: bandMono(
-                          t.size.displayLg,
-                        ).copyWith(letterSpacing: 0),
+                if (timerText != null)
+                  // The clock is read from across the gym: the biggest thing
+                  // in the band, but never more than a third of it.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: box.maxWidth / 3),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8, right: 12),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          timerText!,
+                          style: bandMono(
+                            t.size.displayLg,
+                          ).copyWith(letterSpacing: 0),
+                        ),
                       ),
                     ),
-                  ),
-                )
-              else
-                const SizedBox(width: 12),
-            ],
-          ),
+                  )
+                else
+                  const SizedBox(width: 12),
+              ],
+            ),
+          ],
         ),
       ),
     );

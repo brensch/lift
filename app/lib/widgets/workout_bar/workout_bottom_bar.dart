@@ -41,7 +41,16 @@ class _YouState {
   final String? timerText;
   final ProposedSet? set;
 
-  const _YouState(this.label, this.color, this.timerText, this.set);
+  /// 0..1 of the rest still to go, while resting.
+  final double? restLeft;
+
+  const _YouState(
+    this.label,
+    this.color,
+    this.timerText,
+    this.set, {
+    this.restLeft,
+  });
 }
 
 _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
@@ -68,6 +77,7 @@ _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
       t.workoutRestingFg,
       formatRestClock(max(0, restEnd - nowUnix)),
       set,
+      restLeft: restLeftFraction(wp.activeCompletedSets, restEnd, nowUnix),
     );
   }
   if (isYappingState(state)) {
@@ -215,6 +225,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 upNext: upNext,
                 compact: true,
                 timerText: status.timerText,
+                restLeft: status.restLeft,
                 set: status.proposedSet,
                 plan: p.proposedSets,
               ),
@@ -327,6 +338,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         stateColor: you.color,
                         upNext: iAmNext,
                         timerText: you.timerText,
+                        restLeft: you.restLeft,
                         set: you.set,
                         plan: wp.activeProposedSets,
                         circle: you.set == null

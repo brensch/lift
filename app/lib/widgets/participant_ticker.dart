@@ -90,6 +90,7 @@ ParticipantVisualStatus describeParticipantStatus(
       stateColor: tokens.workoutRestingFg,
       proposedSet: nextSet,
       timerText: _fmt(max(0, restUntil - nowUnix)),
+      restLeft: restLeftFraction(participant.completedSets, restUntil, nowUnix),
       sortPriority: 2,
     );
   }
@@ -123,6 +124,20 @@ ParticipantVisualStatus describeParticipantStatus(
   );
 }
 
+/// How much of a rest is still to go, 0..1: from the last set's Done to
+/// [restUntil]. Null when there's no rest to measure.
+double? restLeftFraction(
+  Iterable<CompletedSet> completedSets,
+  int restUntil,
+  int nowUnix,
+) {
+  if (completedSets.isEmpty || restUntil <= 0) return null;
+  final start = completedSets.map((c) => c.endedAt.toInt()).reduce(max);
+  final total = restUntil - start;
+  if (total <= 0) return null;
+  return ((restUntil - nowUnix) / total).clamp(0.0, 1.0);
+}
+
 int? participantScheduledStartUnix(
   ParticipantStatus participant, {
   required int nowUnix,
@@ -150,6 +165,9 @@ class ParticipantVisualStatus {
   final Color stateColor;
   final ProposedSet? proposedSet;
   final String? timerText;
+
+  /// 0..1 of the rest still to go, while resting.
+  final double? restLeft;
   final int sortPriority;
   final bool isComplete;
 
@@ -158,6 +176,7 @@ class ParticipantVisualStatus {
     required this.stateColor,
     this.proposedSet,
     this.timerText,
+    this.restLeft,
     required this.sortPriority,
     this.isComplete = false,
   });
