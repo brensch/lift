@@ -21,8 +21,9 @@ use std::collections::HashMap;
 use crate::db::{DbResult, ServerDb};
 use crate::time::now_unix;
 use schlift::workout::v1::{
-    AddLibraryTemplatesRequest, CompleteSetRequest, CompletedSet, Event, Exercise, ImportHistory,
-    ImportedWorkout, ProposedSet, StartWorkoutRequest, TrackerRecord, Workout,
+    workout_mutation, AddLibraryTemplatesRequest, AppendWorkoutMutationsRequest,
+    CompleteSetRequest, CompletedSet, Event, Exercise, ImportHistory, ImportedWorkout, ProposedSet,
+    StartSetRequest, StartWorkoutRequest, TrackerRecord, Workout, WorkoutMutation,
 };
 use schlift_core::account::Account;
 use schlift_core::api::Call;
@@ -39,10 +40,6 @@ const DAY: i64 = 86_400;
 const WEEKS: i64 = 16;
 /// Exercises already finished in the `-live` user's in-progress session.
 const LIVE_DONE_EXERCISES: usize = 2;
-/// When the live session's last rest ends, relative to seeding. Long enough
-/// that a capture started a few minutes later still finds the lifter resting
-/// (blue bar, countdown) rather than overdue.
-const LIVE_REST_ENDS_IN: i64 = 5 * 60;
 
 /// A template from the library (templates/library.yaml), added as a new
 /// lifter adds it; `exercises` mirrors the library's so the history matches.
@@ -281,6 +278,7 @@ fn build_session(
                         proposed_set_id: id,
                         actual_reps: 5,
                         actual_weight: w,
+                        started_at: clock,
                         ended_at: clock + 25,
                         rest_until: clock + 85,
                         ..Default::default()
@@ -314,6 +312,7 @@ fn build_session(
                     proposed_set_id: id,
                     actual_reps: reps,
                     actual_weight: lift.weight,
+                    started_at: clock,
                     ended_at: clock + 35,
                     rest_until: clock + 35 + p.rest_seconds as i64,
                     ..Default::default()
@@ -362,8 +361,9 @@ fn trackers(lifts: &HashMap<i32, Lift>, performed_at: i64) -> Vec<TrackerRecord>
 }
 
 /// The live session: the next template in the rotation, started through the
-/// real API, its first exercises done, slid back in time so the last rest
-/// ends `LIVE_REST_ENDS_IN` from now.
+/// real API, its first exercises done, slid back in time so the last set
+/// ended just now: nothing lies in the future, and its rest (minutes, on a
+/// work set) is still running when a capture gets there.
 fn live_session(account: &mut Account, template_id: &str, now: i64) -> Vec<Event> {
     fn run(account: &mut Account, template_id: &str, start: i64) -> (Vec<Event>, i64) {
         let mut call = Call::new(account, start, Uuid::new_v4().to_string());
@@ -382,12 +382,25 @@ fn live_session(account: &mut Account, template_id: &str, now: i64) -> Vec<Event
         }
         let done: Vec<i32> = exercises.into_iter().take(LIVE_DONE_EXERCISES).collect();
         let mut clock = start + 120;
-        let mut rest_until = start;
+        let mut last_done = start;
         for set in started
             .proposed_sets
             .iter()
             .filter(|s| done.contains(&s.exercise))
         {
+            // Started, then done after a warmup's 30 s or a work set's 40 s,
+            // as the app does it: the lifting shows on the heart chart.
+            call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::StartSet(StartSetRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        started_at: clock,
+                    })),
+                    ..Default::default()
+                }],
+            })
+            .expect("a planned set starts");
             clock += if set.warmup { 30 } else { 40 };
             let response = call
                 .complete_set(CompleteSetRequest {
@@ -399,17 +412,17 @@ fn live_session(account: &mut Account, template_id: &str, now: i64) -> Vec<Event
                     effort: 0,
                 })
                 .expect("a planned set completes");
-            rest_until = response
+            last_done = clock;
+            clock = response
                 .completed_set
                 .map(|c| c.rest_until)
                 .unwrap_or(clock);
-            clock = rest_until;
         }
-        (std::mem::take(&mut call.events), rest_until)
+        (std::mem::take(&mut call.events), last_done)
     }
     // A dry run on a copy finds how long it takes; the real one is shifted.
-    let (_, rest_until) = run(&mut account.clone(), template_id, 0);
-    run(account, template_id, now + LIVE_REST_ENDS_IN - rest_until).0
+    let (_, last_done) = run(&mut account.clone(), template_id, 0);
+    run(account, template_id, now - last_done).0
 }
 
 async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
