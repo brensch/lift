@@ -252,6 +252,99 @@ class WearStatusCard extends $pb.GeneratedMessage {
   void clearBarText() => $_clearField(21);
 }
 
+/// One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
+/// the phone does what a tap on its own circle does.
+class WearSetCircle extends $pb.GeneratedMessage {
+  factory WearSetCircle({
+    $core.String? setId,
+    $core.String? text,
+    WearCircleState? state,
+    $core.bool? warmup,
+  }) {
+    final result = create();
+    if (setId != null) result.setId = setId;
+    if (text != null) result.text = text;
+    if (state != null) result.state = state;
+    if (warmup != null) result.warmup = warmup;
+    return result;
+  }
+
+  WearSetCircle._();
+
+  factory WearSetCircle.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WearSetCircle.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WearSetCircle',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'setId')
+    ..aOS(2, _omitFieldNames ? '' : 'text')
+    ..aE<WearCircleState>(3, _omitFieldNames ? '' : 'state',
+        enumValues: WearCircleState.values)
+    ..aOB(4, _omitFieldNames ? '' : 'warmup')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearSetCircle clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearSetCircle copyWith(void Function(WearSetCircle) updates) =>
+      super.copyWith((message) => updates(message as WearSetCircle))
+          as WearSetCircle;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WearSetCircle create() => WearSetCircle._();
+  @$core.override
+  WearSetCircle createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WearSetCircle getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WearSetCircle>(create);
+  static WearSetCircle? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get setId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set setId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSetId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSetId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get text => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set text($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasText() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearText() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  WearCircleState get state => $_getN(2);
+  @$pb.TagNumber(3)
+  set state(WearCircleState value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasState() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearState() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get warmup => $_getBF(3);
+  @$pb.TagNumber(4)
+  set warmup($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasWarmup() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWarmup() => $_clearField(4);
+}
+
 /// One plate on the bar, as the phone draws it.
 class WearPlate extends $pb.GeneratedMessage {
   factory WearPlate({
@@ -590,6 +683,8 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     $core.String? nextUpEmoji,
     $fixnum.Int64? liftingStartedAt,
     WearDoneSet? lastDone,
+    $core.Iterable<WearSetCircle>? circles,
+    $core.String? upNextText,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -604,6 +699,8 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     if (nextUpEmoji != null) result.nextUpEmoji = nextUpEmoji;
     if (liftingStartedAt != null) result.liftingStartedAt = liftingStartedAt;
     if (lastDone != null) result.lastDone = lastDone;
+    if (circles != null) result.circles.addAll(circles);
+    if (upNextText != null) result.upNextText = upNextText;
     return result;
   }
 
@@ -637,6 +734,9 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     ..aInt64(15, _omitFieldNames ? '' : 'liftingStartedAt')
     ..aOM<WearDoneSet>(16, _omitFieldNames ? '' : 'lastDone',
         subBuilder: WearDoneSet.create)
+    ..pPM<WearSetCircle>(17, _omitFieldNames ? '' : 'circles',
+        subBuilder: WearSetCircle.create)
+    ..aOS(20, _omitFieldNames ? '' : 'upNextText')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -765,6 +865,21 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   void clearLastDone() => $_clearField(16);
   @$pb.TagNumber(16)
   WearDoneSet ensureLastDone() => $_ensure(11);
+
+  /// The exercise in hand's sets, in order, warmups first.
+  @$pb.TagNumber(17)
+  $pb.PbList<WearSetCircle> get circles => $_getList(12);
+
+  /// The phone's "up next" chip, when the wearer lifts next in a session;
+  /// empty otherwise (solo, or someone else is next).
+  @$pb.TagNumber(20)
+  $core.String get upNextText => $_getSZ(13);
+  @$pb.TagNumber(20)
+  set upNextText($core.String value) => $_setString(13, value);
+  @$pb.TagNumber(20)
+  $core.bool hasUpNextText() => $_has(13);
+  @$pb.TagNumber(20)
+  void clearUpNextText() => $_clearField(20);
 }
 
 class WearCompletionSummary extends $pb.GeneratedMessage {
@@ -1053,6 +1168,86 @@ class StartSetIntent extends $pb.GeneratedMessage {
   void clearStartedAt() => $_clearField(3);
 }
 
+/// A tap on a set's circle on the watch: the phone does what a tap on its own
+/// circle does (start, done, a rep off, undone).
+class TapSetIntent extends $pb.GeneratedMessage {
+  factory TapSetIntent({
+    $core.String? workoutId,
+    $core.String? setId,
+    $fixnum.Int64? tappedAt,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (setId != null) result.setId = setId;
+    if (tappedAt != null) result.tappedAt = tappedAt;
+    return result;
+  }
+
+  TapSetIntent._();
+
+  factory TapSetIntent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TapSetIntent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TapSetIntent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aOS(2, _omitFieldNames ? '' : 'setId')
+    ..aInt64(3, _omitFieldNames ? '' : 'tappedAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TapSetIntent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TapSetIntent copyWith(void Function(TapSetIntent) updates) =>
+      super.copyWith((message) => updates(message as TapSetIntent))
+          as TapSetIntent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TapSetIntent create() => TapSetIntent._();
+  @$core.override
+  TapSetIntent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TapSetIntent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TapSetIntent>(create);
+  static TapSetIntent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get setId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set setId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSetId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSetId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get tappedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set tappedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTappedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTappedAt() => $_clearField(3);
+}
+
 /// Set a done set's reps: the fix window's taps, one rep off each.
 class EditCompletedSetIntent extends $pb.GeneratedMessage {
   factory EditCompletedSetIntent({
@@ -1205,6 +1400,7 @@ enum WearIntent_Intent {
   endWorkout,
   startSet,
   editCompletedSet,
+  tapSet,
   notSet
 }
 
@@ -1216,6 +1412,7 @@ class WearIntent extends $pb.GeneratedMessage {
     EndWorkoutIntent? endWorkout,
     StartSetIntent? startSet,
     EditCompletedSetIntent? editCompletedSet,
+    TapSetIntent? tapSet,
   }) {
     final result = create();
     if (intentId != null) result.intentId = intentId;
@@ -1224,6 +1421,7 @@ class WearIntent extends $pb.GeneratedMessage {
     if (endWorkout != null) result.endWorkout = endWorkout;
     if (startSet != null) result.startSet = startSet;
     if (editCompletedSet != null) result.editCompletedSet = editCompletedSet;
+    if (tapSet != null) result.tapSet = tapSet;
     return result;
   }
 
@@ -1242,13 +1440,14 @@ class WearIntent extends $pb.GeneratedMessage {
     13: WearIntent_Intent.endWorkout,
     17: WearIntent_Intent.startSet,
     18: WearIntent_Intent.editCompletedSet,
+    19: WearIntent_Intent.tapSet,
     0: WearIntent_Intent.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'WearIntent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [11, 13, 17, 18])
+    ..oo(0, [11, 13, 17, 18, 19])
     ..aOS(1, _omitFieldNames ? '' : 'intentId')
     ..aInt64(2, _omitFieldNames ? '' : 'sentAt')
     ..aOM<CompleteSetIntent>(11, _omitFieldNames ? '' : 'completeSet',
@@ -1259,6 +1458,8 @@ class WearIntent extends $pb.GeneratedMessage {
         subBuilder: StartSetIntent.create)
     ..aOM<EditCompletedSetIntent>(18, _omitFieldNames ? '' : 'editCompletedSet',
         subBuilder: EditCompletedSetIntent.create)
+    ..aOM<TapSetIntent>(19, _omitFieldNames ? '' : 'tapSet',
+        subBuilder: TapSetIntent.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1283,11 +1484,13 @@ class WearIntent extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   @$pb.TagNumber(17)
   @$pb.TagNumber(18)
+  @$pb.TagNumber(19)
   WearIntent_Intent whichIntent() => _WearIntent_IntentByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(11)
   @$pb.TagNumber(13)
   @$pb.TagNumber(17)
   @$pb.TagNumber(18)
+  @$pb.TagNumber(19)
   void clearIntent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -1351,6 +1554,17 @@ class WearIntent extends $pb.GeneratedMessage {
   void clearEditCompletedSet() => $_clearField(18);
   @$pb.TagNumber(18)
   EditCompletedSetIntent ensureEditCompletedSet() => $_ensure(5);
+
+  @$pb.TagNumber(19)
+  TapSetIntent get tapSet => $_getN(6);
+  @$pb.TagNumber(19)
+  set tapSet(TapSetIntent value) => $_setField(19, value);
+  @$pb.TagNumber(19)
+  $core.bool hasTapSet() => $_has(6);
+  @$pb.TagNumber(19)
+  void clearTapSet() => $_clearField(19);
+  @$pb.TagNumber(19)
+  TapSetIntent ensureTapSet() => $_ensure(6);
 }
 
 class HeartRateSample extends $pb.GeneratedMessage {

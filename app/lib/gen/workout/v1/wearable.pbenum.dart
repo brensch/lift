@@ -91,5 +91,44 @@ class HeartRateAvailability extends $pb.ProtobufEnum {
   const HeartRateAvailability._(super.value, super.name);
 }
 
+/// What a set's circle shows, as the phone's own circle does.
+class WearCircleState extends $pb.ProtobufEnum {
+  static const WearCircleState WEAR_CIRCLE_STATE_UNSPECIFIED =
+      WearCircleState._(
+          0, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_UNSPECIFIED');
+  static const WearCircleState WEAR_CIRCLE_STATE_PENDING =
+      WearCircleState._(1, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_PENDING');
+  static const WearCircleState WEAR_CIRCLE_STATE_NEXT =
+      WearCircleState._(2, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_NEXT');
+  static const WearCircleState WEAR_CIRCLE_STATE_LIFTING =
+      WearCircleState._(3, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_LIFTING');
+  static const WearCircleState WEAR_CIRCLE_STATE_FULL =
+      WearCircleState._(4, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_FULL');
+  static const WearCircleState WEAR_CIRCLE_STATE_SHORT =
+      WearCircleState._(5, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_SHORT');
+  static const WearCircleState WEAR_CIRCLE_STATE_ZERO =
+      WearCircleState._(6, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_ZERO');
+  static const WearCircleState WEAR_CIRCLE_STATE_SKIPPED =
+      WearCircleState._(7, _omitEnumNames ? '' : 'WEAR_CIRCLE_STATE_SKIPPED');
+
+  static const $core.List<WearCircleState> values = <WearCircleState>[
+    WEAR_CIRCLE_STATE_UNSPECIFIED,
+    WEAR_CIRCLE_STATE_PENDING,
+    WEAR_CIRCLE_STATE_NEXT,
+    WEAR_CIRCLE_STATE_LIFTING,
+    WEAR_CIRCLE_STATE_FULL,
+    WEAR_CIRCLE_STATE_SHORT,
+    WEAR_CIRCLE_STATE_ZERO,
+    WEAR_CIRCLE_STATE_SKIPPED,
+  ];
+
+  static final $core.List<WearCircleState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 7);
+  static WearCircleState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const WearCircleState._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

@@ -336,6 +336,209 @@ public final class Wearable {
     // @@protoc_insertion_point(enum_scope:workout.v1.HeartRateAvailability)
   }
 
+  /**
+   * <pre>
+   * What a set's circle shows, as the phone's own circle does.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.WearCircleState}
+   */
+  public enum WearCircleState
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>WEAR_CIRCLE_STATE_UNSPECIFIED = 0;</code>
+     */
+    WEAR_CIRCLE_STATE_UNSPECIFIED(0),
+    /**
+     * <pre>
+     * still to do
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_PENDING = 1;</code>
+     */
+    WEAR_CIRCLE_STATE_PENDING(1),
+    /**
+     * <pre>
+     * up next: a ring in the stage's colour
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_NEXT = 2;</code>
+     */
+    WEAR_CIRCLE_STATE_NEXT(2),
+    /**
+     * <pre>
+     * started, not done
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_LIFTING = 3;</code>
+     */
+    WEAR_CIRCLE_STATE_LIFTING(3),
+    /**
+     * <pre>
+     * done, every rep
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_FULL = 4;</code>
+     */
+    WEAR_CIRCLE_STATE_FULL(4),
+    /**
+     * <pre>
+     * done, short of the target
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_SHORT = 5;</code>
+     */
+    WEAR_CIRCLE_STATE_SHORT(5),
+    /**
+     * <pre>
+     * done with no reps
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_ZERO = 6;</code>
+     */
+    WEAR_CIRCLE_STATE_ZERO(6),
+    /**
+     * <pre>
+     * a warmup passed
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_SKIPPED = 7;</code>
+     */
+    WEAR_CIRCLE_STATE_SKIPPED(7),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>WEAR_CIRCLE_STATE_UNSPECIFIED = 0;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_UNSPECIFIED_VALUE = 0;
+    /**
+     * <pre>
+     * still to do
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_PENDING = 1;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_PENDING_VALUE = 1;
+    /**
+     * <pre>
+     * up next: a ring in the stage's colour
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_NEXT = 2;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_NEXT_VALUE = 2;
+    /**
+     * <pre>
+     * started, not done
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_LIFTING = 3;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_LIFTING_VALUE = 3;
+    /**
+     * <pre>
+     * done, every rep
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_FULL = 4;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_FULL_VALUE = 4;
+    /**
+     * <pre>
+     * done, short of the target
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_SHORT = 5;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_SHORT_VALUE = 5;
+    /**
+     * <pre>
+     * done with no reps
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_ZERO = 6;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_ZERO_VALUE = 6;
+    /**
+     * <pre>
+     * a warmup passed
+     * </pre>
+     *
+     * <code>WEAR_CIRCLE_STATE_SKIPPED = 7;</code>
+     */
+    public static final int WEAR_CIRCLE_STATE_SKIPPED_VALUE = 7;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static WearCircleState valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static WearCircleState forNumber(int value) {
+      switch (value) {
+        case 0: return WEAR_CIRCLE_STATE_UNSPECIFIED;
+        case 1: return WEAR_CIRCLE_STATE_PENDING;
+        case 2: return WEAR_CIRCLE_STATE_NEXT;
+        case 3: return WEAR_CIRCLE_STATE_LIFTING;
+        case 4: return WEAR_CIRCLE_STATE_FULL;
+        case 5: return WEAR_CIRCLE_STATE_SHORT;
+        case 6: return WEAR_CIRCLE_STATE_ZERO;
+        case 7: return WEAR_CIRCLE_STATE_SKIPPED;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<WearCircleState>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        WearCircleState> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<WearCircleState>() {
+            @java.lang.Override
+            public WearCircleState findValueByNumber(int number) {
+              return WearCircleState.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return WearCircleStateVerifier.INSTANCE;
+    }
+
+    private static final class WearCircleStateVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new WearCircleStateVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return WearCircleState.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private WearCircleState(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.WearCircleState)
+  }
+
   public interface WearStatusCardOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.WearStatusCard)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -3046,6 +3249,656 @@ public final class Wearable {
     }
   }
 
+  public interface WearSetCircleOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.WearSetCircle)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    java.lang.String getSetId();
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    com.google.protobuf.ByteString
+        getSetIdBytes();
+
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     * @return The text.
+     */
+    java.lang.String getText();
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     * @return The bytes for text.
+     */
+    com.google.protobuf.ByteString
+        getTextBytes();
+
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     * @return The enum numeric value on the wire for state.
+     */
+    int getStateValue();
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     * @return The state.
+     */
+    workout.v1.Wearable.WearCircleState getState();
+
+    /**
+     * <pre>
+     * drawn smaller
+     * </pre>
+     *
+     * <code>bool warmup = 4 [json_name = "warmup"];</code>
+     * @return The warmup.
+     */
+    boolean getWarmup();
+  }
+  /**
+   * <pre>
+   * One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
+   * the phone does what a tap on its own circle does.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.WearSetCircle}
+   */
+  public  static final class WearSetCircle extends
+      com.google.protobuf.GeneratedMessageLite<
+          WearSetCircle, WearSetCircle.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.WearSetCircle)
+      WearSetCircleOrBuilder {
+    private WearSetCircle() {
+      setId_ = "";
+      text_ = "";
+    }
+    public static final int SET_ID_FIELD_NUMBER = 1;
+    private java.lang.String setId_;
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    @java.lang.Override
+    public java.lang.String getSetId() {
+      return setId_;
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(setId_);
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @param value The setId to set.
+     */
+    private void setSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      setId_ = value;
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     */
+    private void clearSetId() {
+      
+      setId_ = getDefaultInstance().getSetId();
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @param value The bytes for setId to set.
+     */
+    private void setSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      setId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int TEXT_FIELD_NUMBER = 2;
+    private java.lang.String text_;
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     * @return The text.
+     */
+    @java.lang.Override
+    public java.lang.String getText() {
+      return text_;
+    }
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     * @return The bytes for text.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTextBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(text_);
+    }
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     * @param value The text to set.
+     */
+    private void setText(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      text_ = value;
+    }
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     */
+    private void clearText() {
+      
+      text_ = getDefaultInstance().getText();
+    }
+    /**
+     * <pre>
+     * the number in it: reps done, or the target; "?" on a first time
+     * </pre>
+     *
+     * <code>string text = 2 [json_name = "text"];</code>
+     * @param value The bytes for text to set.
+     */
+    private void setTextBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      text_ = value.toStringUtf8();
+      
+    }
+
+    public static final int STATE_FIELD_NUMBER = 3;
+    private int state_;
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     * @return The enum numeric value on the wire for state.
+     */
+    @java.lang.Override
+    public int getStateValue() {
+      return state_;
+    }
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     * @return The state.
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.WearCircleState getState() {
+      workout.v1.Wearable.WearCircleState result = workout.v1.Wearable.WearCircleState.forNumber(state_);
+      return result == null ? workout.v1.Wearable.WearCircleState.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     * @param value The enum numeric value on the wire for state to set.
+     */
+    private void setStateValue(int value) {
+        state_ = value;
+    }
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     * @param value The state to set.
+     */
+    private void setState(workout.v1.Wearable.WearCircleState value) {
+      state_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+     */
+    private void clearState() {
+      
+      state_ = 0;
+    }
+
+    public static final int WARMUP_FIELD_NUMBER = 4;
+    private boolean warmup_;
+    /**
+     * <pre>
+     * drawn smaller
+     * </pre>
+     *
+     * <code>bool warmup = 4 [json_name = "warmup"];</code>
+     * @return The warmup.
+     */
+    @java.lang.Override
+    public boolean getWarmup() {
+      return warmup_;
+    }
+    /**
+     * <pre>
+     * drawn smaller
+     * </pre>
+     *
+     * <code>bool warmup = 4 [json_name = "warmup"];</code>
+     * @param value The warmup to set.
+     */
+    private void setWarmup(boolean value) {
+      
+      warmup_ = value;
+    }
+    /**
+     * <pre>
+     * drawn smaller
+     * </pre>
+     *
+     * <code>bool warmup = 4 [json_name = "warmup"];</code>
+     */
+    private void clearWarmup() {
+      
+      warmup_ = false;
+    }
+
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearSetCircle parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.WearSetCircle prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
+     * the phone does what a tap on its own circle does.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.WearSetCircle}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.WearSetCircle, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.WearSetCircle)
+        workout.v1.Wearable.WearSetCircleOrBuilder {
+      // Construct using workout.v1.Wearable.WearSetCircle.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @return The setId.
+       */
+      @java.lang.Override
+      public java.lang.String getSetId() {
+        return instance.getSetId();
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @return The bytes for setId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSetIdBytes() {
+        return instance.getSetIdBytes();
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @param value The setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSetId(value);
+        return this;
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSetId() {
+        copyOnWrite();
+        instance.clearSetId();
+        return this;
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @param value The bytes for setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSetIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * the number in it: reps done, or the target; "?" on a first time
+       * </pre>
+       *
+       * <code>string text = 2 [json_name = "text"];</code>
+       * @return The text.
+       */
+      @java.lang.Override
+      public java.lang.String getText() {
+        return instance.getText();
+      }
+      /**
+       * <pre>
+       * the number in it: reps done, or the target; "?" on a first time
+       * </pre>
+       *
+       * <code>string text = 2 [json_name = "text"];</code>
+       * @return The bytes for text.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTextBytes() {
+        return instance.getTextBytes();
+      }
+      /**
+       * <pre>
+       * the number in it: reps done, or the target; "?" on a first time
+       * </pre>
+       *
+       * <code>string text = 2 [json_name = "text"];</code>
+       * @param value The text to set.
+       * @return This builder for chaining.
+       */
+      public Builder setText(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setText(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * the number in it: reps done, or the target; "?" on a first time
+       * </pre>
+       *
+       * <code>string text = 2 [json_name = "text"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearText() {
+        copyOnWrite();
+        instance.clearText();
+        return this;
+      }
+      /**
+       * <pre>
+       * the number in it: reps done, or the target; "?" on a first time
+       * </pre>
+       *
+       * <code>string text = 2 [json_name = "text"];</code>
+       * @param value The bytes for text to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTextBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTextBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+       * @return The enum numeric value on the wire for state.
+       */
+      @java.lang.Override
+      public int getStateValue() {
+        return instance.getStateValue();
+      }
+      /**
+       * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+       * @param value The state to set.
+       * @return This builder for chaining.
+       */
+      public Builder setStateValue(int value) {
+        copyOnWrite();
+        instance.setStateValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+       * @return The state.
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.WearCircleState getState() {
+        return instance.getState();
+      }
+      /**
+       * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+       * @param value The enum numeric value on the wire for state to set.
+       * @return This builder for chaining.
+       */
+      public Builder setState(workout.v1.Wearable.WearCircleState value) {
+        copyOnWrite();
+        instance.setState(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.WearCircleState state = 3 [json_name = "state"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearState() {
+        copyOnWrite();
+        instance.clearState();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * drawn smaller
+       * </pre>
+       *
+       * <code>bool warmup = 4 [json_name = "warmup"];</code>
+       * @return The warmup.
+       */
+      @java.lang.Override
+      public boolean getWarmup() {
+        return instance.getWarmup();
+      }
+      /**
+       * <pre>
+       * drawn smaller
+       * </pre>
+       *
+       * <code>bool warmup = 4 [json_name = "warmup"];</code>
+       * @param value The warmup to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWarmup(boolean value) {
+        copyOnWrite();
+        instance.setWarmup(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * drawn smaller
+       * </pre>
+       *
+       * <code>bool warmup = 4 [json_name = "warmup"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWarmup() {
+        copyOnWrite();
+        instance.clearWarmup();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.WearSetCircle)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.WearSetCircle();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "setId_",
+              "text_",
+              "state_",
+              "warmup_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\f\u0004\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.WearSetCircle> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.WearSetCircle.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearSetCircle>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.WearSetCircle)
+    private static final workout.v1.Wearable.WearSetCircle DEFAULT_INSTANCE;
+    static {
+      WearSetCircle defaultInstance = new WearSetCircle();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        WearSetCircle.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.WearSetCircle getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<WearSetCircle> PARSER;
+
+    public static com.google.protobuf.Parser<WearSetCircle> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface WearPlateOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.WearPlate)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -5537,6 +6390,54 @@ public final class Wearable {
      * @return The lastDone.
      */
     workout.v1.Wearable.WearDoneSet getLastDone();
+
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    java.util.List<workout.v1.Wearable.WearSetCircle> 
+        getCirclesList();
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    workout.v1.Wearable.WearSetCircle getCircles(int index);
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    int getCirclesCount();
+
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     * @return The upNextText.
+     */
+    java.lang.String getUpNextText();
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     * @return The bytes for upNextText.
+     */
+    com.google.protobuf.ByteString
+        getUpNextTextBytes();
   }
   /**
    * Protobuf type {@code workout.v1.WearWorkoutSnapshot}
@@ -5551,6 +6452,8 @@ public final class Wearable {
       elapsedText_ = "";
       actions_ = emptyProtobufList();
       nextUpEmoji_ = "";
+      circles_ = emptyProtobufList();
+      upNextText_ = "";
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -6164,6 +7067,216 @@ public final class Wearable {
      * <code>.workout.v1.WearDoneSet last_done = 16 [json_name = "lastDone"];</code>
      */
     private void clearLastDone() {  lastDone_ = null;
+      
+    }
+
+    public static final int CIRCLES_FIELD_NUMBER = 17;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.Wearable.WearSetCircle> circles_;
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Wearable.WearSetCircle> getCirclesList() {
+      return circles_;
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    public java.util.List<? extends workout.v1.Wearable.WearSetCircleOrBuilder> 
+        getCirclesOrBuilderList() {
+      return circles_;
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    @java.lang.Override
+    public int getCirclesCount() {
+      return circles_.size();
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.WearSetCircle getCircles(int index) {
+      return circles_.get(index);
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    public workout.v1.Wearable.WearSetCircleOrBuilder getCirclesOrBuilder(
+        int index) {
+      return circles_.get(index);
+    }
+    private void ensureCirclesIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.Wearable.WearSetCircle> tmp = circles_;
+      if (!tmp.isModifiable()) {
+        circles_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    private void setCircles(
+        int index, workout.v1.Wearable.WearSetCircle value) {
+      value.getClass();
+  ensureCirclesIsMutable();
+      circles_.set(index, value);
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    private void addCircles(workout.v1.Wearable.WearSetCircle value) {
+      value.getClass();
+  ensureCirclesIsMutable();
+      circles_.add(value);
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    private void addCircles(
+        int index, workout.v1.Wearable.WearSetCircle value) {
+      value.getClass();
+  ensureCirclesIsMutable();
+      circles_.add(index, value);
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    private void addAllCircles(
+        java.lang.Iterable<? extends workout.v1.Wearable.WearSetCircle> values) {
+      ensureCirclesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, circles_);
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    private void clearCircles() {
+      circles_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * The exercise in hand's sets, in order, warmups first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+     */
+    private void removeCircles(int index) {
+      ensureCirclesIsMutable();
+      circles_.remove(index);
+    }
+
+    public static final int UP_NEXT_TEXT_FIELD_NUMBER = 20;
+    private java.lang.String upNextText_;
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     * @return The upNextText.
+     */
+    @java.lang.Override
+    public java.lang.String getUpNextText() {
+      return upNextText_;
+    }
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     * @return The bytes for upNextText.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getUpNextTextBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(upNextText_);
+    }
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     * @param value The upNextText to set.
+     */
+    private void setUpNextText(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      upNextText_ = value;
+    }
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     */
+    private void clearUpNextText() {
+      
+      upNextText_ = getDefaultInstance().getUpNextText();
+    }
+    /**
+     * <pre>
+     * The phone's "up next" chip, when the wearer lifts next in a session;
+     * empty otherwise (solo, or someone else is next).
+     * </pre>
+     *
+     * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+     * @param value The bytes for upNextText to set.
+     */
+    private void setUpNextTextBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      upNextText_ = value.toStringUtf8();
       
     }
 
@@ -6914,6 +8027,230 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Wearable.WearSetCircle> getCirclesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getCirclesList());
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      @java.lang.Override
+      public int getCirclesCount() {
+        return instance.getCirclesCount();
+      }/**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.WearSetCircle getCircles(int index) {
+        return instance.getCircles(index);
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder setCircles(
+          int index, workout.v1.Wearable.WearSetCircle value) {
+        copyOnWrite();
+        instance.setCircles(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder setCircles(
+          int index, workout.v1.Wearable.WearSetCircle.Builder builderForValue) {
+        copyOnWrite();
+        instance.setCircles(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder addCircles(workout.v1.Wearable.WearSetCircle value) {
+        copyOnWrite();
+        instance.addCircles(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder addCircles(
+          int index, workout.v1.Wearable.WearSetCircle value) {
+        copyOnWrite();
+        instance.addCircles(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder addCircles(
+          workout.v1.Wearable.WearSetCircle.Builder builderForValue) {
+        copyOnWrite();
+        instance.addCircles(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder addCircles(
+          int index, workout.v1.Wearable.WearSetCircle.Builder builderForValue) {
+        copyOnWrite();
+        instance.addCircles(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder addAllCircles(
+          java.lang.Iterable<? extends workout.v1.Wearable.WearSetCircle> values) {
+        copyOnWrite();
+        instance.addAllCircles(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder clearCircles() {
+        copyOnWrite();
+        instance.clearCircles();
+        return this;
+      }
+      /**
+       * <pre>
+       * The exercise in hand's sets, in order, warmups first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.WearSetCircle circles = 17 [json_name = "circles"];</code>
+       */
+      public Builder removeCircles(int index) {
+        copyOnWrite();
+        instance.removeCircles(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The phone's "up next" chip, when the wearer lifts next in a session;
+       * empty otherwise (solo, or someone else is next).
+       * </pre>
+       *
+       * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+       * @return The upNextText.
+       */
+      @java.lang.Override
+      public java.lang.String getUpNextText() {
+        return instance.getUpNextText();
+      }
+      /**
+       * <pre>
+       * The phone's "up next" chip, when the wearer lifts next in a session;
+       * empty otherwise (solo, or someone else is next).
+       * </pre>
+       *
+       * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+       * @return The bytes for upNextText.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getUpNextTextBytes() {
+        return instance.getUpNextTextBytes();
+      }
+      /**
+       * <pre>
+       * The phone's "up next" chip, when the wearer lifts next in a session;
+       * empty otherwise (solo, or someone else is next).
+       * </pre>
+       *
+       * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+       * @param value The upNextText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUpNextText(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setUpNextText(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The phone's "up next" chip, when the wearer lifts next in a session;
+       * empty otherwise (solo, or someone else is next).
+       * </pre>
+       *
+       * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearUpNextText() {
+        copyOnWrite();
+        instance.clearUpNextText();
+        return this;
+      }
+      /**
+       * <pre>
+       * The phone's "up next" chip, when the wearer lifts next in a session;
+       * empty otherwise (solo, or someone else is next).
+       * </pre>
+       *
+       * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
+       * @param value The bytes for upNextText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUpNextTextBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setUpNextTextBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearWorkoutSnapshot)
     }
     @java.lang.Override
@@ -6943,11 +8280,14 @@ public final class Wearable {
               "nextUpEmoji_",
               "liftingStartedAt_",
               "lastDone_",
+              "circles_",
+              workout.v1.Wearable.WearSetCircle.class,
+              "upNextText_",
             };
             java.lang.String info =
-                "\u0000\f\u0000\u0000\u0001\u0010\f\u0000\u0001\u0000\u0001\u0208\u0002\u0002\u0003" +
-                "\f\u0004\u0002\u0006\u0002\b\u0208\t\t\u000b\u001b\f\t\r\u0208\u000f\u0002\u0010" +
-                "\t";
+                "\u0000\u000e\u0000\u0000\u0001\u0014\u000e\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
+                "\u0003\f\u0004\u0002\u0006\u0002\b\u0208\t\t\u000b\u001b\f\t\r\u0208\u000f\u0002" +
+                "\u0010\t\u0011\u001b\u0014\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -8829,6 +10169,508 @@ public final class Wearable {
     }
   }
 
+  public interface TapSetIntentOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.TapSetIntent)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    java.lang.String getWorkoutId();
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    com.google.protobuf.ByteString
+        getWorkoutIdBytes();
+
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    java.lang.String getSetId();
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    com.google.protobuf.ByteString
+        getSetIdBytes();
+
+    /**
+     * <pre>
+     * Unix seconds
+     * </pre>
+     *
+     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+     * @return The tappedAt.
+     */
+    long getTappedAt();
+  }
+  /**
+   * <pre>
+   * A tap on a set's circle on the watch: the phone does what a tap on its own
+   * circle does (start, done, a rep off, undone).
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.TapSetIntent}
+   */
+  public  static final class TapSetIntent extends
+      com.google.protobuf.GeneratedMessageLite<
+          TapSetIntent, TapSetIntent.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.TapSetIntent)
+      TapSetIntentOrBuilder {
+    private TapSetIntent() {
+      workoutId_ = "";
+      setId_ = "";
+    }
+    public static final int WORKOUT_ID_FIELD_NUMBER = 1;
+    private java.lang.String workoutId_;
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    @java.lang.Override
+    public java.lang.String getWorkoutId() {
+      return workoutId_;
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getWorkoutIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(workoutId_);
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @param value The workoutId to set.
+     */
+    private void setWorkoutId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      workoutId_ = value;
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     */
+    private void clearWorkoutId() {
+      
+      workoutId_ = getDefaultInstance().getWorkoutId();
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @param value The bytes for workoutId to set.
+     */
+    private void setWorkoutIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      workoutId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int SET_ID_FIELD_NUMBER = 2;
+    private java.lang.String setId_;
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    @java.lang.Override
+    public java.lang.String getSetId() {
+      return setId_;
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(setId_);
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @param value The setId to set.
+     */
+    private void setSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      setId_ = value;
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     */
+    private void clearSetId() {
+      
+      setId_ = getDefaultInstance().getSetId();
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @param value The bytes for setId to set.
+     */
+    private void setSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      setId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int TAPPED_AT_FIELD_NUMBER = 3;
+    private long tappedAt_;
+    /**
+     * <pre>
+     * Unix seconds
+     * </pre>
+     *
+     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+     * @return The tappedAt.
+     */
+    @java.lang.Override
+    public long getTappedAt() {
+      return tappedAt_;
+    }
+    /**
+     * <pre>
+     * Unix seconds
+     * </pre>
+     *
+     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+     * @param value The tappedAt to set.
+     */
+    private void setTappedAt(long value) {
+      
+      tappedAt_ = value;
+    }
+    /**
+     * <pre>
+     * Unix seconds
+     * </pre>
+     *
+     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+     */
+    private void clearTappedAt() {
+      
+      tappedAt_ = 0L;
+    }
+
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.TapSetIntent parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.TapSetIntent prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * A tap on a set's circle on the watch: the phone does what a tap on its own
+     * circle does (start, done, a rep off, undone).
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.TapSetIntent}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.TapSetIntent, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.TapSetIntent)
+        workout.v1.Wearable.TapSetIntentOrBuilder {
+      // Construct using workout.v1.Wearable.TapSetIntent.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return The workoutId.
+       */
+      @java.lang.Override
+      public java.lang.String getWorkoutId() {
+        return instance.getWorkoutId();
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return The bytes for workoutId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getWorkoutIdBytes() {
+        return instance.getWorkoutIdBytes();
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @param value The workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setWorkoutId(value);
+        return this;
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWorkoutId() {
+        copyOnWrite();
+        instance.clearWorkoutId();
+        return this;
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @param value The bytes for workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setWorkoutIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @return The setId.
+       */
+      @java.lang.Override
+      public java.lang.String getSetId() {
+        return instance.getSetId();
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @return The bytes for setId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSetIdBytes() {
+        return instance.getSetIdBytes();
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @param value The setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSetId(value);
+        return this;
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSetId() {
+        copyOnWrite();
+        instance.clearSetId();
+        return this;
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @param value The bytes for setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSetIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Unix seconds
+       * </pre>
+       *
+       * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+       * @return The tappedAt.
+       */
+      @java.lang.Override
+      public long getTappedAt() {
+        return instance.getTappedAt();
+      }
+      /**
+       * <pre>
+       * Unix seconds
+       * </pre>
+       *
+       * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+       * @param value The tappedAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTappedAt(long value) {
+        copyOnWrite();
+        instance.setTappedAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Unix seconds
+       * </pre>
+       *
+       * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTappedAt() {
+        copyOnWrite();
+        instance.clearTappedAt();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.TapSetIntent)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.TapSetIntent();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "workoutId_",
+              "setId_",
+              "tappedAt_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0002";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.TapSetIntent> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.TapSetIntent.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.TapSetIntent>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.TapSetIntent)
+    private static final workout.v1.Wearable.TapSetIntent DEFAULT_INSTANCE;
+    static {
+      TapSetIntent defaultInstance = new TapSetIntent();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        TapSetIntent.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.TapSetIntent getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<TapSetIntent> PARSER;
+
+    public static com.google.protobuf.Parser<TapSetIntent> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface EditCompletedSetIntentOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.EditCompletedSetIntent)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -9732,6 +11574,17 @@ public final class Wearable {
      */
     workout.v1.Wearable.EditCompletedSetIntent getEditCompletedSet();
 
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     * @return Whether the tapSet field is set.
+     */
+    boolean hasTapSet();
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     * @return The tapSet.
+     */
+    workout.v1.Wearable.TapSetIntent getTapSet();
+
     public workout.v1.Wearable.WearIntent.IntentCase getIntentCase();
   }
   /**
@@ -9752,6 +11605,7 @@ public final class Wearable {
       END_WORKOUT(13),
       START_SET(17),
       EDIT_COMPLETED_SET(18),
+      TAP_SET(19),
       INTENT_NOT_SET(0);
       private final int value;
       private IntentCase(int value) {
@@ -9771,6 +11625,7 @@ public final class Wearable {
           case 13: return END_WORKOUT;
           case 17: return START_SET;
           case 18: return EDIT_COMPLETED_SET;
+          case 19: return TAP_SET;
           case 0: return INTENT_NOT_SET;
           default: return null;
         }
@@ -10092,6 +11947,56 @@ public final class Wearable {
      */
     private void clearEditCompletedSet() {
       if (intentCase_ == 18) {
+        intentCase_ = 0;
+        intent_ = null;
+      }
+    }
+
+    public static final int TAP_SET_FIELD_NUMBER = 19;
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     */
+    @java.lang.Override
+    public boolean hasTapSet() {
+      return intentCase_ == 19;
+    }
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.TapSetIntent getTapSet() {
+      if (intentCase_ == 19) {
+         return (workout.v1.Wearable.TapSetIntent) intent_;
+      }
+      return workout.v1.Wearable.TapSetIntent.getDefaultInstance();
+    }
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     */
+    private void setTapSet(workout.v1.Wearable.TapSetIntent value) {
+      value.getClass();
+  intent_ = value;
+      intentCase_ = 19;
+    }
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     */
+    private void mergeTapSet(workout.v1.Wearable.TapSetIntent value) {
+      value.getClass();
+  if (intentCase_ == 19 &&
+          intent_ != workout.v1.Wearable.TapSetIntent.getDefaultInstance()) {
+        intent_ = workout.v1.Wearable.TapSetIntent.newBuilder((workout.v1.Wearable.TapSetIntent) intent_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        intent_ = value;
+      }
+      intentCase_ = 19;
+    }
+    /**
+     * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+     */
+    private void clearTapSet() {
+      if (intentCase_ == 19) {
         intentCase_ = 0;
         intent_ = null;
       }
@@ -10505,6 +12410,54 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+       */
+      @java.lang.Override
+      public boolean hasTapSet() {
+        return instance.hasTapSet();
+      }
+      /**
+       * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.TapSetIntent getTapSet() {
+        return instance.getTapSet();
+      }
+      /**
+       * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+       */
+      public Builder setTapSet(workout.v1.Wearable.TapSetIntent value) {
+        copyOnWrite();
+        instance.setTapSet(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+       */
+      public Builder setTapSet(
+          workout.v1.Wearable.TapSetIntent.Builder builderForValue) {
+        copyOnWrite();
+        instance.setTapSet(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+       */
+      public Builder mergeTapSet(workout.v1.Wearable.TapSetIntent value) {
+        copyOnWrite();
+        instance.mergeTapSet(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.TapSetIntent tap_set = 19 [json_name = "tapSet"];</code>
+       */
+      public Builder clearTapSet() {
+        copyOnWrite();
+        instance.clearTapSet();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearIntent)
     }
     @java.lang.Override
@@ -10529,10 +12482,11 @@ public final class Wearable {
               workout.v1.Wearable.EndWorkoutIntent.class,
               workout.v1.Wearable.StartSetIntent.class,
               workout.v1.Wearable.EditCompletedSetIntent.class,
+              workout.v1.Wearable.TapSetIntent.class,
             };
             java.lang.String info =
-                "\u0000\u0006\u0001\u0000\u0001\u0012\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0002" +
-                "\u000b<\u0000\r<\u0000\u0011<\u0000\u0012<\u0000";
+                "\u0000\u0007\u0001\u0000\u0001\u0013\u0007\u0000\u0000\u0000\u0001\u0208\u0002\u0002" +
+                "\u000b<\u0000\r<\u0000\u0011<\u0000\u0012<\u0000\u0013<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

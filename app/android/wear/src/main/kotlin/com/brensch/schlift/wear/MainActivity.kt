@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -116,7 +117,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             WearApp(
                 onAction = { action -> sendAction(action) },
-                onFix = { completedSetId, reps, weight -> sendFix(completedSetId, reps, weight) },
+                onTapSet = { setId -> sendTap(setId) },
                 setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
                 isAmbientMode = isAmbientMode,
             )
@@ -359,23 +360,18 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    /** A tap in the fix window: [reps] for the set just done. */
-    private fun sendFix(
-        completedSetId: String,
-        reps: Int,
-        weight: Float,
-    ) {
+    /** A tap on a set circle: the phone does what a tap there does. */
+    private fun sendTap(setId: String) {
         val workoutId = WearDataRepository.snapshot.value?.workoutId ?: return
         send(
             Wearable.WearIntent
                 .newBuilder()
-                .setEditCompletedSet(
-                    Wearable.EditCompletedSetIntent
+                .setTapSet(
+                    Wearable.TapSetIntent
                         .newBuilder()
                         .setWorkoutId(workoutId)
-                        .setCompletedSetId(completedSetId)
-                        .setReps(reps)
-                        .setActualWeight(weight)
+                        .setSetId(setId)
+                        .setTappedAt(System.currentTimeMillis() / 1000)
                         .build(),
                 ).build(),
         )
@@ -496,7 +492,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
-    onFix: (String, Int, Float) -> Unit,
+    onTapSet: (String) -> Unit,
     setWorkoutKeepScreenOn: (Boolean) -> Unit,
     isAmbientMode: Boolean,
 ) {
@@ -556,7 +552,7 @@ private fun WearApp(
             nowTick = nowTick,
             isAmbientMode = isAmbientMode,
             onAction = onAction,
-            onFix = onFix,
+            onTapSet = onTapSet,
         )
     }
 }
@@ -570,7 +566,7 @@ private fun WorkoutScreens(
     nowTick: Long,
     isAmbientMode: Boolean,
     onAction: (Wearable.WearAction) -> Unit,
-    onFix: (String, Int, Float) -> Unit,
+    onTapSet: (String) -> Unit,
 ) {
     val restTimer =
         remember(data.workoutId, data.restUntil, data.youCard.timerText, nowTick) {
@@ -598,6 +594,13 @@ private fun WorkoutScreens(
             pendingActionEmittedAt = data.emittedAt
             pendingActionStartedAtMs = System.currentTimeMillis()
             onAction(action)
+        }
+    }
+    val tapSet: (String) -> Unit = { setId ->
+        if (!isActionPending) {
+            pendingActionEmittedAt = data.emittedAt
+            pendingActionStartedAtMs = System.currentTimeMillis()
+            onTapSet(setId)
         }
     }
 
@@ -636,41 +639,7 @@ private fun WorkoutScreens(
         return
     }
 
-    // The fix window: for a few seconds after a set ends, each tap on the big
-    // button takes a rep off it (and holds the window open), whichever device
-    // logged it. The reps shown are the watch's own until the phone answers.
-    val lastDone = if (data.hasLastDone()) data.lastDone else null
-    var fixReps by remember(lastDone?.completedSetId) { mutableStateOf(lastDone?.reps ?: 0) }
-    var lastFixTapMs by remember(lastDone?.completedSetId) { mutableLongStateOf(0L) }
-    val fixWindowEndMs =
-        lastDone?.let { maxOf(it.endedAt * 1000L, lastFixTapMs) + FIX_WINDOW_MS } ?: 0L
-    val fineNowMs by produceState(
-        initialValue = WearDataRepository.synchronizedNowUnixMillis(),
-        fixWindowEndMs,
-    ) {
-        while (WearDataRepository.synchronizedNowUnixMillis() < fixWindowEndMs) {
-            value = WearDataRepository.synchronizedNowUnixMillis()
-            delay(100)
-        }
-        value = WearDataRepository.synchronizedNowUnixMillis()
-    }
-    val inFixWindow =
-        lastDone != null &&
-            data.state != WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING &&
-            fineNowMs < fixWindowEndMs
     var showPlates by remember(data.workoutId) { mutableStateOf(false) }
-    // The fix window's bar, animated rather than redrawn on a tick so it drains
-    // smoothly; a tap restarts it from full.
-    val windowLeft = remember(lastDone?.completedSetId) { Animatable(0f) }
-    LaunchedEffect(fixWindowEndMs) {
-        val leftMs = fixWindowEndMs - WearDataRepository.synchronizedNowUnixMillis()
-        if (leftMs <= 0L) {
-            windowLeft.snapTo(0f)
-            return@LaunchedEffect
-        }
-        windowLeft.snapTo(leftMs.toFloat() / FIX_WINDOW_MS)
-        windowLeft.animateTo(0f, tween(durationMillis = leftMs.toInt(), easing = LinearEasing))
-    }
 
     val lifting = data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_LIFTING
     val resting =
@@ -681,6 +650,22 @@ private fun WorkoutScreens(
         action(Wearable.WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET)
             ?: action(Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET)
 
+    // The rest drains the band from the end of the last set to restUntil,
+    // animated rather than redrawn on the tick so it moves smoothly.
+    val restStartMs = if (data.hasLastDone()) data.lastDone.endedAt * 1000L else 0L
+    val restUntilMs = data.restUntil.toLong() * 1000L
+    val draining = resting && !yapping && restStartMs in 1 until restUntilMs
+    val bandFill = remember(data.workoutId) { Animatable(1f) }
+    LaunchedEffect(draining, restStartMs, restUntilMs) {
+        val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
+        if (!draining || leftMs <= 0L) {
+            bandFill.snapTo(if (draining) 0f else 1f)
+            return@LaunchedEffect
+        }
+        bandFill.snapTo(leftMs.toFloat() / (restUntilMs - restStartMs))
+        bandFill.animateTo(0f, tween(durationMillis = leftMs.toInt(), easing = LinearEasing))
+    }
+
     val stageColor =
         when {
             card.firstTime -> WearPalette.FirstTime
@@ -689,20 +674,15 @@ private fun WorkoutScreens(
             resting -> WearPalette.Resting
             else -> WearPalette.Ready
         }
+    // The set the rep circle stands for: the one in hand.
+    val inHand =
+        data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_LIFTING }
+            ?: data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_NEXT }
     val face =
-        SplitFace(
-            label =
-                when {
-                    yapping -> card.yappingLabel.ifEmpty { card.stateLabel }
-                    else -> card.stateLabel
-                },
-            labelColor =
-                when {
-                    card.firstTime || lifting -> WearPalette.LiftingInk
-                    yapping -> WearPalette.YappingInk
-                    resting -> WearPalette.Resting
-                    else -> WearPalette.ReadyInk
-                },
+        WearFace(
+            circles = data.circlesList,
+            upNext = data.upNextText,
+            label = if (yapping) card.yappingLabel.ifEmpty { card.stateLabel } else card.stateLabel,
             timer =
                 when {
                     card.firstTime -> ""
@@ -710,29 +690,20 @@ private fun WorkoutScreens(
                     resting -> restTimer.text
                     else -> ""
                 },
-            bpm = latestBpm,
-            elapsed = elapsedText,
-            clock = java.text.SimpleDateFormat("H:mm", java.util.Locale.getDefault()).format(java.util.Date(nowTick * 1000L)),
+            stageColor = stageColor,
+            // Resting drains to the stage colour washed toward the panel.
+            trackColor = if (draining) lerp(stageColor, WearPalette.Panel, 0.6f) else stageColor,
+            bandInk = if (lifting && !card.firstTime) WearPalette.Text else WearPalette.OnDark,
+            bandFill = if (draining) bandFill.value else 1f,
             exercise = card.exerciseName,
             position = card.setLine,
             weight = card.weightText.ifEmpty { card.setText },
             unit = card.unitText,
-            upNext = if (data.nextUpEmoji.isEmpty()) "" else "next ${data.nextUpEmoji}",
-            reps = if (inFixWindow) "$fixReps" else card.repsText,
-            // The button names the stage; in the fix window, what a tap does.
-            cue =
-                when {
-                    inFixWindow -> lastDone!!.cue
-                    yapping -> card.yappingLabel.ifEmpty { card.stateLabel }
-                    else -> card.stateLabel
-                },
-            buttonColor = if (inFixWindow) WearPalette.Fix else stageColor,
-            buttonInk =
-                when {
-                    inFixWindow || (lifting && !card.firstTime) -> WearPalette.Text
-                    else -> WearPalette.OnDark
-                },
-            window = if (inFixWindow) windowLeft.value else 0f,
+            reps = card.repsText,
+            repState = inHand?.state ?: Wearable.WearCircleState.WEAR_CIRCLE_STATE_PENDING,
+            bpm = latestBpm,
+            elapsed = elapsedText,
+            clock = java.text.SimpleDateFormat("H:mm", java.util.Locale.getDefault()).format(java.util.Date(nowTick * 1000L)),
             hasPlates = card.platesText.isNotEmpty(),
         )
 
@@ -743,16 +714,14 @@ private fun WorkoutScreens(
         }
 
         else -> {
-            SplitScreen(
+            FaceScreen(
                 face = face,
-                enabled = inFixWindow || (primary != null && !isActionPending),
-                onTap = {
-                    if (inFixWindow && lastDone != null) {
-                        fixReps = (fixReps - 1).coerceAtLeast(0)
-                        lastFixTapMs = WearDataRepository.synchronizedNowUnixMillis()
-                        onFix(lastDone.completedSetId, fixReps, lastDone.actualWeight)
-                    } else {
-                        primary?.let(fire)
+                enabled = !isActionPending,
+                onTapSet = tapSet,
+                onRep = {
+                    when {
+                        inHand != null -> tapSet(inHand.setId)
+                        else -> primary?.let(fire)
                     }
                 },
                 onWeight = { showPlates = true },
@@ -760,6 +729,3 @@ private fun WorkoutScreens(
         }
     }
 }
-
-/** How long after a set ends a tap on the big button takes a rep off it. */
-private const val FIX_WINDOW_MS = 3000L

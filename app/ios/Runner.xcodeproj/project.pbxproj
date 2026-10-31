@@ -55,7 +55,7 @@
 		A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */; };
 		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
 		7C8D8D2BB50B376E46F9EB3E /* PlateScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */; };
-		C6B8C8C2396E0C5B52F1A133 /* SplitScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66B0DA9131814488F6E90BDC /* SplitScreen.swift */; };
+		C6B8C8C2396E0C5B52F1A133 /* FaceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66B0DA9131814488F6E90BDC /* FaceScreen.swift */; };
 		DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */; };
 		7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */; };
 		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
@@ -158,7 +158,7 @@
 		C129A9FB18F81555600E71B3 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		C791F424CC08582321BD3041 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateScreen.swift"; sourceTree = "<group>"; };
-		66B0DA9131814488F6E90BDC /* SplitScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SplitScreen.swift"; sourceTree = "<group>"; };
+		66B0DA9131814488F6E90BDC /* FaceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FaceScreen.swift"; sourceTree = "<group>"; };
 		77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+WorkoutComplete.swift"; sourceTree = "<group>"; };
 		47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Formatting.swift"; sourceTree = "<group>"; };
 		DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -281,7 +281,7 @@
 				1C0B02B8A3792430DE97AC0B /* Assets.xcassets */,
 				C791F424CC08582321BD3041 /* ContentView.swift */,
 				4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */,
-				66B0DA9131814488F6E90BDC /* SplitScreen.swift */,
+				66B0DA9131814488F6E90BDC /* FaceScreen.swift */,
 				77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */,
 				47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */,
 				9240986A58A7473DBCC0828C /* PhoneConnector.swift */,
@@ -563,7 +563,7 @@
 			files = (
 				BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */,
 				7C8D8D2BB50B376E46F9EB3E /* PlateScreen.swift in Sources */,
-				C6B8C8C2396E0C5B52F1A133 /* SplitScreen.swift in Sources */,
+				C6B8C8C2396E0C5B52F1A133 /* FaceScreen.swift in Sources */,
 				DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */,
 				7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */,
 				5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */,

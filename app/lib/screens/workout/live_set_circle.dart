@@ -38,34 +38,17 @@ class LiveSetCircle extends StatelessWidget {
 
     final done = w.doneFor(set.id);
     final reps = done?.actualReps ?? set.targetReps;
-    final SetCircleState state;
-    if (done != null) {
-      state = reps >= set.targetReps
-          ? SetCircleState.full
-          : reps == 0
-          ? SetCircleState.zero
-          : SetCircleState.short;
-    } else if (w.liftingSetId == set.id) {
-      state = SetCircleState.lifting;
-    } else if (w.nextSetId == set.id) {
-      state = SetCircleState.next;
-    } else if (w.isPassedWarmup(set)) {
-      state = SetCircleState.skipped;
-    } else {
-      state = SetCircleState.pending;
-    }
+    final state = setCircleState(w, set);
 
     final VoidCallback? onTap;
     if (wp == null) {
       onTap = null;
-    } else if (done != null) {
-      onTap = () => wp.tapDoneSet(done.id);
-    } else if (state == SetCircleState.lifting) {
-      onTap = () => wp.completeSet(set.id, set.targetReps, set.targetWeight);
-    } else if (isFirstEver(w, set)) {
+    } else if (done == null &&
+        state != SetCircleState.lifting &&
+        isFirstEver(w, set)) {
       onTap = () => showFirstTimeDialog(context, wp, set);
     } else {
-      onTap = () => wp.startSet(set.id);
+      onTap = () => tapSet(wp, w, set);
     }
     return SetCircle(
       number: reps,
@@ -76,6 +59,40 @@ class LiveSetCircle extends StatelessWidget {
       small: set.warmup,
       onTap: onTap,
     );
+  }
+
+  /// What a set's circle shows: done in full, short or zero; being lifted;
+  /// up next; a warmup passed; or still to do. The watch draws the same.
+  static SetCircleState setCircleState(SectionWorkout w, ProposedSet set) {
+    final done = w.doneFor(set.id);
+    if (done != null) {
+      return done.actualReps >= set.targetReps
+          ? SetCircleState.full
+          : done.actualReps == 0
+          ? SetCircleState.zero
+          : SetCircleState.short;
+    }
+    if (w.liftingSetId == set.id) return SetCircleState.lifting;
+    if (w.nextSetId == set.id) return SetCircleState.next;
+    if (w.isPassedWarmup(set)) return SetCircleState.skipped;
+    return SetCircleState.pending;
+  }
+
+  /// A tap on a set's circle: a done set loses a rep (and after zero is
+  /// undone), the set being lifted is done with every rep, anything else
+  /// starts. The watch's taps run this too; on a first-ever exercise the
+  /// phone asks for the weight first, the watch just tests.
+  static Future<void> tapSet(
+    WorkoutProvider wp,
+    SectionWorkout w,
+    ProposedSet set,
+  ) {
+    final done = w.doneFor(set.id);
+    if (done != null) return wp.tapDoneSet(done.id);
+    if (w.liftingSetId == set.id) {
+      return wp.completeSet(set.id, set.targetReps, set.targetWeight);
+    }
+    return wp.startSet(set.id);
   }
 
   /// The opening set of an exercise never done before: nothing of its

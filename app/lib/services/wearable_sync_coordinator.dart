@@ -5,6 +5,8 @@ import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
+import '../screens/workout/live_set_circle.dart';
+import '../screens/workout/section_workout.dart';
 import 'wearable_bridge_service.dart';
 import 'wearable_snapshot_builder.dart';
 
@@ -126,6 +128,18 @@ class WearableSyncCoordinator {
           intent.completeSet.actualWeight,
           completedAt: intent.completeSet.completedAt.toInt(),
         );
+      } else if (intent.hasTapSet() && intent.tapSet.workoutId == workoutId) {
+        // A circle tapped on the watch: what a tap on the phone's does.
+        final set = _workoutProvider.activeProposedSets
+            .where((s) => s.id == intent.tapSet.setId)
+            .firstOrNull;
+        if (set != null) {
+          await LiveSetCircle.tapSet(
+            _workoutProvider,
+            SectionWorkout.mine(_workoutProvider),
+            set,
+          );
+        }
       } else if (intent.hasEditCompletedSet() &&
           intent.editCompletedSet.workoutId == workoutId) {
         // The fix window: reps taken off the set just done. Zero is still

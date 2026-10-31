@@ -23,6 +23,9 @@ import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
+import '../screens/workout/live_set_circle.dart';
+import '../screens/workout/section_workout.dart';
+import '../screens/workout/set_circle.dart';
 import '../widgets/participant_ticker.dart';
 
 class WearableSnapshotBuilder {
@@ -197,9 +200,12 @@ class WearableSnapshotBuilder {
     }
 
     snapshot.actions.addAll(actions);
+    if (target != null) {
+      snapshot.circles.addAll(_circles(workoutProvider, target));
+    }
     final lastDone = _lastDone(completedSets, proposedSets);
     if (lastDone != null && !isEnded) snapshot.lastDone = lastDone;
-    snapshot.nextUpEmoji = _nextUpEmoji(
+    final nextUp = _nextUp(
       status: multiplayerProvider.sessionStatus,
       myUserId: myUserId,
       myProfileEmoji: myProfileEmoji,
@@ -208,9 +214,54 @@ class WearableSnapshotBuilder {
       restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
       nextSet: nextSet,
     );
+    snapshot.nextUpEmoji = nextUp.emoji;
+    if (nextUp.me) snapshot.upNextText = copy.workout.upNext;
 
     return snapshot;
   }
+
+  /// The exercise in hand's sets as the phone's circles draw them, warmups
+  /// first; a tap on one is a TapSetIntent.
+  static List<WearSetCircle> _circles(
+    WorkoutProvider workoutProvider,
+    ProposedSet target,
+  ) {
+    final block = workoutProvider.exerciseBlocks
+        .where((b) => b.exercise == target.exercise)
+        .firstOrNull;
+    if (block == null) return const [];
+    final w = SectionWorkout.mine(workoutProvider);
+    return [
+      for (final set in block.sets)
+        if (!set.cancelled)
+          WearSetCircle(
+            setId: set.id,
+            text: _circleText(w, set),
+            state: _wearState(LiveSetCircle.setCircleState(w, set)),
+            warmup: set.warmup,
+          ),
+    ];
+  }
+
+  static String _circleText(SectionWorkout w, ProposedSet set) {
+    final done = w.doneFor(set.id);
+    if (done != null) return '${done.actualReps}';
+    if (LiveSetCircle.setCircleState(w, set) == SetCircleState.skipped) {
+      return '–';
+    }
+    if (LiveSetCircle.isFirstEver(w, set)) return '?';
+    return '${set.targetReps}';
+  }
+
+  static WearCircleState _wearState(SetCircleState state) => switch (state) {
+    SetCircleState.pending => WearCircleState.WEAR_CIRCLE_STATE_PENDING,
+    SetCircleState.next => WearCircleState.WEAR_CIRCLE_STATE_NEXT,
+    SetCircleState.lifting => WearCircleState.WEAR_CIRCLE_STATE_LIFTING,
+    SetCircleState.full => WearCircleState.WEAR_CIRCLE_STATE_FULL,
+    SetCircleState.short => WearCircleState.WEAR_CIRCLE_STATE_SHORT,
+    SetCircleState.zero => WearCircleState.WEAR_CIRCLE_STATE_ZERO,
+    SetCircleState.skipped => WearCircleState.WEAR_CIRCLE_STATE_SKIPPED,
+  };
 
   /// The opening set of an exercise never done: a calibration set with
   /// none of its exercise's calibration sets lifted yet.
@@ -246,9 +297,9 @@ class WearableSnapshotBuilder {
     );
   }
 
-  /// Whose turn it is in a session, as an emoji for the status row.
-  /// Empty when not in a session or nobody is up.
-  static String _nextUpEmoji({
+  /// Whose turn it is in a session, as an emoji for the status row, and
+  /// whether it is the wearer's. Empty when not in a session or nobody is up.
+  static ({String emoji, bool me}) _nextUp({
     required SessionStatus? status,
     required String myUserId,
     required String myProfileEmoji,
@@ -257,12 +308,13 @@ class WearableSnapshotBuilder {
     required int restUntil,
     required ProposedSet? nextSet,
   }) {
-    if (status == null || status.participants.isEmpty) return '';
+    const nobody = (emoji: '', me: false);
+    if (status == null || status.participants.isEmpty) return nobody;
 
     final others = status.participants
         .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
         .toList();
-    if (others.isEmpty) return '';
+    if (others.isEmpty) return nobody;
 
     // The same client-side logic as the bottom bar decides who's next.
     final nextToLiftUserId = computeNextToLiftUserId(
@@ -273,17 +325,17 @@ class WearableSnapshotBuilder {
       restUntil: restUntil,
       nextSet: nextSet,
     );
-    if (nextToLiftUserId == null) return '';
+    if (nextToLiftUserId == null) return nobody;
     if (nextToLiftUserId == myUserId) {
-      return normalizedProfileEmoji(myProfileEmoji);
+      return (emoji: normalizedProfileEmoji(myProfileEmoji), me: true);
     }
     final nextParticipant = others.cast<ParticipantStatus?>().firstWhere(
       (p) => p!.user.id == nextToLiftUserId,
       orElse: () => null,
     );
     return nextParticipant != null
-        ? participantProfileEmoji(nextParticipant)
-        : '';
+        ? (emoji: participantProfileEmoji(nextParticipant), me: false)
+        : nobody;
   }
 
   static WearCompletionSummary _buildCompletionSummary({

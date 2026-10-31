@@ -86,6 +86,29 @@ final $typed_data.Uint8List heartRateAvailabilityDescriptor = $convert.base64Dec
     'VF9SQVRFX0FWQUlMQUJJTElUWV9BQ1FVSVJJTkcQAhInCiNIRUFSVF9SQVRFX0FWQUlMQUJJTE'
     'lUWV9VTkFWQUlMQUJMRRAD');
 
+@$core.Deprecated('Use wearCircleStateDescriptor instead')
+const WearCircleState$json = {
+  '1': 'WearCircleState',
+  '2': [
+    {'1': 'WEAR_CIRCLE_STATE_UNSPECIFIED', '2': 0},
+    {'1': 'WEAR_CIRCLE_STATE_PENDING', '2': 1},
+    {'1': 'WEAR_CIRCLE_STATE_NEXT', '2': 2},
+    {'1': 'WEAR_CIRCLE_STATE_LIFTING', '2': 3},
+    {'1': 'WEAR_CIRCLE_STATE_FULL', '2': 4},
+    {'1': 'WEAR_CIRCLE_STATE_SHORT', '2': 5},
+    {'1': 'WEAR_CIRCLE_STATE_ZERO', '2': 6},
+    {'1': 'WEAR_CIRCLE_STATE_SKIPPED', '2': 7},
+  ],
+};
+
+/// Descriptor for `WearCircleState`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List wearCircleStateDescriptor = $convert.base64Decode(
+    'Cg9XZWFyQ2lyY2xlU3RhdGUSIQodV0VBUl9DSVJDTEVfU1RBVEVfVU5TUEVDSUZJRUQQABIdCh'
+    'lXRUFSX0NJUkNMRV9TVEFURV9QRU5ESU5HEAESGgoWV0VBUl9DSVJDTEVfU1RBVEVfTkVYVBAC'
+    'Eh0KGVdFQVJfQ0lSQ0xFX1NUQVRFX0xJRlRJTkcQAxIaChZXRUFSX0NJUkNMRV9TVEFURV9GVU'
+    'xMEAQSGwoXV0VBUl9DSVJDTEVfU1RBVEVfU0hPUlQQBRIaChZXRUFSX0NJUkNMRV9TVEFURV9a'
+    'RVJPEAYSHQoZV0VBUl9DSVJDTEVfU1RBVEVfU0tJUFBFRBAH');
+
 @$core.Deprecated('Use wearStatusCardDescriptor instead')
 const WearStatusCard$json = {
   '1': 'WearStatusCard',
@@ -152,6 +175,30 @@ final $typed_data.Uint8List wearStatusCardDescriptor = $convert.base64Decode(
     'UgASgJUgdiYXJUZXh0SgQIARACSgQIAhADSgQIBRAGSgQIBxAISgQICBAJSgQIDRAOUgpzaWRl'
     'X2xhYmVsUgZoZWFkZXJSC2lzX2NvbXBsZXRlUhFjdXJyZW50X2dyb3VwX3NldFIQdG90YWxfZ3'
     'JvdXBfc2V0c1IKZG9uZV9sYWJlbA==');
+
+@$core.Deprecated('Use wearSetCircleDescriptor instead')
+const WearSetCircle$json = {
+  '1': 'WearSetCircle',
+  '2': [
+    {'1': 'set_id', '3': 1, '4': 1, '5': 9, '10': 'setId'},
+    {'1': 'text', '3': 2, '4': 1, '5': 9, '10': 'text'},
+    {
+      '1': 'state',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.WearCircleState',
+      '10': 'state'
+    },
+    {'1': 'warmup', '3': 4, '4': 1, '5': 8, '10': 'warmup'},
+  ],
+};
+
+/// Descriptor for `WearSetCircle`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wearSetCircleDescriptor = $convert.base64Decode(
+    'Cg1XZWFyU2V0Q2lyY2xlEhUKBnNldF9pZBgBIAEoCVIFc2V0SWQSEgoEdGV4dBgCIAEoCVIEdG'
+    'V4dBIxCgVzdGF0ZRgDIAEoDjIbLndvcmtvdXQudjEuV2VhckNpcmNsZVN0YXRlUgVzdGF0ZRIW'
+    'CgZ3YXJtdXAYBCABKAhSBndhcm11cA==');
 
 @$core.Deprecated('Use wearPlateDescriptor instead')
 const WearPlate$json = {
@@ -294,10 +341,21 @@ const WearWorkoutSnapshot$json = {
       '6': '.workout.v1.WearDoneSet',
       '10': 'lastDone'
     },
+    {
+      '1': 'circles',
+      '3': 17,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.WearSetCircle',
+      '10': 'circles'
+    },
+    {'1': 'up_next_text', '3': 20, '4': 1, '5': 9, '10': 'upNextText'},
   ],
   '9': [
     {'1': 5, '2': 6},
     {'1': 7, '2': 8},
+    {'1': 18, '2': 19},
+    {'1': 19, '2': 20},
     {'1': 10, '2': 11},
     {'1': 14, '2': 15},
   ],
@@ -316,8 +374,10 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'N0aW9ucxJQChJjb21wbGV0aW9uX3N1bW1hcnkYDCABKAsyIS53b3Jrb3V0LnYxLldlYXJDb21w'
     'bGV0aW9uU3VtbWFyeVIRY29tcGxldGlvblN1bW1hcnkSIgoNbmV4dF91cF9lbW9qaRgNIAEoCV'
     'ILbmV4dFVwRW1vamkSNAoJbGFzdF9kb25lGBAgASgLMhcud29ya291dC52MS5XZWFyRG9uZVNl'
-    'dFIIbGFzdERvbmVKBAgFEAZKBAgHEAhKBAgKEAtKBAgOEA9SEWFjdGl2ZV9zdGFydGVkX2F0Ug'
-    '1sYXN0X3Jlc3RfZW5kUgpncm91cF9jYXJkUg1lZmZvcnRfcHJvbXB0');
+    'dFIIbGFzdERvbmUSMwoHY2lyY2xlcxgRIAMoCzIZLndvcmtvdXQudjEuV2VhclNldENpcmNsZV'
+    'IHY2lyY2xlcxIgCgx1cF9uZXh0X3RleHQYFCABKAlSCnVwTmV4dFRleHRKBAgFEAZKBAgHEAhK'
+    'BAgSEBNKBAgTEBRKBAgKEAtKBAgOEA9SEWFjdGl2ZV9zdGFydGVkX2F0Ug1sYXN0X3Jlc3RfZW'
+    '5kUgpncm91cF9jYXJkUg1lZmZvcnRfcHJvbXB0');
 
 @$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
 const WearCompletionSummary$json = {
@@ -384,6 +444,21 @@ const StartSetIntent$json = {
 final $typed_data.Uint8List startSetIntentDescriptor = $convert.base64Decode(
     'Cg5TdGFydFNldEludGVudBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQSFQoGc2V0X2'
     'lkGAIgASgJUgVzZXRJZBIdCgpzdGFydGVkX2F0GAMgASgDUglzdGFydGVkQXQ=');
+
+@$core.Deprecated('Use tapSetIntentDescriptor instead')
+const TapSetIntent$json = {
+  '1': 'TapSetIntent',
+  '2': [
+    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'set_id', '3': 2, '4': 1, '5': 9, '10': 'setId'},
+    {'1': 'tapped_at', '3': 3, '4': 1, '5': 3, '10': 'tappedAt'},
+  ],
+};
+
+/// Descriptor for `TapSetIntent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List tapSetIntentDescriptor = $convert.base64Decode(
+    'CgxUYXBTZXRJbnRlbnQSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEhUKBnNldF9pZB'
+    'gCIAEoCVIFc2V0SWQSGwoJdGFwcGVkX2F0GAMgASgDUgh0YXBwZWRBdA==');
 
 @$core.Deprecated('Use editCompletedSetIntentDescriptor instead')
 const EditCompletedSetIntent$json = {
@@ -456,6 +531,15 @@ const WearIntent$json = {
       '9': 0,
       '10': 'editCompletedSet'
     },
+    {
+      '1': 'tap_set',
+      '3': 19,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.TapSetIntent',
+      '9': 0,
+      '10': 'tapSet'
+    },
   ],
   '8': [
     {'1': 'intent'},
@@ -478,8 +562,9 @@ final $typed_data.Uint8List wearIntentDescriptor = $convert.base64Decode(
     'YxLkVuZFdvcmtvdXRJbnRlbnRIAFIKZW5kV29ya291dBI5CglzdGFydF9zZXQYESABKAsyGi53'
     'b3Jrb3V0LnYxLlN0YXJ0U2V0SW50ZW50SABSCHN0YXJ0U2V0ElIKEmVkaXRfY29tcGxldGVkX3'
     'NldBgSIAEoCzIiLndvcmtvdXQudjEuRWRpdENvbXBsZXRlZFNldEludGVudEgAUhBlZGl0Q29t'
-    'cGxldGVkU2V0QggKBmludGVudEoECAoQC0oECAwQDUoECA4QD0oECA8QEEoECBAQEVIKZmV3ZX'
-    'JfcmVwc1IJc2tpcF9yZXN0Ug1yYXRlX2V4ZXJjaXNlUgtza2lwX3dhcm11cA==');
+    'cGxldGVkU2V0EjMKB3RhcF9zZXQYEyABKAsyGC53b3Jrb3V0LnYxLlRhcFNldEludGVudEgAUg'
+    'Z0YXBTZXRCCAoGaW50ZW50SgQIChALSgQIDBANSgQIDhAPSgQIDxAQSgQIEBARUgpmZXdlcl9y'
+    'ZXBzUglza2lwX3Jlc3RSDXJhdGVfZXhlcmNpc2VSC3NraXBfd2FybXVw');
 
 @$core.Deprecated('Use heartRateSampleDescriptor instead')
 const HeartRateSample$json = {

@@ -60,6 +60,27 @@ message WearStatusCard {
   reserved "side_label", "header", "is_complete", "current_group_set", "total_group_sets", "done_label";
 }
 
+// What a set's circle shows, as the phone's own circle does.
+enum WearCircleState {
+  WEAR_CIRCLE_STATE_UNSPECIFIED = 0;
+  WEAR_CIRCLE_STATE_PENDING = 1; // still to do
+  WEAR_CIRCLE_STATE_NEXT = 2; // up next: a ring in the stage's colour
+  WEAR_CIRCLE_STATE_LIFTING = 3; // started, not done
+  WEAR_CIRCLE_STATE_FULL = 4; // done, every rep
+  WEAR_CIRCLE_STATE_SHORT = 5; // done, short of the target
+  WEAR_CIRCLE_STATE_ZERO = 6; // done with no reps
+  WEAR_CIRCLE_STATE_SKIPPED = 7; // a warmup passed
+}
+
+// One set of the exercise in hand, as a circle. A tap on it is a TapSetIntent:
+// the phone does what a tap on its own circle does.
+message WearSetCircle {
+  string set_id = 1;
+  string text = 2; // the number in it: reps done, or the target; "?" on a first time
+  WearCircleState state = 3;
+  bool warmup = 4; // drawn smaller
+}
+
 // One plate on the bar, as the phone draws it.
 message WearPlate {
   string label = 1; // "45"
@@ -105,6 +126,12 @@ message WearWorkoutSnapshot {
   WearCompletionSummary completion_summary = 12; // optional
   string next_up_emoji = 13; // profile emoji of the next-to-lift participant (empty if solo)
   WearDoneSet last_done = 16; // the most recent done set, if any
+  // The exercise in hand's sets, in order, warmups first.
+  repeated WearSetCircle circles = 17;
+  reserved 18, 19;
+  // The phone's "up next" chip, when the wearer lifts next in a session;
+  // empty otherwise (solo, or someone else is next).
+  string up_next_text = 20;
   reserved 10, 14;
   reserved "group_card", "effort_prompt";
 }
@@ -131,6 +158,14 @@ message StartSetIntent {
   int64 started_at = 3; // Unix seconds, time of the tap
 }
 
+// A tap on a set's circle on the watch: the phone does what a tap on its own
+// circle does (start, done, a rep off, undone).
+message TapSetIntent {
+  string workout_id = 1;
+  string set_id = 2;
+  int64 tapped_at = 3; // Unix seconds
+}
+
 // Set a done set's reps: the fix window's taps, one rep off each.
 message EditCompletedSetIntent {
   string workout_id = 1;
@@ -152,6 +187,7 @@ message WearIntent {
     EndWorkoutIntent end_workout = 13;
     StartSetIntent start_set = 17;
     EditCompletedSetIntent edit_completed_set = 18;
+    TapSetIntent tap_set = 19;
   }
   reserved 10, 12, 14, 15, 16;
   reserved "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup";

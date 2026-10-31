@@ -68,12 +68,12 @@ struct ContentView: View {
 
     @ViewBuilder
     private func workoutView(_ snapshot: Workout_V1_WearWorkoutSnapshot, now: Date) -> some View {
-        // One face for every live state (the split), and Done at the end.
+        // One face for every live state, and Done at the end.
         switch snapshot.state {
         case .allDone where snapshot.hasCompletionSummary:
             WorkoutDoneScreen(snapshot: snapshot, now: now)
         default:
-            SplitScreen(snapshot: snapshot, now: now)
+            FaceScreen(snapshot: snapshot, now: now)
         }
     }
 }
