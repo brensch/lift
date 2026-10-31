@@ -103,11 +103,15 @@ impl<'a> Call<'a> {
         &mut self,
         mut req: StartWorkoutRequest,
     ) -> Result<StartWorkoutResponse, CoreError> {
-        // A coupled template starts with the library's exercises of now,
-        // recorded on the event.
-        if req.exercises.is_empty() {
-            if let Some(template) = self.account.template(&req.template_id) {
-                req.exercises = self.view().resolved(template).exercises;
+        // A coupled template starts with the library's exercises and name of
+        // now, recorded on the event.
+        if let Some(template) = self.account.template(&req.template_id) {
+            let resolved = self.view().resolved(template);
+            if req.exercises.is_empty() {
+                req.exercises = resolved.exercises;
+            }
+            if req.name.is_empty() {
+                req.name = resolved.name;
             }
         }
         let id = self.record(event::Kind::StartWorkout(req))?;
@@ -241,7 +245,7 @@ impl<'a> Call<'a> {
 
     pub fn save_template(
         &mut self,
-        req: SaveTemplateRequest,
+        mut req: SaveTemplateRequest,
     ) -> Result<SaveTemplateResponse, CoreError> {
         let given = req
             .template
@@ -256,6 +260,9 @@ impl<'a> Call<'a> {
                     template: Some(shown),
                 });
             }
+            // Anything else is a real change to what the user sees, even if it
+            // happens to match the copy stored when the template was added.
+            req.unlink = existing.coupled;
         }
         let event_id = self.record(event::Kind::SaveTemplate(req))?;
         // A new template takes the event's first derived id.

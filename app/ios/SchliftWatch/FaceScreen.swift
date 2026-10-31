@@ -29,25 +29,27 @@ struct FaceScreen: View {
             ?? snapshot.circles.first { $0.state == .next }
     }
 
+    /// Dimmed (always-on), the same face in grey on black. It is redrawn about once a
+    /// minute, so rest is counted in minutes and nothing ticks seconds.
+    private var colors: FaceColors {
+        isLuminanceReduced ? .dimmed : .lit
+    }
+
     var body: some View {
-        if isLuminanceReduced {
-            ambient
-        } else {
-            Group {
-                // Every frame while the rest drains the band, so it moves smoothly;
-                // otherwise the screen's own one-second tick is enough.
-                if restSpan != nil {
-                    TimelineView(.animation) { _ in
-                        face(nowMs: connector.synchronizedNowMs())
-                    }
-                } else {
+        Group {
+            // Every frame while the rest drains the band, so it moves smoothly;
+            // otherwise the screen's own tick is enough.
+            if restSpan != nil, !colors.dim {
+                TimelineView(.animation) { _ in
                     face(nowMs: connector.synchronizedNowMs())
                 }
+            } else {
+                face(nowMs: connector.synchronizedNowMs())
             }
-            // The system sheet: slides over the face, closes with its own button.
-            .sheet(isPresented: $showPlates) {
-                PlateScreen(card: card)
-            }
+        }
+        // The system sheet: slides over the face, closes with its own button.
+        .sheet(isPresented: $showPlates) {
+            PlateScreen(card: card)
         }
     }
 
@@ -55,8 +57,8 @@ struct FaceScreen: View {
 
     /// The rest being drained, in ms: from the end of the last set to restUntil.
     private var restSpan: ClosedRange<Int64>? {
-        guard snapshot.state == .resting || snapshot.state == .yapping, snapshot.hasLastDone else { return nil }
-        let start = snapshot.lastDone.endedAt * 1000
+        guard snapshot.state == .resting || snapshot.state == .yapping else { return nil }
+        let start = snapshot.lastSetEndedAt * 1000
         let end = Int64(snapshot.restUntil) * 1000
         guard start > 0, end > start, watchNowMs(now) < end else { return nil }
         return start ... end
@@ -69,7 +71,13 @@ struct FaceScreen: View {
     }
 
     private var stage: WatchStage {
-        watchStage(snapshot, nowMs: watchNowMs(now))
+        let stage = watchStage(snapshot, nowMs: watchNowMs(now))
+        guard colors.dim else { return stage }
+        return WatchStage(label: stage.label, color: .black, ink: colors.text, timer: ambientRest?.minutes ?? "")
+    }
+
+    private var ambientRest: AmbientRest? {
+        ambientRestFor(snapshot, nowMs: connector.synchronizedNowMs(), now: now)
     }
 
     private func tapSet(_ setID: String) {
@@ -94,19 +102,19 @@ struct FaceScreen: View {
             let height = geo.size.height
             VStack(spacing: 0) {
                 setRow(stage: stage, height: height * 0.19)
-                line(WatchPalette.hairline)
+                line(colors.hairline)
                 band(stage: stage, fill: fill, height: height * 0.20)
-                line(WatchPalette.rule)
+                line(colors.rule)
                 exerciseRow(height: height * 0.11)
-                line(WatchPalette.hairline)
+                line(colors.hairline)
                 weightRow(stage: stage, height: height * 0.25)
-                line(WatchPalette.hairline)
+                line(colors.hairline)
                 stats(height: height * 0.13)
-                line(WatchPalette.hairline)
+                line(colors.hairline)
                 Spacer(minLength: 0)
             }
         }
-        .background(WatchPalette.ground.ignoresSafeArea())
+        .background(colors.ground.ignoresSafeArea())
     }
 
     /// The exercise's sets, every one tappable, scrolled to the one in hand.
@@ -133,7 +141,7 @@ struct FaceScreen: View {
     }
 
     private func setCircle(_ circle: Workout_V1_WearSetCircle, stage: WatchStage, size: CGFloat) -> some View {
-        let look = circleLook(circle.state, stage: stage.color)
+        let look = circleLook(circle.state, stage: stage.color, colors: colors)
         return Button {
             tapSet(circle.setID)
         } label: {
@@ -160,7 +168,7 @@ struct FaceScreen: View {
                 .padding(.leading, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if !snapshot.upNextText.isEmpty {
-                UpNextChip(text: snapshot.upNextText, size: height * 0.17)
+                UpNextChip(text: snapshot.upNextText, size: height * 0.17, colors: colors)
                     .padding(.trailing, 4)
             }
             if !stage.timer.isEmpty {
@@ -176,7 +184,7 @@ struct FaceScreen: View {
         .background(
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Rectangle().fill(WatchPalette.panel)
+                    Rectangle().fill(colors.panel)
                     Rectangle().fill(stage.color.opacity(fill < 1 ? 0.4 : 1))
                     Rectangle().fill(stage.color).frame(width: geo.size.width * fill)
                 }
@@ -191,12 +199,12 @@ struct FaceScreen: View {
     private func exerciseRow(height: CGFloat) -> some View {
         Text(exerciseLine)
             .font(textFontName(size: height * 0.44))
-            .foregroundColor(WatchPalette.muted)
+            .foregroundColor(colors.muted)
             .watchAutoShrink(minScale: 0.6)
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: height)
-            .background(WatchPalette.panel)
+            .background(colors.panel)
     }
 
     private var weightText: String {
@@ -219,23 +227,25 @@ struct FaceScreen: View {
                         Text(card.unitText).font(monoFontName(size: height * 0.21))
                     }
                 }
-                .foregroundColor(WatchPalette.text)
+                .foregroundColor(colors.text)
+                .padding(.leading, 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            // The press lights the panel from the face's edge to the ×.
+            .buttonStyle(PanelPressStyle())
             Text("×")
                 .font(monoFontName(size: height * 0.28))
-                .foregroundColor(WatchPalette.text)
+                .foregroundColor(colors.text)
             repCircle(stage: stage, size: height * 0.78)
         }
-        .padding(.horizontal, 10)
+        .padding(.trailing, 10)
         .frame(height: height)
-        .background(WatchPalette.panel)
+        .background(colors.panel)
     }
 
     private func repCircle(stage: WatchStage, size: CGFloat) -> some View {
-        let look = circleLook(inHand?.state ?? .pending, stage: stage.color)
+        let look = circleLook(inHand?.state ?? .pending, stage: stage.color, colors: colors)
         return Button {
             tapRep()
         } label: {
@@ -244,7 +254,7 @@ struct FaceScreen: View {
                 .foregroundColor(look.ink)
                 .watchAutoShrink(minScale: 0.4)
                 .frame(width: size * 0.86, height: size * 0.86)
-                .background(Circle().fill(look.fill == .clear ? WatchPalette.panel : look.fill))
+                .background(Circle().fill(look.fill == .clear ? colors.panel : look.fill))
                 .frame(width: size, height: size)
                 .background(Circle().fill(look.ring))
         }
@@ -256,7 +266,7 @@ struct FaceScreen: View {
 extension FaceScreen {
     /// Heart rate | workout length | the time.
     private func stats(height: CGFloat) -> some View {
-        let bpmColor = heartRateColor(connector.latestBpm)
+        let bpmColor = colors.dim ? colors.muted : heartRateColor(connector.latestBpm)
         let size = height * 0.40
         return HStack(spacing: 0) {
             HStack(spacing: 2) {
@@ -266,54 +276,32 @@ extension FaceScreen {
                 statText(formatBpm(connector.latestBpm), size: size, color: bpmColor)
             }
             .frame(maxWidth: .infinity)
-            Rectangle().fill(WatchPalette.hairline).frame(width: 1)
-            statText(deriveElapsedText(snapshot, currentApiNowMs: watchNowMs(now)), size: size)
+            Rectangle().fill(colors.hairline).frame(width: 1)
+            statText(middleStat, size: size)
                 .frame(maxWidth: .infinity)
-            Rectangle().fill(WatchPalette.hairline).frame(width: 1)
+            Rectangle().fill(colors.hairline).frame(width: 1)
             statText(now.formatted(.dateTime.hour(.defaultDigits(amPM: .omitted)).minute()), size: size)
                 .frame(maxWidth: .infinity)
         }
         .frame(height: height)
     }
 
-    private func statText(_ text: String, size: CGFloat, color: Color = WatchPalette.muted) -> some View {
+    /// Workout length; dimmed, when rest ends in place of a ticking length.
+    private var middleStat: String {
+        if colors.dim {
+            return ambientRest?.until ?? ""
+        }
+        return deriveElapsedText(snapshot, currentApiNowMs: watchNowMs(now))
+    }
+
+    private func statText(_ text: String, size: CGFloat, color: Color? = nil) -> some View {
         Text(text)
             .font(monoFontName(size: size))
-            .foregroundColor(color)
+            .foregroundColor(color ?? colors.muted)
             .watchAutoShrink(minScale: 0.5)
     }
 
     private func line(_ color: Color) -> some View {
         Rectangle().fill(color).frame(height: 1)
-    }
-
-    private var ambientRest: AmbientRest? {
-        ambientRestFor(snapshot, nowMs: connector.synchronizedNowMs(), now: now)
-    }
-
-    /// Ambient: the face dimmed to what matters, grey on black: the stage, rest in
-    /// minutes and when it ends, the exercise, the weight × reps.
-    private var ambient: some View {
-        VStack(spacing: 2) {
-            Text(card.stateLabel.uppercased())
-                .font(monoFontName(size: 14))
-            if let rest = ambientRest {
-                Text(rest.minutes)
-                    .font(monoFontName(size: 34))
-                if !rest.until.isEmpty {
-                    Text(rest.until)
-                        .font(monoFontName(size: 14))
-                }
-                Spacer().frame(height: 6)
-            }
-            Text(exerciseLine)
-                .font(textFontName(size: 14))
-            Text(weightText == "?" ? "?" : "\(weightText) × \(card.repsText)")
-                .font(monoFontName(size: 26))
-        }
-        .foregroundColor(WatchPalette.ambientText)
-        .watchAutoShrink(minScale: 0.5)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.ignoresSafeArea())
     }
 }

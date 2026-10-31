@@ -48,26 +48,6 @@ final $typed_data.Uint8List wearActionTypeDescriptor = $convert.base64Decode(
     'Tl9UWVBFX1NLSVBfUkVTVCoeV0VBUl9BQ1RJT05fVFlQRV9SQVRFX0VYRVJDSVNFKhxXRUFSX0'
     'FDVElPTl9UWVBFX1NLSVBfV0FSTVVQ');
 
-@$core.Deprecated('Use wearActionStyleDescriptor instead')
-const WearActionStyle$json = {
-  '1': 'WearActionStyle',
-  '2': [
-    {'1': 'WEAR_ACTION_STYLE_UNSPECIFIED', '2': 0},
-    {'1': 'WEAR_ACTION_STYLE_PRIMARY', '2': 1},
-    {'1': 'WEAR_ACTION_STYLE_SECONDARY', '2': 2},
-  ],
-  '4': [
-    {'1': 3, '2': 3},
-  ],
-  '5': ['WEAR_ACTION_STYLE_REP_OPTION'],
-};
-
-/// Descriptor for `WearActionStyle`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List wearActionStyleDescriptor = $convert.base64Decode(
-    'Cg9XZWFyQWN0aW9uU3R5bGUSIQodV0VBUl9BQ1RJT05fU1RZTEVfVU5TUEVDSUZJRUQQABIdCh'
-    'lXRUFSX0FDVElPTl9TVFlMRV9QUklNQVJZEAESHwobV0VBUl9BQ1RJT05fU1RZTEVfU0VDT05E'
-    'QVJZEAIiBAgDEAMqHFdFQVJfQUNUSU9OX1NUWUxFX1JFUF9PUFRJT04=');
-
 @$core.Deprecated('Use heartRateAvailabilityDescriptor instead')
 const HeartRateAvailability$json = {
   '1': 'HeartRateAvailability',
@@ -130,7 +110,6 @@ const WearStatusCard$json = {
     {'1': 'weight_text', '3': 14, '4': 1, '5': 9, '10': 'weightText'},
     {'1': 'unit_text', '3': 15, '4': 1, '5': 9, '10': 'unitText'},
     {'1': 'reps_text', '3': 16, '4': 1, '5': 9, '10': 'repsText'},
-    {'1': 'cue', '3': 17, '4': 1, '5': 9, '10': 'cue'},
     {'1': 'first_time', '3': 18, '4': 1, '5': 8, '10': 'firstTime'},
     {
       '1': 'plates',
@@ -169,12 +148,12 @@ final $typed_data.Uint8List wearStatusCardDescriptor = $convert.base64Decode(
     'JjaXNlTmFtZRIZCghzZXRfbGluZRgKIAEoCVIHc2V0TGluZRIZCghzZXRfdGV4dBgLIAEoCVIH'
     'c2V0VGV4dBIjCg15YXBwaW5nX2xhYmVsGAwgASgJUgx5YXBwaW5nTGFiZWwSHwoLd2VpZ2h0X3'
     'RleHQYDiABKAlSCndlaWdodFRleHQSGwoJdW5pdF90ZXh0GA8gASgJUgh1bml0VGV4dBIbCgly'
-    'ZXBzX3RleHQYECABKAlSCHJlcHNUZXh0EhAKA2N1ZRgRIAEoCVIDY3VlEh0KCmZpcnN0X3RpbW'
-    'UYEiABKAhSCWZpcnN0VGltZRItCgZwbGF0ZXMYEyADKAsyFS53b3Jrb3V0LnYxLldlYXJQbGF0'
-    'ZVIGcGxhdGVzEh8KC3BsYXRlc190ZXh0GBQgASgJUgpwbGF0ZXNUZXh0EhkKCGJhcl90ZXh0GB'
-    'UgASgJUgdiYXJUZXh0SgQIARACSgQIAhADSgQIBRAGSgQIBxAISgQICBAJSgQIDRAOUgpzaWRl'
-    'X2xhYmVsUgZoZWFkZXJSC2lzX2NvbXBsZXRlUhFjdXJyZW50X2dyb3VwX3NldFIQdG90YWxfZ3'
-    'JvdXBfc2V0c1IKZG9uZV9sYWJlbA==');
+    'ZXBzX3RleHQYECABKAlSCHJlcHNUZXh0Eh0KCmZpcnN0X3RpbWUYEiABKAhSCWZpcnN0VGltZR'
+    'ItCgZwbGF0ZXMYEyADKAsyFS53b3Jrb3V0LnYxLldlYXJQbGF0ZVIGcGxhdGVzEh8KC3BsYXRl'
+    'c190ZXh0GBQgASgJUgpwbGF0ZXNUZXh0EhkKCGJhcl90ZXh0GBUgASgJUgdiYXJUZXh0SgQIAR'
+    'ACSgQIAhADSgQIBRAGSgQIBxAISgQICBAJSgQIDRAOUgpzaWRlX2xhYmVsUgZoZWFkZXJSC2lz'
+    'X2NvbXBsZXRlUhFjdXJyZW50X2dyb3VwX3NldFIQdG90YWxfZ3JvdXBfc2V0c1IKZG9uZV9sYW'
+    'JlbA==');
 
 @$core.Deprecated('Use wearAmbientCopyDescriptor instead')
 const WearAmbientCopy$json = {
@@ -232,26 +211,6 @@ final $typed_data.Uint8List wearPlateDescriptor = $convert.base64Decode(
     'CglXZWFyUGxhdGUSFAoFbGFiZWwYASABKAlSBWxhYmVsEhsKCWNvbG9yX2hleBgCIAEoCVIIY2'
     '9sb3JIZXgSEgoEc2l6ZRgDIAEoAlIEc2l6ZQ==');
 
-@$core.Deprecated('Use wearDoneSetDescriptor instead')
-const WearDoneSet$json = {
-  '1': 'WearDoneSet',
-  '2': [
-    {'1': 'completed_set_id', '3': 1, '4': 1, '5': 9, '10': 'completedSetId'},
-    {'1': 'reps', '3': 2, '4': 1, '5': 5, '10': 'reps'},
-    {'1': 'target_reps', '3': 3, '4': 1, '5': 5, '10': 'targetReps'},
-    {'1': 'actual_weight', '3': 4, '4': 1, '5': 2, '10': 'actualWeight'},
-    {'1': 'ended_at', '3': 5, '4': 1, '5': 3, '10': 'endedAt'},
-    {'1': 'cue', '3': 6, '4': 1, '5': 9, '10': 'cue'},
-  ],
-};
-
-/// Descriptor for `WearDoneSet`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List wearDoneSetDescriptor = $convert.base64Decode(
-    'CgtXZWFyRG9uZVNldBIoChBjb21wbGV0ZWRfc2V0X2lkGAEgASgJUg5jb21wbGV0ZWRTZXRJZB'
-    'ISCgRyZXBzGAIgASgFUgRyZXBzEh8KC3RhcmdldF9yZXBzGAMgASgFUgp0YXJnZXRSZXBzEiMK'
-    'DWFjdHVhbF93ZWlnaHQYBCABKAJSDGFjdHVhbFdlaWdodBIZCghlbmRlZF9hdBgFIAEoA1IHZW'
-    '5kZWRBdBIQCgNjdWUYBiABKAlSA2N1ZQ==');
-
 @$core.Deprecated('Use wearActionDescriptor instead')
 const WearAction$json = {
   '1': 'WearAction',
@@ -264,36 +223,24 @@ const WearAction$json = {
       '6': '.workout.v1.WearActionType',
       '10': 'type'
     },
-    {
-      '1': 'style',
-      '3': 2,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.WearActionStyle',
-      '10': 'style'
-    },
     {'1': 'label', '3': 3, '4': 1, '5': 9, '10': 'label'},
     {'1': 'set_id', '3': 4, '4': 1, '5': 9, '10': 'setId'},
     {'1': 'reps', '3': 5, '4': 1, '5': 5, '10': 'reps'},
     {'1': 'actual_weight', '3': 6, '4': 1, '5': 2, '10': 'actualWeight'},
-    {
-      '1': 'effort',
-      '3': 7,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.Effort',
-      '10': 'effort'
-    },
   ],
+  '9': [
+    {'1': 2, '2': 3},
+    {'1': 7, '2': 8},
+  ],
+  '10': ['style', 'effort'],
 };
 
 /// Descriptor for `WearAction`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List wearActionDescriptor = $convert.base64Decode(
     'CgpXZWFyQWN0aW9uEi4KBHR5cGUYASABKA4yGi53b3Jrb3V0LnYxLldlYXJBY3Rpb25UeXBlUg'
-    'R0eXBlEjEKBXN0eWxlGAIgASgOMhsud29ya291dC52MS5XZWFyQWN0aW9uU3R5bGVSBXN0eWxl'
-    'EhQKBWxhYmVsGAMgASgJUgVsYWJlbBIVCgZzZXRfaWQYBCABKAlSBXNldElkEhIKBHJlcHMYBS'
-    'ABKAVSBHJlcHMSIwoNYWN0dWFsX3dlaWdodBgGIAEoAlIMYWN0dWFsV2VpZ2h0EioKBmVmZm9y'
-    'dBgHIAEoDjISLndvcmtvdXQudjEuRWZmb3J0UgZlZmZvcnQ=');
+    'R0eXBlEhQKBWxhYmVsGAMgASgJUgVsYWJlbBIVCgZzZXRfaWQYBCABKAlSBXNldElkEhIKBHJl'
+    'cHMYBSABKAVSBHJlcHMSIwoNYWN0dWFsX3dlaWdodBgGIAEoAlIMYWN0dWFsV2VpZ2h0SgQIAh'
+    'ADSgQIBxAIUgVzdHlsZVIGZWZmb3J0');
 
 @$core.Deprecated('Use wearWorkoutSnapshotDescriptor instead')
 const WearWorkoutSnapshot$json = {
@@ -349,15 +296,7 @@ const WearWorkoutSnapshot$json = {
       '6': '.workout.v1.WearCompletionSummary',
       '10': 'completionSummary'
     },
-    {'1': 'next_up_emoji', '3': 13, '4': 1, '5': 9, '10': 'nextUpEmoji'},
-    {
-      '1': 'last_done',
-      '3': 16,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.WearDoneSet',
-      '10': 'lastDone'
-    },
+    {'1': 'last_set_ended_at', '3': 16, '4': 1, '5': 3, '10': 'lastSetEndedAt'},
     {
       '1': 'circles',
       '3': 17,
@@ -382,9 +321,16 @@ const WearWorkoutSnapshot$json = {
     {'1': 18, '2': 19},
     {'1': 19, '2': 20},
     {'1': 10, '2': 11},
+    {'1': 13, '2': 14},
     {'1': 14, '2': 15},
   ],
-  '10': ['active_started_at', 'last_rest_end', 'group_card', 'effort_prompt'],
+  '10': [
+    'active_started_at',
+    'last_rest_end',
+    'group_card',
+    'effort_prompt',
+    'next_up_emoji'
+  ],
 };
 
 /// Descriptor for `WearWorkoutSnapshot`. Decode as a `google.protobuf.DescriptorProto`.
@@ -397,13 +343,13 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'tlbGFwc2VkVGV4dBI1Cgh5b3VfY2FyZBgJIAEoCzIaLndvcmtvdXQudjEuV2VhclN0YXR1c0Nh'
     'cmRSB3lvdUNhcmQSMAoHYWN0aW9ucxgLIAMoCzIWLndvcmtvdXQudjEuV2VhckFjdGlvblIHYW'
     'N0aW9ucxJQChJjb21wbGV0aW9uX3N1bW1hcnkYDCABKAsyIS53b3Jrb3V0LnYxLldlYXJDb21w'
-    'bGV0aW9uU3VtbWFyeVIRY29tcGxldGlvblN1bW1hcnkSIgoNbmV4dF91cF9lbW9qaRgNIAEoCV'
-    'ILbmV4dFVwRW1vamkSNAoJbGFzdF9kb25lGBAgASgLMhcud29ya291dC52MS5XZWFyRG9uZVNl'
-    'dFIIbGFzdERvbmUSMwoHY2lyY2xlcxgRIAMoCzIZLndvcmtvdXQudjEuV2VhclNldENpcmNsZV'
-    'IHY2lyY2xlcxIgCgx1cF9uZXh0X3RleHQYFCABKAlSCnVwTmV4dFRleHQSPgoMYW1iaWVudF9j'
-    'b3B5GBUgASgLMhsud29ya291dC52MS5XZWFyQW1iaWVudENvcHlSC2FtYmllbnRDb3B5SgQIBR'
-    'AGSgQIBxAISgQIEhATSgQIExAUSgQIChALSgQIDhAPUhFhY3RpdmVfc3RhcnRlZF9hdFINbGFz'
-    'dF9yZXN0X2VuZFIKZ3JvdXBfY2FyZFINZWZmb3J0X3Byb21wdA==');
+    'bGV0aW9uU3VtbWFyeVIRY29tcGxldGlvblN1bW1hcnkSKQoRbGFzdF9zZXRfZW5kZWRfYXQYEC'
+    'ABKANSDmxhc3RTZXRFbmRlZEF0EjMKB2NpcmNsZXMYESADKAsyGS53b3Jrb3V0LnYxLldlYXJT'
+    'ZXRDaXJjbGVSB2NpcmNsZXMSIAoMdXBfbmV4dF90ZXh0GBQgASgJUgp1cE5leHRUZXh0Ej4KDG'
+    'FtYmllbnRfY29weRgVIAEoCzIbLndvcmtvdXQudjEuV2VhckFtYmllbnRDb3B5UgthbWJpZW50'
+    'Q29weUoECAUQBkoECAcQCEoECBIQE0oECBMQFEoECAoQC0oECA0QDkoECA4QD1IRYWN0aXZlX3'
+    'N0YXJ0ZWRfYXRSDWxhc3RfcmVzdF9lbmRSCmdyb3VwX2NhcmRSDWVmZm9ydF9wcm9tcHRSDW5l'
+    'eHRfdXBfZW1vamk=');
 
 @$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
 const WearCompletionSummary$json = {
@@ -438,23 +384,19 @@ const CompleteSetIntent$json = {
     {'1': 'reps', '3': 3, '4': 1, '5': 5, '10': 'reps'},
     {'1': 'actual_weight', '3': 4, '4': 1, '5': 2, '10': 'actualWeight'},
     {'1': 'completed_at', '3': 5, '4': 1, '5': 3, '10': 'completedAt'},
-    {
-      '1': 'effort',
-      '3': 6,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.Effort',
-      '10': 'effort'
-    },
   ],
+  '9': [
+    {'1': 6, '2': 7},
+  ],
+  '10': ['effort'],
 };
 
 /// Descriptor for `CompleteSetIntent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List completeSetIntentDescriptor = $convert.base64Decode(
     'ChFDb21wbGV0ZVNldEludGVudBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQSFQoGc2'
     'V0X2lkGAIgASgJUgVzZXRJZBISCgRyZXBzGAMgASgFUgRyZXBzEiMKDWFjdHVhbF93ZWlnaHQY'
-    'BCABKAJSDGFjdHVhbFdlaWdodBIhCgxjb21wbGV0ZWRfYXQYBSABKANSC2NvbXBsZXRlZEF0Ei'
-    'oKBmVmZm9ydBgGIAEoDjISLndvcmtvdXQudjEuRWZmb3J0UgZlZmZvcnQ=');
+    'BCABKAJSDGFjdHVhbFdlaWdodBIhCgxjb21wbGV0ZWRfYXQYBSABKANSC2NvbXBsZXRlZEF0Sg'
+    'QIBhAHUgZlZmZvcnQ=');
 
 @$core.Deprecated('Use startSetIntentDescriptor instead')
 const StartSetIntent$json = {
@@ -485,23 +427,6 @@ const TapSetIntent$json = {
 final $typed_data.Uint8List tapSetIntentDescriptor = $convert.base64Decode(
     'CgxUYXBTZXRJbnRlbnQSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEhUKBnNldF9pZB'
     'gCIAEoCVIFc2V0SWQSGwoJdGFwcGVkX2F0GAMgASgDUgh0YXBwZWRBdA==');
-
-@$core.Deprecated('Use editCompletedSetIntentDescriptor instead')
-const EditCompletedSetIntent$json = {
-  '1': 'EditCompletedSetIntent',
-  '2': [
-    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
-    {'1': 'completed_set_id', '3': 2, '4': 1, '5': 9, '10': 'completedSetId'},
-    {'1': 'reps', '3': 3, '4': 1, '5': 5, '10': 'reps'},
-    {'1': 'actual_weight', '3': 4, '4': 1, '5': 2, '10': 'actualWeight'},
-  ],
-};
-
-/// Descriptor for `EditCompletedSetIntent`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List editCompletedSetIntentDescriptor = $convert.base64Decode(
-    'ChZFZGl0Q29tcGxldGVkU2V0SW50ZW50Eh0KCndvcmtvdXRfaWQYASABKAlSCXdvcmtvdXRJZB'
-    'IoChBjb21wbGV0ZWRfc2V0X2lkGAIgASgJUg5jb21wbGV0ZWRTZXRJZBISCgRyZXBzGAMgASgF'
-    'UgRyZXBzEiMKDWFjdHVhbF93ZWlnaHQYBCABKAJSDGFjdHVhbFdlaWdodA==');
 
 @$core.Deprecated('Use endWorkoutIntentDescriptor instead')
 const EndWorkoutIntent$json = {
@@ -549,15 +474,6 @@ const WearIntent$json = {
       '10': 'startSet'
     },
     {
-      '1': 'edit_completed_set',
-      '3': 18,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.EditCompletedSetIntent',
-      '9': 0,
-      '10': 'editCompletedSet'
-    },
-    {
       '1': 'tap_set',
       '3': 19,
       '4': 1,
@@ -576,8 +492,15 @@ const WearIntent$json = {
     {'1': 14, '2': 15},
     {'1': 15, '2': 16},
     {'1': 16, '2': 17},
+    {'1': 18, '2': 19},
   ],
-  '10': ['fewer_reps', 'skip_rest', 'rate_exercise', 'skip_warmup'],
+  '10': [
+    'fewer_reps',
+    'skip_rest',
+    'rate_exercise',
+    'skip_warmup',
+    'edit_completed_set'
+  ],
 };
 
 /// Descriptor for `WearIntent`. Decode as a `google.protobuf.DescriptorProto`.
@@ -586,11 +509,10 @@ final $typed_data.Uint8List wearIntentDescriptor = $convert.base64Decode(
     'EoA1IGc2VudEF0EkIKDGNvbXBsZXRlX3NldBgLIAEoCzIdLndvcmtvdXQudjEuQ29tcGxldGVT'
     'ZXRJbnRlbnRIAFILY29tcGxldGVTZXQSPwoLZW5kX3dvcmtvdXQYDSABKAsyHC53b3Jrb3V0Ln'
     'YxLkVuZFdvcmtvdXRJbnRlbnRIAFIKZW5kV29ya291dBI5CglzdGFydF9zZXQYESABKAsyGi53'
-    'b3Jrb3V0LnYxLlN0YXJ0U2V0SW50ZW50SABSCHN0YXJ0U2V0ElIKEmVkaXRfY29tcGxldGVkX3'
-    'NldBgSIAEoCzIiLndvcmtvdXQudjEuRWRpdENvbXBsZXRlZFNldEludGVudEgAUhBlZGl0Q29t'
-    'cGxldGVkU2V0EjMKB3RhcF9zZXQYEyABKAsyGC53b3Jrb3V0LnYxLlRhcFNldEludGVudEgAUg'
-    'Z0YXBTZXRCCAoGaW50ZW50SgQIChALSgQIDBANSgQIDhAPSgQIDxAQSgQIEBARUgpmZXdlcl9y'
-    'ZXBzUglza2lwX3Jlc3RSDXJhdGVfZXhlcmNpc2VSC3NraXBfd2FybXVw');
+    'b3Jrb3V0LnYxLlN0YXJ0U2V0SW50ZW50SABSCHN0YXJ0U2V0EjMKB3RhcF9zZXQYEyABKAsyGC'
+    '53b3Jrb3V0LnYxLlRhcFNldEludGVudEgAUgZ0YXBTZXRCCAoGaW50ZW50SgQIChALSgQIDBAN'
+    'SgQIDhAPSgQIDxAQSgQIEBARSgQIEhATUgpmZXdlcl9yZXBzUglza2lwX3Jlc3RSDXJhdGVfZX'
+    'hlcmNpc2VSC3NraXBfd2FybXVwUhJlZGl0X2NvbXBsZXRlZF9zZXQ=');
 
 @$core.Deprecated('Use heartRateSampleDescriptor instead')
 const HeartRateSample$json = {

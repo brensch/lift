@@ -7,25 +7,25 @@ import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
 import 'common/flat.dart';
 
-/// What to load for [weight]: a flat sheet with the total, the bar drawn
+/// What to load for [weightLb] (stored pounds): a flat sheet with the total, the bar drawn
 /// big with each plate sized like the real thing, and the plates for each
 /// side listed in loading order.
 Future<void> showPlateBreakdownDialog(
   BuildContext context, {
-  required double weight,
+  required double weightLb,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
-    builder: (_) => _PlateSheet(weight: weight),
+    builder: (_) => _PlateSheet(weightLb: weightLb),
   );
 }
 
 class _PlateSheet extends StatelessWidget {
-  final double weight;
+  final double weightLb;
 
-  const _PlateSheet({required this.weight});
+  const _PlateSheet({required this.weightLb});
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +34,8 @@ class _PlateSheet extends StatelessWidget {
     final unit = settings.weightUnit;
     final suffix = weightUnitSuffix(unit);
     final barWeight = standardBarWeight(unit);
+    // Plates are counted in the user's unit, from the stored pounds.
+    final weight = displayWeightFromPounds(weightLb, unit);
     final plates = calcPlatesPerSide(weight, unit).plates;
     final colorOf = settings.plateColor;
     String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
@@ -115,7 +117,7 @@ class _PlateSheet extends StatelessWidget {
                 column('Bar', barText, null),
                 column(
                   'Total',
-                  '${formatWeight(weight, unit)} $suffix',
+                  '${formatWeight(weightLb, unit)} $suffix',
                   null,
                   last: true,
                 ),
@@ -251,17 +253,17 @@ class BigBarbell extends StatelessWidget {
   }
 }
 
-/// The bar loaded for [weight], small: inline wherever a set's load is
+/// The bar loaded for [weightLb] (stored pounds), small: inline wherever a set's load is
 /// shown. Tappable (the default) it sits in a flat white box and opens the
 /// plate breakdown.
 class PlateVisualization extends StatelessWidget {
-  final double weight;
+  final double weightLb;
   final double scale;
   final bool isInteractive;
 
   const PlateVisualization({
     super.key,
-    required this.weight,
+    required this.weightLb,
     this.scale = 1.0,
     this.isInteractive = true,
   });
@@ -274,6 +276,7 @@ class PlateVisualization extends StatelessWidget {
     // Rebuild when the plate colours change.
     context.watch<SettingsProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
+    final weight = displayWeightFromPounds(weightLb, unit);
     final plates = calcPlatesPerSide(weight, unit).plates;
     final content = FittedBox(
       fit: BoxFit.scaleDown,
@@ -290,7 +293,7 @@ class PlateVisualization extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(side: BorderSide(color: t.outline)),
       child: InkWell(
-        onTap: () => showPlateBreakdownDialog(context, weight: weight),
+        onTap: () => showPlateBreakdownDialog(context, weightLb: weightLb),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: content,

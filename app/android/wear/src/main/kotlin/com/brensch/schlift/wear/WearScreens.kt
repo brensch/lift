@@ -8,6 +8,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,11 +33,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,11 +98,13 @@ internal object WearPalette {
     val LiftingInk = Color(0xFFC23C00)
     val Resting = Color(0xFF3C5FB0)
     val Yapping = Color(0xFFD94F8C)
-    val YappingInk = Color(0xFFB0306B)
-    val Fix = Color(0xFFD99A00)
+
+    // Done short of the target (the phone's effort colour).
+    val Effort = Color(0xFFD99A00)
     val FirstTime = Color(0xFF111111)
     val Ambient = Color.Black
     val AmbientText = Color(0xFFB7B6AC)
+    val AmbientLine = Color(0xFF4A4A44)
 
     // The app's series palette: the up-next chip glides through it.
     val Series =
@@ -233,17 +239,32 @@ private fun Rule(color: Color = WearPalette.Hairline) {
 @Composable
 internal fun FaceScreen(
     face: WearFace,
+    colors: FaceColors,
     enabled: Boolean,
     onTapSet: (String) -> Unit,
     onRep: () -> Unit,
     onWeight: () -> Unit,
 ) {
+    CompositionLocalProvider(LocalFaceColors provides colors) {
+        Face(face, enabled, onTapSet, onRep, onWeight)
+    }
+}
+
+@Composable
+private fun Face(
+    face: WearFace,
+    enabled: Boolean,
+    onTapSet: (String) -> Unit,
+    onRep: () -> Unit,
+    onWeight: () -> Unit,
+) {
+    val c = LocalFaceColors.current
     val round = LocalConfiguration.current.isScreenRound
     BoxWithConstraints(
         modifier =
             Modifier
                 .fillMaxSize()
-                .background(WearPalette.Ground),
+                .background(c.ground),
     ) {
         val d = minOf(maxWidth, maxHeight)
         val top = if (round) TOP_ROW else SQUARE_TOP_ROW
@@ -262,28 +283,28 @@ internal fun FaceScreen(
                 enabled = enabled,
                 onTapSet = onTapSet,
             )
-            Rule()
+            Rule(c.hairline)
             Band(face = face, d = d, inset = roundInset(d, round, bandTop, bandTop + BAND_ROW))
-            Rule(WearPalette.Rule)
+            Rule(c.rule)
             Box(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .height(d * LINE_ROW)
-                        .background(WearPalette.Panel)
+                        .background(c.panel)
                         .padding(horizontal = maxOf(roundInset(d, round, lineTop, lineTop + LINE_ROW), side)),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 FitText(
                     text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" · "),
                     size = (d * 0.047f).asSp(),
-                    color = WearPalette.Muted,
+                    color = c.muted,
                     weight = FontWeight.Medium,
                     family = WearBodyFontFamily,
                     align = TextAlign.Start,
                 )
             }
-            Rule()
+            Rule(c.hairline)
             WeightRow(
                 face = face,
                 d = d,
@@ -292,12 +313,50 @@ internal fun FaceScreen(
                 onRep = onRep,
                 onWeight = onWeight,
             )
-            Rule()
+            Rule(c.hairline)
             Stats(face = face, d = d, inset = roundInset(d, round, statsTop + 0.02f, statsTop + STATS_ROW - 0.02f))
-            Rule()
+            Rule(c.hairline)
         }
     }
 }
+
+/**
+ * The face's colours: the app's, or dimmed for always-on, where the same face
+ * is drawn as grey lines and text on black.
+ */
+internal data class FaceColors(
+    val ground: Color,
+    val panel: Color,
+    val hairline: Color,
+    val rule: Color,
+    val text: Color,
+    val muted: Color,
+    val dim: Boolean,
+)
+
+internal val LitColors =
+    FaceColors(
+        ground = WearPalette.Ground,
+        panel = WearPalette.Panel,
+        hairline = WearPalette.Hairline,
+        rule = WearPalette.Rule,
+        text = WearPalette.Text,
+        muted = WearPalette.Muted,
+        dim = false,
+    )
+
+internal val DimColors =
+    FaceColors(
+        ground = WearPalette.Ambient,
+        panel = WearPalette.Ambient,
+        hairline = WearPalette.AmbientLine,
+        rule = WearPalette.AmbientLine,
+        text = WearPalette.AmbientText,
+        muted = WearPalette.AmbientText,
+        dim = true,
+    )
+
+private val LocalFaceColors = staticCompositionLocalOf { LitColors }
 
 /** How a set circle is drawn: the phone's SetCircle colours. */
 private data class CircleLook(
@@ -309,15 +368,21 @@ private data class CircleLook(
 private fun circleLook(
     state: Wearable.WearCircleState,
     stage: Color,
+    c: FaceColors,
 ): CircleLook =
-    when (state) {
-        Wearable.WearCircleState.WEAR_CIRCLE_STATE_NEXT -> CircleLook(Color.Transparent, stage, stage)
-        Wearable.WearCircleState.WEAR_CIRCLE_STATE_LIFTING -> CircleLook(WearPalette.Lifting, WearPalette.Lifting, WearPalette.Text)
-        Wearable.WearCircleState.WEAR_CIRCLE_STATE_FULL -> CircleLook(WearPalette.Text, WearPalette.Text, WearPalette.Ground)
-        Wearable.WearCircleState.WEAR_CIRCLE_STATE_SHORT -> CircleLook(WearPalette.Fix, WearPalette.Fix, WearPalette.Text)
-        Wearable.WearCircleState.WEAR_CIRCLE_STATE_ZERO -> CircleLook(Color.Transparent, WearPalette.Fix, WearPalette.Fix)
-        Wearable.WearCircleState.WEAR_CIRCLE_STATE_SKIPPED -> CircleLook(Color.Transparent, WearPalette.Hairline, WearPalette.Muted)
-        else -> CircleLook(Color.Transparent, WearPalette.Rule, WearPalette.Muted)
+    if (c.dim) {
+        // Dimmed, every circle is an outline: no lit discs.
+        CircleLook(Color.Transparent, c.rule, c.text)
+    } else {
+        when (state) {
+            Wearable.WearCircleState.WEAR_CIRCLE_STATE_NEXT -> CircleLook(Color.Transparent, stage, stage)
+            Wearable.WearCircleState.WEAR_CIRCLE_STATE_LIFTING -> CircleLook(WearPalette.Lifting, WearPalette.Lifting, c.text)
+            Wearable.WearCircleState.WEAR_CIRCLE_STATE_FULL -> CircleLook(c.text, c.text, c.ground)
+            Wearable.WearCircleState.WEAR_CIRCLE_STATE_SHORT -> CircleLook(WearPalette.Effort, WearPalette.Effort, c.text)
+            Wearable.WearCircleState.WEAR_CIRCLE_STATE_ZERO -> CircleLook(Color.Transparent, WearPalette.Effort, WearPalette.Effort)
+            Wearable.WearCircleState.WEAR_CIRCLE_STATE_SKIPPED -> CircleLook(Color.Transparent, c.hairline, c.muted)
+            else -> CircleLook(Color.Transparent, c.rule, c.muted)
+        }
     }
 
 /** The exercise's sets, every one tappable, scrolled to the one in hand. */
@@ -329,6 +394,7 @@ private fun SetRow(
     enabled: Boolean,
     onTapSet: (String) -> Unit,
 ) {
+    val c = LocalFaceColors.current
     val list = rememberLazyListState()
     val current =
         face.circles.indexOfFirst {
@@ -351,7 +417,7 @@ private fun SetRow(
     ) {
         items(face.circles, key = { it.setId }) { circle ->
             val size = if (circle.warmup) d * 0.10f else d * 0.12f
-            val look = circleLook(circle.state, face.stageColor)
+            val look = circleLook(circle.state, face.stageColor, c)
             Box(
                 modifier =
                     Modifier
@@ -381,6 +447,7 @@ private fun Band(
     d: Dp,
     inset: Dp,
 ) {
+    val c = LocalFaceColors.current
     Box(
         modifier =
             Modifier
@@ -422,6 +489,7 @@ private fun UpNextChip(
     text: String,
     d: Dp,
 ) {
+    val c = LocalFaceColors.current
     val colors = WearPalette.Series
     val cycle by rememberInfiniteTransition(label = "upNext").animateFloat(
         initialValue = 0f,
@@ -430,7 +498,8 @@ private fun UpNextChip(
         label = "upNextCycle",
     )
     val at = cycle.toInt()
-    val color = lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at)
+    // Dimmed, nothing moves: the chip keeps the face's grey.
+    val color = if (c.dim) c.text else lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at)
     Text(
         text = text,
         color = color,
@@ -443,7 +512,7 @@ private fun UpNextChip(
         modifier =
             Modifier
                 .padding(start = 4.dp)
-                .background(WearPalette.Panel)
+                .background(c.panel)
                 .padding(horizontal = 4.dp, vertical = 2.dp),
     )
 }
@@ -458,13 +527,17 @@ private fun WeightRow(
     onRep: () -> Unit,
     onWeight: () -> Unit,
 ) {
+    val c = LocalFaceColors.current
+    // The weight's touch lights the panel orange from the face's edge to the ×.
+    val press = remember { MutableInteractionSource() }
+    val pressed by press.collectIsPressedAsState()
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(d * WEIGHT_ROW)
-                .background(WearPalette.Panel)
-                .padding(horizontal = inset),
+                .background(c.panel)
+                .padding(end = inset),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
@@ -472,19 +545,26 @@ private fun WeightRow(
                 Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .clickable(enabled = face.hasPlates, onClick = onWeight),
+                    .background(if (pressed) WearPalette.Lifting else Color.Transparent)
+                    .clickable(
+                        interactionSource = press,
+                        indication = null,
+                        enabled = face.hasPlates,
+                        onClick = onWeight,
+                    ).padding(start = inset),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FitText(
                 text = face.weight,
                 size = (d * 0.147f).asSp(),
+                color = c.text,
                 align = TextAlign.Start,
                 modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
             )
             if (face.weight != "?" && face.unit.isNotEmpty()) {
                 Text(
                     text = " ${face.unit}",
-                    color = WearPalette.Text,
+                    color = c.text,
                     fontSize = (d * 0.05f).asSp(),
                     fontWeight = FontWeight.Bold,
                     fontFamily = WearMonoFontFamily,
@@ -495,13 +575,13 @@ private fun WeightRow(
         }
         Text(
             text = "×",
-            color = WearPalette.Text,
+            color = c.text,
             fontSize = (d * 0.067f).asSp(),
             fontWeight = FontWeight.Bold,
             fontFamily = WearMonoFontFamily,
             modifier = Modifier.padding(horizontal = d * 0.02f),
         )
-        val look = circleLook(face.repState, face.stageColor)
+        val look = circleLook(face.repState, face.stageColor, c)
         val outer = d * 0.187f
         Box(
             modifier =
@@ -517,7 +597,7 @@ private fun WeightRow(
                     Modifier
                         .size(outer * 0.86f)
                         .clip(CircleShape)
-                        .background(if (look.fill == Color.Transparent) WearPalette.Panel else look.fill),
+                        .background(if (look.fill == Color.Transparent) c.panel else look.fill),
                 contentAlignment = Alignment.Center,
             ) {
                 FitText(text = face.reps, size = (d * 0.087f).asSp(), color = look.ink, align = TextAlign.Center)
@@ -533,6 +613,7 @@ private fun Stats(
     d: Dp,
     inset: Dp,
 ) {
+    val c = LocalFaceColors.current
     val size = (d * 0.047f).asSp()
 
     @Composable
@@ -542,7 +623,7 @@ private fun Stats(
                 Modifier
                     .width(1.dp)
                     .fillMaxHeight()
-                    .background(WearPalette.Hairline),
+                    .background(c.hairline),
         )
     }
     Row(
@@ -562,15 +643,15 @@ private fun Stats(
             Icon(
                 imageVector = Icons.Filled.Favorite,
                 contentDescription = null,
-                tint = heartRateColor(face.bpm),
+                tint = if (c.dim) c.muted else heartRateColor(face.bpm),
                 modifier = Modifier.size(d * 0.042f),
             )
-            FitText(text = face.bpm?.let { "${it.toInt()}" } ?: "--", size = size, color = heartRateColor(face.bpm))
+            FitText(text = face.bpm?.let { "${it.toInt()}" } ?: "--", size = size, color = if (c.dim) c.muted else heartRateColor(face.bpm))
         }
         Divider()
-        FitText(text = face.elapsed, size = size, color = WearPalette.Muted, align = TextAlign.Center, modifier = Modifier.weight(1f))
+        FitText(text = face.elapsed, size = size, color = c.muted, align = TextAlign.Center, modifier = Modifier.weight(1f))
         Divider()
-        FitText(text = face.clock, size = size, color = WearPalette.Muted, align = TextAlign.Center, modifier = Modifier.weight(1f))
+        FitText(text = face.clock, size = size, color = c.muted, align = TextAlign.Center, modifier = Modifier.weight(1f))
     }
 }
 
@@ -722,53 +803,6 @@ internal fun ambientDelayMs(snapshot: Wearable.WearWorkoutSnapshot?): Long {
 
 private const val MINUTE_MS = 60_000L
 private const val AMBIENT_SLACK_MS = 300L
-
-/**
- * Ambient: the face dimmed to what matters, grey on black: the stage, rest
- * in minutes and when it ends, the exercise, the weight × reps.
- */
-@Composable
-internal fun AmbientScreen(
-    face: WearFace,
-    rest: AmbientRest?,
-) {
-    BoxWithConstraints(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(WearPalette.Ambient),
-        contentAlignment = Alignment.Center,
-    ) {
-        val d = minOf(maxWidth, maxHeight)
-        Column(
-            modifier = Modifier.padding(horizontal = d * 0.12f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            FitText(text = face.label.uppercase(), size = (d * 0.065f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
-            if (rest != null) {
-                FitText(text = rest.minutes, size = (d * 0.17f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
-                if (rest.until.isNotEmpty()) {
-                    FitText(text = rest.until, size = (d * 0.065f).asSp(), color = WearPalette.AmbientText, align = TextAlign.Center)
-                }
-                Spacer(modifier = Modifier.height(d * 0.04f))
-            }
-            FitText(
-                text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" · "),
-                size = (d * 0.06f).asSp(),
-                color = WearPalette.AmbientText,
-                weight = FontWeight.Medium,
-                family = WearBodyFontFamily,
-                align = TextAlign.Center,
-            )
-            FitText(
-                text = if (face.weight == "?") "?" else "${face.weight} × ${face.reps}",
-                size = (d * 0.09f).asSp(),
-                color = WearPalette.AmbientText,
-                align = TextAlign.Center,
-            )
-        }
-    }
-}
 
 /** ALL_DONE: the summary on the left, End workout as the big half. */
 @Composable

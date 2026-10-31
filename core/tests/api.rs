@@ -294,6 +294,7 @@ mod home_and_onboarding {
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(added.clone()),
+                ..Default::default()
             })
             .unwrap();
         assert!(app.account.template(&added.id).unwrap().coupled);
@@ -302,6 +303,7 @@ mod home_and_onboarding {
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(mine),
+                ..Default::default()
             })
             .unwrap();
         let home = self::home(&mut app);
@@ -415,6 +417,7 @@ mod templates {
                     "Arms",
                     &[Exercise::BarbellCurl, Exercise::SkullCrusher],
                 )),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -428,6 +431,7 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(edited),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -439,6 +443,7 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(template("Legs", &[Exercise::Squat])),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -469,6 +474,7 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(template("Empty", &[])),
+                ..Default::default()
             })
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)), "{err:?}");
@@ -500,6 +506,7 @@ mod template_workout_loop {
                     "Lower",
                     &[Exercise::Squat, Exercise::Crunch, Exercise::CalfRaise],
                 )),
+                ..Default::default()
             })
             .unwrap()
             .template
@@ -1552,6 +1559,10 @@ mod library_coupling {
         );
         let workout = started.workout.unwrap();
         assert_eq!(workout.template_id, template.id, "recorded against it");
+        assert_eq!(
+            workout.name, "StrongLifts A+",
+            "under the library's name of now"
+        );
     }
 
     /// Clone makes it the user's own in place: same id (its history stays
@@ -1585,6 +1596,37 @@ mod library_coupling {
             .find(|t| t.id == template.id)
             .unwrap();
         assert_eq!(shown.exercises, template.exercises, "its own now");
+    }
+
+    /// The library moved on; the user edits the template back to the copy
+    /// stored when they added it. That is a change to what they saw, so it
+    /// becomes theirs rather than following the library again.
+    #[test]
+    fn an_edit_back_to_the_stored_copy_is_kept() {
+        let mut app = App::new();
+        let template = stronglifts_a(&mut app);
+        app.library
+            .iter_mut()
+            .find(|e| e.id == "stronglifts_a")
+            .unwrap()
+            .exercises = vec![Exercise::Deadlift as i32];
+
+        let saved = app
+            .call()
+            .save_template(SaveTemplateRequest {
+                template: Some(template.clone()),
+                ..Default::default()
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        assert!(!saved.coupled, "the user's own now");
+        let shown = home(&mut app)
+            .templates
+            .into_iter()
+            .find(|t| t.id == template.id)
+            .unwrap();
+        assert_eq!(shown.exercises, template.exercises, "the edit stands");
     }
 
     /// A default the server drops keeps working from what was stored.

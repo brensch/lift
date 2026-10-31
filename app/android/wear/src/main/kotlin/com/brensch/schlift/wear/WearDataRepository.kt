@@ -193,10 +193,4 @@ object WearDataRepository {
         val deltaMs = SystemClock.elapsedRealtime() - receivedAt
         return emittedAt + deltaMs
     }
-
-    fun secondsSinceLastSnapshot(): Long {
-        val receivedAt = lastSnapshotReceivedElapsedRealtimeMs
-        if (receivedAt <= 0L) return 0L
-        return (SystemClock.elapsedRealtime() - receivedAt) / 1000
-    }
 }

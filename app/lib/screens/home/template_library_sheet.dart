@@ -84,10 +84,13 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     final wp = context.read<WorkoutProvider>();
     final navigator = Navigator.of(context);
     final parent = navigator.context;
-    final cloned = await wp.cloneTemplate(have.id);
+    WorkoutTemplate? cloned;
+    await _run(have.id, () async => cloned = await wp.cloneTemplate(have.id));
+    final done = cloned;
+    if (done == null) return;
     navigator.pop();
     if (parent.mounted) {
-      await showTemplateEditor(parent, template: cloned, provider: wp);
+      await showTemplateEditor(parent, template: done, provider: wp);
     }
   }
 

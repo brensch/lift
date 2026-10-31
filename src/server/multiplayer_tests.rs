@@ -173,6 +173,52 @@ mod session_history_tests {
         assert!(bob_view.session_id.is_empty(), "bob is in no group");
     }
 
+    /// An idle member who then leaves still has their leave stamped on the
+    /// group's roster, and their stale pointer is cleared.
+    #[tokio::test]
+    async fn an_idle_members_leave_is_stamped() {
+        let svc = setup().await;
+        let (alice_id, _) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+        let session_id = svc
+            .db
+            .get_user_session_pointer(&bob_id)
+            .await
+            .unwrap()
+            .unwrap();
+        svc.db
+            .age_session_participant(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
+            .await
+            .unwrap();
+
+        svc.leave_current_session(authed(&bob_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+        assert!(svc
+            .db
+            .get_user_session_pointer(&bob_id)
+            .await
+            .unwrap()
+            .is_none());
+        assert!(
+            svc.db
+                .session_member_left_at(&session_id, &bob_id)
+                .await
+                .unwrap()
+                > 0,
+            "bob's leave is on the roster"
+        );
+    }
+
     /// GetSharedSessions lists the sessions two users were both in.
     #[tokio::test]
     async fn shared_sessions_lists_the_pairing() {

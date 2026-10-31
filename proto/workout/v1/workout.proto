@@ -391,22 +391,11 @@ message WorkoutStateSnapshot {
   // When the last done set's rest ends: RESTING counts down to it, YAPPING
   // counts up from it. 0 when READY or ALL_DONE.
   int64 rest_until = 4;
-  // Set while the app is waiting on "how was that" for a done set.
-  EffortPrompt effort_prompt = 6;
   // When LIFTING: when the set was started; the lifting timer counts up
   // from it. 0 otherwise.
   int64 lifting_started_at = 7;
-  reserved 3, 5;
-  reserved "active_started_at", "last_rest_end";
-}
-
-// The latest done set while it can still be rated (a working set or a
-// calibration rung), whatever the rest state. Cleared by the next Done.
-message EffortPrompt {
-  Exercise exercise = 1;
-  string completed_set_id = 2;
-  bool calibration = 3; // the answer decides the next rung, not progression
-  Effort effort = 4; // the current answer, UNSPECIFIED until one is given
+  reserved 3, 5, 6;
+  reserved "active_started_at", "last_rest_end", "effort_prompt";
 }
 
 message ListWorkoutsRequest {}
@@ -715,6 +704,10 @@ message GetHomeResponse {
 // Create when id is empty; update when it exists.
 message SaveTemplateRequest {
   WorkoutTemplate template = 1;
+  // Set by the core when the save differs from the library's version of now:
+  // the template becomes the user's own, whatever copy it stored. Without it
+  // (older events) a save unlinks only when it differs from the stored copy.
+  bool unlink = 2;
 }
 message SaveTemplateResponse {
   WorkoutTemplate template = 1;

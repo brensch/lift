@@ -15,7 +15,6 @@ class WearableSyncCoordinator {
   final MultiplayerProvider _multiplayerProvider;
   final WearableBridgeService _bridgeService;
   final String Function() _myUserId;
-  final String Function() _myProfileEmoji;
 
   StreamSubscription? _intentSub;
   StreamSubscription? _sensorSub;
@@ -41,12 +40,10 @@ class WearableSyncCoordinator {
     required MultiplayerProvider multiplayerProvider,
     required WearableBridgeService bridgeService,
     required String Function() myUserId,
-    required String Function() myProfileEmoji,
   }) : _workoutProvider = workoutProvider,
        _multiplayerProvider = multiplayerProvider,
        _bridgeService = bridgeService,
-       _myUserId = myUserId,
-       _myProfileEmoji = myProfileEmoji;
+       _myUserId = myUserId;
 
   Future<void> init() async {
     await _bridgeService.init();
@@ -140,15 +137,6 @@ class WearableSyncCoordinator {
             set,
           );
         }
-      } else if (intent.hasEditCompletedSet() &&
-          intent.editCompletedSet.workoutId == workoutId) {
-        // The fix window: reps taken off the set just done. Zero is still
-        // a done set (with no reps); the watch never undoes one.
-        await _workoutProvider.editCompletedSet(
-          intent.editCompletedSet.completedSetId,
-          intent.editCompletedSet.reps.clamp(0, 100),
-          intent.editCompletedSet.actualWeight,
-        );
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();
@@ -189,7 +177,6 @@ class WearableSyncCoordinator {
       workoutProvider: _workoutProvider,
       multiplayerProvider: _multiplayerProvider,
       myUserId: userId,
-      myProfileEmoji: _myProfileEmoji(),
     );
 
     if (snapshot == null) return;

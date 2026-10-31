@@ -38,29 +38,6 @@ class WearActionType extends $pb.ProtobufEnum {
   const WearActionType._(super.value, super.name);
 }
 
-class WearActionStyle extends $pb.ProtobufEnum {
-  static const WearActionStyle WEAR_ACTION_STYLE_UNSPECIFIED =
-      WearActionStyle._(
-          0, _omitEnumNames ? '' : 'WEAR_ACTION_STYLE_UNSPECIFIED');
-  static const WearActionStyle WEAR_ACTION_STYLE_PRIMARY =
-      WearActionStyle._(1, _omitEnumNames ? '' : 'WEAR_ACTION_STYLE_PRIMARY');
-  static const WearActionStyle WEAR_ACTION_STYLE_SECONDARY =
-      WearActionStyle._(2, _omitEnumNames ? '' : 'WEAR_ACTION_STYLE_SECONDARY');
-
-  static const $core.List<WearActionStyle> values = <WearActionStyle>[
-    WEAR_ACTION_STYLE_UNSPECIFIED,
-    WEAR_ACTION_STYLE_PRIMARY,
-    WEAR_ACTION_STYLE_SECONDARY,
-  ];
-
-  static final $core.List<WearActionStyle?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 2);
-  static WearActionStyle? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const WearActionStyle._(super.value, super.name);
-}
-
 class HeartRateAvailability extends $pb.ProtobufEnum {
   static const HeartRateAvailability HEART_RATE_AVAILABILITY_UNSPECIFIED =
       HeartRateAvailability._(

@@ -16,9 +16,10 @@ enum WatchPalette {
     static let resting = Color(rgb: 0x3C5FB0)
     static let yapping = Color(rgb: 0xD94F8C)
     static let yappingInk = Color(rgb: 0xB0306B)
-    static let fix = Color(rgb: 0xD99A00)
+    static let effort = Color(rgb: 0xD99A00) // done short of the target
     static let firstTime = Color(rgb: 0x111111)
     static let ambientText = Color(rgb: 0xB7B6AC)
+    static let ambientLine = Color(rgb: 0x4A4A44)
 }
 
 extension Color {

@@ -8,19 +8,11 @@ import "workout/v1/workout.proto";
 
 enum WearActionType {
   WEAR_ACTION_TYPE_UNSPECIFIED = 0;
-  WEAR_ACTION_TYPE_COMPLETE_SET = 2; // set_id + reps + weight + effort
+  WEAR_ACTION_TYPE_COMPLETE_SET = 2; // set_id + reps + weight
   WEAR_ACTION_TYPE_END_WORKOUT = 4;
   WEAR_ACTION_TYPE_START_SET = 8; // set_id
   reserved 1, 3, 5, 6, 7;
   reserved "WEAR_ACTION_TYPE_FEWER_REPS", "WEAR_ACTION_TYPE_SKIP_REST", "WEAR_ACTION_TYPE_RATE_EXERCISE", "WEAR_ACTION_TYPE_SKIP_WARMUP";
-}
-
-enum WearActionStyle {
-  WEAR_ACTION_STYLE_UNSPECIFIED = 0;
-  WEAR_ACTION_STYLE_PRIMARY = 1;
-  WEAR_ACTION_STYLE_SECONDARY = 2;
-  reserved 3;
-  reserved "WEAR_ACTION_STYLE_REP_OPTION";
 }
 
 enum HeartRateAvailability {
@@ -45,9 +37,6 @@ message WearStatusCard {
   string weight_text = 14; // display_set's weight in the user's unit, "225" ("?" on a first time)
   string unit_text = 15; // "lb" / "kg"
   string reps_text = 16; // display_set's target reps, "5" ("?" on a first time)
-  // What a tap on the big button does now: "Lift", "Done", "Go early",
-  // "Test me".
-  string cue = 17;
   // The opening set of an exercise never done: no weight yet. A tap starts
   // the calibration sets; giving the weight is done on the phone.
   bool first_time = 18;
@@ -97,25 +86,14 @@ message WearPlate {
   float size = 3; // 0..1 of the heaviest plate: how tall to draw it
 }
 
-// The set just done, for the watch's fix window: for a few seconds after
-// it ended each tap on the big button takes a rep off it.
-message WearDoneSet {
-  string completed_set_id = 1;
-  int32 reps = 2; // logged
-  int32 target_reps = 3;
-  float actual_weight = 4;
-  int64 ended_at = 5; // Unix seconds
-  string cue = 6; // "−1 rep"
-}
-
 message WearAction {
   WearActionType type = 1;
-  WearActionStyle style = 2;
   string label = 3;
   string set_id = 4; // used by set-scoped actions
   int32 reps = 5; // COMPLETE_SET: the reps Done records (the target)
   float actual_weight = 6; // COMPLETE_SET: the weight Done records (the target)
-  Effort effort = 7; // COMPLETE_SET: the rating this Done gives (UNSPECIFIED on a warmup)
+  reserved 2, 7;
+  reserved "style", "effort";
 }
 
 message WearWorkoutSnapshot {
@@ -133,8 +111,7 @@ message WearWorkoutSnapshot {
   WearStatusCard you_card = 9;
   repeated WearAction actions = 11;
   WearCompletionSummary completion_summary = 12; // optional
-  string next_up_emoji = 13; // profile emoji of the next-to-lift participant (empty if solo)
-  WearDoneSet last_done = 16; // the most recent done set, if any
+  int64 last_set_ended_at = 16; // Unix seconds: when the latest done set ended; rest drains from it
   // The exercise in hand's sets, in order, warmups first.
   repeated WearSetCircle circles = 17;
   reserved 18, 19;
@@ -143,8 +120,8 @@ message WearWorkoutSnapshot {
   string up_next_text = 20;
   // The words the dimmed (always-on) face prints around its minute count.
   WearAmbientCopy ambient_copy = 21;
-  reserved 10, 14;
-  reserved "group_card", "effort_prompt";
+  reserved 10, 13, 14;
+  reserved "group_card", "effort_prompt", "next_up_emoji";
 }
 
 message WearCompletionSummary {
@@ -160,7 +137,8 @@ message CompleteSetIntent {
   int32 reps = 3;
   float actual_weight = 4;
   int64 completed_at = 5; // Unix seconds, time of first tap
-  Effort effort = 6; // the rating given with this Done (UNSPECIFIED on a warmup)
+  reserved 6;
+  reserved "effort";
 }
 
 message StartSetIntent {
@@ -177,14 +155,6 @@ message TapSetIntent {
   int64 tapped_at = 3; // Unix seconds
 }
 
-// Set a done set's reps: the fix window's taps, one rep off each.
-message EditCompletedSetIntent {
-  string workout_id = 1;
-  string completed_set_id = 2;
-  int32 reps = 3;
-  float actual_weight = 4;
-}
-
 message EndWorkoutIntent {
   string workout_id = 1;
 }
@@ -197,11 +167,10 @@ message WearIntent {
     CompleteSetIntent complete_set = 11;
     EndWorkoutIntent end_workout = 13;
     StartSetIntent start_set = 17;
-    EditCompletedSetIntent edit_completed_set = 18;
     TapSetIntent tap_set = 19;
   }
-  reserved 10, 12, 14, 15, 16;
-  reserved "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup";
+  reserved 10, 12, 14, 15, 16, 18;
+  reserved "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup", "edit_completed_set";
 }
 
 message HeartRateSample {

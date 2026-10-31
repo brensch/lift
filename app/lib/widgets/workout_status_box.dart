@@ -365,7 +365,7 @@ class _Plates extends StatelessWidget {
     final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
     return GestureDetector(
-      onTap: () => showPlateBreakdownDialog(context, weight: weight),
+      onTap: () => showPlateBreakdownDialog(context, weightLb: weight),
       child: Container(
         width: compact ? 72 : 104,
         height: compact ? 36 : 56,
@@ -385,7 +385,10 @@ class _Plates extends StatelessWidget {
                 ),
               )
             : FittedBox(
-                child: PlateVisualization(weight: weight, isInteractive: false),
+                child: PlateVisualization(
+                  weightLb: weight,
+                  isInteractive: false,
+                ),
               ),
       ),
     );

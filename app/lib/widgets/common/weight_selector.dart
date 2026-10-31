@@ -133,7 +133,10 @@ class _WeightSelectorState extends State<WeightSelector> {
       ),
     );
 
-    final plates = calcPlatesPerSide(widget.weightLb, unit).plates;
+    final plates = calcPlatesPerSide(
+      displayWeightFromPounds(widget.weightLb, unit),
+      unit,
+    ).plates;
     final perSide = plates.isEmpty
         ? 'Empty bar'
         : '${plates.map(num).join(' · ')}  each side';

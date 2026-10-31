@@ -112,7 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Make a library workout the user's own and open it to edit.
   Future<void> _cloneTemplate(WorkoutTemplate template) async {
     final wp = context.read<WorkoutProvider>();
-    final cloned = await wp.cloneTemplate(template.id);
+    final messenger = ScaffoldMessenger.of(context);
+    final WorkoutTemplate cloned;
+    try {
+      cloned = await wp.cloneTemplate(template.id);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      return;
+    }
     if (mounted) {
       await showTemplateEditor(context, template: cloned, provider: wp);
     }

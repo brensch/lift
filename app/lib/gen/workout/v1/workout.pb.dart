@@ -1797,14 +1797,12 @@ class WorkoutStateSnapshot extends $pb.GeneratedMessage {
     WorkoutState? state,
     ProposedSet? displaySet,
     $fixnum.Int64? restUntil,
-    EffortPrompt? effortPrompt,
     $fixnum.Int64? liftingStartedAt,
   }) {
     final result = create();
     if (state != null) result.state = state;
     if (displaySet != null) result.displaySet = displaySet;
     if (restUntil != null) result.restUntil = restUntil;
-    if (effortPrompt != null) result.effortPrompt = effortPrompt;
     if (liftingStartedAt != null) result.liftingStartedAt = liftingStartedAt;
     return result;
   }
@@ -1827,8 +1825,6 @@ class WorkoutStateSnapshot extends $pb.GeneratedMessage {
     ..aOM<ProposedSet>(2, _omitFieldNames ? '' : 'displaySet',
         subBuilder: ProposedSet.create)
     ..aInt64(4, _omitFieldNames ? '' : 'restUntil')
-    ..aOM<EffortPrompt>(6, _omitFieldNames ? '' : 'effortPrompt',
-        subBuilder: EffortPrompt.create)
     ..aInt64(7, _omitFieldNames ? '' : 'liftingStartedAt')
     ..hasRequiredFields = false;
 
@@ -1882,121 +1878,16 @@ class WorkoutStateSnapshot extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearRestUntil() => $_clearField(4);
 
-  /// Set while the app is waiting on "how was that" for a done set.
-  @$pb.TagNumber(6)
-  EffortPrompt get effortPrompt => $_getN(3);
-  @$pb.TagNumber(6)
-  set effortPrompt(EffortPrompt value) => $_setField(6, value);
-  @$pb.TagNumber(6)
-  $core.bool hasEffortPrompt() => $_has(3);
-  @$pb.TagNumber(6)
-  void clearEffortPrompt() => $_clearField(6);
-  @$pb.TagNumber(6)
-  EffortPrompt ensureEffortPrompt() => $_ensure(3);
-
   /// When LIFTING: when the set was started; the lifting timer counts up
   /// from it. 0 otherwise.
   @$pb.TagNumber(7)
-  $fixnum.Int64 get liftingStartedAt => $_getI64(4);
+  $fixnum.Int64 get liftingStartedAt => $_getI64(3);
   @$pb.TagNumber(7)
-  set liftingStartedAt($fixnum.Int64 value) => $_setInt64(4, value);
+  set liftingStartedAt($fixnum.Int64 value) => $_setInt64(3, value);
   @$pb.TagNumber(7)
-  $core.bool hasLiftingStartedAt() => $_has(4);
+  $core.bool hasLiftingStartedAt() => $_has(3);
   @$pb.TagNumber(7)
   void clearLiftingStartedAt() => $_clearField(7);
-}
-
-/// The latest done set while it can still be rated (a working set or a
-/// calibration rung), whatever the rest state. Cleared by the next Done.
-class EffortPrompt extends $pb.GeneratedMessage {
-  factory EffortPrompt({
-    Exercise? exercise,
-    $core.String? completedSetId,
-    $core.bool? calibration,
-    Effort? effort,
-  }) {
-    final result = create();
-    if (exercise != null) result.exercise = exercise;
-    if (completedSetId != null) result.completedSetId = completedSetId;
-    if (calibration != null) result.calibration = calibration;
-    if (effort != null) result.effort = effort;
-    return result;
-  }
-
-  EffortPrompt._();
-
-  factory EffortPrompt.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory EffortPrompt.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'EffortPrompt',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aE<Exercise>(1, _omitFieldNames ? '' : 'exercise',
-        enumValues: Exercise.values)
-    ..aOS(2, _omitFieldNames ? '' : 'completedSetId')
-    ..aOB(3, _omitFieldNames ? '' : 'calibration')
-    ..aE<Effort>(4, _omitFieldNames ? '' : 'effort', enumValues: Effort.values)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  EffortPrompt clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  EffortPrompt copyWith(void Function(EffortPrompt) updates) =>
-      super.copyWith((message) => updates(message as EffortPrompt))
-          as EffortPrompt;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static EffortPrompt create() => EffortPrompt._();
-  @$core.override
-  EffortPrompt createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static EffortPrompt getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<EffortPrompt>(create);
-  static EffortPrompt? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  Exercise get exercise => $_getN(0);
-  @$pb.TagNumber(1)
-  set exercise(Exercise value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasExercise() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearExercise() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get completedSetId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set completedSetId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasCompletedSetId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearCompletedSetId() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get calibration => $_getBF(2);
-  @$pb.TagNumber(3)
-  set calibration($core.bool value) => $_setBool(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasCalibration() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearCalibration() => $_clearField(3);
-
-  @$pb.TagNumber(4)
-  Effort get effort => $_getN(3);
-  @$pb.TagNumber(4)
-  set effort(Effort value) => $_setField(4, value);
-  @$pb.TagNumber(4)
-  $core.bool hasEffort() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearEffort() => $_clearField(4);
 }
 
 class ListWorkoutsRequest extends $pb.GeneratedMessage {
@@ -4995,9 +4886,11 @@ class GetHomeResponse extends $pb.GeneratedMessage {
 class SaveTemplateRequest extends $pb.GeneratedMessage {
   factory SaveTemplateRequest({
     WorkoutTemplate? template,
+    $core.bool? unlink,
   }) {
     final result = create();
     if (template != null) result.template = template;
+    if (unlink != null) result.unlink = unlink;
     return result;
   }
 
@@ -5016,6 +4909,7 @@ class SaveTemplateRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOM<WorkoutTemplate>(1, _omitFieldNames ? '' : 'template',
         subBuilder: WorkoutTemplate.create)
+    ..aOB(2, _omitFieldNames ? '' : 'unlink')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5047,6 +4941,18 @@ class SaveTemplateRequest extends $pb.GeneratedMessage {
   void clearTemplate() => $_clearField(1);
   @$pb.TagNumber(1)
   WorkoutTemplate ensureTemplate() => $_ensure(0);
+
+  /// Set by the core when the save differs from the library's version of now:
+  /// the template becomes the user's own, whatever copy it stored. Without it
+  /// (older events) a save unlinks only when it differs from the stored copy.
+  @$pb.TagNumber(2)
+  $core.bool get unlink => $_getBF(1);
+  @$pb.TagNumber(2)
+  set unlink($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUnlink() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUnlink() => $_clearField(2);
 }
 
 class SaveTemplateResponse extends $pb.GeneratedMessage {

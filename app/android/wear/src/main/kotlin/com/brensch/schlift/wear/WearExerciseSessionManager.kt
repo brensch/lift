@@ -69,26 +69,4 @@ class WearExerciseSessionManager(
             active = false
         }
     }
-
-    private fun logPermissionStatus() {
-        val bodySensors =
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.BODY_SENSORS,
-            ) == PackageManager.PERMISSION_GRANTED
-        val activityRecognition =
-            ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.ACTIVITY_RECOGNITION,
-            ) == PackageManager.PERMISSION_GRANTED
-        val readHeartRate =
-            ContextCompat.checkSelfPermission(
-                context,
-                "android.permission.health.READ_HEART_RATE",
-            ) == PackageManager.PERMISSION_GRANTED
-        Log.i(
-            "SchliftWear",
-            "Permissions body=$bodySensors activity=$activityRecognition readHr=$readHeartRate",
-        )
-    }
 }

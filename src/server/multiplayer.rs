@@ -71,7 +71,7 @@ impl ServerMultiplayerService {
     async fn leave_other_session(&self, user_id: &str, target: &str) -> ServerResult<()> {
         if let Some(current) = self
             .db
-            .get_user_current_session(user_id)
+            .get_user_session_pointer(user_id)
             .await
             .map_err(internal_error)?
         {
@@ -104,6 +104,8 @@ impl ServerMultiplayerService {
             .await
             .map_err(internal_error)?
             .unwrap_or_else(|| Uuid::new_v4().to_string());
+        // An idle anchor starts afresh: their old session gets their leave.
+        self.leave_other_session(anchor, &session_id).await?;
         self.leave_other_session(joiner, &session_id).await?;
         self.place_user_in_session(anchor, &session_id).await?;
         self.place_user_in_session(joiner, &session_id).await?;
@@ -232,7 +234,7 @@ impl MultiplayerService for ServerMultiplayerService {
         // we can prune the live cache and stamp the durable roster.
         let session_id = self
             .db
-            .get_user_current_session(&caller_id)
+            .get_user_session_pointer(&caller_id)
             .await
             .map_err(internal_error)?;
         self.db

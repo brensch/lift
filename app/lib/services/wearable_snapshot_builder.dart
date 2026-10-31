@@ -19,21 +19,18 @@ import '../logic/exercises.dart';
 import '../logic/plate_calculator.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
-import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
 import '../screens/workout/live_set_circle.dart';
 import '../screens/workout/section_workout.dart';
 import '../screens/workout/set_circle.dart';
-import '../widgets/participant_ticker.dart';
 
 class WearableSnapshotBuilder {
   static WearWorkoutSnapshot? build({
     required WorkoutProvider workoutProvider,
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
-    required String myProfileEmoji,
   }) {
     final workout = workoutProvider.activeWorkout;
     if (workout == null) return null;
@@ -76,7 +73,6 @@ class WearableSnapshotBuilder {
       ProposedSet set, {
       String stateLabel = '',
       String timerText = '',
-      String cue = '',
     }) {
       final firstTime = _isFirstEver(set, proposedSets, completedSets);
       final barbell =
@@ -84,7 +80,10 @@ class WearableSnapshotBuilder {
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
       final weight = set.targetWeight.toDouble();
       final plates = barbell && !firstTime
-          ? calcPlatesPerSide(weight, unit).plates
+          ? calcPlatesPerSide(
+              displayWeightFromPounds(weight, unit),
+              unit,
+            ).plates
           : const <double>[];
       String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
       final heaviest = standardPlates(unit).first;
@@ -99,7 +98,6 @@ class WearableSnapshotBuilder {
         weightText: firstTime ? '?' : formatWeight(weight, unit),
         unitText: weightUnitSuffix(unit),
         repsText: firstTime ? '?' : '${set.targetReps}',
-        cue: firstTime ? copy.workout.watchCueTest : cue,
         firstTime: firstTime,
         plates: [
           for (final p in plates)
@@ -151,17 +149,11 @@ class WearableSnapshotBuilder {
         target,
         stateLabel: stateLabel,
         timerText: timerText,
-        cue: lifting
-            ? copy.workout.watchCueDone
-            : isRestingState(stateValue) || isYappingState(stateValue)
-            ? copy.workout.watchCueEarly
-            : copy.workout.watchCueLift,
       );
       if (lifting) {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET,
-            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
             label: copy.workout.done,
             setId: target.id,
             reps: target.targetReps,
@@ -172,7 +164,6 @@ class WearableSnapshotBuilder {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_START_SET,
-            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
             label: copy.workout.start,
             setId: target.id,
           ),
@@ -190,7 +181,6 @@ class WearableSnapshotBuilder {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_END_WORKOUT,
-            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
             label: copy.workout.endWorkout,
           ),
         );
@@ -203,12 +193,14 @@ class WearableSnapshotBuilder {
     if (target != null) {
       snapshot.circles.addAll(_circles(workoutProvider, target));
     }
-    final lastDone = _lastDone(completedSets, proposedSets);
-    if (lastDone != null && !isEnded) snapshot.lastDone = lastDone;
-    final nextUp = _nextUp(
+    if (completedSets.isNotEmpty && !isEnded) {
+      snapshot.lastSetEndedAt = completedSets
+          .map((c) => c.endedAt)
+          .reduce((a, b) => a > b ? a : b);
+    }
+    final upNext = _upNextIsMe(
       status: multiplayerProvider.sessionStatus,
       myUserId: myUserId,
-      myProfileEmoji: myProfileEmoji,
       nowUnix: nowUnix,
       stateValue: stateValue,
       restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
@@ -220,8 +212,7 @@ class WearableSnapshotBuilder {
       minOver: copy.workout.watchMinOver,
       restUntil: copy.workout.watchRestUntil,
     );
-    snapshot.nextUpEmoji = nextUp.emoji;
-    if (nextUp.me) snapshot.upNextText = copy.workout.upNext;
+    if (upNext) snapshot.upNextText = copy.workout.upNext;
 
     return snapshot;
   }
@@ -283,44 +274,22 @@ class WearableSnapshotBuilder {
     );
   }
 
-  /// The set done last, for the watch's fix window.
-  static WearDoneSet? _lastDone(
-    List<CompletedSet> completedSets,
-    List<ProposedSet> proposedSets,
-  ) {
-    if (completedSets.isEmpty) return null;
-    final last = completedSets.reduce((a, b) => b.endedAt > a.endedAt ? b : a);
-    final proposed = proposedSets
-        .where((p) => p.id == last.proposedSetId)
-        .firstOrNull;
-    return WearDoneSet(
-      completedSetId: last.id,
-      reps: last.actualReps,
-      targetReps: proposed?.targetReps ?? last.actualReps,
-      actualWeight: last.actualWeight,
-      endedAt: last.endedAt,
-      cue: copy.workout.watchCueFix,
-    );
-  }
-
-  /// Whose turn it is in a session, as an emoji for the status row, and
-  /// whether it is the wearer's. Empty when not in a session or nobody is up.
-  static ({String emoji, bool me}) _nextUp({
+  /// Whether the wearer lifts next in a session. False when solo or nobody
+  /// is up.
+  static bool _upNextIsMe({
     required SessionStatus? status,
     required String myUserId,
-    required String myProfileEmoji,
     required int nowUnix,
     required int stateValue,
     required int restUntil,
     required ProposedSet? nextSet,
   }) {
-    const nobody = (emoji: '', me: false);
-    if (status == null || status.participants.isEmpty) return nobody;
+    if (status == null || status.participants.isEmpty) return false;
 
     final others = status.participants
         .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
         .toList();
-    if (others.isEmpty) return nobody;
+    if (others.isEmpty) return false;
 
     // The same client-side logic as the bottom bar decides who's next.
     final nextToLiftUserId = computeNextToLiftUserId(
@@ -331,17 +300,7 @@ class WearableSnapshotBuilder {
       restUntil: restUntil,
       nextSet: nextSet,
     );
-    if (nextToLiftUserId == null) return nobody;
-    if (nextToLiftUserId == myUserId) {
-      return (emoji: normalizedProfileEmoji(myProfileEmoji), me: true);
-    }
-    final nextParticipant = others.cast<ParticipantStatus?>().firstWhere(
-      (p) => p!.user.id == nextToLiftUserId,
-      orElse: () => null,
-    );
-    return nextParticipant != null
-        ? (emoji: participantProfileEmoji(nextParticipant), me: false)
-        : nobody;
+    return nextToLiftUserId == myUserId;
   }
 
   static WearCompletionSummary _buildCompletionSummary({

@@ -124,7 +124,10 @@ impl Account {
                 // unchanged; a real change makes it the user's own. New
                 // templates are always the user's own.
                 let keeps = self.template(&template.id).filter(|t| {
-                    t.coupled && t.name == template.name && t.exercises == template.exercises
+                    !req.unlink
+                        && t.coupled
+                        && t.name == template.name
+                        && t.exercises == template.exercises
                 });
                 match keeps {
                     Some(existing) => {

@@ -68,7 +68,6 @@ extension PhoneConnector {
             completeSet.setID = action.setID
             completeSet.reps = action.reps
             completeSet.actualWeight = action.actualWeight
-            completeSet.effort = action.effort
             completeSet.completedAt = Int64(Date().timeIntervalSince1970)
             intent.intent = .completeSet(completeSet)
 

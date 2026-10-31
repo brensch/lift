@@ -239,13 +239,6 @@ workout:
   first_time_test: Dunno. Test me
   # In your status box while that first set waits for the answer.
   first_time_status: First time!
-  # The watch's big button says what a tap on it does now. Placeholders.
-  watch_cue_lift: Lift
-  watch_cue_done: Done
-  watch_cue_early: Go early
-  watch_cue_test: Test me
-  # During the few seconds after a set, each tap takes a rep off it.
-  watch_cue_fix: −1 rep
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
   # The dimmed (always-on) watch face counts rest in whole minutes, since it

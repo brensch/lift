@@ -1,138 +1,33 @@
 # Schlift
 
-A strength-training app. You log your lifts on a phone or a watch. You can
-share a live session with other lifters.
-
-| Part | Path | Stack |
-|---|---|---|
-| Core | `core/` | Rust — every rule, linked into the app and the backend |
-| Backend | `src/` | Rust, gRPC (tonic), one SQLite file |
-| App | `app/` | Flutter — phone, Wear OS, Apple Watch; the core via `app/native` |
-| Web | `web/` | React, Vite — landing page, privacy, account deletion |
-
-Bundle ID on all platforms: `com.brensch.schlift`.
-
-## How it works
-
-- **Local-first** — The account lives on the phone, in one SQLite file, and
-  the phone runs every rule itself: the Rust core (`core/`) is linked into
-  the app. Everything works offline except multiplayer. Each write is an
-  event; the account is the fold of its events, and a Sync stream keeps the
-  server's copy level. See
-  [`docs/architecture/local-first.md`](docs/architecture/local-first.md).
-- **Backend** — One Rust binary (`src/main.rs`). One SQLite file in WAL
-  mode: each account's event log, the workout tables projected from it,
-  auth and multiplayer sessions. RPC handlers are in `src/server/`.
-- **Training** — You compose workout templates (ordered exercise lists).
-  The app prescribes sets, reps, rest and weight per exercise
-  (`core/src/exercise_catalog.rs`), and one rule progresses every exercise:
-  double progression (`core/src/exercise_progress.rs`). Weekly volume per
-  muscle is tracked against a 10–20 band (`core/src/volume.rs`).
-- **Protobuf** — `proto/workout/v1/` is the only contract between the
-  backend and the clients. Generated code is committed.
-- **App** — `app/lib/` holds `screens/`, `widgets/`, `providers/` (state),
-  `services/` (transport) and `logic/` (pure functions).
-- **Watches** — The watches never call the backend. They exchange protobuf
-  messages with the phone. The phone holds the truth.
-- **Auth** — Passkeys only. There are no passwords.
-
-Full reference: [`docs/architecture/`](docs/architecture/).
-
-## Build and run
-
-```bash
-cargo build --release && ./target/release/schlift    # backend on :50051
-cd app && flutter pub get && flutter run             # app
-cd web && npm install && npm run dev                 # web
-```
-
-Regenerate the bindings after you edit a `.proto` file:
-
-```bash
-make proto-dart       # app/lib/gen/            — needs protoc-gen-dart
-make proto-android    # app/android/shared-proto/
-make proto-swift      # watchOS — needs protoc-gen-swift (macOS only)
-```
-
-Rust regenerates through `build.rs` on the next build.
-
-Install the tools one time:
-
-```bash
-curl -fsSL -o ~/.local/bin/buf \
-  https://github.com/bufbuild/buf/releases/latest/download/buf-Linux-x86_64
-chmod +x ~/.local/bin/buf
-dart pub global activate protoc_plugin        # gives protoc-gen-dart
-```
-
-> **Caution:** generated code is committed. If you edit a proto and do not
-> regenerate, the backend and the app disagree at run time, not at build
-> time.
-
-## Test
-
-```bash
-cargo test --workspace --all-targets           # core, backend, app/native
-make lint-check                                # every formatter and linter, as CI runs them
-make fuzz-api                                  # randomised API sequences
-make test-app                                  # app (builds the core for the host first)
-```
-
-`make fuzz-api` runs the core in-process. It drives random workout
-sequences — onboarding, template starts, mid-workout edits, double
-EndWorkout — checks the state invariants after every change, and checks
-that every user's event log replays to the same account.
-
-See [`docs/architecture/testing.md`](docs/architecture/testing.md) for what
-each layer catches.
-
-## Release
-
-Push to `main` to deploy the backend. Push a `v*` tag to build the signed
-Android, Wear OS and iOS apps onto the store testing tracks. Push a `prod-v*`
-tag to promote that version to production (no rebuild; needs
-`release-notes/<version>.md`).
-
-```bash
-git tag v0.9.6 origin/main && git push origin v0.9.6          # build + testing tracks
-git tag prod-v0.9.6 origin/main && git push origin prod-v0.9.6  # Play production + App Store review
-```
-
-The version comes from the tag. Do not edit `app/pubspec.yaml`; it stays at
-the `0.0.0+1` placeholder.
-
-In-app copy that has been moved to YAML lives in `app/copy.yaml`; `make copy`
-regenerates the Dart constants the app reads (CI checks they match).
-Store listing text lives in `store/listing.yaml`, screenshots in
-`store/screenshots/raw/` (`make store-capture`), pushed by the Store Assets
-workflow. schlift.com is built from the same file, so the site, Play and the
-App Store always say the same thing.
-
-[`docs/releasing.md`](docs/releasing.md) is the runbook for all of it:
-deploys, builds, promotion, store listing, signing and secrets.
-
-## Layout
+A strength-training app for phone and watch, with live group sessions.
 
 ```
-core/       Rust domain: the account, its events, every rule
-src/        Rust backend
-app/        Flutter app (phone, Wear OS, Apple Watch); app/native is the core's host
-web/        React site
-proto/      Protobuf contracts
-make/       Makefile target groups
-deploy/     systemd and Caddy configs
-docs/       Architecture reference and runbooks
+ Apple Watch / Wear OS ──protobuf──▶ Phone (Flutter) ──Sync stream──▶ Backend (Rust)
+   draws what the phone sends        Rust core linked in               event store + groups
 ```
 
-## Documents
+- **Core** (`core/`, Rust): every rule. An account is the fold of its events;
+  each write is one event. Runs on the phone (via `app/native`) and on the
+  server. Folds are deterministic: no clock, no randomness.
+- **App** (`app/`, Flutter): local-first. Works offline; syncs events to the
+  server. `screens/` `widgets/` `providers/` (state) `services/` (transport)
+  `logic/` (pure functions). Copy lives in `app/copy.yaml`.
+- **Watches** (`app/android/wear`, `app/ios/SchliftWatch`): never call the
+  backend. The phone sends a rendered snapshot; the watch sends taps back.
+- **Backend** (`src/`, Rust, gRPC, one SQLite file): stores each account's
+  events, serves the template library (`templates/library.yaml`), runs
+  multiplayer sessions. Every handler authenticates itself.
+- **Contract** (`proto/workout/v1/`): the only interface between all of the
+  above. Generated code is committed.
+- **Web** (`web/`, React): landing page, privacy, account deletion.
 
-| Document | Subject |
-|---|---|
-| [`docs/architecture/`](docs/architecture/) | How the system works, with diagrams |
-| [`docs/plans/composable-workouts.md`](docs/plans/composable-workouts.md) | The composable-workouts design: templates, trackers, double progression |
-| [`docs/makefile.md`](docs/makefile.md) | Every `make` target; how to get a build onto a phone |
-| [`docs/linting.md`](docs/linting.md) | Formatters and linters for every language, what CI enforces, pinned tool versions |
-| [`docs/android_dev.md`](docs/android_dev.md) | Emulator and device workflow |
-| [`docs/releasing.md`](docs/releasing.md) | Signing, secrets, store checklists |
-| [`docs/calorie_maths.md`](docs/calorie_maths.md) | How the calorie estimate works |
-| [`docs/design-history/`](docs/design-history/) | Replaced design plans, kept for context |
+Run: `make dev` (local backend + app with hot reload). Check: `make fmt`,
+`make lint-check`, `cargo test --workspace`, `make test-app`.
+Release: push to `main` deploys the backend; a `v*` tag builds to the store
+testing tracks; a `prod-v*` tag promotes to production.
+
+More: [`docs/architecture/`](docs/architecture/) (how it works),
+[`docs/makefile.md`](docs/makefile.md) (every target),
+[`docs/releasing.md`](docs/releasing.md) (shipping), [`CLAUDE.md`](CLAUDE.md)
+(rules that are easy to get wrong).

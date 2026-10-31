@@ -299,13 +299,6 @@ class MainActivity : ComponentActivity() {
             "android.permission.health.READ_HEART_RATE",
         ) == PackageManager.PERMISSION_GRANTED
 
-    private fun hasExerciseSessionHeartRatePermission(): Boolean =
-        if (Build.VERSION.SDK_INT >= 36) {
-            hasReadHeartRatePermission()
-        } else {
-            hasBodySensorsPermission()
-        }
-
     private fun requiredWorkoutPermissions(): List<String> = listOf(Manifest.permission.ACTIVITY_RECOGNITION)
 
     private fun hasWorkoutPermissions(): Boolean =
@@ -427,7 +420,6 @@ class MainActivity : ComponentActivity() {
                                 .setSetId(action.setId)
                                 .setReps(action.reps)
                                 .setActualWeight(action.actualWeight)
-                                .setEffort(action.effort)
                                 .setCompletedAt(System.currentTimeMillis() / 1000)
                                 .build(),
                         ).build()
@@ -681,7 +673,7 @@ private fun WorkoutScreens(
 
     // The rest drains the band from the end of the last set to restUntil,
     // animated rather than redrawn on the tick so it moves smoothly.
-    val restStartMs = if (data.hasLastDone()) data.lastDone.endedAt * 1000L else 0L
+    val restStartMs = data.lastSetEndedAt * 1000L
     val restUntilMs = data.restUntil.toLong() * 1000L
     val draining = resting && !yapping && restStartMs in 1 until restUntilMs
     val bandFill = remember(data.workoutId) { Animatable(1f) }
@@ -707,6 +699,10 @@ private fun WorkoutScreens(
     val inHand =
         data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_LIFTING }
             ?: data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_NEXT }
+    // Dimmed (always-on), the same face in grey on black. It is redrawn about
+    // once a minute, so rest is counted in minutes and nothing ticks seconds.
+    val dim = isAmbientMode
+    val rest = if (dim && resting) ambientRest(data) else null
     val face =
         WearFace(
             circles = data.circlesList,
@@ -714,16 +710,27 @@ private fun WorkoutScreens(
             label = if (yapping) card.yappingLabel.ifEmpty { card.stateLabel } else card.stateLabel,
             timer =
                 when {
+                    dim -> rest?.minutes ?: ""
                     card.firstTime -> ""
                     lifting -> deriveLiftingTimer(data)
                     resting -> restTimer.text
                     else -> ""
                 },
-            stageColor = stageColor,
+            stageColor = if (dim) WearPalette.Ambient else stageColor,
             // Resting drains to the stage colour washed toward the panel.
-            trackColor = if (draining) lerp(stageColor, WearPalette.Panel, 0.6f) else stageColor,
-            bandInk = if (lifting && !card.firstTime) WearPalette.Text else WearPalette.OnDark,
-            bandFill = if (draining) bandFill.value else 1f,
+            trackColor =
+                when {
+                    dim -> WearPalette.Ambient
+                    draining -> lerp(stageColor, WearPalette.Panel, 0.6f)
+                    else -> stageColor
+                },
+            bandInk =
+                when {
+                    dim -> WearPalette.AmbientText
+                    lifting && !card.firstTime -> WearPalette.Text
+                    else -> WearPalette.OnDark
+                },
+            bandFill = if (draining && !dim) bandFill.value else 1f,
             exercise = card.exerciseName,
             position = card.setLine,
             weight = card.weightText.ifEmpty { card.setText },
@@ -731,32 +738,26 @@ private fun WorkoutScreens(
             reps = card.repsText,
             repState = inHand?.state ?: Wearable.WearCircleState.WEAR_CIRCLE_STATE_PENDING,
             bpm = latestBpm,
-            elapsed = elapsedText,
+            // Dimmed, when rest ends in place of a ticking length.
+            elapsed = if (dim) rest?.until ?: "" else elapsedText,
             clock = java.text.SimpleDateFormat("H:mm", java.util.Locale.getDefault()).format(java.util.Date(nowTick * 1000L)),
             hasPlates = card.platesText.isNotEmpty(),
         )
 
     PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
-    when {
-        isAmbientMode -> {
-            AmbientScreen(face = face, rest = if (resting) ambientRest(data) else null)
-        }
-
-        else -> {
-            FaceScreen(
-                face = face,
-                enabled = !isActionPending,
-                onTapSet = tapSet,
-                onRep = {
-                    when {
-                        inHand != null -> tapSet(inHand.setId)
-                        else -> primary?.let(fire)
-                    }
-                },
-                onWeight = { showPlates = true },
-            )
-        }
-    }
+    FaceScreen(
+        face = face,
+        colors = if (dim) DimColors else LitColors,
+        enabled = !dim && !isActionPending,
+        onTapSet = tapSet,
+        onRep = {
+            when {
+                inHand != null -> tapSet(inHand.setId)
+                else -> primary?.let(fire)
+            }
+        },
+        onWeight = { showPlates = true },
+    )
 }
 
 /** Keys that would press a focused clickable. */

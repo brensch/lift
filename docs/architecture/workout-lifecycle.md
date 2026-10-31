@@ -88,8 +88,7 @@ when the last set was done — and that set's prescribed rest:
 | **Yapping** | That rest has run out; the next set isn't started | counts up from `rest_until` (pink) |
 | **All done** | Nothing left to do | none |
 
-The reducer's `workout_state_snapshot` derives this (its `effort_prompt` is
-retired and always empty). A snapshot is one instant, so when the rest it shows runs
+The reducer's `workout_state_snapshot` derives this. A snapshot is one instant, so when the rest it shows runs
 out `WorkoutProvider` asks the core again (`_reloadWhenRestEnds`), and
 resting turns into yapping on the device clock. The
 snapshot keeps `rest_until` through yapping so the count-up survives a reload.

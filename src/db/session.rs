@@ -81,6 +81,17 @@ impl ServerDb {
         Ok(row)
     }
 
+    /// The user's session pointer, idle or not: what leaving has to clean up
+    /// (an idle member still has a roster row to stamp left).
+    pub async fn get_user_session_pointer(&self, user_id: &str) -> DbResult<Option<String>> {
+        let row: Option<String> =
+            sqlx::query_scalar("SELECT session_id FROM user_current_session WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.read_pool)
+                .await?;
+        Ok(row)
+    }
+
     pub async fn clear_user_current_session(&self, user_id: &str) -> DbResult<()> {
         sqlx::query("DELETE FROM user_current_session WHERE user_id = ?")
             .bind(user_id)
@@ -140,6 +151,19 @@ impl ServerDb {
         Ok(out)
     }
 
+    /// When the member left the session; 0 while they're in it.
+    #[cfg(test)]
+    pub async fn session_member_left_at(&self, session_id: &str, user_id: &str) -> DbResult<i64> {
+        let left: i64 = sqlx::query_scalar(
+            "SELECT left_at FROM session_members WHERE session_id = ? AND user_id = ?",
+        )
+        .bind(session_id)
+        .bind(user_id)
+        .fetch_one(&self.read_pool)
+        .await?;
+        Ok(left)
+    }
+
     /// Push a member's last activity [seconds] into the past: idle tests.
     #[cfg(test)]
     pub async fn age_session_participant(&self, user_id: &str, seconds: i64) -> DbResult<()> {
@@ -195,7 +219,7 @@ impl ServerDb {
         let now = now_unix();
         sqlx::query(
             "UPDATE session_members SET left_at = ?, last_seen_at = ?
-             WHERE session_id = ? AND user_id = ?",
+             WHERE session_id = ? AND user_id = ? AND left_at = 0",
         )
         .bind(now)
         .bind(now)

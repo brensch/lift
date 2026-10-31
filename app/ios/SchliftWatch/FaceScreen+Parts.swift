@@ -8,6 +8,36 @@ struct WatchStage {
     let timer: String
 }
 
+/// The face's colours: the app's, or dimmed for always-on, where the same face is
+/// drawn as grey lines and text on black with nothing filled.
+struct FaceColors {
+    let ground: Color
+    let panel: Color
+    let hairline: Color
+    let rule: Color
+    let text: Color
+    let muted: Color
+    let dim: Bool
+
+    static let lit = FaceColors(
+        ground: WatchPalette.ground, panel: WatchPalette.panel, hairline: WatchPalette.hairline,
+        rule: WatchPalette.rule, text: WatchPalette.text, muted: WatchPalette.muted, dim: false
+    )
+    static let dimmed = FaceColors(
+        ground: .black, panel: .black, hairline: WatchPalette.ambientLine,
+        rule: WatchPalette.ambientLine, text: WatchPalette.ambientText, muted: WatchPalette.ambientText,
+        dim: true
+    )
+}
+
+/// The weight's press lights its whole panel orange, edge to edge.
+struct PanelPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? WatchPalette.lifting : Color.clear)
+    }
+}
+
 /// How a set circle is drawn: the phone's SetCircle colours.
 struct CircleLook {
     let fill: Color
@@ -15,7 +45,11 @@ struct CircleLook {
     let ink: Color
 }
 
-func circleLook(_ state: Workout_V1_WearCircleState, stage: Color) -> CircleLook {
+func circleLook(_ state: Workout_V1_WearCircleState, stage: Color, colors: FaceColors) -> CircleLook {
+    if colors.dim {
+        // Dimmed, every circle is an outline: no lit discs.
+        return CircleLook(fill: .clear, ring: colors.rule, ink: colors.text)
+    }
     switch state {
     case .next:
         return CircleLook(fill: .clear, ring: stage, ink: stage)
@@ -24,9 +58,9 @@ func circleLook(_ state: Workout_V1_WearCircleState, stage: Color) -> CircleLook
     case .full:
         return CircleLook(fill: WatchPalette.text, ring: WatchPalette.text, ink: WatchPalette.ground)
     case .short:
-        return CircleLook(fill: WatchPalette.fix, ring: WatchPalette.fix, ink: WatchPalette.text)
+        return CircleLook(fill: WatchPalette.effort, ring: WatchPalette.effort, ink: WatchPalette.text)
     case .zero:
-        return CircleLook(fill: .clear, ring: WatchPalette.fix, ink: WatchPalette.fix)
+        return CircleLook(fill: .clear, ring: WatchPalette.effort, ink: WatchPalette.effort)
     case .skipped:
         return CircleLook(fill: .clear, ring: WatchPalette.hairline, ink: WatchPalette.muted)
     default:
@@ -63,32 +97,48 @@ func watchStage(_ snapshot: Workout_V1_WearWorkoutSnapshot, nowMs: Int64) -> Wat
 struct UpNextChip: View {
     let text: String
     let size: CGFloat
+    let colors: FaceColors
 
-    private static let colors = [
+    private static let series = [
         Color(rgb: 0x1F4FD1), Color(rgb: 0xD03A00), Color(rgb: 0x1E7A3C), Color(rgb: 0xC2185B),
         Color(rgb: 0x5B2DB8), Color(rgb: 0x00796B), Color(rgb: 0x8D5A00),
     ]
 
     var body: some View {
-        TimelineView(.animation) { context in
-            // Each colour for 0.7 s; the ink fades from one to the next.
-            let step = context.date.timeIntervalSinceReferenceDate / 0.7
-            let index = Int(step) % Self.colors.count
-            let blend = step - step.rounded(.down)
+        if colors.dim {
+            // Dimmed, nothing moves: the chip keeps the face's grey.
+            chip(Text(text).foregroundColor(colors.text))
+        } else {
+            TimelineView(.animation) { context in
+                cycling(at: context.date)
+            }
+        }
+    }
+
+    private func cycling(at date: Date) -> some View {
+        // Each colour for 0.7 s; the ink fades from one to the next.
+        let step = date.timeIntervalSinceReferenceDate / 0.7
+        let index = Int(step) % Self.series.count
+        let blend = step - step.rounded(.down)
+        return chip(
             ZStack {
-                Text(text).foregroundColor(Self.colors[index])
+                Text(text).foregroundColor(Self.series[index])
                 Text(text)
-                    .foregroundColor(Self.colors[(index + 1) % Self.colors.count])
+                    .foregroundColor(Self.series[(index + 1) % Self.series.count])
                     .opacity(blend)
             }
+        )
+    }
+
+    private func chip(_ content: some View) -> some View {
+        content
             .font(monoFontName(size: size))
             .multilineTextAlignment(.center)
             .lineLimit(2)
             .fixedSize()
             .padding(.horizontal, 3)
             .padding(.vertical, 2)
-            .background(WatchPalette.panel)
-        }
+            .background(colors.panel)
     }
 }
 
