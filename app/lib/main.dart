@@ -197,7 +197,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       multiplayerProvider: _multiplayerProvider,
       bridgeService: _wearableBridgeService,
       myUserId: () => _authProvider.userId ?? '',
-      myProfileEmoji: () => _authProvider.profileEmoji,
     );
     unawaited(_wearableSyncCoordinator.init());
     _workoutProvider.onWorkoutEnded = (workoutId) {

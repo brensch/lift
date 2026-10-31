@@ -391,22 +391,11 @@ message WorkoutStateSnapshot {
   // When the last done set's rest ends: RESTING counts down to it, YAPPING
   // counts up from it. 0 when READY or ALL_DONE.
   int64 rest_until = 4;
-  // Set while the app is waiting on "how was that" for a done set.
-  EffortPrompt effort_prompt = 6;
   // When LIFTING: when the set was started; the lifting timer counts up
   // from it. 0 otherwise.
   int64 lifting_started_at = 7;
-  reserved 3, 5;
-  reserved "active_started_at", "last_rest_end";
-}
-
-// The latest done set while it can still be rated (a working set or a
-// calibration rung), whatever the rest state. Cleared by the next Done.
-message EffortPrompt {
-  Exercise exercise = 1;
-  string completed_set_id = 2;
-  bool calibration = 3; // the answer decides the next rung, not progression
-  Effort effort = 4; // the current answer, UNSPECIFIED until one is given
+  reserved 3, 5, 6;
+  reserved "active_started_at", "last_rest_end", "effort_prompt";
 }
 
 message ListWorkoutsRequest {}
@@ -598,9 +587,13 @@ message WorkoutTemplate {
   repeated Exercise exercises = 4;
   int64 created_at = 5;
   int64 updated_at = 6;
-  // The library entry this was copied from (templates/library.yaml id),
-  // empty for one the user made. Only used to show what is already added.
+  // The library entry this follows (templates/library.yaml id); empty for
+  // one the user made or cloned.
   string library_id = 7;
+  // Follows its library entry: the name and exercises shown and started are
+  // the library's current ones (the stored ones are kept for when the entry
+  // is gone). False for the user's own templates.
+  bool coupled = 8;
 }
 
 // One entry of the template library (templates/library.yaml): a workout
@@ -621,10 +614,25 @@ message ListTemplateLibraryResponse {
   repeated LibraryTemplate templates = 1;
 }
 
-// Copies library entries into the caller's templates, skipping any whose
-// library_id is already present. Returns the refreshed home.
+// Adds library entries to the caller's templates, coupled, skipping any
+// whose library_id is already present. Returns the refreshed home.
 message AddLibraryTemplatesRequest {
   repeated string library_ids = 1;
+  // The entries as the library had them, filled in by the core when the
+  // event is recorded, so a replay never reads the library.
+  repeated LibraryTemplate entries = 2;
+}
+
+// Make a library template the user's own: it stops following the library
+// and keeps its id (and so its history). name and exercises are filled in
+// by the core from the library when the event is recorded.
+message CloneTemplateRequest {
+  string template_id = 1;
+  string name = 2;
+  repeated Exercise exercises = 3;
+}
+message CloneTemplateResponse {
+  WorkoutTemplate template = 1;
 }
 message AddLibraryTemplatesResponse {
   GetHomeResponse home = 1;
@@ -696,6 +704,10 @@ message GetHomeResponse {
 // Create when id is empty; update when it exists.
 message SaveTemplateRequest {
   WorkoutTemplate template = 1;
+  // Set by the core when the save differs from the library's version of now:
+  // the template becomes the user's own, whatever copy it stored. Without it
+  // (older events) a save unlinks only when it differs from the stored copy.
+  bool unlink = 2;
 }
 message SaveTemplateResponse {
   WorkoutTemplate template = 1;
@@ -742,6 +754,9 @@ message CompleteOnboardingRequest {
   // seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
   // 1); experience, gender and bodyweight are then ignored for seeding.
   optional float strength = 6;
+  // The entries as the library had them, filled in by the core when the
+  // event is recorded (see AddLibraryTemplatesRequest.entries).
+  repeated LibraryTemplate library_entries = 7;
 }
 
 // The first working weights the setup slider shows: one step per 1% of the

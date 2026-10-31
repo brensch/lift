@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// ALL_DONE with a completion summary: "Done" in green, the summary on one line, and
-/// End workout while the phone still offers it. Once it fires,
+/// ALL_DONE with a completion summary, in the split: the summary on the left, End
+/// workout as the big half while the phone still offers it. Once it fires,
 /// `endLocalSession` records the workout as ended and `ContentView` returns to idle.
 struct WorkoutDoneScreen: View {
     @EnvironmentObject private var connector: PhoneConnector
@@ -15,35 +15,52 @@ struct WorkoutDoneScreen: View {
 
     var body: some View {
         let summary = snapshot.completionSummary
-
-        WatchScreen(snapshot: snapshot, now: now) {
-            VStack(spacing: 2) {
-                Spacer(minLength: 0)
-
-                Text("Done")
-                    .font(displayFontName(size: 26))
-                    .foregroundColor(WatchPalette.doneGreen)
-                    .watchAutoShrink()
-
-                Text("\(summary.durationText) · \(summary.completedWorkingSets) sets · \(volumeText(summary))")
-                    .font(textFontName(size: 14))
-                    .foregroundColor(WatchPalette.grey)
-                    .watchAutoShrink(minScale: 0.6)
-
-                Spacer(minLength: 4)
-
-                if let end = endAction {
-                    WatchPrimaryButton(label: end.label, height: 48, enabled: !connector.isActionPending) {
+        GeometryReader { geo in
+            let faceWidth = geo.size.width
+            let faceHeight = geo.size.height
+            HStack(spacing: 0) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("ALL DONE")
+                        .font(monoFontName(size: faceHeight * 0.06))
+                        .foregroundColor(WatchPalette.readyInk)
+                    Text(summary.durationText)
+                        .font(monoFontName(size: faceHeight * 0.13))
+                        .foregroundColor(WatchPalette.text)
+                    Text("\(summary.completedWorkingSets) sets")
+                        .font(monoFontName(size: faceHeight * 0.068))
+                        .foregroundColor(WatchPalette.muted)
+                    Text(volumeText(summary))
+                        .font(monoFontName(size: faceHeight * 0.068))
+                        .foregroundColor(WatchPalette.muted)
+                }
+                .watchAutoShrink(minScale: 0.5)
+                .padding(.trailing, 6)
+                .frame(width: faceWidth * 0.57, alignment: .trailing)
+                Rectangle().fill(WatchPalette.rule).frame(width: 1)
+                Button {
+                    if let end = endAction {
                         connector.sendIntent(action: end)
                     }
+                } label: {
+                    Text((endAction?.label ?? "").uppercased())
+                        .font(monoFontName(size: faceHeight * 0.06))
+                        .foregroundColor(WatchPalette.onDark)
+                        .watchAutoShrink(lines: 2, minScale: 0.5)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(endAction == nil ? WatchPalette.panel : WatchPalette.ready)
                 }
+                .buttonStyle(.plain)
+                .disabled(endAction == nil || connector.isActionPending)
             }
         }
+        .background(WatchPalette.ground.ignoresSafeArea())
     }
 
     /// The phone renders the volume in the user's unit; the lb figure is the fallback
     /// for a phone that has not sent `volumeText` yet.
     private func volumeText(_ summary: Workout_V1_WearCompletionSummary) -> String {
-        summary.volumeText.isEmpty ? "\(summary.totalVolumeLb)lb" : summary.volumeText
+        summary.volumeText.isEmpty ? "\(summary.totalVolumeLb) lb" : summary.volumeText
     }
 }

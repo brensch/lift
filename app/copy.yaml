@@ -40,13 +40,23 @@ tutorial:
       body: Pressing Start is how you Start. Let's get schlifting!
 
 # The template library: templates/library.yaml, offered during setup and
-# from the Add chip on the home screen.
+# from the Edit chip on the home screen.
 library:
-  sheet_title: Add a workout
-  make_your_own: Make your own
-  make_your_own_hint: Pick the exercises, name it whatever.
-  add: ADD
-  added: ADDED
+  # The home chip that opens a blank workout of your own. Placeholder.
+  new_button: New
+  # The home chip that opens the sheet. Placeholder.
+  edit_button: Edit
+  sheet_title: Your workouts
+  # Your own workouts (cloned or made from scratch), above the library.
+  # Placeholders.
+  yours_heading: Yours
+  # Marks a workout as the user's own, on home and in the sheet.
+  personal: Personalised
+  # Makes a library workout the user's own to edit; it stops following
+  # the library.
+  clone: Clone
+  remove: Remove
+  delete: Delete
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
@@ -211,19 +221,32 @@ workout:
   yapping: Yapping
   resting: Resting
   all_done: All done
+  # A partner who is in your group but hasn't started a workout yet.
+  choosing: Choosing workout
   end_workout: End workout
   set_line: Set {n} of {m}
   warmup_line: Warmup {n} of {m}
   warmup_label: WARMUP
   working_label: WORKING
-  # Down the plates of whoever is up next on the rack.
-  next_label: NEXT
+  # In the band of whoever's turn on the rack it is, on two lines.
+  up_next: "UP\nNEXT!"
   skip_warmups: Skip
-  calibration_line: Finding weight
-  # Under FINDING WEIGHT on the exercise you're on. Each finding-weight set
-  # is 5 reps: all 5 and the next one is heavier; a missed rep sets the
-  # working weight. Placeholder — rewrite.
-  calibration_hint: Do 5. Get them all and I'll go heavier.
+  # Asked when someone starts the first set of an exercise they have never
+  # done: give their weight, or find it with 5-rep sets. {exercise} is its
+  # name.
+  first_time_title: First time doing {exercise}.
+  first_time_lift: I know I do
+  first_time_test: Dunno. Test me
+  # In your status box while that first set waits for the answer.
+  first_time_status: First time!
+  # Under the plates on the watch's plate screen: "45 · 25 each side".
+  watch_each_side: each side
+  # The dimmed (always-on) watch face counts rest in whole minutes, since it
+  # only redraws about once a minute. Placeholders.
+  watch_min_left: "{n} min"
+  watch_under_a_min: "<1 min"
+  watch_min_over: "+{n} min"
+  watch_rest_until: "till {time}"
   empty_bar: Bar
   # Shown at the top of the bottom banner during someone's first workout
   # only, for whatever they are doing at that moment.

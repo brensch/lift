@@ -30,7 +30,6 @@ import 'package:schlift/services/grpc_client.dart';
 import 'package:schlift/services/local_core.dart';
 import 'package:schlift/services/workout_service.dart';
 import 'package:schlift/theme/app_theme.dart';
-import 'package:schlift/theme/app_icons.dart';
 import 'package:schlift/widgets/dialogs/weight_adjust_sheet.dart';
 
 import '../support/provider_harness.dart';
@@ -361,8 +360,8 @@ void main() {
 
     // Weight + twice (185 → 195), then SAVE applies it to the pending
     // sets (and the account's tracker). A 5×5 keeps its 5.
-    await tester.tap(find.byIcon(AppIcons.add).first);
-    await tester.tap(find.byIcon(AppIcons.add).first);
+    await tester.tap(find.text('+5'));
+    await tester.tap(find.text('+5'));
     await tester.pump();
     expect(find.text('SAVE'), findsOneWidget);
     await tester.tap(find.text('SAVE'));

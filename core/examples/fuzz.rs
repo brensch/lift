@@ -141,6 +141,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             gender: rng.gen_range(0..3),
             library_ids: vec![],
             strength: None,
+            library_entries: vec![],
         }) {
         Ok(r) => r.home.map(|h| h.templates).unwrap_or_default(),
         Err(e) => {
@@ -756,18 +757,6 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
                 ),
             );
         }
-    }
-
-    // Nothing asks a question any more.
-    if let Some(prompt) = state
-        .state_snapshot
-        .as_ref()
-        .and_then(|snap| snap.effort_prompt.as_ref())
-    {
-        push(
-            "an effort prompt was shown",
-            format!("set {}", prompt.completed_set_id),
-        );
     }
 
     // The calibration ramp is capped at six rungs per exercise.

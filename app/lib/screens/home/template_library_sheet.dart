@@ -1,7 +1,8 @@
-/// The Add sheet: make a template from scratch, or copy one from the
-/// library (templates/library.yaml on the backend). Copies land in the
-/// user's list tagged with their library id, so the sheet can show what is
-/// already there.
+/// The Edit sheet: the user's workouts, in the same compact rows as
+/// onboarding's pick. Their own (cloned or made with New on home) come
+/// first, to edit or delete; then the library (templates/library.yaml on
+/// the server), ticked in and out — ticked ones follow the library, and
+/// Clone makes one their own to edit.
 library;
 
 import 'package:flutter/material.dart';
@@ -9,11 +10,11 @@ import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/exercises.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_spec.dart';
 import 'template_editor.dart';
+import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
 
 Future<void> showTemplateLibrary(
@@ -42,7 +43,7 @@ class _LibrarySheet extends StatefulWidget {
 
 class _LibrarySheetState extends State<_LibrarySheet> {
   late Future<List<LibraryTemplate>> _library;
-  final Set<String> _adding = {};
+  final Set<String> _busy = {};
 
   @override
   void initState() {
@@ -50,29 +51,87 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     _library = context.read<WorkoutProvider>().service.listTemplateLibrary();
   }
 
-  Future<void> _add(LibraryTemplate entry) async {
-    if (_adding.contains(entry.id)) return;
-    setState(() => _adding.add(entry.id));
+  /// Run [action] for [id], one at a time, saying so if it fails.
+  Future<void> _run(String id, Future<void> Function() action) async {
+    if (_busy.contains(id)) return;
+    setState(() => _busy.add(id));
     try {
-      await context.read<WorkoutProvider>().addLibraryTemplates([entry.id]);
+      await action();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Could not add: $e')));
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
-      if (mounted) setState(() => _adding.remove(entry.id));
+      if (mounted) setState(() => _busy.remove(id));
+    }
+  }
+
+  /// Tick a library workout in (it follows the library) or out.
+  Future<void> _toggle(LibraryTemplate entry, WorkoutTemplate? have) {
+    final wp = context.read<WorkoutProvider>();
+    return _run(
+      entry.id,
+      () => have == null
+          ? wp.addLibraryTemplates([entry.id])
+          : wp.deleteTemplate(have.id),
+    );
+  }
+
+  /// Make a library workout the user's own and open it to edit.
+  Future<void> _clone(WorkoutTemplate have) async {
+    final wp = context.read<WorkoutProvider>();
+    final navigator = Navigator.of(context);
+    final parent = navigator.context;
+    WorkoutTemplate? cloned;
+    await _run(have.id, () async => cloned = await wp.cloneTemplate(have.id));
+    final done = cloned;
+    if (done == null) return;
+    navigator.pop();
+    if (parent.mounted) {
+      await showTemplateEditor(parent, template: done, provider: wp);
+    }
+  }
+
+  void _edit(WorkoutTemplate? template) {
+    final wp = context.read<WorkoutProvider>();
+    Navigator.pop(context);
+    showTemplateEditor(context, template: template, provider: wp);
+  }
+
+  Future<void> _delete(WorkoutTemplate template) async {
+    final wp = context.read<WorkoutProvider>();
+    final t = copy.library;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${t.delete} ${template.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t.delete),
+          ),
+        ],
+      ),
+    );
+    if (sure == true) {
+      await _run(template.id, () => wp.deleteTemplate(template.id));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
-    final have = {
+    final coupled = {
       for (final t in wp.templates)
-        if (t.libraryId.isNotEmpty) t.libraryId,
+        if (t.coupled) t.libraryId: t,
     };
+    final own = wp.templates.where((t) => !t.coupled).toList();
     final t = copy.library;
 
     return DraggableScrollableSheet(
@@ -117,17 +176,32 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                       bottom: MediaQuery.paddingOf(context).bottom + 24,
                     ),
                     children: [
-                      _MakeYourOwnTile(
-                        onTap: () {
-                          final wp = context.read<WorkoutProvider>();
-                          Navigator.pop(context);
-                          showTemplateEditor(
-                            context,
-                            template: null,
-                            provider: wp,
-                          );
-                        },
-                      ),
+                      if (own.isNotEmpty) ...[
+                        _GroupHeading(t.yoursHeading),
+                        for (final template in own)
+                          TemplateRow(
+                            name: template.name,
+                            exercises: template.exercises,
+                            personal: true,
+                            onTap: _busy.contains(template.id)
+                                ? null
+                                : () => _edit(template),
+                            actions: [
+                              IconButton(
+                                tooltip: t.delete,
+                                visualDensity: VisualDensity.compact,
+                                onPressed: _busy.contains(template.id)
+                                    ? null
+                                    : () => _delete(template),
+                                icon: Icon(
+                                  AppIcons.delete,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
                       if (snap.hasError)
                         _Note(t.loadingFailed)
                       else if (entries == null)
@@ -142,11 +216,21 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                           (group) => [
                             _GroupHeading(group.key),
                             for (final entry in group.value)
-                              LibraryEntryTile(
-                                entry: entry,
-                                added: have.contains(entry.id),
-                                busy: _adding.contains(entry.id),
-                                onAdd: () => _add(entry),
+                              TemplateRow(
+                                name: entry.name,
+                                blurb: entry.blurb,
+                                exercises: entry.exercises,
+                                selected: coupled.containsKey(entry.id),
+                                onTap: _busy.contains(entry.id)
+                                    ? null
+                                    : () => _toggle(entry, coupled[entry.id]),
+                                actions: [
+                                  if (coupled[entry.id] != null)
+                                    _TextAction(
+                                      label: t.clone,
+                                      onTap: () => _clone(coupled[entry.id]!),
+                                    ),
+                                ],
                               ),
                           ],
                         ),
@@ -214,211 +298,32 @@ class _Note extends StatelessWidget {
   }
 }
 
-class _MakeYourOwnTile extends StatelessWidget {
+class _TextAction extends StatelessWidget {
+  final String label;
   final VoidCallback onTap;
-  const _MakeYourOwnTile({required this.onTap});
+
+  const _TextAction({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final t = copy.library;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: context.tokens.brMd,
-      child: Container(
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        decoration: BoxDecoration(
-          borderRadius: context.tokens.brMd,
-          border: Border.all(color: cs.primary, width: 2),
+    return SizedBox(
+      height: 34,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          side: BorderSide(color: cs.outline),
         ),
-        child: Row(
-          children: [
-            Icon(AppIcons.edit, size: 20, color: cs.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.makeYourOwn,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.bodyLg,
-                      fontWeight: context.tokens.weight.heavy,
-                    ),
-                  ),
-                  Text(
-                    t.makeYourOwnHint,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.small,
-                      color: cs.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(AppIcons.forward, color: cs.onSurface.withValues(alpha: 0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// One library entry: name, blurb, its exercises, and ADD / ADDED. Also
-/// used by onboarding in tick mode (`selected` given instead of `added`).
-class LibraryEntryTile extends StatelessWidget {
-  final LibraryTemplate entry;
-  final bool added;
-  final bool busy;
-  final VoidCallback onAdd;
-  final bool? selected;
-
-  const LibraryEntryTile({
-    super.key,
-    required this.entry,
-    required this.onAdd,
-    this.added = false,
-    this.busy = false,
-    this.selected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final t = copy.library;
-    final tick = selected;
-    final outlined = tick ?? false;
-    final names = entry.exercises
-        .map((e) => exerciseNames[e] ?? e.name)
-        .join(' · ');
-    return InkWell(
-      onTap: tick != null ? onAdd : null,
-      borderRadius: context.tokens.brMd,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        decoration: BoxDecoration(
-          color: outlined ? cs.primary.withValues(alpha: 0.08) : null,
-          borderRadius: context.tokens.brMd,
-          border: Border.all(
-            color: outlined ? cs.primary : cs.outline.withValues(alpha: 0.5),
-            width: outlined ? 2 : 1,
+        child: Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: context.tokens.size.small,
+            fontWeight: context.tokens.weight.heavy,
+            color: cs.onSurface,
           ),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.name,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.bodyLg,
-                      fontWeight: context.tokens.weight.heavy,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  if (entry.blurb.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        entry.blurb,
-                        style: TextStyle(
-                          fontSize: context.tokens.size.small,
-                          color: cs.onSurface.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      names,
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        height: 1.35,
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            if (tick != null)
-              SelectBox(selected: tick, colorScheme: cs)
-            else if (added)
-              Text(
-                t.added,
-                style: TextStyle(
-                  fontSize: context.tokens.size.small,
-                  fontWeight: context.tokens.weight.heavy,
-                  letterSpacing: 0.8,
-                  color: context.tokens.successFg,
-                ),
-              )
-            else
-              SizedBox(
-                height: 34,
-                child: FilledButton(
-                  onPressed: busy ? null : onAdd,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                  ),
-                  child: busy
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          t.add,
-                          style: TextStyle(
-                            fontSize: context.tokens.size.small,
-                            fontWeight: context.tokens.weight.heavy,
-                          ),
-                        ),
-                ),
-              ),
-          ],
-        ),
       ),
-    );
-  }
-}
-
-/// A square tick box for multi-select lists. Deliberately not a circle, which
-/// reads as a radio button (pick one) when the user can pick many.
-class SelectBox extends StatelessWidget {
-  final bool selected;
-  final ColorScheme colorScheme;
-
-  const SelectBox({
-    super.key,
-    required this.selected,
-    required this.colorScheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = colorScheme;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 120),
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        color: selected ? cs.primary : Colors.transparent,
-        borderRadius: context.tokens.br(5),
-        border: Border.all(
-          color: selected ? cs.primary : cs.outline,
-          width: 1.5,
-        ),
-      ),
-      child: selected
-          ? Icon(AppIcons.check, size: 16, color: cs.onPrimary)
-          : null,
     );
   }
 }

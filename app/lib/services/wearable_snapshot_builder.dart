@@ -1,9 +1,9 @@
 /// The watch's whole world, built from the phone's state. Both watch apps
 /// render this snapshot and nothing else, so what goes in here is the
 /// contract: READY / LIFTING / RESTING / YAPPING / ALL_DONE, one status
-/// card, and the actions each state offers: Start, then the finish (Done,
-/// or for a finding-weight rung how many reps were left, which answers for
-/// it in the same tap).
+/// card (the set's weight, reps and plates, and what a tap does), the
+/// actions each state offers (Start, then Done), and the set just done for
+/// the watch's few seconds of taking reps off it.
 library;
 
 import 'dart:math';
@@ -16,20 +16,21 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
+import '../logic/plate_calculator.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
-import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
-import '../widgets/participant_ticker.dart';
+import '../screens/workout/live_set_circle.dart';
+import '../screens/workout/section_workout.dart';
+import '../screens/workout/set_circle.dart';
 
 class WearableSnapshotBuilder {
   static WearWorkoutSnapshot? build({
     required WorkoutProvider workoutProvider,
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
-    required String myProfileEmoji,
   }) {
     final workout = workoutProvider.activeWorkout;
     if (workout == null) return null;
@@ -72,15 +73,50 @@ class WearableSnapshotBuilder {
       ProposedSet set, {
       String stateLabel = '',
       String timerText = '',
-    }) => WearStatusCard(
-      stateLabel: stateLabel,
-      timerText: timerText,
-      displaySet: set,
-      exerciseName: exerciseNames[set.exercise] ?? '?',
-      setLine: setLineFor(set, proposedSets),
-      setText: setTextFor(set, unit),
-      yappingLabel: copy.workout.yapping,
-    );
+    }) {
+      final firstTime = _isFirstEver(set, proposedSets, completedSets);
+      final barbell =
+          workoutProvider.trackerFor(set.exercise)?.equipment ==
+          EquipmentKind.EQUIPMENT_KIND_BARBELL;
+      final weight = set.targetWeight.toDouble();
+      final plates = barbell && !firstTime
+          ? calcPlatesPerSide(
+              displayWeightFromPounds(weight, unit),
+              unit,
+            ).plates
+          : const <double>[];
+      String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
+      final heaviest = standardPlates(unit).first;
+      return WearStatusCard(
+        stateLabel: firstTime ? copy.workout.firstTimeStatus : stateLabel,
+        timerText: timerText,
+        displaySet: set,
+        exerciseName: exerciseNames[set.exercise] ?? '?',
+        setLine: setLineFor(set, proposedSets),
+        setText: setTextFor(set, unit),
+        yappingLabel: copy.workout.yapping,
+        weightText: firstTime ? '?' : formatWeight(weight, unit),
+        unitText: weightUnitSuffix(unit),
+        repsText: firstTime ? '?' : '${set.targetReps}',
+        firstTime: firstTime,
+        plates: [
+          for (final p in plates)
+            WearPlate(
+              label: num(p),
+              colorHex: _hex(workoutProvider.plateColor(p).toARGB32()),
+              size: (p / heaviest).clamp(0.0, 1.0),
+            ),
+        ],
+        platesText: !barbell || firstTime
+            ? ''
+            : plates.isEmpty
+            ? copy.workout.emptyBar
+            : '${plates.map(num).join(' · ')} ${copy.workout.watchEachSide}',
+        barText: !barbell || firstTime
+            ? ''
+            : '${num(standardBarWeight(unit))} ${weightUnitSuffix(unit)}',
+      );
+    }
 
     // The one button logs this set: the next pending one, or on an
     // unanswered rung the set "right" would append ("{done}:0").
@@ -106,7 +142,7 @@ class WearableSnapshotBuilder {
         stateLabel = copy.workout.yapping;
         timerText = formatRestClock(max(0, nowUnix - restEnd));
       } else {
-        stateLabel = '';
+        stateLabel = copy.workout.ready;
         timerText = '';
       }
       snapshot.youCard = card(
@@ -118,7 +154,6 @@ class WearableSnapshotBuilder {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_COMPLETE_SET,
-            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
             label: copy.workout.done,
             setId: target.id,
             reps: target.targetReps,
@@ -129,7 +164,6 @@ class WearableSnapshotBuilder {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_START_SET,
-            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
             label: copy.workout.start,
             setId: target.id,
           ),
@@ -147,7 +181,6 @@ class WearableSnapshotBuilder {
         actions.add(
           WearAction(
             type: WearActionType.WEAR_ACTION_TYPE_END_WORKOUT,
-            style: WearActionStyle.WEAR_ACTION_STYLE_PRIMARY,
             label: copy.workout.endWorkout,
           ),
         );
@@ -157,36 +190,106 @@ class WearableSnapshotBuilder {
     }
 
     snapshot.actions.addAll(actions);
-    snapshot.nextUpEmoji = _nextUpEmoji(
+    if (target != null) {
+      snapshot.circles.addAll(_circles(workoutProvider, target));
+    }
+    if (completedSets.isNotEmpty && !isEnded) {
+      snapshot.lastSetEndedAt = completedSets
+          .map((c) => c.endedAt)
+          .reduce((a, b) => a > b ? a : b);
+    }
+    final upNext = _upNextIsMe(
       status: multiplayerProvider.sessionStatus,
       myUserId: myUserId,
-      myProfileEmoji: myProfileEmoji,
       nowUnix: nowUnix,
       stateValue: stateValue,
       restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
       nextSet: nextSet,
     );
+    snapshot.ambientCopy = WearAmbientCopy(
+      minLeft: copy.workout.watchMinLeft,
+      underAMin: copy.workout.watchUnderAMin,
+      minOver: copy.workout.watchMinOver,
+      restUntil: copy.workout.watchRestUntil,
+    );
+    if (upNext) snapshot.upNextText = copy.workout.upNext;
 
     return snapshot;
   }
 
-  /// Whose turn it is in a session, as an emoji for the status row.
-  /// Empty when not in a session or nobody is up.
-  static String _nextUpEmoji({
+  /// The exercise in hand's sets as the phone's circles draw them, warmups
+  /// first; a tap on one is a TapSetIntent.
+  static List<WearSetCircle> _circles(
+    WorkoutProvider workoutProvider,
+    ProposedSet target,
+  ) {
+    final block = workoutProvider.exerciseBlocks
+        .where((b) => b.exercise == target.exercise)
+        .firstOrNull;
+    if (block == null) return const [];
+    final w = SectionWorkout.mine(workoutProvider);
+    return [
+      for (final set in block.sets)
+        if (!set.cancelled)
+          WearSetCircle(
+            setId: set.id,
+            text: _circleText(w, set),
+            state: _wearState(LiveSetCircle.setCircleState(w, set)),
+            warmup: set.warmup,
+          ),
+    ];
+  }
+
+  static String _circleText(SectionWorkout w, ProposedSet set) {
+    final done = w.doneFor(set.id);
+    if (done != null) return '${done.actualReps}';
+    if (LiveSetCircle.setCircleState(w, set) == SetCircleState.skipped) {
+      return '–';
+    }
+    if (LiveSetCircle.isFirstEver(w, set)) return '?';
+    return '${set.targetReps}';
+  }
+
+  static WearCircleState _wearState(SetCircleState state) => switch (state) {
+    SetCircleState.pending => WearCircleState.WEAR_CIRCLE_STATE_PENDING,
+    SetCircleState.next => WearCircleState.WEAR_CIRCLE_STATE_NEXT,
+    SetCircleState.lifting => WearCircleState.WEAR_CIRCLE_STATE_LIFTING,
+    SetCircleState.full => WearCircleState.WEAR_CIRCLE_STATE_FULL,
+    SetCircleState.short => WearCircleState.WEAR_CIRCLE_STATE_SHORT,
+    SetCircleState.zero => WearCircleState.WEAR_CIRCLE_STATE_ZERO,
+    SetCircleState.skipped => WearCircleState.WEAR_CIRCLE_STATE_SKIPPED,
+  };
+
+  /// The opening set of an exercise never done: a calibration set with
+  /// none of its exercise's calibration sets lifted yet.
+  static bool _isFirstEver(
+    ProposedSet set,
+    List<ProposedSet> proposedSets,
+    List<CompletedSet> completedSets,
+  ) {
+    if (!set.calibration) return false;
+    final done = {for (final c in completedSets) c.proposedSetId};
+    return !proposedSets.any(
+      (p) => p.exercise == set.exercise && p.calibration && done.contains(p.id),
+    );
+  }
+
+  /// Whether the wearer lifts next in a session. False when solo or nobody
+  /// is up.
+  static bool _upNextIsMe({
     required SessionStatus? status,
     required String myUserId,
-    required String myProfileEmoji,
     required int nowUnix,
     required int stateValue,
     required int restUntil,
     required ProposedSet? nextSet,
   }) {
-    if (status == null || status.participants.isEmpty) return '';
+    if (status == null || status.participants.isEmpty) return false;
 
     final others = status.participants
         .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
         .toList();
-    if (others.isEmpty) return '';
+    if (others.isEmpty) return false;
 
     // The same client-side logic as the bottom bar decides who's next.
     final nextToLiftUserId = computeNextToLiftUserId(
@@ -197,17 +300,7 @@ class WearableSnapshotBuilder {
       restUntil: restUntil,
       nextSet: nextSet,
     );
-    if (nextToLiftUserId == null) return '';
-    if (nextToLiftUserId == myUserId) {
-      return normalizedProfileEmoji(myProfileEmoji);
-    }
-    final nextParticipant = others.cast<ParticipantStatus?>().firstWhere(
-      (p) => p!.user.id == nextToLiftUserId,
-      orElse: () => null,
-    );
-    return nextParticipant != null
-        ? participantProfileEmoji(nextParticipant)
-        : '';
+    return nextToLiftUserId == myUserId;
   }
 
   static WearCompletionSummary _buildCompletionSummary({
@@ -238,6 +331,10 @@ class WearableSnapshotBuilder {
     );
   }
 }
+
+/// "#RRGGBB" for an ARGB colour.
+String _hex(int argb) =>
+    '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
 int _elapsedSeconds(Workout workout, int nowUnix) {
   final start = workout.startTime.toInt();

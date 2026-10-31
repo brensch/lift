@@ -68,6 +68,11 @@ Future<PlatformInt64> restore({
   required List<int> packed,
 }) => RustLib.instance.api.crateApiRestore(handle: handle, packed: packed);
 
+/// The template library the server sent (a packed
+/// ListTemplateLibraryResponse). Returns whether it changed.
+Future<bool> setLibrary({required int handle, required List<int> packed}) =>
+    RustLib.instance.api.crateApiSetLibrary(handle: handle, packed: packed);
+
 /// Write the whole account to `dest` (a single SQLite file).
 Future<void> exportAccount({required int handle, required String dest}) =>
     RustLib.instance.api.crateApiExportAccount(handle: handle, dest: dest);

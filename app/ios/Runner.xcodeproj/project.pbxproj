@@ -48,15 +48,15 @@
 		DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */; };
 		79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
 		86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */; };
+		CB08C5C9F96CC826ED7B72E2 /* SpaceMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */; };
+		DD506040AC7D2AC77907EF98 /* SpaceMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */; };
 		96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */; };
 		9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1C0B02B8A3792430DE97AC0B /* Assets.xcassets */; };
 		A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */; };
 		BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C791F424CC08582321BD3041 /* ContentView.swift */; };
-		93E9CCF5A489F2841B27389D /* RestScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9BF7B69DD87CE929608165 /* RestScreen.swift */; };
-		7DE03297A9BF40E9A53A7A09 /* ReadyScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E338110C5A3D1663CD753EF5 /* ReadyScreen.swift */; };
-		197FAB54AB60A8D588057A54 /* LiftingScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE719B08D95666835A48690 /* LiftingScreen.swift */; };
-		118AC1A05598FCE8A9DFCFDB /* ContentView+ActionButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */; };
-		464448B5D5D77E3331A589FA /* ContentView+MainLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11D9410141672EB4995757A /* ContentView+MainLayout.swift */; };
+		7C8D8D2BB50B376E46F9EB3E /* PlateScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */; };
+		C6B8C8C2396E0C5B52F1A133 /* FaceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66B0DA9131814488F6E90BDC /* FaceScreen.swift */; };
+		068C2F3BCA3E4654FCD1782F /* FaceScreen+Parts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5886B1EF7F20B05488251458 /* FaceScreen+Parts.swift */; };
 		DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */; };
 		7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */; };
 		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
@@ -154,13 +154,13 @@
 		B2E448C1951CDAF54DC87758 /* Runner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B51B61E8EB9ED1721D316467 /* settings.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = settings.pb.swift; sourceTree = "<group>"; };
 		B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Variable.ttf"; sourceTree = "<group>"; };
+		9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Regular.ttf"; sourceTree = "<group>"; };
+		0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Bold.ttf"; sourceTree = "<group>"; };
 		C129A9FB18F81555600E71B3 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		C791F424CC08582321BD3041 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		5B9BF7B69DD87CE929608165 /* RestScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RestScreen.swift"; sourceTree = "<group>"; };
-		E338110C5A3D1663CD753EF5 /* ReadyScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReadyScreen.swift"; sourceTree = "<group>"; };
-		5BE719B08D95666835A48690 /* LiftingScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LiftingScreen.swift"; sourceTree = "<group>"; };
-		95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+ActionButtons.swift"; sourceTree = "<group>"; };
-		F11D9410141672EB4995757A /* ContentView+MainLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+MainLayout.swift"; sourceTree = "<group>"; };
+		4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateScreen.swift"; sourceTree = "<group>"; };
+		66B0DA9131814488F6E90BDC /* FaceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FaceScreen.swift"; sourceTree = "<group>"; };
+		5886B1EF7F20B05488251458 /* FaceScreen+Parts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FaceScreen+Parts.swift"; sourceTree = "<group>"; };
 		77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+WorkoutComplete.swift"; sourceTree = "<group>"; };
 		47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Formatting.swift"; sourceTree = "<group>"; };
 		DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -271,6 +271,8 @@
 			children = (
 				2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */,
 				B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */,
+				9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */,
+				0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */,
 			);
 			path = Fonts;
 			sourceTree = "<group>";
@@ -280,11 +282,9 @@
 			children = (
 				1C0B02B8A3792430DE97AC0B /* Assets.xcassets */,
 				C791F424CC08582321BD3041 /* ContentView.swift */,
-				5B9BF7B69DD87CE929608165 /* RestScreen.swift */,
-				E338110C5A3D1663CD753EF5 /* ReadyScreen.swift */,
-				5BE719B08D95666835A48690 /* LiftingScreen.swift */,
-				95797369E0B40A8A24C58EC0 /* ContentView+ActionButtons.swift */,
-				F11D9410141672EB4995757A /* ContentView+MainLayout.swift */,
+				4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */,
+				66B0DA9131814488F6E90BDC /* FaceScreen.swift */,
+				5886B1EF7F20B05488251458 /* FaceScreen+Parts.swift */,
 				77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */,
 				47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */,
 				9240986A58A7473DBCC0828C /* PhoneConnector.swift */,
@@ -477,6 +477,8 @@
 				9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */,
 				6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */,
 				86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */,
+				CB08C5C9F96CC826ED7B72E2 /* SpaceMono-Regular.ttf in Resources */,
+				DD506040AC7D2AC77907EF98 /* SpaceMono-Bold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -563,11 +565,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				BABFAF12570D6FBD9DD7BEA3 /* ContentView.swift in Sources */,
-				93E9CCF5A489F2841B27389D /* RestScreen.swift in Sources */,
-				7DE03297A9BF40E9A53A7A09 /* ReadyScreen.swift in Sources */,
-				197FAB54AB60A8D588057A54 /* LiftingScreen.swift in Sources */,
-				118AC1A05598FCE8A9DFCFDB /* ContentView+ActionButtons.swift in Sources */,
-				464448B5D5D77E3331A589FA /* ContentView+MainLayout.swift in Sources */,
+				7C8D8D2BB50B376E46F9EB3E /* PlateScreen.swift in Sources */,
+				C6B8C8C2396E0C5B52F1A133 /* FaceScreen.swift in Sources */,
+				068C2F3BCA3E4654FCD1782F /* FaceScreen+Parts.swift in Sources */,
 				DA229A0FB72699B9D2F9B881 /* ContentView+WorkoutComplete.swift in Sources */,
 				7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */,
 				5B1A2A7DA08653D35A11BEA6 /* PhoneConnector.swift in Sources */,

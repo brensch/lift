@@ -333,6 +333,13 @@ mod stream {
             .await
             .unwrap()
             .is_none());
+        // Bob still sees her, finished: her last state stays on show.
+        bob_link
+            .session(|s| {
+                partner_workout(s)
+                    .is_some_and(|p| p.active_workout.as_ref().is_some_and(|w| w.end_time != 0))
+            })
+            .await;
     }
 
     /// A heartbeat is answered with the head, so the phone knows the link

@@ -48,6 +48,8 @@
 	<array>
 		<string>Fonts/Manrope-Variable.ttf</string>
 		<string>Fonts/SpaceGrotesk-Variable.ttf</string>
+		<string>Fonts/SpaceMono-Bold.ttf</string>
+		<string>Fonts/SpaceMono-Regular.ttf</string>
 	</array>
 	<key>WKBackgroundModes</key>
 	<array>

@@ -34,6 +34,7 @@ enum Event_Kind {
   updateSetting,
   dismissUserMessages,
   importHistory,
+  cloneTemplate,
   notSet
 }
 
@@ -54,6 +55,7 @@ class Event extends $pb.GeneratedMessage {
     $2.UpdateSettingRequest? updateSetting,
     $1.DismissUserMessagesRequest? dismissUserMessages,
     ImportHistory? importHistory,
+    $1.CloneTemplateRequest? cloneTemplate,
   }) {
     final result = create();
     if (seq != null) result.seq = seq;
@@ -75,6 +77,7 @@ class Event extends $pb.GeneratedMessage {
     if (dismissUserMessages != null)
       result.dismissUserMessages = dismissUserMessages;
     if (importHistory != null) result.importHistory = importHistory;
+    if (cloneTemplate != null) result.cloneTemplate = cloneTemplate;
     return result;
   }
 
@@ -100,13 +103,14 @@ class Event extends $pb.GeneratedMessage {
     19: Event_Kind.updateSetting,
     20: Event_Kind.dismissUserMessages,
     21: Event_Kind.importHistory,
+    22: Event_Kind.cloneTemplate,
     0: Event_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Event',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21])
+    ..oo(0, [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22])
     ..aInt64(1, _omitFieldNames ? '' : 'seq')
     ..aOS(2, _omitFieldNames ? '' : 'id')
     ..aInt64(3, _omitFieldNames ? '' : 'at')
@@ -140,6 +144,8 @@ class Event extends $pb.GeneratedMessage {
         subBuilder: $1.DismissUserMessagesRequest.create)
     ..aOM<ImportHistory>(21, _omitFieldNames ? '' : 'importHistory',
         subBuilder: ImportHistory.create)
+    ..aOM<$1.CloneTemplateRequest>(22, _omitFieldNames ? '' : 'cloneTemplate',
+        subBuilder: $1.CloneTemplateRequest.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -172,6 +178,7 @@ class Event extends $pb.GeneratedMessage {
   @$pb.TagNumber(19)
   @$pb.TagNumber(20)
   @$pb.TagNumber(21)
+  @$pb.TagNumber(22)
   Event_Kind whichKind() => _Event_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(10)
   @$pb.TagNumber(11)
@@ -185,6 +192,7 @@ class Event extends $pb.GeneratedMessage {
   @$pb.TagNumber(19)
   @$pb.TagNumber(20)
   @$pb.TagNumber(21)
+  @$pb.TagNumber(22)
   void clearKind() => $_clearField($_whichOneof(0));
 
   /// Position in the account's log: 1, 2, 3…, no gaps.
@@ -357,6 +365,17 @@ class Event extends $pb.GeneratedMessage {
   void clearImportHistory() => $_clearField(21);
   @$pb.TagNumber(21)
   ImportHistory ensureImportHistory() => $_ensure(14);
+
+  @$pb.TagNumber(22)
+  $1.CloneTemplateRequest get cloneTemplate => $_getN(15);
+  @$pb.TagNumber(22)
+  set cloneTemplate($1.CloneTemplateRequest value) => $_setField(22, value);
+  @$pb.TagNumber(22)
+  $core.bool hasCloneTemplate() => $_has(15);
+  @$pb.TagNumber(22)
+  void clearCloneTemplate() => $_clearField(22);
+  @$pb.TagNumber(22)
+  $1.CloneTemplateRequest ensureCloneTemplate() => $_ensure(15);
 }
 
 /// History brought in from elsewhere, as it was: finished workouts and the
@@ -803,18 +822,20 @@ class Heartbeat extends $pb.GeneratedMessage {
   static Heartbeat? _defaultInstance;
 }
 
-enum SyncResponse_Kind { head, session, joinRequests, notSet }
+enum SyncResponse_Kind { head, session, joinRequests, library, notSet }
 
 class SyncResponse extends $pb.GeneratedMessage {
   factory SyncResponse({
     $fixnum.Int64? head,
     $3.GetCurrentSessionResponse? session,
     $3.GetJoinRequestsResponse? joinRequests,
+    $1.ListTemplateLibraryResponse? library,
   }) {
     final result = create();
     if (head != null) result.head = head;
     if (session != null) result.session = session;
     if (joinRequests != null) result.joinRequests = joinRequests;
+    if (library != null) result.library = library;
     return result;
   }
 
@@ -832,18 +853,21 @@ class SyncResponse extends $pb.GeneratedMessage {
     1: SyncResponse_Kind.head,
     2: SyncResponse_Kind.session,
     3: SyncResponse_Kind.joinRequests,
+    4: SyncResponse_Kind.library,
     0: SyncResponse_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'SyncResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2, 3])
+    ..oo(0, [1, 2, 3, 4])
     ..aInt64(1, _omitFieldNames ? '' : 'head')
     ..aOM<$3.GetCurrentSessionResponse>(2, _omitFieldNames ? '' : 'session',
         subBuilder: $3.GetCurrentSessionResponse.create)
     ..aOM<$3.GetJoinRequestsResponse>(3, _omitFieldNames ? '' : 'joinRequests',
         subBuilder: $3.GetJoinRequestsResponse.create)
+    ..aOM<$1.ListTemplateLibraryResponse>(4, _omitFieldNames ? '' : 'library',
+        subBuilder: $1.ListTemplateLibraryResponse.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -868,10 +892,12 @@ class SyncResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
   SyncResponse_Kind whichKind() => _SyncResponse_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
   void clearKind() => $_clearField($_whichOneof(0));
 
   /// The last seq the server holds for this account.
@@ -908,6 +934,19 @@ class SyncResponse extends $pb.GeneratedMessage {
   void clearJoinRequests() => $_clearField(3);
   @$pb.TagNumber(3)
   $3.GetJoinRequestsResponse ensureJoinRequests() => $_ensure(2);
+
+  /// The template library as the server has it: what coupled templates
+  /// follow. Sent on connect.
+  @$pb.TagNumber(4)
+  $1.ListTemplateLibraryResponse get library => $_getN(3);
+  @$pb.TagNumber(4)
+  set library($1.ListTemplateLibraryResponse value) => $_setField(4, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLibrary() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLibrary() => $_clearField(4);
+  @$pb.TagNumber(4)
+  $1.ListTemplateLibraryResponse ensureLibrary() => $_ensure(3);
 }
 
 class PullEventsRequest extends $pb.GeneratedMessage {

@@ -6,15 +6,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
-import '../../logic/weight_units.dart';
-import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../common/flat.dart';
+import '../common/weight_selector.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
 
@@ -76,10 +74,12 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     _startReps = _reps;
   }
 
-  /// One plate-pair in the display unit. The 0..2000 clamp below mirrors
-  /// the server's range check in core/src/workout/planning.rs.
-  double _stepLb(WeightUnit unit) =>
-      isMetricUnit(unit) ? poundsFromDisplayWeight(2.5, unit) : 5.0;
+  bool get _barbell =>
+      context
+          .read<WorkoutProvider>()
+          .trackerFor(widget.block.exercise)
+          ?.equipment ==
+      EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
   bool get _dirty =>
       (_startWeight - _weight).abs() > 0.01 || _startReps != _reps;
@@ -116,8 +116,6 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final unit = context.watch<SettingsProvider>().weightUnit;
-    final step = _stepLb(unit);
     final name = exerciseNames[widget.block.exercise] ?? '?';
 
     Widget stepper(
@@ -199,35 +197,31 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
               style: TextStyle(fontSize: t.size.body, color: t.muted),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: WeightSelector(
+              weightLb: _weight,
+              barbell: _barbell,
+              onChanged: (lb) => setState(() => _weight = lb),
+            ),
+          ),
+          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               border: Border.symmetric(
                 horizontal: BorderSide(color: t.hairline),
               ),
             ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  stepper(
-                    'Weight',
-                    formatWeight(_weight, unit, includeUnit: true),
-                    () => setState(
-                      () => _weight = (_weight - step).clamp(0, 2000),
-                    ),
-                    () => setState(
-                      () => _weight = (_weight + step).clamp(0, 2000),
-                    ),
-                  ),
-                  stepper(
-                    'Reps',
-                    '$_reps',
-                    () => setState(() => _reps = (_reps - 1).clamp(1, 100)),
-                    () => setState(() => _reps = (_reps + 1).clamp(1, 100)),
-                    last: true,
-                  ),
-                ],
-              ),
+            child: Row(
+              children: [
+                stepper(
+                  'Reps',
+                  '$_reps',
+                  () => setState(() => _reps = (_reps - 1).clamp(1, 100)),
+                  () => setState(() => _reps = (_reps + 1).clamp(1, 100)),
+                  last: true,
+                ),
+              ],
             ),
           ),
           Padding(

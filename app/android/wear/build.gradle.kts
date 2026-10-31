@@ -53,6 +53,12 @@ android {
     }
 
     buildTypes {
+        // Side by side with the store build, and paired with the phone's
+        // debug build (com.brensch.schlift.debug): the Data Layer only joins
+        // apps with the same id and signing key.
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")

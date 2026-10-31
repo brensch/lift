@@ -3,9 +3,9 @@
 // once more per missed rep. Captures the flow.
 //
 // A brand-new user's first session of a loaded exercise opens with a
-// calibration rung ("Finding weight"), not warmups + working sets: one
-// 5-rep set, then its rating decides the working weight
-// (docs/plans/one-tap-sets.md §7). This scenario answers 2–3 reps left.
+// calibration rung, not warmups + working sets: 5-rep sets that climb while
+// every rep is made. This scenario climbs once, then taps a rep off to
+// settle the working weight.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -35,7 +35,7 @@ void main() {
       await s.shot(
         'Workout — first set ready',
         note: first.calibration
-            ? 'First session of Squat: a finding-weight rung, its circle up next.'
+            ? 'First session of Squat: a calibration rung, its circle up next.'
             : 'WARNING: expected the calibration rung on a fresh user.',
       );
       expect(
@@ -44,10 +44,13 @@ void main() {
         reason: 'a fresh user calibrates first',
       );
 
-      // The first tap on the up-next circle starts the set: LIFTING, the
-      // banner counting up.
+      // The first tap on the up-next circle asks for the weight (a first
+      // time); "test me" starts the set: LIFTING, the banner counting up.
       await s.tap(s.circleFor(first.id));
       await s.settle(seconds: 1);
+      await s.mustSee(copy.workout.firstTimeTest, seconds: 4);
+      await s.shot('First time — your weight, or test me');
+      await s.testMeIfAsked();
       final lifting =
           s.workout.stateSnapshot?.state ==
               WorkoutState.WORKOUT_STATE_LIFTING &&
@@ -105,7 +108,7 @@ void main() {
       s.note(
         'Workout logging verified',
         detail:
-            'Started a proposed workout, lifted the finding-weight rung on its '
+            'Started a proposed workout, lifted the calibration rung on its '
             'circle, took a rep off it to settle the weight, then lifted a working set one rep short, '
             'all through the real UI.',
         kind: 'assert',

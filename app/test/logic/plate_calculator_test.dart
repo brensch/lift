@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/logic/plate_calculator.dart';
@@ -54,6 +56,23 @@ void main() {
     test('uses the metric bar, not the imperial one', () {
       expect(calcPlatesPerSide(20, kg).plates, isEmpty);
       expect(calcPlatesPerSide(22.5, kg).plates, [1.25]);
+    });
+
+    // Weights are stored in pounds (as float32): back in kg they come out a
+    // hair under, and must still load the same plates.
+    test('a kg weight stored in pounds loads the same plates', () {
+      double roundTrip(double kgWeight) => displayWeightFromPounds(
+        Float32List.fromList([poundsFromDisplayWeight(kgWeight, kg)])[0],
+        kg,
+      );
+      expect(calcPlatesPerSide(roundTrip(22.5), kg).plates, [1.25]);
+      expect(calcPlatesPerSide(roundTrip(70), kg).plates, [25.0]);
+      expect(calcPlatesPerSide(roundTrip(102.5), kg).plates, [
+        25.0,
+        15.0,
+        1.25,
+      ]);
+      expect(calcPlatesPerSide(roundTrip(60), kg).plates, [20.0]);
     });
   });
 

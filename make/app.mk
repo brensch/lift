@@ -110,9 +110,10 @@ hot-reload:
 	@$(call SIGNAL_FLUTTER,USR1) && echo "Hot reload sent" || { echo "No run-android session running"; exit 1; }
 
 # Polls app/lib once a second and, after a save, hot reloads the run-android
-# session; a save under lib/theme/ or to main.dart hot restarts instead, since
-# the themes and app wiring are built once at startup and a reload would keep
-# the old ones. Runs as part of `make dev`.
+# session; a save under lib/theme/, to main.dart or to lib/gen/ hot restarts
+# instead: the themes and app wiring are built once at startup, and generated
+# code (copy.dart's const classes, protos) changes shape, which a reload
+# refuses. Runs as part of `make dev`.
 hot-reload-on-save:
 	@bash -c '\
 		STAMP=$$(mktemp); \
@@ -121,7 +122,7 @@ hot-reload-on-save:
 			CHANGED=$$(find app/lib -name "*.dart" -newer "$$STAMP"); \
 			[ -n "$$CHANGED" ] || continue; \
 			touch "$$STAMP"; \
-			if echo "$$CHANGED" | grep -qE "app/lib/(theme/|main\.dart)"; then \
+			if echo "$$CHANGED" | grep -qE "app/lib/(theme/|gen/|main\.dart)"; then \
 				$(call SIGNAL_FLUTTER,USR2) && echo "[hot restart]"; \
 			else \
 				$(call SIGNAL_FLUTTER,USR1) && echo "[hot reload]"; \

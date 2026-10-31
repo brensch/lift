@@ -7,6 +7,8 @@
 WEAR_APK_DEBUG = app/build/wear/outputs/apk/debug/wear-debug.apk
 WEAR_APK_RELEASE = app/build/wear/outputs/apk/release/wear-release.apk
 WEAR_ACTIVITY = com.brensch.schlift/com.brensch.schlift.wear.MainActivity
+# The debug build sits beside the store one, like the phone's.
+WEAR_ACTIVITY_DEBUG = com.brensch.schlift.debug/com.brensch.schlift.wear.MainActivity
 
 run-wear:
 	@bash -ec '\
@@ -14,7 +16,7 @@ run-wear:
 		$(PICK_WATCH) \
 		(cd app/android && ./gradlew :wear:assembleDebug); \
 		$(ADB) -s "$$SERIAL" install -r $(WEAR_APK_DEBUG); \
-		$(ADB) -s "$$SERIAL" shell am start -n $(WEAR_ACTIVITY); \
+		$(ADB) -s "$$SERIAL" shell am start -n $(WEAR_ACTIVITY_DEBUG); \
 	'
 
 run-wear-logs:

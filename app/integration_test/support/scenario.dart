@@ -447,7 +447,7 @@ class Scenario {
 
   /// Every working set of the live workout done at its target through the
   /// app's own account — a fast-forward past tapping each circle. Full
-  /// finding-weight rungs climb until the sixth settles the working sets.
+  /// calibration rungs climb until the sixth settles the working sets.
   Future<int> completeAllWorkingSetsInApp() async {
     var done = 0;
     for (var i = 0; i < 50; i++) {
@@ -493,8 +493,16 @@ class Scenario {
     await settle(seconds: 1);
   }
 
+  /// A first-ever exercise asks for its weight: answer "test me", so the
+  /// calibration sets find it.
+  Future<void> testMeIfAsked() async {
+    if (!isVisible(copy.workout.firstTimeTest)) return;
+    await tapText(copy.workout.firstTimeTest);
+    await settle(seconds: 1);
+  }
+
   /// Lift the next set on its circle: tap to start it, tap again when it is
-  /// done, then once more per [missed] rep. On a finding-weight rung a
+  /// done, then once more per [missed] rep. On a calibration rung a
   /// missed rep settles the working sets; a full one climbs.
   Future<void> liftSet({int missed = 0}) async {
     for (var i = 0; i < 16 && !setOffered; i++) {
@@ -505,6 +513,7 @@ class Scenario {
     await tap(circleFor(set!.id));
     // The core answers asynchronously; give it a beat.
     await settle(seconds: 1);
+    await testMeIfAsked();
     expect(
       workout.activeWorkout?.liftingSetId,
       set.id,

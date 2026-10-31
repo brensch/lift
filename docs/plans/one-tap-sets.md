@@ -412,7 +412,7 @@ row of circles, warmups first until they are done or skipped. The banner
 under the page has no buttons: everyone's status box, yours at the bottom.
 
 Working sets are no longer rated: progression reads the reps, an unanswered
-question resolving to right. Only a finding-weight rung asks, worded as reps
+question resolving to right. Only a calibration rung asks, worded as reps
 left in the tank (0–1 hard, 2–3 right, 4+ easy). Easy / right / hard is our
 own coarse proxy for reps in reserve, which beginners judge poorly; a miss
 is a fact.

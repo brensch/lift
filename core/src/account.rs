@@ -116,11 +116,46 @@ impl Account {
                     .extend(req.samples.iter().cloned());
             }
             event::Kind::SaveTemplate(req) => {
-                let template = req
+                let mut template = req
                     .template
                     .clone()
                     .ok_or_else(|| invalid("template is required"))?;
+                // A library template stays coupled only while it is saved
+                // unchanged; a real change makes it the user's own. New
+                // templates are always the user's own.
+                let keeps = self.template(&template.id).filter(|t| {
+                    !req.unlink
+                        && t.coupled
+                        && t.name == template.name
+                        && t.exercises == template.exercises
+                });
+                match keeps {
+                    Some(existing) => {
+                        template.coupled = true;
+                        template.library_id = existing.library_id.clone();
+                    }
+                    None => {
+                        template.coupled = false;
+                        template.library_id.clear();
+                    }
+                }
                 self.save_template(template, at, &mut ids)?;
+            }
+            event::Kind::CloneTemplate(req) => {
+                let template = self
+                    .templates
+                    .iter_mut()
+                    .find(|t| t.id == req.template_id)
+                    .ok_or_else(|| CoreError::NotFound("Template not found".into()))?;
+                template.coupled = false;
+                template.library_id.clear();
+                if !req.name.trim().is_empty() {
+                    template.name = req.name.clone();
+                }
+                if !req.exercises.is_empty() {
+                    template.exercises = req.exercises.clone();
+                }
+                template.updated_at = at;
             }
             event::Kind::DeleteTemplate(req) => {
                 self.templates.retain(|t| t.id != req.template_id);
@@ -134,12 +169,11 @@ impl Account {
                 self.sort_templates();
             }
             event::Kind::AddLibraryTemplates(req) => {
-                let entries = library_entries(&req.library_ids)?;
-                for entry in entries {
+                for entry in library_entries(&req.entries, &req.library_ids)? {
                     if self.templates.iter().any(|t| t.library_id == entry.id) {
                         continue; // already in the user's list
                     }
-                    self.save_template(library_copy(entry), at, &mut ids)?;
+                    self.save_template(library_copy(&entry), at, &mut ids)?;
                 }
             }
             event::Kind::SetExerciseTracker(req) => self.set_tracker(req)?,
@@ -265,7 +299,14 @@ impl Account {
             let template = self
                 .template(&req.template_id)
                 .ok_or_else(|| CoreError::NotFound("Template not found".into()))?;
-            (template.exercises.clone(), template.name.clone())
+            // A coupled template's start carries the library's exercises
+            // of the moment; the stored ones are only a fallback.
+            let exercises = if req.exercises.is_empty() {
+                template.exercises.clone()
+            } else {
+                req.exercises.clone()
+            };
+            (exercises, template.name.clone())
         };
         let name = if req.name.is_empty() {
             name
@@ -501,10 +542,13 @@ impl Account {
         at: i64,
         ids: &mut Ids,
     ) -> Result<(), CoreError> {
-        let entries = if req.library_ids.is_empty() {
+        let entries = if req.library_entries.is_empty() && req.library_ids.is_empty() {
             crate::template_library::defaults()
+                .into_iter()
+                .cloned()
+                .collect()
         } else {
-            library_entries(&req.library_ids)?
+            library_entries(&req.library_entries, &req.library_ids)?
         };
         if req.unit != WeightUnit::Unspecified as i32 {
             self.settings
@@ -539,7 +583,7 @@ impl Account {
                 });
         }
         for entry in entries {
-            self.save_template(library_copy(entry), at, ids)?;
+            self.save_template(library_copy(&entry), at, ids)?;
         }
         Ok(())
     }
@@ -664,22 +708,32 @@ fn setting_kind(setting: &UserSetting) -> Option<SettingKind> {
     }
 }
 
-fn library_entries(ids: &[String]) -> Result<Vec<&'static LibraryTemplate>, CoreError> {
+/// The entries an event adds: as recorded on it, or (events from before
+/// they were) looked up by id in the library built in.
+fn library_entries(
+    recorded: &[LibraryTemplate],
+    ids: &[String],
+) -> Result<Vec<LibraryTemplate>, CoreError> {
+    if !recorded.is_empty() {
+        return Ok(recorded.to_vec());
+    }
     ids.iter()
         .map(|id| {
             crate::template_library::find(id)
+                .cloned()
                 .ok_or_else(|| invalid(format!("unknown library template {id:?}")))
         })
         .collect()
 }
 
-/// A user's copy of a library entry: a new template (empty id, given one
-/// and an order on save) that remembers where it came from.
+/// A library entry in the user's list: a new template (empty id, given one
+/// and an order on save), coupled to the entry.
 fn library_copy(entry: &LibraryTemplate) -> WorkoutTemplate {
     WorkoutTemplate {
         name: entry.name.clone(),
         exercises: entry.exercises.clone(),
         library_id: entry.id.clone(),
+        coupled: true,
         ..Default::default()
     }
 }

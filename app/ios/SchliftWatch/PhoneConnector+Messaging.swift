@@ -29,6 +29,24 @@ extension PhoneConnector {
         sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
     }
 
+    /// A tap on a set circle: the phone does what a tap on that circle does there.
+    /// Gated like the other taps.
+    func sendTap(setID: String) {
+        guard !isActionPending else { return }
+        guard let workoutId = snapshot?.workoutID, !workoutId.isEmpty else { return }
+        var tap = Workout_V1_TapSetIntent()
+        tap.workoutID = workoutId
+        tap.setID = setID
+        tap.tappedAt = Int64(Date().timeIntervalSince1970)
+        var intent = Workout_V1_WearIntent()
+        intent.intentID = UUID().uuidString
+        intent.sentAt = Int64(Date().timeIntervalSince1970)
+        intent.intent = .tapSet(tap)
+        guard let data = try? intent.serializedData() else { return }
+        beginPendingAction()
+        sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
+    }
+
     /// Sets the intent's payload from the action the phone sent. False for an action
     /// type the watch does not know how to send.
     private func fill(
@@ -50,7 +68,6 @@ extension PhoneConnector {
             completeSet.setID = action.setID
             completeSet.reps = action.reps
             completeSet.actualWeight = action.actualWeight
-            completeSet.effort = action.effort
             completeSet.completedAt = Int64(Date().timeIntervalSince1970)
             intent.intent = .completeSet(completeSet)
 

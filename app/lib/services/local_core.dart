@@ -120,6 +120,16 @@ class LocalCore {
     }
   }
 
+  /// Keep the template library the server sent (a packed
+  /// ListTemplateLibraryResponse). Returns whether it changed.
+  Future<bool> setLibrary(List<int> packed) async {
+    try {
+      return await native.setLibrary(handle: _handle, packed: packed);
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
   /// The whole account as one SQLite file at [dest].
   Future<void> export(String dest) async {
     try {

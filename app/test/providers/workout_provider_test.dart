@@ -64,6 +64,14 @@ void main() {
     expect(h.provider.activeCompletedSets, isEmpty);
   });
 
+  test('a reorder shows at once, before the core answers', () async {
+    await h.start([squat, raise]);
+    final done = h.provider.reorderExercises([raise, squat]);
+    expect(h.provider.exerciseBlocks.map((b) => b.exercise), [raise, squat]);
+    await done;
+    expect(h.provider.exerciseBlocks.map((b) => b.exercise), [raise, squat]);
+  });
+
   test('skipping warmups puts them behind you, kept', () async {
     await h.start([squat]);
     final warmups = h.provider.activeProposedSets.where((s) => s.warmup);

@@ -237,6 +237,11 @@ class AccountSync extends ChangeNotifier
       case SyncResponse_Kind.joinRequests:
         _joinRequests = message.joinRequests;
         notifyListeners();
+      case SyncResponse_Kind.library:
+        // What coupled templates follow; a change shows on home.
+        if (await _core?.setLibrary(message.library.writeToBuffer()) ?? false) {
+          onCaughtUp?.call();
+        }
       case SyncResponse_Kind.notSet:
         break;
     }
@@ -260,8 +265,8 @@ class AccountSync extends ChangeNotifier
     }
   }
 
-  /// Called after events from the server were folded in: what's on screen
-  /// may have changed.
+  /// Called after the server changed what the account shows (events folded
+  /// in, or a new template library): what's on screen may have changed.
   VoidCallback? onCaughtUp;
 
   /// Send what the server hasn't acknowledged and hasn't been sent on this

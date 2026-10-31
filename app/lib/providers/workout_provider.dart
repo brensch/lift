@@ -348,6 +348,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The user's display unit; the watch snapshot formats weights with it.
   WeightUnit get weightUnit => _settingsProvider.weightUnit;
 
+  /// The user's colour for a plate of [weight] (in their unit).
+  Color plateColor(double weight) => _settingsProvider.plateColor(weight);
+
   int get restSecondsRemaining {
     final snapshot = _snapshot;
     if (snapshot == null) return 0;
@@ -447,13 +450,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
+  /// Make a library template the user's own, to edit. Returns it.
+  Future<WorkoutTemplate> cloneTemplate(String templateId) async {
+    final template = await _service.cloneTemplate(templateId);
+    await refreshHome();
+    return template;
+  }
+
   Future<void> reorderTemplates(List<String> templateIds) async {
     await _service.reorderTemplates(templateIds);
     await refreshHome();
   }
 
-  /// Copies library entries into the user's templates (see
-  /// templates/library.yaml). The answer carries the refreshed home.
+  /// Adds library entries to the user's templates, following the library
+  /// (templates/library.yaml on the server). The answer carries the
+  /// refreshed home.
   Future<void> addLibraryTemplates(List<String> libraryIds) async {
     _home = await _service.addLibraryTemplates(libraryIds);
     notifyListeners();
@@ -567,7 +578,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// A tap on a done set's circle, StrongLifts style: each tap takes one
   /// rep off (one per rep missed), and the tap after zero undoes the set.
-  /// A finding-weight rung stops at zero instead: the plan it settled hangs
+  /// A calibration rung stops at zero instead: the plan it settled hangs
   /// off it.
   Future<void> tapDoneSet(String completedSetId) async {
     final done = _doneById(completedSetId);
@@ -653,6 +664,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> reorderExercises(List<Exercise> exercises) async {
     if (_workout == null) return;
+    // Show the new order now. The core answers a beat later, and until then
+    // the list would draw the old order again, so names would flash back.
+    final moved = [
+      for (final exercise in exercises)
+        ..._blocksCache.where((b) => b.exercise == exercise),
+      ..._blocksCache.where((b) => !exercises.contains(b.exercise)),
+    ];
+    _blocksCache
+      ..clear()
+      ..addAll(moved);
+    notifyListeners();
     await _mutate(
       _mutation()
         ..reorderExercises = (ReorderExercisesRequest()

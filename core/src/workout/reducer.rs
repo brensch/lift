@@ -92,8 +92,6 @@ pub fn workout_state_snapshot(
 ) -> WorkoutStateSnapshot {
     let proposed_active = active_proposed_sets(proposed_sets);
     let next_up_set = compute_next_up_set(&proposed_active, completed_sets);
-    // Nothing is asked: a set says what it did by its reps.
-    let effort_prompt = None;
 
     // A started set that is still pending is being lifted, whatever the
     // rest: the timer counts up from its start.
@@ -111,7 +109,6 @@ pub fn workout_state_snapshot(
                 state: STATE_LIFTING,
                 display_set: Some(set.clone()),
                 rest_until: 0,
-                effort_prompt,
                 lifting_started_at: workout.lifting_started_at,
             };
         }
@@ -126,7 +123,6 @@ pub fn workout_state_snapshot(
             state: STATE_ALL_DONE,
             display_set: None,
             rest_until: 0,
-            effort_prompt,
             lifting_started_at: 0,
         };
     };
@@ -148,7 +144,6 @@ pub fn workout_state_snapshot(
             },
             display_set: Some(next),
             rest_until: rest_end,
-            effort_prompt,
             lifting_started_at: 0,
         };
     }
@@ -157,7 +152,6 @@ pub fn workout_state_snapshot(
         state: STATE_READY,
         display_set: Some(next),
         rest_until: 0,
-        effort_prompt,
         lifting_started_at: 0,
     }
 }
@@ -346,7 +340,7 @@ pub fn apply_complete_set_to_active(
         effort: Effort::Unspecified as i32,
         started_at,
     });
-    // A finding-weight rung settles the moment it's done (`would_append`).
+    // A calibration rung settles the moment it's done (`would_append`).
     if proposed.calibration {
         settle_rung(workout_ref, &completed_set_id, unit);
     }
@@ -421,7 +415,7 @@ pub fn apply_edit_completed_set_to_active(
     Ok(())
 }
 
-/// A finding-weight rung, done: append what its reps call for (see
+/// A calibration rung, done: append what its reps call for (see
 /// `would_append`) straight after it.
 fn settle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: AppWeightUnit) {
     let Some(rung) = rung_of(workout_ref, completed_set_id) else {
