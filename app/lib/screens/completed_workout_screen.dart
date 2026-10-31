@@ -236,6 +236,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             FlatSection(
               label: 'Session',
               bleed: true,
+              flushBottom: true,
               child: _MetricGrid(
                 metrics: [
                   ('Duration', summary.durationLabel, null),
