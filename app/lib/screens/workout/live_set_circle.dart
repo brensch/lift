@@ -4,18 +4,15 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../logic/session_state.dart';
-import '../../logic/weight_units.dart';
-import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_icons.dart';
 import '../../theme/theme_spec.dart';
+import '../../widgets/common/weight_selector.dart';
 import 'section_workout.dart';
 import 'set_circle.dart';
 
@@ -117,52 +114,19 @@ class _FirstTimeDialog extends StatefulWidget {
 }
 
 class _FirstTimeDialogState extends State<_FirstTimeDialog> {
-  late final TextEditingController _weight;
+  /// What their strength answer at sign-up put this lift at, in lb.
+  late double _weightLb =
+      widget.wp.trackerFor(widget.set.exercise)?.workingWeight ??
+      widget.set.targetWeight;
 
-  @override
-  void initState() {
-    super.initState();
-    // What their strength answer at sign-up put this lift at.
-    final unit = context.read<SettingsProvider>().weightUnit;
-    final seed =
-        widget.wp.trackerFor(widget.set.exercise)?.workingWeight ??
-        widget.set.targetWeight;
-    _weight = TextEditingController(text: formatWeight(seed, unit));
-  }
-
-  @override
-  void dispose() {
-    _weight.dispose();
-    super.dispose();
-  }
-
-  double? get _value {
-    final value = double.tryParse(_weight.text.trim());
-    return value == null || value <= 0 ? null : value;
-  }
-
-  /// One plate pair up or down: 5 lb, 2.5 kg.
-  void _step(int direction) {
-    final unit = context.read<SettingsProvider>().weightUnit;
-    final step = isMetricUnit(unit) ? 2.5 : 5.0;
-    final next = ((_value ?? 0) + direction * step).clamp(0.0, 1000.0);
-    setState(
-      () => _weight.text = formatWeight(
-        poundsFromDisplayWeight(next, unit),
-        unit,
-      ),
-    );
-  }
+  bool get _barbell =>
+      widget.wp.trackerFor(widget.set.exercise)?.equipment ==
+      EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
   void _lift() {
-    final unit = context.read<SettingsProvider>().weightUnit;
-    final value = _value;
-    if (value == null) return;
+    if (_weightLb <= 0) return;
     Navigator.pop(context);
-    widget.wp.adjustExerciseWeight(
-      widget.set.exercise,
-      poundsFromDisplayWeight(value, unit),
-    );
+    widget.wp.adjustExerciseWeight(widget.set.exercise, _weightLb);
   }
 
   void _test() {
@@ -173,100 +137,57 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final unit = context.watch<SettingsProvider>().weightUnit;
     final w = copy.workout;
     final name = exerciseNames[widget.set.exercise] ?? '?';
     final label = TextStyle(
       fontSize: t.size.bodyLg,
       fontWeight: t.weight.heavy,
+      color: t.text,
     );
-    Widget section(Widget child) => Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: t.outline.withValues(alpha: 0.5)),
-      ),
-      child: child,
-    );
-    Widget stepButton(IconData icon, int direction) => SizedBox(
-      width: 44,
-      height: 52,
-      child: OutlinedButton(
-        onPressed: () => _step(direction),
-        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-        child: Icon(icon, color: t.text),
-      ),
-    );
-    return AlertDialog(
-      title: Text(
-        w.firstTimeTitle.replaceAll('{exercise}', name),
-        style: TextStyle(fontSize: t.size.title, fontWeight: t.weight.heavy),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // You know your weight: say it, go.
-          section(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(w.firstTimeLift, style: label),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    stepButton(AppIcons.remove, -1),
-                    Expanded(
-                      child: TextField(
-                        controller: _weight,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                        ],
-                        textAlign: TextAlign.center,
-                        onChanged: (_) => setState(() {}),
-                        onSubmitted: (_) => _lift(),
-                        style: t.mono(
-                          TextStyle(
-                            fontSize: t.size.headline,
-                            fontWeight: t.weight.bold,
-                          ),
-                        ),
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          suffixText: weightUnitSuffix(unit),
-                        ),
-                      ),
-                    ),
-                    stepButton(AppIcons.add, 1),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      width: 52,
-                      height: 52,
-                      child: FilledButton(
-                        onPressed: _value == null ? null : _lift,
-                        style: FilledButton.styleFrom(padding: EdgeInsets.zero),
-                        child: const Icon(AppIcons.forward),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              w.firstTimeTitle.replaceAll('{exercise}', name),
+              style: TextStyle(
+                fontSize: t.size.titleLg,
+                fontWeight: t.weight.heavy,
+                color: t.text,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          // You don't: the calibration sets find it.
-          section(
+            const SizedBox(height: 16),
+            // You know your weight: set it, go.
+            Text(w.firstTimeLift, style: label),
+            const SizedBox(height: 8),
+            WeightSelector(
+              weightLb: _weightLb,
+              barbell: _barbell,
+              onChanged: (lb) => setState(() => _weightLb = lb),
+            ),
+            const SizedBox(height: 8),
             SizedBox(
-              height: 52,
+              height: 56,
+              child: FilledButton(
+                onPressed: _weightLb > 0 ? _lift : null,
+                child: const Icon(AppIcons.forward),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // You don't: the calibration sets find it.
+            SizedBox(
+              height: 56,
               child: OutlinedButton(
                 onPressed: _test,
                 child: Text(w.firstTimeTest, style: label),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
