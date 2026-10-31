@@ -33,6 +33,16 @@ jobs:
           apt-get update -qq && apt-get install -y -qq python3-pip
           pip3 install --break-system-packages httplib2 google-api-python-client google-auth google-auth-httplib2
 
+      # The app links the Rust core (app/native; cargokit builds it for each
+      # Android target): Rust, and protoc for the core's protos.
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Flutter dependencies
         working-directory: app
         run: flutter pub get

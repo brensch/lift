@@ -44,6 +44,16 @@ jobs:
           key: gradle-${{ hashFiles('app/android/**/*.gradle*', 'app/android/**/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
+      # The app links the Rust core (app/native; cargokit builds it for each
+      # Android target): Rust, and protoc for the core's protos.
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Flutter dependencies
         working-directory: app
         run: flutter pub get
