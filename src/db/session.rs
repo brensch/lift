@@ -54,6 +54,7 @@ impl ServerDb {
         .bind(now_unix())
         .execute(&self.write_pool)
         .await?;
+        self.notify(Change::Membership(user_id.to_string()));
         Ok(())
     }
 
@@ -71,6 +72,7 @@ impl ServerDb {
             .bind(user_id)
             .execute(&self.write_pool)
             .await?;
+        self.notify(Change::Membership(user_id.to_string()));
         Ok(())
     }
 
@@ -95,6 +97,7 @@ impl ServerDb {
         .bind(now_unix())
         .execute(&self.write_pool)
         .await?;
+        self.notify(Change::Session(session_id.to_string()));
         Ok(())
     }
 
@@ -130,6 +133,7 @@ impl ServerDb {
         .bind(user_id)
         .execute(&self.write_pool)
         .await?;
+        self.notify(Change::Session(session_id.to_string()));
         Ok(())
     }
 
@@ -281,6 +285,7 @@ impl ServerDb {
         .bind(now_unix())
         .execute(&self.write_pool)
         .await?;
+        self.notify(Change::JoinRequests(to_user.to_string()));
         Ok(())
     }
 
@@ -328,10 +333,15 @@ impl ServerDb {
     }
 
     pub async fn delete_join_request(&self, request_id: &str) -> DbResult<()> {
-        sqlx::query("DELETE FROM join_requests WHERE request_id = ?")
-            .bind(request_id)
-            .execute(&self.write_pool)
-            .await?;
+        let to_user: Option<String> = sqlx::query_scalar(
+            "DELETE FROM join_requests WHERE request_id = ? RETURNING to_user_id",
+        )
+        .bind(request_id)
+        .fetch_optional(&self.write_pool)
+        .await?;
+        if let Some(to_user) = to_user {
+            self.notify(Change::JoinRequests(to_user));
+        }
         Ok(())
     }
 
@@ -347,5 +357,23 @@ impl ServerDb {
         .fetch_one(&self.read_pool)
         .await?;
         Ok(n > 0)
+    }
+
+    /// Stamp a session_id onto an existing workout row (used when the user joins a group
+    /// mid-workout — we backfill the historical marker so the workout remembers which
+    /// session it was attached to).
+    pub async fn update_workout_session_id(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+        session_id: &str,
+    ) -> DbResult<()> {
+        sqlx::query("UPDATE workouts SET session_id = ? WHERE id = ? AND user_id = ?")
+            .bind(session_id)
+            .bind(workout_id)
+            .bind(user_id)
+            .execute(&self.write_pool)
+            .await?;
+        Ok(())
     }
 }

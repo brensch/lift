@@ -6,6 +6,7 @@
 
 use super::*;
 use crate::exercise_catalog::{prescription, progression_increment_lb, snap_weight_lb};
+use crate::ids::{derived_id, Ids};
 use crate::pb::{Effort, Exercise};
 use crate::weight_units::{
     bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near, AppWeightUnit,
@@ -120,7 +121,7 @@ fn make_set(
     rest_f: i32,
 ) -> ProposedSet {
     ProposedSet {
-        id: Uuid::new_v4().to_string(),
+        id: String::new(), // the caller gives it one
         workout_id: workout_id.to_string(),
         workout_order: 0, // assigned by renumbering
         exercise,
@@ -210,13 +211,6 @@ fn prescribed_working_sets(
         .collect()
 }
 
-/// A set id derived from another id: `uuid5(NAMESPACE_OID, "{base}:{n}")`.
-/// Both reducers derive appended sets this way so an optimistic client
-/// copy and the server agree on ids.
-pub fn derived_set_id(base: &str, n: usize) -> String {
-    Uuid::new_v5(&Uuid::NAMESPACE_OID, format!("{base}:{n}").as_bytes()).to_string()
-}
-
 /// "I know my weight" during calibration: the user typed a weight while
 /// the exercise has a pending rung or an unanswered done rung. Open rungs
 /// close as right (no append), the pending rungs go (never lifted, safe to
@@ -228,7 +222,7 @@ pub fn derived_set_id(base: &str, n: usize) -> String {
 /// ids are free). No warmup ladder: the done rungs were the warmup.
 /// Returns false when neither exists, leaving the ordinary adjust to run.
 fn replace_pending_calibration(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &AdjustExerciseWeightRequest,
     unit: AppWeightUnit,
 ) -> bool {
@@ -277,7 +271,7 @@ fn replace_pending_calibration(
         prescription(ex).sets.max(1),
     );
     for (n, set) in sets.iter_mut().enumerate() {
-        set.id = derived_set_id(&base, n);
+        set.id = derived_id(&base, n);
     }
     // Pending rungs only ever sit after the done ones, so `at` is unmoved.
     workout_ref.proposed_sets.retain(|s| !is_pending_rung(s));
@@ -290,7 +284,7 @@ fn replace_pending_calibration(
 /// Splice `sets` in straight after the set `after_id`, ahead of whatever
 /// follows it (another exercise's block included), and renumber. Falls
 /// back to the end when the anchor is missing.
-pub fn insert_sets_after(workout_ref: &mut ActiveWorkout, after_id: &str, sets: Vec<ProposedSet>) {
+pub fn insert_sets_after(workout_ref: &mut WorkoutRecord, after_id: &str, sets: Vec<ProposedSet>) {
     let at = workout_ref
         .proposed_sets
         .iter()
@@ -308,7 +302,16 @@ fn generate_sets_for_exercise(
     workout_id: &str,
     plan: &ExercisePlan,
     unit: AppWeightUnit,
+    ids: &mut Ids,
 ) -> Vec<ProposedSet> {
+    let mut sets = block_sets(workout_id, plan, unit);
+    for set in &mut sets {
+        set.id = ids.new_id();
+    }
+    sets
+}
+
+fn block_sets(workout_id: &str, plan: &ExercisePlan, unit: AppWeightUnit) -> Vec<ProposedSet> {
     if plan.calibration {
         return vec![calibration_set(
             workout_id,
@@ -355,7 +358,7 @@ fn generate_sets_for_exercise(
 }
 
 /// Plan ops only make sense on a live workout that the request names.
-fn require_open_workout(workout_ref: &ActiveWorkout, workout_id: &str) -> Result<(), WorkoutError> {
+fn require_open_workout(workout_ref: &WorkoutRecord, workout_id: &str) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
@@ -365,7 +368,7 @@ fn require_open_workout(workout_ref: &ActiveWorkout, workout_id: &str) -> Result
     Ok(())
 }
 
-fn completed_proposed_ids(workout_ref: &ActiveWorkout) -> std::collections::HashSet<String> {
+fn completed_proposed_ids(workout_ref: &WorkoutRecord) -> std::collections::HashSet<String> {
     workout_ref
         .completed_sets
         .iter()
@@ -375,37 +378,16 @@ fn completed_proposed_ids(workout_ref: &ActiveWorkout) -> std::collections::Hash
 }
 
 /// Append one prescribed block per plan at the end of the workout.
-/// `client_working_set_ids` are consumed in block order for the working
-/// sets, so an offline client's optimistic sets keep their ids and the
-/// completions queued against them reconcile when the mutation lands.
 pub fn apply_add_exercises(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     workout_id: &str,
     plans: &[ExercisePlan],
-    client_working_set_ids: &[String],
     unit: AppWeightUnit,
+    ids: &mut Ids,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, workout_id)?;
-    // Ids must be fresh AND unique: a duplicate — within the request or
-    // against any existing row — would violate the proposed_sets primary
-    // key at persist time and fail the whole write.
-    let mut seen: std::collections::HashSet<String> = workout_ref
-        .proposed_sets
-        .iter()
-        .map(|s| s.id.clone())
-        .collect();
-    let mut ids = client_working_set_ids
-        .iter()
-        .filter(|id| !id.is_empty() && seen.insert((*id).clone()))
-        .cloned()
-        .collect::<std::collections::VecDeque<String>>();
     for plan in plans {
-        let mut generated = generate_sets_for_exercise(workout_id, plan, unit);
-        for set in generated.iter_mut().filter(|s| !s.warmup) {
-            if let Some(id) = ids.pop_front() {
-                set.id = id;
-            }
-        }
+        let generated = generate_sets_for_exercise(workout_id, plan, unit, ids);
         workout_ref.proposed_sets.extend(generated);
     }
     workout_ref.renumber_sets();
@@ -418,9 +400,10 @@ pub fn apply_add_exercises(
 /// and no recalculated rung sits at or below a warmup already done (the
 /// downward-edit guard) — both carried over from the old group-edit logic.
 pub fn apply_adjust_exercise_weight(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &AdjustExerciseWeightRequest,
     unit: AppWeightUnit,
+    ids: &mut Ids,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
     if !(0.0..=2000.0).contains(&req.working_weight) {
@@ -490,7 +473,9 @@ pub fn apply_adjust_exercise_weight(
             } else {
                 WARMUP_REST_SECONDS
             };
-            make_set(&req.workout_id, exercise, reps, weight, true, rest, rest)
+            let mut set = make_set(&req.workout_id, exercise, reps, weight, true, rest, rest);
+            set.id = ids.new_id();
+            set
         })
         .collect();
 
@@ -517,7 +502,7 @@ pub fn apply_adjust_exercise_weight(
 
 /// A rep target given with the adjust: every working set of the exercise
 /// still to do takes it. Rungs and warmups keep theirs.
-fn apply_target_reps(workout_ref: &mut ActiveWorkout, req: &AdjustExerciseWeightRequest) {
+fn apply_target_reps(workout_ref: &mut WorkoutRecord, req: &AdjustExerciseWeightRequest) {
     if req.target_reps <= 0 {
         return;
     }
@@ -535,7 +520,7 @@ fn apply_target_reps(workout_ref: &mut ActiveWorkout, req: &AdjustExerciseWeight
 
 /// Cancel an exercise's pending sets. Completed sets stay — the work happened.
 pub fn apply_remove_exercise(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &RemoveExerciseRequest,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
@@ -553,7 +538,7 @@ pub fn apply_remove_exercise(
 /// Reorder the exercise blocks: listed exercises take the given order; anything
 /// unlisted keeps its relative order after them. Stable within a block.
 pub fn apply_reorder_exercises(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &ReorderExercisesRequest,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
@@ -685,8 +670,8 @@ mod plan_op_tests {
         }
     }
 
-    fn empty_workout() -> ActiveWorkout {
-        ActiveWorkout::new(
+    fn empty_workout() -> WorkoutRecord {
+        WorkoutRecord::new(
             Workout {
                 id: "w1".to_string(),
                 name: "T".to_string(),
@@ -698,13 +683,17 @@ mod plan_op_tests {
         )
     }
 
-    fn workout_with(plans: &[ExercisePlan]) -> ActiveWorkout {
+    fn test_ids() -> Ids {
+        Ids::new(&uuid::Uuid::new_v4().to_string())
+    }
+
+    fn workout_with(plans: &[ExercisePlan]) -> WorkoutRecord {
         let mut active = empty_workout();
-        apply_add_exercises(&mut active, "w1", plans, &[], AppWeightUnit::Lb).unwrap();
+        apply_add_exercises(&mut active, "w1", plans, AppWeightUnit::Lb, &mut test_ids()).unwrap();
         active
     }
 
-    fn complete(active: &mut ActiveWorkout, proposed_id: &str) {
+    fn complete(active: &mut WorkoutRecord, proposed_id: &str) {
         active.completed_sets.push(CompletedSet {
             id: format!("c_{proposed_id}"),
             workout_id: "w1".to_string(),
@@ -717,7 +706,7 @@ mod plan_op_tests {
         });
     }
 
-    fn visible(active: &ActiveWorkout) -> Vec<&ProposedSet> {
+    fn visible(active: &WorkoutRecord) -> Vec<&ProposedSet> {
         active
             .proposed_sets
             .iter()
@@ -725,7 +714,7 @@ mod plan_op_tests {
             .collect()
     }
 
-    fn pending_warmup_weights(active: &ActiveWorkout, exercise: i32) -> Vec<f32> {
+    fn pending_warmup_weights(active: &WorkoutRecord, exercise: i32) -> Vec<f32> {
         let done: std::collections::HashSet<String> = active
             .completed_sets
             .iter()
@@ -739,7 +728,7 @@ mod plan_op_tests {
             .collect()
     }
 
-    fn adjust(active: &mut ActiveWorkout, exercise: i32, weight: f32) {
+    fn adjust(active: &mut WorkoutRecord, exercise: i32, weight: f32) {
         apply_adjust_exercise_weight(
             active,
             &AdjustExerciseWeightRequest {
@@ -749,6 +738,7 @@ mod plan_op_tests {
                 target_reps: 0,
             },
             AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .unwrap();
     }
@@ -780,6 +770,7 @@ mod plan_op_tests {
                 target_reps: 4,
             },
             AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .unwrap();
         let sets = visible(&active);
@@ -932,52 +923,12 @@ mod plan_op_tests {
             &mut active,
             "w1",
             &[plan(BENCH, 135.0, false)],
-            &[],
             AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .unwrap();
         let exercises: Vec<i32> = active.proposed_sets.iter().map(|s| s.exercise).collect();
         assert_eq!(exercises, vec![SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]);
-    }
-
-    #[test]
-    fn add_dedupes_client_ids_that_would_break_the_primary_key() {
-        // proposed_sets.id is a primary key: a duplicate id — repeated in
-        // the request or already present in the workout — must never make
-        // it into the plan, or the persist fails and (worse) wedges the
-        // offline queue behind a permanently failing mutation.
-        let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
-        let existing_id = active.proposed_sets[0].id.clone();
-        let ids = vec![
-            "dup".to_string(),
-            "dup".to_string(),
-            existing_id.clone(),
-            "fresh".to_string(),
-        ];
-        apply_add_exercises(
-            &mut active,
-            "w1",
-            &[plan(BENCH, 135.0, false)],
-            &ids,
-            AppWeightUnit::Lb,
-        )
-        .unwrap();
-        let mut seen = std::collections::HashSet::new();
-        assert!(
-            active
-                .proposed_sets
-                .iter()
-                .all(|s| seen.insert(s.id.clone())),
-            "every proposed set id must be unique"
-        );
-        let bench_ids: Vec<&str> = active
-            .proposed_sets
-            .iter()
-            .filter(|s| s.exercise == BENCH)
-            .map(|s| s.id.as_str())
-            .collect();
-        assert_eq!(bench_ids[0], "dup", "first use of a fresh id is kept");
-        assert_eq!(bench_ids[1], "fresh");
     }
 
     #[test]
@@ -988,8 +939,8 @@ mod plan_op_tests {
             &mut active,
             "w1",
             &[plan(BENCH, 135.0, false)],
-            &[],
-            AppWeightUnit::Lb
+            AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .is_err());
         assert!(apply_adjust_exercise_weight(
@@ -1001,6 +952,7 @@ mod plan_op_tests {
                 target_reps: 0,
             },
             AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .is_err());
         assert!(apply_remove_exercise(
@@ -1019,35 +971,6 @@ mod plan_op_tests {
             },
         )
         .is_err());
-    }
-
-    #[test]
-    fn add_adopts_client_working_set_ids_in_order() {
-        let mut active = empty_workout();
-        let ids = vec!["c1".to_string(), "c2".to_string(), "c3".to_string()];
-        apply_add_exercises(
-            &mut active,
-            "w1",
-            &[plan(SQUAT, 200.0, true)],
-            &ids,
-            AppWeightUnit::Lb,
-        )
-        .unwrap();
-        let working: Vec<&str> = active
-            .proposed_sets
-            .iter()
-            .filter(|s| !s.warmup)
-            .map(|s| s.id.as_str())
-            .collect();
-        assert_eq!(working, vec!["c1", "c2", "c3"]);
-        // Warmups never take client ids. (Their ids are UUIDs, which can
-        // legitimately begin with the hex digit 'c', so compare against the
-        // list rather than the prefix.)
-        assert!(active
-            .proposed_sets
-            .iter()
-            .filter(|s| s.warmup)
-            .all(|s| !ids.contains(&s.id)));
     }
 
     // ── AdjustExerciseWeight ────────────────────────────────────────────────
@@ -1166,8 +1089,8 @@ mod plan_op_tests {
             &mut active,
             "w1",
             &[plan(SQUAT, 200.0, true)],
-            &[],
             AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .unwrap();
         adjust(&mut active, SQUAT, 400.0);
@@ -1330,7 +1253,14 @@ mod plan_op_tests {
     #[test]
     fn every_op_rejects_the_wrong_workout() {
         let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
-        assert!(apply_add_exercises(&mut active, "other", &[], &[], AppWeightUnit::Lb).is_err());
+        assert!(apply_add_exercises(
+            &mut active,
+            "other",
+            &[],
+            AppWeightUnit::Lb,
+            &mut test_ids()
+        )
+        .is_err());
         assert!(apply_adjust_exercise_weight(
             &mut active,
             &AdjustExerciseWeightRequest {
@@ -1340,6 +1270,7 @@ mod plan_op_tests {
                 target_reps: 0,
             },
             AppWeightUnit::Lb,
+            &mut test_ids(),
         )
         .is_err());
         assert!(apply_remove_exercise(

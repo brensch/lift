@@ -1,3 +1,4 @@
+use crate::history::WorkoutRecord;
 use crate::pb::{
     CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
     WorkoutSummary,
@@ -139,9 +140,7 @@ pub fn compute_workout_summary(
 /// sets. Points are oldest-first per exercise; exercises are ordered
 /// most-improved first (by top-weight gain). One point per workout the exercise
 /// appears in.
-pub fn compute_exercise_progress(
-    workouts: &[(Workout, Vec<ProposedSet>, Vec<CompletedSet>)],
-) -> Vec<ExerciseProgress> {
+pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExerciseProgress> {
     struct Acc {
         top_weight: f32,
         top_reps: i32,
@@ -153,11 +152,15 @@ pub fn compute_exercise_progress(
     let mut index: HashMap<i32, usize> = HashMap::new();
     let mut series: Vec<ExerciseProgress> = Vec::new();
 
-    let mut ordered: Vec<&(Workout, Vec<ProposedSet>, Vec<CompletedSet>)> =
-        workouts.iter().collect();
-    ordered.sort_by_key(|(w, _, _)| w.start_time);
+    let mut ordered: Vec<&WorkoutRecord> = workouts.to_vec();
+    ordered.sort_by_key(|r| r.workout.start_time);
 
-    for (workout, proposed, completed) in ordered {
+    for record in ordered {
+        let (workout, proposed, completed) = (
+            &record.workout,
+            &record.proposed_sets,
+            &record.completed_sets,
+        );
         let proposed_by_id: HashMap<&str, &ProposedSet> =
             proposed.iter().map(|p| (p.id.as_str(), p)).collect();
 

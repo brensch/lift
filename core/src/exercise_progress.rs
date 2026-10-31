@@ -528,6 +528,7 @@ mod tests {
             },
             proposed_sets,
             completed_sets,
+            heart_rate: Vec::new(),
         }
     }
 

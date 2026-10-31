@@ -44,6 +44,7 @@ fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
         },
         proposed_sets: proposed,
         completed_sets: completed,
+        heart_rate: Vec::new(),
     }
 }
 

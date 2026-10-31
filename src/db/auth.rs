@@ -306,31 +306,11 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
+        sqlx::query("DELETE FROM account_events WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("DELETE FROM workouts WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM active_workout_current WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM progression_applied WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM user_settings_current WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM workout_templates WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM exercise_trackers WHERE user_id = ?")
-            .bind(user_id)
-            .execute(&mut *tx)
-            .await?;
-        sqlx::query("DELETE FROM user_message_events WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
@@ -352,6 +332,7 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
+        self.forget_account(user_id).await;
         Ok(())
     }
 }
@@ -408,19 +389,14 @@ mod account_deletion_tests {
             ("users_current", format!("(user_id, user_blob, username_ci, invite_token) VALUES (?, x'00', '{u}-name', '{u}-invite')")),
             ("auth_sessions", format!("(token, user_id, expires_at) VALUES ('{u}-tok', ?, 9999999999)")),
             ("passkey_credentials", format!("(credential_id, user_id, credential_json, created_at) VALUES ('{u}-cred', ?, '{{}}', 1)")),
+            ("account_events", "(user_id, seq, event_blob) VALUES (?, 1, x'00')".to_string()),
             ("workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-w1', ?, 'W', 1)")),
             ("proposed_sets", format!("(id, user_id, workout_id, workout_order, exercise, target_reps, target_weight) VALUES ('{u}-p1', ?, '{u}-w1', 0, 1, 5, 100.0)")),
             ("completed_sets", format!("(id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, ended_at) VALUES ('{u}-c1', ?, '{u}-w1', '{u}-p1', 5, 100.0, 1)")),
-            ("active_workout_current", format!("(user_id, workout_id) VALUES (?, '{u}-w1')")),
             ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
             ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),
             ("session_members", format!("(session_id, user_id, first_joined_at, last_seen_at, left_at) VALUES ('{u}-s1', ?, 1, 1, 0)")),
             ("workout_heart_rate_samples", format!("(id, user_id, workout_id, sampled_at, bpm) VALUES ('{u}-h1', ?, '{u}-w1', 1, 120.0)")),
-            ("progression_applied", format!("(workout_id, user_id, applied_at) VALUES ('{u}-w1', ?, 1)")),
-            ("user_settings_current", "(user_id, setting_type, setting_blob, updated_at) VALUES (?, 'units', x'00', 1)".to_string()),
-            ("workout_templates", format!("(id, user_id, name, template_order, template_blob, created_at, updated_at) VALUES ('{u}-tpl', ?, 'T', 0, x'00', 1, 1)")),
-            ("exercise_trackers", "(user_id, exercise, working_weight, current_reps, updated_at, source) VALUES (?, 1, 100.0, 6, 1, 'test')".to_string()),
-            ("user_message_events", "(user_id, message_key, created_at, updated_at, message_blob) VALUES (?, 'k', 1, 1, x'00')".to_string()),
             ("page_views", "(user_id, app_session_id, seq, page, entered_at_ms) VALUES (?, 's', 1, '/settings', 1)".to_string()),
             ("admins", "(user_id, granted_at) VALUES (?, 1)".to_string()),
         ];

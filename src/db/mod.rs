@@ -1,8 +1,5 @@
 use prost::Message;
-use schlift::workout::v1::{
-    CompletedSet, GetWorkoutResponse, ParticipantStatus, ProposedSet, UserMessage, UserSetting,
-    Workout, WorkoutHeartRatePoint, WorkoutTemplate,
-};
+use schlift::workout::v1::ParticipantStatus;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
@@ -13,13 +10,11 @@ use uuid::Uuid;
 
 use crate::time::now_unix;
 
+mod accounts;
 mod analytics;
 mod auth;
-mod cache;
-mod library;
-mod migration;
+pub use accounts::{Diverged, Pushed};
 mod session;
-mod workout;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
 
@@ -47,6 +42,17 @@ CREATE TABLE IF NOT EXISTS passkey_credentials (
 );
 CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id
     ON passkey_credentials(user_id, created_at DESC);
+
+-- Each account is a log of events (account.proto), made on the phone and
+-- synced. Everything about a person's training is the fold of their log;
+-- the workout tables below are projections of it, rewritten whenever a
+-- workout's events arrive, for SQL analytics and multiplayer history.
+CREATE TABLE IF NOT EXISTS account_events (
+    user_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    event_blob BLOB NOT NULL,
+    PRIMARY KEY(user_id, seq)
+);
 
 CREATE TABLE IF NOT EXISTS workouts (
     id TEXT PRIMARY KEY,
@@ -92,11 +98,6 @@ CREATE TABLE IF NOT EXISTS completed_sets (
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
 CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed ON completed_sets(proposed_set_id);
-
-CREATE TABLE IF NOT EXISTS active_workout_current (
-    user_id TEXT PRIMARY KEY,
-    workout_id TEXT NOT NULL
-);
 
 CREATE TABLE IF NOT EXISTS user_current_session (
     user_id TEXT PRIMARY KEY,
@@ -158,95 +159,6 @@ CREATE TABLE IF NOT EXISTS join_requests (
 CREATE INDEX IF NOT EXISTS idx_join_requests_to
     ON join_requests(to_user_id, created_at DESC);
 
--- Idempotency ledger for progression: one row per workout that has advanced
--- the trackers. The PRIMARY KEY makes a second EndWorkout for the same workout
--- a no-op claim, so a tracker can't move twice for one workout.
-CREATE TABLE IF NOT EXISTS progression_applied (
-    workout_id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    applied_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS user_settings_current (
-    user_id TEXT NOT NULL,
-    setting_type TEXT NOT NULL,
-    setting_blob BLOB NOT NULL,
-    updated_at INTEGER NOT NULL,
-    PRIMARY KEY(user_id, setting_type)
-);
-
--- A template is a named, ordered exercise list; the blob is the proto
--- WorkoutTemplate (name/order mirrored in columns for listing).
-CREATE TABLE IF NOT EXISTS workout_templates (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    template_order INTEGER NOT NULL DEFAULT 0,
-    template_blob BLOB NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_workout_templates_user
-    ON workout_templates(user_id, template_order);
-
--- One tracker per (user, exercise): the working weight and the position in
--- the rep range that double progression advances. Overrides of 0 = derived.
-CREATE TABLE IF NOT EXISTS exercise_trackers (
-    user_id TEXT NOT NULL,
-    exercise INTEGER NOT NULL,
-    working_weight REAL NOT NULL DEFAULT 0,
-    current_reps INTEGER NOT NULL DEFAULT 0,
-    consecutive_misses INTEGER NOT NULL DEFAULT 0,
-    last_performed_at INTEGER NOT NULL DEFAULT 0,
-    override_sets INTEGER NOT NULL DEFAULT 0,
-    override_rep_low INTEGER NOT NULL DEFAULT 0,
-    override_rep_high INTEGER NOT NULL DEFAULT 0,
-    consecutive_hard INTEGER NOT NULL DEFAULT 0,
-    updated_at INTEGER NOT NULL,
-    source TEXT NOT NULL DEFAULT '',
-    PRIMARY KEY(user_id, exercise)
-);
-
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    name TEXT PRIMARY KEY,
-    applied_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS user_message_events (
-    user_id TEXT NOT NULL,
-    message_key TEXT NOT NULL,
-    surface INTEGER NOT NULL DEFAULT 0,
-    workout_id TEXT NOT NULL DEFAULT '',
-    source_workout_id TEXT NOT NULL DEFAULT '',
-    exercise INTEGER NOT NULL DEFAULT 0,
-    slot_key TEXT NOT NULL DEFAULT '',
-    dismissed_at INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    message_blob BLOB NOT NULL,
-    PRIMARY KEY(user_id, message_key)
-);
-CREATE INDEX IF NOT EXISTS idx_user_message_events_user_surface
-    ON user_message_events(user_id, surface, workout_id, dismissed_at, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_user_message_events_user_workout
-    ON user_message_events(user_id, workout_id, dismissed_at, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
-    ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_user_message_events_user_slot
-    ON user_message_events(user_id, slot_key, dismissed_at, updated_at DESC);
-
-CREATE TABLE IF NOT EXISTS template_library (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    blurb TEXT NOT NULL DEFAULT '',
-    group_key TEXT NOT NULL DEFAULT '',
-    group_label TEXT NOT NULL DEFAULT '',
-    is_default INTEGER NOT NULL DEFAULT 0,
-    library_order INTEGER NOT NULL DEFAULT 0,
-    template_blob BLOB NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-
 -- First-party usage analytics: one row per screen visit. (user, session, seq)
 -- is the identity so a retried upload is ignored, not double counted.
 CREATE TABLE IF NOT EXISTS page_views (
@@ -292,10 +204,24 @@ CREATE TABLE IF NOT EXISTS admins (
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+/// Something a live view may need to redraw for. The Sync stream of every
+/// connected device listens and re-sends what concerns it.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Change {
+    /// A session's members or their progress.
+    Session(String),
+    /// A user's own session membership.
+    Membership(String),
+    /// Requests to join this user.
+    JoinRequests(String),
+}
+
 #[derive(Clone)]
 pub struct ServerDb {
     pub read_pool: Pool<Sqlite>,
     write_pool: Pool<Sqlite>,
+    accounts: std::sync::Arc<accounts::AccountCache>,
+    changes: tokio::sync::broadcast::Sender<Change>,
 }
 
 impl ServerDb {
@@ -318,39 +244,21 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         sqlx::query(SERVER_SCHEMA).execute(&write_pool).await?;
-        migration::run(&write_pool).await?;
-        sqlx::query(
-            "ALTER TABLE user_message_events ADD COLUMN source_workout_id TEXT NOT NULL DEFAULT ''",
-        )
-        .execute(&write_pool)
-        .await
-        .ok();
-        // Columns added after the tables shipped. Each ALTER fails harmlessly
-        // once the column exists; a fresh file gets them from SERVER_SCHEMA.
-        // (completed_sets.rest_skipped may exist in older files; nothing
-        // reads or writes it.)
-        for alter in [
-            "ALTER TABLE proposed_sets ADD COLUMN calibration INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE completed_sets ADD COLUMN effort INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE exercise_trackers ADD COLUMN consecutive_hard INTEGER NOT NULL DEFAULT 0",
-            // Older files may still have completed_sets.started_at from the
-            // first StartSet era; its meaning is the same.
-            "ALTER TABLE completed_sets ADD COLUMN started_at INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE workouts ADD COLUMN lifting_set_id TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE workouts ADD COLUMN lifting_started_at INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE proposed_sets ADD COLUMN skipped INTEGER NOT NULL DEFAULT 0",
-        ] {
-            sqlx::query(alter).execute(&write_pool).await.ok();
-        }
-        sqlx::query(
-            "CREATE INDEX IF NOT EXISTS idx_user_message_events_user_source_workout
-             ON user_message_events(user_id, source_workout_id, dismissed_at, updated_at DESC)",
-        )
-        .execute(&write_pool)
-        .await?;
         Ok(Self {
             read_pool,
             write_pool,
+            accounts: Default::default(),
+            changes: tokio::sync::broadcast::channel(1024).0,
         })
+    }
+
+    /// Hear about changes from now on.
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<Change> {
+        self.changes.subscribe()
+    }
+
+    fn notify(&self, change: Change) {
+        // No receivers is fine: nobody is watching.
+        let _ = self.changes.send(change);
     }
 }

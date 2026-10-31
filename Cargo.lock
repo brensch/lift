@@ -2015,11 +2015,14 @@ dependencies = [
 name = "schlift-core"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "prost",
  "prost-build",
+ "rand 0.8.5",
  "serde",
  "serde_yaml",
  "uuid",
+ "zstd",
 ]
 
 [[package]]

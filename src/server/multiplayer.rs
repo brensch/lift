@@ -9,10 +9,11 @@ use super::*;
 // Transitions:
 //   - JoinViaInvite: upsert both users' rows, backfill their active workouts' session_id,
 //     refresh both participant blobs.
-//   - StartWorkout: the workout row is stamped with the caller's current-session at start
-//     (handled in workout.rs).
-//   - Set actions: refresh caller's blob (handled in workout.rs).
-//   - EndWorkout: refresh caller's final blob, then delete caller's row (workout.rs).
+//   - A workout's first synced events: its projected row is stamped with the
+//     caller's current session (db/accounts.rs).
+//   - Any synced event: refresh the caller's blob (sync.rs).
+//   - A synced EndWorkout: refresh the caller's final blob, then delete the
+//     caller's row (sync.rs).
 //   - LeaveCurrentSession: delete caller's row, prune their live blob so peers stop
 //     seeing them, and stamp left_at on the durable session_members roster.
 //
@@ -48,9 +49,10 @@ impl ServerMultiplayerService {
             .map_err(internal_error)?;
         let active_workout_id = self
             .db
-            .get_active_workout_id(user_id)
+            .read_account(user_id, |account| account.active_workout_id.clone())
             .await
             .map_err(internal_error)?;
+        let active_workout_id = Some(active_workout_id).filter(|id| !id.is_empty());
         if let Some(workout_id) = active_workout_id.as_deref() {
             self.db
                 .update_workout_session_id(user_id, workout_id, session_id)
@@ -108,9 +110,6 @@ impl ServerMultiplayerService {
 
 #[tonic::async_trait]
 impl MultiplayerService for ServerMultiplayerService {
-    type SubscribeSessionStream =
-        Pin<Box<dyn futures_util::Stream<Item = Result<SessionSubscriptionEvent, Status>> + Send>>;
-
     async fn join_via_invite(
         &self,
         request: Request<JoinViaInviteRequest>,
@@ -175,29 +174,9 @@ impl MultiplayerService for ServerMultiplayerService {
         let _caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
         info!(rpc = "GetParticipantWorkout", user_id = %req.user_id, "request");
-        let user = self
-            .db
-            .get_user(&req.user_id)
-            .await
-            .map_err(internal_error)?
-            .ok_or_else(|| Status::not_found("User not found"))?;
-        let active = if let Some(workout_id) = self
-            .db
-            .get_active_workout_id(&req.user_id)
-            .await
-            .map_err(internal_error)?
-        {
-            self.db
-                .load_workout_full(&req.user_id, &workout_id)
-                .await
-                .map_err(internal_error)?
-        } else {
-            None
-        };
-        Ok(Response::new(build_participant_status(
-            user,
-            active.as_ref(),
-        )))
+        Ok(Response::new(
+            participant_status(&self.db, &req.user_id, None).await?,
+        ))
     }
 
     async fn get_current_session(
@@ -205,36 +184,8 @@ impl MultiplayerService for ServerMultiplayerService {
         request: Request<GetCurrentSessionRequest>,
     ) -> Result<Response<GetCurrentSessionResponse>, Status> {
         let caller_id = authed_user_id(&request, &self.db).await?;
-        let session_id = self
-            .db
-            .get_user_current_session(&caller_id)
-            .await
-            .map_err(internal_error)?
-            .unwrap_or_default();
-        info!(rpc = "GetCurrentSession", %caller_id, %session_id, "request");
-        if session_id.is_empty() {
-            return Ok(Response::new(GetCurrentSessionResponse {
-                session_id,
-                session_status: None,
-            }));
-        }
-        let mut participants = self
-            .db
-            .get_session_participants(&session_id)
-            .await
-            .map_err(internal_error)?;
-        participants.retain(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some(caller_id.as_str()));
-        Ok(Response::new(GetCurrentSessionResponse {
-            session_id: session_id.clone(),
-            session_status: Some(SessionStatus {
-                session_id,
-                participants,
-                next_up_user_id: String::new(),
-                next_up_set: None,
-                next_up_rest_until: 0,
-                currently_lifting_user_id: String::new(),
-            }),
-        }))
+        info!(rpc = "GetCurrentSession", %caller_id, "request");
+        Ok(Response::new(current_session(&self.db, &caller_id).await?))
     }
 
     async fn get_session_participants(
@@ -298,32 +249,6 @@ impl MultiplayerService for ServerMultiplayerService {
                 .map_err(internal_error)?;
         }
         Ok(Response::new(LeaveCurrentSessionResponse {}))
-    }
-
-    async fn subscribe_session(
-        &self,
-        _request: Request<SubscribeSessionRequest>,
-    ) -> Result<Response<Self::SubscribeSessionStream>, Status> {
-        Err(Status::unimplemented(
-            "server multiplayer uses polling, not streaming",
-        ))
-    }
-
-    async fn update_active_workout(
-        &self,
-        request: Request<UpdateActiveWorkoutRequest>,
-    ) -> Result<Response<UpdateActiveWorkoutResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        info!(rpc = "UpdateActiveWorkout", %user_id, "request");
-        if let Some(session_id) = self
-            .db
-            .get_user_current_session(&user_id)
-            .await
-            .map_err(internal_error)?
-        {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, None).await?;
-        }
-        Ok(Response::new(UpdateActiveWorkoutResponse {}))
     }
 
     async fn get_training_partners(
@@ -423,24 +348,7 @@ impl MultiplayerService for ServerMultiplayerService {
         request: Request<GetJoinRequestsRequest>,
     ) -> Result<Response<GetJoinRequestsResponse>, Status> {
         let caller_id = authed_user_id(&request, &self.db).await?;
-        // Only fresh asks (last 2 minutes) so a stale request doesn't linger.
-        let since = now_unix() - 120;
-        let rows = self
-            .db
-            .list_incoming_join_requests(&caller_id, since)
-            .await
-            .map_err(internal_error)?;
-        let mut requests = Vec::with_capacity(rows.len());
-        for (request_id, from_id, created_at) in rows {
-            if let Some(user) = self.db.get_user(&from_id).await.map_err(internal_error)? {
-                requests.push(JoinRequest {
-                    request_id,
-                    from_user: Some(user),
-                    created_at,
-                });
-            }
-        }
-        Ok(Response::new(GetJoinRequestsResponse { requests }))
+        Ok(Response::new(join_requests(&self.db, &caller_id).await?))
     }
 
     async fn respond_join_request(
@@ -480,3 +388,62 @@ impl MultiplayerService for ServerMultiplayerService {
         Ok(Response::new(RespondJoinRequestResponse { session_id }))
     }
 }
+
+/// The caller's current session as they see it: everyone else in it and
+/// where each is up to. Empty when not in one.
+pub(super) async fn current_session(
+    db: &ServerDb,
+    user_id: &str,
+) -> ServerResult<GetCurrentSessionResponse> {
+    let session_id = db
+        .get_user_current_session(user_id)
+        .await
+        .map_err(internal_error)?
+        .unwrap_or_default();
+    if session_id.is_empty() {
+        return Ok(GetCurrentSessionResponse::default());
+    }
+    let mut participants = db
+        .get_session_participants(&session_id)
+        .await
+        .map_err(internal_error)?;
+    participants.retain(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some(user_id));
+    Ok(GetCurrentSessionResponse {
+        session_id: session_id.clone(),
+        session_status: Some(SessionStatus {
+            session_id,
+            participants,
+            next_up_user_id: String::new(),
+            next_up_set: None,
+            next_up_rest_until: 0,
+            currently_lifting_user_id: String::new(),
+        }),
+    })
+}
+
+/// Fresh requests to join the user (the last two minutes, so a stale ask
+/// doesn't linger).
+pub(super) async fn join_requests(
+    db: &ServerDb,
+    user_id: &str,
+) -> ServerResult<GetJoinRequestsResponse> {
+    let since = now_unix() - JOIN_REQUEST_TTL_SECONDS;
+    let rows = db
+        .list_incoming_join_requests(user_id, since)
+        .await
+        .map_err(internal_error)?;
+    let mut requests = Vec::with_capacity(rows.len());
+    for (request_id, from_id, created_at) in rows {
+        if let Some(user) = db.get_user(&from_id).await.map_err(internal_error)? {
+            requests.push(JoinRequest {
+                request_id,
+                from_user: Some(user),
+                created_at,
+            });
+        }
+    }
+    Ok(GetJoinRequestsResponse { requests })
+}
+
+/// How long a request to join stays answerable.
+pub(super) const JOIN_REQUEST_TTL_SECONDS: i64 = 120;

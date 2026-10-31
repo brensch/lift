@@ -1,11 +1,11 @@
 use super::*;
+use crate::ids::{derived_id, Ids};
 use crate::pb::{
     EditCompletedSetRequest, Effort, EffortPrompt, RateExerciseRequest, SkipWarmupsRequest,
     StartSetRequest, Workout,
 };
 use crate::progress::compute_next_up_set;
 use crate::weight_units::AppWeightUnit;
-use uuid::Uuid;
 
 const STATE_ALL_DONE: i32 = 1;
 const STATE_RESTING: i32 = 3;
@@ -196,8 +196,7 @@ pub fn workout_state_snapshot(
     }
 }
 
-pub fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWorkoutResponse {
-    let now = now_unix();
+pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> GetWorkoutResponse {
     let state_snapshot = Some(workout_state_snapshot(
         &active.workout,
         &active.proposed_sets,
@@ -223,8 +222,11 @@ pub fn get_workout_response_from_active(active: &ActiveWorkout) -> GetWorkoutRes
     }
 }
 
-pub fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkoutResponse {
-    let resp = get_workout_response_from_active(active);
+pub fn start_workout_response_from_active(
+    active: &WorkoutRecord,
+    now: i64,
+) -> StartWorkoutResponse {
+    let resp = get_workout_response_from_active(active, now);
     StartWorkoutResponse {
         id: active.workout.id.clone(),
         workout: resp.workout,
@@ -238,11 +240,11 @@ pub fn start_workout_response_from_active(active: &ActiveWorkout) -> StartWorkou
 
 pub fn active_from_get_workout_response(
     resp: GetWorkoutResponse,
-) -> Result<ActiveWorkout, WorkoutError> {
+) -> Result<WorkoutRecord, WorkoutError> {
     let workout = resp
         .workout
         .ok_or_else(|| WorkoutError::internal("Checkpoint missing workout"))?;
-    Ok(ActiveWorkout::new(
+    Ok(WorkoutRecord::new(
         workout,
         resp.proposed_sets,
         resp.completed_sets,
@@ -258,7 +260,7 @@ pub fn active_from_get_workout_response(
 /// Nothing is removed; they stay in the plan, nothing waits on them
 /// (`is_passed_warmup`), and doing one later still records it.
 pub fn apply_skip_warmups_to_active(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &SkipWarmupsRequest,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
@@ -281,7 +283,7 @@ pub fn apply_skip_warmups_to_active(
 }
 
 pub fn apply_start_set_to_active(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &StartSetRequest,
     now: i64,
 ) -> Result<(), WorkoutError> {
@@ -313,9 +315,10 @@ pub fn apply_start_set_to_active(
 /// for it there and then, exactly as `RateExercise` would (on a calibration
 /// rung that appends the next rung or the working sets, in [unit]).
 pub fn apply_complete_set_to_active(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &CompleteSetRequest,
     unit: AppWeightUnit,
+    ids: &mut Ids,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
@@ -345,11 +348,7 @@ pub fn apply_complete_set_to_active(
         // reconciles the watch to the real state.
         None => return Ok(()),
     };
-    let ended_at = if req.completed_at > 0 {
-        req.completed_at
-    } else {
-        now_unix()
-    };
+    let ended_at = req.completed_at;
     let is_final_set_of_exercise = is_final_set_of_exercise_after_completion(
         &req.proposed_set_id,
         &workout_ref.proposed_sets,
@@ -365,7 +364,7 @@ pub fn apply_complete_set_to_active(
     };
     workout_ref.workout.lifting_set_id.clear();
     workout_ref.workout.lifting_started_at = 0;
-    let completed_set_id = Uuid::new_v4().to_string();
+    let completed_set_id = ids.new_id();
     workout_ref.completed_sets.push(CompletedSet {
         id: completed_set_id.clone(),
         workout_id: req.workout_id.clone(),
@@ -425,7 +424,7 @@ fn rest_seconds_after(proposed: &ProposedSet, actual_reps: i32, is_final: bool) 
 /// is recomputed from `ended_at` by the same rule Done used (fewer reps
 /// than planned switches to the failure rest). An unknown set is a no-op.
 pub fn apply_edit_completed_set_to_active(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &EditCompletedSetRequest,
     unit: AppWeightUnit,
 ) -> Result<(), WorkoutError> {
@@ -488,7 +487,7 @@ pub fn apply_edit_completed_set_to_active(
 /// append (the weight was typed, the exercise removed) only the answer
 /// changes.
 pub fn apply_rate_exercise_to_active(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &RateExerciseRequest,
     unit: AppWeightUnit,
 ) -> Result<(), WorkoutError> {
@@ -557,7 +556,7 @@ pub fn apply_rate_exercise_to_active(
 
 /// Close every unanswered done calibration rung of `exercise` as right,
 /// without extending the ramp — the user typed their weight instead.
-pub(super) fn close_open_rungs(workout_ref: &mut ActiveWorkout, exercise: i32) {
+pub(super) fn close_open_rungs(workout_ref: &mut WorkoutRecord, exercise: i32) {
     let open: Vec<String> = workout_ref
         .completed_sets
         .iter()
@@ -578,7 +577,7 @@ pub(super) fn close_open_rungs(workout_ref: &mut ActiveWorkout, exercise: i32) {
 /// No question survives the end of a workout: everything still open is
 /// answered "right" before progression reads the efforts. A rung closed
 /// here appends nothing — pending rows on a finished workout are wrong.
-pub fn resolve_all_effort(workout_ref: &mut ActiveWorkout) {
+pub fn resolve_all_effort(workout_ref: &mut WorkoutRecord) {
     resolve_unanswered(workout_ref, false);
 }
 
@@ -586,7 +585,7 @@ pub fn resolve_all_effort(workout_ref: &mut ActiveWorkout) {
 /// oldest first. With `extend_ramp` a closed rung appends as a "right"
 /// answer would (CompleteSet); without it nothing is appended (EndWorkout).
 /// Nothing else resolves — not the clock, not other mutations.
-fn resolve_unanswered(workout_ref: &mut ActiveWorkout, extend_ramp: bool) {
+fn resolve_unanswered(workout_ref: &mut WorkoutRecord, extend_ramp: bool) {
     loop {
         let open = workout_ref
             .completed_sets
@@ -612,7 +611,7 @@ fn resolve_unanswered(workout_ref: &mut ActiveWorkout, extend_ramp: bool) {
     }
 }
 
-fn set_effort(workout_ref: &mut ActiveWorkout, completed_set_id: &str, effort: Effort) {
+fn set_effort(workout_ref: &mut WorkoutRecord, completed_set_id: &str, effort: Effort) {
     if let Some(set) = workout_ref
         .completed_sets
         .iter_mut()
@@ -625,7 +624,7 @@ fn set_effort(workout_ref: &mut ActiveWorkout, completed_set_id: &str, effort: E
 /// Store an answer and, with `extend_ramp`, on a calibration rung append
 /// what the answer calls for (see `ramp_append`) straight after the rung.
 fn answer(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     completed_set_id: &str,
     effort: Effort,
     unit: AppWeightUnit,
@@ -658,7 +657,7 @@ fn answer(
 /// What an answer on a calibration rung appends, with its ids — the plan
 /// in `workout_ref` is not touched (see `would_append`).
 fn ramp_append(
-    workout_ref: &ActiveWorkout,
+    workout_ref: &WorkoutRecord,
     rung: &ProposedSet,
     completed_set_id: &str,
     effort: Effort,
@@ -715,7 +714,7 @@ pub fn would_append(
         }
     };
     for (n, set) in appended.iter_mut().enumerate() {
-        set.id = planning::derived_set_id(completed_set_id, n);
+        set.id = derived_id(completed_set_id, n);
     }
     appended
 }
@@ -747,7 +746,7 @@ pub fn awaiting_ramp_set(
 }
 
 pub fn apply_delete_completed_set_to_active(
-    workout_ref: &mut ActiveWorkout,
+    workout_ref: &mut WorkoutRecord,
     req: &DeleteCompletedSetRequest,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
@@ -763,6 +762,7 @@ pub fn apply_delete_completed_set_to_active(
 mod tests {
     use super::*;
     use crate::pb::Workout;
+    use uuid::Uuid;
 
     fn proposed(id: &str, order: i32, warmup: bool) -> ProposedSet {
         ProposedSet {
@@ -781,8 +781,8 @@ mod tests {
         }
     }
 
-    fn active_with(sets: Vec<ProposedSet>) -> ActiveWorkout {
-        ActiveWorkout::new(
+    fn active_with(sets: Vec<ProposedSet>) -> WorkoutRecord {
+        WorkoutRecord::new(
             Workout {
                 id: "w1".to_string(),
                 name: "Test".to_string(),
@@ -796,7 +796,7 @@ mod tests {
         )
     }
 
-    fn complete(active: &mut ActiveWorkout, set_id: &str, reps: i32, at: i64) {
+    fn complete(active: &mut WorkoutRecord, set_id: &str, reps: i32, at: i64) {
         apply_complete_set_to_active(
             active,
             &CompleteSetRequest {
@@ -808,11 +808,12 @@ mod tests {
                 effort: 0,
             },
             AppWeightUnit::Lb,
+            &mut Ids::new(&Uuid::new_v4().to_string()),
         )
         .unwrap();
     }
 
-    fn start(active: &mut ActiveWorkout, set_id: &str, at: i64) {
+    fn start(active: &mut WorkoutRecord, set_id: &str, at: i64) {
         apply_start_set_to_active(
             active,
             &StartSetRequest {
@@ -906,6 +907,7 @@ mod tests {
                 effort: Effort::Hard as i32,
             },
             AppWeightUnit::Lb,
+            &mut Ids::new(&Uuid::new_v4().to_string()),
         )
         .unwrap();
         assert_eq!(active.completed_sets[0].effort, Effort::Hard as i32);
@@ -943,6 +945,7 @@ mod tests {
                 effort: 0,
             },
             AppWeightUnit::Lb,
+            &mut Ids::new(&Uuid::new_v4().to_string()),
         );
         assert!(err.is_err());
         assert!(active.completed_sets.is_empty());
@@ -990,7 +993,7 @@ mod tests {
 
     // ── Any set, any order: warmups are never removed ───────────────────────
 
-    fn snap_at(active: &ActiveWorkout, now: i64) -> WorkoutStateSnapshot {
+    fn snap_at(active: &WorkoutRecord, now: i64) -> WorkoutStateSnapshot {
         workout_state_snapshot(
             &active.workout,
             &active.proposed_sets,
@@ -1243,7 +1246,7 @@ mod tests {
 
     // ── Exceptions: edit a done set ──────────────────────────────────────
 
-    fn done_id(active: &ActiveWorkout, proposed_id: &str) -> String {
+    fn done_id(active: &WorkoutRecord, proposed_id: &str) -> String {
         active
             .completed_sets
             .iter()
@@ -1253,7 +1256,7 @@ mod tests {
             .clone()
     }
 
-    fn edit(active: &mut ActiveWorkout, completed_id: &str, reps: i32, weight: f32) {
+    fn edit(active: &mut WorkoutRecord, completed_id: &str, reps: i32, weight: f32) {
         apply_edit_completed_set_to_active(
             active,
             &EditCompletedSetRequest {
@@ -1268,12 +1271,12 @@ mod tests {
     }
 
     /// Answer for the done set that completed `proposed_id`.
-    fn rate(active: &mut ActiveWorkout, proposed_id: &str, effort: Effort) {
+    fn rate(active: &mut WorkoutRecord, proposed_id: &str, effort: Effort) {
         let id = done_id(active, proposed_id);
         rate_id(active, &id, effort);
     }
 
-    fn rate_id(active: &mut ActiveWorkout, completed_id: &str, effort: Effort) {
+    fn rate_id(active: &mut WorkoutRecord, completed_id: &str, effort: Effort) {
         apply_rate_exercise_to_active(
             active,
             &RateExerciseRequest {
@@ -1286,7 +1289,7 @@ mod tests {
         .unwrap();
     }
 
-    fn snapshot(active: &ActiveWorkout, now: i64) -> WorkoutStateSnapshot {
+    fn snapshot(active: &WorkoutRecord, now: i64) -> WorkoutStateSnapshot {
         workout_state_snapshot(
             &active.workout,
             &active.proposed_sets,
@@ -1467,7 +1470,7 @@ mod tests {
 
     /// A squat rung at `weight` followed by another exercise's set, so the
     /// splice point is observable.
-    fn ramp_workout(weight: f32) -> ActiveWorkout {
+    fn ramp_workout(weight: f32) -> WorkoutRecord {
         let mut rung = proposed("c1", 0, false);
         rung.calibration = true;
         rung.target_reps = 5;
@@ -1479,7 +1482,7 @@ mod tests {
         active_with(vec![rung, other])
     }
 
-    fn squat_sets(active: &ActiveWorkout) -> Vec<&ProposedSet> {
+    fn squat_sets(active: &WorkoutRecord) -> Vec<&ProposedSet> {
         active
             .proposed_sets
             .iter()
@@ -1755,7 +1758,7 @@ mod tests {
         assert_eq!(active.proposed_sets, plan, "the typed weight's sets stay");
     }
 
-    fn adjust(active: &mut ActiveWorkout, exercise: i32, weight: f32) {
+    fn adjust(active: &mut WorkoutRecord, exercise: i32, weight: f32) {
         apply_adjust_exercise_weight(
             active,
             &AdjustExerciseWeightRequest {
@@ -1765,6 +1768,7 @@ mod tests {
                 target_reps: 0,
             },
             AppWeightUnit::Lb,
+            &mut Ids::new(&Uuid::new_v4().to_string()),
         )
         .unwrap();
     }
@@ -1983,7 +1987,7 @@ mod tests {
             "by the rung's rest"
         );
 
-        let response = get_workout_response_from_active(&active);
+        let response = get_workout_response_from_active(&active, 2_090);
         assert_eq!(
             response.next_up_set.unwrap().id,
             display.id,

@@ -22,7 +22,8 @@ service MultiplayerService {
   rpc GetParticipantWorkout(GetParticipantWorkoutRequest) returns (ParticipantStatus);
 
   // Get the caller's current group session. Reads user_current_session — membership is
-  // independent of whether the caller has an active workout.
+  // independent of whether the caller has an active workout. The Sync stream
+  // (account.proto) pushes the same thing whenever it changes.
   rpc GetCurrentSession(GetCurrentSessionRequest) returns (GetCurrentSessionResponse);
 
   // Manually leave the caller's current session. Keeps the caller's last participant blob
@@ -32,13 +33,6 @@ service MultiplayerService {
   // Fetch every participant snapshot ever recorded for a specific session.
   // Used for historical views (e.g. "who was in this past workout's session").
   rpc GetSessionParticipants(GetSessionParticipantsRequest) returns (GetSessionParticipantsResponse);
-
-  // Subscribe to live updates for a current multiplayer session.
-  // The server always emits a full snapshot immediately after subscribe.
-  rpc SubscribeSession(SubscribeSessionRequest) returns (stream SessionSubscriptionEvent);
-
-  // Refresh the caller's participant snapshot in the session cache.
-  rpc UpdateActiveWorkout(UpdateActiveWorkoutRequest) returns (UpdateActiveWorkoutResponse);
 
   // People the caller has trained with (shared a session), most-recent first.
   // Backed by the durable session_members roster, so it survives leaving a
@@ -103,22 +97,6 @@ message GetCurrentSessionResponse {
   string session_id = 1;
   SessionStatus session_status = 2; // populated if session_id is present
 }
-
-message SubscribeSessionRequest {
-  string session_id = 1; // Optional: if omitted, subscribes to caller's current session.
-}
-
-message SessionSubscriptionEvent {
-  string session_id = 1;
-  int64 version = 2;
-  SessionStatus session_status = 3;
-}
-
-message UpdateActiveWorkoutRequest {
-  string workout_id = 1;
-}
-
-message UpdateActiveWorkoutResponse {}
 
 message SessionStatus {
   string session_id = 1;

@@ -2,17 +2,21 @@
 //! workout, in-session encouragement, and workout-briefing cards. Pure
 //! functions from state to `UserMessage` — no I/O.
 
-use super::*;
 use crate::exercise_catalog::exercise_display_name;
+use crate::pb::{
+    user_message_details, Exercise, ProgressionChangeKind, ProgressionDetails,
+    ProgressionMetricKind, ProgressionReasonKind, ProposedSet, UserMessage, UserMessageDetails,
+    UserMessageKind, UserMessageSurface,
+};
 
-pub(super) fn build_message(
+pub fn build_message(
     key: impl Into<String>,
     kind: UserMessageKind,
     surface: UserMessageSurface,
     title: impl Into<String>,
     body: impl Into<String>,
+    now: i64,
 ) -> UserMessage {
-    let now = now_unix();
     UserMessage {
         message_key: key.into(),
         kind: kind as i32,
@@ -30,27 +34,28 @@ pub(super) fn build_message(
     }
 }
 
-pub(super) fn slot_key_for_exercise(exercise: Exercise) -> String {
+pub fn slot_key_for_exercise(exercise: Exercise) -> String {
     exercise.as_str_name().to_ascii_lowercase()
 }
 
 /// Everything a progression message needs. A struct rather than a parameter
 /// list because the call sites pass a dozen values, most of them optional, and
 /// positional arguments made them unreadable and easy to transpose.
-pub(super) struct ProgressionMessage<'a> {
-    pub(super) key: String,
-    pub(super) kind: UserMessageKind,
-    pub(super) exercise: Exercise,
-    pub(super) slot_key: String,
-    pub(super) source_workout_id: &'a str,
-    pub(super) previous_weight: f32,
-    pub(super) next_weight: f32,
-    pub(super) previous_stage: Option<&'a str>,
-    pub(super) next_stage: Option<&'a str>,
-    pub(super) context_label: Option<&'a str>,
-    pub(super) metric_kind: ProgressionMetricKind,
-    pub(super) reason_kind: ProgressionReasonKind,
-    pub(super) reason_text: Option<&'a str>,
+pub struct ProgressionMessage<'a> {
+    pub key: String,
+    pub kind: UserMessageKind,
+    pub exercise: Exercise,
+    pub slot_key: String,
+    pub source_workout_id: &'a str,
+    pub previous_weight: f32,
+    pub next_weight: f32,
+    pub previous_stage: Option<&'a str>,
+    pub next_stage: Option<&'a str>,
+    pub context_label: Option<&'a str>,
+    pub metric_kind: ProgressionMetricKind,
+    pub reason_kind: ProgressionReasonKind,
+    pub reason_text: Option<&'a str>,
+    pub now: i64,
 }
 
 impl Default for ProgressionMessage<'_> {
@@ -69,11 +74,12 @@ impl Default for ProgressionMessage<'_> {
             metric_kind: ProgressionMetricKind::Unspecified,
             reason_kind: ProgressionReasonKind::Unspecified,
             reason_text: None,
+            now: 0,
         }
     }
 }
 
-pub(super) fn build_progression_message(params: ProgressionMessage<'_>) -> UserMessage {
+pub fn build_progression_message(params: ProgressionMessage<'_>) -> UserMessage {
     let ProgressionMessage {
         key,
         kind,
@@ -88,6 +94,7 @@ pub(super) fn build_progression_message(params: ProgressionMessage<'_>) -> UserM
         metric_kind,
         reason_kind,
         reason_text,
+        now,
     } = params;
     let change_kind = match kind {
         UserMessageKind::LoadIncrease => ProgressionChangeKind::Increase,
@@ -102,6 +109,7 @@ pub(super) fn build_progression_message(params: ProgressionMessage<'_>) -> UserM
         UserMessageSurface::WorkoutBriefing,
         String::new(),
         String::new(),
+        now,
     );
     message.exercise = exercise as i32;
     message.slot_key = slot_key;
@@ -125,12 +133,8 @@ pub(super) fn build_progression_message(params: ProgressionMessage<'_>) -> UserM
     message
 }
 
-pub(super) fn retarget_progression_message(message: &UserMessage) -> UserMessage {
-    message.clone()
-}
-
 /// Pending briefing messages whose slot matches an exercise in the workout.
-pub(super) fn attachable_briefing_messages_for_workout(
+pub fn attachable_briefing_messages_for_workout(
     pending_messages: &[UserMessage],
     exercises: &[i32],
 ) -> Vec<String> {
@@ -150,7 +154,7 @@ pub(super) fn attachable_briefing_messages_for_workout(
         .collect()
 }
 
-pub(super) fn session_messages_for_completed_set(
+pub fn session_messages_for_completed_set(
     workout_id: &str,
     proposed_set: &ProposedSet,
     actual_reps: i32,
@@ -173,6 +177,7 @@ pub(super) fn session_messages_for_completed_set(
             actual_reps,
             proposed_set.target_reps,
         ),
+        ended_at,
     );
     message.workout_id = workout_id.to_string();
     message.source_workout_id = workout_id.to_string();

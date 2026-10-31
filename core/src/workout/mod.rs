@@ -1,11 +1,9 @@
+use crate::history::WorkoutRecord;
 pub use crate::pb::{
     AdjustExerciseWeightRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
     GetWorkoutResponse, ProposedSet, RemoveExerciseRequest, ReorderExercisesRequest,
     StartWorkoutResponse, WorkoutPlanChangeStats, WorkoutStateSnapshot,
 };
-use crate::state::ActiveWorkout;
-use std::time::{SystemTime, UNIX_EPOCH};
-use uuid::Uuid;
 
 mod planning;
 mod reducer;
@@ -37,14 +35,6 @@ impl WorkoutError {
     pub fn internal(message: &'static str) -> Self {
         Self::Internal(message)
     }
-}
-
-// Helper to get current Unix timestamp
-pub fn now_unix() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
 }
 
 /// Rest after an exercise's final set — no point in a full working rest when

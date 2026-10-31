@@ -6,13 +6,17 @@ pub mod pb {
     include!(concat!(env!("OUT_DIR"), "/workout.v1.rs"));
 }
 
+pub mod account;
+pub mod api;
 pub mod exercise_catalog;
 pub mod exercise_progress;
 pub mod history;
+pub mod ids;
+pub mod messages;
 pub mod onboarding;
 pub mod progress;
 pub mod recovery;
-pub mod state;
+pub mod sync;
 pub mod template_library;
 pub mod time;
 pub mod volume;

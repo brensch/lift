@@ -68,18 +68,7 @@ impl UserService for ServerUserService {
             .await
             .map_err(internal_error)?
         {
-            let active_workout_id = self
-                .db
-                .get_active_workout_id(&user_id)
-                .await
-                .map_err(internal_error)?;
-            refresh_participant_for_user(
-                &self.db,
-                &user_id,
-                &session_id,
-                active_workout_id.as_deref(),
-            )
-            .await?;
+            refresh_participant_for_user(&self.db, &user_id, &session_id, None).await?;
         }
 
         Ok(Response::new(UpdateMyProfileResponse { user: Some(user) }))

@@ -48,6 +48,5 @@ message GetSettingsResponse {
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 service SettingsService {
-  rpc UpdateSetting(UpdateSettingRequest) returns (UpdateSettingResponse);
   rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
 }
