@@ -29,6 +29,7 @@ import '../../theme/theme_spec.dart';
 import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
+import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -245,6 +246,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     selected: emptySelected,
                     onTap: () =>
                         setState(() => _selectedTemplateId = _emptyWorkoutId),
+                  ),
+                  // Straight to a blank workout of your own.
+                  _ActionChip(
+                    icon: AppIcons.add,
+                    label: copy.library.newButton,
+                    selected: false,
+                    onTap: () => _editTemplate(null),
                   ),
                   TutorialTarget(
                     id: 'home_add',

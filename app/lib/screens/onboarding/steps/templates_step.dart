@@ -7,10 +7,8 @@ import 'package:flutter/material.dart';
 
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/workout.pb.dart';
-import '../../../logic/exercises.dart';
-import '../../home/template_library_sheet.dart';
+import '../../../widgets/template_row.dart';
 import '../../../theme/theme_spec.dart';
-import '../../../theme/app_icons.dart';
 
 class TemplatesStep extends StatelessWidget {
   final List<LibraryTemplate>? library; // null while loading
@@ -95,10 +93,12 @@ class TemplatesStep extends StatelessWidget {
                           ),
                         ),
                         for (final entry in group.value)
-                          _TemplateRow(
-                            entry: entry,
+                          TemplateRow(
+                            name: entry.name,
+                            blurb: entry.blurb,
+                            exercises: entry.exercises,
                             selected: selected.contains(entry.id),
-                            onToggle: () => onToggle(entry.id),
+                            onTap: () => onToggle(entry.id),
                           ),
                       ],
                     ],
@@ -153,105 +153,6 @@ class TemplatesStep extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// One table row: tick box, name, and a chevron that drops down the
-/// exercise list so the whole library fits on screen until you want detail.
-class _TemplateRow extends StatefulWidget {
-  final LibraryTemplate entry;
-  final bool selected;
-  final VoidCallback onToggle;
-
-  const _TemplateRow({
-    required this.entry,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  @override
-  State<_TemplateRow> createState() => _TemplateRowState();
-}
-
-class _TemplateRowState extends State<_TemplateRow> {
-  bool _open = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final entry = widget.entry;
-    final selected = widget.selected;
-    final names = entry.exercises
-        .map((e) => exerciseNames[e] ?? e.name)
-        .join(' · ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InkWell(
-          onTap: widget.onToggle,
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
-            child: Row(
-              children: [
-                SelectBox(selected: selected, colorScheme: cs),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    entry.name,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.bodyLg,
-                      fontWeight: selected
-                          ? context.tokens.weight.heavy
-                          : context.tokens.weight.bold,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => setState(() => _open = !_open),
-                  icon: Icon(_open ? AppIcons.expandUp : AppIcons.expandDown),
-                  color: cs.onSurface.withValues(alpha: 0.6),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (_open)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(36, 6, 12, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (entry.blurb.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      entry.blurb,
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        color: cs.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ),
-                Text(
-                  names,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.small,
-                    height: 1.4,
-                    color: cs.onSurface.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }

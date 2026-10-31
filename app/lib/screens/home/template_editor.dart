@@ -1,4 +1,5 @@
-/// The template editor: a name and an ordered exercise list. That is the
+/// The template editor, a page of its own: a name and an ordered exercise
+/// list. That is the
 /// whole thing — sets, reps, rest and weight are prescribed, and per-
 /// exercise adjustments live on the tracker (tap a row), so they apply in
 /// every template that contains the exercise.
@@ -14,6 +15,7 @@ import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/common/flat.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
@@ -23,15 +25,13 @@ Future<void> showTemplateEditor(
   required WorkoutTemplate? template,
   required WorkoutProvider provider,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    routeSettings: const RouteSettings(name: 'sheet/template-editor'),
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ChangeNotifierProvider.value(
-      value: provider,
-      child: _TemplateEditorSheet(template: template),
+  return Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      settings: const RouteSettings(name: '/template-editor'),
+      builder: (_) => ChangeNotifierProvider.value(
+        value: provider,
+        child: _TemplateEditorSheet(template: template),
+      ),
     ),
   );
 }
@@ -113,132 +113,106 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     final wp = context.watch<WorkoutProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.sheetColor(context),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        left: 20,
-        right: 20,
-        top: 8,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(child: AppTheme.sheetHandle(context, inset: 20)),
-          Row(
+    return Scaffold(
+      appBar: AppBar(title: PageTitle(_isNew ? 'New workout' : 'Edit workout')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Text(
-                  _isNew ? 'New template' : 'Edit template',
-                  style: TextStyle(
-                    fontSize: context.tokens.size.subtitle,
-                    fontWeight: context.tokens.weight.heavy,
-                    letterSpacing: -0.3,
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  hintText: 'Name, e.g. Push, Legs, Tuesday',
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
+                  border: OutlineInputBorder(borderRadius: context.tokens.brSm),
+                ),
+                style: TextStyle(
+                  fontSize: context.tokens.size.body,
+                  fontWeight: context.tokens.weight.bold,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: _exercises.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          'Add exercises. Tap one to adjust its weight or '
+                          'sets. That adjustment follows the exercise '
+                          'everywhere.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: cs.onSurface.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      )
+                    : ReorderableListView.builder(
+                        buildDefaultDragHandles: false,
+                        itemCount: _exercises.length,
+                        onReorderItem: (oldIndex, newIndex) {
+                          setState(() {
+                            if (newIndex > oldIndex) newIndex -= 1;
+                            final moved = _exercises.removeAt(oldIndex);
+                            _exercises.insert(newIndex, moved);
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final exercise = _exercises[index];
+                          return _ExerciseRow(
+                            key: ValueKey(exercise.value),
+                            index: index,
+                            exercise: exercise,
+                            tracker: wp.trackerFor(exercise),
+                            unit: unit,
+                            onRemove: () =>
+                                setState(() => _exercises.removeAt(index)),
+                            onTap: () => _editTracker(exercise),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _addExercises,
+                icon: const Icon(AppIcons.add, size: 18),
+                label: Text(
+                  'ADD EXERCISES',
+                  style: TextStyle(fontWeight: context.tokens.weight.heavy),
                 ),
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(AppIcons.close),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 54,
+                child: FilledButton(
+                  onPressed:
+                      _nameController.text.trim().isEmpty || _exercises.isEmpty
+                      ? null
+                      : _save,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          'SAVE',
+                          style: TextStyle(
+                            fontWeight: context.tokens.weight.heavy,
+                            fontSize: context.tokens.size.bodyLg,
+                          ),
+                        ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _nameController,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              hintText: 'Name, e.g. Push, Legs, Tuesday',
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(borderRadius: context.tokens.brSm),
-            ),
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              fontWeight: context.tokens.weight.bold,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 14),
-          Flexible(
-            child: _exercises.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text(
-                      'Add exercises. Tap one to adjust its weight or '
-                      'sets. That adjustment follows the exercise '
-                      'everywhere.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: cs.onSurface.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  )
-                : ReorderableListView.builder(
-                    shrinkWrap: true,
-                    buildDefaultDragHandles: false,
-                    itemCount: _exercises.length,
-                    onReorderItem: (oldIndex, newIndex) {
-                      setState(() {
-                        if (newIndex > oldIndex) newIndex -= 1;
-                        final moved = _exercises.removeAt(oldIndex);
-                        _exercises.insert(newIndex, moved);
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      final exercise = _exercises[index];
-                      return _ExerciseRow(
-                        key: ValueKey(exercise.value),
-                        index: index,
-                        exercise: exercise,
-                        tracker: wp.trackerFor(exercise),
-                        unit: unit,
-                        onRemove: () =>
-                            setState(() => _exercises.removeAt(index)),
-                        onTap: () => _editTracker(exercise),
-                      );
-                    },
-                  ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _addExercises,
-            icon: const Icon(AppIcons.add, size: 18),
-            label: Text(
-              'ADD EXERCISES',
-              style: TextStyle(fontWeight: context.tokens.weight.heavy),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 54,
-            child: FilledButton(
-              onPressed:
-                  _nameController.text.trim().isEmpty || _exercises.isEmpty
-                  ? null
-                  : _save,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      'SAVE TEMPLATE',
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.heavy,
-                        fontSize: context.tokens.size.bodyLg,
-                      ),
-                    ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

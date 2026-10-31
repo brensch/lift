@@ -40,15 +40,13 @@ tutorial:
       body: Pressing Start is how you Start. Let's get schlifting!
 
 # The template library: templates/library.yaml, offered during setup and
-# from the Add chip on the home screen.
+# from the Edit chip on the home screen.
 library:
+  # The home chip that opens a blank workout of your own. Placeholder.
+  new_button: New
   # The home chip that opens the sheet. Placeholder.
   edit_button: Edit
   sheet_title: Your workouts
-  make_your_own: Make your own
-  make_your_own_hint: Pick the exercises, name it whatever.
-  add: ADD
-  added: ADDED
   # Your own workouts (cloned or made from scratch), above the library.
   # Placeholders.
   yours_heading: Yours
