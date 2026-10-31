@@ -1,11 +1,11 @@
 /// One person's status in the workout banner. A band across the top in the
 /// colour of the stage they're at — their emoji on their own colour, the
 /// stage, UP NEXT when the rack is theirs, the clock — readable from across
-/// the gym — and, small under the stage, the set: "Squat · Set 2 of 5". The
-/// band is the same for everyone, so the emoji line up. Under it, a row:
-/// the plates and the weight — yours big, with the set's circle; a
-/// partner's (compact) small, weight × reps. Tap a partner's to see their
-/// workout.
+/// the gym. The band is the same for everyone, so the emoji line up. Under
+/// it, the set: yours says what it is along the top ("Squat · Set 2 of 5"),
+/// then the plates, the weight, big, and its circle; a partner's (compact)
+/// is one small row — plates, what it is on two lines, weight × reps. Tap a
+/// partner's to see their workout.
 library;
 
 import 'package:flutter/material.dart';
@@ -94,29 +94,9 @@ class StatusBox extends StatelessWidget {
       child: Text(
         stateLabel.toUpperCase(),
         maxLines: 1,
-        style: bandMono(t.size.titleLg).copyWith(letterSpacing: 0.5),
+        style: bandMono(t.size.display).copyWith(letterSpacing: 0.5),
       ),
     );
-    // Shrinks rather than cuts off.
-    final setLine = set != null
-        ? FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              [
-                exerciseNames[set.exercise] ?? '?',
-                setLineFor(set, plan),
-              ].join(' · '),
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: t.size.body,
-                fontWeight: t.weight.medium,
-                color: onBand,
-                height: 1.2,
-              ),
-            ),
-          )
-        : null;
     final band = SizedBox(
       height: bandHeight,
       child: LayoutBuilder(
@@ -140,8 +120,7 @@ class StatusBox extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // The stage, and UP NEXT straight after it, so the
-                    // set's line below runs the width to the clock.
+                    // The stage alone, and UP NEXT straight after it.
                     Row(
                       children: [
                         Flexible(child: stage),
@@ -151,7 +130,6 @@ class StatusBox extends StatelessWidget {
                         ],
                       ],
                     ),
-                    ?setLine,
                   ],
                 ),
               ),
@@ -263,11 +241,70 @@ class StatusBox extends StatelessWidget {
           ],
         ],
       );
-      body = Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [line],
+      final exercise = exerciseNames[set.exercise] ?? '?';
+      final position = setLineFor(set, plan);
+      final small = TextStyle(
+        fontSize: t.size.body,
+        fontWeight: t.weight.medium,
+        color: t.muted,
+        height: 1.2,
       );
+      if (compact) {
+        // A partner's: plates, what the set is on two short rows, then the
+        // weight × reps.
+        body = Row(
+          children: [
+            if (set.targetWeight > 0) ...[
+              _Plates(weight: set.targetWeight.toDouble(), compact: true),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final text in [exercise, position])
+                    Text(
+                      text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: small,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Shares the room with the two lines, shrinking on a narrow
+            // screen.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: load,
+              ),
+            ),
+          ],
+        );
+      } else {
+        // Yours: what the set is along the top, then the row.
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '$exercise · $position',
+                maxLines: 1,
+                style: small.copyWith(fontSize: t.size.subtitle),
+              ),
+            ),
+            const SizedBox(height: 6),
+            line,
+          ],
+        );
+      }
     }
 
     return Container(
