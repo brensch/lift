@@ -368,6 +368,22 @@ def enable_phased_release(asc: AppStoreConnect, version_id: str) -> None:
     )
 
 
+def submission_version_ids(asc: AppStoreConnect, submission_id: str) -> set[str]:
+    """The App Store versions already in a review submission."""
+    items = asc.get(
+        f"/reviewSubmissions/{submission_id}/items",
+        {
+            "limit": 10,
+            "fields[reviewSubmissionItems]": "appStoreVersion",
+            "include": "appStoreVersion",
+        },
+    ).get("data", [])
+    return {
+        (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id")
+        for item in items
+    }
+
+
 def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> None:
     open_submissions = asc.get(
         f"/apps/{app_id}/reviewSubmissions",
@@ -382,6 +398,13 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
         state = record["attributes"]["state"]
         if state == "READY_FOR_REVIEW":
             print(f"Reusing draft review submission {record['id']}")
+            submission = record
+            break
+        if state == "UNRESOLVED_ISSUES" and version_id in submission_version_ids(asc, record["id"]):
+            # Review rejected this very version, which has just been taken
+            # over and fixed: resubmit it, as App Store Connect's
+            # "Resubmit to App Review" does.
+            print(f"Resubmitting rejected review submission {record['id']}")
             submission = record
             break
         raise SystemExit(
@@ -403,21 +426,9 @@ def submit_for_review(asc: AppStoreConnect, app_id: str, version_id: str) -> Non
         ).get("data", {"id": "<new-submission>"})
 
     submission_id = submission["id"]
-    already_attached = False
-    if submission_id != "<new-submission>":
-        items = asc.get(
-            f"/reviewSubmissions/{submission_id}/items",
-            {
-                "limit": 10,
-                "fields[reviewSubmissionItems]": "appStoreVersion",
-                "include": "appStoreVersion",
-            },
-        ).get("data", [])
-        already_attached = any(
-            (item.get("relationships", {}).get("appStoreVersion", {}).get("data") or {}).get("id")
-            == version_id
-            for item in items
-        )
+    already_attached = submission_id != "<new-submission>" and version_id in (
+        submission_version_ids(asc, submission_id)
+    )
     if not already_attached:
         print(f"Adding version {version_id} to submission {submission_id}")
         asc.post(
