@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -179,6 +180,20 @@ class MainActivity : ComponentActivity() {
             "onNewIntent",
             "flags=0x${intent.flags.toString(16)} action=${intent.action}",
         )
+    }
+
+    /**
+     * Hardware keys never act on the face. A focused clickable (a set circle,
+     * the rep circle) takes Enter or D-pad centre as a tap, so a crown or
+     * button press could log a set; only touches may. The keys still reach
+     * the system, which handles its own buttons first.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode in ACTIVATING_KEYS) {
+            Log.d(SCHLIFT_WEAR_TAG, "Ignored key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action}")
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onUserLeaveHint() {
@@ -743,3 +758,16 @@ private fun WorkoutScreens(
         }
     }
 }
+
+/** Keys that would press a focused clickable. */
+private val ACTIVATING_KEYS =
+    setOf(
+        KeyEvent.KEYCODE_ENTER,
+        KeyEvent.KEYCODE_NUMPAD_ENTER,
+        KeyEvent.KEYCODE_DPAD_CENTER,
+        KeyEvent.KEYCODE_SPACE,
+        KeyEvent.KEYCODE_STEM_PRIMARY,
+        KeyEvent.KEYCODE_STEM_1,
+        KeyEvent.KEYCODE_STEM_2,
+        KeyEvent.KEYCODE_STEM_3,
+    )
