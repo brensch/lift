@@ -305,9 +305,11 @@ class _EmptyWorkoutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
+      // The same panel as the workout card it stands in for.
       decoration: BoxDecoration(
         borderRadius: context.tokens.brMd,
-        border: Border.all(color: cs.outline.withValues(alpha: 0.6), width: 2),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+        color: context.tokens.panel,
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(

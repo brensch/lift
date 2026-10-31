@@ -250,24 +250,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (wp.isFirstWorkout) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: t.panel,
-                          border: Border.all(
-                            color: t.outline.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Text(
-                          _hint(wp),
-                          style: TextStyle(
-                            fontSize: t.size.body,
-                            fontWeight: t.weight.medium,
-                            color: t.text,
-                          ),
+                      Text(
+                        _hint(wp),
+                        style: TextStyle(
+                          fontSize: t.size.body,
+                          fontWeight: t.weight.medium,
+                          color: t.text,
                         ),
                       ),
                       const SizedBox(height: 8),
