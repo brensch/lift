@@ -2,10 +2,10 @@
 /// colour of the stage they're at — their emoji on their own colour, the
 /// stage, UP NEXT when the rack is theirs, the clock — readable from across
 /// the gym — and, small under the stage, the set: "Squat · Set 2 of 5". The
-/// band is the same for everyone, so the emoji line up. Yours adds a row
-/// under it: the plates, the weight, big, and the set's circle. A
-/// partner's (compact) is the band alone, their weight × reps on its small
-/// line. Tap a partner's to see their workout.
+/// band is the same for everyone, so the emoji line up. Under it, a row:
+/// the plates and the weight — yours big, with the set's circle; a
+/// partner's (compact) small, weight × reps. Tap a partner's to see their
+/// workout.
 library;
 
 import 'package:flutter/material.dart';
@@ -37,7 +37,7 @@ class StatusBox extends StatelessWidget {
   /// Their turn on the rack: UP NEXT! in the band.
   final bool upNext;
 
-  /// A partner's: the band alone, the weight × reps on its small line.
+  /// A partner's: the row under the band small, weight × reps.
   final bool compact;
 
   /// Yours: the set's circle, the same one as in the exercise list, to
@@ -106,7 +106,6 @@ class StatusBox extends StatelessWidget {
               [
                 exerciseNames[set.exercise] ?? '?',
                 setLineFor(set, plan),
-                if (compact) setTextFor(set, unit),
               ].join(' · '),
               maxLines: 1,
               style: TextStyle(
@@ -186,12 +185,12 @@ class StatusBox extends StatelessWidget {
     // No set in front of them (choosing, or all done): the band says it
     // all.
     final Widget? body;
-    if (set == null || compact) {
+    if (set == null) {
       body = null;
     } else {
       // The weight alone, as big as it goes: the reps are in the circle
       // (a partner's box, with no circle, says them after it).
-      final weightSize = t.size.giant;
+      final weightSize = compact ? t.size.headlineLg : t.size.giant;
       final load = Text.rich(
         TextSpan(
           children: [
@@ -231,7 +230,7 @@ class StatusBox extends StatelessWidget {
               ),
             ),
           if (!firstTime && set.targetWeight > 0) ...[
-            _Plates(weight: set.targetWeight.toDouble()),
+            _Plates(weight: set.targetWeight.toDouble(), compact: compact),
             const SizedBox(width: 12),
           ],
           if (!firstTime)
@@ -281,7 +280,12 @@ class StatusBox extends StatelessWidget {
         children: [
           band,
           if (body != null)
-            Padding(padding: EdgeInsets.fromLTRB(14, 12, 14, 16), child: body),
+            Padding(
+              padding: compact
+                  ? const EdgeInsets.fromLTRB(14, 6, 14, 6)
+                  : const EdgeInsets.fromLTRB(14, 12, 14, 16),
+              child: body,
+            ),
         ],
       ),
     );
@@ -293,7 +297,10 @@ class StatusBox extends StatelessWidget {
 class _Plates extends StatelessWidget {
   final double weight;
 
-  const _Plates({required this.weight});
+  /// A partner's: smaller.
+  final bool compact;
+
+  const _Plates({required this.weight, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -302,8 +309,8 @@ class _Plates extends StatelessWidget {
     return GestureDetector(
       onTap: () => showPlateBreakdownDialog(context, weight: weight),
       child: Container(
-        width: 104,
-        height: 56,
+        width: compact ? 72 : 104,
+        height: compact ? 36 : 56,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         alignment: Alignment.center,
         decoration: BoxDecoration(
