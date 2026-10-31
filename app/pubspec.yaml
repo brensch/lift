@@ -40,6 +40,10 @@ dependencies:
   package_info_plus: ^9.0.1
   device_info_plus: ^12.0.0
   phosphor_flutter: ^2.1.0
+  schlift_native:
+    path: rust_builder
+  flutter_rust_bridge: 2.13.0
+  file_picker: ^10.2.4
 
 dev_dependencies:
   flutter_test:

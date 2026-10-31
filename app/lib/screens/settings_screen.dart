@@ -5,6 +5,12 @@ import 'package:provider/provider.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/workout_provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../services/account_sync.dart';
+import '../services/error_modal_service.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
@@ -88,6 +94,23 @@ class SettingsScreen extends StatelessWidget {
             ),
             const FlatHeading('Account'),
             FlatRow(
+              icon: AppIcons.cloud,
+              label: 'Sync',
+              subtitle: _syncLabel(context.watch<AccountSync>()),
+            ),
+            FlatRow(
+              icon: AppIcons.download,
+              label: 'Export your data',
+              subtitle: 'Everything, as one SQLite file',
+              onTap: () => _export(context, auth),
+            ),
+            FlatRow(
+              icon: AppIcons.upload,
+              label: 'Import a file',
+              subtitle: 'Bring back an export of this account',
+              onTap: () => _import(context),
+            ),
+            FlatRow(
               icon: AppIcons.key,
               label: 'Passkeys',
               subtitle: 'Manage your login credentials',
@@ -123,6 +146,69 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Where the server's copy of the account is up to.
+  static String _syncLabel(AccountSync sync) {
+    if (sync.diverged) {
+      return 'Stopped: the server has a different history for this account';
+    }
+    final waiting = sync.unsynced;
+    if (sync.connected) {
+      return waiting == 0 ? 'Up to date' : 'Sending $waiting changes';
+    }
+    return waiting == 0
+        ? 'Offline, nothing waiting'
+        : 'Offline, $waiting changes waiting';
+  }
+
+  Future<void> _export(BuildContext context, AuthProvider auth) async {
+    final sync = context.read<AccountSync>();
+    try {
+      final file = await sync.export(auth.username ?? '');
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+    } catch (e) {
+      ErrorModalService.showError('EXPORT FAILED: $e');
+    }
+  }
+
+  /// Replace this phone's copy of the account with an exported file.
+  Future<void> _import(BuildContext context) async {
+    final sync = context.read<AccountSync>();
+    final workouts = context.read<WorkoutProvider>();
+    final settings = context.read<SettingsProvider>();
+    final userId = context.read<AuthProvider>().userId;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import a file?'),
+        content: const Text(
+          "This phone's copy of your account is replaced by the file. "
+          'Anything the server already has comes back when it syncs.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || userId == null) return;
+    final picked = await FilePicker.platform.pickFiles();
+    final path = picked?.files.single.path;
+    if (path == null) return;
+    try {
+      await sync.importFile(path);
+      await settings.load();
+      await workouts.loadActiveWorkout(userId);
+    } catch (e) {
+      ErrorModalService.showError('IMPORT FAILED: $e');
+    }
   }
 
   /// Open one of the full-screen reading pages over everything.

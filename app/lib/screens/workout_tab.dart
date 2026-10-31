@@ -16,79 +16,25 @@ class WorkoutTab extends StatefulWidget {
   State<WorkoutTab> createState() => _WorkoutTabState();
 }
 
-class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
-  DateTime? _lastServerSyncAt;
-  bool _syncInFlight = false;
+class _WorkoutTabState extends State<WorkoutTab> {
   bool _initialSyncComplete = false;
   String? _startupError;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncFromServer(force: true);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _syncFromServer(force: true);
-    }
-  }
-
-  Future<void> _syncFromServer({bool force = false}) async {
-    if (!mounted || _syncInFlight) return;
-
-    final route = ModalRoute.of(context);
-    if (route != null && !route.isCurrent) return;
-
-    final now = DateTime.now();
-    if (!force &&
-        _lastServerSyncAt != null &&
-        now.difference(_lastServerSyncAt!) < const Duration(seconds: 5)) {
-      return;
-    }
-
-    final auth = context.read<AuthProvider>();
-    final userId = auth.userId;
-    if (userId == null) {
-      if (!_initialSyncComplete && mounted) {
-        setState(() => _initialSyncComplete = true);
-      }
-      return;
-    }
-
-    _syncInFlight = true;
-    try {
+  /// The account is on this phone, so this is a read, not a round trip.
+  Future<void> _load() async {
+    final userId = context.read<AuthProvider>().userId;
+    if (userId != null) {
       final workoutProvider = context.read<WorkoutProvider>();
       await workoutProvider.loadActiveWorkout(userId);
-      if (!mounted) return;
-
-      if (workoutProvider.lastLoadWasUnauthorized) {
-        await auth.expireSession(
-          message: 'Your saved session expired. Sign in again.',
-        );
-        return;
-      }
-
-      setState(() {
-        _startupError = workoutProvider.lastLoadError;
-      });
-      _lastServerSyncAt = DateTime.now();
-    } finally {
-      _syncInFlight = false;
-      if (!_initialSyncComplete && mounted) {
-        setState(() => _initialSyncComplete = true);
-      }
+      _startupError = workoutProvider.lastLoadError;
     }
+    if (mounted) setState(() => _initialSyncComplete = true);
   }
 
   Future<bool> _confirmExit() async {
@@ -144,12 +90,7 @@ class _WorkoutTabState extends State<WorkoutTab> with WidgetsBindingObserver {
                   const SizedBox(height: 12),
                   Text(_startupError!, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _syncInFlight
-                        ? null
-                        : () => _syncFromServer(force: true),
-                    child: const Text('Retry'),
-                  ),
+                  FilledButton(onPressed: _load, child: const Text('Retry')),
                 ],
               ),
             ),

@@ -1,16 +1,22 @@
 # System Overview
 
 Schlift is a strength-training app. A user composes workout templates, logs
-sets against server-prescribed targets, and can share a live session with
-other lifters. The phone is the source of truth for the in-progress workout;
-the watch is a remote control and sensor.
+sets against prescribed targets, and can share a live session with other
+lifters. The account lives on the phone and works fully offline: the Rust
+core (`core/`) is linked into the app and runs every rule there. The server
+keeps a synced copy for multiplayer, the web and analytics. The watch is a
+remote control and sensor for the phone.
 
 ## Components
 
 ```mermaid
 graph TB
     subgraph clients["Clients"]
-        phone["Flutter app<br/>phone (iOS / Android)"]
+        subgraph phone["Flutter app — phone (iOS / Android)"]
+            ui["screens + providers"]
+            native["app/native<br/>core + account file (SQLite)"]
+            ui --> native
+        end
         wear["Wear OS companion<br/>Kotlin"]
         watchos["Apple Watch companion<br/>SwiftUI"]
         webapp["Web<br/>React + Vite"]
@@ -19,7 +25,7 @@ graph TB
     subgraph server["Backend — single Rust binary"]
         grpc["tonic gRPC<br/>+ tonic-web"]
         handlers["RPC handlers<br/>src/server/"]
-        engine["Prescription + progression<br/>src/exercise_catalog.rs<br/>src/exercise_progress.rs<br/>src/volume.rs"]
+        core["core/ — the same crate<br/>Account, apply, api"]
         dbl["DB layer<br/>src/db/"]
     end
 
@@ -27,51 +33,57 @@ graph TB
 
     wear <-->|"Data Layer<br/>protobuf envelopes"| phone
     watchos <-->|"WatchConnectivity<br/>protobuf envelopes"| phone
-    phone -->|gRPC| grpc
-    webapp -->|gRPC-Web| grpc
+    phone <-->|"gRPC: Sync stream,<br/>auth, multiplayer"| grpc
+    webapp -->|"gRPC-Web: reads"| grpc
     grpc --> handlers
-    handlers --> engine
+    handlers --> core
     handlers --> dbl
     dbl --> sqlite
 ```
 
 The watches never talk to the backend. They exchange protobuf envelopes with
-the phone over the platform transport, and the phone relays to the server. This
-means a watch works whenever the phone is reachable, regardless of network.
+the phone over the platform transport. The phone answers them from its own
+account, so a watch works whenever the phone is reachable, network or not.
 
 ## Repository layout
 
 ```
+core/               The domain, pure Rust (no IO): shared by phone and server
+  src/account.rs    Account, Event, apply, fold
+  src/api.rs        The app's RPCs answered from an Account (View / Call)
+  src/projection.rs The account as SQL tables (phone file, server analytics)
+  src/workout/      Workout planning + state reduction
+  src/exercise_catalog.rs, exercise_progress.rs, volume.rs, …
+  tests/api.rs      The API end to end
+  examples/fuzz.rs  The invariant fuzzer
 src/                Rust backend
   server/           gRPC handlers, one module per service
-  db/               SQLite access (+ the one-time cutover migration)
-  workout/          Workout planning + state reduction
-  exercise_catalog.rs  Muscles, equipment, the prescription table
-  exercise_progress.rs Trackers + double progression
-  volume.rs         Weekly sets per muscle + the template suggestion
+  db/               SQLite access: auth, sessions, the event store
 app/                Flutter app
+  native/           The core's host shim: account file, flutter_rust_bridge API
+  rust_builder/     cargokit: builds app/native into the app
   lib/screens/      Full-page UI
   lib/widgets/      Reusable UI
   lib/providers/    App state (ChangeNotifier)
-  lib/services/     Transport + platform integration
+  lib/services/     The core doorway, sync, transport, platform integration
   lib/logic/        Pure functions (no Flutter imports)
-  lib/gen/          Generated Dart protobuf — do not edit
+  lib/gen/          Generated Dart (protobuf, flutter_rust_bridge) — do not edit
   android/wear/     Wear OS companion (Kotlin)
   ios/SchliftWatch/ Apple Watch companion (SwiftUI)
 web/                React landing / privacy / account deletion
 proto/workout/v1/   Protobuf contracts — source of truth
-examples/           load_simulation.rs — gRPC load test
 ```
 
 ## Protobuf is the contract
 
-`proto/workout/v1/` generates code for every client. Nothing else is shared
-between the backend and the app.
+`proto/workout/v1/` generates code for every client. The one other thing the
+backend and the app share is the `core/` crate itself, which speaks these
+messages: the app passes it request bytes and gets response bytes back.
 
 ```mermaid
 graph LR
     proto["proto/workout/v1/*.proto"]
-    proto -->|"tonic-build (build.rs)"| rust["Rust types<br/>schlift::workout::v1"]
+    proto -->|"prost-build (core/build.rs)<br/>tonic-build (build.rs)"| rust["Rust types<br/>schlift_core::pb, services"]
     proto -->|"protoc --dart_out"| dart["app/lib/gen/"]
     proto -->|"buf.gen.android.yaml"| java["app/android/shared-proto/"]
     proto -->|"buf.gen.swift.yaml"| swift["Swift (watch)"]
@@ -86,39 +98,40 @@ make proto-all      # dart + android + swift
 
 Rust regenerates automatically via `build.rs` on the next `cargo build`.
 
-> **Caveat:** generated code is committed. If you edit a proto and forget to
-> regenerate, the backend and app will disagree silently until runtime.
+> **Caveat:** generated Dart is committed. If you edit a proto and forget to
+> regenerate, the Dart side and the core will disagree silently until runtime.
 
-## A request end to end
+## A write end to end
 
-Completing a set, from tap to persisted:
+Completing a set, from tap to the server's copy:
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant P as WorkoutProvider
-    participant G as GrpcClient
-    participant H as ServerWorkoutService
-    participant D as ServerDb
-    participant S as SQLite
+    participant N as app/native Store
+    participant C as core (api + apply)
+    participant Y as AccountSync
+    participant S as Server Sync
 
     U->>P: tap "done, 5 reps"
-    P->>P: apply optimistic mutation<br/>notifyListeners()
-    Note over P: UI updates immediately
-    P->>G: CompleteSet(set_id, reps, weight)
-    G->>H: gRPC + auth token
-    H->>D: validate_auth_session(token)
-    D->>S: SELECT auth_sessions
-    H->>H: apply_complete_set_to_active()
-    H->>D: insert_completed_set + persist_workout_state
-    D->>S: write pool (1 conn)
-    H-->>P: CompleteSetResponse (authoritative state)
-    P->>P: reconcile against server truth
-    P->>P: onSessionRefreshNeeded()
+    P->>N: call("AppendWorkoutMutations", bytes)
+    N->>C: Call::append_workout_mutations
+    C->>C: record Event (apply through the reducer)
+    N->>N: write event + projected rows to the file
+    C-->>P: GetWorkoutResponse (the new state)
+    P->>P: notifyListeners()
+    Note over P: on screen; no network involved
+    N-->>Y: writes stream fires
+    Y->>S: SyncRequest{events: outbox, zstd}
+    S->>S: push_events: store, fold, project
+    S-->>Y: head (ack)
+    Y->>N: acked(head) — outbox shrinks
 ```
 
-The client applies the change locally first and reconciles when the server
-replies. See [workout-lifecycle.md](workout-lifecycle.md#optimistic-mutations).
+The answer the app shows is the core's answer, computed on the phone. Sync
+happens afterwards and never blocks a screen. See
+[local-first.md](local-first.md).
 
 ## Deployment
 
@@ -169,7 +182,7 @@ iOS artifacts. The version comes from the tag; `app/pubspec.yaml` stays a
 The architecture assumes a small user base:
 
 - One SQLite file, one write connection. All writes serialise.
-- Multiplayer uses **polling at 1 Hz**, not streaming.
-- No horizontal scaling — in-flight WebAuthn challenges live in process memory.
-
-These are deliberate simplifications, validated by `examples/load_simulation.rs`.
+- Folded accounts are cached in process memory (at most 256), so the backend
+  is single-instance. So are in-flight WebAuthn challenges.
+- Multiplayer updates go out over each phone's Sync stream from an
+  in-process broadcast; no external queue.

@@ -36,7 +36,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _load() async {
     final grpc = context.read<GrpcClient>();
-    final service = WorkoutServiceWrapper(grpc);
+    final service = context.read<WorkoutServiceWrapper>();
     final multiplayer = MultiplayerServiceWrapper(grpc);
     final selfId = context.read<AuthProvider>().userId ?? '';
     try {

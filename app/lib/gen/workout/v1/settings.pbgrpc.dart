@@ -32,13 +32,6 @@ class SettingsServiceClient extends $grpc.Client {
 
   SettingsServiceClient(super.channel, {super.options, super.interceptors});
 
-  $grpc.ResponseFuture<$0.UpdateSettingResponse> updateSetting(
-    $0.UpdateSettingRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$updateSetting, request, options: options);
-  }
-
   $grpc.ResponseFuture<$0.GetSettingsResponse> getSettings(
     $0.GetSettingsRequest request, {
     $grpc.CallOptions? options,
@@ -48,11 +41,6 @@ class SettingsServiceClient extends $grpc.Client {
 
   // method descriptors
 
-  static final _$updateSetting =
-      $grpc.ClientMethod<$0.UpdateSettingRequest, $0.UpdateSettingResponse>(
-          '/workout.v1.SettingsService/UpdateSetting',
-          ($0.UpdateSettingRequest value) => value.writeToBuffer(),
-          $0.UpdateSettingResponse.fromBuffer);
   static final _$getSettings =
       $grpc.ClientMethod<$0.GetSettingsRequest, $0.GetSettingsResponse>(
           '/workout.v1.SettingsService/GetSettings',
@@ -66,15 +54,6 @@ abstract class SettingsServiceBase extends $grpc.Service {
 
   SettingsServiceBase() {
     $addMethod(
-        $grpc.ServiceMethod<$0.UpdateSettingRequest, $0.UpdateSettingResponse>(
-            'UpdateSetting',
-            updateSetting_Pre,
-            false,
-            false,
-            ($core.List<$core.int> value) =>
-                $0.UpdateSettingRequest.fromBuffer(value),
-            ($0.UpdateSettingResponse value) => value.writeToBuffer()));
-    $addMethod(
         $grpc.ServiceMethod<$0.GetSettingsRequest, $0.GetSettingsResponse>(
             'GetSettings',
             getSettings_Pre,
@@ -84,15 +63,6 @@ abstract class SettingsServiceBase extends $grpc.Service {
                 $0.GetSettingsRequest.fromBuffer(value),
             ($0.GetSettingsResponse value) => value.writeToBuffer()));
   }
-
-  $async.Future<$0.UpdateSettingResponse> updateSetting_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.UpdateSettingRequest> $request) async {
-    return updateSetting($call, await $request);
-  }
-
-  $async.Future<$0.UpdateSettingResponse> updateSetting(
-      $grpc.ServiceCall call, $0.UpdateSettingRequest request);
 
   $async.Future<$0.GetSettingsResponse> getSettings_Pre($grpc.ServiceCall $call,
       $async.Future<$0.GetSettingsRequest> $request) async {

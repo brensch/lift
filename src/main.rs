@@ -3,8 +3,8 @@ use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
     admin_service_server::AdminServiceServer, analytics_service_server::AnalyticsServiceServer,
     auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
-    settings_service_server::SettingsServiceServer, user_service_server::UserServiceServer,
-    workout_service_server::WorkoutServiceServer,
+    settings_service_server::SettingsServiceServer, sync_service_server::SyncServiceServer,
+    user_service_server::UserServiceServer, workout_service_server::WorkoutServiceServer,
 };
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
@@ -13,25 +13,16 @@ mod auth;
 mod db;
 #[cfg(feature = "test-auth")]
 mod demo_seed;
-mod exercise_catalog;
-mod exercise_progress;
-mod history;
-mod onboarding;
-mod progress;
-mod recovery;
 mod server;
-mod state;
-mod template_library;
-mod time;
-mod volume;
-mod weight_units;
-mod workout;
+// The domain lives in schlift-core; these keep `crate::progress` and
+// friends naming it as before.
+use schlift_core::time;
 
 use auth::AuthState;
 use db::ServerDb;
 use server::{
     ServerAdminService, ServerAnalyticsService, ServerAuthService, ServerMultiplayerService,
-    ServerSettingsService, ServerUserService, ServerWorkoutService,
+    ServerSettingsService, ServerSyncService, ServerUserService, ServerWorkoutService,
 };
 use tracing::{error, info};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -75,10 +66,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if args.first().map(String::as_str) == Some("admin") {
         return admin_command(&server_db, &args[1..]).await;
     }
-    // The template library is part of the build; refuse to boot on a bad
-    // file rather than serve a stale table.
-    let library = template_library::load()?;
-    server_db.sync_template_library(&library).await?;
     // Dev/demo only: SEED_DEMO_USER=<name> writes a lifter with weeks of
     // history (store screenshots, local demos). Compiled out of prod.
     #[cfg(feature = "test-auth")]
@@ -110,6 +97,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // ~40ms TCP delayed-ACK timer, adding that latency to essentially every
         // request. Standard for a low-latency gRPC service.
         .tcp_nodelay(true)
+        // Sync streams stay open for a whole workout: ping them, so a phone
+        // that vanished (dead wifi, killed app) is noticed within seconds
+        // rather than at the next TCP timeout.
+        .http2_keepalive_interval(Some(std::time::Duration::from_secs(10)))
+        .http2_keepalive_timeout(Some(std::time::Duration::from_secs(10)))
         .accept_http1(true)
         .add_service(tonic_web::enable(WorkoutServiceServer::new(
             ServerWorkoutService {
@@ -130,6 +122,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             ServerAuthService {
                 db: server_db.clone(),
                 auth_state: auth_state.clone(),
+            },
+        )))
+        .add_service(tonic_web::enable(SyncServiceServer::new(
+            ServerSyncService {
+                db: server_db.clone(),
             },
         )))
         .add_service(tonic_web::enable(SettingsServiceServer::new(

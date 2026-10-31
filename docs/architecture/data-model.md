@@ -1,29 +1,151 @@
 # Data Model
 
-One SQLite file, `data/server.sqlite`, in WAL mode. Schema is defined in
-`SERVER_SCHEMA` (`src/db/mod.rs:24`) and created at startup.
+An account is a log of events; everything else about it is derived. The log
+lives in two SQLite files — the account file on the phone and
+`data/server.sqlite` on the server — and both derive readable tables from it
+with the same statements (`core/src/projection.rs`). See
+[local-first.md](local-first.md) for how the log is made and synced.
 
-## Naming conventions
+```mermaid
+graph LR
+    log["Event log<br/>(the truth)"] -->|"Account::fold"| acc["Account<br/>in memory"]
+    acc -->|"projection.rs"| tables["Readable tables<br/>workouts, sets, heart rate,<br/>trackers, templates"]
+```
 
-The suffix tells you the table's shape:
+## The event log
 
-| Suffix | Meaning | Example |
+| Where | Table | |
 |---|---|---|
-| `_current` | One row per key, holding the latest value. Overwritten in place. | `users_current`, `session_participants_current` |
-| `_events` | Historically an append-only log. | `user_message_events` |
+| Phone | `events(seq PK, id, at, event_blob)` | `id` and `at` copied out so the file is readable |
+| Phone | `meta(key PK, value)` | Whose account (user id, name) and the last seq the server acknowledged |
+| Server | `account_events(user_id, seq, event_blob)`, PK `(user_id, seq)` | Every account's log |
 
-Note `user_message_events` is a misnomer — it has `PRIMARY KEY(user_id, message_key)`
-and is upserted, so it is a `_current` table despite the name.
+`event_blob` is an `Event` (`proto/workout/v1/account.proto`): `seq`, `id`,
+`at` and one `kind` — `start_workout`, `workout` (a `WorkoutMutation`:
+complete/edit/delete a set, start a set, skip warmups, add/adjust/remove/
+reorder exercises, rate, set the session, end), `heart_rate`,
+`save_template`, `delete_template`, `reorder_templates`,
+`add_library_templates`, `set_exercise_tracker`, `complete_onboarding`,
+`update_setting`, `dismiss_user_messages`, `import_history`.
 
-## Core workout entities
+`seq` runs 1, 2, 3… with no gaps. Ids the event creates (the workout, its
+sets, a template) derive from the event's `id` (`core/src/ids.rs`), so a
+replay rebuilds them exactly.
+
+## The account
+
+`Account` (`core/src/account.rs`) is what the fold produces: settings,
+templates, trackers (one per exercise), every workout (`WorkoutRecord`:
+the workout, its proposed and completed sets, heart rate), the active
+workout's id and the coaching messages. It is never stored whole; the phone
+holds it in memory while the account is open, the server caches recently
+used ones.
+
+## Projected tables
+
+Rewritten from the fold as events land, so they can be dropped and rebuilt
+at any time. Nothing reads them back into the account.
 
 ```mermaid
 erDiagram
-    users_current ||--o{ workouts : "has"
     workouts ||--o{ proposed_sets : "plans"
     proposed_sets ||--o| completed_sets : "logged as"
     workouts ||--o{ workout_heart_rate_samples : "records"
-    users_current ||--o| active_workout_current : "points at"
+
+    workouts {
+        TEXT id PK
+        TEXT user_id
+        TEXT name
+        INTEGER start_time
+        INTEGER end_time "0 = in progress"
+        TEXT session_id "'' = solo"
+        TEXT template_id "'' = started empty"
+        TEXT lifting_set_id
+        INTEGER lifting_started_at
+    }
+    proposed_sets {
+        TEXT id PK
+        TEXT workout_id
+        INTEGER workout_order
+        INTEGER exercise "enum"
+        INTEGER target_reps
+        REAL target_weight
+        INTEGER warmup
+        INTEGER cancelled
+        INTEGER calibration
+        INTEGER skipped
+    }
+    completed_sets {
+        TEXT id PK
+        TEXT workout_id
+        TEXT proposed_set_id
+        INTEGER actual_reps
+        REAL actual_weight
+        INTEGER started_at
+        INTEGER ended_at
+        INTEGER rest_until
+        INTEGER effort "0 unanswered, 1 easy, 2 right, 3 hard"
+    }
+    workout_heart_rate_samples {
+        TEXT id PK
+        TEXT workout_id
+        INTEGER sampled_at
+        REAL bpm
+    }
+```
+
+`WORKOUT_SCHEMA` (above) is on both the phone and the server; the server's
+analytics and multiplayer history ("trained with") read it.
+`ACCOUNT_SCHEMA` — `exercise_trackers` and `workout_templates` — is on the
+phone only, so an exported file reads as everything the app knows; the
+server keeps those in the fold.
+
+- **`end_time = 0` means in progress.** There is no status column;
+  zero-as-null is the convention.
+- **`completed_sets` has a row once a set is done.** A started set is the
+  workout's lifting marker (`lifting_set_id`), not a row.
+- **`proposed_sets.calibration`** marks a calibration rung; rungs count as
+  warmups for volume.
+- **`proposed_sets.cancelled`** is a soft delete (an exercise removed
+  mid-workout), so ordering and history stay stable. `skipped` marks warmups
+  skipped with "Skip".
+- **`workouts.session_id`** on the server is the session the phone recorded
+  on the workout (`SetWorkoutSession`); until it has, a workout keeps the
+  session it was first seen in, or one it was joined to since
+  (`store_events` in `src/db/accounts.rs`).
+
+### Template library
+
+`templates/library.yaml` is the source of truth for the templates everyone
+can pick from: `groups` (key + label, in display order) and `templates`
+(stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
+exercises as `Exercise` enum names without the `EXERCISE_` prefix). The core
+embeds the file at build time (`core/src/template_library.rs`; `cargo test`
+fails on an unknown exercise name), so the phone has it offline.
+
+- `ListTemplateLibrary` is answered by the core on the phone; there is no
+  server RPC or table for it.
+- `AddLibraryTemplates` copies the requested ids into the account's
+  templates, skipping ids the user already has.
+- `CompleteOnboarding` takes `library_ids`; an empty list means the
+  `default: true` entries.
+- A user's copy is an ordinary template with `library_id` set to the entry
+  it came from. It is editable like any other; `library_id` only marks what
+  is already added. Never reuse or rename an id in the YAML.
+- The website's `/routines` page is rendered from the same YAML at build
+  time (`web/scripts/sync-content.mjs`), not from an RPC.
+
+## Server-only tables
+
+`SERVER_SCHEMA` (`src/db/mod.rs`), created at startup alongside
+`WORKOUT_SCHEMA`.
+
+```mermaid
+erDiagram
+    users_current ||--o{ passkey_credentials : "registers"
+    users_current ||--o{ auth_sessions : "holds"
+    users_current ||--o| user_current_session : "in at most one"
+    user_current_session }o--|| session_participants_current : "session"
 
     users_current {
         TEXT user_id PK
@@ -31,68 +153,17 @@ erDiagram
         TEXT username_ci UK
         TEXT invite_token UK
     }
-    workouts {
-        TEXT id PK
-        TEXT user_id FK
-        TEXT name
-        INTEGER start_time
-        INTEGER end_time "0 = in progress"
-        TEXT session_id "'' = solo"
-        TEXT template_id "'' = started empty"
-    }
-    proposed_sets {
-        TEXT id PK
-        TEXT workout_id FK
-        INTEGER workout_order
-        INTEGER exercise "enum"
-        INTEGER target_reps
-        REAL target_weight
-        INTEGER warmup
-        INTEGER cancelled
-    }
-    completed_sets {
-        TEXT id PK
-        TEXT workout_id FK
-        TEXT proposed_set_id FK
-        INTEGER actual_reps
-        REAL actual_weight
-        INTEGER ended_at
-        INTEGER rest_until
-        INTEGER effort "0 unanswered, 1 easy, 2 right, 3 hard"
-        INTEGER rest_skipped
-    }
-    active_workout_current {
-        TEXT user_id PK
-        TEXT workout_id
-    }
-```
-
-Key points:
-
-- **`end_time = 0` means in progress.** There is no separate status column
-  anywhere; zero-as-null is the convention.
-- **`completed_sets` is created on `CompleteSet`** (the Done tap). A set is
-  pending until that row exists; there is no in-progress row.
-- **`proposed_sets.calibration`** marks a calibration rung (see the workout
-  lifecycle); rungs count as warmups for volume.
-- **`proposed_sets.cancelled`** is a soft delete — skipped warmups and removed
-  sets stay in the table so ordering and history remain stable.
-- **`active_workout_current`** is the fast path for "does this user have a
-  workout open?" It duplicates what a query on `workouts.end_time = 0` would
-  give you.
-
-## Sessions (multiplayer)
-
-```mermaid
-erDiagram
-    sessions ||--o{ session_participants_current : "has"
-    sessions ||--o{ user_current_session : "membership"
-    users_current ||--o| user_current_session : "in at most one"
-
-    sessions {
-        TEXT session_id PK
-        TEXT created_by
+    passkey_credentials {
+        TEXT credential_id PK
+        TEXT user_id
+        TEXT credential_json "webauthn-rs Passkey"
         INTEGER created_at
+        TEXT created_at_ip
+    }
+    auth_sessions {
+        TEXT token PK
+        TEXT user_id
+        INTEGER expires_at
     }
     user_current_session {
         TEXT user_id PK "source of truth"
@@ -107,118 +178,25 @@ erDiagram
     }
 ```
 
-`user_current_session` has `user_id` as **primary key**, which enforces the
-core invariant: a user is in at most one session at a time. Everything else —
-`workouts.session_id`, `session_participants_current` — is derived cache.
-See [multiplayer.md](multiplayer.md).
-
-## Auth
-
-```mermaid
-erDiagram
-    users_current ||--o{ passkey_credentials : "registers"
-    users_current ||--o{ auth_sessions : "holds"
-
-    passkey_credentials {
-        TEXT credential_id PK
-        TEXT user_id FK
-        TEXT credential_json "webauthn-rs Passkey"
-        INTEGER created_at
-        TEXT created_at_ip
-    }
-    auth_sessions {
-        TEXT token PK
-        TEXT user_id FK
-        INTEGER expires_at
-    }
-```
-
-See [auth.md](auth.md).
-
-## Templates, trackers and progression
-
-```mermaid
-erDiagram
-    users_current ||--o{ workout_templates : "keeps"
-    users_current ||--o{ exercise_trackers : "one per exercise"
-    workouts ||--o| progression_applied : "claims"
-
-    workout_templates {
-        TEXT id PK
-        TEXT user_id
-        TEXT name
-        INTEGER template_order
-        BLOB template_blob "proto WorkoutTemplate"
-    }
-    exercise_trackers {
-        TEXT user_id PK
-        INTEGER exercise PK
-        REAL working_weight "lb"
-        INTEGER current_reps "position in the rep range"
-        INTEGER consecutive_misses
-        INTEGER last_performed_at
-        INTEGER override_sets "0 = derived"
-        INTEGER override_rep_low
-        INTEGER override_rep_high
-        TEXT source "workout:<id> | manual | migration | onboarding"
-    }
-    progression_applied {
-        TEXT workout_id PK "idempotency ledger"
-        TEXT user_id
-        INTEGER applied_at
-    }
-```
-
-- A template holds exercises only; sets/reps/rest/weight resolve from the
-  prescription (`src/exercise_catalog.rs`) and the tracker at start time.
-- A tracker row is optional: no row means catalog opener weight and the
-  derived prescription.
-- `progression_applied` is the idempotency ledger. `EndWorkout` claims the
-  `workout_id` with `INSERT OR IGNORE` before advancing any tracker, so a
-  retried or duplicated `EndWorkout` cannot move a tracker twice.
-- `schema_migrations` holds one row per one-time migration
-  (`composable_workouts_v1` converted the old program-state world; see
-  `src/db/migration.rs`).
-
-### Template library
-
-`templates/library.yaml` is the source of truth for the templates everyone
-can pick from: `groups` (key + label, in display order) and `templates`
-(stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
-exercises as `Exercise` enum names without the `EXERCISE_` prefix). The
-backend embeds the file at build time (`src/template_library.rs`; `cargo
-test` fails on an unknown exercise name) and mirrors it into the
-`template_library` table on startup (`src/db/library.rs`), so the table is
-never edited by hand and the YAML wins on every restart.
-
-- `ListTemplateLibrary` serves that table. It is public — no auth — so the
-  sign-up flow can show it before an account exists.
-- `AddLibraryTemplates` copies the requested ids into the caller's
-  `workout_templates`, skipping ids the user already has.
-- `CompleteOnboarding` takes `library_ids`; an empty list means the
-  `default: true` entries.
-- A user's copy is an ordinary `workout_templates` row with `library_id`
-  set to the entry it came from. It is editable like any other template
-  (rename, reorder, change exercises); `library_id` only marks what is
-  already added. Never reuse or rename an id in the YAML.
-- The website's `/routines` page is rendered from the same YAML at build
-  time (`web/scripts/sync-content.mjs`), not from the RPC.
-
-## Everything else
-
 | Table | Purpose |
 |---|---|
-| `user_settings_current` | Per-user settings, keyed by `(user_id, setting_type)` — the weight unit lives here |
-| `user_message_events` | Coaching/progression messages, upserted by `message_key`, soft-dismissed via `dismissed_at` |
-| `workout_heart_rate_samples` | Heart rate from the watch, one row per sample |
-| `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. Kept until the account is deleted. See [analytics.md](analytics.md) |
+| `users_current` | One row per user: the `User` proto, the case-folded name, the invite token |
+| `auth_sessions`, `passkey_credentials` | See [auth.md](auth.md) |
+| `user_current_session` | Which session a user is in now; `user_id` PK, so at most one. See [multiplayer.md](multiplayer.md) |
+| `session_participants_current` | Each member's live status, rebuilt from their fold after every push |
+| `session_members` | Durable roster: every `(session, user)` that ever joined, never deleted. Backs training partners and shared sessions |
+| `join_requests` | Pending "train together" asks, deleted once answered |
+| `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. See [analytics.md](analytics.md) |
 | `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username |
 | `admins` | Who may call `AdminService.GetStats`. Keyed by `user_id`, never by name |
 
+`_current` means one row per key holding the latest value, overwritten in
+place.
+
 ## Referential integrity
 
-There are **no `FOREIGN KEY` constraints** and foreign keys are not enforced.
-The `FK` markers in the diagrams above are logical, not declared. Cascading
-deletes are done by hand in `delete_user_account_and_data`
-(`src/db/auth.rs:270`) — if you add a table keyed by `user_id`, you must add it
-to that function or account deletion will orphan rows.
+There are **no `FOREIGN KEY` constraints**. Relationships in the diagrams are
+logical. Account deletion is done by hand in `delete_user_account_and_data`
+(`src/db/auth.rs`): a table keyed by `user_id` must be added there, or
+deletion orphans rows. A test discovers every table with a `user_id` column
+and fails if one is missed.

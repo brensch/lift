@@ -1,0 +1,122 @@
+syntax = "proto3";
+package workout.v1;
+
+import "workout/v1/group.proto";
+import "workout/v1/settings.proto";
+import "workout/v1/workout.proto";
+
+// ─── The account as a log of events ──────────────────────────────────────────
+//
+// One device records an account. Every write it makes is an Event, numbered
+// 1, 2, 3… by that device; the account is the fold of its events, by the same
+// core on the phone and on the server. See docs/architecture/local-first.md.
+
+message Event {
+  // Position in the account's log: 1, 2, 3…, no gaps.
+  int64 seq = 1;
+  // Random, made by the device. Every id the event creates (a workout, a set,
+  // a template) is derived from it, so a replay makes the same ids.
+  string id = 2;
+  // Unix seconds on the device's clock when the write was made. The fold
+  // never reads a clock of its own.
+  int64 at = 3;
+  oneof kind {
+    StartWorkoutRequest start_workout = 10;
+    // Everything done to a workout once it's started, ending included.
+    WorkoutMutation workout = 11;
+    AppendWorkoutHeartRateRequest heart_rate = 12;
+    SaveTemplateRequest save_template = 13;
+    DeleteTemplateRequest delete_template = 14;
+    ReorderTemplatesRequest reorder_templates = 15;
+    AddLibraryTemplatesRequest add_library_templates = 16;
+    SetExerciseTrackerRequest set_exercise_tracker = 17;
+    CompleteOnboardingRequest complete_onboarding = 18;
+    UpdateSettingRequest update_setting = 19;
+    DismissUserMessagesRequest dismiss_user_messages = 20;
+    ImportHistory import_history = 21;
+  }
+}
+
+// History brought in from elsewhere, as it was: finished workouts and the
+// trackers they led to. Nothing is recomputed from it.
+message ImportHistory {
+  repeated ImportedWorkout workouts = 1;
+  repeated TrackerRecord trackers = 2;
+}
+
+message ImportHistoryResponse {}
+
+// A finished workout with everything recorded in it.
+message ImportedWorkout {
+  Workout workout = 1;
+  repeated ProposedSet proposed_sets = 2;
+  repeated CompletedSet completed_sets = 3;
+  repeated WorkoutHeartRatePoint heart_rate = 4;
+}
+
+// What the account knows about one exercise: the weight and reps the next
+// workout will use, and how it got there.
+message TrackerRecord {
+  Exercise exercise = 1;
+  float working_weight = 2; // lb
+  int32 current_reps = 3;
+  int32 consecutive_misses = 4;
+  int64 last_performed_at = 5;
+  int32 override_sets = 6;
+  int32 override_rep_low = 7;
+  int32 override_rep_high = 8;
+  int32 consecutive_hard = 9;
+}
+
+// ─── Sync ────────────────────────────────────────────────────────────────────
+//
+// The phone holds one Sync stream open while it can. Up it go events as they
+// are recorded; down come acks and, while in a session, the partners' status.
+// The stream is only the fast path: an event leaves the phone's outbox when
+// its seq is acked, and is resent after a reconnect otherwise; a session
+// update is always the whole session, sent again on every (re)connect, so a
+// dropped message is healed by the next.
+
+service SyncService {
+  rpc Sync(stream SyncRequest) returns (stream SyncResponse);
+  // Every event of the caller's account after `after_seq`: a fresh install.
+  rpc PullEvents(PullEventsRequest) returns (PullEventsResponse);
+}
+
+message SyncRequest {
+  oneof kind {
+    // zstd-compressed EventBatch: the outbox, oldest first. Idempotent by
+    // seq — events the server already holds are skipped.
+    bytes events = 1;
+    // Keeps the stream (and the proxies on the way) awake; answered by an
+    // ack, so a dead link shows within a heartbeat.
+    Heartbeat heartbeat = 2;
+  }
+}
+
+message Heartbeat {}
+
+message SyncResponse {
+  oneof kind {
+    // The last seq the server holds for this account.
+    int64 head = 1;
+    // The caller's session, whole: who's in it and where each is up to.
+    // Empty session_id when not in one. Sent on connect and on every change.
+    GetCurrentSessionResponse session = 2;
+    // Requests to join the caller, whole. Sent on connect and on every change.
+    GetJoinRequestsResponse join_requests = 3;
+  }
+}
+
+message PullEventsRequest {
+  int64 after_seq = 1;
+}
+
+message PullEventsResponse {
+  // zstd-compressed EventBatch.
+  bytes events = 1;
+}
+
+message EventBatch {
+  repeated Event events = 1;
+}

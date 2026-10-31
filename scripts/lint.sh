@@ -51,13 +51,16 @@ fmt_check_dart() {
 }
 lint_dart() {
 	need flutter "install the Flutter SDK"
+	# cargokit's build tool (app/rust_builder) is its own package: analyzed
+	# with the app, so its dependencies must be fetched too.
+	(cd app/rust_builder/cargokit/build_tool && flutter pub get >/dev/null)
 	(cd app && flutter analyze --fatal-infos --fatal-warnings)
 }
 
 # ── rust ──
 fmt_rust() { cargo fmt --all; }
 fmt_check_rust() { cargo fmt --all -- --check; }
-lint_rust() { cargo clippy --all-targets -- -D warnings; }
+lint_rust() { cargo clippy --workspace --all-targets -- -D warnings; }
 
 # ── web (TypeScript / React) ──
 # bun locally (fast); npm where bun is absent, which is what CI uses so that

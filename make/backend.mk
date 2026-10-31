@@ -1,15 +1,15 @@
-# Backend: run, agent background instance, load and fuzz harnesses.
+# Backend: run, agent background instance, the fuzz harness.
 # Split from the top-level Makefile; variables live there.
 
 .PHONY: run-backend run-backend-release run-backend-scratch agent-backend-start agent-backend-stop \
-	load-test fuzz-api fuzz-api-ci run-prod check
+	fuzz-api fuzz-api-ci run-prod check
 
 STOP_LOCAL_BACKENDS = pkill -f "[t]arget/(debug|release)/schlift" || true
 
 # Dev server on :50051 with dev login, rebuilt and restarted when a Rust
 # input is saved (an incremental debug build is a second or two). Only the
 # backend's own inputs are watched, so app and web edits do not restart it.
-BACKEND_WATCH = -w src -w proto -w templates -w build.rs -w Cargo.toml -w Cargo.lock
+BACKEND_WATCH = -w src -w core -w proto -w templates -w build.rs -w Cargo.toml -w Cargo.lock
 run-backend:
 	@$(STOP_LOCAL_BACKENDS)
 	$(BACKEND_DEV_ENV) cargo watch $(BACKEND_WATCH) -x "run --bin schlift --features test-auth"
@@ -60,21 +60,18 @@ agent-backend-stop:
 		fi; \
 	'
 
-load-test:
-	cargo run --release --example load_simulation -- --duration 3000
-
-# Randomised API sequences against a throwaway backend, with invariant checks
-# after every mutation. Spawns its own server on its own port and SQLite file,
-# so it never touches a dev database. Non-zero exit on any violation.
+# Randomised API sequences through the core, in-process as the phone runs it,
+# with invariant checks after every mutation and a replay of every user's
+# event log. Non-zero exit on any violation.
 fuzz-api:
-	cargo run --release --example api_invariant_fuzz -- \
+	cargo run --release -p schlift-core --example fuzz -- \
 		--users $(or $(FUZZ_USERS),10) \
 		--sessions $(or $(FUZZ_SESSIONS),14) \
 		--seed $(or $(FUZZ_SEED),$(shell date +%s))
 
 # A fixed-seed run small enough for CI.
 fuzz-api-ci:
-	cargo run --release --example api_invariant_fuzz -- \
+	cargo run --release -p schlift-core --example fuzz -- \
 		--users 6 --sessions 8 --seed 20240101
 
 run-prod:

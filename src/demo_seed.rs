@@ -11,21 +11,26 @@
 //!   ago with the first two exercises done, so the live workout screens open
 //!   mid-session with an elapsed timer and a heart-rate axis worth looking at.
 //!
-//! A no-op for a user that already exists. Everything goes through the real
-//! `ServerDb` write API and the real exercise catalog, so the data stays
-//! valid as the schema and prescriptions evolve.
+//! A no-op for a user that already exists. The account is written as events,
+//! made by the core's own API (the history as one import, the live session
+//! through the real start and complete), so it stays valid as the rules and
+//! prescriptions evolve. The phone pulls it on sign-in like any account.
 
 use std::collections::HashMap;
 
 use crate::db::{DbResult, ServerDb};
-use crate::exercise_catalog::{
+use crate::time::now_unix;
+use schlift::workout::v1::{
+    CompleteSetRequest, CompletedSet, Event, Exercise, ImportHistory, ImportedWorkout, ProposedSet,
+    SaveTemplateRequest, StartWorkoutRequest, TrackerRecord, Workout, WorkoutTemplate,
+};
+use schlift_core::account::Account;
+use schlift_core::api::Call;
+use schlift_core::exercise_catalog::{
     load_style, prescription, progression_increment_lb, snap_weight_lb, starting_weight_lb,
     LoadStyle, Prescription,
 };
-use crate::exercise_progress::TrackerState;
-use crate::time::now_unix;
-use crate::weight_units::AppWeightUnit;
-use schlift::workout::v1::{CompletedSet, Exercise, ProposedSet, Workout, WorkoutTemplate};
+use schlift_core::weight_units::AppWeightUnit;
 use uuid::Uuid;
 
 const DAY: i64 = 86_400;
@@ -356,31 +361,72 @@ fn build_session(
     }
 }
 
-async fn write_trackers(
-    db: &ServerDb,
-    user_id: &str,
-    lifts: &HashMap<i32, Lift>,
-    performed_at: i64,
-) -> DbResult<()> {
-    for (key, lift) in lifts {
-        db.upsert_tracker_state(
-            user_id,
-            *key,
-            &TrackerState {
-                working_weight: lift.weight,
-                current_reps: lift.reps,
-                consecutive_misses: lift.misses,
-                last_performed_at: performed_at,
-                override_sets: 0,
-                override_rep_low: 0,
-                override_rep_high: 0,
-                consecutive_hard: 0,
-            },
-            "demo",
-        )
-        .await?;
+/// The lifts as trackers, as they stand after the history.
+fn trackers(lifts: &HashMap<i32, Lift>, performed_at: i64) -> Vec<TrackerRecord> {
+    let mut out: Vec<TrackerRecord> = lifts
+        .iter()
+        .map(|(key, lift)| TrackerRecord {
+            exercise: *key,
+            working_weight: lift.weight,
+            current_reps: lift.reps,
+            consecutive_misses: lift.misses,
+            last_performed_at: performed_at,
+            ..Default::default()
+        })
+        .collect();
+    out.sort_by_key(|t| t.exercise);
+    out
+}
+
+/// The live session: the next template in the rotation, started through the
+/// real API, its first exercises done, slid back in time so the last rest
+/// ends `LIVE_REST_ENDS_IN` from now.
+fn live_session(account: &mut Account, template_id: &str, now: i64) -> Vec<Event> {
+    fn run(account: &mut Account, template_id: &str, start: i64) -> (Vec<Event>, i64) {
+        let mut call = Call::new(account, start, Uuid::new_v4().to_string());
+        let started = call
+            .start_workout(StartWorkoutRequest {
+                template_id: template_id.to_string(),
+                started_at: start,
+                ..Default::default()
+            })
+            .expect("the demo template starts");
+        let mut exercises: Vec<i32> = Vec::new();
+        for set in &started.proposed_sets {
+            if !exercises.contains(&set.exercise) {
+                exercises.push(set.exercise);
+            }
+        }
+        let done: Vec<i32> = exercises.into_iter().take(LIVE_DONE_EXERCISES).collect();
+        let mut clock = start + 120;
+        let mut rest_until = start;
+        for set in started
+            .proposed_sets
+            .iter()
+            .filter(|s| done.contains(&s.exercise))
+        {
+            clock += if set.warmup { 30 } else { 40 };
+            let response = call
+                .complete_set(CompleteSetRequest {
+                    workout_id: started.id.clone(),
+                    proposed_set_id: set.id.clone(),
+                    actual_reps: set.target_reps,
+                    actual_weight: set.target_weight,
+                    completed_at: clock,
+                    effort: 0,
+                })
+                .expect("a planned set completes");
+            rest_until = response
+                .completed_set
+                .map(|c| c.rest_until)
+                .unwrap_or(clock);
+            clock = rest_until;
+        }
+        (std::mem::take(&mut call.events), rest_until)
     }
-    Ok(())
+    // A dry run on a copy finds how long it takes; the real one is shifted.
+    let (_, rest_until) = run(&mut account.clone(), template_id, 0);
+    run(account, template_id, now + LIVE_REST_ENDS_IN - rest_until).0
 }
 
 async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
@@ -392,23 +438,28 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
     db.create_user_with_id(&user_id, username).await?;
     tracing::info!(username, %user_id, live, "seeding demo account");
 
+    let now = now_unix();
+    let mut account = Account::default();
+    let mut events = Vec::new();
     let mut template_ids = Vec::new();
-    for t in TEMPLATES {
-        let saved = db
-            .save_template(
-                &user_id,
-                &WorkoutTemplate {
-                    name: t.name.to_string(),
-                    exercises: t.exercises.iter().map(|e| *e as i32).collect(),
-                    ..Default::default()
-                },
-            )
-            .await?;
-        template_ids.push(saved.id);
+    {
+        let mut call = Call::new(&mut account, now, Uuid::new_v4().to_string());
+        for t in TEMPLATES {
+            let saved = call
+                .save_template(SaveTemplateRequest {
+                    template: Some(WorkoutTemplate {
+                        name: t.name.to_string(),
+                        exercises: t.exercises.iter().map(|e| *e as i32).collect(),
+                        ..Default::default()
+                    }),
+                })
+                .expect("the demo templates are valid");
+            template_ids.push(saved.template.expect("saved").id);
+        }
+        events.append(&mut call.events);
     }
 
     let mut lifts: HashMap<i32, Lift> = HashMap::new();
-    let now = now_unix();
     // Sessions on a Mon/Wed/Fri rhythm, most recent one two days ago so the
     // recovery view shows a mix of recovered and recovering muscles.
     let mut session_days: Vec<i64> = Vec::new();
@@ -420,6 +471,7 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
     session_days.sort_unstable_by(|a, b| b.cmp(a)); // oldest first
     let total = session_days.len();
     let mut last_end = 0;
+    let mut workouts = Vec::new();
 
     for (i, days_ago) in session_days.into_iter().enumerate() {
         let template = &TEMPLATES[i % TEMPLATES.len()];
@@ -440,57 +492,31 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
             .map(|c| c.ended_at + 60)
             .unwrap_or(start + 3000);
         session.workout.end_time = end;
-        db.insert_workout(&user_id, &session.workout, &session.proposed)
-            .await?;
-        db.persist_workout_state(
-            &user_id,
-            &session.workout,
-            &session.proposed,
-            &session.completed,
-        )
-        .await?;
-        // insert_workout marks the workout active; close it like EndWorkout does.
-        db.end_workout(&user_id, &session.workout.id, end).await?;
-        db.claim_progression(&user_id, &session.workout.id).await?;
+        workouts.push(ImportedWorkout {
+            workout: Some(session.workout),
+            proposed_sets: session.proposed,
+            completed_sets: session.completed,
+            heart_rate: Vec::new(),
+        });
         last_end = end;
     }
-    write_trackers(db, &user_id, &lifts, last_end).await?;
-
-    if live {
-        // The next session in the rotation, in progress right now. The
-        // trackers must not move until it ends, hence the cloned lifts.
-        let index = total % TEMPLATES.len();
-        let mut scratch = lifts.clone();
-        let mut session = build_session(
-            &TEMPLATES[index],
-            &template_ids[index],
-            &mut scratch,
-            now,
-            LIVE_DONE_EXERCISES,
-            total,
-        );
-        // Slide the whole session back so the last completed set's rest ends
-        // LIVE_REST_ENDS_IN from now; the elapsed timer falls out of that.
-        if let Some(last) = session.completed.last() {
-            let shift = now + LIVE_REST_ENDS_IN - last.rest_until;
-            session.workout.start_time += shift;
-            for set in &mut session.completed {
-                set.ended_at += shift;
-                set.rest_until += shift;
-            }
-        }
-        db.insert_workout(&user_id, &session.workout, &session.proposed)
-            .await?;
-        db.persist_workout_state(
-            &user_id,
-            &session.workout,
-            &session.proposed,
-            &session.completed,
-        )
-        .await?;
-        tracing::info!(username, workout = %session.workout.id, "live session in progress");
+    {
+        let mut call = Call::new(&mut account, now, Uuid::new_v4().to_string());
+        call.import_history(ImportHistory {
+            workouts,
+            trackers: trackers(&lifts, last_end),
+        })
+        .expect("the demo history imports");
+        events.append(&mut call.events);
     }
 
+    if live {
+        let index = total % TEMPLATES.len();
+        events.extend(live_session(&mut account, &template_ids[index], now));
+        tracing::info!(username, workout = %account.active_workout_id, "live session in progress");
+    }
+
+    db.push_events(&user_id, events).await?;
     tracing::info!(username, sessions = total, "demo account seeded");
     Ok(())
 }

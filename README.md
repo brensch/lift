@@ -5,22 +5,29 @@ share a live session with other lifters.
 
 | Part | Path | Stack |
 |---|---|---|
+| Core | `core/` | Rust — every rule, linked into the app and the backend |
 | Backend | `src/` | Rust, gRPC (tonic), one SQLite file |
-| App | `app/` | Flutter — phone, Wear OS, Apple Watch |
+| App | `app/` | Flutter — phone, Wear OS, Apple Watch; the core via `app/native` |
 | Web | `web/` | React, Vite — landing page, privacy, account deletion |
 
 Bundle ID on all platforms: `com.brensch.schlift`.
 
 ## How it works
 
+- **Local-first** — The account lives on the phone, in one SQLite file, and
+  the phone runs every rule itself: the Rust core (`core/`) is linked into
+  the app. Everything works offline except multiplayer. Each write is an
+  event; the account is the fold of its events, and a Sync stream keeps the
+  server's copy level. See
+  [`docs/architecture/local-first.md`](docs/architecture/local-first.md).
 - **Backend** — One Rust binary (`src/main.rs`). One SQLite file in WAL
-  mode. The write pool has 1 connection, so writes run in series. The read
-  pool has 16. RPC handlers are in `src/server/`.
+  mode: each account's event log, the workout tables projected from it,
+  auth and multiplayer sessions. RPC handlers are in `src/server/`.
 - **Training** — You compose workout templates (ordered exercise lists).
   The app prescribes sets, reps, rest and weight per exercise
-  (`src/exercise_catalog.rs`), and one rule progresses every exercise:
-  double progression (`src/exercise_progress.rs`). Weekly volume per
-  muscle is tracked against a 10–20 band (`src/volume.rs`).
+  (`core/src/exercise_catalog.rs`), and one rule progresses every exercise:
+  double progression (`core/src/exercise_progress.rs`). Weekly volume per
+  muscle is tracked against a 10–20 band (`core/src/volume.rs`).
 - **Protobuf** — `proto/workout/v1/` is the only contract between the
   backend and the clients. Generated code is committed.
 - **App** — `app/lib/` holds `screens/`, `widgets/`, `providers/` (state),
@@ -65,15 +72,16 @@ dart pub global activate protoc_plugin        # gives protoc-gen-dart
 ## Test
 
 ```bash
-cargo test --all-targets                       # backend
-cargo clippy --all-targets -- -D warnings      # lints, as CI runs them
+cargo test --workspace --all-targets           # core, backend, app/native
+make lint-check                                # every formatter and linter, as CI runs them
 make fuzz-api                                  # randomised API sequences
-cd app && flutter test                         # app
+make test-app                                  # app (builds the core for the host first)
 ```
 
-`make fuzz-api` starts a throwaway backend. It drives random workout
+`make fuzz-api` runs the core in-process. It drives random workout
 sequences — onboarding, template starts, mid-workout edits, double
-EndWorkout — and checks the state invariants after every change.
+EndWorkout — checks the state invariants after every change, and checks
+that every user's event log replays to the same account.
 
 See [`docs/architecture/testing.md`](docs/architecture/testing.md) for what
 each layer catches.
@@ -106,11 +114,11 @@ deploys, builds, promotion, store listing, signing and secrets.
 ## Layout
 
 ```
+core/       Rust domain: the account, its events, every rule
 src/        Rust backend
-app/        Flutter app (phone, Wear OS, Apple Watch)
+app/        Flutter app (phone, Wear OS, Apple Watch); app/native is the core's host
 web/        React site
 proto/      Protobuf contracts
-examples/   Load test and API invariant harness
 make/       Makefile target groups
 deploy/     systemd and Caddy configs
 docs/       Architecture reference and runbooks

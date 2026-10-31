@@ -9,13 +9,16 @@ import 'package:flutter/material.dart';
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../gen/workout/v1/workout.pb.dart';
-import '../../../logic/starting_weights.dart';
 import '../../../logic/weight_units.dart';
 import '../../../theme/theme_spec.dart';
 
 class StrengthStep extends StatelessWidget {
   final WeightUnit unit;
   final double strength; // 0 chick .. 1 gorilla
+
+  /// The weights at each 1% of the slider, from the core (null while they
+  /// load).
+  final List<StartingWeightsStep>? steps;
   final ValueChanged<double> onChanged;
   final VoidCallback onBack;
   final VoidCallback onNext;
@@ -24,6 +27,7 @@ class StrengthStep extends StatelessWidget {
     super.key,
     required this.unit,
     required this.strength,
+    required this.steps,
     required this.onChanged,
     required this.onBack,
     required this.onNext,
@@ -47,9 +51,10 @@ class StrengthStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final t = copy.onboarding.strength;
+    final step = steps?[(strength.clamp(0.0, 1.0) * 100).round()];
     final weights = {
-      for (final (ex, lb) in startingWeightsLb(strength: strength, unit: unit))
-        ex: lb,
+      for (final w in step?.weights ?? const <ExerciseWeight>[])
+        w.exercise: w.weightLb.toDouble(),
     };
     final labels = {for (final l in t.lifts) l.id: l.label};
 

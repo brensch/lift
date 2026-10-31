@@ -1,7 +1,9 @@
 # Wearable Companions
 
 Wear OS and Apple Watch apps act as a remote control and heart-rate sensor. They
-**never talk to the backend** — everything goes through the phone.
+**never talk to the backend** — everything goes through the phone, which
+answers from the account it holds (see [local-first.md](local-first.md)), so
+the watch works with no network as long as the phone is in reach.
 
 ## Topology
 
@@ -19,7 +21,7 @@ graph LR
         wp["WorkoutProvider"]
     end
 
-    server["Backend"]
+    core["core on the phone<br/>(app/native)"]
 
     ui -->|"WearIntent"| bridge
     hr --> outbox -->|"WearSensorBatch"| bridge
@@ -27,7 +29,7 @@ graph LR
     coord -->|"WearWorkoutSnapshot"| ui
     bridge <--> coord
     coord <--> wp
-    wp -->|gRPC| server
+    wp --> core
 ```
 
 The phone is authoritative. The watch holds no workout state of its own — it
@@ -103,13 +105,13 @@ sequenceDiagram
     participant B as Bridge
     participant C as WearableSyncCoordinator
     participant P as WorkoutProvider
-    participant S as Server
+    participant K as core (on the phone)
 
     W->>B: WearIntent{intent_id, sent_at, oneof}
     B->>C: intentStream
     alt workout matches and app ready
         C->>P: _executeIntent → StartSet / CompleteSet / …
-        P->>S: gRPC
+        P->>K: one core call (an event)
         P->>C: state changed
         C->>W: new snapshot
     else not ready
@@ -137,16 +139,17 @@ sequenceDiagram
     participant HR as Sensor
     participant O as Outbox (watch)
     participant P as Phone
-    participant S as Server
+    participant K as core (on the phone)
 
     HR->>O: samples
     O->>O: batch, persist to disk
     loop until acked
         O->>P: WearSensorBatch{batch_id, samples}
-        P->>S: AppendWorkoutHeartRate
         P->>O: WearSensorBatchAck{batch_id}
         O->>O: drop batch
     end
+    P->>P: dedupe by batch_id and timestamp, buffer
+    P->>K: AppendWorkoutHeartRate (every 5 s, and at the end)
 ```
 
 The outbox (`WatchSensorBatchOutbox.swift`, `WearSensorBatchOutbox.kt`) is
@@ -154,8 +157,10 @@ The outbox (`WatchSensorBatchOutbox.swift`, `WearSensorBatchOutbox.kt`) is
 acked. This is why heart-rate data survives a watch app crash mid-workout.
 
 Sample timestamps are Unix **milliseconds** (`HeartRateSample.sampled_at`), while
-most other timestamps in the system are seconds. `WorkoutHeartRatePoint` rows in
-SQLite are stored per sample.
+most other timestamps in the system are seconds. The phone writes heart rate
+into the account in batches (one `heart_rate` event per batch, not per
+sample); the projected `workout_heart_rate_samples` table has a row per
+sample, and the events sync to the server like any other.
 
 `HeartRateAvailability` distinguishes `AVAILABLE` / `ACQUIRING` / `UNAVAILABLE`,
 so the UI can show "finding your heart rate" rather than a misleading zero.
