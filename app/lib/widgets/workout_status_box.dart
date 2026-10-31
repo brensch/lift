@@ -159,7 +159,23 @@ class StatusBox extends StatelessWidget {
       // plates on one line.
       final line = Row(
         children: [
-          if (circle != null) ...[circle!, const SizedBox(width: 14)],
+          // Reps in the circle × the weight.
+          if (circle != null) ...[
+            circle!,
+            const SizedBox(width: 10),
+            Text(
+              '×',
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.displayLg,
+                  fontWeight: t.weight.bold,
+                  color: t.text,
+                  height: 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: FittedBox(
               fit: BoxFit.scaleDown,
