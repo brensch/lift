@@ -138,7 +138,11 @@ private fun roundInset(
 @Composable
 private fun Dp.asSp(): TextUnit = with(LocalDensity.current) { this@asSp.toSp() }
 
-/** Shrinks until it fits on one line. */
+/**
+ * Shrinks until it fits on one line. The size is worked out again only when
+ * the text's length changes, so a ticking clock keeps its size and never
+ * blanks for a frame while it measures.
+ */
 @Composable
 internal fun FitText(
     text: String,
@@ -149,8 +153,8 @@ internal fun FitText(
     family: FontFamily = WearMonoFontFamily,
     align: TextAlign = TextAlign.End,
 ) {
-    var current by remember(text, size) { mutableStateOf(size) }
-    var ready by remember(text, size) { mutableStateOf(false) }
+    var current by remember(text.length, size) { mutableStateOf(size) }
+    var ready by remember(text.length, size) { mutableStateOf(false) }
     Text(
         text = text,
         modifier = modifier.drawWithContent { if (ready) drawContent() },
