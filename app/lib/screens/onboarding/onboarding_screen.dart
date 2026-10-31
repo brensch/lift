@@ -83,9 +83,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// come ticked.
   Future<void> _loadLibrary() async {
     try {
-      final library = await WorkoutServiceWrapper(
-        context.read<GrpcClient>(),
-      ).listTemplateLibrary();
+      final library = await context
+          .read<WorkoutServiceWrapper>()
+          .listTemplateLibrary();
       if (!mounted) return;
       setState(() {
         _library = library;
@@ -184,7 +184,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       // The server seeds trackers and the default templates.
       if (!mounted) return;
-      final service = WorkoutServiceWrapper(context.read<GrpcClient>());
+      final service = context.read<WorkoutServiceWrapper>();
       await service.completeOnboarding(
         bodyWeightKg: bodyWeightKg,
         experience: ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,

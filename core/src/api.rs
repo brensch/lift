@@ -300,9 +300,12 @@ impl<'a> Call<'a> {
     }
 
     /// Bring in history from elsewhere as it was (an account moving here).
-    pub fn import_history(&mut self, req: ImportHistory) -> Result<(), CoreError> {
+    pub fn import_history(
+        &mut self,
+        req: ImportHistory,
+    ) -> Result<ImportHistoryResponse, CoreError> {
         self.record(event::Kind::ImportHistory(req))?;
-        Ok(())
+        Ok(ImportHistoryResponse {})
     }
 
     // ── Settings ──
@@ -580,6 +583,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "AddLibraryTemplates" => add_library_templates,
             "DismissUserMessages" => dismiss_user_messages,
             "UpdateSetting" => update_setting,
+            "ImportHistory" => import_history,
         }
         reads {
             "GetWorkout" => get_workout,

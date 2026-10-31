@@ -35,13 +35,11 @@ void main() {
         kind: 'api',
       );
 
-      // Start in the UI, complete every set via API, then finish from the UI.
+      // Start in the UI, fast-forward every set, then finish from the UI.
       await s.startWorkoutFromHome();
-      await api.adoptActiveWorkout();
-      final completed = await api.completeAllWorkingSets();
-      s.note('Completed via API', detail: '$completed sets', kind: 'api');
-      await s.settle(seconds: 3); // let the app poll the backend's state
-      await s.shot('All sets done by the API peer');
+      final completed = await s.completeAllWorkingSetsInApp();
+      s.note('Completed in the app', detail: '$completed sets');
+      await s.shot('All sets done');
 
       await s.endWorkoutAndWaitForSummary();
       await s.shot(
@@ -49,7 +47,10 @@ void main() {
         note: 'Rungs count as warmups; the working sets carry the weight.',
       );
 
-      // The heaviest working set the peer completed is the calibrated weight.
+      // The heaviest working set done is the calibrated weight, as the
+      // server holds it.
+      await api.adoptActiveWorkout();
+      api.workoutId ??= s.workout.activeWorkout?.id;
       final detail = (await api.workoutDetail())!;
       final proposedById = {for (final p in detail.proposedSets) p.id: p};
       var calibrated = 0.0;

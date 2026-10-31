@@ -14,6 +14,7 @@ import 'services/page_tracker.dart';
 import 'services/grpc_client.dart';
 import 'widgets/dialogs/template_update_dialog.dart';
 import 'services/auth_service.dart';
+import 'services/account_sync.dart';
 import 'services/workout_service.dart';
 import 'services/multiplayer_service.dart';
 import 'services/error_modal_service.dart';
@@ -98,6 +99,8 @@ class SchliftApp extends StatefulWidget {
 
 class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   late final GrpcClient _grpcClient;
+  late final AccountSync _accountSync;
+  late final WorkoutServiceWrapper _account;
   late final AuthService _authService;
   late final AuthProvider _authProvider;
   late final WorkoutProvider _workoutProvider;
@@ -112,13 +115,24 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   // then completed. Lets an invite work on a cold first open, not just when
   // already signed in.
   String? _pendingJoinToken;
-  bool _wasLoggedIn = false;
+
+  /// The account open on this phone, and whether the server knows us.
+  String? _openUserId;
+  bool _hadServerSession = false;
 
   Future<void> _syncBodyWeightOnAppLoad() async {
     final importedKg = await _authProvider.syncBodyWeightFromHealth();
     if (importedKg != null) {
       _workoutProvider.setBodyWeightKg(importedKg);
     }
+  }
+
+  /// Open the account on this phone (restoring it from the server on a
+  /// fresh install), then everything that reads it.
+  Future<void> _openAccount(String userId) async {
+    await _accountSync.signIn(userId);
+    await _settingsProvider.load();
+    await _workoutProvider.loadActiveWorkout(userId);
   }
 
   @override
@@ -133,7 +147,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _authService = AuthService(grpcClient: _grpcClient);
     PageTracker.instance.attach(
       _grpcClient,
-      isLoggedIn: () => _authProvider.isLoggedIn,
+      isLoggedIn: () => _authProvider.hasServerSession,
     );
 
     _authProvider = AuthProvider(
@@ -141,16 +155,29 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       grpcClient: _grpcClient,
     );
 
-    _settingsProvider = SettingsProvider(_grpcClient);
+    // The account lives on this phone; the stream keeps the server level.
+    _accountSync = AccountSync(_grpcClient)
+      ..onSessionRejected = () => unawaited(
+        _authProvider.expireSession(
+          message: 'Sign in again to sync this phone with your account.',
+        ),
+      );
+    _account = WorkoutServiceWrapper(_accountSync);
+    _settingsProvider = SettingsProvider(_account);
     _soundProvider = SoundProvider();
-    _workoutProvider = WorkoutProvider(
-      WorkoutServiceWrapper(_grpcClient),
-      _settingsProvider,
-    );
+    _workoutProvider = WorkoutProvider(_account, _settingsProvider);
     _workoutProvider.setSoundProvider(_soundProvider);
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
+      feed: _accountSync,
     );
+    // A workout remembers the session it's trained in, joined mid-way or not.
+    _accountSync.addListener(() {
+      final sessionId = _accountSync.session.sessionId;
+      if (sessionId.isNotEmpty) {
+        unawaited(_workoutProvider.recordSession(sessionId));
+      }
+    });
     _wearableBridgeService = createWearableBridgeService();
     _wearableSyncCoordinator = WearableSyncCoordinator(
       workoutProvider: _workoutProvider,
@@ -160,9 +187,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       myProfileEmoji: () => _authProvider.profileEmoji,
     );
     unawaited(_wearableSyncCoordinator.init());
-    _workoutProvider.onSessionRefreshNeeded = () {
-      _multiplayerProvider.checkForSession();
-    };
     _workoutProvider.onWorkoutEnded = (workoutId) {
       final navigator = ErrorModalService.rootNavigatorKey.currentState;
       navigator?.push(
@@ -197,16 +221,33 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       if (_authProvider.sessionLoaded) {
         unawaited(TutorialSeen.migrateLegacy(_authProvider.userId));
       }
-      final isLoggedIn = _authProvider.isLoggedIn;
       _workoutProvider.setBodyWeightKg(_authProvider.bodyWeightKg);
-      if (isLoggedIn && !_wasLoggedIn) {
-        PageTracker.instance.onLogin();
-        _settingsProvider.load();
-        _soundProvider.load();
-        final userId = _authProvider.userId;
-        if (userId != null) {
-          unawaited(_workoutProvider.loadActiveWorkout(userId));
+      final userId = _authProvider.userId;
+      if (userId != _openUserId) {
+        if (_openUserId != null) {
+          PageTracker.instance.onLogout();
+          _settingsProvider.clear();
+          unawaited(_soundProvider.reset());
+          _workoutProvider.clear();
+          unawaited(_accountSync.signOut());
+          _multiplayerProvider.stopSync(
+            clearSession: true,
+            clearInviteToken: true,
+          );
         }
+        _openUserId = userId;
+        if (userId != null) {
+          _soundProvider.load();
+          unawaited(_openAccount(userId));
+        }
+        _hadServerSession = false;
+      }
+      // Signed in to the server (at the start, or again after the session
+      // lapsed): sync and multiplayer can run.
+      final hasServerSession = _authProvider.hasServerSession;
+      if (userId != null && hasServerSession && !_hadServerSession) {
+        PageTracker.instance.onLogin();
+        _accountSync.redial();
         unawaited(_syncBodyWeightOnAppLoad());
         _multiplayerProvider.startSync();
         // Complete a join from a link tapped before this login/signup.
@@ -215,17 +256,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           _pendingJoinToken = null;
           _multiplayerProvider.joinViaInvite(token);
         }
-      } else if (!isLoggedIn && _wasLoggedIn) {
-        PageTracker.instance.onLogout();
-        _settingsProvider.clear();
-        unawaited(_soundProvider.reset());
-        _workoutProvider.clear();
-        _multiplayerProvider.stopSync(
-          clearSession: true,
-          clearInviteToken: true,
-        );
       }
-      _wasLoggedIn = isLoggedIn;
+      _hadServerSession = hasServerSession;
     });
 
     // Load persisted state at app startup. The auth listener above handles
@@ -258,7 +290,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         final isOnboarding = state.matchedLocation == '/onboarding';
 
         if (!loggedIn && !isLogin) return '/login';
-        if (loggedIn && isLogin) return '/';
+        // Signed out of the server but not of the phone: /login is how you
+        // sign in again to sync.
+        if (isLogin && _authProvider.hasServerSession) return '/';
 
         // Every permission, once per install, before anything else.
         final isPermissions = state.matchedLocation == '/permissions';
@@ -375,7 +409,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   void _handleDeepLink(Uri uri) {
     final joinToken = uri.queryParameters['join'];
     if (joinToken == null || joinToken.isEmpty) return;
-    if (_authProvider.isLoggedIn) {
+    if (_authProvider.hasServerSession) {
       _multiplayerProvider.joinViaInvite(joinToken);
     } else {
       // Not signed in yet (cold open from the link) — remember it; the auth
@@ -415,6 +449,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     return MultiProvider(
       providers: [
         Provider<GrpcClient>.value(value: _grpcClient),
+        Provider<WorkoutServiceWrapper>.value(value: _account),
+        ChangeNotifierProvider<AccountSync>.value(value: _accountSync),
         Provider<AuthService>.value(value: _authService),
         Provider<WearableBridgeService>.value(value: _wearableBridgeService),
         ChangeNotifierProvider<AuthProvider>.value(value: _authProvider),

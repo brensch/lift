@@ -210,7 +210,16 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         &active.proposed_sets,
         &active.completed_sets,
     ));
+    let passed_warmup_ids = active
+        .proposed_sets
+        .iter()
+        .filter(|s| {
+            crate::progress::is_passed_warmup(s, &active.proposed_sets, &active.completed_sets)
+        })
+        .map(|s| s.id.clone())
+        .collect();
     GetWorkoutResponse {
+        passed_warmup_ids,
         workout: Some(active.workout.clone()),
         proposed_sets: active.proposed_sets.clone(),
         completed_sets: active.completed_sets.clone(),

@@ -32,6 +32,20 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
+  /// Phosphor `cloud`.
+  static const cloud = IconData(
+    0xe1aa,
+    fontFamily: _family,
+    fontPackage: _package,
+  );
+
+  /// Phosphor `downloadSimple`.
+  static const download = IconData(
+    0xe20c,
+    fontFamily: _family,
+    fontPackage: _package,
+  );
+
   /// Phosphor `arrowLeft`.
   static const back = IconData(
     0xe058,

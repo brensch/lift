@@ -356,6 +356,9 @@ message GetWorkoutResponse {
   WorkoutStateSnapshot state_snapshot = 7;
   repeated UserMessage user_messages = 8;
   WorkoutSummary summary = 9;
+  // Undone warmups that are behind you (skipped, or a working set of their
+  // exercise is done): shown out of the way, nothing waits on them.
+  repeated string passed_warmup_ids = 10;
 }
 
 message WorkoutPlanChangeStats {
@@ -771,6 +774,14 @@ message GetWorkoutHeartRateResponse {
   repeated WorkoutHeartRatePoint samples = 1;
 }
 
+// The multiplayer session a workout is being trained in, as the server said
+// when the phone heard (joining mid-workout included): what "trained with"
+// on its summary reads.
+message SetWorkoutSessionRequest {
+  string workout_id = 1;
+  string session_id = 2;
+}
+
 message WorkoutMutation {
   string event_id = 1;
   int64 client_created_at = 2; // Unix seconds from client clock
@@ -786,6 +797,7 @@ message WorkoutMutation {
     EditCompletedSetRequest edit_completed_set = 23;
     StartSetRequest start_set = 24;
     SkipWarmupsRequest skip_warmups = 25;
+    SetWorkoutSessionRequest set_session = 26;
   }
   // 12 was cancel_proposed_set (skipping a warmup): warmups are never
   // removed now, doing a working set just moves past them.

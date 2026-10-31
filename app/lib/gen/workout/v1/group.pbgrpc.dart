@@ -69,7 +69,8 @@ class MultiplayerServiceClient extends $grpc.Client {
   }
 
   /// Get the caller's current group session. Reads user_current_session — membership is
-  /// independent of whether the caller has an active workout.
+  /// independent of whether the caller has an active workout. The Sync stream
+  /// (account.proto) pushes the same thing whenever it changes.
   $grpc.ResponseFuture<$0.GetCurrentSessionResponse> getCurrentSession(
     $0.GetCurrentSessionRequest request, {
     $grpc.CallOptions? options,
@@ -95,25 +96,6 @@ class MultiplayerServiceClient extends $grpc.Client {
   }) {
     return $createUnaryCall(_$getSessionParticipants, request,
         options: options);
-  }
-
-  /// Subscribe to live updates for a current multiplayer session.
-  /// The server always emits a full snapshot immediately after subscribe.
-  $grpc.ResponseStream<$0.SessionSubscriptionEvent> subscribeSession(
-    $0.SubscribeSessionRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createStreamingCall(
-        _$subscribeSession, $async.Stream.fromIterable([request]),
-        options: options);
-  }
-
-  /// Refresh the caller's participant snapshot in the session cache.
-  $grpc.ResponseFuture<$0.UpdateActiveWorkoutResponse> updateActiveWorkout(
-    $0.UpdateActiveWorkoutRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$updateActiveWorkout, request, options: options);
   }
 
   /// People the caller has trained with (shared a session), most-recent first.
@@ -199,16 +181,6 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/GetSessionParticipants',
       ($0.GetSessionParticipantsRequest value) => value.writeToBuffer(),
       $0.GetSessionParticipantsResponse.fromBuffer);
-  static final _$subscribeSession = $grpc.ClientMethod<
-          $0.SubscribeSessionRequest, $0.SessionSubscriptionEvent>(
-      '/workout.v1.MultiplayerService/SubscribeSession',
-      ($0.SubscribeSessionRequest value) => value.writeToBuffer(),
-      $0.SessionSubscriptionEvent.fromBuffer);
-  static final _$updateActiveWorkout = $grpc.ClientMethod<
-          $0.UpdateActiveWorkoutRequest, $0.UpdateActiveWorkoutResponse>(
-      '/workout.v1.MultiplayerService/UpdateActiveWorkout',
-      ($0.UpdateActiveWorkoutRequest value) => value.writeToBuffer(),
-      $0.UpdateActiveWorkoutResponse.fromBuffer);
   static final _$getTrainingPartners = $grpc.ClientMethod<
           $0.GetTrainingPartnersRequest, $0.GetTrainingPartnersResponse>(
       '/workout.v1.MultiplayerService/GetTrainingPartners',
@@ -304,24 +276,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetSessionParticipantsRequest.fromBuffer(value),
         ($0.GetSessionParticipantsResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.SubscribeSessionRequest,
-            $0.SessionSubscriptionEvent>(
-        'SubscribeSession',
-        subscribeSession_Pre,
-        false,
-        true,
-        ($core.List<$core.int> value) =>
-            $0.SubscribeSessionRequest.fromBuffer(value),
-        ($0.SessionSubscriptionEvent value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.UpdateActiveWorkoutRequest,
-            $0.UpdateActiveWorkoutResponse>(
-        'UpdateActiveWorkout',
-        updateActiveWorkout_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.UpdateActiveWorkoutRequest.fromBuffer(value),
-        ($0.UpdateActiveWorkoutResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GetTrainingPartnersRequest,
             $0.GetTrainingPartnersResponse>(
         'GetTrainingPartners',
@@ -431,24 +385,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetSessionParticipantsResponse> getSessionParticipants(
       $grpc.ServiceCall call, $0.GetSessionParticipantsRequest request);
-
-  $async.Stream<$0.SessionSubscriptionEvent> subscribeSession_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.SubscribeSessionRequest> $request) async* {
-    yield* subscribeSession($call, await $request);
-  }
-
-  $async.Stream<$0.SessionSubscriptionEvent> subscribeSession(
-      $grpc.ServiceCall call, $0.SubscribeSessionRequest request);
-
-  $async.Future<$0.UpdateActiveWorkoutResponse> updateActiveWorkout_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.UpdateActiveWorkoutRequest> $request) async {
-    return updateActiveWorkout($call, await $request);
-  }
-
-  $async.Future<$0.UpdateActiveWorkoutResponse> updateActiveWorkout(
-      $grpc.ServiceCall call, $0.UpdateActiveWorkoutRequest request);
 
   $async.Future<$0.GetTrainingPartnersResponse> getTrainingPartners_Pre(
       $grpc.ServiceCall $call,

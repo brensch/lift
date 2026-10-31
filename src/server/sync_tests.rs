@@ -183,8 +183,8 @@ mod stream {
 
     /// An open Sync stream: send up, read down.
     struct Link {
-        up: mpsc::Sender<SyncUp>,
-        down: tonic::Streaming<SyncDown>,
+        up: mpsc::Sender<SyncRequest>,
+        down: tonic::Streaming<SyncResponse>,
     }
 
     impl Link {
@@ -200,15 +200,15 @@ mod stream {
 
         async fn push(&self, events: Vec<Event>) {
             self.up
-                .send(SyncUp {
-                    kind: Some(sync_up::Kind::Events(pack(events))),
+                .send(SyncRequest {
+                    kind: Some(sync_request::Kind::Events(pack(events))),
                 })
                 .await
                 .unwrap();
         }
 
         /// The next message that matches, within a few seconds.
-        async fn next<T>(&mut self, mut pick: impl FnMut(sync_down::Kind) -> Option<T>) -> T {
+        async fn next<T>(&mut self, mut pick: impl FnMut(sync_response::Kind) -> Option<T>) -> T {
             tokio::time::timeout(Duration::from_secs(5), async {
                 loop {
                     let message = self.down.message().await.unwrap().expect("stream open");
@@ -224,7 +224,7 @@ mod stream {
         /// The first ack of at least `seq` (earlier acks may still be queued).
         async fn acked(&mut self, seq: i64) -> i64 {
             self.next(|kind| match kind {
-                sync_down::Kind::Head(head) if head >= seq => Some(head),
+                sync_response::Kind::Head(head) if head >= seq => Some(head),
                 _ => None,
             })
             .await
@@ -236,7 +236,7 @@ mod stream {
             mut want: impl FnMut(&GetCurrentSessionResponse) -> bool,
         ) -> GetCurrentSessionResponse {
             self.next(|kind| match kind {
-                sync_down::Kind::Session(session) if want(&session) => Some(session),
+                sync_response::Kind::Session(session) if want(&session) => Some(session),
                 _ => None,
             })
             .await
@@ -348,8 +348,8 @@ mod stream {
         let mut link = Link::open(channel, &token).await;
         assert_eq!(link.acked(0).await, 0);
         link.up
-            .send(SyncUp {
-                kind: Some(sync_up::Kind::Heartbeat(Heartbeat {})),
+            .send(SyncRequest {
+                kind: Some(sync_request::Kind::Heartbeat(Heartbeat {})),
             })
             .await
             .unwrap();
@@ -360,7 +360,7 @@ mod stream {
     #[tokio::test]
     async fn a_stranger_is_turned_away() {
         let channel = serve(db().await).await;
-        let (_up, rx) = mpsc::channel::<SyncUp>(1);
+        let (_up, rx) = mpsc::channel::<SyncRequest>(1);
         let status = SyncServiceClient::new(channel)
             .sync(authed("nope", ReceiverStream::new(rx)))
             .await

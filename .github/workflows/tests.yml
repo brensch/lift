@@ -58,9 +58,9 @@ jobs:
             rust:
               - 'src/**'
               - 'core/**'
+              - 'app/native/**'
               - 'templates/library.yaml'
               - 'proto/**'
-              - 'examples/**'
               - 'testdata/**'
               - 'build.rs'
               - 'Cargo.toml'
@@ -70,6 +70,8 @@ jobs:
               - '.github/workflows/tests.yml'
             flutter:
               - 'app/**'
+              - 'core/**'
+              - 'templates/library.yaml'
               - 'scripts/gen_copy.py'
               - 'scripts/sync_sounds.py'
               - 'scripts/lint.sh'
@@ -133,8 +135,9 @@ jobs:
       - name: Run Rust tests
         run: cargo test --workspace --all-targets
 
-  # Randomised API sequences against a throwaway backend, checking state
-  # invariants after every mutation. Fixed seed so a failure is reproducible.
+  # Randomised API sequences through the core, checking state invariants
+  # after every mutation and that every log replays to the same account.
+  # Fixed seed so a failure is reproducible.
   # Release profile, so it gets its own cache.
   fuzz:
     needs: changes
@@ -183,6 +186,23 @@ jobs:
 
       - name: Format check (dart format) and lint (flutter analyze, infos fatal)
         run: scripts/lint.sh check dart
+
+      # The Dart tests run the real core: the host build of app/native.
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache cargo (native)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: rust-native
+
+      - name: Build the core for the host
+        run: cargo build -p schlift_native
 
       - name: Run Flutter tests
         working-directory: app

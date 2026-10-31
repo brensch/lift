@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:grpc/grpc.dart';
-import '../gen/workout/v1/workout.pbgrpc.dart';
+import '../gen/workout/v1/account.pbgrpc.dart';
+import '../gen/workout/v1/workout.pbgrpc.dart' show UserServiceClient;
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
 import '../gen/workout/v1/analytics.pbgrpc.dart';
-import '../gen/workout/v1/settings.pbgrpc.dart';
 import 'app_logger.dart';
 
 class AuthInterceptor extends ClientInterceptor {
@@ -171,11 +171,10 @@ class GrpcClient {
   late final AuthInterceptor authInterceptor;
   late final LoggingInterceptor _loggingInterceptor;
   late ClientChannel channel;
-  late WorkoutServiceClient workoutService;
+  late SyncServiceClient syncService;
   late UserServiceClient userService;
   late MultiplayerServiceClient multiplayerService;
   late AuthServiceClient authService;
-  late SettingsServiceClient settingsService;
   late AnalyticsServiceClient analyticsService;
 
   GrpcClient({required this.host, required this.port}) {
@@ -200,27 +199,25 @@ class GrpcClient {
       port: port,
       options: ChannelOptions(
         credentials: credentials,
-        idleTimeout: const Duration(minutes: 1),
+        idleTimeout: const Duration(minutes: 5),
         connectionTimeout: const Duration(minutes: 10),
         connectTimeout: const Duration(seconds: 10),
+        // The Sync stream is open for a whole workout; pings keep the
+        // proxies from idling it out and notice a dead link.
         keepAlive: const ClientKeepAliveOptions(
-          pingInterval: Duration(seconds: 30),
+          pingInterval: Duration(seconds: 10),
           timeout: Duration(seconds: 10),
           permitWithoutCalls: true,
         ),
       ),
     );
-    workoutService = WorkoutServiceClient(channel, interceptors: _interceptors);
+    syncService = SyncServiceClient(channel, interceptors: _interceptors);
     userService = UserServiceClient(channel, interceptors: _interceptors);
     multiplayerService = MultiplayerServiceClient(
       channel,
       interceptors: _interceptors,
     );
     authService = AuthServiceClient(channel, interceptors: _interceptors);
-    settingsService = SettingsServiceClient(
-      channel,
-      interceptors: _interceptors,
-    );
     analyticsService = AnalyticsServiceClient(
       channel,
       interceptors: _interceptors,

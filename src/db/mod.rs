@@ -45,59 +45,15 @@ CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id
 
 -- Each account is a log of events (account.proto), made on the phone and
 -- synced. Everything about a person's training is the fold of their log;
--- the workout tables below are projections of it, rewritten whenever a
--- workout's events arrive, for SQL analytics and multiplayer history.
+-- the workout tables (schlift_core::projection::WORKOUT_SCHEMA) are
+-- projections of it, rewritten whenever a workout's events arrive, for SQL
+-- analytics and multiplayer history.
 CREATE TABLE IF NOT EXISTS account_events (
     user_id TEXT NOT NULL,
     seq INTEGER NOT NULL,
     event_blob BLOB NOT NULL,
     PRIMARY KEY(user_id, seq)
 );
-
-CREATE TABLE IF NOT EXISTS workouts (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL DEFAULT '',
-    start_time INTEGER NOT NULL,
-    end_time INTEGER NOT NULL DEFAULT 0,
-    session_id TEXT NOT NULL DEFAULT '',
-    template_id TEXT NOT NULL DEFAULT '',
-    lifting_set_id TEXT NOT NULL DEFAULT '',
-    lifting_started_at INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_workouts_user_time ON workouts(user_id, start_time DESC);
-
-CREATE TABLE IF NOT EXISTS proposed_sets (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    workout_order INTEGER NOT NULL,
-    exercise INTEGER NOT NULL,
-    target_reps INTEGER NOT NULL,
-    target_weight REAL NOT NULL,
-    warmup INTEGER NOT NULL DEFAULT 0,
-    cancelled INTEGER NOT NULL DEFAULT 0,
-    rest_after_success INTEGER NOT NULL DEFAULT 0,
-    rest_after_failure INTEGER NOT NULL DEFAULT 0,
-    calibration INTEGER NOT NULL DEFAULT 0,
-    skipped INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout ON proposed_sets(workout_id, workout_order);
-
-CREATE TABLE IF NOT EXISTS completed_sets (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    proposed_set_id TEXT NOT NULL,
-    actual_reps INTEGER NOT NULL,
-    actual_weight REAL NOT NULL,
-    ended_at INTEGER NOT NULL DEFAULT 0,
-    rest_until INTEGER NOT NULL DEFAULT 0,
-    effort INTEGER NOT NULL DEFAULT 0,
-    started_at INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
-CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed ON completed_sets(proposed_set_id);
 
 CREATE TABLE IF NOT EXISTS user_current_session (
     user_id TEXT PRIMARY KEY,
@@ -106,20 +62,6 @@ CREATE TABLE IF NOT EXISTS user_current_session (
 );
 CREATE INDEX IF NOT EXISTS idx_user_current_session_session
     ON user_current_session(session_id);
-
-CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    workout_id TEXT NOT NULL,
-    sampled_at INTEGER NOT NULL,
-    bpm REAL NOT NULL,
-    availability INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
-    ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
-
-CREATE INDEX IF NOT EXISTS idx_workouts_session ON workouts(session_id)
-    WHERE session_id != '';
 
 CREATE TABLE IF NOT EXISTS session_participants_current (
     session_id TEXT NOT NULL,
@@ -244,6 +186,9 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         sqlx::query(SERVER_SCHEMA).execute(&write_pool).await?;
+        sqlx::query(schlift_core::projection::WORKOUT_SCHEMA)
+            .execute(&write_pool)
+            .await?;
         Ok(Self {
             read_pool,
             write_pool,

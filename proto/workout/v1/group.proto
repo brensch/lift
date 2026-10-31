@@ -129,6 +129,9 @@ message ParticipantStatus {
   // from.
   WorkoutStateSnapshot state_snapshot = 10;
 
+  // As GetWorkoutResponse.passed_warmup_ids.
+  repeated string passed_warmup_ids = 11;
+
   reserved 8, 9;
   reserved "rest_until", "has_active_set";
 }

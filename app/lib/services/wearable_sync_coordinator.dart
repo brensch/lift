@@ -130,7 +130,6 @@ class WearableSyncCoordinator {
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();
-        _multiplayerProvider.markLocalWorkoutFinished();
       }
     } finally {
       _inFlightIntents--;

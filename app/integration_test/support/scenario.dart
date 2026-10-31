@@ -430,6 +430,59 @@ class Scenario {
     expect(setOffered, isTrue, reason: 'no set circle after Start');
   }
 
+  /// Every working set of the live workout done at its target through the
+  /// app's own account — a fast-forward past tapping each circle. A
+  /// finding-weight rung is answered "right" so its working sets follow.
+  Future<int> completeAllWorkingSetsInApp() async {
+    var done = 0;
+    for (var i = 0; i < 50; i++) {
+      final pending = workout.activeProposedSets.where(
+        (p) => !p.warmup && !p.cancelled && !workout.isSetDone(p.id),
+      );
+      if (pending.isEmpty) break;
+      final set = pending.first;
+      await tester.runAsync(
+        () => workout.completeSet(
+          set.id,
+          set.targetReps,
+          set.targetWeight,
+          effort: Effort.EFFORT_RIGHT,
+        ),
+      );
+      done++;
+    }
+    await settle(seconds: 1);
+    return done;
+  }
+
+  /// A whole session through the app's own account, for history: [lifts]
+  /// at their weights, every working set done, ended.
+  Future<void> doWorkoutInApp(
+    String name,
+    List<MapEntry<Exercise, double>> lifts, {
+    int sets = 5,
+    int reps = 5,
+  }) async {
+    await tester.runAsync(() async {
+      for (final lift in lifts) {
+        await workout.setExerciseTracker(
+          exercise: lift.key,
+          workingWeightLb: lift.value,
+          overrideSets: sets,
+          overrideRepLow: reps,
+          overrideRepHigh: reps,
+        );
+      }
+      await workout.startWorkout(
+        name,
+        exercises: [for (final lift in lifts) lift.key],
+      );
+    });
+    await completeAllWorkingSetsInApp();
+    await tester.runAsync(() => workout.endWorkout(fireEndedCallback: false));
+    await settle(seconds: 1);
+  }
+
   /// Lift the next set on its circle: tap to start it, tap again when it is
   /// done, then once more per [missed] rep. A finding-weight rung then asks
   /// how many reps were left: [repsLeft] answers (2–3 by default).

@@ -1,0 +1,20 @@
+[package]
+name = "schlift_native"
+version = "0.1.0"
+edition = "2021"
+
+# The core on the phone: the account in memory, its event log and readable
+# tables in one SQLite file, answered through flutter_rust_bridge.
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+
+[dependencies]
+schlift-core = { path = "../../core" }
+flutter_rust_bridge = "=2.13.0"
+prost = "0.13.4"
+rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { version = "1.11.0", features = ["v4"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

@@ -9,6 +9,7 @@ use std::time::Instant;
 use schlift::workout::v1::{event, workout_mutation::Mutation, Event, WorkoutMutation};
 use schlift_core::account::{event_workout_ids, Account};
 use schlift_core::history::WorkoutRecord;
+use schlift_core::projection::{workout_statements, Value};
 use tokio::sync::Mutex;
 
 use super::*;
@@ -192,105 +193,36 @@ impl ServerDb {
         }
         for record in workouts {
             let workout = &record.workout;
-            // The session is the server's to know: a workout keeps the one
-            // it was first seen in (or was joined to since).
+            // The phone records the session once it hears of it; until then
+            // a workout keeps the one it was first seen in (or was joined to
+            // since).
             let existing: Option<String> =
                 sqlx::query_scalar("SELECT session_id FROM workouts WHERE id = ? AND user_id = ?")
                     .bind(&workout.id)
                     .bind(user_id)
                     .fetch_optional(&mut *tx)
                     .await?;
-            let session = existing.unwrap_or_else(|| {
-                if workout.end_time > 0 {
-                    String::new()
-                } else {
-                    session_id.clone().unwrap_or_default()
+            let session = if workout.session_id.is_empty() {
+                existing.unwrap_or_else(|| {
+                    if workout.end_time > 0 {
+                        String::new()
+                    } else {
+                        session_id.clone().unwrap_or_default()
+                    }
+                })
+            } else {
+                workout.session_id.clone()
+            };
+            for statement in workout_statements(user_id, record, &session) {
+                let mut query = sqlx::query(statement.sql);
+                for value in statement.params {
+                    query = match value {
+                        Value::Int(v) => query.bind(v),
+                        Value::Real(v) => query.bind(v),
+                        Value::Text(v) => query.bind(v),
+                    };
                 }
-            });
-            for table in [
-                "DELETE FROM workouts WHERE id = ? AND user_id = ?",
-                "DELETE FROM proposed_sets WHERE workout_id = ? AND user_id = ?",
-                "DELETE FROM completed_sets WHERE workout_id = ? AND user_id = ?",
-                "DELETE FROM workout_heart_rate_samples WHERE workout_id = ? AND user_id = ?",
-            ] {
-                sqlx::query(table)
-                    .bind(&workout.id)
-                    .bind(user_id)
-                    .execute(&mut *tx)
-                    .await?;
-            }
-            sqlx::query(
-                "INSERT INTO workouts (id, user_id, name, start_time, end_time, session_id,
-                 template_id, lifting_set_id, lifting_started_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .bind(&workout.id)
-            .bind(user_id)
-            .bind(&workout.name)
-            .bind(workout.start_time)
-            .bind(workout.end_time)
-            .bind(&session)
-            .bind(&workout.template_id)
-            .bind(&workout.lifting_set_id)
-            .bind(workout.lifting_started_at)
-            .execute(&mut *tx)
-            .await?;
-            for set in &record.proposed_sets {
-                sqlx::query(
-                    "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise,
-                     target_reps, target_weight, warmup, cancelled, rest_after_success,
-                     rest_after_failure, calibration, skipped)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                )
-                .bind(&set.id)
-                .bind(user_id)
-                .bind(&set.workout_id)
-                .bind(set.workout_order)
-                .bind(set.exercise)
-                .bind(set.target_reps)
-                .bind(set.target_weight as f64)
-                .bind(set.warmup)
-                .bind(set.cancelled)
-                .bind(set.rest_after_success)
-                .bind(set.rest_after_failure)
-                .bind(set.calibration)
-                .bind(set.skipped)
-                .execute(&mut *tx)
-                .await?;
-            }
-            for set in &record.completed_sets {
-                sqlx::query(
-                    "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id,
-                     actual_reps, actual_weight, ended_at, rest_until, effort, started_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                )
-                .bind(&set.id)
-                .bind(user_id)
-                .bind(&set.workout_id)
-                .bind(&set.proposed_set_id)
-                .bind(set.actual_reps)
-                .bind(set.actual_weight as f64)
-                .bind(set.ended_at)
-                .bind(set.rest_until)
-                .bind(set.effort)
-                .bind(set.started_at)
-                .execute(&mut *tx)
-                .await?;
-            }
-            for (n, sample) in record.heart_rate.iter().enumerate() {
-                sqlx::query(
-                    "INSERT INTO workout_heart_rate_samples
-                     (id, user_id, workout_id, sampled_at, bpm, availability)
-                     VALUES (?, ?, ?, ?, ?, ?)",
-                )
-                .bind(format!("{}:{n}", workout.id))
-                .bind(user_id)
-                .bind(&workout.id)
-                .bind(sample.sampled_at)
-                .bind(sample.bpm as f64)
-                .bind(sample.availability)
-                .execute(&mut *tx)
-                .await?;
+                query.execute(&mut *tx).await?;
             }
         }
         tx.commit().await?;

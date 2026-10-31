@@ -147,6 +147,7 @@ pub(super) fn build_participant_status(
             completed_sets: resp.completed_sets.clone(),
             next_up_set: resp.next_up_set.clone(),
             state_snapshot: resp.state_snapshot.clone(),
+            passed_warmup_ids: resp.passed_warmup_ids.clone(),
         }
     } else {
         ParticipantStatus {
@@ -157,6 +158,7 @@ pub(super) fn build_participant_status(
             completed_sets: Vec::new(),
             next_up_set: None,
             state_snapshot: None,
+            passed_warmup_ids: Vec::new(),
         }
     }
 }

@@ -1,6 +1,7 @@
 // The proto messages (no services: the server generates those with tonic,
 // pointing them at these types).
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("cargo:rerun-if-changed=../proto");
     prost_build::compile_protos(
         &[
             "../proto/workout/v1/workout.proto",

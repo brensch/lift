@@ -385,6 +385,7 @@ impl Account {
             Mutation::EditCompletedSet(req) => {
                 reducer::apply_edit_completed_set_to_active(&mut record, req, unit)?
             }
+            Mutation::SetSession(req) => record.workout.session_id = req.session_id.clone(),
         }
         if ended {
             new_messages.extend(self.advance_trackers(&record, at));
@@ -650,6 +651,7 @@ pub fn mutation_workout_id(mutation: &Mutation) -> &str {
         Mutation::EditCompletedSet(m) => &m.workout_id,
         Mutation::StartSet(m) => &m.workout_id,
         Mutation::SkipWarmups(m) => &m.workout_id,
+        Mutation::SetSession(m) => &m.workout_id,
     }
 }
 

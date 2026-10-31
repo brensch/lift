@@ -15,6 +15,7 @@ pub mod ids;
 pub mod messages;
 pub mod onboarding;
 pub mod progress;
+pub mod projection;
 pub mod recovery;
 pub mod sync;
 pub mod template_library;

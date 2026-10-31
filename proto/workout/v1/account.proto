@@ -44,6 +44,8 @@ message ImportHistory {
   repeated TrackerRecord trackers = 2;
 }
 
+message ImportHistoryResponse {}
+
 // A finished workout with everything recorded in it.
 message ImportedWorkout {
   Workout workout = 1;
@@ -76,12 +78,12 @@ message TrackerRecord {
 // dropped message is healed by the next.
 
 service SyncService {
-  rpc Sync(stream SyncUp) returns (stream SyncDown);
+  rpc Sync(stream SyncRequest) returns (stream SyncResponse);
   // Every event of the caller's account after `after_seq`: a fresh install.
   rpc PullEvents(PullEventsRequest) returns (PullEventsResponse);
 }
 
-message SyncUp {
+message SyncRequest {
   oneof kind {
     // zstd-compressed EventBatch: the outbox, oldest first. Idempotent by
     // seq — events the server already holds are skipped.
@@ -94,7 +96,7 @@ message SyncUp {
 
 message Heartbeat {}
 
-message SyncDown {
+message SyncResponse {
   oneof kind {
     // The last seq the server holds for this account.
     int64 head = 1;

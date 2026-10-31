@@ -23,7 +23,7 @@ pub struct ServerSyncService {
     pub db: ServerDb,
 }
 
-type SyncResult = Result<SyncDown, Status>;
+type SyncResult = Result<SyncResponse, Status>;
 
 #[tonic::async_trait]
 impl SyncService for ServerSyncService {
@@ -31,7 +31,7 @@ impl SyncService for ServerSyncService {
 
     async fn sync(
         &self,
-        request: Request<Streaming<SyncUp>>,
+        request: Request<Streaming<SyncRequest>>,
     ) -> Result<Response<Self::SyncStream>, Status> {
         // The inbound stream can't be held across an await (it isn't Sync):
         // authenticate on the headers alone.
@@ -92,7 +92,7 @@ struct Closed;
 impl Stream {
     async fn run(
         &mut self,
-        mut inbound: Streaming<SyncUp>,
+        mut inbound: Streaming<SyncRequest>,
         mut changes: broadcast::Receiver<Change>,
     ) -> ServerResult<()> {
         let head = self
@@ -100,7 +100,7 @@ impl Stream {
             .read_account(&self.user_id, |account| account.seq)
             .await
             .map_err(internal_error)?;
-        if self.send(sync_down::Kind::Head(head)).await.is_err() {
+        if self.send(sync_response::Kind::Head(head)).await.is_err() {
             return Ok(());
         }
         let mut resend = tokio::time::interval(RESEND_EVERY);
@@ -125,17 +125,17 @@ impl Stream {
         }
     }
 
-    async fn send(&self, kind: sync_down::Kind) -> Result<(), Closed> {
+    async fn send(&self, kind: sync_response::Kind) -> Result<(), Closed> {
         self.tx
-            .send(Ok(SyncDown { kind: Some(kind) }))
+            .send(Ok(SyncResponse { kind: Some(kind) }))
             .await
             .map_err(|_| Closed)
     }
 
     /// Events (stored, then acked with the head) or a heartbeat (acked).
-    async fn receive(&mut self, up: SyncUp) -> ServerResult<Result<(), Closed>> {
+    async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
         let head = match up.kind {
-            Some(sync_up::Kind::Events(packed)) => {
+            Some(sync_request::Kind::Events(packed)) => {
                 let events = unpack(&packed).map_err(core_status)?;
                 let pushed = self
                     .db
@@ -149,13 +149,13 @@ impl Stream {
                 self.after_push(&pushed).await?;
                 pushed.head
             }
-            Some(sync_up::Kind::Heartbeat(_)) | None => self
+            Some(sync_request::Kind::Heartbeat(_)) | None => self
                 .db
                 .read_account(&self.user_id, |account| account.seq)
                 .await
                 .map_err(internal_error)?,
         };
-        Ok(self.send(sync_down::Kind::Head(head)).await)
+        Ok(self.send(sync_response::Kind::Head(head)).await)
     }
 
     /// New events change what session partners see; a workout ending takes
@@ -221,7 +221,7 @@ impl Stream {
             return Ok(Ok(()));
         }
         self.last_session = Some(session.clone());
-        Ok(self.send(sync_down::Kind::Session(session)).await)
+        Ok(self.send(sync_response::Kind::Session(session)).await)
     }
 
     async fn send_requests(&mut self) -> ServerResult<Result<(), Closed>> {
@@ -230,6 +230,6 @@ impl Stream {
             return Ok(Ok(()));
         }
         self.last_requests = Some(requests.clone());
-        Ok(self.send(sync_down::Kind::JoinRequests(requests)).await)
+        Ok(self.send(sync_response::Kind::JoinRequests(requests)).await)
     }
 }

@@ -31,12 +31,12 @@ void main() {
       await s.completeOnboarding();
 
       // History first: a session of every lift the default templates can
-      // prescribe, via the API, so the next session opens with warmups
-      // instead of a calibration rung whichever template home suggests.
-      final api = await s.api.login(username);
-      await api.doWorkout('Seeded session', [
+      // prescribe, so the next session opens with warmups instead of a
+      // calibration rung whichever template home suggests.
+      await s.doWorkoutInApp('Seeded session', [
         for (final lift in Scenario.defaultTemplateLifts) MapEntry(lift, 95.0),
       ]);
+      final api = await s.api.login(username);
       if (!await api.hasPerformed(Exercise.EXERCISE_SQUAT)) {
         throw StateError('the seeded session did not mark Squat performed');
       }

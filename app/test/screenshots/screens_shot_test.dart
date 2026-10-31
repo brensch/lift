@@ -5,6 +5,8 @@
 /// without goldens, so this doubles as a layout smoke suite.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,6 +27,8 @@ import 'package:schlift/screens/lost_passkey_screen.dart';
 import 'package:schlift/screens/tutorial_screen.dart';
 import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/services/grpc_client.dart';
+import 'package:schlift/services/local_core.dart';
+import 'package:schlift/services/workout_service.dart';
 import 'package:schlift/theme/app_theme.dart';
 import 'package:schlift/theme/app_icons.dart';
 import 'package:schlift/widgets/dialogs/weight_adjust_sheet.dart';
@@ -38,6 +42,7 @@ void main() {
   // assets/google_fonts/, so
   // google_fonts resolves offline and text renders legibly in goldens.
   GoogleFonts.config.allowRuntimeFetching = false;
+  setUpAll(loadCore);
 
   Future<void> pumpAtPhoneSize(
     WidgetTester tester,
@@ -53,7 +58,10 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => SettingsProvider(grpc)),
+          ChangeNotifierProvider(
+            create: (_) =>
+                SettingsProvider(WorkoutServiceWrapper(_NoAccount())),
+          ),
           Provider<WearableBridgeService>.value(
             value: NoopWearableBridgeService(),
           ),
@@ -87,12 +95,29 @@ void main() {
 
   testWidgets('tutorial: every step from copy.yaml', (tester) async {
     await pumpAtPhoneSize(tester, const TutorialScreen(), settle: false);
+    // The sample account is the real core, answering on real time: give
+    // it that, a little at a time, until the step's title is up.
+    Future<void> settle([int? step]) async {
+      for (var i = 0; i < 40; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump(const Duration(milliseconds: 200));
+        if (i >= 5 &&
+            (step == null ||
+                find
+                    .text(copy.tutorial.steps[step - 1].title)
+                    .evaluate()
+                    .isNotEmpty)) {
+          return;
+        }
+      }
+    }
+
     final steps = copy.tutorial.steps.length;
     // The outline throbs forever, so never pumpAndSettle on this screen.
     for (var step = 1; step <= steps; step++) {
-      for (var i = 0; i < 6; i++) {
-        await tester.pump(const Duration(milliseconds: 200));
-      }
+      await settle(step);
       await shoot(tester, 'tutorial_s$step');
       // Every step points at something the screen actually has.
       expect(find.text(copy.tutorial.steps[step - 1].title), findsOneWidget);
@@ -102,14 +127,10 @@ void main() {
     }
     // Back works too.
     await tester.tap(find.text(copy.tutorial.previous));
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 200));
-    }
+    await settle();
     expect(find.text(copy.tutorial.steps[steps - 2].title), findsOneWidget);
     await tester.tap(find.text(copy.tutorial.next));
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 200));
-    }
+    await settle();
     // The last step's papers link must navigate.
     await tester.tap(find.text(copy.tutorial.papersButton));
     for (var i = 0; i < 5; i++) {
@@ -285,12 +306,13 @@ void main() {
   });
 
   testWidgets('weight adjust sheet: step up and down', (tester) async {
-    final h = await ProviderHarness.boot();
-    await h.seedHome([tracker(Exercise.EXERCISE_SQUAT, weight: 185)]);
-    await h.startWorkoutWith([
-      set_('s1', Exercise.EXERCISE_SQUAT, order: 0, weight: 185, reps: 6),
-      set_('s2', Exercise.EXERCISE_SQUAT, order: 1, weight: 185, reps: 6),
-    ]);
+    // The core answers on real time, outside the test's fake clock.
+    final h = (await tester.runAsync(() async {
+      final h = await ProviderHarness.boot(sandbox: true);
+      await h.seedTrackers({Exercise.EXERCISE_SQUAT: 185});
+      await h.start([Exercise.EXERCISE_SQUAT]);
+      return h;
+    }))!;
 
     tester.view.physicalSize = const Size(1080, 2280);
     tester.view.devicePixelRatio = 3.0;
@@ -335,18 +357,26 @@ void main() {
     await tester.pump();
     expect(find.text('SAVE'), findsOneWidget);
     await tester.tap(find.text('SAVE'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 20; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+      if (h.provider.trackerFor(Exercise.EXERCISE_SQUAT)!.workingWeight ==
+          195) {
+        break;
+      }
+    }
     expect(
-      h.provider.activeProposedSets.every(
-        (s) => s.targetWeight == 195 && s.targetReps == 7,
-      ),
+      h
+          .working(Exercise.EXERCISE_SQUAT)
+          .every((s) => s.targetWeight == 195 && s.targetReps == 7),
       isTrue,
-      reason: 'both pending working sets moved to 195 × 7',
+      reason: 'the pending working sets moved to 195 × 7',
     );
-    final write = h.service.trackerWrites.single;
+    final tracker = h.provider.trackerFor(Exercise.EXERCISE_SQUAT)!;
     expect(
-      (write.workingWeight, write.targetReps),
+      (tracker.workingWeight, tracker.targetReps),
       (195.0, 7),
       reason: 'the account takes the new numbers too',
     );
@@ -356,4 +386,10 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     h.dispose();
   });
+}
+
+/// Screens here never read the account.
+class _NoAccount implements CoreSource {
+  @override
+  Future<LocalCore> get ready => Completer<LocalCore>().future;
 }
