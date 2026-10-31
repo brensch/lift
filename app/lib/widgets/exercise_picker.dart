@@ -229,9 +229,9 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                   ],
                 ),
               ),
-              // search
+              // search: on the same 20 inset as the filters and the list
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
