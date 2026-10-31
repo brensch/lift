@@ -157,34 +157,11 @@ class StatusBox extends StatelessWidget {
       );
       // What it is across the top; under it the circle, the weight and the
       // plates on one line.
+      // The plates to load, the weight, then × the reps: in the circle
+      // (yours), or said after the weight (a partner's).
       final line = Row(
         children: [
-          // Reps in the circle × the weight.
-          if (circle != null) ...[
-            circle!,
-            const SizedBox(width: 10),
-            Text(
-              '×',
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.displayLg,
-                  fontWeight: t.weight.bold,
-                  color: t.text,
-                  height: 1,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: load,
-            ),
-          ),
           if (set.targetWeight > 0) ...[
-            const SizedBox(width: 12),
             // Up next on the rack: NEXT down the plates' left edge.
             if (upNext) ...[
               RotatedBox(
@@ -204,6 +181,33 @@ class StatusBox extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             _Plates(weight: set.targetWeight.toDouble(), upNext: upNext),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              // Yours sits against × and the circle, as one "45 lb × 5".
+              alignment: circle == null
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              child: load,
+            ),
+          ),
+          if (circle != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              '×',
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.headline,
+                  fontWeight: t.weight.bold,
+                  color: t.text,
+                  height: 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            circle!,
           ],
         ],
       );
@@ -286,7 +290,7 @@ class _PlatesState extends State<_Plates> with SingleTickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: _pulse,
         builder: (context, child) => Container(
-          width: 132,
+          width: 104,
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           alignment: Alignment.center,
