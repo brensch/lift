@@ -52,6 +52,10 @@ class FlatSection extends StatelessWidget {
   final bool bleed;
   final bool divider;
 
+  /// The child runs to the divider (a grid whose vertical lines must meet
+  /// it) rather than sitting above a margin.
+  final bool flushBottom;
+
   const FlatSection({
     super.key,
     this.label,
@@ -59,6 +63,7 @@ class FlatSection extends StatelessWidget {
     required this.child,
     this.bleed = false,
     this.divider = true,
+    this.flushBottom = false,
   });
 
   static const double margin = 16;
@@ -73,7 +78,7 @@ class FlatSection extends StatelessWidget {
             : const Border(),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: EdgeInsets.only(top: 14, bottom: flushBottom ? 0 : 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

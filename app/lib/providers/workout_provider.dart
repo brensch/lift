@@ -823,6 +823,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Leave a finished workout behind (its summary was closed): home is
+  /// what's on screen now. The home itself stays.
+  Future<void> dismissEndedWorkout() async {
+    if (hasActiveWorkout) return;
+    if (!_sandbox) await NotificationService.cancelAll();
+    _wasResting = false;
+    _clearWorkout();
+    _resetWearHeartRateBuffer();
+    notifyListeners();
+  }
+
+  /// Forget everything: the account was closed (signed out).
   Future<void> clear() async {
     if (!_sandbox) await NotificationService.cancelAll();
     _wasResting = false;

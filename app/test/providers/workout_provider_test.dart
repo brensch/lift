@@ -100,4 +100,12 @@ void main() {
       isTrue,
     );
   });
+
+  test('closing the summary keeps the home', () async {
+    await h.start([raise]);
+    await h.provider.endWorkout(fireEndedCallback: false);
+    await h.provider.dismissEndedWorkout();
+    expect(h.provider.workout, isNull);
+    expect(h.provider.home, isNotNull, reason: 'home has something to show');
+  });
 }
