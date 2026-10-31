@@ -271,7 +271,8 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                         label: bodyPartLabels[part]!.toUpperCase(),
                         color: bodyPartColor(context, part),
                         selected: _filter == part,
-                        alwaysOutlined: part == BodyPart.ass,
+                        // In its colour, like the tags on the rows below.
+                        alwaysOutlined: true,
                         onTap: () => setState(
                           () => _filter = _filter == part ? null : part,
                         ),

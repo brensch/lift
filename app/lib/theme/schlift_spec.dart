@@ -42,6 +42,17 @@ const schliftSpec = ThemeSpec(
     Color(0xFF00796B), // teal
     Color(0xFF8D5A00), // ochre
   ],
+  // Muscle groups (the exercise picker's tags and filters): deep enough to
+  // read as text on the warm grey and to carry light text when filled.
+  bodyParts: [
+    Color(0xFF1F4FD1), // chest: blue
+    Color(0xFF8D5A00), // back: ochre
+    Color(0xFF5B2DB8), // shoulders: violet
+    Color(0xFFD03A00), // arms: burnt orange
+    Color(0xFF1E7A3C), // legs: green
+    Color(0xFFC2185B), // ass: magenta
+    Color(0xFF00796B), // core: teal
+  ],
   bodyFont: 'Space Grotesk',
   headingFont: 'Space Grotesk',
   buttonFont: 'Space Mono',
