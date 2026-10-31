@@ -785,17 +785,19 @@ internal fun ambientRest(snapshot: Wearable.WearWorkoutSnapshot): AmbientRest? {
 
 /**
  * How long the dimmed face waits before redrawing: to the next whole minute
- * of rest (so the count turns over on time), else the next minute on the
- * clock.
+ * of rest (so the count turns over on time) or of the clock, whichever is
+ * first.
  */
 internal fun ambientDelayMs(snapshot: Wearable.WearWorkoutSnapshot?): Long {
     val restUntilMs = (snapshot?.restUntil ?: 0).toLong() * 1000L
     val nowMs = WearDataRepository.synchronizedNowUnixMillis()
+    // The clock on the face turns over on the minute too: whichever is first.
+    val clock = MINUTE_MS - Math.floorMod(System.currentTimeMillis(), MINUTE_MS)
     val phase =
         if (restUntilMs > 0L) {
-            Math.floorMod(restUntilMs - nowMs, MINUTE_MS)
+            minOf(Math.floorMod(restUntilMs - nowMs, MINUTE_MS), clock)
         } else {
-            MINUTE_MS - Math.floorMod(System.currentTimeMillis(), MINUTE_MS)
+            clock
         }
     // A moment past the turn, so the count has already changed.
     return phase + AMBIENT_SLACK_MS

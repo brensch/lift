@@ -132,22 +132,32 @@ struct WatchSchedule: TimelineSchedule {
         }
     }
 
-    /// Dimmed, the face is redrawn about once a minute: on each whole minute of rest
-    /// (so its minute count turns over on time), else on the clock's minute. A moment
-    /// past the turn, so the count has already changed.
+    /// Dimmed, the face is redrawn about once a minute: on each whole minute of rest (so
+    /// its minute count turns over on time) and on the clock's minute (the face shows the
+    /// time), whichever comes next. A moment past the turn, so the count has changed.
     private func ambientEntries(from startDate: Date) -> AnyIterator<Date> {
-        let anchor = restBoundary ?? Date(timeIntervalSinceReferenceDate: 0)
-        let phase = anchor.timeIntervalSince(startDate).truncatingRemainder(dividingBy: 60)
-        var cursor = startDate.addingTimeInterval((phase < 0 ? phase + 60 : phase) + 0.3)
+        let clock = Date(timeIntervalSinceReferenceDate: 0)
+        var restTick = restBoundary.map { Self.nextTurn(of: $0, after: startDate) }
+        var clockTick = Self.nextTurn(of: clock, after: startDate)
         var first = true
         return AnyIterator {
             if first {
                 first = false
                 return startDate
             }
-            let entry = cursor
-            cursor = cursor.addingTimeInterval(60)
+            if let rest = restTick, rest < clockTick {
+                restTick = rest.addingTimeInterval(60)
+                return rest
+            }
+            let entry = clockTick
+            clockTick = clockTick.addingTimeInterval(60)
             return entry
         }
+    }
+
+    /// The first whole minute from [anchor] after [date], plus a moment.
+    private static func nextTurn(of anchor: Date, after date: Date) -> Date {
+        let phase = anchor.timeIntervalSince(date).truncatingRemainder(dividingBy: 60)
+        return date.addingTimeInterval((phase <= 0 ? phase + 60 : phase) + 0.3)
     }
 }

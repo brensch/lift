@@ -677,7 +677,9 @@ private fun WorkoutScreens(
     val restUntilMs = data.restUntil.toLong() * 1000L
     val draining = resting && !yapping && restStartMs in 1 until restUntilMs
     val bandFill = remember(data.workoutId) { Animatable(1f) }
-    LaunchedEffect(draining, restStartMs, restUntilMs) {
+    // Dimmed, the band is never drawn draining: no animation to pay for.
+    LaunchedEffect(draining, restStartMs, restUntilMs, isAmbientMode) {
+        if (isAmbientMode) return@LaunchedEffect
         val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
         if (!draining || leftMs <= 0L) {
             bandFill.snapTo(if (draining) 0f else 1f)
