@@ -27,7 +27,7 @@ void main() {
     final invite = await me.inviteToken();
     final bob = await s.api.login('bob_$stamp');
     await bob.joinViaInvite(invite);
-    expect(await s.waitForText('Multiplayer (2)', seconds: 15), isTrue);
+    expect(await s.waitForSessionOf(2, seconds: 15), isTrue);
     await bob.leaveSession();
     await me.leaveSession();
     expect(
@@ -53,7 +53,7 @@ void main() {
 
     // Approve → both land in a session.
     await s.tapText('Accept');
-    final paired = await s.waitForText('Multiplayer (2)', seconds: 15);
+    final paired = await s.waitForSessionOf(2, seconds: 15);
     await s.shot(
       'Approved — now training together',
       note: paired ? 'Both are in the session.' : 'WARNING: not paired.',

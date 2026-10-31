@@ -22,9 +22,6 @@ class SectionWorkout {
   /// The workout's state (`WorkoutState` value): colours the up-next ring.
   final int stateValue;
 
-  /// The open "how many were left" on a finding-weight rung, if any.
-  final EffortPrompt? effortPrompt;
-
   /// Undone warmups that are behind you, as the core worked out.
   final Set<String> passedWarmupIds;
 
@@ -37,7 +34,6 @@ class SectionWorkout {
     required this.liftingSetId,
     required this.nextSetId,
     required this.stateValue,
-    required this.effortPrompt,
     required this.passedWarmupIds,
     required this.actions,
   });
@@ -51,7 +47,6 @@ class SectionWorkout {
     stateValue:
         wp.stateSnapshot?.state.value ??
         WorkoutState.WORKOUT_STATE_UNSPECIFIED.value,
-    effortPrompt: wp.effortPrompt,
     passedWarmupIds: {
       for (final s in wp.activeProposedSets)
         if (wp.isPassedWarmup(s)) s.id,
@@ -79,7 +74,6 @@ class SectionWorkout {
           ? snapshot.displaySet.id
           : (p.hasNextUpSet() ? p.nextUpSet.id : null),
       stateValue: state,
-      effortPrompt: null,
       passedWarmupIds: p.passedWarmupIds.toSet(),
       actions: null,
     );

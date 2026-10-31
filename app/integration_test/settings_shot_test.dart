@@ -15,9 +15,10 @@ void main() {
     await s.devLogin('set_${DateTime.now().millisecondsSinceEpoch}');
     await s.completeOnboarding();
 
+    // Settings is the cog at the foot of the menu.
     await s.tap(find.byIcon(AppIcons.menu));
-    expect(await s.waitForText('Settings', seconds: 6), isTrue);
-    await s.tapText('Settings');
+    await s.settle(seconds: 1);
+    await s.tap(find.byIcon(AppIcons.settings));
     await s.settle(seconds: 2);
     await s.shot('Settings — debug tiles (U5)');
     await s.report();

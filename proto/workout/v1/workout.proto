@@ -649,7 +649,9 @@ message ExerciseTracker {
   MuscleGroup primary_muscle = 13;
   ExerciseCategory category = 14;
   EquipmentKind equipment = 15;
-  int32 consecutive_hard = 16; // sessions rated hard in a row; 3 deloads
+  // 16 was consecutive_hard: progression reads only whether the reps were hit.
+  reserved 16;
+  reserved "consecutive_hard";
 }
 
 // Weighted hard sets for one muscle over the rolling last 7 days.

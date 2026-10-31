@@ -61,10 +61,9 @@ so it's a single self-contained file).
 
 The live-workout model is one-tap sets (`docs/plans/one-tap-sets.md`): Done
 logs the ready set as prescribed and starts the rest; the rest offers Fewer
-reps / Skip rest; the final working set of an exercise (and every calibration
-rung) asks "How was that?" — Easy / Right / Hard; all done is End workout. A
-brand-new user's first session of a loaded lift is a calibration rung
-("Finding your weight"), not warmups + working sets, so scenarios that need
+reps / Skip rest; nothing is rated; all done is End workout. A
+brand-new user's first session of a loaded lift is a calibration ramp
+("Finding weight": 5-rep rungs until a rep is missed), not warmups + working sets, so scenarios that need
 the warmup ladder seed a session through the API first.
 
 | File | What it proves |
@@ -134,7 +133,7 @@ Key `Scenario` methods:
 | `completeOnboarding()` | Walk onboarding with the defaults, skip the tutorial, land on home. No-op for a returning user. |
 | `skipTutorial()` | Dismiss the first-run walkthrough if it is showing. |
 | `startWorkoutFromHome()` | Tap START and wait for the bar's Done. |
-| `tapDone()` / `answerEffortIfAsked(answer)` | One-tap set logging; answer "How was that?" when it is showing. |
+| `liftSet(missed:)` | Start the up-next set on its circle, finish it, tap off missed reps. |
 | `endWorkoutAndWaitForSummary()` | End workout → confirm dialog → "Session snapshot". |
 | `tap(finder)` / `tapText(label)` | Scroll into view, then tap. |
 | `typeInto(field, text)` | Focus and enter text. |

@@ -7,7 +7,7 @@
 use super::*;
 use crate::exercise_catalog::{prescription, progression_increment_lb, snap_weight_lb};
 use crate::ids::{derived_id, Ids};
-use crate::pb::{Effort, Exercise};
+use crate::pb::Exercise;
 use crate::weight_units::{
     bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near, AppWeightUnit,
 };
@@ -20,6 +20,11 @@ pub const CALIBRATION_REPS: i32 = 5;
 pub const CALIBRATION_REST_SECONDS: i32 = 90;
 /// The ramp stops here; the sixth rung is treated as right.
 pub const MAX_CALIBRATION_RUNGS: usize = 6;
+/// Where a ramp settles: 90% of the heaviest rung done in full. A set of 5
+/// taken to a miss is about 85% of a one-rep max, and five sets of five
+/// sit around 75–80% of it (standard %1RM tables), so a tenth under the
+/// top rung is a weight every set can be finished at.
+pub const CALIBRATION_SETTLE_FRACTION: f32 = 0.9;
 /// Each rung climbs by at least this fraction of the current weight.
 const CALIBRATION_RUNG_FRACTION: f32 = 1.10;
 
@@ -165,9 +170,8 @@ pub fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeightUnit) 
     )
 }
 
-/// The working sets a calibration answer settles on: the catalog
-/// prescription's sets minus one (the rung that found the weight counts),
-/// at its range bottom and rest, all at `weight`.
+/// The working sets a ramp settles on: the catalog prescription's sets at
+/// its range bottom and rest, all at `weight`.
 pub fn working_sets_after_calibration(
     workout_id: &str,
     exercise: i32,
@@ -176,12 +180,7 @@ pub fn working_sets_after_calibration(
     let Ok(ex) = Exercise::try_from(exercise) else {
         return Vec::new();
     };
-    prescribed_working_sets(
-        workout_id,
-        exercise,
-        weight,
-        (prescription(ex).sets - 1).max(1),
-    )
+    prescribed_working_sets(workout_id, exercise, weight, prescription(ex).sets.max(1))
 }
 
 /// `count` working sets of the catalog prescription (range bottom, its
@@ -212,15 +211,12 @@ fn prescribed_working_sets(
 }
 
 /// "I know my weight" during calibration: the user typed a weight while
-/// the exercise has a pending rung or an unanswered done rung. Open rungs
-/// close as right (no append), the pending rungs go (never lifted, safe to
-/// hard-remove) and the prescription's full working sets take their place
-/// at the snapped weight — where the first pending rung was, else straight
-/// after the unanswered rung. Ids are `uuid5(NAMESPACE_OID, "{base}:{n}")`
-/// with base = the first pending rung's id, else the unanswered done
-/// rung's CompletedSet id (closed without appending, so its own derived
-/// ids are free). No warmup ladder: the done rungs were the warmup.
-/// Returns false when neither exists, leaving the ordinary adjust to run.
+/// the exercise still has a rung to lift. The pending rungs go (never
+/// lifted, safe to hard-remove) and the prescription's full working sets
+/// take their place at the snapped weight. Ids are
+/// `uuid5(NAMESPACE_OID, "{first pending rung id}:{n}")`. No warmup
+/// ladder: the done rungs were the warmup. Returns false when there is no
+/// pending rung, leaving the ordinary adjust to run.
 fn replace_pending_calibration(
     workout_ref: &mut WorkoutRecord,
     req: &AdjustExerciseWeightRequest,
@@ -234,35 +230,10 @@ fn replace_pending_calibration(
     let is_pending_rung = |s: &ProposedSet| {
         s.exercise == exercise && s.calibration && !s.cancelled && !done.contains(&s.id)
     };
-    let pending = workout_ref.proposed_sets.iter().position(is_pending_rung);
-    // The latest unanswered done rung of this exercise: (completed id, proposed id).
-    let open = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0 && c.effort() == Effort::Unspecified)
-        .filter(|c| {
-            workout_ref.proposed_sets.iter().any(|p| {
-                p.id == c.proposed_set_id && p.exercise == exercise && p.calibration && !p.cancelled
-            })
-        })
-        .max_by_key(|c| c.ended_at)
-        .map(|c| (c.id.clone(), c.proposed_set_id.clone()));
-    let (base, at) = match (pending, &open) {
-        (Some(first), _) => (workout_ref.proposed_sets[first].id.clone(), first),
-        (None, Some((completed_id, rung_id))) => {
-            let Some(idx) = workout_ref
-                .proposed_sets
-                .iter()
-                .position(|s| &s.id == rung_id)
-            else {
-                return false;
-            };
-            (completed_id.clone(), idx + 1)
-        }
-        (None, None) => return false,
+    let Some(at) = workout_ref.proposed_sets.iter().position(is_pending_rung) else {
+        return false;
     };
-    super::reducer::close_open_rungs(workout_ref, exercise);
-
+    let base = workout_ref.proposed_sets[at].id.clone();
     let weight = snap_weight_lb(ex, req.working_weight, unit);
     let mut sets = prescribed_working_sets(
         &req.workout_id,
@@ -869,10 +840,10 @@ mod plan_op_tests {
     #[test]
     fn working_sets_after_calibration_follow_the_prescription() {
         let sets = working_sets_after_calibration("w1", SQUAT, 95.0);
-        assert_eq!(sets.len(), 2, "three prescribed minus the rung");
+        assert_eq!(sets.len(), 5, "the full 5×5");
         for set in &sets {
             assert_eq!(set.target_weight, 95.0);
-            assert_eq!(set.target_reps, 6);
+            assert_eq!(set.target_reps, 5);
             assert_eq!((set.rest_after_success, set.rest_after_failure), (180, 240));
             assert!(!set.warmup && !set.calibration);
         }

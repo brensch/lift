@@ -262,24 +262,19 @@ class Peer {
       );
       if (pending.isEmpty) break;
       final set = pending.first;
-      await _complete(set, set.targetReps, effort: Effort.EFFORT_RIGHT);
+      await _complete(set, set.targetReps);
       done++;
     }
     return done;
   }
 
-  Future<void> _complete(
-    ProposedSet set,
-    int reps, {
-    Effort effort = Effort.EFFORT_UNSPECIFIED,
-  }) => _write(
+  Future<void> _complete(ProposedSet set, int reps) => _write(
     'CompleteSet',
     CompleteSetRequest()
       ..workoutId = workoutId!
       ..proposedSetId = set.id
       ..actualReps = reps
-      ..actualWeight = set.targetWeight
-      ..effort = effort,
+      ..actualWeight = set.targetWeight,
     CompleteSetResponse.fromBuffer,
   );
 

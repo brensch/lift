@@ -27,7 +27,7 @@ void main() {
     final bob = await s.api.login('bob_$stamp');
     await bob.joinViaInvite(invite);
     expect(
-      await s.waitForText('Multiplayer (2)', seconds: 15),
+      await s.waitForSessionOf(2, seconds: 15),
       isTrue,
       reason: 'app should reflect the peer joining',
     );

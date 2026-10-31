@@ -1,8 +1,8 @@
 use super::*;
+use crate::exercise_catalog::snap_weight_lb;
 use crate::ids::{derived_id, Ids};
 use crate::pb::{
-    EditCompletedSetRequest, Effort, EffortPrompt, RateExerciseRequest, SkipWarmupsRequest,
-    StartSetRequest, Workout,
+    EditCompletedSetRequest, Effort, Exercise, SkipWarmupsRequest, StartSetRequest, Workout,
 };
 use crate::progress::compute_next_up_set;
 use crate::weight_units::AppWeightUnit;
@@ -79,37 +79,6 @@ fn last_done_set(completed_sets: &[CompletedSet]) -> Option<&CompletedSet> {
         .max_by_key(|set| set.ended_at)
 }
 
-/// Whether "how was that" is asked about this done set: every working
-/// set and every calibration rung, never a warmup.
-pub fn is_prompt_worthy(done: &CompletedSet, proposed_sets: &[ProposedSet]) -> bool {
-    proposed_sets
-        .iter()
-        .find(|set| set.id == done.proposed_set_id && !set.cancelled)
-        .is_some_and(|set| set.calibration || !set.warmup)
-}
-
-/// The question on screen: the latest done set, while it is
-/// prompt-worthy, whatever the rest state, carrying its current answer
-/// (unspecified until one is given). A newer Done replaces it.
-pub fn effort_prompt_from_state(
-    proposed_sets: &[ProposedSet],
-    completed_sets: &[CompletedSet],
-) -> Option<EffortPrompt> {
-    let last = last_done_set(completed_sets)?;
-    if !is_prompt_worthy(last, proposed_sets) {
-        return None;
-    }
-    let proposed = proposed_sets
-        .iter()
-        .find(|set| set.id == last.proposed_set_id)?;
-    Some(EffortPrompt {
-        exercise: proposed.exercise,
-        completed_set_id: last.id.clone(),
-        calibration: proposed.calibration,
-        effort: last.effort,
-    })
-}
-
 /// The workout's state, derived from its sets and lifting marker (see
 /// `WorkoutState` in workout.proto): LIFTING while the marker points at a
 /// set that is still pending; otherwise, after a done set, RESTING while its
@@ -122,12 +91,9 @@ pub fn workout_state_snapshot(
     now: i64,
 ) -> WorkoutStateSnapshot {
     let proposed_active = active_proposed_sets(proposed_sets);
-    // Includes the would-be `{done_id}:0` of an unanswered rung, so the
-    // state below is RESTING/READY by that rung's rest, never ALL_DONE.
     let next_up_set = compute_next_up_set(&proposed_active, completed_sets);
-    // The question outlives the state: a calibration rung can be the last
-    // set in the plan (ALL_DONE) and its answer is what appends the rest.
-    let effort_prompt = effort_prompt_from_state(proposed_sets, completed_sets);
+    // Nothing is asked: a set says what it did by its reps.
+    let effort_prompt = None;
 
     // A started set that is still pending is being lifted, whatever the
     // rest: the timer counts up from its start.
@@ -299,7 +265,6 @@ pub fn apply_start_set_to_active(
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
-    resolve_unanswered(workout_ref, true);
     let pending = workout_ref
         .proposed_sets
         .iter()
@@ -320,9 +285,9 @@ pub fn apply_start_set_to_active(
     Ok(())
 }
 
-/// Log a set as done. A rating given with the Done answers "how was that"
-/// for it there and then, exactly as `RateExercise` would (on a calibration
-/// rung that appends the next rung or the working sets, in [unit]).
+/// Log a set as done. A calibration rung settles there and then: it
+/// appends the next rung or the working sets, in [unit]. Any effort on the
+/// request is ignored (ratings are retired).
 pub fn apply_complete_set_to_active(
     workout_ref: &mut WorkoutRecord,
     req: &CompleteSetRequest,
@@ -341,10 +306,6 @@ pub fn apply_complete_set_to_active(
     {
         return Ok(());
     }
-    // Every question still open is answered "right" first — on a rung that
-    // appends the working sets (or the next rung) now, so a Done tapped on
-    // the deterministic `{done_id}:0` the app already shows finds its set.
-    resolve_unanswered(workout_ref, true);
     let proposed = match workout_ref
         .proposed_sets
         .iter()
@@ -385,36 +346,17 @@ pub fn apply_complete_set_to_active(
         effort: Effort::Unspecified as i32,
         started_at,
     });
-    // A rung short of its target has answered for itself: too heavy.
-    let effort = if missed_rung(&proposed, req.actual_reps) {
-        Effort::Hard as i32
-    } else {
-        req.effort
-    };
-    if effort != Effort::Unspecified as i32 {
-        apply_rate_exercise_to_active(
-            workout_ref,
-            &RateExerciseRequest {
-                workout_id: req.workout_id.clone(),
-                completed_set_id,
-                effort,
-            },
-            unit,
-        )?;
+    // A finding-weight rung settles the moment it's done (`would_append`).
+    if proposed.calibration {
+        settle_rung(workout_ref, &completed_set_id, unit);
     }
     Ok(())
-}
-
-/// A finding-weight rung done short of its target: the miss is the answer
-/// to "how many more could you have done" — none, hard, settle back.
-fn missed_rung(proposed: &ProposedSet, actual_reps: i32) -> bool {
-    proposed.calibration && actual_reps < proposed.target_reps
 }
 
 /// How long to rest after a set: the success rest when the target was
 /// hit, the failure rest otherwise, and the short between-exercise rest
 /// after an exercise's final set. A calibration rung always rests its
-/// own 90 s — the ramp continues after the answer, so it is never final.
+/// own 90 s — the ramp continues after it, so it is never final.
 fn rest_seconds_after(proposed: &ProposedSet, actual_reps: i32, is_final: bool) -> i64 {
     if proposed.calibration {
         return proposed.rest_after_success as i64;
@@ -472,225 +414,81 @@ pub fn apply_edit_completed_set_to_active(
     set.actual_reps = req.actual_reps;
     set.actual_weight = req.actual_weight;
     set.rest_until = set.ended_at + rest;
-    // Tapped down below a rung's target: the miss answers it, hard (a no-op
-    // once a later set is done — only the latest can be re-rated).
-    if missed_rung(&proposed, req.actual_reps) {
-        apply_rate_exercise_to_active(
-            workout_ref,
-            &RateExerciseRequest {
-                workout_id: req.workout_id.clone(),
-                completed_set_id: req.completed_set_id.clone(),
-                effort: Effort::Hard as i32,
-            },
-            unit,
-        )?;
+    // A rung's reps decide what follows it: settle it again on the new count.
+    if proposed.calibration {
+        resettle_rung(workout_ref, &req.completed_set_id, unit);
     }
     Ok(())
 }
 
-/// Answer "how was that" for the latest done set — or change the answer,
-/// until the next Done. Any other set is a no-op (a late watch intent, a
-/// warmup). On a calibration rung a changed answer takes back what the old
-/// one appended (pending sets with ids derived from this done set) and
-/// appends for the new one; when the plan no longer holds exactly that
-/// append (the weight was typed, the exercise removed) only the answer
-/// changes.
-pub fn apply_rate_exercise_to_active(
-    workout_ref: &mut WorkoutRecord,
-    req: &RateExerciseRequest,
-    unit: AppWeightUnit,
-) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
-    }
-    let effort = Effort::try_from(req.effort).unwrap_or(Effort::Unspecified);
-    if effort == Effort::Unspecified || workout_ref.workout.end_time > 0 {
-        return Ok(());
-    }
-    let Some(last) = last_done_set(&workout_ref.completed_sets) else {
-        return Ok(());
-    };
-    if last.id != req.completed_set_id || !is_prompt_worthy(last, &workout_ref.proposed_sets) {
-        return Ok(());
-    }
-    let old = last.effort();
-    if old == effort {
-        return Ok(());
-    }
-    let completed_set_id = last.id.clone();
-    let rung = workout_ref
-        .proposed_sets
-        .iter()
-        .find(|set| set.id == last.proposed_set_id && set.calibration)
-        .cloned();
-    let Some(rung) = rung else {
-        set_effort(workout_ref, &completed_set_id, effort);
-        return Ok(());
-    };
-    if old == Effort::Unspecified {
-        answer(workout_ref, &completed_set_id, effort, unit, true);
-        return Ok(());
-    }
-    // Take back the old answer's append only if it is exactly what is
-    // pending for this exercise.
-    let previous: std::collections::HashSet<String> =
-        ramp_append(workout_ref, &rung, &completed_set_id, old, unit)
-            .into_iter()
-            .map(|set| set.id)
-            .collect();
-    let pending: std::collections::HashSet<String> = workout_ref
-        .proposed_sets
-        .iter()
-        .filter(|set| {
-            set.exercise == rung.exercise
-                && !set.cancelled
-                && !workout_ref
-                    .completed_sets
-                    .iter()
-                    .any(|c| c.proposed_set_id == set.id && c.ended_at != 0)
-        })
-        .map(|set| set.id.clone())
-        .collect();
-    if previous != pending {
-        set_effort(workout_ref, &completed_set_id, effort);
-        return Ok(());
-    }
-    workout_ref
-        .proposed_sets
-        .retain(|set| !previous.contains(&set.id));
-    workout_ref.renumber_sets();
-    answer(workout_ref, &completed_set_id, effort, unit, true);
-    Ok(())
-}
-
-/// Close every unanswered done calibration rung of `exercise` as right,
-/// without extending the ramp — the user typed their weight instead.
-pub(super) fn close_open_rungs(workout_ref: &mut WorkoutRecord, exercise: i32) {
-    let open: Vec<String> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0 && c.effort() == Effort::Unspecified)
-        .filter(|c| {
-            workout_ref
-                .proposed_sets
-                .iter()
-                .any(|p| p.id == c.proposed_set_id && p.exercise == exercise && p.calibration)
-        })
-        .map(|c| c.id.clone())
-        .collect();
-    for id in open {
-        set_effort(workout_ref, &id, Effort::Right);
-    }
-}
-
-/// No question survives the end of a workout: everything still open is
-/// answered "right" before progression reads the efforts. A rung closed
-/// here appends nothing — pending rows on a finished workout are wrong.
-pub fn resolve_all_effort(workout_ref: &mut WorkoutRecord) {
-    resolve_unanswered(workout_ref, false);
-}
-
-/// Answer "right" for every prompt-worthy done set still unanswered,
-/// oldest first. With `extend_ramp` a closed rung appends as a "right"
-/// answer would (CompleteSet); without it nothing is appended (EndWorkout).
-/// Nothing else resolves — not the clock, not other mutations.
-fn resolve_unanswered(workout_ref: &mut WorkoutRecord, extend_ramp: bool) {
-    loop {
-        let open = workout_ref
-            .completed_sets
-            .iter()
-            .filter(|set| {
-                set.ended_at != 0
-                    && set.effort() == Effort::Unspecified
-                    && is_prompt_worthy(set, &workout_ref.proposed_sets)
-            })
-            .min_by_key(|set| set.ended_at)
-            .map(|set| set.id.clone());
-        let Some(id) = open else {
-            return;
-        };
-        // "Right" never snaps a weight, so the unit is immaterial here.
-        answer(
-            workout_ref,
-            &id,
-            Effort::Right,
-            AppWeightUnit::Lb,
-            extend_ramp,
-        );
-    }
-}
-
-fn set_effort(workout_ref: &mut WorkoutRecord, completed_set_id: &str, effort: Effort) {
-    if let Some(set) = workout_ref
-        .completed_sets
-        .iter_mut()
-        .find(|set| set.id == completed_set_id)
-    {
-        set.effort = effort as i32;
-    }
-}
-
-/// Store an answer and, with `extend_ramp`, on a calibration rung append
-/// what the answer calls for (see `ramp_append`) straight after the rung.
-fn answer(
-    workout_ref: &mut WorkoutRecord,
-    completed_set_id: &str,
-    effort: Effort,
-    unit: AppWeightUnit,
-    extend_ramp: bool,
-) {
-    set_effort(workout_ref, completed_set_id, effort);
-    if !extend_ramp {
-        return;
-    }
-    let Some(proposed_id) = workout_ref
-        .completed_sets
-        .iter()
-        .find(|set| set.id == completed_set_id)
-        .map(|set| set.proposed_set_id.clone())
-    else {
+/// A finding-weight rung, done: append what its reps call for (see
+/// `would_append`) straight after it.
+fn settle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: AppWeightUnit) {
+    let Some(rung) = rung_of(workout_ref, completed_set_id) else {
         return;
     };
-    let Some(rung) = workout_ref
-        .proposed_sets
-        .iter()
-        .find(|set| set.id == proposed_id && set.calibration)
-        .cloned()
-    else {
-        return;
-    };
-    let appended = ramp_append(workout_ref, &rung, completed_set_id, effort, unit);
+    let appended = would_append(
+        &workout_ref.proposed_sets,
+        &workout_ref.completed_sets,
+        &rung,
+        completed_set_id,
+        unit,
+    );
     planning::insert_sets_after(workout_ref, &rung.id, appended);
 }
 
-/// What an answer on a calibration rung appends, with its ids — the plan
-/// in `workout_ref` is not touched (see `would_append`).
-fn ramp_append(
-    workout_ref: &WorkoutRecord,
-    rung: &ProposedSet,
-    completed_set_id: &str,
-    effort: Effort,
-    unit: AppWeightUnit,
-) -> Vec<ProposedSet> {
-    would_append(
-        &workout_ref.proposed_sets,
-        rung,
-        completed_set_id,
-        effort,
-        unit,
-    )
+/// A rung's reps were corrected (a rep tapped off after Done): take back
+/// what it appended and settle it again. Only while what is pending for
+/// the exercise is exactly that append — once one of those sets is done,
+/// or the weight was typed, the plan stands.
+fn resettle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: AppWeightUnit) {
+    let Some(rung) = rung_of(workout_ref, completed_set_id) else {
+        return;
+    };
+    let ours: std::collections::HashSet<String> =
+        (0..64).map(|n| derived_id(completed_set_id, n)).collect();
+    let done: std::collections::HashSet<&str> = workout_ref
+        .completed_sets
+        .iter()
+        .filter(|c| c.ended_at != 0)
+        .map(|c| c.proposed_set_id.as_str())
+        .collect();
+    let pending: Vec<&ProposedSet> = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|s| s.exercise == rung.exercise && !s.cancelled && !done.contains(s.id.as_str()))
+        .collect();
+    if pending.is_empty() || !pending.iter().all(|s| ours.contains(&s.id)) {
+        return;
+    }
+    workout_ref.proposed_sets.retain(|s| !ours.contains(&s.id));
+    workout_ref.renumber_sets();
+    settle_rung(workout_ref, completed_set_id, unit);
 }
 
-/// The ramp rule, pure: what answering `effort` on `rung` (done as
-/// `completed_set_id`) would append. Easy climbs a rung, right settles
-/// here, hard settles one rung down (the opener if this was the first);
-/// the sixth rung settles whatever the answer. Ids are
-/// `uuid5(NAMESPACE_OID, "{completed_set_id}:{n}")`, shared with the app.
+/// The calibration rung a done set lifted, if it was one.
+fn rung_of(workout_ref: &WorkoutRecord, completed_set_id: &str) -> Option<ProposedSet> {
+    let done = workout_ref
+        .completed_sets
+        .iter()
+        .find(|c| c.id == completed_set_id && c.ended_at != 0)?;
+    workout_ref
+        .proposed_sets
+        .iter()
+        .find(|s| s.id == done.proposed_set_id && s.calibration && !s.cancelled)
+        .cloned()
+}
+
+/// The ramp rule, pure: what a done `rung` appends. Every rep → the next
+/// rung up (the larger of one step and 10%); a miss, or the sixth rung →
+/// the prescription's working sets at 90% of the heaviest rung done in full
+/// (this rung's weight when none was). Ids are
+/// `uuid5(NAMESPACE_OID, "{completed_set_id}:{n}")`.
 pub fn would_append(
     proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
     rung: &ProposedSet,
     completed_set_id: &str,
-    effort: Effort,
     unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
     let rungs: Vec<&ProposedSet> = proposed_sets
@@ -698,60 +496,38 @@ pub fn would_append(
         .filter(|set| set.exercise == rung.exercise && set.calibration && !set.cancelled)
         .collect();
     let position = rungs.iter().position(|set| set.id == rung.id).unwrap_or(0);
-    let effort = if position + 1 >= planning::MAX_CALIBRATION_RUNGS {
-        Effort::Right
-    } else {
-        effort
+    let done_in_full = |set: &ProposedSet| {
+        completed_sets.iter().any(|c| {
+            c.proposed_set_id == set.id && c.ended_at != 0 && c.actual_reps >= set.target_reps
+        })
     };
     let workout_id = &rung.workout_id;
-    let mut appended = match effort {
-        Effort::Easy => vec![planning::calibration_set(
+    let mut appended = if done_in_full(rung) && position + 1 < planning::MAX_CALIBRATION_RUNGS {
+        vec![planning::calibration_set(
             workout_id,
             rung.exercise,
             planning::next_calibration_weight(rung.exercise, rung.target_weight, unit),
-        )],
-        Effort::Hard => {
-            let previous = if position == 0 {
-                rung.target_weight
-            } else {
-                rungs[position - 1].target_weight
-            };
-            planning::working_sets_after_calibration(workout_id, rung.exercise, previous)
-        }
-        _ => {
-            planning::working_sets_after_calibration(workout_id, rung.exercise, rung.target_weight)
-        }
+        )]
+    } else {
+        let heaviest = rungs
+            .iter()
+            .filter(|set| done_in_full(set))
+            .map(|set| set.target_weight)
+            .fold(0.0, f32::max);
+        let base = if heaviest > 0.0 {
+            heaviest
+        } else {
+            rung.target_weight
+        };
+        let weight = Exercise::try_from(rung.exercise)
+            .map(|ex| snap_weight_lb(ex, base * planning::CALIBRATION_SETTLE_FRACTION, unit))
+            .unwrap_or(base);
+        planning::working_sets_after_calibration(workout_id, rung.exercise, weight)
     };
     for (n, set) in appended.iter_mut().enumerate() {
         set.id = derived_id(completed_set_id, n);
     }
     appended
-}
-
-/// The set an unanswered calibration rung is waiting on: the first set
-/// "right" would append. `compute_next_up_set` puts it ahead of every
-/// other pending set, and the workout is not done while it exists.
-pub fn awaiting_ramp_set(
-    proposed_sets: &[ProposedSet],
-    completed_sets: &[CompletedSet],
-) -> Option<ProposedSet> {
-    let last = last_done_set(completed_sets)?;
-    if last.effort() != Effort::Unspecified {
-        return None;
-    }
-    let rung = proposed_sets
-        .iter()
-        .find(|set| set.id == last.proposed_set_id && set.calibration && !set.cancelled)?;
-    // "Right" never snaps a weight, so the unit is immaterial here.
-    would_append(
-        proposed_sets,
-        rung,
-        &last.id,
-        Effort::Right,
-        AppWeightUnit::Lb,
-    )
-    .into_iter()
-    .next()
 }
 
 pub fn apply_delete_completed_set_to_active(
@@ -899,31 +675,6 @@ mod tests {
         let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
         complete(&mut active, "s1", 5, 1_000);
         assert_eq!(active.completed_sets[0].started_at, 0);
-    }
-
-    #[test]
-    fn a_rating_given_with_done_answers_for_the_set() {
-        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
-        start(&mut active, "s1", 1_000);
-        apply_complete_set_to_active(
-            &mut active,
-            &CompleteSetRequest {
-                workout_id: "w1".to_string(),
-                proposed_set_id: "s1".to_string(),
-                actual_reps: 5,
-                actual_weight: 135.0,
-                completed_at: 1_040,
-                effort: Effort::Hard as i32,
-            },
-            AppWeightUnit::Lb,
-            &mut Ids::new(&Uuid::new_v4().to_string()),
-        )
-        .unwrap();
-        assert_eq!(active.completed_sets[0].effort, Effort::Hard as i32);
-        let prompt = snapshot(&active, 1_050)
-            .effort_prompt
-            .expect("still the latest set");
-        assert_eq!(prompt.effort, Effort::Hard as i32, "already answered");
     }
 
     // ── CompleteSet ─────────────────────────────────────────────────────────
@@ -1279,25 +1030,6 @@ mod tests {
         .unwrap();
     }
 
-    /// Answer for the done set that completed `proposed_id`.
-    fn rate(active: &mut WorkoutRecord, proposed_id: &str, effort: Effort) {
-        let id = done_id(active, proposed_id);
-        rate_id(active, &id, effort);
-    }
-
-    fn rate_id(active: &mut WorkoutRecord, completed_id: &str, effort: Effort) {
-        apply_rate_exercise_to_active(
-            active,
-            &RateExerciseRequest {
-                workout_id: "w1".to_string(),
-                completed_set_id: completed_id.to_string(),
-                effort: effort as i32,
-            },
-            AppWeightUnit::Lb,
-        )
-        .unwrap();
-    }
-
     fn snapshot(active: &WorkoutRecord, now: i64) -> WorkoutStateSnapshot {
         workout_state_snapshot(
             &active.workout,
@@ -1345,136 +1077,6 @@ mod tests {
         assert_eq!(active.completed_sets, before);
     }
 
-    // ── Effort: the prompt, the answer, the resolution ──────────────────────
-
-    #[test]
-    fn every_working_set_asks_and_warmups_never_do() {
-        let mut active = active_with(vec![
-            proposed("w0", 0, true),
-            proposed("s1", 1, false),
-            proposed("s2", 2, false),
-        ]);
-        complete(&mut active, "w0", 5, 1_000);
-        assert!(
-            snapshot(&active, 1_010).effort_prompt.is_none(),
-            "warmups never ask"
-        );
-
-        complete(&mut active, "s1", 5, 2_000);
-        let snap = snapshot(&active, 2_010);
-        assert_eq!(snap.state, STATE_RESTING);
-        let prompt = snap
-            .effort_prompt
-            .expect("a non-final working set asks too");
-        assert_eq!(prompt.completed_set_id, done_id(&active, "s1"));
-        assert_eq!(prompt.effort, Effort::Unspecified as i32);
-        assert!(!prompt.calibration);
-
-        // Still asking once rest is over: rest ending resolves nothing.
-        let snap = snapshot(&active, 9_000);
-        assert_eq!(snap.state, STATE_YAPPING);
-        assert!(snap.effort_prompt.is_some());
-        assert_eq!(active.completed_sets[1].effort(), Effort::Unspecified);
-    }
-
-    #[test]
-    fn the_prompt_carries_the_answer_and_a_newer_done_replaces_it() {
-        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
-        complete(&mut active, "s1", 5, 2_000);
-        rate(&mut active, "s1", Effort::Hard);
-        let prompt = snapshot(&active, 2_010).effort_prompt.unwrap();
-        assert_eq!(
-            prompt.effort,
-            Effort::Hard as i32,
-            "the chip shows the answer"
-        );
-
-        complete(&mut active, "s2", 5, 3_000);
-        let prompt = snapshot(&active, 3_010).effort_prompt.unwrap();
-        assert_eq!(prompt.completed_set_id, done_id(&active, "s2"));
-        assert_eq!(prompt.effort, Effort::Unspecified as i32);
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Hard,
-            "answers stay put"
-        );
-    }
-
-    #[test]
-    fn the_latest_set_can_be_re_rated_until_the_next_done() {
-        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
-        complete(&mut active, "s1", 5, 2_000);
-        rate(&mut active, "s1", Effort::Hard);
-        rate(&mut active, "s1", Effort::Easy);
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Easy,
-            "changed answer"
-        );
-
-        complete(&mut active, "s2", 5, 3_000);
-        rate(&mut active, "s1", Effort::Hard);
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Easy,
-            "no longer the latest"
-        );
-    }
-
-    #[test]
-    fn rating_anything_but_the_latest_prompt_worthy_set_is_a_no_op() {
-        let mut active = active_with(vec![
-            proposed("w0", 0, true),
-            proposed("s1", 1, false),
-            proposed("s2", 2, false),
-        ]);
-        complete(&mut active, "w0", 5, 1_000);
-        let before = active.clone();
-        rate(&mut active, "w0", Effort::Easy);
-        assert_eq!(
-            active.completed_sets, before.completed_sets,
-            "a warmup never asks"
-        );
-        rate_id(&mut active, "nope", Effort::Easy);
-        assert_eq!(active.completed_sets, before.completed_sets);
-        assert_eq!(active.proposed_sets, before.proposed_sets);
-    }
-
-    #[test]
-    fn done_answers_every_open_question_as_right() {
-        let mut active = active_with(vec![
-            proposed("w0", 0, true),
-            proposed("s1", 1, false),
-            proposed("s2", 2, false),
-        ]);
-        complete(&mut active, "w0", 5, 1_000);
-        complete(&mut active, "s1", 5, 2_000);
-        complete(&mut active, "s2", 5, 3_000);
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Unspecified,
-            "warmup"
-        );
-        assert_eq!(
-            active.completed_sets[1].effort(),
-            Effort::Right,
-            "closed by the next Done"
-        );
-        assert_eq!(
-            active.completed_sets[2].effort(),
-            Effort::Unspecified,
-            "still open"
-        );
-    }
-
-    #[test]
-    fn end_of_workout_closes_every_open_question() {
-        let mut active = active_with(vec![proposed("s1", 0, false)]);
-        complete(&mut active, "s1", 5, 2_000);
-        resolve_all_effort(&mut active);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Right);
-    }
-
     // ── Calibration ramp ────────────────────────────────────────────────────
 
     /// A squat rung at `weight` followed by another exercise's set, so the
@@ -1499,274 +1101,6 @@ mod tests {
             .collect()
     }
 
-    #[test]
-    fn a_rung_rests_its_own_ninety_seconds_and_asks_even_when_nothing_is_pending() {
-        let mut active = active_with(vec![{
-            let mut rung = proposed("c1", 0, false);
-            rung.calibration = true;
-            rung.rest_after_success = 90;
-            rung.rest_after_failure = 90;
-            rung
-        }]);
-        complete(&mut active, "c1", 5, 2_000);
-        assert_eq!(
-            active.completed_sets[0].rest_until, 2_090,
-            "not the 60 s end-of-exercise rest: the ramp continues"
-        );
-        let snap = snapshot(&active, 2_010);
-        assert_eq!(
-            snap.state, STATE_RESTING,
-            "not done: the answer still appends working sets"
-        );
-        let prompt = snap.effort_prompt.expect("the rung asks");
-        assert!(prompt.calibration);
-    }
-
-    #[test]
-    fn easy_climbs_a_rung_ahead_of_the_next_exercise() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Easy);
-
-        assert_eq!(active.proposed_sets.len(), 3);
-        let next = &active.proposed_sets[1];
-        assert_eq!(next.exercise, 1, "spliced in right after the rung");
-        assert!(next.calibration);
-        assert_eq!(next.target_reps, 5);
-        assert_eq!(next.target_weight, 50.0, "max(45 + 5, 45 × 1.1) snapped");
-        assert_eq!((next.rest_after_success, next.rest_after_failure), (90, 90));
-        assert_eq!(active.proposed_sets[2].id, "b1");
-        assert!(active
-            .proposed_sets
-            .iter()
-            .enumerate()
-            .all(|(i, s)| s.workout_order == i as i32));
-        assert_eq!(active.completed_sets[0].effort(), Effort::Easy);
-        assert_eq!(
-            snapshot(&active, 2_010).effort_prompt.unwrap().effort,
-            Effort::Easy as i32,
-            "the prompt stays, showing the answer"
-        );
-    }
-
-    #[test]
-    fn a_big_rung_climbs_ten_percent() {
-        let mut active = ramp_workout(200.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Easy);
-        assert_eq!(active.proposed_sets[1].target_weight, 220.0);
-    }
-
-    #[test]
-    fn right_settles_here_with_the_working_sets_minus_one() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Right);
-
-        let squat = squat_sets(&active);
-        assert_eq!(squat.len(), 3, "the rung plus two working sets");
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(working.len(), 2);
-        for set in &working {
-            assert_eq!(set.target_weight, 45.0);
-            assert_eq!(set.target_reps, 6, "squat range bottom");
-            assert_eq!((set.rest_after_success, set.rest_after_failure), (180, 240));
-            assert!(!set.warmup);
-        }
-        assert_eq!(
-            active.proposed_sets[3].id, "b1",
-            "other exercises stay behind"
-        );
-        let snap = snapshot(&active, 2_010);
-        assert_eq!(snap.state, STATE_RESTING);
-        assert_eq!(snap.display_set.unwrap().id, working[0].id);
-    }
-
-    #[test]
-    fn hard_settles_one_rung_down_or_at_the_opener() {
-        // Hard on the very first rung: that rung's weight is the weight.
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Hard);
-        assert!(squat_sets(&active)
-            .iter()
-            .filter(|s| !s.calibration)
-            .all(|s| s.target_weight == 45.0));
-
-        // Easy then hard: the previous rung wins.
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Easy);
-        let rung2 = active.proposed_sets[1].id.clone();
-        complete(&mut active, &rung2, 5, 2_200);
-        rate(&mut active, &rung2, Effort::Hard);
-        let working: Vec<&ProposedSet> = squat_sets(&active)
-            .into_iter()
-            .filter(|s| !s.calibration)
-            .collect();
-        assert_eq!(working.len(), 2);
-        assert!(
-            working.iter().all(|s| s.target_weight == 45.0),
-            "back to rung one"
-        );
-        assert_eq!(
-            active.completed_sets[1].effort(),
-            Effort::Hard,
-            "the answer is kept"
-        );
-    }
-
-    #[test]
-    fn a_rung_missed_on_its_done_is_answered_hard() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 3, 2_000);
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Hard,
-            "short of the target: the miss is the answer"
-        );
-        assert!(
-            squat_sets(&active)
-                .iter()
-                .filter(|s| !s.calibration)
-                .all(|s| s.target_weight == 45.0),
-            "settled at the opener"
-        );
-        let prompt = workout_state_snapshot(
-            &active.workout,
-            &active.proposed_sets,
-            &active.completed_sets,
-            2_010,
-        )
-        .effort_prompt
-        .unwrap();
-        assert_eq!(prompt.effort(), Effort::Hard, "nothing left to ask");
-    }
-
-    #[test]
-    fn tapping_a_rung_below_its_target_re_answers_it_hard() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Easy);
-        assert!(squat_sets(&active)[1].calibration, "easy climbed a rung");
-        let id = done_id(&active, "c1");
-        edit(&mut active, &id, 4, 45.0);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Hard);
-        let squat = squat_sets(&active);
-        assert_eq!(
-            squat.iter().filter(|s| s.calibration).count(),
-            1,
-            "the climbed rung is taken back"
-        );
-        assert!(squat
-            .iter()
-            .filter(|s| !s.calibration)
-            .all(|s| s.target_weight == 45.0));
-    }
-
-    #[test]
-    fn the_sixth_rung_settles_whatever_the_answer() {
-        let mut active = ramp_workout(45.0);
-        let mut rung = "c1".to_string();
-        let mut at = 2_000;
-        for _ in 0..5 {
-            complete(&mut active, &rung, 5, at);
-            rate(&mut active, &rung, Effort::Easy);
-            at += 200;
-            rung = squat_sets(&active).last().unwrap().id.clone();
-        }
-        assert_eq!(squat_sets(&active).len(), 6, "five easies built the cap");
-
-        complete(&mut active, &rung, 5, at);
-        rate(&mut active, &rung, Effort::Easy);
-        let squat = squat_sets(&active);
-        assert_eq!(
-            squat.iter().filter(|s| s.calibration).count(),
-            6,
-            "no seventh rung"
-        );
-        let sixth_weight = squat[5].target_weight;
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(working.len(), 2);
-        assert!(working.iter().all(|s| s.target_weight == sixth_weight));
-    }
-
-    #[test]
-    fn a_rung_is_never_resolved_by_the_clock() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000); // rests until 2_090
-        let snap = snapshot(&active, 9_000);
-        assert!(
-            snap.effort_prompt.is_some(),
-            "still asking long after the rest"
-        );
-        assert_eq!(active.completed_sets[0].effort(), Effort::Unspecified);
-        assert_eq!(squat_sets(&active).len(), 1, "nothing appended");
-    }
-
-    #[test]
-    fn done_without_an_answer_on_a_rung_appends_then_completes_the_first_working_set() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        active.completed_sets[0].id = "done-c1".to_string();
-        // The app shows uuid5("done-c1:0") on the button and sends Done for it.
-        let first = uuid5("done-c1", 0);
-        complete(&mut active, &first, 6, 2_200);
-
-        assert_eq!(active.completed_sets[0].effort(), Effort::Right);
-        let squat = squat_sets(&active);
-        assert_eq!(squat.len(), 3, "the rung plus two working sets");
-        assert_eq!(squat[1].id, first);
-        assert_eq!(squat[2].id, uuid5("done-c1", 1));
-        assert!(
-            active
-                .completed_sets
-                .iter()
-                .any(|c| c.proposed_set_id == first),
-            "the Done landed on the appended set, not a no-op"
-        );
-    }
-
-    #[test]
-    fn re_rating_a_rung_takes_back_its_append_and_applies_the_new_answer() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Easy);
-        assert_eq!(squat_sets(&active).len(), 2, "rung two appended");
-
-        rate(&mut active, "c1", Effort::Right);
-        let squat = squat_sets(&active);
-        assert_eq!(
-            squat.iter().filter(|s| s.calibration).count(),
-            1,
-            "rung two gone"
-        );
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(working.len(), 2);
-        assert!(working.iter().all(|s| s.target_weight == 45.0));
-        let done = done_id(&active, "c1");
-        assert_eq!(working[0].id, uuid5(&done, 0));
-        assert_eq!(active.proposed_sets.last().unwrap().id, "b1");
-
-        rate(&mut active, "c1", Effort::Easy);
-        let squat = squat_sets(&active);
-        assert_eq!(squat.len(), 2, "back to one more rung, working sets gone");
-        assert!(squat[1].calibration);
-        assert_eq!(squat[1].id, uuid5(&done, 0));
-        assert_eq!(active.completed_sets[0].effort(), Effort::Easy);
-    }
-
-    #[test]
-    fn re_rating_a_rung_after_a_typed_weight_only_changes_the_answer() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        adjust(&mut active, 1, 100.0);
-        let plan = active.proposed_sets.clone();
-        rate(&mut active, "c1", Effort::Easy);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Easy);
-        assert_eq!(active.proposed_sets, plan, "the typed weight's sets stay");
-    }
-
     fn adjust(active: &mut WorkoutRecord, exercise: i32, weight: f32) {
         apply_adjust_exercise_weight(
             active,
@@ -1786,32 +1120,152 @@ mod tests {
         Uuid::new_v5(&Uuid::NAMESPACE_OID, format!("{base}:{n}").as_bytes()).to_string()
     }
 
+    /// The squat sets after the first, as (weight, calibration).
+    fn squat_plan(active: &WorkoutRecord) -> Vec<(f32, bool)> {
+        squat_sets(active)
+            .iter()
+            .skip(1)
+            .map(|s| (s.target_weight, s.calibration))
+            .collect()
+    }
+
+    #[test]
+    fn a_full_rung_climbs_ahead_of_the_next_exercise() {
+        let mut active = ramp_workout(45.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let done = done_id(&active, "c1");
+        let next = &active.proposed_sets[1];
+        assert!(next.calibration, "another rung");
+        assert_eq!(next.target_weight, 50.0, "one bar step beats 10% at 45");
+        assert_eq!(next.id, uuid5(&done, 0), "derived from the done set");
+        assert_eq!(
+            active.proposed_sets[2].id, "b1",
+            "spliced in ahead of bench"
+        );
+        assert_eq!(
+            active.completed_sets[0].rest_until, 2_090,
+            "a rung rests its own 90 s"
+        );
+    }
+
+    #[test]
+    fn a_big_rung_climbs_ten_percent() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 5, 2_000);
+        assert_eq!(active.proposed_sets[1].target_weight, 220.0);
+    }
+
+    /// A miss ends the ramp: the working sets at 90% of the heaviest rung
+    /// done in full.
+    #[test]
+    fn a_miss_settles_at_ninety_percent_of_the_heaviest_full_rung() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = active.proposed_sets[1].id.clone();
+        assert_eq!(active.proposed_sets[1].target_weight, 110.0);
+        complete(&mut active, &rung2, 4, 2_200);
+        let done2 = done_id(&active, &rung2);
+        let working: Vec<&ProposedSet> = squat_sets(&active)
+            .into_iter()
+            .filter(|s| !s.calibration)
+            .collect();
+        assert_eq!(working.len(), 5, "the full 5×5");
+        for (n, set) in working.iter().enumerate() {
+            assert_eq!(set.target_weight, 90.0, "90% of the 100 done in full");
+            assert_eq!(set.target_reps, 5);
+            assert_eq!(set.id, uuid5(&done2, n));
+            assert_eq!((set.rest_after_success, set.rest_after_failure), (180, 240));
+        }
+        assert_eq!(active.proposed_sets.last().unwrap().id, "b1");
+    }
+
+    #[test]
+    fn a_first_rung_missed_settles_under_it() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 3, 2_000);
+        assert_eq!(squat_plan(&active), vec![(90.0, false); 5]);
+    }
+
+    #[test]
+    fn the_sixth_rung_settles_whatever_it_did() {
+        let mut active = ramp_workout(100.0);
+        let mut at = 2_000;
+        for _ in 0..planning::MAX_CALIBRATION_RUNGS {
+            let rung = squat_sets(&active)
+                .into_iter()
+                .find(|s| {
+                    s.calibration
+                        && !active
+                            .completed_sets
+                            .iter()
+                            .any(|c| c.proposed_set_id == s.id)
+                })
+                .unwrap()
+                .clone();
+            complete(&mut active, &rung.id, 5, at);
+            at += 200;
+        }
+        let rungs: Vec<f32> = squat_sets(&active)
+            .iter()
+            .filter(|s| s.calibration)
+            .map(|s| s.target_weight)
+            .collect();
+        assert_eq!(rungs.len(), planning::MAX_CALIBRATION_RUNGS);
+        let top = *rungs.last().unwrap();
+        let working: Vec<f32> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| s.target_weight)
+            .collect();
+        assert_eq!(working.len(), 5);
+        assert!(working.iter().all(|w| (*w - top * 0.9).abs() <= 5.0));
+    }
+
+    /// Tapping a rep off a rung after Done (the way a miss is recorded)
+    /// settles it again — while nothing after it has been lifted.
+    #[test]
+    fn tapping_a_rep_off_a_rung_resettles_it() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        assert_eq!(squat_plan(&active), vec![(110.0, true)]);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 4, 100.0);
+        assert_eq!(squat_plan(&active), vec![(90.0, false); 5]);
+        edit(&mut active, &done, 5, 100.0);
+        assert_eq!(squat_plan(&active), vec![(110.0, true)], "and back");
+    }
+
+    #[test]
+    fn a_rung_stands_once_a_set_after_it_is_lifted() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = active.proposed_sets[1].id.clone();
+        complete(&mut active, &rung2, 5, 2_200);
+        let plan = squat_plan(&active);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 4, 100.0);
+        assert_eq!(squat_plan(&active), plan);
+    }
+
     #[test]
     fn typing_a_weight_mid_ramp_replaces_the_rung_with_the_full_working_sets() {
         let mut active = ramp_workout(45.0);
         complete(&mut active, "c1", 5, 2_000);
-        rate(&mut active, "c1", Effort::Easy);
         let pending_rung = active.proposed_sets[1].id.clone();
         assert!(active.proposed_sets[1].calibration);
 
         adjust(&mut active, 1, 102.0);
         let squat = squat_sets(&active);
-        assert_eq!(squat.len(), 4, "the done rung plus three working sets");
         assert!(
             squat.iter().all(|s| s.id != pending_rung),
             "the pending rung is gone"
         );
         let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(
-            working.len(),
-            3,
-            "the prescription's full count, not minus one"
-        );
+        assert_eq!(working.len(), 5, "the prescription's 5×5");
         for (n, set) in working.iter().enumerate() {
             assert_eq!(set.id, uuid5(&pending_rung, n), "pinned id for n = {n}");
             assert_eq!(set.target_weight, 100.0, "102 snapped loadable");
-            assert_eq!(set.target_reps, 6);
-            assert_eq!((set.rest_after_success, set.rest_after_failure), (180, 240));
+            assert_eq!(set.target_reps, 5);
             assert!(!set.warmup);
         }
         assert_eq!(
@@ -1819,7 +1273,8 @@ mod tests {
             "where the rung was"
         );
         assert_eq!(
-            active.proposed_sets[4].id, "b1",
+            active.proposed_sets.last().unwrap().id,
+            "b1",
             "other exercises stay behind"
         );
         assert!(active
@@ -1827,91 +1282,6 @@ mod tests {
             .iter()
             .enumerate()
             .all(|(i, s)| s.workout_order == i as i32));
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Easy,
-            "answered rungs keep theirs"
-        );
-    }
-
-    #[test]
-    fn typing_a_weight_closes_an_open_rung_as_right_without_appending() {
-        let mut second = proposed("c2", 1, false);
-        second.calibration = true;
-        second.target_weight = 50.0;
-        let mut active = ramp_workout(45.0);
-        active.proposed_sets[0].calibration = true;
-        active.proposed_sets.insert(1, second);
-        active.renumber_sets();
-        complete(&mut active, "c1", 5, 2_000);
-        assert!(
-            snapshot(&active, 2_010).effort_prompt.is_some(),
-            "c1 is asking"
-        );
-
-        adjust(&mut active, 1, 95.0);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Right);
-        let squat = squat_sets(&active);
-        assert_eq!(
-            squat.iter().filter(|s| s.calibration).count(),
-            1,
-            "only the done rung"
-        );
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(
-            working.len(),
-            3,
-            "no RIGHT append on top of the typed weight's sets"
-        );
-        assert!(working.iter().all(|s| s.target_weight == 95.0));
-        assert_eq!(working[0].id, uuid5("c2", 0));
-        assert_eq!(
-            snapshot(&active, 2_010).effort_prompt.unwrap().effort,
-            Effort::Right as i32
-        );
-    }
-
-    #[test]
-    fn typing_a_weight_while_the_rung_is_asking_settles_on_it() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        let done_rung = done_id(&active, "c1");
-        assert!(
-            snapshot(&active, 2_010).effort_prompt.is_some(),
-            "c1 is asking"
-        );
-
-        adjust(&mut active, 1, 102.0);
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Right,
-            "closed, not appended"
-        );
-        assert_eq!(
-            snapshot(&active, 2_010).effort_prompt.unwrap().effort,
-            Effort::Right as i32
-        );
-        let squat = squat_sets(&active);
-        assert_eq!(
-            squat.len(),
-            4,
-            "the rung plus three working sets, no RIGHT append"
-        );
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        for (n, set) in working.iter().enumerate() {
-            assert_eq!(
-                set.id,
-                uuid5(&done_rung, n),
-                "ids from the done rung, n = {n}"
-            );
-            assert_eq!(set.target_weight, 100.0);
-        }
-        assert_eq!(working.len(), 3);
-        assert_eq!(
-            active.proposed_sets[1].id, working[0].id,
-            "straight after the rung"
-        );
-        assert_eq!(active.proposed_sets[4].id, "b1");
     }
 
     #[test]
@@ -1929,113 +1299,6 @@ mod tests {
             active.proposed_sets[1].target_weight, 102.0,
             "moved in place, as before"
         );
-        assert_eq!(active.completed_sets[0].effort(), Effort::Unspecified);
-    }
-
-    #[test]
-    fn a_lone_unanswered_rung_is_not_all_done() {
-        let mut rung = proposed("c1", 0, false);
-        rung.calibration = true;
-        rung.target_weight = 45.0;
-        rung.rest_after_success = 90;
-        rung.rest_after_failure = 90;
-        let mut active = active_with(vec![rung]);
-        complete(&mut active, "c1", 5, 2_000);
-        active.completed_sets[0].id = "done-c1".to_string();
-
-        let snap = snapshot(&active, 2_010);
-        assert_eq!(snap.state, STATE_RESTING, "right would append working sets");
-        assert_eq!(snap.rest_until, 2_090);
-        let display = snap.display_set.expect("what Done will log");
-        assert_eq!(display.id, uuid5("done-c1", 0));
-        assert_eq!(display.target_weight, 45.0);
-        assert!(!display.calibration);
-        assert_eq!(
-            active.proposed_sets.len(),
-            1,
-            "the snapshot appends nothing"
-        );
-
-        let snap = snapshot(&active, 2_090);
-        assert_eq!(snap.state, STATE_YAPPING);
-        assert_eq!(snap.display_set.unwrap().id, uuid5("done-c1", 0));
-
-        // Answered, or the plan is genuinely over: ALL_DONE.
-        resolve_all_effort(&mut active);
-        assert_eq!(snapshot(&active, 2_010).state, STATE_ALL_DONE);
-
-        // Done on the displayed id goes through.
-        let mut active = active_with(vec![{
-            let mut rung = proposed("c1", 0, false);
-            rung.calibration = true;
-            rung
-        }]);
-        complete(&mut active, "c1", 5, 2_000);
-        let display = snapshot(&active, 2_010).display_set.unwrap();
-        complete(&mut active, &display.id, 6, 2_200);
-        assert!(active
-            .completed_sets
-            .iter()
-            .any(|c| c.proposed_set_id == display.id));
-    }
-
-    #[test]
-    fn an_unanswered_rung_points_done_at_its_own_working_set_before_other_exercises() {
-        let mut active = ramp_workout(45.0); // squat rung c1, bench b1 pending
-        complete(&mut active, "c1", 5, 2_000);
-        active.completed_sets[0].id = "done-c1".to_string();
-
-        let snap = snapshot(&active, 2_010);
-        assert_eq!(snap.state, STATE_RESTING);
-        let display = snap.display_set.expect("the would-be first working set");
-        assert_eq!(display.id, uuid5("done-c1", 0), "not the pending bench set");
-        assert_eq!(display.exercise, 1, "squat");
-        assert_eq!(
-            snapshot(&active, 2_090).state,
-            STATE_YAPPING,
-            "by the rung's rest"
-        );
-
-        let response = get_workout_response_from_active(&active, 2_090);
-        assert_eq!(
-            response.next_up_set.unwrap().id,
-            display.id,
-            "next_up_set and display_set are one source of truth"
-        );
-
-        complete(&mut active, &display.id, 6, 2_200);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Right);
-        let logged = active
-            .proposed_sets
-            .iter()
-            .find(|s| active.completed_sets[1].proposed_set_id == s.id)
-            .unwrap();
-        assert_eq!(logged.exercise, 1, "a squat working set was logged");
-        assert!(!logged.calibration);
-        assert_eq!(
-            active.proposed_sets[1].id, display.id,
-            "appended right after the rung"
-        );
-        assert_eq!(active.proposed_sets.last().unwrap().id, "b1");
-    }
-
-    #[test]
-    fn done_on_another_exercise_still_settles_the_rung_first() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        complete(&mut active, "b1", 5, 2_200);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Right);
-        assert_eq!(
-            squat_sets(&active).len(),
-            3,
-            "the squat working sets were appended"
-        );
-        assert!(active
-            .completed_sets
-            .iter()
-            .any(|c| c.proposed_set_id == "b1"));
-        let snap = snapshot(&active, 2_210);
-        assert_eq!(snap.display_set.unwrap().exercise, 1, "squat is next again");
     }
 
     #[test]
@@ -2045,77 +1308,5 @@ mod tests {
         let before = active.completed_sets.clone();
         complete(&mut active, "s1", 3, 2_050);
         assert_eq!(active.completed_sets, before, "one row, untouched");
-        assert_eq!(
-            active.completed_sets[0].effort(),
-            Effort::Unspecified,
-            "the repeat resolves nothing either"
-        );
-    }
-
-    #[test]
-    fn appended_sets_get_deterministic_ids() {
-        // Two identical runs: the rung's done set gets a fixed id so the
-        // appends can be compared across them.
-        let run = |effort: Effort| {
-            let mut active = ramp_workout(45.0);
-            complete(&mut active, "c1", 5, 2_000);
-            active.completed_sets[0].id = "done-c1".to_string();
-            rate_id(&mut active, "done-c1", effort);
-            active
-                .proposed_sets
-                .iter()
-                .filter(|s| s.exercise == 1 && s.id != "c1")
-                .map(|s| s.id.clone())
-                .collect::<Vec<String>>()
-        };
-        let expected = |n: usize| {
-            Uuid::new_v5(&Uuid::NAMESPACE_OID, format!("done-c1:{n}").as_bytes()).to_string()
-        };
-
-        let easy = run(Effort::Easy);
-        assert_eq!(easy, vec![expected(0)], "one rung: n = 0");
-        assert_eq!(run(Effort::Easy), easy, "stable across runs");
-
-        let right = run(Effort::Right);
-        assert_eq!(
-            right,
-            vec![expected(0), expected(1)],
-            "working sets: n = 0, 1"
-        );
-        assert_ne!(right[0], right[1], "distinct across n");
-        assert_eq!(
-            run(Effort::Hard),
-            right,
-            "the answer does not change the ids"
-        );
-
-        // Resolution at the next Done is the same path, so the same ids.
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        active.completed_sets[0].id = "done-c1".to_string();
-        complete(&mut active, "b1", 5, 2_200);
-        let stale: Vec<String> = active
-            .proposed_sets
-            .iter()
-            .filter(|s| s.exercise == 1 && s.id != "c1")
-            .map(|s| s.id.clone())
-            .collect();
-        assert_eq!(stale, right);
-    }
-
-    #[test]
-    fn a_rung_left_open_at_end_of_workout_is_right_but_appends_nothing() {
-        let mut active = ramp_workout(45.0);
-        complete(&mut active, "c1", 5, 2_000);
-        resolve_all_effort(&mut active);
-        assert_eq!(active.completed_sets[0].effort(), Effort::Right);
-        assert_eq!(
-            active.proposed_sets.len(),
-            2,
-            "no pending rows on a finished workout"
-        );
-        assert_eq!(squat_sets(&active).len(), 1);
-        let prompt = snapshot(&active, 2_010).effort_prompt.unwrap();
-        assert_eq!(prompt.effort, Effort::Right as i32, "shown as answered");
     }
 }

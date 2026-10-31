@@ -68,15 +68,6 @@ class ExerciseSection extends StatelessWidget {
         sets.any((s) => s.calibration) &&
         !sets.any((s) => !s.warmup && !s.calibration);
 
-    // The rung just done asks how much was left in the tank; until it is
-    // answered the plan below it is undecided, so no other set starts.
-    final prompt = w.effortPrompt;
-    final asking =
-        prompt != null &&
-        prompt.calibration &&
-        prompt.effort == Effort.EFFORT_UNSPECIFIED;
-    final askingHere = asking && prompt.exercise == block.exercise;
-
     // The up-next circle wears the workout's state colour, like the banner.
     final stateValue = w.stateValue;
     final nextColor = isRestingState(stateValue)
@@ -99,7 +90,7 @@ class ExerciseSection extends StatelessWidget {
             : SetCircleState.short;
       } else if (liftingId == set.id) {
         state = SetCircleState.lifting;
-      } else if (!asking && nextId == set.id) {
+      } else if (nextId == set.id) {
         state = SetCircleState.next;
       } else if (w.isPassedWarmup(set)) {
         state = SetCircleState.skipped;
@@ -111,8 +102,6 @@ class ExerciseSection extends StatelessWidget {
         onTap = null;
       } else if (done != null) {
         onTap = () => wp.tapDoneSet(done.id);
-      } else if (asking) {
-        onTap = null;
       } else if (state == SetCircleState.lifting) {
         onTap = () => wp.completeSet(set.id, set.targetReps, set.targetWeight);
       } else {
@@ -269,14 +258,6 @@ class ExerciseSection extends StatelessWidget {
               ],
             ),
           ),
-          if (askingHere)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(_padding, 6, _padding, 6),
-              child: _RepsLeftQuestion(
-                onAnswer: (effort) =>
-                    wp?.rateExercise(prompt.completedSetId, effort),
-              ),
-            ),
         ],
       ),
     );
@@ -425,62 +406,6 @@ class _SkipButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// After a finding-weight rung: how many more reps were in the tank. Lots
-/// climbs a rung; some settles here; none settles one rung back.
-class _RepsLeftQuestion extends StatelessWidget {
-  final void Function(Effort effort) onAnswer;
-
-  const _RepsLeftQuestion({required this.onAnswer});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    Widget option(String label, Effort effort) => Expanded(
-      child: SizedBox(
-        height: 48,
-        child: FilledButton(
-          onPressed: () => onAnswer(effort),
-          style: FilledButton.styleFrom(
-            backgroundColor: t.text,
-            foregroundColor: t.background,
-            padding: EdgeInsets.zero,
-          ),
-          child: Text(
-            label,
-            style: t.mono(
-              TextStyle(fontSize: t.size.bodyLg, fontWeight: t.weight.bold),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          copy.workout.repsLeftQuestion,
-          style: TextStyle(
-            fontSize: t.size.body,
-            fontWeight: t.weight.bold,
-            color: t.text,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            option(copy.workout.repsLeftNone, Effort.EFFORT_HARD),
-            const SizedBox(width: 6),
-            option(copy.workout.repsLeftSome, Effort.EFFORT_RIGHT),
-            const SizedBox(width: 6),
-            option(copy.workout.repsLeftLots, Effort.EFFORT_EASY),
-          ],
-        ),
-      ],
     );
   }
 }

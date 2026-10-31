@@ -47,10 +47,11 @@ void main() {
       // The first tap on the up-next circle starts the set: LIFTING, the
       // banner counting up.
       await s.tap(s.circleFor(first.id));
+      await s.settle(seconds: 1);
       final lifting =
           s.workout.stateSnapshot?.state ==
               WorkoutState.WORKOUT_STATE_LIFTING &&
-          s.isVisible(copy.workout.lifting);
+          s.isVisible(copy.workout.lifting.toUpperCase());
       await s.shot(
         'Started — lifting',
         note: lifting
@@ -59,26 +60,34 @@ void main() {
       );
       expect(lifting, isTrue, reason: 'the first tap lifts the set');
 
-      // The second tap logs it with every rep; the rung then asks how many
-      // were left, and 2–3 settles the working weight.
+      // The second tap logs it with every rep: a full rung climbs to the
+      // next one. A third tap takes a rep off, which settles the working
+      // weight under it instead.
       await s.tap(s.circleFor(first.id));
       expect(s.workout.isSetDone(first.id), isTrue, reason: 'logged');
-      await s.mustSee(copy.workout.repsLeftQuestion, seconds: 4);
-      await s.shot('Rung logged — how many were left?');
-      await s.tapText(copy.workout.repsLeftSome);
+      expect(
+        s.workout.activeProposedSets.where(
+          (p) => p.exercise == first.exercise && p.calibration,
+        ),
+        hasLength(2),
+        reason: 'a full rung climbs',
+      );
+      await s.shot('Rung logged in full — the next rung');
+      await s.tap(s.circleFor(first.id));
+      await s.settle(seconds: 1);
       expect(
         s.workout.activeProposedSets.where(
           (p) => p.exercise == first.exercise && !p.calibration && !p.warmup,
         ),
         isNotEmpty,
-        reason: 'the working sets are appended',
+        reason: 'a missed rep settles the working sets',
       );
       expect(
         s.workout.stateSnapshot?.state,
         WorkoutState.WORKOUT_STATE_RESTING,
         reason: 'a logged set rests',
       );
-      await s.shot('Answered 2–3 — resting, working sets appended');
+      await s.shot('A rep off the rung — resting, working sets appended');
 
       // A working set one rep short: start, done, one more tap.
       final working = s.nextSet!;
@@ -97,7 +106,7 @@ void main() {
         'Workout logging verified',
         detail:
             'Started a proposed workout, lifted the finding-weight rung on its '
-            'circle and answered 2–3, then lifted a working set one rep short, '
+            'circle, took a rep off it to settle the weight, then lifted a working set one rep short, '
             'all through the real UI.',
         kind: 'assert',
       );

@@ -331,6 +331,17 @@ pub fn category(ex: Exercise) -> ExerciseCategory {
 /// The sets, rep range and rest the app prescribes, derived from what the
 /// exercise is. This is the whole table; there is no per-user or per-goal
 /// variant. Users can override sets and range on the tracker.
+///
+/// - Barbell compounds: 5×5 (the deadlift 3×5, the most fatiguing lift).
+///   Heavy, low-rep work builds the most strength, and growth is similar
+///   across rep ranges when sets are hard (Schoenfeld et al. 2017); five
+///   sets three times a week is ~15 a week per muscle, inside the 10–20
+///   band (Baz-Valle et al. 2022). A range of 5–5 makes progression linear:
+///   every rep, every set → the next weight.
+/// - Everything else that's loaded: 3×8–12. One equipment step is a big
+///   jump on a light dumbbell or stack, so reps carry the progress first;
+///   load and rep progression grow muscle alike (Plotkin et al. 2022).
+/// - Bodyweight and core: 3 sets, reps climb.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Prescription {
     pub sets: i32,
@@ -369,14 +380,14 @@ pub fn prescription(ex: Exercise) -> Prescription {
     match (style, compound) {
         // The heavy barbell moves: the only class that warms up with a ladder.
         (LoadStyle::Barbell, true) => Prescription {
-            sets: 3,
-            rep_low: 6,
-            rep_high: 10,
+            sets: if ex == Exercise::Deadlift { 3 } else { 5 },
+            rep_low: 5,
+            rep_high: 5,
             rest_seconds: if loads_lower_body { 180 } else { 150 },
             rest_seconds_failure: if loads_lower_body { 240 } else { 210 },
             include_warmup: true,
         },
-        (LoadStyle::Bodyweight, true) => Prescription {
+        (LoadStyle::Bodyweight, _) => Prescription {
             sets: 3,
             rep_low: 5,
             rep_high: 15,
@@ -384,21 +395,12 @@ pub fn prescription(ex: Exercise) -> Prescription {
             rest_seconds_failure: 180,
             include_warmup: false,
         },
-        (_, true) => Prescription {
+        (_, compound) => Prescription {
             sets: 3,
             rep_low: 8,
             rep_high: 12,
-            rest_seconds: 120,
-            rest_seconds_failure: 180,
-            include_warmup: false,
-        },
-        // Isolation, whatever the equipment.
-        (_, false) => Prescription {
-            sets: 3,
-            rep_low: 10,
-            rep_high: 15,
-            rest_seconds: 90,
-            rest_seconds_failure: 120,
+            rest_seconds: if compound { 120 } else { 90 },
+            rest_seconds_failure: if compound { 180 } else { 120 },
             include_warmup: false,
         },
     }
@@ -440,13 +442,14 @@ pub fn progression_increment_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
 }
 
 /// Round a computed weight to something you can load for this exercise:
-/// real plate maths for barbells, the equipment's step size for the rest.
+/// real plate maths for barbells (never under the empty bar), the
+/// equipment's step size for the rest.
 pub fn snap_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) -> f32 {
     if weight_lb <= 0.0 {
         return 0.0;
     }
     match load_style(ex) {
-        LoadStyle::Barbell => snap_loadable_lb(weight_lb, unit),
+        LoadStyle::Barbell => snap_loadable_lb(weight_lb, unit).max(starting_weight_lb(ex, unit)),
         LoadStyle::Bodyweight => weight_lb,
         LoadStyle::Dumbbell => round_to_unit_increment(weight_lb, unit, 5.0, 2.0),
         _ => round_to_unit_increment(weight_lb, unit, 5.0, 2.5),
@@ -504,7 +507,7 @@ mod tests {
             assert!(!muscles(*ex).is_empty(), "{ex:?} has no muscle mapping");
             let p = prescription(*ex);
             assert!(
-                p.sets > 0 && p.rep_low > 0 && p.rep_high > p.rep_low,
+                p.sets > 0 && p.rep_low > 0 && p.rep_high >= p.rep_low,
                 "{ex:?}: {p:?}"
             );
             assert!(p.rest_seconds > 0 && p.rest_seconds_failure >= p.rest_seconds);
@@ -533,12 +536,18 @@ mod tests {
         assert_eq!(load_style(Exercise::CalfRaise), LoadStyle::Dumbbell);
     }
 
-    /// The prescription table, pinned. Only barbell compounds warm up and
-    /// rest three minutes; core work is short and high-rep.
+    /// The prescription table, pinned: 5×5 for the barbell compounds (3×5
+    /// for the deadlift), 3×8–12 for everything else that's loaded, reps
+    /// alone for bodyweight and core. Only barbell compounds warm up.
     #[test]
     fn prescriptions_follow_the_class() {
         let squat = prescription(Exercise::Squat);
-        assert_eq!((squat.sets, squat.rep_low, squat.rep_high), (3, 6, 10));
+        assert_eq!((squat.sets, squat.rep_low, squat.rep_high), (5, 5, 5));
+        let deadlift = prescription(Exercise::Deadlift);
+        assert_eq!(
+            (deadlift.sets, deadlift.rep_low, deadlift.rep_high),
+            (3, 5, 5)
+        );
         assert_eq!(squat.rest_seconds, 180, "lower-body barbell: full rest");
         assert!(squat.include_warmup);
 
@@ -551,7 +560,7 @@ mod tests {
         assert_eq!(prescription(Exercise::RomanianDeadlift).rest_seconds, 180);
 
         let raise = prescription(Exercise::LateralRaise);
-        assert_eq!((raise.rep_low, raise.rep_high), (10, 15));
+        assert_eq!((raise.sets, raise.rep_low, raise.rep_high), (3, 8, 12));
         assert_eq!(raise.rest_seconds, 90);
         assert!(!raise.include_warmup);
 
@@ -589,6 +598,11 @@ mod tests {
         assert_eq!(
             snap_weight_lb(Exercise::LateralRaise, 22.0, AppWeightUnit::Lb),
             20.0
+        );
+        assert_eq!(
+            snap_weight_lb(Exercise::Squat, 40.5, AppWeightUnit::Lb),
+            45.0,
+            "a barbell never goes under the empty bar"
         );
     }
 }

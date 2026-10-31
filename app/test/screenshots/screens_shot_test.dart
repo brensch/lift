@@ -359,11 +359,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await shoot(tester, 'weight_sheet');
 
-    // Weight + twice (185 → 195) and reps + once (6 → 7), then SAVE
-    // applies both to the pending sets (and the account's tracker).
+    // Weight + twice (185 → 195), then SAVE applies it to the pending
+    // sets (and the account's tracker). A 5×5 keeps its 5.
     await tester.tap(find.byIcon(AppIcons.add).first);
     await tester.tap(find.byIcon(AppIcons.add).first);
-    await tester.tap(find.byIcon(AppIcons.add).last);
     await tester.pump();
     expect(find.text('SAVE'), findsOneWidget);
     await tester.tap(find.text('SAVE'));
@@ -380,14 +379,14 @@ void main() {
     expect(
       h
           .working(Exercise.EXERCISE_SQUAT)
-          .every((s) => s.targetWeight == 195 && s.targetReps == 7),
+          .every((s) => s.targetWeight == 195 && s.targetReps == 5),
       isTrue,
-      reason: 'the pending working sets moved to 195 × 7',
+      reason: 'the pending working sets moved to 195 × 5',
     );
     final tracker = h.provider.trackerFor(Exercise.EXERCISE_SQUAT)!;
     expect(
       (tracker.workingWeight, tracker.targetReps),
-      (195.0, 7),
+      (195.0, 5),
       reason: 'the account takes the new numbers too',
     );
 
