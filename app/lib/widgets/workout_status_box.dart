@@ -1,9 +1,9 @@
 /// One person's status in the workout banner. A band across the top in the
 /// colour of the stage they're at — their emoji on their own colour, the
 /// stage, the clock — readable from across the gym; under it, calm, the set
-/// in front of them: what it is, weight × reps, and (yours) the plates to
-/// load. Yours and every partner's are the same box; tap a partner's to see
-/// their workout.
+/// in front of them: (yours) its circle, what it is, weight × reps, and the
+/// plates to load. Yours and every partner's are the same box; tap a
+/// partner's to see their workout.
 library;
 
 import 'package:flutter/material.dart';
@@ -35,6 +35,10 @@ class StatusBox extends StatelessWidget {
   /// Their turn on the rack: the plates box pulses orange.
   final bool upNext;
 
+  /// Yours: the set's circle, the same one as in the exercise list, to
+  /// start and log it from here.
+  final Widget? circle;
+
   const StatusBox({
     super.key,
     required this.emoji,
@@ -45,6 +49,7 @@ class StatusBox extends StatelessWidget {
     this.set,
     this.plan = const [],
     this.upNext = false,
+    this.circle,
   });
 
   @override
@@ -125,7 +130,7 @@ class StatusBox extends StatelessWidget {
           color: t.muted,
         ),
       );
-      final weightSize = t.size.headlineLg;
+      final weightSize = t.size.displayLg;
       final load = Text.rich(
         TextSpan(
           children: [
@@ -150,6 +155,7 @@ class StatusBox extends StatelessWidget {
       );
       body = Row(
         children: [
+          if (circle != null) ...[circle!, const SizedBox(width: 14)],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,7 +206,7 @@ class StatusBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           band,
-          Padding(padding: EdgeInsets.fromLTRB(12, 10, 12, 12), child: body),
+          Padding(padding: EdgeInsets.fromLTRB(14, 16, 14, 18), child: body),
         ],
       ),
     );

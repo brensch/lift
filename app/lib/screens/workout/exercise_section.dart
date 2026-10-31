@@ -14,9 +14,9 @@ import '../../logic/exercises.dart';
 import '../../theme/app_icons.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/set_labels.dart';
-import '../../logic/session_state.dart';
 import '../../theme/theme_spec.dart';
 import 'section_workout.dart';
+import 'live_set_circle.dart';
 import 'set_circle.dart';
 
 const double _padding = 16;
@@ -64,59 +64,15 @@ class ExerciseSection extends StatelessWidget {
     final openWarmups = warmups.any(
       (s) => !w.isDone(s.id) && !w.isPassedWarmup(s),
     );
-    final calibrating =
-        sets.any((s) => s.calibration) &&
-        !sets.any((s) => !s.warmup && !s.calibration);
 
-    // The up-next circle wears the workout's state colour, like the banner.
-    final stateValue = w.stateValue;
-    final nextColor = isRestingState(stateValue)
-        ? t.workoutRestingFg
-        : isYappingState(stateValue)
-        ? t.workoutYappingFg
-        : t.primary;
     final nextId = w.nextSetId;
     final liftingId = w.liftingSetId;
 
-    Widget circle(ProposedSet set) {
-      final done = w.doneFor(set.id);
-      final reps = done?.actualReps ?? set.targetReps;
-      final SetCircleState state;
-      if (done != null) {
-        state = reps >= set.targetReps
-            ? SetCircleState.full
-            : reps == 0
-            ? SetCircleState.zero
-            : SetCircleState.short;
-      } else if (liftingId == set.id) {
-        state = SetCircleState.lifting;
-      } else if (nextId == set.id) {
-        state = SetCircleState.next;
-      } else if (w.isPassedWarmup(set)) {
-        state = SetCircleState.skipped;
-      } else {
-        state = SetCircleState.pending;
-      }
-      final VoidCallback? onTap;
-      if (wp == null) {
-        onTap = null;
-      } else if (done != null) {
-        onTap = () => wp.tapDoneSet(done.id);
-      } else if (state == SetCircleState.lifting) {
-        onTap = () => wp.completeSet(set.id, set.targetReps, set.targetWeight);
-      } else {
-        onTap = () => wp.startSet(set.id);
-      }
-      return SetCircle(
-        key: ValueKey('set-circle-${set.id}'),
-        number: reps,
-        state: state,
-        nextColor: nextColor,
-        small: set.warmup,
-        square: set.calibration,
-        onTap: onTap,
-      );
-    }
+    Widget circle(ProposedSet set) => LiveSetCircle(
+      key: ValueKey('set-circle-${set.id}'),
+      workout: w,
+      set: set,
+    );
 
     // The set a row follows: the one being lifted or up next, if it is in
     // that row.
@@ -201,36 +157,6 @@ class ExerciseSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           header,
-          // Finding weight: its own row across the whole width, and on the
-          // exercise you're on, what to do.
-          if (calibrating)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(_padding, 0, _padding, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    copy.workout.calibrationLine.toUpperCase(),
-                    style: t.mono(
-                      TextStyle(
-                        fontSize: t.size.small,
-                        fontWeight: t.weight.bold,
-                        letterSpacing: 0.5,
-                        color: t.primary,
-                      ),
-                    ),
-                  ),
-                  if (focused && !finished)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        copy.workout.calibrationHint,
-                        style: TextStyle(fontSize: t.size.body, color: t.muted),
-                      ),
-                    ),
-                ],
-              ),
-            ),
           // A finished exercise steps back so the one in hand stands out.
           Opacity(
             opacity: finished ? 0.45 : 1,

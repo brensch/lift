@@ -20,6 +20,8 @@ import '../../logic/user_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../providers/workout_provider.dart';
+import '../../screens/workout/live_set_circle.dart';
+import '../../screens/workout/section_workout.dart';
 import '../../theme/theme_spec.dart';
 import '../common/horizontal_shaker.dart';
 import '../dialogs/end_workout_dialog.dart';
@@ -338,6 +340,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         timerText: you.timerText,
                         set: you.set,
                         plan: wp.activeProposedSets,
+                        circle: you.set == null
+                            ? null
+                            : LiveSetCircle(
+                                workout: SectionWorkout.mine(wp),
+                                set: you.set!,
+                              ),
                       ),
                     ),
                     if (allDone && wp.activeWorkout?.endTime == Int64.ZERO) ...[

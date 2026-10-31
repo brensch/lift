@@ -997,6 +997,40 @@ mod calibration_and_effort {
     }
 
     /// A pull-up has no weight to find.
+    /// The first-time "I lift X", before any rung: the ramp gives way to
+    /// the warmup ladder and the full working sets at X.
+    #[test]
+    fn a_weight_given_up_front_skips_the_ramp() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let workout_id = started.workout.unwrap().id;
+        let state = apply(
+            &mut app,
+            vec![mutation_at(
+                Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
+                    workout_id: workout_id.clone(),
+                    exercise: Exercise::Squat as i32,
+                    working_weight: 135.0,
+                    ..Default::default()
+                }),
+                1_050,
+            )],
+        );
+        let squat: Vec<&ProposedSet> = state
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == Exercise::Squat as i32)
+            .collect();
+        assert!(squat.iter().all(|s| !s.calibration), "no ramp left");
+        assert!(squat.iter().any(|s| s.warmup), "a ladder up to it");
+        let working: Vec<_> = squat.iter().filter(|s| !s.warmup).collect();
+        assert_eq!(working.len(), 5);
+        assert!(working
+            .iter()
+            .all(|s| s.target_weight == 135.0 && s.target_reps == 5));
+    }
+
     #[test]
     fn bodyweight_never_calibrates() {
         let mut app = App::new();
