@@ -1,10 +1,11 @@
 /// One person's status in the workout banner. A band across the top in the
 /// colour of the stage they're at — their emoji on their own colour, the
 /// stage, UP NEXT when the rack is theirs, the clock — readable from across
-/// the gym. Yours has the set in front of you under it: what it is, the
-/// plates, the weight, big, and its circle. A partner's is compact: the band
-/// alone, their set said small inside it. Tap a partner's to see their
-/// workout.
+/// the gym — and, small under the stage, the set: "Squat · Set 2 of 5". The
+/// band is the same for everyone, so the emoji line up. Yours adds a row
+/// under it: the plates, the weight, big, and the set's circle. A
+/// partner's (compact) is the band alone, their weight × reps on its small
+/// line. Tap a partner's to see their workout.
 library;
 
 import 'package:flutter/material.dart';
@@ -36,7 +37,7 @@ class StatusBox extends StatelessWidget {
   /// Their turn on the rack: UP NEXT! in the band.
   final bool upNext;
 
-  /// A partner's: one band, their set in it, no body.
+  /// A partner's: the band alone, the weight × reps on its small line.
   final bool compact;
 
   /// Yours: the set's circle, the same one as in the exercise list, to
@@ -86,29 +87,34 @@ class StatusBox extends StatelessWidget {
     // from the left edge; the stage (and, compact, their set under it);
     // UP NEXT when the rack is theirs; the clock hard right. The stage and
     // the clock shrink to fit a narrow screen; nothing wraps.
-    final bandHeight = compact ? 56.0 : 68.0;
+    const bandHeight = 64.0;
     final stage = FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Text(
         stateLabel.toUpperCase(),
         maxLines: 1,
-        style: bandMono(
-          compact ? t.size.title : t.size.headline,
-        ).copyWith(letterSpacing: 0.5),
+        style: bandMono(t.size.titleLg).copyWith(letterSpacing: 0.5),
       ),
     );
-    final partnerSet = compact && set != null
-        ? Text(
-            '${exerciseNames[set.exercise] ?? '?'}  '
-            '${setTextFor(set, unit)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: t.size.body,
-              fontWeight: t.weight.medium,
-              color: onBand,
-              height: 1.2,
+    // Shrinks rather than cuts off.
+    final setLine = set != null
+        ? FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              [
+                exerciseNames[set.exercise] ?? '?',
+                setLineFor(set, plan),
+                if (compact) setTextFor(set, unit),
+              ].join(' · '),
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: t.size.body,
+                fontWeight: t.weight.medium,
+                color: onBand,
+                height: 1.2,
+              ),
             ),
           )
         : null;
@@ -126,10 +132,7 @@ class StatusBox extends StatelessWidget {
                 color: profileColor,
                 child: Text(
                   emoji,
-                  style: TextStyle(
-                    fontSize: compact ? t.size.headlineLg : t.size.displayLg,
-                    height: 1,
-                  ),
+                  style: TextStyle(fontSize: t.size.headlineLg, height: 1),
                 ),
               ),
               const SizedBox(width: 12),
@@ -137,14 +140,22 @@ class StatusBox extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [stage, ?partnerSet],
+                  children: [
+                    // The stage, and UP NEXT straight after it, so the
+                    // set's line below runs the width to the clock.
+                    Row(
+                      children: [
+                        Flexible(child: stage),
+                        if (upNext) ...[
+                          const SizedBox(width: 8),
+                          const _UpNext(),
+                        ],
+                      ],
+                    ),
+                    ?setLine,
+                  ],
                 ),
               ),
-              if (upNext)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Center(child: _UpNext(compact: compact)),
-                ),
               if (timerText != null)
                 // The clock is read from across the gym: the biggest thing
                 // in the band, but never more than a third of it.
@@ -158,7 +169,7 @@ class StatusBox extends StatelessWidget {
                       child: Text(
                         timerText!,
                         style: bandMono(
-                          compact ? t.size.headline : t.size.displayLg,
+                          t.size.headlineLg,
                         ).copyWith(letterSpacing: 0),
                       ),
                     ),
@@ -178,16 +189,6 @@ class StatusBox extends StatelessWidget {
     if (set == null || compact) {
       body = null;
     } else {
-      final what = Text(
-        '${exerciseNames[set.exercise] ?? '?'} · ${setLineFor(set, plan)}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: t.size.subtitle,
-          fontWeight: t.weight.medium,
-          color: t.muted,
-        ),
-      );
       // The weight alone, as big as it goes: the reps are in the circle
       // (a partner's box, with no circle, says them after it).
       final weightSize = t.size.giant;
@@ -213,8 +214,6 @@ class StatusBox extends StatelessWidget {
           ),
         ),
       );
-      // What it is across the top; under it the circle, the weight and the
-      // plates on one line.
       // The plates to load, the weight, then × the reps: in the circle
       // (yours), or said after the weight (a partner's).
       final line = Row(
@@ -268,7 +267,7 @@ class StatusBox extends StatelessWidget {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
-        children: [what, const SizedBox(height: 8), line],
+        children: [line],
       );
     }
 
@@ -331,9 +330,7 @@ class _Plates extends StatelessWidget {
 /// UP NEXT! on two lines, on a light block in the band, its letters
 /// cycling through the theme's palette: the rack is theirs.
 class _UpNext extends StatefulWidget {
-  final bool compact;
-
-  const _UpNext({required this.compact});
+  const _UpNext();
 
   @override
   State<_UpNext> createState() => _UpNextState();
@@ -371,7 +368,7 @@ class _UpNextState extends State<_UpNext> with SingleTickerProviderStateMixin {
             textAlign: TextAlign.center,
             style: t.mono(
               TextStyle(
-                fontSize: widget.compact ? t.size.caption : t.size.small,
+                fontSize: t.size.small,
                 fontWeight: t.weight.bold,
                 letterSpacing: 0.5,
                 color: color,
