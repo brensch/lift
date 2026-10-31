@@ -112,7 +112,11 @@ void main() {
           TextSelection(baseOffset: 0, extentOffset: text.length),
         );
         final rows = lines.map((b) => b.top).toSet();
-        expect(rows.length, 1, reason: '"$text" wraps onto ${rows.length} lines');
+        expect(
+          rows.length,
+          1,
+          reason: '"$text" wraps onto ${rows.length} lines',
+        );
         expect(
           paragraph.size.width + 0.5 >= paragraph.getMaxIntrinsicWidth(0),
           isTrue,
@@ -138,7 +142,6 @@ void main() {
           );
         }
       }
-
     });
   }
 }
