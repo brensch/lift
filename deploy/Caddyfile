@@ -125,3 +125,8 @@ dev.schlift.com {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 }
+
+# The other sites on this box (brensch.com, snek, ppp) install their own
+# files here; the deploy replaces this Caddyfile, so it must import them or
+# they go dark (it did, once).
+import Caddyfile.d/*.caddyfile
