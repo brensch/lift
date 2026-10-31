@@ -6,7 +6,10 @@ import 'package:flutter/services.dart';
 import '../gen/copy.dart';
 import 'lost_passkey_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+
 import '../providers/auth_provider.dart';
+import '../services/account_sync.dart';
 import '../widgets/wordmark.dart';
 import '../widgets/common/primary_button.dart';
 import '../theme/theme_spec.dart';
@@ -354,7 +357,42 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: auth.isLoading ? null : _openFile,
+            style: TextButton.styleFrom(
+              foregroundColor: colorScheme.onSurface.withValues(alpha: 0.6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              copy.login.openFile,
+              style: TextStyle(
+                fontSize: context.tokens.size.small,
+                fontWeight: context.tokens.weight.bold,
+              ),
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  /// An exported account file, opened on this phone with no server: the
+  /// account works at once, and syncs again after a sign-in.
+  Future<void> _openFile() async {
+    final auth = context.read<AuthProvider>();
+    final sync = context.read<AccountSync>();
+    final picked = await FilePicker.platform.pickFiles();
+    final path = picked?.files.single.path;
+    if (path == null) return;
+    try {
+      final (userId, name) = await sync.importFile(path);
+      await auth.openLocalAccount(userId, name);
+    } catch (e) {
+      auth.setError('${copy.login.openFileFailed}: $e');
+    }
   }
 }

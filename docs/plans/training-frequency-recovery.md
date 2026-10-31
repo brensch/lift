@@ -159,7 +159,7 @@ A mockup of these states ships alongside this doc.
   `exercises.dart`, pinned by a parity test.
 - Compute per-muscle `last_trained_at` / `recovered_at` and inter-workout cadence
   from history — a new field on `SchplannerInsights` or a sibling `RecoveryState`.
-- Files: new `src/recovery.rs` (or extend `src/schplanner.rs`); `summarize_recent_insights`
+- Files: new `core/src/recovery.rs` (or extend `src/schplanner.rs`); `summarize_recent_insights`
   (`src/schplanner.rs:437`); `load_recent_schplanner_history` (mind the 24-workout cap
   — cadence needs a few weeks, so widen for timestamps or add a light "recent session
   times" query).

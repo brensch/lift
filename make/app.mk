@@ -1,7 +1,7 @@
 # Flutter app: phone targets, linux desktop, icons, deps.
 # Split from the top-level Makefile; variables live there.
 
-.PHONY: dev run-web-dev run-frontend run-app run-android run-android-prod run-android-clean \
+.PHONY: dev test-app run-web-dev run-frontend run-app run-android run-android-prod run-android-clean \
 	hot-reload hot-reload-on-save hot-restart run-linux stop-app setup-flutter install-deps check-android-java \
 	icons copy sounds brand deploy-android deploy-android-dev
 
@@ -38,6 +38,11 @@ dev:
 STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS)
 
 # Backend + web dashboard dev server. `run-frontend` is the web half.
+# The Dart tests, against the real core: the host build of app/native first.
+test-app:
+	cargo build -p schlift_native
+	cd app && $(FLUTTER) test
+
 run-web-dev:
 	@echo "Starting backend and frontend... Press Ctrl+C to stop."
 	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; $(MAKE) run-backend & $(MAKE) run-frontend & wait'

@@ -5,31 +5,34 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import '../gen/workout/v1/group.pb.dart';
 import '../logic/utils.dart';
+import '../services/account_sync.dart';
 import '../services/app_logger.dart';
 import '../services/error_modal_service.dart';
 import '../services/multiplayer_service.dart';
 import '../theme/schlift_spec.dart';
 
-/// Tracks the caller's current multiplayer session.
+/// The caller's multiplayer session and the requests to join them.
 ///
-/// Membership invariant lives on the server in `user_current_session`. This provider
-/// simply reflects what `GetCurrentSession` returns — there's no client-side pending
-/// state because the server knows the caller is in a group the moment they join.
+/// Membership lives on the server (`user_current_session`); the Sync stream
+/// ([AccountSync]) pushes the session, whole, whenever anyone in it does
+/// anything, and the requests whenever they change. This provider only
+/// reflects them, and makes the online-only calls (join, leave, ask).
 class MultiplayerProvider extends ChangeNotifier {
   final MultiplayerServiceWrapper _service;
-
-  static const Duration _pollInterval = Duration(seconds: 1);
+  final AccountSync? _feed;
 
   String? _sessionId;
   SessionStatus? _sessionStatus;
   String? _myInviteToken;
   bool _isLoading = false;
-  Timer? _pollTimer;
   bool _disposed = false;
-  bool _pollInFlight = false;
   bool _syncEnabled = false;
 
-  MultiplayerProvider(this._service);
+  /// [feed] is the signed-in account's Sync stream; null for the tutorial,
+  /// which trains alone.
+  MultiplayerProvider(this._service, {AccountSync? feed}) : _feed = feed {
+    _feed?.addListener(_heard);
+  }
 
   String? get sessionId => _sessionId;
   SessionStatus? get sessionStatus => _sessionStatus;
@@ -40,6 +43,33 @@ class MultiplayerProvider extends ChangeNotifier {
 
   List<TrainingPartner> _trainingPartners = [];
   List<TrainingPartner> get trainingPartners => _trainingPartners;
+
+  List<JoinRequest> _incomingRequests = [];
+  List<JoinRequest> get incomingRequests => _incomingRequests;
+
+  /// The stream brought something down.
+  void _heard() {
+    final feed = _feed;
+    if (feed == null || !_syncEnabled) return;
+    _apply(feed.session);
+    final requests = feed.joinRequests.requests;
+    final changed =
+        requests.map((r) => r.requestId).join(',') !=
+        _incomingRequests.map((r) => r.requestId).join(',');
+    _incomingRequests = requests;
+    if (changed && !_disposed) notifyListeners();
+  }
+
+  void _apply(GetCurrentSessionResponse response) {
+    final id = response.sessionId.isEmpty || !response.hasSessionStatus()
+        ? null
+        : response.sessionId;
+    final status = id == null ? null : response.sessionStatus;
+    if (id == _sessionId && status == _sessionStatus) return;
+    _sessionId = id;
+    _sessionStatus = status;
+    if (!_disposed) notifyListeners();
+  }
 
   /// Load the caller's training-partner history (people they've trained with),
   /// so the pairing UI can offer familiar faces for a one-tap re-pair.
@@ -68,26 +98,8 @@ class MultiplayerProvider extends ChangeNotifier {
     }
   }
 
-  // ── Incoming "train together" requests ──
-
-  List<JoinRequest> _incomingRequests = [];
-  List<JoinRequest> get incomingRequests => _incomingRequests;
-
-  Future<void> _pollJoinRequests() async {
-    if (_disposed) return;
-    try {
-      final requests = await _service.getJoinRequests();
-      final newIds = requests.map((r) => r.requestId).join(',');
-      final oldIds = _incomingRequests.map((r) => r.requestId).join(',');
-      _incomingRequests = requests;
-      if (newIds != oldIds && !_disposed) notifyListeners();
-    } catch (_) {
-      // Transient; next tick retries.
-    }
-  }
-
-  /// Approve or decline an incoming request. On approve the session poll picks up
-  /// the new shared session on the next tick.
+  /// Approve or decline an incoming request. On approve the stream brings
+  /// the shared session down as soon as it exists.
   Future<void> respondToJoinRequest(String requestId, bool accept) async {
     try {
       await _service.respondJoinRequest(requestId, accept);
@@ -108,38 +120,24 @@ class MultiplayerProvider extends ChangeNotifier {
     AppLogger.instance.info('Multiplayer', 'startSync');
     _syncEnabled = true;
     unawaited(_ensureInviteToken());
-    _ensurePolling();
+    _heard();
   }
 
   void stopSync({bool clearSession = true, bool clearInviteToken = false}) {
-    AppLogger.instance.info('Multiplayer', 'stopSync', {
-      'clearSession': clearSession,
-    });
     _syncEnabled = false;
-    _cancelPolling();
-    if (clearSession) {
-      _clearSession(notify: true);
-    }
-    if (clearInviteToken) {
-      _myInviteToken = null;
-    }
+    if (clearSession) _apply(GetCurrentSessionResponse());
+    if (clearInviteToken) _myInviteToken = null;
   }
 
+  /// Ask for the session now, rather than waiting for the stream (straight
+  /// after joining).
   Future<void> checkForSession() async {
     if (_disposed) return;
     try {
-      final response = await _service.getCurrentSession();
-      if (response.sessionId.isEmpty || !response.hasSessionStatus()) {
-        _clearSession(notify: true);
-        return;
-      }
-      _applySnapshot(
-        sessionId: response.sessionId,
-        status: response.sessionStatus,
-        notify: true,
-      );
-      _ensurePolling();
-    } catch (_) {}
+      _apply(await _service.getCurrentSession());
+    } catch (_) {
+      // The stream brings it anyway.
+    }
   }
 
   bool _inviteTokenRetryScheduled = false;
@@ -220,7 +218,7 @@ class MultiplayerProvider extends ChangeNotifier {
         'error': e.toString(),
       });
     }
-    _clearSession(notify: true);
+    _apply(GetCurrentSessionResponse());
   }
 
   String _extractToken(String input) {
@@ -233,92 +231,14 @@ class MultiplayerProvider extends ChangeNotifier {
     return trimmed;
   }
 
-  void markLocalWorkoutFinished() {
-    // The server clears user_current_session on EndWorkout, so our next poll
-    // will come back empty and _clearSession is called. Nothing to do here
-    // beyond ensuring a poll happens soon.
-    if (_syncEnabled) {
-      _ensurePolling();
-    }
-  }
-
-  Future<void> updateActiveWorkout(String workoutId) async {
-    try {
-      await _service.updateActiveWorkout(workoutId);
-    } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'updateActiveWorkout failed', {
-        'error': e.toString(),
-      });
-    }
-  }
-
   void clear() {
     stopSync(clearSession: true, clearInviteToken: true);
-  }
-
-  void _applySnapshot({
-    required String sessionId,
-    required SessionStatus status,
-    required bool notify,
-  }) {
-    _sessionId = sessionId;
-    _sessionStatus = status;
-    if (notify && !_disposed) {
-      notifyListeners();
-    }
-  }
-
-  void _ensurePolling() {
-    if (_disposed || !_syncEnabled) return;
-    _pollTimer ??= Timer.periodic(_pollInterval, (_) {
-      unawaited(_pollSession());
-    });
-    unawaited(_pollSession());
-  }
-
-  Future<void> _pollSession() async {
-    if (_disposed || _pollInFlight) return;
-    _pollInFlight = true;
-    // Incoming "train together" requests can arrive any time, independent of
-    // whether we're in a session — poll them on the same tick.
-    unawaited(_pollJoinRequests());
-    try {
-      final response = await _service.getCurrentSession();
-      if (response.sessionId.isEmpty || !response.hasSessionStatus()) {
-        _clearSession(notify: true);
-        return;
-      }
-      _applySnapshot(
-        sessionId: response.sessionId,
-        status: response.sessionStatus,
-        notify: true,
-      );
-    } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'poll error', {
-        'error': e.toString(),
-      });
-    } finally {
-      _pollInFlight = false;
-    }
-  }
-
-  void _cancelPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = null;
-  }
-
-  void _clearSession({required bool notify}) {
-    _sessionId = null;
-    _sessionStatus = null;
-    if (notify && !_disposed) {
-      notifyListeners();
-    }
   }
 
   @override
   void dispose() {
     _disposed = true;
-    _cancelPolling();
+    _feed?.removeListener(_heard);
     super.dispose();
   }
 }

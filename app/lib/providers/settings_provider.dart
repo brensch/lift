@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../gen/workout/v1/settings.pb.dart';
-import '../gen/workout/v1/settings.pbgrpc.dart';
 import '../logic/weight_units.dart';
 import '../services/app_logger.dart';
-import '../services/grpc_client.dart';
+import '../services/workout_service.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  final GrpcClient _grpcClient;
+  /// Settings are part of the account, on this phone.
+  final WorkoutServiceWrapper _account;
 
   static Map<double, Color> defaultPlateColors([
     WeightUnit unit = WeightUnit.WEIGHT_UNIT_LB,
@@ -35,9 +35,7 @@ class SettingsProvider extends ChangeNotifier {
   WeightUnit _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
   bool _loaded = false;
 
-  bool _loadRetryScheduled = false;
-
-  SettingsProvider(this._grpcClient);
+  SettingsProvider(this._account);
 
   Map<double, Color> get plateColors => _plateColors;
   WeightUnit get weightUnit => _weightUnit;
@@ -53,13 +51,7 @@ class SettingsProvider extends ChangeNotifier {
     _loaded = false;
     notifyListeners();
     try {
-      final response = await retryReadAfterReconnect(
-        operation: 'GetSettings',
-        resetChannel: _grpcClient.resetChannel,
-        rpc: () =>
-            _grpcClient.settingsService.getSettings(GetSettingsRequest()),
-      );
-      for (final setting in response.settings) {
+      for (final setting in await _account.getSettings()) {
         if (setting.whichSetting() == UserSetting_Setting.plateColors) {
           _applyPlateColors(setting.plateColors);
         } else if (setting.whichSetting() == UserSetting_Setting.weightUnit) {
@@ -69,27 +61,13 @@ class SettingsProvider extends ChangeNotifier {
       if (_plateColors.isEmpty) {
         _plateColors = defaultPlateColors(_weightUnit);
       }
-
-      _loadRetryScheduled = false;
-      _loaded = true;
-      notifyListeners();
     } catch (e) {
-      AppLogger.instance.warn('Settings', 'load failed, will retry', {
+      AppLogger.instance.warn('Settings', 'load failed', {
         'error': e.toString(),
       });
-      _loaded = true;
-      notifyListeners();
-      _scheduleLoadRetry();
     }
-  }
-
-  void _scheduleLoadRetry() {
-    if (_loadRetryScheduled) return;
-    _loadRetryScheduled = true;
-    Timer(const Duration(seconds: 5), () {
-      _loadRetryScheduled = false;
-      load();
-    });
+    _loaded = true;
+    notifyListeners();
   }
 
   void clear() {
@@ -118,10 +96,8 @@ class SettingsProvider extends ChangeNotifier {
     applyWeightUnitLocally(unit);
 
     try {
-      await _grpcClient.settingsService.updateSetting(
-        UpdateSettingRequest(
-          setting: UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
-        ),
+      await _account.updateSetting(
+        UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
       );
     } catch (_) {
       // Optimistic update already applied.
@@ -141,9 +117,7 @@ class SettingsProvider extends ChangeNotifier {
     );
 
     try {
-      await _grpcClient.settingsService.updateSetting(
-        UpdateSettingRequest(setting: UserSetting(plateColors: config)),
-      );
+      await _account.updateSetting(UserSetting(plateColors: config));
     } catch (e) {
       // Optimistic update already applied
     }

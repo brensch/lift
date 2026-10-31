@@ -5,7 +5,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/workout_provider.dart';
-import '../../providers/multiplayer_provider.dart';
 import '../../screens/completed_workout_screen.dart';
 import '../../theme/theme_spec.dart';
 
@@ -13,7 +12,6 @@ Future<void> endWorkout(BuildContext context) async {
   final confirmed = await showEndWorkoutConfirmDialog(context);
   if (confirmed && context.mounted) {
     final wp = context.read<WorkoutProvider>();
-    final mp = context.read<MultiplayerProvider>();
     final navigator = Navigator.of(context, rootNavigator: true);
 
     final workoutId = wp.workout?.id;
@@ -32,12 +30,7 @@ Future<void> endWorkout(BuildContext context) async {
         endedWorkout != null &&
         endedWorkout.id == workoutId &&
         wp.isWorkoutEnded;
-    if (!endSucceeded) {
-      if (navigator.canPop()) navigator.pop();
-      return;
-    }
-
-    mp.markLocalWorkoutFinished();
+    if (!endSucceeded && navigator.canPop()) navigator.pop();
   }
 }
 

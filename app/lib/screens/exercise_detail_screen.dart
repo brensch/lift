@@ -6,7 +6,6 @@ import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
 import '../widgets/top_level_back_scope.dart';
@@ -38,8 +37,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   }
 
   Future<void> _load() async {
-    final grpc = context.read<GrpcClient>();
-    final service = WorkoutServiceWrapper(grpc);
+    final service = context.read<WorkoutServiceWrapper>();
     try {
       // One call: the server returns the per-exercise session series (oldest
       // first) with top weight/reps, est-1RM, volume and set count precomputed.

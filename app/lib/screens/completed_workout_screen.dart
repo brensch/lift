@@ -58,7 +58,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final grpc = context.read<GrpcClient>();
     final auth = context.read<AuthProvider>();
     final workoutProvider = context.read<WorkoutProvider>();
-    final service = WorkoutServiceWrapper(grpc);
+    final service = context.read<WorkoutServiceWrapper>();
     final multiplayer = MultiplayerServiceWrapper(grpc);
     final sessionSelfId = auth.userId ?? '';
     try {

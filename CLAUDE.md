@@ -38,8 +38,19 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   keystore — gitignored). Copy them from the main checkout for a release build
   and remove them afterwards.
 - **Every gRPC handler calls `authed_user_id` (or `authed_admin_id`) itself**;
-  there is no middleware. The deliberate exceptions are `list_template_library`
-  and `report_auth_failure` — do not copy them.
+  there is no middleware. The deliberate exception is `report_auth_failure`
+  (besides the passkey handshake) — do not copy it.
+- **Account state lives in the core, not the server or Dart.** A new write
+  is a new `Event` kind in `proto/workout/v1/account.proto`, a branch in
+  `Account::apply` (`core/src/account.rs`) and a method in `core/src/api.rs`;
+  never a new server RPC or a rule in a provider. An event must fold
+  deterministically: no clock, no randomness, ids from the event's id.
+  See [`docs/architecture/local-first.md`](docs/architecture/local-first.md).
+- **After changing `app/native/src/api/`, run `flutter_rust_bridge_codegen
+  generate` in `app/`** and commit the regenerated `app/lib/gen/native/` and
+  `app/native/src/frb_generated.rs`.
+- **Dart tests load the host build of the core**: run them with
+  `make test-app` (or `cargo build -p schlift_native` first).
 - **A new table with a `user_id` column** must be added to
   `delete_user_account_and_data` (`src/db/auth.rs`); a test fails if it is not.
 - **No hard-coded colours, fonts, text sizes, weights or radii in widgets.**

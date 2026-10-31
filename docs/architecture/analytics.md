@@ -86,8 +86,8 @@ device.** To learn why, the app wraps the on-device half of the ceremony
 into `AuthFailureReason`, and calls `ReportAuthFailure`.
 
 `ReportAuthFailure` is **unauthenticated on purpose** — its caller is someone
-who could not sign in. It is the second deliberate exception to "every handler
-calls `authed_user_id`" (the other is `list_template_library`); do not copy it.
+who could not sign in. It is the one deliberate exception to "every handler
+calls `authed_user_id`" outside the passkey handshake itself; do not copy it.
 What keeps it safe:
 
 - It cannot create a row. It is a single `UPDATE … WHERE attempt_id = ? AND

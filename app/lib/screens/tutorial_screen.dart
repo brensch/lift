@@ -19,7 +19,9 @@ import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/page_tracker.dart';
 import '../theme/theme_spec.dart';
-import '../tutorial/tutorial_service.dart';
+import '../services/local_core.dart';
+import '../services/workout_service.dart';
+import '../tutorial/tutorial_account.dart';
 import '../tutorial/tutorial_target.dart';
 import '../widgets/main_layout.dart';
 import 'science_screen.dart';
@@ -35,7 +37,9 @@ class TutorialScreen extends StatefulWidget {
 class _TutorialScreenState extends State<TutorialScreen>
     with SingleTickerProviderStateMixin {
   final TutorialRegistry _registry = TutorialRegistry();
-  late final TutorialWorkoutService _service = TutorialWorkoutService();
+
+  /// The sample account, in memory; ready once it's been built.
+  final _account = Completer<TutorialAccount>();
   late final WorkoutProvider _workouts;
   late final MultiplayerProvider _multiplayer = MultiplayerProvider(
     MultiplayerServiceWrapper(GrpcClient(host: '127.0.0.1', port: 1)),
@@ -48,21 +52,34 @@ class _TutorialScreenState extends State<TutorialScreen>
   final GlobalKey _stageKey = GlobalKey();
   int _step = 0;
   Rect? _target;
-  bool _busy = false;
+
+  /// Moving between steps, or (at first) the sample account still being
+  /// built: taps wait.
+  bool _busy = true;
+
+  /// The first step has been shown; until then there is nothing to point at.
+  bool _started = false;
 
   List<CopyTutorialStepsItem> get _steps => copy.tutorial.steps;
 
   @override
   void initState() {
     super.initState();
+    unawaited(TutorialAccount.create().then(_account.complete));
     _workouts = WorkoutProvider(
-      _service,
+      WorkoutServiceWrapper(_SandboxCore(_account.future)),
       context.read<SettingsProvider>(),
       sandbox: true,
     );
     _registry.addListener(_measure);
     // The sandbox account, then the first step once home has laid out.
-    unawaited(_workouts.refreshHome().then((_) => _enter(0, forward: true)));
+    unawaited(
+      _workouts.refreshHome().then((_) async {
+        _busy = false;
+        await _enter(0, forward: true);
+        if (mounted) setState(() => _started = true);
+      }),
+    );
   }
 
   @override
@@ -71,6 +88,7 @@ class _TutorialScreenState extends State<TutorialScreen>
     _registry.dispose();
     _throb.dispose();
     _workouts.dispose();
+    unawaited(_account.future.then((account) => account.core.close()));
     _multiplayer.dispose();
     super.dispose();
   }
@@ -91,13 +109,12 @@ class _TutorialScreenState extends State<TutorialScreen>
     );
     try {
       if (step.screen == 'workout' && !_workouts.hasActiveWorkout) {
-        await _workouts.startWorkout(
-          '',
-          templateId: TutorialWorkoutService.suggestedTemplateId,
-        );
+        // The session two exercises in, resting.
+        await (await _account.future).startSession();
+        await _workouts.loadActiveWorkout('tutorial');
         // A watch on the wrist, as far as the bar is concerned.
         _workouts.ingestWearHeartRateBatch(
-          TutorialWorkoutService.heartRateBatch(_workouts.activeWorkout!.id),
+          TutorialAccount.heartRateBatch(_workouts.activeWorkout!.id),
         );
       } else if (step.screen == 'home' && _workouts.hasActiveWorkout) {
         await _workouts.endWorkout(fireEndedCallback: false);
@@ -199,29 +216,31 @@ class _TutorialScreenState extends State<TutorialScreen>
                     child: MainLayout(currentPath: '/', child: WorkoutTab()),
                   ),
                   // Everything else dims; the target shows through.
-                  IgnorePointer(
-                    child: AnimatedBuilder(
-                      animation: _throb,
-                      builder: (context, _) => CustomPaint(
-                        painter: _SpotlightPainter(
-                          outline: context.tokens.primary,
-                          radius: context.tokens.radius(18),
-                          target: _target,
-                          throb: Curves.easeInOut.transform(_throb.value),
+                  if (_started) ...[
+                    IgnorePointer(
+                      child: AnimatedBuilder(
+                        animation: _throb,
+                        builder: (context, _) => CustomPaint(
+                          painter: _SpotlightPainter(
+                            outline: context.tokens.primary,
+                            radius: context.tokens.radius(18),
+                            target: _target,
+                            throb: Curves.easeInOut.transform(_throb.value),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  _Popover(
-                    step: step,
-                    index: _step,
-                    count: _steps.length,
-                    target: _target,
-                    bounds: Offset.zero & constraints.biggest,
-                    onPrevious: _step > 0 ? _previous : null,
-                    onNext: _next,
-                    onSkip: () => Navigator.pop(context),
-                  ),
+                    _Popover(
+                      step: step,
+                      index: _step,
+                      count: _steps.length,
+                      target: _target,
+                      bounds: Offset.zero & constraints.biggest,
+                      onPrevious: _step > 0 ? _previous : null,
+                      onNext: _next,
+                      onSkip: () => Navigator.pop(context),
+                    ),
+                  ],
                 ],
               );
             },
@@ -537,4 +556,14 @@ class _ArrowPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ArrowPainter old) =>
       old.fill != fill || old.edge != edge || old.up != up;
+}
+
+/// The sample account as a [CoreSource], open once built.
+class _SandboxCore implements CoreSource {
+  final Future<TutorialAccount> _account;
+
+  const _SandboxCore(this._account);
+
+  @override
+  Future<LocalCore> get ready => _account.then((account) => account.core);
 }

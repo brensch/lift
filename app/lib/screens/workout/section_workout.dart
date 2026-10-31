@@ -25,6 +25,9 @@ class SectionWorkout {
   /// The open "how many were left" on a finding-weight rung, if any.
   final EffortPrompt? effortPrompt;
 
+  /// Undone warmups that are behind you, as the core worked out.
+  final Set<String> passedWarmupIds;
+
   /// Your own live workout, which taps act on; null for someone else's.
   final WorkoutProvider? actions;
 
@@ -35,6 +38,7 @@ class SectionWorkout {
     required this.nextSetId,
     required this.stateValue,
     required this.effortPrompt,
+    required this.passedWarmupIds,
     required this.actions,
   });
 
@@ -48,6 +52,10 @@ class SectionWorkout {
         wp.stateSnapshot?.state.value ??
         WorkoutState.WORKOUT_STATE_UNSPECIFIED.value,
     effortPrompt: wp.effortPrompt,
+    passedWarmupIds: {
+      for (final s in wp.activeProposedSets)
+        if (wp.isPassedWarmup(s)) s.id,
+    },
     actions: wp.isWorkoutEnded ? null : wp,
   );
 
@@ -72,6 +80,7 @@ class SectionWorkout {
           : (p.hasNextUpSet() ? p.nextUpSet.id : null),
       stateValue: state,
       effortPrompt: null,
+      passedWarmupIds: p.passedWarmupIds.toSet(),
       actions: null,
     );
   }
@@ -90,16 +99,6 @@ class SectionWorkout {
   bool isDone(String proposedSetId) => doneFor(proposedSetId) != null;
 
   /// An undone warmup that's behind you: skipped, or one of its exercise's
-  /// working sets is done. Mirrors `is_passed_warmup`.
-  bool isPassedWarmup(ProposedSet set) =>
-      set.warmup &&
-      !isDone(set.id) &&
-      (set.skipped ||
-          proposedSets.any(
-            (p) =>
-                p.exercise == set.exercise &&
-                !p.cancelled &&
-                !p.warmup &&
-                isDone(p.id),
-          ));
+  /// working sets is done.
+  bool isPassedWarmup(ProposedSet set) => passedWarmupIds.contains(set.id);
 }

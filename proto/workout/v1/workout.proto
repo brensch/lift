@@ -356,6 +356,9 @@ message GetWorkoutResponse {
   WorkoutStateSnapshot state_snapshot = 7;
   repeated UserMessage user_messages = 8;
   WorkoutSummary summary = 9;
+  // Undone warmups that are behind you (skipped, or a working set of their
+  // exercise is done): shown out of the way, nothing waits on them.
+  repeated string passed_warmup_ids = 10;
 }
 
 message WorkoutPlanChangeStats {
@@ -474,12 +477,10 @@ message WorkoutPlanResponse {
 message AddExercisesRequest {
   string workout_id = 1;
   repeated Exercise exercises = 2;
-  // Client-chosen ids for the WORKING sets, consumed in block order. Lets
-  // an offline add's optimistic sets keep their ids when the queued
-  // mutation lands, so completions recorded against them reconcile.
-  // Extras are ignored; missing ids are server-generated. Warmups are
-  // always server-generated (the client never shows them optimistically).
-  repeated string client_working_set_ids = 3;
+  // 3 was client_working_set_ids: there are no optimistic copies to
+  // reconcile now that the plan is made on the phone.
+  reserved 3;
+  reserved "client_working_set_ids";
 }
 
 // Move an exercise's remaining working sets to a new weight, in place,
@@ -740,6 +741,24 @@ message CompleteOnboardingRequest {
   // 1); experience, gender and bodyweight are then ignored for seeding.
   optional float strength = 6;
 }
+
+// The first working weights the setup slider shows: one step per 1% of the
+// slider, chick (0) to gorilla (100), in the unit asked for. Onboarding
+// with `strength` = step / 100 seeds exactly these.
+message GetStartingWeightsRequest {
+  WeightUnit unit = 1;
+}
+message ExerciseWeight {
+  Exercise exercise = 1;
+  float weight_lb = 2;
+}
+message StartingWeightsStep {
+  repeated ExerciseWeight weights = 1;
+}
+message GetStartingWeightsResponse {
+  repeated StartingWeightsStep steps = 1;
+}
+
 message CompleteOnboardingResponse {
   GetHomeResponse home = 1;
 }
@@ -773,6 +792,14 @@ message GetWorkoutHeartRateResponse {
   repeated WorkoutHeartRatePoint samples = 1;
 }
 
+// The multiplayer session a workout is being trained in, as the server said
+// when the phone heard (joining mid-workout included): what "trained with"
+// on its summary reads.
+message SetWorkoutSessionRequest {
+  string workout_id = 1;
+  string session_id = 2;
+}
+
 message WorkoutMutation {
   string event_id = 1;
   int64 client_created_at = 2; // Unix seconds from client clock
@@ -788,6 +815,7 @@ message WorkoutMutation {
     EditCompletedSetRequest edit_completed_set = 23;
     StartSetRequest start_set = 24;
     SkipWarmupsRequest skip_warmups = 25;
+    SetWorkoutSessionRequest set_session = 26;
   }
   // 12 was cancel_proposed_set (skipping a warmup): warmups are never
   // removed now, doing a working set just moves past them.
@@ -814,44 +842,16 @@ message DismissUserMessagesResponse {
 
 // --- Service Definition ---
 
+// What the server still answers about workouts: reads for the web, from the
+// account the phone syncs. Every write is an Event (account.proto), made on
+// the phone by the core and synced.
 service WorkoutService {
-  rpc StartWorkout(StartWorkoutRequest) returns (StartWorkoutResponse);
-  rpc EndWorkout(EndWorkoutRequest) returns (EndWorkoutResponse);
-  rpc GetWorkout(GetWorkoutRequest) returns (GetWorkoutResponse);
-  rpc GetActiveWorkout(GetActiveWorkoutRequest) returns (GetActiveWorkoutResponse);
-
-  // List all workouts for the user (user from auth context)
-  rpc ListWorkouts(ListWorkoutsRequest) returns (ListWorkoutsResponse);
-
-  // Finished workouts with their server-computed summaries (history screen).
+  // Finished workouts with their summaries (history).
   rpc ListWorkoutSummaries(ListWorkoutSummariesRequest) returns (ListWorkoutSummariesResponse);
-  // Per-exercise progress series, everything precomputed (progress + detail).
+  // Per-exercise progress series, everything precomputed.
   rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
-
-  rpc AddExercises(AddExercisesRequest) returns (WorkoutPlanResponse);
-  rpc AdjustExerciseWeight(AdjustExerciseWeightRequest) returns (WorkoutPlanResponse);
-  rpc RemoveExercise(RemoveExerciseRequest) returns (WorkoutPlanResponse);
-  rpc ReorderExercises(ReorderExercisesRequest) returns (WorkoutPlanResponse);
-
-  rpc CompleteSet(CompleteSetRequest) returns (CompleteSetResponse);
-  rpc DeleteCompletedSet(DeleteCompletedSetRequest) returns (DeleteCompletedSetResponse);
-  rpc AppendWorkoutMutations(AppendWorkoutMutationsRequest) returns (AppendWorkoutMutationsResponse);
-  rpc AppendWorkoutHeartRate(AppendWorkoutHeartRateRequest) returns (AppendWorkoutHeartRateResponse);
+  rpc GetWorkout(GetWorkoutRequest) returns (GetWorkoutResponse);
   rpc GetWorkoutHeartRate(GetWorkoutHeartRateRequest) returns (GetWorkoutHeartRateResponse);
-
-  // Everything the home screen needs in one round trip: templates,
-  // trackers, volume, recovery, the suggestion, and pending messages.
-  rpc GetHome(GetHomeRequest) returns (GetHomeResponse);
-  rpc SaveTemplate(SaveTemplateRequest) returns (SaveTemplateResponse);
-  rpc DeleteTemplate(DeleteTemplateRequest) returns (DeleteTemplateResponse);
-  rpc ReorderTemplates(ReorderTemplatesRequest) returns (ReorderTemplatesResponse);
-  rpc SetExerciseTracker(SetExerciseTrackerRequest) returns (SetExerciseTrackerResponse);
-  rpc CompleteOnboarding(CompleteOnboardingRequest) returns (CompleteOnboardingResponse);
-  // The template library everyone picks from. Public, no auth.
-  rpc ListTemplateLibrary(ListTemplateLibraryRequest) returns (ListTemplateLibraryResponse);
-  rpc AddLibraryTemplates(AddLibraryTemplatesRequest) returns (AddLibraryTemplatesResponse);
-
-  rpc DismissUserMessages(DismissUserMessagesRequest) returns (DismissUserMessagesResponse);
 }
 
 message CreateUserRequest {

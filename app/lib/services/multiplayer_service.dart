@@ -7,9 +7,6 @@ import 'grpc_client.dart';
 class MultiplayerServiceWrapper {
   final GrpcClient _client;
 
-  /// Poll calls use a shorter deadline so a stale connection fails fast
-  /// and the next poll can try on a fresh connection.
-  static final _pollCallOptions = CallOptions(timeout: Duration(seconds: 5));
   static final _defaultCallOptions = CallOptions(
     timeout: Duration(seconds: 10),
   );
@@ -63,7 +60,7 @@ class MultiplayerServiceWrapper {
   Future<List<JoinRequest>> getJoinRequests() async {
     final response = await _client.multiplayerService.getJoinRequests(
       GetJoinRequestsRequest(),
-      options: _pollCallOptions,
+      options: _defaultCallOptions,
     );
     return response.requests;
   }
@@ -85,7 +82,7 @@ class MultiplayerServiceWrapper {
       resetChannel: _client.resetChannel,
       rpc: () => _client.multiplayerService.getCurrentSession(
         GetCurrentSessionRequest(),
-        options: _pollCallOptions,
+        options: _defaultCallOptions,
       ),
     );
   }
@@ -107,12 +104,6 @@ class MultiplayerServiceWrapper {
     await _client.multiplayerService.leaveCurrentSession(
       LeaveCurrentSessionRequest(),
       options: _defaultCallOptions,
-    );
-  }
-
-  Future<void> updateActiveWorkout(String workoutId) async {
-    await _client.multiplayerService.updateActiveWorkout(
-      UpdateActiveWorkoutRequest()..workoutId = workoutId,
     );
   }
 

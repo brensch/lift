@@ -20,7 +20,7 @@ Under the hood that is `scripts/lint.sh <fmt|fmt-check|lint|check> [lang...]`.
 | Language | Files | Format | Lint | Config |
 |---|---|---|---|---|
 | `dart` | `app/**/*.dart` | `dart format` | `flutter analyze --fatal-infos` | `app/analysis_options.yaml` |
-| `rust` | the crate, `examples/` | `cargo fmt` | `cargo clippy --all-targets -- -D warnings` | — |
+| `rust` | the workspace: the server, `core/`, `app/native` | `cargo fmt --all` | `cargo clippy --workspace --all-targets -- -D warnings` | — |
 | `web` | `web/` (TS, TSX, CSS, JSON, MD) | `prettier` | `eslint --max-warnings=0`, `tsc -b` | `web/.prettierrc.json`, `web/eslint.config.js` |
 | `python` | `scripts/*.py` | `ruff format` | `ruff check` | `ruff.toml` |
 | `shell` | `*.sh` | `shfmt` | `shellcheck` | — |
@@ -28,9 +28,17 @@ Under the hood that is `scripts/lint.sh <fmt|fmt-check|lint|check> [lang...]`.
 | `swift` | `app/ios`, `app/macos` | `swiftformat` | `swiftlint --strict` | `.swiftformat`, `.swiftlint.yml` |
 | `proto` | `proto/` | `buf format` | `buf lint` | `proto/buf.yaml` |
 
-Generated code is excluded, and only generated code: `app/lib/gen`,
-`web/src/gen`, `web/src/generated`, `app/android/shared-proto`,
-`app/ios/SchliftWatch/Generated` and Flutter's `GeneratedPluginRegistrant`.
+Generated code is excluded, and only generated code: `app/lib/gen`
+(protobuf, `copy.dart`, and the flutter_rust_bridge bindings in
+`app/lib/gen/native`), `web/src/gen`, `web/src/generated`,
+`app/android/shared-proto`, `app/ios/SchliftWatch/Generated` and Flutter's
+`GeneratedPluginRegistrant`. (`flutter analyze` also skips
+`app/rust_builder/cargokit`, the build glue flutter_rust_bridge vendors in;
+the formatters and shellcheck still see it.)
+`app/native/src/frb_generated.rs` is also generated (by
+`flutter_rust_bridge_codegen generate`) but sits in the Cargo workspace, so
+`cargo fmt` and clippy see it; the `allow` list at its top is the
+generator's, not ours. Regenerate it rather than edit it.
 
 ## The rule: fix the code
 

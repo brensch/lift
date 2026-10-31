@@ -17,12 +17,6 @@ impl From<Status> for ServerError {
     }
 }
 
-impl From<crate::workout::WorkoutError> for ServerError {
-    fn from(error: crate::workout::WorkoutError) -> Self {
-        Status::from(error).into()
-    }
-}
-
 impl From<ServerError> for Status {
     fn from(error: ServerError) -> Self {
         *error.0
@@ -136,14 +130,6 @@ pub(super) fn client_labels<T>(request: &Request<T>) -> (String, String) {
     (platform, header("x-app-version"))
 }
 
-pub(super) fn setting_type_key(setting: &UserSetting) -> Option<&'static str> {
-    match &setting.setting {
-        Some(user_setting::Setting::PlateColors(_)) => Some("plate_colors"),
-        Some(user_setting::Setting::WeightUnit(_)) => Some("weight_unit"),
-        None => None,
-    }
-}
-
 pub(super) fn build_participant_status(
     user: User,
     workout_resp: Option<&GetWorkoutResponse>,
@@ -161,6 +147,7 @@ pub(super) fn build_participant_status(
             completed_sets: resp.completed_sets.clone(),
             next_up_set: resp.next_up_set.clone(),
             state_snapshot: resp.state_snapshot.clone(),
+            passed_warmup_ids: resp.passed_warmup_ids.clone(),
         }
     } else {
         ParticipantStatus {
@@ -171,40 +158,65 @@ pub(super) fn build_participant_status(
             completed_sets: Vec::new(),
             next_up_set: None,
             state_snapshot: None,
+            passed_warmup_ids: Vec::new(),
         }
     }
 }
 
+/// Answer a read from the user's account, through the core.
+pub(super) async fn read_api<R>(
+    db: &ServerDb,
+    user_id: &str,
+    read: impl FnOnce(View) -> R,
+) -> ServerResult<R> {
+    db.read_account(user_id, |account| read(View::new(account, now_unix())))
+        .await
+        .map_err(internal_error)
+}
+
+pub(super) fn core_status(error: CoreError) -> Status {
+    match error {
+        CoreError::InvalidArgument(m) => Status::invalid_argument(m),
+        CoreError::NotFound(m) => Status::not_found(m),
+        CoreError::FailedPrecondition(m) => Status::failed_precondition(m),
+    }
+}
+
+/// Where a user is up to, as their session partners see it: the workout under
+/// way (or, with `workout_id`, that one — a just-finished workout stays on
+/// show), from their synced account.
+pub(super) async fn participant_status(
+    db: &ServerDb,
+    user_id: &str,
+    workout_id: Option<&str>,
+) -> ServerResult<ParticipantStatus> {
+    let user = db
+        .get_user(user_id)
+        .await
+        .map_err(internal_error)?
+        .ok_or_else(|| Status::not_found("User not found"))?;
+    let now = now_unix();
+    let workout = db
+        .read_account(user_id, |account| {
+            let record = match workout_id {
+                Some(id) => account.workout(id),
+                None => account.active_workout(),
+            };
+            record.map(|r| get_workout_response_from_active(r, now))
+        })
+        .await
+        .map_err(internal_error)?;
+    Ok(build_participant_status(user, workout.as_ref()))
+}
+
 /// Write an updated participant snapshot for `user_id` into session `session_id`.
-/// If `workout_id` is provided, the snapshot reflects that specific workout (used after
-/// CompleteSet/EndWorkout where the caller already knows the workout). Otherwise
-/// the caller's active workout (if any) is used.
 pub(super) async fn refresh_participant_for_user(
     db: &ServerDb,
     user_id: &str,
     session_id: &str,
     workout_id: Option<&str>,
 ) -> ServerResult<()> {
-    let user = db
-        .get_user(user_id)
-        .await
-        .map_err(internal_error)?
-        .ok_or_else(|| Status::not_found("User not found"))?;
-    let resolved_workout_id = match workout_id {
-        Some(id) => Some(id.to_string()),
-        None => db
-            .get_active_workout_id(user_id)
-            .await
-            .map_err(internal_error)?,
-    };
-    let active = if let Some(id) = resolved_workout_id.as_deref() {
-        db.load_workout_full(user_id, id)
-            .await
-            .map_err(internal_error)?
-    } else {
-        None
-    };
-    let participant = build_participant_status(user, active.as_ref());
+    let participant = participant_status(db, user_id, workout_id).await?;
     db.upsert_session_participant(session_id, user_id, &participant)
         .await
         .map_err(internal_error)

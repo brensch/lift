@@ -84,6 +84,9 @@ login:
   create_account: Create account
   sign_in_blurb: Use a passkey on your device to sign in securely.
   sign_in: Sign in
+  # Placeholder copy. Opens an exported account file with no server needed.
+  open_file: Open an account file
+  open_file_failed: That file couldn't be opened
   # Debug builds only.
   dev_login_heading: DEV NAME LOGIN
   dev_username: Username

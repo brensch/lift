@@ -4,6 +4,11 @@ This is where most of the system's complexity lives. A workout goes from a
 *template* (an ordered exercise list) to an *active workout* (what you're
 actually doing) to a *completed workout* (which advances the trackers).
 
+All of it runs in the core (`core/`) on the phone: each step is an event in
+the account's log, applied by `Account::apply` (`core/src/account.rs`), and
+the server replays the same events with the same code when they sync. See
+[local-first.md](local-first.md).
+
 ## The loop
 
 ```mermaid
@@ -35,7 +40,7 @@ exercise. "The sets for one exercise" is a *derived* block (grouped by
 exercise), computed where a card or sheet needs it — never stored. There is
 no group or superset structure.
 
-`generate_sets_for_exercise` (`src/workout/planning.rs`) prescribes one
+`generate_sets_for_exercise` (`core/src/workout/planning.rs`) prescribes one
 exercise's block: the warmup ladder (where prescribed) then the working
 sets.
 
@@ -85,8 +90,9 @@ when the last set was done — and that set's prescribed rest:
 | **All done** | Nothing left to do | none |
 
 The reducer's `workout_state_snapshot` derives this plus the
-`effort_prompt`; the app mirrors it offline (`WorkoutProvider`) and re-derives
-when a rest runs out, so resting turns into yapping on the device clock. The
+`effort_prompt`. A snapshot is one instant, so when the rest it shows runs
+out `WorkoutProvider` asks the core again (`_reloadWhenRestEnds`), and
+resting turns into yapping on the device clock. The
 snapshot keeps `rest_until` through yapping so the count-up survives a reload.
 The summary splits the time between sets three ways
 (`compute_workout_summary`): `lifting_seconds` from each start to its Done,
@@ -114,9 +120,9 @@ it too. An exercise already in the workout can't be added again.
 The live workout page lists every exercise full width, its sets as
 circles in two rows, labelled down the left edge: WARMUP, ending in "Skip"
 while any is open, and WORKING. A warmup behind you shows as a
-dash and can still be done. Up next is always the rule above, the same on
-the server and the phone; the way to do a different set is to start it (the
-lifting marker is the server's record of the choice). Unfinished exercises drag into a new order. The banner under
+dash and can still be done. Up next is always the rule above, computed by
+the core; the way to do a different set is to start it (the lifting marker
+is the account's record of the choice). Unfinished exercises drag into a new order. The banner under
 it has no buttons: a status box per partner (three in view, the rest
 scroll) and yours at the bottom. During an account's first workout a line
 on top says what to tap next (`FirstWorkout`, per account on the device).
@@ -127,15 +133,16 @@ Working sets are not rated in the app: progression reads the reps
 (`advance_tracker`'s double progression — all reps on every set moves the
 weight or the rep target, a miss repeats, three hard sessions running is a
 planned 10% deload). The reducer still opens `effort_prompt` after a
-working set; unanswered, it resolves to *right* at the next mutation
-(`resolve_stale_effort`) or at `EndWorkout`.
+working set; unanswered, it resolves to *right* at the next `StartSet` or
+`CompleteSet`, or at `EndWorkout` (`resolve_unanswered`). Nothing else
+resolves it — not the clock.
 
 A loaded exercise with no performed history starts as a **calibration
 ramp** instead of a warmup ladder plus working sets: one 5-rep rung
 (`ProposedSet.calibration = 1`) at the catalog opener (or 60% of the
 onboarding seed). After each rung the app asks how many more reps were in
 the tank — 0–1 (hard), 2–3 (right), 4+ (easy) — and the answer decides what
-is appended (`record_effort`): 4+ adds the next rung, 2–3 makes this the
+is appended (`ramp_append`): 4+ adds the next rung, 2–3 makes this the
 working weight, 0–1 takes the previous rung; then the prescription's
 working sets minus one. Six rungs is the cap. On a watch the rung's finish
 is the answer: three Done buttons, each carrying it as
@@ -147,143 +154,125 @@ summaries. The design record is
 
 ```mermaid
 sequenceDiagram
-    participant App
-    participant WS as ServerWorkoutService
-    participant DB
+    participant App as WorkoutProvider
+    participant N as app/native (core)
+    participant A as Account
 
-    App->>WS: GetHome
-    WS->>DB: templates + trackers + recent history
-    WS-->>App: templates, resolved trackers,<br/>volume, recovery, suggestion
+    App->>N: GetHome
+    N->>A: View::get_home
+    A-->>App: templates, resolved trackers,<br/>volume, recovery, suggestion
 
-    App->>WS: StartWorkout(template_id)
-    WS->>DB: template + trackers
-    WS->>WS: one plan per exercise:<br/>tracker weight, prescription sets/reps/rest,<br/>layoff deload at resolution time
-    WS->>WS: generate_sets_for_exercise per plan<br/>(warmup ladders for barbell compounds)
-    WS->>DB: insert_workout (+ template_id) + proposed_sets
-    WS->>DB: stamp session_id from user_current_session
-    WS-->>App: StartWorkoutResponse (full state)
+    App->>N: StartWorkout(template_id)
+    N->>A: record Event{start_workout}
+    A->>A: exercise_plans: tracker weight,<br/>prescription sets/reps/rest,<br/>layoff deload at resolution time
+    A->>A: apply_add_exercises per plan<br/>(warmup ladders, calibration rungs)
+    A->>A: attach briefing messages,<br/>set active_workout_id
+    N->>N: store event + projected rows
+    A-->>App: StartWorkoutResponse (full state)
 ```
 
-A start with an explicit `exercises` list (the "empty workout" path) runs
-through the same prescription; mid-workout changes go through the four
-per-exercise ops: `AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`,
-`ReorderExercises`.
+The workout's id is the event's id, and every set id derives from it
+(`core/src/ids.rs`), so the server's replay builds the same workout. A start
+with an explicit `exercises` list (the "empty workout" path) runs through the
+same prescription; mid-workout changes go through the four per-exercise ops:
+`AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`, `ReorderExercises`.
 
-## Optimistic mutations
+## Every change is an event
 
-The app does not wait for the server to update the UI. `WorkoutProvider` keeps a
-local `ActiveWorkout`, applies the same transition the server will apply, and
-reconciles when the response lands.
+`WorkoutProvider` holds no rules. Each action is one call into the core, and
+what's on screen is the core's answer:
 
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant P as WorkoutProvider (Dart)
-    participant S as Server
-    participant R as reducer (Rust)
+    participant P as WorkoutProvider
+    participant C as core (Call)
+    participant R as reducer
 
-    U->>P: complete set
-    P->>P: apply locally, notifyListeners()
-    Note over P: UI is already updated
-    P->>S: CompleteSet / AppendWorkoutMutations
-    S->>R: apply_complete_set_to_active(&mut active)
-    R-->>S: new authoritative state
-    S->>S: persist_workout_state (full snapshot)
-    S-->>P: response with server state
-    P->>P: replace local state with server state
-    P->>P: onSessionRefreshNeeded()
+    U->>P: tap a set
+    P->>C: AppendWorkoutMutations([CompleteSet])
+    C->>C: record Event{workout: mutation}
+    C->>R: apply_complete_set_to_active(copy of the workout)
+    R-->>C: ok (or an error: nothing changes)
+    C-->>P: workout_state (GetWorkoutResponse)
+    P->>P: show it, notifyListeners()
 ```
 
-The same logical transition therefore exists **twice**: in Rust
-(`src/workout/reducer.rs`) and in Dart (`WorkoutProvider`). They must agree. If
-they diverge, the UI flickers as the optimistic result is replaced by a
-different server result.
-
-### Batched mutations
-
-`AppendWorkoutMutations` takes a list of mutations and applies them in order —
-used when the app has been offline or has queued watch intents.
+`Account::mutate_workout` changes a copy of the workout and puts it back only
+if the whole mutation applied, so an event is all or nothing. A batch
+(`AppendWorkoutMutations` with several) records one event per mutation; one
+that can't apply is skipped and the rest still land.
 
 ```mermaid
 graph LR
-    m["WorkoutMutation oneof"] --> t2["CompleteSet → apply_complete_set_to_active"]
-    m --> t3["DeleteCompletedSet → apply_delete_completed_set_to_active"]
-    m --> t4["CancelProposedSet → apply_cancel_proposed_set_to_active"]
-    m --> t5["EndWorkout → set end_time"]
-    m --> t6["AddExercises → apply_add_exercises"]
-    m --> t7["AdjustExerciseWeight → apply_adjust_exercise_weight"]
-    m --> t8["RemoveExercise → apply_remove_exercise"]
-    m --> t9["ReorderExercises → apply_reorder_exercises"]
-    m --> t10["RateExercise → apply_rate_exercise_to_active"]
-    m --> t11["SkipRest → apply_skip_rest_to_active"]
-    m --> t12["EditCompletedSet → apply_edit_completed_set_to_active"]
+    m["WorkoutMutation oneof"] --> t1["StartSet → apply_start_set_to_active"]
+    m --> t2["CompleteSet → apply_complete_set_to_active"]
+    m --> t3["EditCompletedSet → apply_edit_completed_set_to_active"]
+    m --> t4["DeleteCompletedSet → apply_delete_completed_set_to_active"]
+    m --> t5["RateExercise → apply_rate_exercise_to_active"]
+    m --> t6["SkipWarmups → apply_skip_warmups_to_active"]
+    m --> t7["AddExercises → apply_add_exercises"]
+    m --> t8["AdjustExerciseWeight → apply_adjust_exercise_weight"]
+    m --> t9["RemoveExercise → apply_remove_exercise"]
+    m --> t10["ReorderExercises → apply_reorder_exercises"]
+    m --> t11["SetSession → workout.session_id"]
+    m --> t12["EndWorkout → end_time, progression"]
 ```
 
-Every mutation first runs `resolve_stale_effort` against its own timestamp,
-so an unanswered question never outlives the rest it belonged to.
-
-Each mutation carries a client-generated `event_id` for dedupe and an optional
-`client_created_at` so a queued action keeps its original timestamp rather than
-the time it was flushed.
-
-After applying mutations the server calls `persist_workout_state`, which writes
-the whole workout back rather than diffing. Simple, and it means a partial
-failure can't leave half-applied state — at the cost of rewriting every row on
-every set.
+Times come from the event (`at`, the phone's clock when it was made), or from
+the request where it carries one (`CompleteSetRequest.completed_at`, a watch
+tap's time). The fold never reads a clock.
 
 ## Ending a workout
 
 ```mermaid
 sequenceDiagram
-    participant App
-    participant WS as ServerWorkoutService
-    participant DB
+    participant App as WorkoutProvider
+    participant A as Account (core)
+    participant S as Server
 
-    App->>WS: EndWorkout(workout_id, ended_at)
-    WS->>DB: get_session_id_for_user
-    Note over WS: captured first — end_workout clears<br/>active_workout_current, losing the link
-    WS->>DB: end_workout (set end_time)
-    WS->>DB: load workout, groups, proposed, completed
-    WS->>DB: claim_progression(workout_id)
-    Note over DB: INSERT OR IGNORE into progression_applied.<br/>0 rows → already applied → no tracker moves
-    WS->>WS: session_outcomes per exercise
-    WS->>WS: advance_tracker (double progression)
-    WS->>DB: upsert trackers + progression messages
-
-    alt in a session
-        WS->>DB: refresh_participant_for_user (final snapshot)
-        WS->>DB: clear_user_current_session
+    App->>A: EndWorkout(workout_id)
+    alt already ended
+        A-->>App: no change
+    else
+        A->>A: end_time = ended_at or event time
+        A->>A: resolve_all_effort ("right")
+        A->>A: advance_trackers: session_outcomes →<br/>advance_tracker (double progression)
+        A->>A: progression messages, clear active_workout_id
+        A-->>App: workout + progression messages
     end
-    WS-->>App: workout + completion messages
+    Note over App,S: later, over Sync
+    App->>S: the EndWorkout event
+    S->>S: replay → same trackers
+    alt caller in a session
+        S->>S: refresh participant status (final workout)
+        S->>S: clear_user_current_session
+    end
 ```
 
-Two ordering constraints worth knowing, both already commented in the source:
+Progression runs once: an `EndWorkout` on a workout that already has an
+`end_time` changes nothing, so a repeated end cannot move a tracker twice.
+The fuzzer checks this (`a re-fired EndWorkout moved a tracker`).
 
-1. **Session id is read before `end_workout`**, because ending the workout
-   deletes `active_workout_current` and the session link becomes unreachable.
-2. **The participant blob is refreshed before leaving the session**, so peers
-   still polling see your finished workout rather than a cleared slot.
-
-Progression is idempotent via the `progression_applied` ledger — a retried
-`EndWorkout` cannot move a tracker twice. Covered by
-`end_workout_is_idempotent` in `src/server/workout_tests.rs` and a fuzz
-invariant.
+On the server, the participant status is rebuilt with the just-ended
+workout before the user leaves the session, so partners keep seeing the
+finished workout rather than an empty slot.
 
 ## Crash recovery
 
-There is no event replay. On reconnect the app calls `GetActiveWorkout`, which
-looks up `active_workout_current` and reloads the full workout with
-`load_workout_full`. State survives because every mutation persists a complete
-snapshot.
-
-Every `ProposedSet` field is persisted, so recovery is lossless.
+A write is in the account file before the app is answered. On a restart the
+phone folds the file's log back into the account, and `GetActiveWorkout`
+answers from it. Nothing depends on the network: an app killed mid-set
+reopens on the same set, synced or not.
 
 ## Where the logic lives
 
 | Concern | File |
 |---|---|
-| Warmup generation, plate snapping | `src/workout/planning.rs` |
-| State transitions | `src/workout/reducer.rs` |
-| Next-up-set derivation | `src/progress.rs` |
-| Prescription + progression + volume | `src/exercise_catalog.rs`, `src/exercise_progress.rs`, `src/volume.rs` |
-| Client-side mirror of all the above | `app/lib/providers/workout_provider.dart`, `app/lib/logic/` |
+| Warmup generation, plate snapping | `core/src/workout/planning.rs` |
+| State transitions | `core/src/workout/reducer.rs` |
+| Next-up-set derivation | `core/src/progress.rs` |
+| Prescription + progression + volume | `core/src/exercise_catalog.rs`, `core/src/exercise_progress.rs`, `core/src/volume.rs` |
+| Events, start, end, progression, messages | `core/src/account.rs`, `core/src/messages.rs` |
+| The RPCs the app calls | `core/src/api.rs` |
+| Showing it | `app/lib/providers/workout_provider.dart` (no rules) |

@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import '../gen/copy.dart';
 import '../logic/user_profile.dart';
 import '../providers/auth_provider.dart';
-import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
@@ -53,9 +52,9 @@ class _MenuProfileState extends State<MenuProfile> {
 
   Future<void> _load() async {
     try {
-      final all = await WorkoutServiceWrapper(
-        context.read<GrpcClient>(),
-      ).listWorkoutSummaries();
+      final all = await context
+          .read<WorkoutServiceWrapper>()
+          .listWorkoutSummaries();
       var seconds = 0, lifting = 0, resting = 0, yapping = 0;
       for (final w in all) {
         seconds += w.summary.durationSeconds.toInt();

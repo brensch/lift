@@ -8,7 +8,6 @@ import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../services/grpc_client.dart';
 import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
@@ -69,8 +68,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Future<void> _loadData() async {
-    final grpc = context.read<GrpcClient>();
-    final service = WorkoutServiceWrapper(grpc);
+    final service = context.read<WorkoutServiceWrapper>();
     try {
       // One call: the server returns the per-exercise series (most-improved
       // first) plus the header totals, all precomputed.

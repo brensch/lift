@@ -1,7 +1,10 @@
 # Backend
 
-A single Rust binary (`src/main.rs`) serving five gRPC services over tonic, with
-`tonic-web` for browser clients and a small axum health endpoint.
+A single Rust binary (`src/main.rs`) serving eight gRPC services over tonic,
+with `tonic-web` for browser clients and a small axum health endpoint. The
+domain lives in the `core/` crate, which the phone runs too; the backend
+stores each account's event log, folds it with the same core, and handles
+what needs a server: auth, multiplayer, the web's reads and analytics.
 
 ## Module map
 
@@ -10,43 +13,42 @@ graph TD
     main["main.rs<br/>wiring, tracing, panic hook"]
 
     subgraph svc["src/server/ — RPC handlers"]
-        w["workout.rs"]
+        sy["sync.rs"]
+        w["workout.rs / settings.rs<br/>reads for the web"]
         mp["multiplayer.rs"]
-        st["settings.rs"]
         us["user.rs"]
         au["auth.rs"]
+        an["analytics.rs"]
         su["support.rs"]
     end
 
-    subgraph domain["Domain logic"]
-        plan["workout/planning.rs<br/>warmups, set generation"]
-        red["workout/reducer.rs<br/>apply mutations to state"]
-        engine["exercise_catalog.rs / exercise_progress.rs / volume.rs<br/>prescription → progression → volume"]
-        ps["program_state.rs<br/>typed KV state"]
+    subgraph core["core/ — the domain"]
+        acc["account.rs<br/>Account, apply, fold"]
+        api["api.rs<br/>View / Call"]
+        proj["projection.rs<br/>SQL tables"]
+        rules["workout/, exercise_progress.rs,<br/>volume.rs, …"]
     end
 
     subgraph data["src/db/ — ServerDb"]
-        dbw["workout.rs"]
-        dba["auth.rs"]
-        dbs["session.rs"]
-        dbc["cache.rs"]
-        dbcodec["codec.rs"]
+        dacc["accounts.rs<br/>event store + fold cache"]
+        dauth["auth.rs"]
+        dses["session.rs"]
+        dan["analytics.rs"]
     end
 
     authst["auth.rs<br/>AuthState — WebAuthn"]
     sqlite[("SQLite")]
 
     main --> svc
-    w --> plan
-    w --> red
-    w --> sched
-    w --> reg
-    st --> reg
-    sched --> reg
-    reg --> ps
+    sy --> dacc
+    w --> api
+    su --> dacc
+    dacc --> acc
+    dacc --> proj
+    acc --> rules
+    api --> acc
     au --> authst
     svc --> data
-    sched --> data
     authst --> data
     data --> sqlite
 ```
@@ -55,19 +57,42 @@ graph TD
 
 | Module | Owns |
 |---|---|
-| `server/workout.rs` | Workout RPCs, user-message construction, progression on `EndWorkout` |
-| `server/multiplayer.rs` | Sessions, invites, participant blobs |
-| `server/settings.rs` | User settings, program catalog, active program state |
+| `server/sync.rs` | `SyncService`: the bidirectional `Sync` stream (events up, acks and session down) and `PullEvents` |
+| `server/workout.rs` | `WorkoutService`: four reads for the web, answered by the core's `View` |
+| `server/settings.rs` | `SettingsService.GetSettings`, the same way |
+| `server/multiplayer.rs` | Sessions, invites, join requests, training partners |
+| `server/support.rs` | `authed_user_id`, `read_api`, participant status from the fold, the app-version gate |
 | `server/user.rs` | User CRUD, profile |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
-| `server/support.rs` | `.well-known` / app-association endpoints |
-| `workout/planning.rs` | Plan shaping: prescribe an exercise's block of `ProposedSet`s (warmups, plate snapping) and the four mid-workout ops (add / adjust weight / remove / reorder) |
-| `workout/reducer.rs` | Pure state transitions on an `ActiveWorkout` |
-| `exercise_catalog.rs` | Muscles, equipment, roles and the prescription table |
-| `exercise_progress.rs` | Per-exercise trackers and the double-progression rule |
-| `volume.rs` | Weekly sets per muscle and the template suggestion |
-| `history.rs` | The hydrated workout record derived computations read |
-| `db/` | All SQL. No SQL exists outside this directory. |
+| `server/analytics.rs` | Page views, admin stats |
+| `db/accounts.rs` | `account_events`, the folded-account cache, projecting pushed workouts |
+| `db/` | All SQL. No SQL exists outside this directory and `core/src/projection.rs`. |
+| `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only), written through the core's API and `ImportHistory` |
+
+The rules — planning, the reducer, progression, volume, summaries — are in
+`core/`; see [local-first.md](local-first.md) and
+[workout-lifecycle.md](workout-lifecycle.md).
+
+## The event store
+
+`account_events(user_id, seq, event_blob)` is every account's log.
+`ServerDb::push_events` (`src/db/accounts.rs`):
+
+1. Takes the account's lock. Folded accounts are cached in memory, one
+   `Mutex` each, least recently used dropped past 256; a dropped account is
+   refolded from its log when next needed.
+2. Checks the first pushed event it already holds against the stored one. A
+   different id there means another device recorded this account:
+   `account_diverged`, nothing stored.
+3. Skips seqs already held, takes the rest while they carry on from the head
+   without a gap.
+4. Replays each into the fold. An event that doesn't apply still takes its
+   place (it applied on the phone, under the phone's rules).
+5. In one transaction: inserts the events and rewrites the projected rows
+   (`core/src/projection.rs`) of every workout they touched. If that fails,
+   the cached fold is dropped so the next read refolds from what was written.
+
+Reads (`read_account`, `read_api`) take the same lock and look at the fold.
 
 ## Database access model
 
@@ -84,133 +109,115 @@ graph LR
     rp -->|"concurrent reads"| f
 ```
 
-Defined in `src/db/mod.rs:251`.
+Defined in `ServerDb::new_in_dir` (`src/db/mod.rs`).
 
-- **Writes serialise** through the single write connection. This is the
-  concurrency control — there is no application-level locking.
+- **Writes serialise** through the single write connection.
 - **Reads run concurrently** (16 connections) and, under WAL, never block writes.
-- Multi-statement writes use an explicit `write_pool.begin()` transaction; see
-  `apply_program_state_for_workout` (`src/db/cache.rs:82`) for the pattern.
+- Writes to one account are also serialised by its lock in the fold cache,
+  so two pushes for the same account cannot interleave.
 
-> **Read-modify-write is not atomic across the two pools.** The structural
-> mutation handlers (`AddExercises`, `AdjustExerciseWeight`, `RemoveExercise`, `ReorderExercises`,
-> `AppendWorkoutMutations`) load a workout on the read pool, apply the change in
-> memory, then `persist_workout_state` — a full delete-and-reinsert — on the
-> write pool. Two mutations to the *same workout* that interleave read→read→
-> write→write lose the first write, because the second persist replaces the
-> whole workout. In practice a workout has one writer: the phone is the only
-> gRPC client (the watch relays through it), and the app serialises its own
-> flushes (`_mutationFlushInFlight`) and dedups by `event_id`. The exposure is
-> the narrow case of two clients (or a client and a retried request) writing the
-> same workout concurrently. Closing it fully needs per-workout locking or a
-> version column with a compare-and-set on persist. The fuzzer does not cover
-> this — it is single-workout-sequential per user.
+### Change broadcast
+
+`ServerDb` carries a `tokio::sync::broadcast` of `Change`
+(`Session(id)`, `Membership(user)`, `JoinRequests(user)`). The session DB
+calls in `src/db/session.rs` publish them; every open Sync stream
+subscribes (`ServerDb::subscribe`) and re-sends what concerns its user.
+In-process only, which is one more reason the backend is single-instance.
 
 ### Blob columns
 
-Several tables store a protobuf-encoded blob alongside indexed scalar columns
-(`user_blob`, `participant_blob`, `exercise_configs_blob`, `message_blob`,
-`response_blob`). The scalars exist purely to index/filter; the blob is the
-truth. Encode/decode helpers live in `src/db/codec.rs`.
+`users_current.user_blob`, `session_participants_current.participant_blob`
+and `account_events.event_blob` are protobuf. The scalar columns beside them
+exist to index and filter; the blob is the truth.
 
 > **Consequence:** adding a proto field is transparent, but you cannot query on
-> it until you also promote it to a real column. Check whether a filter you want
-> is actually indexable before designing around it.
+> it until you also promote it to a real column.
 
-### Schema migrations
+### Schema changes
 
-There is no migration framework. `SERVER_SCHEMA` (`src/db/mod.rs:24`) is a block
-of `CREATE TABLE IF NOT EXISTS` run at startup, followed by ad-hoc
-`ALTER TABLE ... ` statements whose errors are swallowed with `.ok()`:
+There is no migration framework. `SERVER_SCHEMA` (`src/db/mod.rs`) and
+`core::projection::WORKOUT_SCHEMA` are `CREATE TABLE IF NOT EXISTS` blocks
+run at startup. Adding a column to a table that already exists in production
+needs an idempotent `ALTER TABLE` next to them.
 
-```rust
-sqlx::query("ALTER TABLE user_message_events ADD COLUMN source_workout_id ...")
-    .execute(&write_pool).await.ok();   // ignores "duplicate column"
-```
-
-To add a column: add it to `SERVER_SCHEMA` **and** append an idempotent
-`ALTER TABLE` for existing databases. Dropping or retyping a column is not
-supported by this scheme and needs a hand-written migration.
+The projected workout tables can always be rebuilt: they are rewritten from
+the fold, and the log is the truth.
 
 ## Service surface
 
 ```mermaid
 graph LR
+    subgraph "SyncService"
+        y1["Sync (bidi stream)"]
+        y2["PullEvents"]
+    end
     subgraph "AuthService"
         a1["RegisterStart / RegisterFinish"]
         a2["LoginStart / LoginFinish"]
         a3["AddPasskeyStart / AddPasskeyFinish"]
         a4["ListPasskeys / DeletePasskey"]
-        a5["Logout / DeleteAccount / TestLogin"]
+        a5["Logout / DeleteAccount / TestLogin<br/>ReportAuthFailure"]
     end
-    subgraph "WorkoutService"
-        w1["StartWorkout / EndWorkout"]
-        w2["GetWorkout / GetActiveWorkout / ListWorkouts"]
-        w3["CompleteSet / RateExercise / SkipRest<br/>EditCompletedSet / DeleteCompletedSet / CancelProposedSet"]
-        w4["AppendWorkoutMutations<br/>RehydrateWorkoutFromEvents"]
-        w5["GetProposedWorkoutSchedule"]
-        w6["heart rate, drafts, profile groups, messages"]
+    subgraph "WorkoutService (web reads)"
+        w1["ListWorkoutSummaries / GetExerciseProgress"]
+        w2["GetWorkout / GetWorkoutHeartRate"]
     end
     subgraph "MultiplayerService"
         m1["JoinViaInvite / LeaveCurrentSession"]
-        m2["GetCurrentSession / GetSessionParticipants"]
+        m2["GetCurrentSession / GetSessionParticipants<br/>GetParticipantWorkout"]
         m3["GetMyInviteToken / RotateInviteToken"]
+        m4["RequestJoinPartner / GetJoinRequests<br/>RespondJoinRequest"]
+        m5["GetTrainingPartners / GetSharedSessions"]
     end
     subgraph "SettingsService"
-        s1["GetSettings / UpdateSetting"]
-        s2["GetTrainingProgramCatalog"]
-        s3["Get/SetActiveTrainingProgramState"]
+        s1["GetSettings"]
     end
     subgraph "UserService"
         u1["CreateUser / GetUser / UpdateMyProfile"]
     end
+    subgraph "AnalyticsService / AdminService"
+        x1["RecordPageViews / GetAdminStatus / GetStats"]
+    end
 ```
 
-Every RPC except the auth handshake and catalog lookups begins with
+There are no per-write workout RPCs: every write to an account is an `Event`
+that arrives over `Sync`.
+
+Every RPC except the auth handshake and `ReportAuthFailure` begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
 `auth_sessions`. There is no middleware doing this — it is called explicitly in
 each handler, so **a new handler that forgets the call is unauthenticated**.
+`Sync` authenticates on the stream's headers before reading anything.
 
-### Not implemented
-
-Three RPCs exist in the proto and return `Status::unimplemented`:
-
-| RPC | Note |
-|---|---|
-| `MultiplayerService.SubscribeSession` | Multiplayer uses 1 Hz polling, not streaming (`multiplayer.rs:247`) |
-| `WorkoutService.RehydrateWorkoutFromEvents` | Events are appended to `workout_events` but never replayed (`workout.rs:1847`) |
-
-The `workout_events` table is therefore **write-only**: `AppendWorkoutMutations`
-records events, but nothing reads them back. Recovery works by reloading current
-rows via `load_workout_full`, not by replaying events.
-
-Additionally, `GetCurrentSession` returns a `SessionStatus` whose
-`next_up_user_id`, `next_up_set`, `next_up_rest_until` and
-`currently_lifting_user_id` fields are **always empty**
-(`src/server/multiplayer.rs:200`). "Who's up next" is derived on the client from
-participant blobs. Do not build on those proto fields expecting server values.
+`SessionStatus` has `next_up_user_id`, `next_up_set`, `next_up_rest_until`
+and `currently_lifting_user_id`; the server leaves them empty
+(`current_session` in `src/server/multiplayer.rs`). "Who's up next" is
+derived on the client from the participants. Do not build on those fields.
 
 ## Error handling
 
-`WorkoutError` (`src/workout/mod.rs:26`) is a small enum of
-`FailedPrecondition` / `Internal` / `NotFound` carrying a `&'static str`, with a
-`From<WorkoutError> for Status`. Domain code returns `WorkoutError`; handlers
-use `?` to convert. `internal_error` maps DB errors to `Status::internal`.
-
-Because the payload is `&'static str`, error messages cannot include dynamic
-context (ids, values). That keeps them cheap but makes some failures hard to
-diagnose from logs alone.
+The core returns `CoreError` (`InvalidArgument` / `NotFound` /
+`FailedPrecondition`, with a message); `core_status` in `support.rs` maps it to
+a gRPC `Status`. Inside the reducer, `WorkoutError` (`core/src/workout/mod.rs`)
+carries a `&'static str` and converts into `CoreError`. `internal_error` maps
+DB errors to `Status::internal`.
 
 ## Observability
 
 `tracing` with JSON output, flattened events, filtered by `RUST_LOG`
 (default `warn`). Each handler emits one `info!` on entry with the RPC name and
-user id. A panic hook logs location and message before unwinding.
+user id; a Sync stream logs its open and close. An event the server's fold
+could not apply is logged at `warn` with its seq. A panic hook logs location
+and message before unwinding.
 
 ## Tests
 
-- `src/scenario_tests.rs` — drives an in-memory DB through the real scheduler and
-  the progression, volume and migration logic inline in their modules.
-- `src/server/workout.rs` — `live_progression_tests` covering progression messages.
+- `src/server/sync_tests.rs` — over a real server on a local port: events
+  pushed and folded, the projections they leave, divergence refused, and the
+  Sync stream carrying one partner's progress to the other.
+- `src/server/multiplayer_tests.rs` — session roster and training-together
+  history through the real handlers.
+- `src/db/auth.rs` — account deletion covers every table with a `user_id`.
 
-Run with `cargo test`.
+The domain's own tests are in `core/`; see [testing.md](testing.md). Run
+everything with `cargo test --workspace --all-targets`.

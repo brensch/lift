@@ -42,8 +42,9 @@ two seconds; a Dart save is on the phone in under one. Ctrl+C stops all of it.
 | `make hot-reload-on-save` | The watcher `dev` runs. A save under `app/lib/theme/` or to `main.dart` hot *restarts*: the themes and app wiring are built once at startup, so a reload would keep the old ones. |
 
 Hot reload covers Dart code. A proto change: `make proto-dart`, then
-`make hot-restart` (the backend regenerates its side by itself). Native code,
-pubspec and `--dart-define` changes need a fresh `make dev`.
+`make hot-restart` (the backend regenerates its side by itself). Native code —
+including the Rust core the app links (`core/`, `app/native`) — pubspec and
+`--dart-define` changes need a fresh `make dev`.
 
 ## Getting a build onto a phone
 
@@ -70,15 +71,14 @@ channel that does come from CI, because it runs on the server.
 
 | Target | |
 |---|---|
-| `make run-backend` | `cargo watch` dev server on `:50051` with `--features test-auth` (dev login). Rebuilds on a save under `src/`, `proto/`, `templates/` or the Cargo files, nothing else. Kills any running `schlift` first. |
+| `make run-backend` | `cargo watch` dev server on `:50051` with `--features test-auth` (dev login). Rebuilds on a save under `src/`, `core/`, `proto/`, `templates/`, `build.rs` or the Cargo files, nothing else. Kills any running `schlift` first. |
 | `make run-backend-release` | Same, release build, no watch. |
 | `make run-backend-scratch` | Same as `run-backend` without the watch, on an empty database in `.tmp/scratch-backend` wiped every start. |
 | `make agent-backend-start` / `agent-backend-stop` | Background instance with a pidfile and a log, waits for `/api/health`. Uses `:50051`, so it collides with any other backend on the machine. |
 | `make run-web-dev` | Backend + web dev server together. `make run-frontend` is the web half. |
 | `make run-prod` | `docker-compose up --build`. |
 | `make check` | `cargo check` + web build. |
-| `make fuzz-api` | API invariant fuzzer (`FUZZ_USERS`, `FUZZ_SESSIONS`, `FUZZ_SEED`). `make fuzz-api-ci` is the fixed-seed run CI does. |
-| `make load-test` | Load simulation. |
+| `make fuzz-api` | The core's invariant fuzzer, in-process (`cargo run -p schlift-core --example fuzz`; `FUZZ_USERS`, `FUZZ_SESSIONS`, `FUZZ_SEED`). No backend needed. `make fuzz-api-ci` is the fixed-seed run CI does. |
 
 For a throwaway instance that collides with nothing, skip make:
 `DATA_DIR=<scratch dir> PORT=50077 ./target/debug/schlift` (build with
@@ -99,6 +99,7 @@ The binary is also the admin CLI: `schlift admin add|remove|list <username>`
 | `make proto-dart` / `proto-android` / `proto-swift` / `proto-all` | Regenerate protobuf code. `proto-swift` needs `protoc-gen-swift`; CI does it on macOS. |
 | *(no target)* web TypeScript | `cd proto && buf generate --template buf.gen.yaml` |
 | `make copy` | `app/copy.yaml` → `app/lib/gen/copy.dart` |
+| *(no target)* Rust ↔ Dart bridge | After changing `app/native/src/api/`: `flutter_rust_bridge_codegen generate` in `app/`. Writes `app/lib/gen/native/` and `app/native/src/frb_generated.rs` (config: `app/flutter_rust_bridge.yaml`). |
 | `make sounds`, `make icons`, `make brand` | Sound manifest, launcher icons, brand renders |
 
 Generated code is committed, and is the only code exempt from formatting and
@@ -125,6 +126,13 @@ limit the run. Full reference, tool versions and the no-suppressions rule:
 `android-emulator-reverse`, `android-screenshot`, `android-tap`, `android-text`,
 `android-run-emulator`, `android-agent-start`, `android-agent-stop`. Walkthrough
 in [`android_dev.md`](android_dev.md).
+
+## Tests
+
+| Target | |
+|---|---|
+| `make test-app` | The Dart tests against the real core: `cargo build -p schlift_native` (the host build they load from `target/debug/`), then `flutter test`. A bare `flutter test` fails to load the library without that build. |
+| `cargo test --workspace --all-targets` | The core, the server and `app/native`. No target. |
 
 ## End-to-end tests and store assets
 

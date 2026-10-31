@@ -3,6 +3,7 @@ pub mod workout {
     // newer clippy flags the large `Err` variant. It is generated code.
     #[allow(clippy::result_large_err)]
     pub mod v1 {
+        pub use schlift_core::pb::*;
         tonic::include_proto!("workout.v1");
     }
 }

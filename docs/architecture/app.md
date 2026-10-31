@@ -1,7 +1,9 @@
 # Flutter App
 
 `app/lib/` is a Provider-based Flutter app targeting iOS and Android, with
-companion apps for Wear OS and Apple Watch.
+companion apps for Wear OS and Apple Watch. The account lives on the phone:
+the Rust core runs inside the app (`app/native`) and answers every workout,
+template and settings call locally. See [local-first.md](local-first.md).
 
 ## Layers
 
@@ -10,9 +12,10 @@ graph TD
     screens["screens/<br/>full-page UI, routing targets"]
     widgets["widgets/<br/>reusable UI components"]
     providers["providers/<br/>app state — ChangeNotifier"]
-    services["services/<br/>transport + platform integration"]
+    services["services/<br/>the core doorway, sync, transport, platform"]
     logic["logic/<br/>pure functions, no Flutter imports"]
-    gen["gen/<br/>generated protobuf — do not edit"]
+    gen["gen/<br/>generated protobuf + flutter_rust_bridge — do not edit"]
+    native["app/native (Rust)<br/>Store + core"]
 
     screens --> widgets
     screens --> providers
@@ -20,15 +23,54 @@ graph TD
     providers --> services
     providers --> logic
     services --> gen
+    gen --> native
     logic --> gen
 
     style gen fill:#5a3d2d,color:#fff
 ```
 
-The rule that matters: **`logic/` must not import Flutter**. It is pure Dart, so
-it is testable without a widget harness. Everything genuinely algorithmic —
-warmup generation, plate maths, unit conversion, exercise grouping — belongs
-there.
+The rules that matter:
+
+- **No domain rules in Dart.** Planning, the set state machine, progression,
+  summaries, volume and the home's suggestion are the core's. A provider
+  makes one call and shows the answer.
+- **`logic/` must not import Flutter.** It is display-side helpers only —
+  plate maths for the bar picture, unit formatting, grouping sets into
+  exercise blocks — testable without a widget harness.
+
+## The core on the phone
+
+```mermaid
+graph LR
+    WP["WorkoutProvider<br/>SettingsProvider"] --> WS["WorkoutServiceWrapper"]
+    WS -->|"CoreSource.ready"| LC["LocalCore<br/>(services/local_core.dart)"]
+    LC -->|"call(method, bytes)"| N["app/native<br/>registry → Store"]
+    N --> C["core::api::call"]
+    N --> F[("account file<br/>accounts/&lt;user&gt;.sqlite")]
+    AS["AccountSync"] -.->|"is the CoreSource"| WS
+    LC -->|"writes stream"| AS
+```
+
+- `LocalCore` (`services/local_core.dart`) is the Dart doorway to the core:
+  `call(method, request, parse)` sends proto bytes and parses the answer,
+  plus `outbox` / `acked` / `restore` / `export` for sync and files. Errors
+  come back as `CoreException` with a code (`invalid_argument`, `not_found`,
+  `failed_precondition`, `storage`).
+- `app/native` keeps open accounts in a registry keyed by an integer
+  handle; `LocalCore` holds the handle. `LocalCore.memory` opens an
+  in-memory account (the tutorial, tests).
+- `WorkoutServiceWrapper` (`services/workout_service.dart`) is the app's
+  typed API over a `CoreSource` — anything that can produce an open
+  `LocalCore`. `AccountSync` is the signed-in user's source; `FixedCore`
+  wraps one already open (the tutorial, tests).
+- `AccountSync` (`services/account_sync.dart`) opens the signed-in user's
+  file, restores it from the server on a fresh install, and holds the Sync
+  stream. Its `session` and `joinRequests` are what the stream brought down.
+
+The bindings are generated: after changing `app/native/src/api/`, run
+`flutter_rust_bridge_codegen generate` in `app/` (it writes
+`app/lib/gen/native/` and `app/native/src/frb_generated.rs`). cargokit
+(`app/rust_builder`) builds `app/native` into the app for each platform.
 
 ## Providers
 
@@ -36,19 +78,22 @@ Registered in `app/lib/main.dart`, which also wires the cross-provider callbacks
 
 | Provider | Owns | Notes |
 |---|---|---|
-| `AuthProvider` | Session token, user id, profile | Gates the whole app |
-| `WorkoutProvider` | The active workout | The centre of gravity; pure logic lives in `logic/` |
-| `MultiplayerProvider` | Session + participants | Polls at 1 Hz |
-| `SettingsProvider` | Plate colours, weight unit, program state | Drives onboarding redirect |
-| `ThemeProvider` | Light/dark | Persisted locally |
+| `AuthProvider` | User id, name, server session token, profile | `isLoggedIn`: an account is open on the phone. `hasServerSession`: the server knows this phone |
+| `AccountSync` | The open account and the Sync stream | A `ChangeNotifier`; also the `CoreSource` |
+| `WorkoutProvider` | The workout on screen, the home | A view over the core; no rules |
+| `MultiplayerProvider` | Session, participants, join requests, invite token | Fed by `AccountSync`; makes the online-only calls |
+| `SettingsProvider` | Weight unit, plate colours | Settings are part of the account |
 | `SoundProvider` | Rest-timer sound preset | |
 
 ```mermaid
 graph LR
-    AP["AuthProvider"] -->|"token"| GC["GrpcClient<br/>AuthInterceptor"]
-    WP["WorkoutProvider"] -->|"onSessionRefreshNeeded"| MP["MultiplayerProvider"]
-    WP -->|"onWorkoutEnded"| SP["SettingsProvider<br/>refresh program state"]
-    SP -->|"hasProgramState == false"| ONB["→ /onboarding"]
+    AP["AuthProvider"] -->|"userId"| AS["AccountSync<br/>signIn / signOut"]
+    AP -->|"token"| GC["GrpcClient<br/>AuthInterceptor"]
+    AS -->|"session"| MP["MultiplayerProvider"]
+    AS -->|"session id → recordSession"| WP["WorkoutProvider"]
+    AS -->|"onCaughtUp → reload"| WP
+    AS -->|"onSessionRejected"| AP
+    WP -->|"onWorkoutEnded"| NAV["CompletedWorkoutScreen"]
     WP --> SO["SoundProvider<br/>rest chime"]
     WP --> NS["NotificationService<br/>rest countdown"]
     WP --> WB["Wearable bridge"]
@@ -59,44 +104,55 @@ don't depend on each other's types. It keeps coupling loose but means the wiring
 is invisible from the provider source — check `main.dart` when tracing a
 cross-provider effect.
 
+Opening the account and talking to the server are separate. When
+`AuthProvider.userId` appears, `main.dart` opens the account
+(`AccountSync.signIn`) and loads settings and the workout from it. When
+`hasServerSession` becomes true, it redials the stream and starts
+multiplayer. A lapsed server session (`onSessionRejected`) only clears the
+token: the account stays open and usable, and `/login` is how you sign in
+again to sync.
+
 ### WorkoutProvider
 
-Holds the local `ActiveWorkout` and applies optimistic mutations before the
-server confirms them — see
-[workout-lifecycle.md](workout-lifecycle.md#optimistic-mutations).
-
-The provider orchestrates: derived caches, server reconciliation, the rest
-timer, lifecycle observation and wearable snapshot publishing. The pure parts —
-plan building and the optimistic set transitions — live in
-`logic/workout_plan_builder.dart` and `logic/workout_reducer.dart`, where they
-are unit-tested against the Rust mirrors (see
-[Mirrors of the backend](#mirrors-of-the-backend)).
+Each action is one core call (`StartWorkout`, `AppendWorkoutMutations` with
+one mutation, `EndWorkout`, …) and the response is the new state. There is
+no optimistic layer, no mutation queue and no copy of the reducer: the core
+answers in-process, offline or not. The provider keeps the derived view
+(exercise blocks), the rest timer and its sound, lifecycle observation,
+heart-rate batching (written to the account every 5 s) and the wearable
+snapshot. When a rest runs out it asks the core again rather than deriving
+the next state itself.
 
 ## Transport
 
+The server is for sync, auth, multiplayer, the profile and analytics:
+
 ```mermaid
 graph LR
-    prov["Providers"] --> wrap["Service wrappers<br/>WorkoutService, MultiplayerServiceWrapper,<br/>UserServiceWrapper, AuthService"]
+    prov["AccountSync, MultiplayerProvider,<br/>AuthProvider, PageTracker"] --> wrap["SyncServiceClient, MultiplayerServiceWrapper,<br/>UserServiceWrapper, AuthService"]
     wrap --> gc["GrpcClient"]
     gc --> ai["AuthInterceptor<br/>attaches bearer token"]
     gc --> li["LoggingInterceptor<br/>AppLogger"]
     ai --> ch["ClientChannel"]
-    ch -->|"gRPC / gRPC-Web"| server["Backend"]
+    ch -->|"gRPC"| server["Backend"]
 ```
 
-`GrpcClient` handles connection recovery: on `DEADLINE_EXCEEDED` or `UNAVAILABLE`
-it resets the channel and retries **once**. Other gRPC errors propagate
-untouched. This is the one part of the app with real test coverage
-(`app/test/grpc_recovery_test.dart`).
+Short reads (`retryReadAfterReconnect`) reset the channel and retry **once**
+on a deadline or unavailable error; other errors propagate untouched
+(`app/test/grpc_recovery_test.dart`). The Sync stream does its own
+reconnecting: a heartbeat every 5 s, redial after 15 s of silence, backoff
+to 10 s.
 
 ## Screens and routing
 
 ```mermaid
 graph TD
-    boot["main.dart"] --> auth{"logged in?"}
-    auth -->|no| login["LoginScreen<br/>passkey"]
-    auth -->|yes| onb{"hasProgramState?"}
-    onb -->|no| onboarding["OnboardingScreen<br/>2-step program setup"]
+    boot["main.dart"] --> auth{"account open?"}
+    auth -->|no| login["LoginScreen<br/>passkey, or open an account file"]
+    auth -->|yes| perms{"permissions asked?"}
+    perms -->|no| permissions["PermissionsScreen"]
+    perms -->|yes| onb{"home.onboarded?"}
+    onb -->|no| onboarding["OnboardingScreen"]
     onb -->|yes| shell["MainLayout"]
 
     shell --> home["HomeScreen<br/>proposal, readiness, pending updates"]
@@ -112,8 +168,16 @@ graph TD
 ```
 
 `OnboardingScreen` is three steps (marker, unit, optional bodyweight and
-experience) ending in `CompleteOnboarding`, which seeds the trackers and the
-default templates server-side.
+experience) ending in `CompleteOnboarding`, which the core applies on the
+phone: it seeds the trackers and the chosen library templates. An account
+counts as onboarded once it has any templates or workouts
+(`GetHomeResponse.onboarded`).
+
+Settings → Export your data shares the account file whole; Settings →
+Import a file replaces this phone's copy with an export of the same
+account. On the login screen, "Open an account file" opens an export with
+no server at all; signing in later lets it sync again (see
+[auth.md](auth.md#the-account-and-the-server-session)).
 
 ## Health and sensors
 
@@ -216,36 +280,24 @@ widgets/common/        section_header, weight_picker, rainbow_shimmer_text,
 The rule of thumb: a widget goes in `widgets/common/` only when nothing about
 it is specific to one screen; otherwise it lives with its screen.
 
-### Mirrors of the backend
-
-Three `logic/` modules are client-side mirrors of Rust code and must stay in
-lockstep with it:
-
-| Dart | Rust | Pinned by |
-|---|---|---|
-| `logic/warmup.dart` | `workout/planning.rs` warmups | `testdata/warmup_golden.json`, both suites |
-| `logic/workout_plan_builder.dart` | `workout/planning.rs` set generation | shares `warmup.dart`'s golden fixture |
-| `logic/workout_reducer.dart` | `workout/reducer.rs` | mirrored test suites on each side |
-
-### Duplicated logic
-
-`app/lib/logic/warmup.dart` is a line-for-line port of the warmup maths in
-`src/workout/planning.rs` — plate snapping that must agree exactly. The golden
-fixture pins them together; if you change one, change both and regenerate.
-
 ## Testing
 
-- `test/logic/` — the bulk of coverage: warmup golden parity with the backend,
-  the optimistic workout reducer (mirroring the Rust reducer suite), plate
-  calculator invariants, weight-unit conversion and snapping
-- `test/grpc_recovery_test.dart` — channel reset/retry behaviour
+- `test/providers/` — `WorkoutProvider` and auth startup against the
+  **real core**: `test/support/provider_harness.dart` loads the host build
+  of `app/native` (`target/debug/libschlift_native.so`) and opens an
+  in-memory account. Build it first: `make test-app` does
+  `cargo build -p schlift_native` then `flutter test`.
+- `test/logic/` — the display helpers: plate calculator, weight units,
+  exercise blocks, prescriptions, starting weights.
+- `test/screenshots/` — real screens at phone size; see
+  [`docs/testing/app-harness.md`](../testing/app-harness.md).
+- `test/grpc_recovery_test.dart` — channel reset/retry behaviour.
 
-`logic/` is pure Dart, so it carries unit tests without a widget harness. See
-[testing.md](testing.md) for the full picture and the remaining gaps.
+The rules themselves are tested in Rust; see [testing.md](testing.md).
 
 ```bash
-cd app && flutter test
-flutter analyze
+make test-app
+cd app && flutter analyze
 ```
 
 ## Notification sounds

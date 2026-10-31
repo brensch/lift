@@ -46,7 +46,14 @@ class AuthProvider extends ChangeNotifier {
   double get bodyWeightKg => _bodyWeightKg;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get isLoggedIn => _sessionToken != null;
+
+  /// An account is open on this phone. Everything works from here on, with
+  /// or without the server.
+  bool get isLoggedIn => _userId != null;
+
+  /// The server knows this phone (a session token): sync, multiplayer and
+  /// the profile work. Without it the account is still fully usable.
+  bool get hasServerSession => _sessionToken != null;
 
   /// False until [loadSession] has read the saved session from disk. Until
   /// then "not logged in" only means "not known yet", and the router must not
@@ -151,20 +158,28 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The server no longer accepts this phone's session: sign in again to
+  /// sync. The account stays open and usable meanwhile.
   Future<void> expireSession({String? message}) async {
+    if (_sessionToken == null) return;
     _sessionToken = null;
-    _userId = null;
-    _username = null;
-    _profileEmoji = defaultProfileEmoji;
-    _profileColorHex = defaultProfileColorHex;
     _grpcClient.setToken(null);
     _isLoading = false;
     _error = message;
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_sessionTokenKey);
-    await prefs.remove(_userIdKey);
-    await prefs.remove(_usernameKey);
+    notifyListeners();
+  }
+
+  /// Open an account from a file on this phone with no server at all (an
+  /// export brought back, the server out of reach). Signing in later lets
+  /// it sync again.
+  Future<void> openLocalAccount(String userId, String username) async {
+    _userId = userId;
+    _username = username;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userIdKey, userId);
+    await prefs.setString(_usernameKey, username);
     notifyListeners();
   }
 
