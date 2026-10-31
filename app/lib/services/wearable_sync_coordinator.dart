@@ -27,8 +27,8 @@ class WearableSyncCoordinator {
   // Workout id we've already told the watch to end, so we send the dedicated end command
   // exactly once when a workout finishes (phone- or watch-initiated).
   String? _endCommandSentForWorkoutId;
-  // Suppresses dedupe-skips and unsolicited publishes (e.g. 1s multiplayer poll
-  // ticks) while an intent is mid-flight. Otherwise a stale poll-driven publish
+  // Suppresses dedupe-skips and unsolicited publishes (e.g. a session update
+  // arriving) while an intent is mid-flight. Otherwise a stale unsolicited publish
   // can clear the watch's pending state on pre-mutation data, and a dedupe hit
   // against a previously-published identical snapshot can drop the post-mutation
   // reply entirely — leaving the watch to wait out its safety timeout.
@@ -150,7 +150,7 @@ class WearableSyncCoordinator {
 
   void _publishSnapshot({bool force = false}) {
     // Suppress unsolicited (non-forced) publishes while an intent is mid-flight.
-    // Otherwise a 1s multiplayer-poll tick that fires between "intent received"
+    // Otherwise a session update that lands between "intent received"
     // and "mutation committed" would publish a pre-mutation snapshot, which the
     // watch would treat as the reply and clear its pending state on stale data.
     if (!force && _inFlightIntents > 0) return;

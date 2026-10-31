@@ -36,7 +36,7 @@ pub struct ServerMultiplayerService {
 impl ServerMultiplayerService {
     /// Place `user_id` into `session_id` (upsert), backfill their active workout's
     /// historical session stamp if any, and refresh their participant blob so peers see
-    /// them immediately on the next poll.
+    /// them at once (the change goes out on their Sync streams).
     async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> ServerResult<()> {
         self.db
             .set_user_current_session(user_id, session_id)

@@ -128,7 +128,29 @@ unauthenticated, and nothing will flag that. Copy an existing handler when addin
 one.
 
 `Logout` deletes the row. `DeleteAccount` deletes the user and all their data
-(`delete_user_account_and_data`, `src/db/auth.rs`).
+(`delete_user_account_and_data`, `src/db/auth.rs`), including the account's
+event log, and drops the server's cached fold of it.
+
+## The account and the server session
+
+Signing in to the server and having the account are two different things on
+the phone (`AuthProvider`):
+
+- `isLoggedIn` — an account is open on this phone (a user id is known).
+  Everything works from here: the account file is on the phone.
+- `hasServerSession` — the server knows this phone (a session token). Sync,
+  multiplayer and the profile need it.
+
+A passkey sign-in sets both: the token, and the user id whose file
+`AccountSync` then opens (pulling the log from the server first on a fresh
+install). If the server later refuses the token, `expireSession` clears only
+the token; the account stays open and usable, and signing in again from
+`/login` resumes sync.
+
+"Open an account file" on the login screen opens an exported account with no
+server at all (`AuthProvider.openLocalAccount`): the file names its owner, so
+the user id comes from it. Signing in as that user later lets it sync again.
+A file belonging to a different account than the one open is refused.
 
 ## Challenge lifetime
 
@@ -163,8 +185,8 @@ credential JSON rather than as its own column
 `TestLogin(username)` bypasses WebAuthn entirely: it calls
 `get_or_create_user_with_auth_session`, which returns an existing account if the
 username matches and issues a 30-day session token for it. **It is an account
-takeover primitive by design** and exists only for emulator development and
-`examples/load_simulation.rs`.
+takeover primitive by design** and exists only for emulator development, the
+e2e scenarios' API peers and the server's own tests.
 
 It is gated behind the `test-auth` Cargo feature:
 

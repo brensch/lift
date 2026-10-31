@@ -142,7 +142,7 @@ impl Stream {
                     .push_events(&self.user_id, events)
                     .await
                     .map_err(|error| match error.downcast_ref::<Diverged>() {
-                        // The phone shows this and asks which copy to keep.
+                        // The phone shows this and stops pushing; nothing is merged.
                         Some(diverged) => Status::failed_precondition(diverged.to_string()).into(),
                         None => internal_error(error),
                     })?;

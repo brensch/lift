@@ -109,7 +109,7 @@ Future<T> retryReadAfterReconnect<T>({
 /// Logs every unary gRPC call with timing and error info.
 class LoggingInterceptor extends ClientInterceptor {
   static const _tag = 'gRPC';
-  // High-frequency polling calls — log at debug to avoid noise.
+  // Frequent calls — log at debug to avoid noise.
   static const _debugOnlyMethods = {
     '/workout.v1.MultiplayerService/GetCurrentSession',
     '/workout.v1.AnalyticsService/RecordPageViews',

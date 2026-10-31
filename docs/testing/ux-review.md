@@ -54,7 +54,7 @@ handshake**:
 - The partners list button is now **"Ask"** — it sends a request (gated on a
   prior pairing), not an instant join.
 - The recipient's app shows a top **banner**: "*name* wants to train with you"
-  with Approve / Decline (polled ~1 Hz, independent of session state).
+  with Approve / Decline (pushed down the Sync stream, independent of session state).
 - Approving pairs both into a session (the responder's current one, or a fresh
   one); declining consumes the request. Requests expire after 2 min.
 - The QR scan stays the instant path (scanning is explicit consent by the sharer).

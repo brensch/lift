@@ -1,18 +1,21 @@
 # In-process app harness (no device required)
 
-Two layers under `app/test/support/` let tests drive the real app logic
-and real screens on any machine — no emulator, no backend.
+Two layers let tests drive the real app logic and real screens on any
+machine — no emulator, no backend.
 
 ## Provider harness
 
-`ProviderHarness.boot()` builds a real `WorkoutProvider` against
-`FakeWorkoutService` (an in-memory `WorkoutServiceWrapper`), with the
-platform channels the provider touches mocked. Canned responses go in;
-every mutation batch the provider flushes is captured; `failMutations`
-holds the offline queue open. Used by
-`test/providers/workout_provider_ops_test.dart` to pin the optimistic
-plan ops, overlay replay dedupe, and the offline queue — the client half
-of what `src/server/workout_tests.rs` pins server-side.
+`ProviderHarness.boot()` (`app/test/support/provider_harness.dart`) builds a
+real `WorkoutProvider` and `SettingsProvider` against the **real core**: the
+host build of `app/native` (`target/debug/libschlift_native.so`, `.dylib` on
+macOS), opened on an in-memory account through `FixedCore`. The platform
+channels the provider touches (notifications, prefs) are mocked. Build the
+library first — `make test-app` runs `cargo build -p schlift_native` and then
+`flutter test`.
+
+Nothing is canned: a test makes the same calls the app does and reads the
+core's answers. Used by `test/providers/workout_provider_test.dart`. The
+rules themselves are tested in Rust (`core/tests/api.rs`).
 
 Gotchas encoded in the harness:
 

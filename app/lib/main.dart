@@ -314,8 +314,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         }
         if (isPermissions) return '/';
 
-        // Route brand-new users to setup: the server says a user is
-        // onboarded once they have any templates or workouts.
+        // Route brand-new users to setup: an account is onboarded once it
+        // has any templates or workouts.
         final home = _workoutProvider.home;
         if (loggedIn && !isOnboarding && home != null && !home.onboarded) {
           return '/onboarding';

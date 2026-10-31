@@ -1,4 +1,4 @@
-//! Drives a real backend through randomised but realistic workout sessions and
+//! Drives the core through randomised but realistic workout sessions and
 //! asserts invariants after every mutation.
 //!
 //! This exists to find the bugs unit tests do not: ones that need a specific

@@ -15,10 +15,10 @@ would, so what you see in the report is what a user would see.
   binding via `flutter drive`, on the emulator. Real gRPC round-trips, timers and
   animations resolve naturally — no fake-async, no mocked services.
 - **Multiplayer without a second phone.** A scenario is *also* a gRPC client. It
-  can log in additional users ("API peers") and drive them through the backend.
-  The real app sees them through its normal 1 Hz session polling, because the
-  backend can't tell an API peer from another phone. This is the "Model B" from
-  the design discussion: one real app instance + API-driven peers.
+  can log in additional users ("API peers") that act like phones: each records
+  events on its own in-memory core and pushes them over `Sync`. The real app
+  sees them on its Sync stream, because the backend can't tell an API peer
+  from another phone. One real app instance + API-driven peers.
 - **Dev login.** Scenarios authenticate through the app's existing `kDebugMode`
   dev-login field (backed by the `test-auth` backend feature), so no passkey/
   WebAuthn automation is needed.
@@ -79,7 +79,7 @@ the warmup ladder seed a session through the API first.
 | `skip_warmups_test.dart` | With API-seeded history the next session opens with warmups; "Skip" on the warmup row marks them skipped (none removed), up next moves to the first working set, and a skipped warmup can still be done. |
 | `crash_recovery_test.dart` | Done, then a cold relaunch resumes the live workout with the set still recorded. |
 | `workout_backend_sync_test.dart` | A set logged with Done is in the backend's active workout. |
-| `workout_home_after_finish_test.dart` | Sets completed by an API peer (rung answered Right, then the working sets), ended from the UI: the summary and the tracker agree on the advanced weight. |
+| `workout_home_after_finish_test.dart` | Sets completed in the app (rung answered Right, then the working sets), ended from the UI: the summary and the backend's tracker agree on the calibrated weight. |
 | `multiplayer_peer_test.dart` | An API peer joins; the app shows the 2-person session. |
 | `multiplayer_leave_test.dart` | The app tracks a peer joining *and* leaving in real time. |
 | `multiplayer_workout_progress_test.dart` | A peer joining mid-workout shows on the workout screen; the app user's own workout stays intact. |
@@ -160,9 +160,14 @@ final aliceToken = /* login as the app user via api to fetch their token */;
 await bob.joinViaInvite(await alice.inviteToken());  // pull the app user into a session
 ```
 
+One phone records an account, so a peer logged in as the app's own user only
+reads: once it adopts the app's workout (`adoptActiveWorkout`) a write
+throws. Reads pull the account's log into the peer's core and answer from it,
+exactly as a reinstalled phone would.
+
 See `integration_test/support/api.dart` for `Peer` (invite/join, start workout,
-complete sets, rate an exercise, skip rest, end workout, leave session, add
-library templates). `completeAllWorkingSets()` / `doWorkout()` answer a
+complete sets, end workout, leave session, add library templates, training
+partners and join requests). `completeAllWorkingSets()` / `doWorkout()` answer a
 calibration rung "Right" on the way through, so a seeded session leaves the
 tracker performed and the user's next session gets the warmup ladder;
 `hasPerformed(exercise)` tells you which world you are in.

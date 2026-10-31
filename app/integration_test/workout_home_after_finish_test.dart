@@ -2,9 +2,10 @@
 // A fresh user's first session calibrates each lift: the onboarding seed is
 // only a guess, the rung answered "Right" is the working weight, and that is
 // what EndWorkout must write to the tracker (docs/plans/one-tap-sets.md §7).
-// Starts in the UI, completes every set via the API peer (rung answered Right,
-// then the appended working sets), ends from the UI, and checks the summary
-// shows the calibrated weight and the backend tracker now holds it, performed.
+// Starts in the UI, fast-forwards every set through the app's own account
+// (rung answered Right, then the appended working sets), ends from the UI,
+// and checks the summary shows the calibrated weight and the backend tracker
+// now holds it, performed.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';

@@ -85,7 +85,7 @@ stream open while the app can (`SyncService.Sync`):
   and on every (re)connect.
 - **Down:** the head the server holds (the ack), and, whole each time, the
   caller's session and requests to join them — on connect, on every change,
-  and every 20 s regardless.
+  and re-checked every 20 s (sent only when different from the last).
 
 The stream is only the fast path. An event leaves the outbox when the server
 acknowledges its seq, and is sent again after any reconnect; the server skips

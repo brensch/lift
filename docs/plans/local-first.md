@@ -1,6 +1,8 @@
 # Local-first: the Rust core on the phone
 
-Status: **in progress.** Phase 1 done (the `core/` crate); Phase 2 next.
+Status: **Phases 1–3 done**; sync landed as part of phase 3, and phase 5
+(deleting the old per-RPC endpoints) was folded in. What remains is shipping.
+How it works now: [`docs/architecture/local-first.md`](../architecture/local-first.md).
 
 ## Goal
 
