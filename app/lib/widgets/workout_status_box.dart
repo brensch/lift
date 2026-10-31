@@ -79,7 +79,7 @@ class StatusBox extends StatelessWidget {
 
     // The band: their emoji on a block of their own colour, full height
     // from the left edge; the stage; the clock hard right.
-    const bandHeight = 52.0;
+    const bandHeight = 68.0;
     final band = Container(
       height: bandHeight,
       color: stateColor,
@@ -111,7 +111,12 @@ class StatusBox extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 8, right: 12),
               child: Center(
-                child: Text(timerText!, style: bandMono(t.size.headline)),
+                // The clock is read from across the gym: the biggest thing
+                // in the band.
+                child: Text(
+                  timerText!,
+                  style: bandMono(t.size.displayLg).copyWith(letterSpacing: 0),
+                ),
               ),
             ),
         ],
