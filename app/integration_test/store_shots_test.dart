@@ -113,7 +113,6 @@ void main() {
         'Deadlift',
         'Overhead Press',
         'Barbell Row',
-        'Lat Pulldown',
       ];
       await s.tapText(
         lifts.firstWhere(
@@ -137,7 +136,9 @@ void main() {
       await s.tapText('Logout');
       await s.devLogin('demo-live');
       await s.completeOnboarding();
-      if (!await s.waitForText('End workout', seconds: 10)) {
+      // The workout screen's Heart tab: there is no Start on home to wait
+      // for when the app resumes into the live session.
+      if (!await s.waitForText('Heart', seconds: 10)) {
         final live = await s.api.login('demo-live');
         if (await seedThinHistoryIfNeeded(live)) {
           s.note(
@@ -159,9 +160,14 @@ void main() {
       }
       await s.shot('Workout ready');
 
-      // 05 — resting after a set: Start, then Good; the countdown runs and
-      // Start is offered for the next set.
-      await s.liftSet();
+      // 05 — lifting: the set started, its timer counting up.
+      // 06 — resting after it: the countdown runs to the next set.
+      await s.liftSet(
+        whileLifting: () async {
+          await s.settle(seconds: 3);
+          await s.shot('Lifting');
+        },
+      );
       await s.settle(seconds: 2);
       await feedHeartRate(
         tester,
@@ -169,7 +175,7 @@ void main() {
       );
       await s.shot('Resting');
 
-      // 06 — the Heart tab: the trace over the session.
+      // 07 — the Heart tab: the trace over the session.
       await s.tapText('Heart');
       await s.settle(seconds: 2);
       await feedHeartRate(
@@ -177,15 +183,6 @@ void main() {
         sinceMs: DateTime.now().millisecondsSinceEpoch - 20000,
       );
       await s.shot('Heart rate');
-
-      // 07 — the completed screen: Duration / Volume / Sets / Rest and the
-      // heart-rate trace with the rests shaded. Ending through the UI also
-      // leaves the account clean for the next capture.
-      await s.tapText('Workout');
-      await s.settle(seconds: 1);
-      await s.endWorkoutAndWaitForSummary();
-      await s.settle(seconds: 2);
-      await s.shot('Workout complete');
     });
   });
 }

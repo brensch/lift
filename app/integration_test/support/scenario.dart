@@ -504,7 +504,10 @@ class Scenario {
   /// Lift the next set on its circle: tap to start it, tap again when it is
   /// done, then once more per [missed] rep. On a calibration rung a
   /// missed rep settles the working sets; a full one climbs.
-  Future<void> liftSet({int missed = 0}) async {
+  Future<void> liftSet({
+    int missed = 0,
+    Future<void> Function()? whileLifting,
+  }) async {
     for (var i = 0; i < 16 && !setOffered; i++) {
       await settle(seconds: 1);
     }
@@ -519,6 +522,7 @@ class Scenario {
       set.id,
       reason: 'the first tap starts the set',
     );
+    if (whileLifting != null) await whileLifting();
     for (var i = 0; i <= missed; i++) {
       await tap(circleFor(set.id));
     }

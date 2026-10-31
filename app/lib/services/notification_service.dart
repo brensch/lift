@@ -104,7 +104,6 @@ class NotificationService {
       playSound: true,
       enableVibration: true,
       category: AndroidNotificationCategory.alarm,
-      fullScreenIntent: true,
     );
 
     final darwinDetails = DarwinNotificationDetails(

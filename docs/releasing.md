@@ -334,19 +334,22 @@ file exists.
 
 ### Icon and feature graphic
 
-`make brand` renders the app icon concepts and Play feature graphic
-directions (`scripts/render_brand.py`, SVG in the app's own typeface) into
-`marketing/icons/candidates/` and `marketing/feature_graphic_candidates/`.
-Edit shapes or copy there; a change is a diff, not a design-tool export.
+`make brand` renders the app icon master (`marketing/icon.png`, 1024×1024)
+and the Play feature graphic (`marketing/feature_graphic.png`, 1024×500)
+from `scripts/render_brand.py`: SVG in the app's own palette and faces, so a
+change to a shape or a colour is a diff, not a design-tool export.
 
-To adopt an icon on every platform (iOS, watchOS, macOS, Android legacy +
+To put the icon on every platform (iOS, watchOS, macOS, Android legacy +
 adaptive, Wear OS, web, Windows, and the Play store icon):
 
 ```bash
-make icons ICON_SOURCE=marketing/icons/candidates/<name>.png
+make icons ICON_SOURCE=marketing/icon.png
 ```
 
-To adopt a feature graphic: copy it to `marketing/feature_graphic.png`.
+The master is full bleed: the Android adaptive foreground fills the 72dp a
+launcher shows and stretches its edges over the rest of the canvas, so a
+round mask crops it the way the store's circle does.
+
 Both are pushed to Play by the Store Assets workflow (the App Store icon
 ships inside the build). Commit the results with the `v*` release that
 should carry them.

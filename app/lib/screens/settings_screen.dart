@@ -6,7 +6,7 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../services/account_sync.dart';
@@ -199,8 +199,8 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
     if (confirmed != true || userId == null) return;
-    final picked = await FilePicker.platform.pickFiles();
-    final path = picked?.files.single.path;
+    // A document picker only: no photo library, so no purpose string.
+    final path = (await openFile())?.path;
     if (path == null) return;
     try {
       await sync.importFile(path);

@@ -21,8 +21,8 @@ use std::collections::HashMap;
 use crate::db::{DbResult, ServerDb};
 use crate::time::now_unix;
 use schlift::workout::v1::{
-    CompleteSetRequest, CompletedSet, Event, Exercise, ImportHistory, ImportedWorkout, ProposedSet,
-    SaveTemplateRequest, StartWorkoutRequest, TrackerRecord, Workout, WorkoutTemplate,
+    AddLibraryTemplatesRequest, CompleteSetRequest, CompletedSet, Event, Exercise, ImportHistory,
+    ImportedWorkout, ProposedSet, StartWorkoutRequest, TrackerRecord, Workout,
 };
 use schlift_core::account::Account;
 use schlift_core::api::Call;
@@ -44,41 +44,24 @@ const LIVE_DONE_EXERCISES: usize = 2;
 /// (blue bar, countdown) rather than overdue.
 const LIVE_REST_ENDS_IN: i64 = 5 * 60;
 
+/// A template from the library (templates/library.yaml), added as a new
+/// lifter adds it; `exercises` mirrors the library's so the history matches.
 struct Template {
+    library_id: &'static str,
     name: &'static str,
     exercises: &'static [Exercise],
 }
 
 const TEMPLATES: &[Template] = &[
     Template {
-        name: "Push",
-        exercises: &[
-            Exercise::BenchPress,
-            Exercise::InclineDumbbellPress,
-            Exercise::OverheadPress,
-            Exercise::LateralRaise,
-            Exercise::TricepPushdown,
-        ],
+        library_id: "stronglifts_a",
+        name: "StrongLifts A",
+        exercises: &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow],
     },
     Template {
-        name: "Pull",
-        exercises: &[
-            Exercise::Deadlift,
-            Exercise::LatPulldown,
-            Exercise::BarbellRow,
-            Exercise::FacePull,
-            Exercise::BarbellCurl,
-        ],
-    },
-    Template {
-        name: "Legs",
-        exercises: &[
-            Exercise::Squat,
-            Exercise::RomanianDeadlift,
-            Exercise::LegPress,
-            Exercise::LegCurl,
-            Exercise::HipThrust,
-        ],
+        library_id: "stronglifts_b",
+        name: "StrongLifts B",
+        exercises: &[Exercise::Squat, Exercise::OverheadPress, Exercise::Deadlift],
     },
 ];
 
@@ -444,19 +427,20 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
     let mut template_ids = Vec::new();
     {
         let mut call = Call::new(&mut account, now, Uuid::new_v4().to_string());
-        for t in TEMPLATES {
-            let saved = call
-                .save_template(SaveTemplateRequest {
-                    template: Some(WorkoutTemplate {
-                        name: t.name.to_string(),
-                        exercises: t.exercises.iter().map(|e| *e as i32).collect(),
-                        ..Default::default()
-                    }),
-                })
-                .expect("the demo templates are valid");
-            template_ids.push(saved.template.expect("saved").id);
-        }
+        call.add_library_templates(AddLibraryTemplatesRequest {
+            library_ids: TEMPLATES.iter().map(|t| t.library_id.to_string()).collect(),
+            ..Default::default()
+        })
+        .expect("the demo templates are in the library");
         events.append(&mut call.events);
+    }
+    for t in TEMPLATES {
+        let saved = account
+            .templates
+            .iter()
+            .find(|saved| saved.name == t.name)
+            .expect("the library template was added");
+        template_ids.push(saved.id.clone());
     }
 
     let mut lifts: HashMap<i32, Lift> = HashMap::new();

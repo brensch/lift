@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import '../gen/copy.dart';
 import 'lost_passkey_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/account_sync.dart';
@@ -385,8 +385,8 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _openFile() async {
     final auth = context.read<AuthProvider>();
     final sync = context.read<AccountSync>();
-    final picked = await FilePicker.platform.pickFiles();
-    final path = picked?.files.single.path;
+    // A document picker only: no photo library, so no purpose string.
+    final path = (await openFile())?.path;
     if (path == null) return;
     try {
       final (userId, name) = await sync.importFile(path);

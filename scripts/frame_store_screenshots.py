@@ -47,13 +47,14 @@ TARGETS = [
     Target("appstore", "iphone", 1320, 2868),
 ]
 
-# Brand: the app's dark theme with its green and blue accents.
-BG = "#0A0A0B"
-PANEL = "#161619"
-GREEN = "#3AD98B"
-BLUE = "#6EA8FF"
-TEXT = "#FAFAFA"
-MUTED = "#9A9AA3"
+# Brand: the app's warm grey hardware and signal orange (schlift_spec.dart).
+GROUND = "#DBDAD2"
+PANEL = "#EDECE5"
+HAIRLINE = "#B7B6AC"
+OUTLINE = "#74746E"
+SIGNAL = "#FF4F00"
+TEXT = "#111111"
+MUTED = "#4A4A44"
 
 
 def font_face(name: str, file: str, weight: int) -> str:
@@ -74,13 +75,13 @@ def png_size(path: Path) -> tuple[int, int]:
 CROP_TOP = 72
 
 
-def page_html(target: Target, raw_png: Path, title: str, subtitle: str, index: int) -> str:
+def page_html(target: Target, raw_png: Path, title: str, subtitle: str) -> str:
     shot = base64.b64encode(raw_png.read_bytes()).decode()
     raw_w, raw_h = png_size(raw_png)
     w, h = target.width, target.height
     # Everything scales off the canvas width so both sizes share one design.
     u = w / 1080
-    title_px = int(84 * u)
+    title_px = int(76 * u)
     sub_px = int(36 * u)
     caption_top = int(150 * u)
     phone_top = caption_top + title_px + int(sub_px * 1.35 * 2) + int(70 * u)
@@ -92,42 +93,32 @@ def page_html(target: Target, raw_png: Path, title: str, subtitle: str, index: i
     phone_w = min(int(w * 0.84), int((h - bottom_margin - phone_top) / visible_aspect))
     scale = phone_w / raw_w
     radius = int(88 * u * (phone_w / (1080 * 0.80)))
-    accent = GREEN if index % 2 == 0 else BLUE
-    glow_top = (
-        f"radial-gradient(ellipse {int(w * 0.9)}px {int(h * 0.45)}px at 50% {int(h * 0.28)}px, "
-        f"{accent}26 0%, transparent 70%)"
-    )
-    glow_bottom = (
-        f"radial-gradient(ellipse {int(w * 0.7)}px {int(h * 0.3)}px at 50% {int(h * 0.9)}px, "
-        f"{accent}1A 0%, transparent 70%)"
-    )
+    # The orange band runs under the bottom of the phone, as on the banner.
+    band_h = int(h * 0.2)
     gutter = int(48 * u)
-    title_font = "font-family: 'Space Grotesk', sans-serif; font-weight: 700"
     subtitle_box = f"margin: {int(24 * u)}px auto 0; max-width: {int(w * 0.9)}px"
-    shadow = (
-        f"0 {int(40 * u)}px {int(120 * u)}px rgba(0,0,0,0.65), "
-        f"0 0 0 {int(3 * u)}px rgba(255,255,255,0.06)"
-    )
+    edge = max(1, int(2 * u))
+    shadow = f"0 {int(24 * u)}px {int(64 * u)}px rgba(17,17,17,0.18), 0 0 0 {edge}px {OUTLINE}"
     img_lift = int(CROP_TOP * scale)
     return f"""<!doctype html>
 <html><head><meta charset="utf-8">
 <style>
-{font_face("Space Grotesk", "SpaceGrotesk-Bold.ttf", 700)}
-{font_face("Manrope", "Manrope-Regular.ttf", 400)}
-html, body {{ margin: 0; width: {w}px; height: {h}px; overflow: hidden; background: {BG}; }}
+{font_face("Space Mono", "SpaceMono-Bold.ttf", 700)}
+{font_face("Space Grotesk", "SpaceGrotesk-Medium.ttf", 500)}
+html, body {{ margin: 0; width: {w}px; height: {h}px; overflow: hidden; background: {GROUND}; }}
 body {{
-  position: relative; font-family: 'Manrope', sans-serif; color: {TEXT};
-  background:
-    {glow_top},
-    {glow_bottom},
-    linear-gradient(180deg, {BG} 0%, #0E0E10 100%);
+  position: relative; font-family: 'Space Grotesk', sans-serif; font-weight: 500; color: {TEXT};
+}}
+.band {{
+  position: absolute; left: 0; right: 0; bottom: 0; height: {band_h}px; background: {SIGNAL};
+  border-top: {edge}px solid {HAIRLINE};
 }}
 .caption {{
   position: absolute; left: {gutter}px; right: {gutter}px; top: {caption_top}px; text-align: center;
 }}
 .title {{
-  {title_font}; font-size: {title_px}px; line-height: 1.05;
-  letter-spacing: -0.02em; margin: 0;
+  font-family: 'Space Mono', monospace; font-weight: 700; font-size: {title_px}px;
+  line-height: 1.05; letter-spacing: -0.02em; margin: 0;
 }}
 .subtitle {{
   font-size: {sub_px}px; line-height: 1.35; color: {MUTED}; {subtitle_box};
@@ -141,6 +132,7 @@ body {{
 .phone img {{ display: block; width: {phone_w}px; height: auto; margin-top: -{img_lift}px; }}
 </style></head>
 <body>
+  <div class="band"></div>
   <div class="caption">
     <h1 class="title">{title}</h1>
     <div class="subtitle">{subtitle}</div>
@@ -169,9 +161,7 @@ def render_all() -> list[Path]:
                 raw = RAW / slide["file"]
                 if not raw.is_file():
                     raise SystemExit(f"missing raw screenshot {raw}")
-                page.set_content(
-                    page_html(target, raw, slide["title"], slide.get("subtitle", ""), i)
-                )
+                page.set_content(page_html(target, raw, slide["title"], slide.get("subtitle", "")))
                 page.wait_for_load_state("networkidle")
                 out = OUT / target.store / target.kind / f"{i:02d}.png"
                 page.screenshot(path=str(out), full_page=False)
