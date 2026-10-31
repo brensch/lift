@@ -51,6 +51,9 @@ fmt_check_dart() {
 }
 lint_dart() {
 	need flutter "install the Flutter SDK"
+	# cargokit's build tool (app/rust_builder) is its own package: analyzed
+	# with the app, so its dependencies must be fetched too.
+	(cd app/rust_builder/cargokit/build_tool && flutter pub get >/dev/null)
 	(cd app && flutter analyze --fatal-infos --fatal-warnings)
 }
 
