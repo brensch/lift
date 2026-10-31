@@ -94,7 +94,7 @@ class StatusBox extends StatelessWidget {
       child: Text(
         stateLabel.toUpperCase(),
         maxLines: 1,
-        style: bandMono(t.size.display).copyWith(letterSpacing: 0.5),
+        style: bandMono(t.size.headlineLg).copyWith(letterSpacing: 0.5),
       ),
     );
     final band = SizedBox(
@@ -146,7 +146,7 @@ class StatusBox extends StatelessWidget {
                       child: Text(
                         timerText!,
                         style: bandMono(
-                          t.size.headlineLg,
+                          t.size.displayLg,
                         ).copyWith(letterSpacing: 0),
                       ),
                     ),
