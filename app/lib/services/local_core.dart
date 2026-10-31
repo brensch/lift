@@ -47,12 +47,16 @@ class LocalCore {
   static Future<void> init({ExternalLibrary? library}) =>
       _loading ??= RustLib.init(externalLibrary: library);
 
-  /// The account file at [path], for [userId].
-  static Future<LocalCore> open(String path, String userId) async {
+  /// The account file at [path], for [userId], known as [name].
+  static Future<LocalCore> open(
+    String path,
+    String userId, {
+    String name = '',
+  }) async {
     await init();
     try {
       return LocalCore._(
-        await native.openAccount(path: path, userId: userId),
+        await native.openAccount(path: path, userId: userId, name: name),
       );
     } catch (e) {
       throw CoreException.from(e);
@@ -125,8 +129,8 @@ class LocalCore {
     }
   }
 
-  /// Whose account the file at [path] holds.
-  static Future<String> fileOwner(String path) async {
+  /// Whose account the file at [path] holds: the user's id and name.
+  static Future<(String, String)> fileOwner(String path) async {
     await init();
     try {
       return await native.accountFileOwner(path: path);

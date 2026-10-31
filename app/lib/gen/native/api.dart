@@ -9,9 +9,16 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 // These functions are ignored because they are not marked as `pub`: `now_unix`
 
 /// Open the account file at `path` (":memory:" for one that lives only
-/// while open) for `user_id`. Returns its handle.
-Future<int> openAccount({required String path, required String userId}) =>
-    RustLib.instance.api.crateApiOpenAccount(path: path, userId: userId);
+/// while open) for `user_id`, known as `name`. Returns its handle.
+Future<int> openAccount({
+  required String path,
+  required String userId,
+  required String name,
+}) => RustLib.instance.api.crateApiOpenAccount(
+  path: path,
+  userId: userId,
+  name: name,
+);
 
 Future<void> closeAccount({required int handle}) =>
     RustLib.instance.api.crateApiCloseAccount(handle: handle);
@@ -65,6 +72,6 @@ Future<PlatformInt64> restore({
 Future<void> exportAccount({required int handle, required String dest}) =>
     RustLib.instance.api.crateApiExportAccount(handle: handle, dest: dest);
 
-/// Whose account the file at `path` holds.
-Future<String> accountFileOwner({required String path}) =>
+/// Whose account the file at `path` holds: the user's id and name.
+Future<(String, String)> accountFileOwner({required String path}) =>
     RustLib.instance.api.crateApiAccountFileOwner(path: path);

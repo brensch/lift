@@ -127,10 +127,18 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     }
   }
 
+  /// Everything that reads the account, read again.
+  Future<void> _reloadAccount() async {
+    final userId = _authProvider.userId;
+    if (userId == null) return;
+    await _settingsProvider.load();
+    await _workoutProvider.loadActiveWorkout(userId);
+  }
+
   /// Open the account on this phone (restoring it from the server on a
   /// fresh install), then everything that reads it.
   Future<void> _openAccount(String userId) async {
-    await _accountSync.signIn(userId);
+    await _accountSync.signIn(userId, _authProvider.username ?? '');
     await _settingsProvider.load();
     await _workoutProvider.loadActiveWorkout(userId);
   }
@@ -156,12 +164,17 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     );
 
     // The account lives on this phone; the stream keeps the server level.
-    _accountSync = AccountSync(_grpcClient)
-      ..onSessionRejected = () => unawaited(
+    _accountSync = AccountSync(_grpcClient);
+    _accountSync.onCaughtUp = () {
+      unawaited(_reloadAccount());
+    };
+    _accountSync.onSessionRejected = () {
+      unawaited(
         _authProvider.expireSession(
           message: 'Sign in again to sync this phone with your account.',
         ),
       );
+    };
     _account = WorkoutServiceWrapper(_accountSync);
     _settingsProvider = SettingsProvider(_account);
     _soundProvider = SoundProvider();

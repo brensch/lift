@@ -46,6 +46,13 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
+  /// Phosphor `uploadSimple`.
+  static const upload = IconData(
+    0xe4c0,
+    fontFamily: _family,
+    fontPackage: _package,
+  );
+
   /// Phosphor `arrowLeft`.
   static const back = IconData(
     0xe058,

@@ -78,7 +78,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<String> crateApiAccountFileOwner({required String path});
+  Future<(String, String)> crateApiAccountFileOwner({required String path});
 
   Future<void> crateApiAcked({
     required int handle,
@@ -110,6 +110,7 @@ abstract class RustLibApi extends BaseApi {
   Future<int> crateApiOpenAccount({
     required String path,
     required String userId,
+    required String name,
   });
 
   Future<(Uint8List, PlatformInt64)> crateApiOutbox({required int handle});
@@ -133,7 +134,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<String> crateApiAccountFileOwner({required String path}) {
+  Future<(String, String)> crateApiAccountFileOwner({required String path}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -147,7 +148,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+          decodeSuccessData: sse_decode_record_string_string,
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiAccountFileOwnerConstMeta,
@@ -359,6 +360,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Future<int> crateApiOpenAccount({
     required String path,
     required String userId,
+    required String name,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -366,6 +368,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(path, serializer);
           sse_encode_String(userId, serializer);
+          sse_encode_String(name, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -378,7 +381,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiOpenAccountConstMeta,
-        argValues: [path, userId],
+        argValues: [path, userId, name],
         apiImpl: this,
       ),
     );
@@ -386,7 +389,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiOpenAccountConstMeta => const TaskConstMeta(
     debugName: "open_account",
-    argNames: ["path", "userId"],
+    argNames: ["path", "userId", "name"],
   );
 
   @override
@@ -526,6 +529,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  (String, String) dco_decode_record_string_string(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (dco_decode_String(arr[0]), dco_decode_String(arr[1]));
+  }
+
+  @protected
   int dco_decode_u_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -587,6 +600,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_field0 = sse_decode_list_prim_u_8_strict(deserializer);
     var var_field1 = sse_decode_i_64(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_String(deserializer);
     return (var_field0, var_field1);
   }
 
@@ -671,6 +694,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_prim_u_8_strict(self.$1, serializer);
     sse_encode_i_64(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_String(self.$2, serializer);
   }
 
   @protected

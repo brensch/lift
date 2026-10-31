@@ -46,9 +46,10 @@ pub struct Store {
 }
 
 impl Store {
-    /// Open (or create) the file for `user_id`. A file belonging to someone
+    /// Open (or create) the file for `user_id`, known as `name` (kept in
+    /// the file so it opens with no server). A file belonging to someone
     /// else is refused.
-    pub fn open(path: &Path, user_id: &str) -> StoreResult<Self> {
+    pub fn open(path: &Path, user_id: &str, name: &str) -> StoreResult<Self> {
         let conn = Connection::open(path).map_err(storage)?;
         conn.execute_batch(&format!("{SCHEMA}{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
             .map_err(storage)?;
@@ -72,6 +73,14 @@ impl Store {
                 )
                 .map_err(storage)?;
             }
+        }
+        if !name.is_empty() {
+            conn.execute(
+                "INSERT INTO meta (key, value) VALUES ('name', ?)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                [name],
+            )
+            .map_err(storage)?;
         }
         let mut store = Self {
             conn,
@@ -211,14 +220,23 @@ impl Store {
     }
 }
 
-/// Whose account an exported file holds, without opening it as the store.
-pub fn file_owner(path: &Path) -> StoreResult<String> {
+/// Whose account an exported file holds — the user's id and name —
+/// without opening it as the store.
+pub fn file_owner(path: &Path) -> StoreResult<(String, String)> {
     let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
         .map_err(storage)?;
-    conn.query_row("SELECT value FROM meta WHERE key = 'user_id'", [], |r| {
-        r.get(0)
-    })
-    .map_err(|_| "invalid_argument: not a Schlift account file".to_string())
+    let meta = |key: &str| {
+        conn.query_row("SELECT value FROM meta WHERE key = ?", [key], |r| {
+            r.get::<_, String>(0)
+        })
+        .optional()
+    };
+    let not_ours = || "invalid_argument: not a Schlift account file".to_string();
+    let user_id = meta("user_id")
+        .map_err(|_| not_ours())?
+        .ok_or_else(not_ours)?;
+    let name = meta("name").map_err(|_| not_ours())?.unwrap_or_default();
+    Ok((user_id, name))
 }
 
 fn run(tx: &rusqlite::Transaction, statement: Statement) -> StoreResult<()> {
@@ -272,7 +290,7 @@ mod tests {
     #[test]
     fn a_reopened_file_is_the_same_account() {
         let path = temp("reopen");
-        let mut store = Store::open(&path, "u1").unwrap();
+        let mut store = Store::open(&path, "u1", "una").unwrap();
         let home = onboard(&mut store);
         let started = StartWorkoutResponse::decode(
             store
@@ -292,7 +310,7 @@ mod tests {
         let before = store.account.clone();
         drop(store);
 
-        let store = Store::open(&path, "u1").unwrap();
+        let store = Store::open(&path, "u1", "una").unwrap();
         assert_eq!(store.account, before);
         assert_eq!(store.account.active_workout_id, started.id);
         // The readable tables are there too.
@@ -310,15 +328,15 @@ mod tests {
     #[test]
     fn someone_elses_file_is_refused() {
         let path = temp("owner");
-        Store::open(&path, "u1").unwrap();
-        assert!(Store::open(&path, "u2").is_err());
-        assert_eq!(file_owner(&path).unwrap(), "u1");
+        Store::open(&path, "u1", "una").unwrap();
+        assert!(Store::open(&path, "u2", "").is_err());
+        assert_eq!(file_owner(&path).unwrap(), ("u1".into(), "una".into()));
     }
 
     #[test]
     fn the_outbox_is_what_the_server_has_not_acked() {
         let path = temp("outbox");
-        let mut store = Store::open(&path, "u1").unwrap();
+        let mut store = Store::open(&path, "u1", "una").unwrap();
         onboard(&mut store);
         assert_eq!(store.acked().unwrap(), 0);
         assert_eq!(store.events_after(store.acked().unwrap()).unwrap().len(), 1);
@@ -333,11 +351,11 @@ mod tests {
 
     #[test]
     fn a_fresh_install_restores_from_the_servers_log() {
-        let mut original = Store::open(&temp("a"), "u1").unwrap();
+        let mut original = Store::open(&temp("a"), "u1", "").unwrap();
         onboard(&mut original);
         let events = original.events_after(0).unwrap();
 
-        let mut fresh = Store::open(&temp("b"), "u1").unwrap();
+        let mut fresh = Store::open(&temp("b"), "u1", "").unwrap();
         assert_eq!(fresh.restore(events).unwrap(), 1);
         assert_eq!(fresh.account, original.account);
         assert_eq!(fresh.acked().unwrap(), 1, "the server holds them");
@@ -345,11 +363,11 @@ mod tests {
 
     #[test]
     fn an_export_opens_as_the_same_account() {
-        let mut store = Store::open(&temp("x"), "u1").unwrap();
+        let mut store = Store::open(&temp("x"), "u1", "una").unwrap();
         onboard(&mut store);
         let dest = temp("export");
         store.export(&dest).unwrap();
-        assert_eq!(file_owner(&dest).unwrap(), "u1");
-        assert_eq!(Store::open(&dest, "u1").unwrap().account, store.account);
+        assert_eq!(file_owner(&dest).unwrap(), ("u1".into(), "una".into()));
+        assert_eq!(Store::open(&dest, "u1", "").unwrap().account, store.account);
     }
 }

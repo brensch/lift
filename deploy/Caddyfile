@@ -42,6 +42,9 @@ schlift.com {
     }
     handle @grpc {
         reverse_proxy 127.0.0.1:50051 {
+            # The Sync stream stays open for a whole workout: pass each
+            # message on as it comes rather than buffering.
+            flush_interval -1
             transport http {
                 versions h2c 2
             }
@@ -104,6 +107,9 @@ dev.schlift.com {
     }
     handle @grpc {
         reverse_proxy 127.0.0.1:50052 {
+            # The Sync stream stays open for a whole workout: pass each
+            # message on as it comes rather than buffering.
+            flush_interval -1
             transport http {
                 versions h2c 2
             }

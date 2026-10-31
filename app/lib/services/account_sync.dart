@@ -13,6 +13,7 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
 import 'package:grpc/grpc.dart';
 import 'package:path_provider/path_provider.dart';
@@ -87,16 +88,21 @@ class AccountSync extends ChangeNotifier
   /// ignored rather than taken for the new one's.
   int _generation = 0;
 
-  /// The account file for [userId], restored from the server when this
-  /// phone has nothing for it yet.
-  Future<void> signIn(String userId) async {
-    if (_userId == userId) return;
-    await signOut();
-    _userId = userId;
+  static Future<File> _fileFor(String userId) async {
     final dir = await getApplicationSupportDirectory();
     final accounts = Directory('${dir.path}/accounts');
     await accounts.create(recursive: true);
-    final core = await LocalCore.open('${accounts.path}/$userId.sqlite', userId);
+    return File('${accounts.path}/$userId.sqlite');
+  }
+
+  /// The account file for [userId] ([name]), restored from the server when
+  /// this phone has nothing for it yet.
+  Future<void> signIn(String userId, String name) async {
+    if (_userId == userId) return;
+    await signOut();
+    _userId = userId;
+    final file = await _fileFor(userId);
+    final core = await LocalCore.open(file.path, userId, name: name);
     if (_userId != userId) {
       core.close();
       return;
@@ -136,6 +142,25 @@ class AccountSync extends ChangeNotifier
     }
   }
 
+  /// Put the account file at [path] (an export) on this phone, replacing
+  /// this phone's copy of that account. Returns whose it is (id, name).
+  /// While an account is open only its own file is accepted; it's reopened
+  /// from the file.
+  Future<(String, String)> importFile(String path) async {
+    final (owner, name) = await LocalCore.fileOwner(path);
+    final open = _userId;
+    if (open != null && open != owner) {
+      throw const CoreException(
+        'failed_precondition',
+        'That file is a different account. Sign out to open it.',
+      );
+    }
+    if (open != null) await signOut();
+    await File(path).copy((await _fileFor(owner)).path);
+    if (open != null) await signIn(owner, name);
+    return (owner, name);
+  }
+
   /// The whole account as one SQLite file in the temp directory, named for
   /// [label] and today: the export.
   Future<File> export(String label) async {
@@ -143,7 +168,9 @@ class AccountSync extends ChangeNotifier
     final dir = await getTemporaryDirectory();
     final day = DateTime.now().toIso8601String().substring(0, 10);
     final safe = label.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
-    final file = File('${dir.path}/schlift-${safe.isEmpty ? 'account' : safe}-$day.sqlite');
+    final file = File(
+      '${dir.path}/schlift-${safe.isEmpty ? 'account' : safe}-$day.sqlite',
+    );
     await core.export(file.path);
     return file;
   }
@@ -199,6 +226,7 @@ class AccountSync extends ChangeNotifier
     }
     switch (message.whichKind()) {
       case SyncResponse_Kind.head:
+        await _catchUp(message.head.toInt());
         await _core?.acked(message.head.toInt());
         await _refreshUnsynced();
         // More may have been written while the last batch was in flight.
@@ -213,6 +241,28 @@ class AccountSync extends ChangeNotifier
         break;
     }
   }
+
+  /// The server holds events this file doesn't (it was restored from an
+  /// older export): pull them in after this file's own.
+  Future<void> _catchUp(int head) async {
+    final core = _core;
+    if (core == null) return;
+    final (seq, _) = await core.syncState();
+    if (head <= seq) return;
+    try {
+      final pulled = await _grpc.syncService.pullEvents(
+        PullEventsRequest(afterSeq: Int64(seq)),
+      );
+      await core.restore(pulled.events);
+      onCaughtUp?.call();
+    } catch (e) {
+      AppLogger.instance.warn(_tag, 'catch-up failed', {'error': e.toString()});
+    }
+  }
+
+  /// Called after events from the server were folded in: what's on screen
+  /// may have changed.
+  VoidCallback? onCaughtUp;
 
   /// Send what the server hasn't acknowledged and hasn't been sent on this
   /// stream yet.
@@ -263,8 +313,7 @@ class AccountSync extends ChangeNotifier
         (error.message ?? '').contains('account_diverged')) {
       _diverged = true;
       AppLogger.instance.error(_tag, 'diverged from the server');
-    } else if (error is GrpcError &&
-        error.code == StatusCode.unauthenticated) {
+    } else if (error is GrpcError && error.code == StatusCode.unauthenticated) {
       // The session lapsed: nothing to dial until the user signs in again.
       _hangUp();
       _needsSignIn = true;

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/workout_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../services/account_sync.dart';
@@ -103,6 +105,12 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => _export(context, auth),
             ),
             FlatRow(
+              icon: AppIcons.upload,
+              label: 'Import a file',
+              subtitle: 'Bring back an export of this account',
+              onTap: () => _import(context),
+            ),
+            FlatRow(
               icon: AppIcons.key,
               label: 'Passkeys',
               subtitle: 'Manage your login credentials',
@@ -161,6 +169,45 @@ class SettingsScreen extends StatelessWidget {
       await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
     } catch (e) {
       ErrorModalService.showError('EXPORT FAILED: $e');
+    }
+  }
+
+  /// Replace this phone's copy of the account with an exported file.
+  Future<void> _import(BuildContext context) async {
+    final sync = context.read<AccountSync>();
+    final workouts = context.read<WorkoutProvider>();
+    final settings = context.read<SettingsProvider>();
+    final userId = context.read<AuthProvider>().userId;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import a file?'),
+        content: const Text(
+          "This phone's copy of your account is replaced by the file. "
+          'Anything the server already has comes back when it syncs.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || userId == null) return;
+    final picked = await FilePicker.platform.pickFiles();
+    final path = picked?.files.single.path;
+    if (path == null) return;
+    try {
+      await sync.importFile(path);
+      await settings.load();
+      await workouts.loadActiveWorkout(userId);
+    } catch (e) {
+      ErrorModalService.showError('IMPORT FAILED: $e');
     }
   }
 

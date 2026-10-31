@@ -22,9 +22,9 @@ pub fn init_app() {
 }
 
 /// Open the account file at `path` (":memory:" for one that lives only
-/// while open) for `user_id`. Returns its handle.
-pub fn open_account(path: String, user_id: String) -> StoreResult<u32> {
-    insert(Store::open(&PathBuf::from(path), &user_id)?)
+/// while open) for `user_id`, known as `name`. Returns its handle.
+pub fn open_account(path: String, user_id: String, name: String) -> StoreResult<u32> {
+    insert(Store::open(&PathBuf::from(path), &user_id, &name)?)
 }
 
 pub fn close_account(handle: u32) {
@@ -81,7 +81,7 @@ pub fn export_account(handle: u32, dest: String) -> StoreResult<()> {
     with_store(handle, |store| store.export(&PathBuf::from(dest)))
 }
 
-/// Whose account the file at `path` holds.
-pub fn account_file_owner(path: String) -> StoreResult<String> {
+/// Whose account the file at `path` holds: the user's id and name.
+pub fn account_file_owner(path: String) -> StoreResult<(String, String)> {
     file_owner(&PathBuf::from(path))
 }
