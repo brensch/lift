@@ -5,6 +5,7 @@ import 'package:fixnum/fixnum.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/wearable.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../services/health_service.dart';
@@ -58,6 +59,26 @@ class HeartRateChart extends StatefulWidget {
 
 class _HeartRateChartState extends State<HeartRateChart> {
   static const double _defaultLiveWindowSeconds = 600; // 10 min
+  // Between an axis label and the plot.
+  static const double _axisGap = 4;
+
+  /// The laid-out size of one axis label, in the app's theme and the
+  /// device's text scale.
+  static Size _labelSize(BuildContext context, String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final size = painter.size;
+    painter.dispose();
+    return size;
+  }
+
   static const double _liveNowAnchorFraction = 0.75; // 3/4 across
   static const double _minWindowSeconds = 60;
   static const double _maxWindowSeconds = 3600;
@@ -240,11 +261,30 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final currentZone = zoneFor(currentBpm, zones);
     final zoneColor = _zoneColorForBpm(currentBpm, zones);
     final restBands = _clipVerticalAnnotations(
-      _buildRestBands(startMs),
+      _buildPhaseBands(startMs, nowSec),
       minX: minX,
       maxX: maxX,
     );
     final bottomInterval = _bottomAxisInterval(viewport.spanSec);
+    // Each axis is as wide (or tall) as its widest label, measured in the
+    // style and text scale it is drawn in, so no label wraps or clips.
+    final caption = TextStyle(fontSize: context.tokens.size.caption);
+    final leftAxisWidth =
+        _labelSize(context, '${maxY.round()}', caption).width + _axisGap + 2;
+    final rightAxisWidth =
+        zones
+            .map(
+              (z) => _labelSize(
+                context,
+                z.name,
+                caption.copyWith(fontWeight: context.tokens.weight.bold),
+              ).width,
+            )
+            .fold(0.0, max) +
+        _axisGap +
+        2;
+    final bottomAxisHeight =
+        _labelSize(context, formatElapsedHms(maxX.round()), caption).height + 8;
     // Colour the single line by HR zone with a vertical stepped gradient
     // (one series) instead of emitting a separate series per point pair.
     final gradient = zoneGradient(zones, maxY);
@@ -501,8 +541,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                     leftTitles: AxisTitles(
                                       sideTitles: SideTitles(
                                         showTitles: true,
-                                        reservedSize: 28,
+                                        reservedSize: leftAxisWidth,
                                         interval: 10,
+                                        minIncluded: false,
+                                        maxIncluded: false,
                                         getTitlesWidget: (value, meta) {
                                           final bpm = value.round();
                                           final boundaryValues = <int>{
@@ -513,8 +555,15 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                           if (boundaryValues.contains(bpm)) {
                                             return SideTitleWidget(
                                               meta: meta,
+                                              space: _axisGap,
+                                              fitInside:
+                                                  SideTitleFitInsideData.fromTitleMeta(
+                                                    meta,
+                                                  ),
                                               child: Text(
                                                 '$bpm',
+                                                maxLines: 1,
+                                                softWrap: false,
                                                 style: TextStyle(
                                                   fontSize: context
                                                       .tokens
@@ -533,16 +582,25 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                     rightTitles: AxisTitles(
                                       sideTitles: SideTitles(
                                         showTitles: true,
-                                        reservedSize: 20,
+                                        reservedSize: rightAxisWidth,
                                         interval: 5,
+                                        minIncluded: false,
+                                        maxIncluded: false,
                                         getTitlesWidget: (value, meta) {
                                           for (final z in zones) {
                                             final mid = (z.low + z.high) / 2.0;
                                             if ((value - mid).abs() < 1) {
                                               return SideTitleWidget(
                                                 meta: meta,
+                                                space: _axisGap,
+                                                fitInside:
+                                                    SideTitleFitInsideData.fromTitleMeta(
+                                                      meta,
+                                                    ),
                                                 child: Text(
                                                   z.name,
+                                                  maxLines: 1,
+                                                  softWrap: false,
                                                   style: TextStyle(
                                                     fontSize: context
                                                         .tokens
@@ -571,8 +629,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                     bottomTitles: AxisTitles(
                                       sideTitles: SideTitles(
                                         showTitles: true,
-                                        reservedSize: 22,
+                                        reservedSize: bottomAxisHeight,
                                         interval: bottomInterval,
+                                        // The window's own ends aren't on
+                                        // the interval; their labels would
+                                        // land on the neighbours'.
+                                        minIncluded: false,
+                                        maxIncluded: false,
                                         getTitlesWidget: (value, meta) {
                                           if (value < 0 || value > maxX + 0.5) {
                                             return const SizedBox.shrink();
@@ -580,8 +643,14 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                           return SideTitleWidget(
                                             meta: meta,
                                             space: 6,
+                                            fitInside:
+                                                SideTitleFitInsideData.fromTitleMeta(
+                                                  meta,
+                                                ),
                                             child: Text(
                                               formatElapsedHms(value.round()),
+                                              maxLines: 1,
+                                              softWrap: false,
                                               style: TextStyle(
                                                 fontSize:
                                                     context.tokens.size.caption,
@@ -643,8 +712,16 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                 runSpacing: 4,
                                 children: [
                                   HeartRateLegendItem(
-                                    label: 'Rest',
+                                    label: copy.workout.lifting,
+                                    color: context.tokens.workoutLiftingFg,
+                                  ),
+                                  HeartRateLegendItem(
+                                    label: copy.workout.resting,
                                     color: context.tokens.workoutRestingFg,
+                                  ),
+                                  HeartRateLegendItem(
+                                    label: copy.workout.yapping,
+                                    color: context.tokens.workoutYappingFg,
                                   ),
                                 ],
                               ),
@@ -737,7 +814,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
   /// Two bands per done set: resting (blue) from its completion to its rest
   /// target, cut short by the next Done; then yapping (pink) from the rest
   /// target to the next Done, if the next set came after the rest ran out.
-  List<VerticalRangeAnnotation> _buildRestBands(int startMs) {
+  /// The workout's phases as shaded bands: lifting (a set's start to its
+  /// end), resting (the end to the rest's end) and yapping (rest over, next
+  /// set not started). Live, the phase in progress runs to [nowSec].
+  List<VerticalRangeAnnotation> _buildPhaseBands(int startMs, double nowSec) {
     final sorted = _uiCompletedSets.toList()
       ..sort((a, b) => a.endedAt.compareTo(b.endedAt));
     final deduped = <CompletedSet>[];
@@ -747,39 +827,63 @@ class _HeartRateChartState extends State<HeartRateChart> {
         deduped.add(c);
       }
     }
+    double at(Int64 unixSec) => (unixSec.toInt() * 1000 - startMs) / 1000.0;
 
-    final restColor = context.tokens.workoutRestingFg;
-    final yapColor = context.tokens.workoutYappingFg;
+    final snapshot = _uiStateSnapshot;
+    final live = widget.followLiveClock && snapshot != null;
+    final liveLiftStart =
+        live &&
+            snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING &&
+            snapshot.liftingStartedAt > Int64.ZERO
+        ? at(snapshot.liftingStartedAt)
+        : null;
+
     final bands = <VerticalRangeAnnotation>[];
+    // Lifting is the short, important stretch: it gets the stronger tint.
+    void band(double x1, double x2, Color color, {double alpha = 0.16}) {
+      if (x2 > x1) {
+        bands.add(
+          VerticalRangeAnnotation(
+            x1: x1,
+            x2: x2,
+            color: color.withValues(alpha: alpha),
+          ),
+        );
+      }
+    }
+
     for (var i = 0; i < deduped.length; i++) {
       final c = deduped[i];
-      final restStart = (c.endedAt.toInt() * 1000 - startMs) / 1000.0;
-      final rawRestEnd = c.restUntil == Int64.ZERO
-          ? restStart
-          : (c.restUntil.toInt() * 1000 - startMs) / 1000.0;
-      final nextDone = i + 1 < deduped.length
-          ? (deduped[i + 1].endedAt.toInt() * 1000 - startMs) / 1000.0
-          : double.infinity;
-      final restEnd = min(rawRestEnd, nextDone);
-      if (restEnd > restStart) {
-        bands.add(
-          VerticalRangeAnnotation(
-            x1: restStart,
-            x2: restEnd,
-            color: restColor.withValues(alpha: 0.12),
-          ),
+      final ended = at(c.endedAt);
+      if (c.startedAt > Int64.ZERO) {
+        band(
+          at(c.startedAt),
+          ended,
+          context.tokens.workoutLiftingFg,
+          alpha: 0.4,
         );
       }
-      final yapStart = max(rawRestEnd, restStart);
-      if (nextDone.isFinite && nextDone > yapStart) {
-        bands.add(
-          VerticalRangeAnnotation(
-            x1: yapStart,
-            x2: nextDone,
-            color: yapColor.withValues(alpha: 0.12),
-          ),
-        );
+      // Where this set's rest-and-chat stops: the next set's start (its end
+      // when its start wasn't recorded), or, live, the set now being lifted
+      // or now itself. A finished workout stops at the rest's end.
+      final next = i + 1 < deduped.length ? deduped[i + 1] : null;
+      final double? stop = next != null
+          ? at(next.startedAt > Int64.ZERO ? next.startedAt : next.endedAt)
+          : live
+          ? (liveLiftStart ?? nowSec)
+          : null;
+      final restEnd = c.restUntil == Int64.ZERO ? ended : at(c.restUntil);
+      band(
+        ended,
+        stop == null ? restEnd : min(restEnd, stop),
+        context.tokens.workoutRestingFg,
+      );
+      if (stop != null) {
+        band(max(restEnd, ended), stop, context.tokens.workoutYappingFg);
       }
+    }
+    if (liveLiftStart != null) {
+      band(liveLiftStart, nowSec, context.tokens.workoutLiftingFg, alpha: 0.4);
     }
     return bands;
   }
