@@ -230,8 +230,8 @@ workout:
   warmup_line: Warmup {n} of {m}
   warmup_label: WARMUP
   working_label: WORKING
-  # Down the plates of whoever is up next on the rack.
-  next_label: NEXT
+  # In the band of whoever's turn on the rack it is, on two lines.
+  up_next: "UP\nNEXT!"
   skip_warmups: Skip
   # Asked when someone starts the first set of an exercise they have never
   # done: give their weight, or find it with 5-rep sets. {exercise} is its

@@ -1,9 +1,10 @@
 /// One person's status in the workout banner. A band across the top in the
 /// colour of the stage they're at — their emoji on their own colour, the
-/// stage, the clock — readable from across the gym; under it, calm, the set
-/// in front of them: (yours) its circle with the reps in it, what it is,
-/// the weight, big, and the plates to load. Yours and every partner's are the same box; tap a
-/// partner's to see their workout.
+/// stage, UP NEXT when the rack is theirs, the clock — readable from across
+/// the gym. Yours has the set in front of you under it: what it is, the
+/// plates, the weight, big, and its circle. A partner's is compact: the band
+/// alone, their set said small inside it. Tap a partner's to see their
+/// workout.
 library;
 
 import 'package:flutter/material.dart';
@@ -32,8 +33,11 @@ class StatusBox extends StatelessWidget {
   final ProposedSet? set;
   final Iterable<ProposedSet> plan;
 
-  /// Their turn on the rack: the plates box pulses orange.
+  /// Their turn on the rack: UP NEXT! in the band.
   final bool upNext;
+
+  /// A partner's: one band, their set in it, no body.
+  final bool compact;
 
   /// Yours: the set's circle, the same one as in the exercise list, to
   /// start and log it from here.
@@ -53,6 +57,7 @@ class StatusBox extends StatelessWidget {
     this.set,
     this.plan = const [],
     this.upNext = false,
+    this.compact = false,
     this.circle,
     this.firstTime = false,
   });
@@ -78,55 +83,99 @@ class StatusBox extends StatelessWidget {
     );
 
     // The band: their emoji on a block of their own colour, full height
-    // from the left edge; the stage; the clock hard right.
-    const bandHeight = 68.0;
-    final band = Container(
+    // from the left edge; the stage (and, compact, their set under it);
+    // UP NEXT when the rack is theirs; the clock hard right. The stage and
+    // the clock shrink to fit a narrow screen; nothing wraps.
+    final bandHeight = compact ? 56.0 : 68.0;
+    final stage = FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        stateLabel.toUpperCase(),
+        maxLines: 1,
+        style: bandMono(
+          compact ? t.size.title : t.size.headline,
+        ).copyWith(letterSpacing: 0.5),
+      ),
+    );
+    final partnerSet = compact && set != null
+        ? Text(
+            '${exerciseNames[set.exercise] ?? '?'}  '
+            '${setTextFor(set, unit)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: t.size.body,
+              fontWeight: t.weight.medium,
+              color: onBand,
+              height: 1.2,
+            ),
+          )
+        : null;
+    final band = SizedBox(
       height: bandHeight,
-      color: stateColor,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: bandHeight,
-            alignment: Alignment.center,
-            color: profileColor,
-            child: Text(
-              emoji,
-              style: TextStyle(fontSize: t.size.displayLg, height: 1),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                stateLabel.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: bandMono(t.size.headline).copyWith(letterSpacing: 0.5),
-              ),
-            ),
-          ),
-          if (timerText != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8, right: 12),
-              child: Center(
-                // The clock is read from across the gym: the biggest thing
-                // in the band.
+      child: LayoutBuilder(
+        builder: (context, box) => Container(
+          color: stateColor,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: bandHeight,
+                alignment: Alignment.center,
+                color: profileColor,
                 child: Text(
-                  timerText!,
-                  style: bandMono(t.size.displayLg).copyWith(letterSpacing: 0),
+                  emoji,
+                  style: TextStyle(
+                    fontSize: compact ? t.size.headlineLg : t.size.displayLg,
+                    height: 1,
+                  ),
                 ),
               ),
-            ),
-        ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [stage, ?partnerSet],
+                ),
+              ),
+              if (upNext)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Center(child: _UpNext(compact: compact)),
+                ),
+              if (timerText != null)
+                // The clock is read from across the gym: the biggest thing
+                // in the band, but never more than a third of it.
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: box.maxWidth / 3),
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 12),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        timerText!,
+                        style: bandMono(
+                          compact ? t.size.headline : t.size.displayLg,
+                        ).copyWith(letterSpacing: 0),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 12),
+            ],
+          ),
+        ),
       ),
     );
 
     // No set in front of them (choosing, or all done): the band says it
     // all.
     final Widget? body;
-    if (set == null) {
+    if (set == null || compact) {
       body = null;
     } else {
       final what = Text(
@@ -183,25 +232,7 @@ class StatusBox extends StatelessWidget {
               ),
             ),
           if (!firstTime && set.targetWeight > 0) ...[
-            // Up next on the rack: NEXT down the plates' left edge.
-            if (upNext) ...[
-              RotatedBox(
-                quarterTurns: 3,
-                child: Text(
-                  copy.workout.nextLabel,
-                  style: t.mono(
-                    TextStyle(
-                      fontSize: t.size.small,
-                      fontWeight: t.weight.bold,
-                      letterSpacing: 1.5,
-                      color: t.primary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-            ],
-            _Plates(weight: set.targetWeight.toDouble(), upNext: upNext),
+            _Plates(weight: set.targetWeight.toDouble()),
             const SizedBox(width: 12),
           ],
           if (!firstTime)
@@ -259,81 +290,26 @@ class StatusBox extends StatelessWidget {
 }
 
 /// The plates to load, in a fixed white box (so nothing moves when the
-/// numbers change); tap it for the plate-by-plate breakdown. For whoever is
-/// up next on the rack it pulses orange: this is what to load now.
-class _Plates extends StatefulWidget {
+/// numbers change); tap it for the plate-by-plate breakdown.
+class _Plates extends StatelessWidget {
   final double weight;
-  final bool upNext;
 
-  const _Plates({required this.weight, required this.upNext});
-
-  @override
-  State<_Plates> createState() => _PlatesState();
-}
-
-class _PlatesState extends State<_Plates> with SingleTickerProviderStateMixin {
-  late final AnimationController _pulse = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(_Plates oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _sync();
-  }
-
-  void _sync() {
-    if (widget.upNext) {
-      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
-    } else if (_pulse.isAnimating) {
-      _pulse.stop();
-      _pulse.value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
+  const _Plates({required this.weight});
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final weight = widget.weight;
     return GestureDetector(
       onTap: () => showPlateBreakdownDialog(context, weight: weight),
-      child: AnimatedBuilder(
-        animation: _pulse,
-        builder: (context, child) => Container(
-          width: 104,
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(
-              color: widget.upNext ? t.primary : t.outline,
-              width: widget.upNext ? 3 : 1,
-            ),
-            boxShadow: widget.upNext
-                ? [
-                    BoxShadow(
-                      color: t.primary.withValues(alpha: 0.35),
-                      spreadRadius: 5 * _pulse.value,
-                    ),
-                  ]
-                : null,
-          ),
-          child: child,
+      child: Container(
+        width: 104,
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: t.outline),
         ),
         child: isEmptyBar(weight, unit)
             ? Text(
@@ -348,6 +324,63 @@ class _PlatesState extends State<_Plates> with SingleTickerProviderStateMixin {
                 child: PlateVisualization(weight: weight, isInteractive: false),
               ),
       ),
+    );
+  }
+}
+
+/// UP NEXT! on two lines, on a light block in the band, its letters
+/// cycling through the theme's palette: the rack is theirs.
+class _UpNext extends StatefulWidget {
+  final bool compact;
+
+  const _UpNext({required this.compact});
+
+  @override
+  State<_UpNext> createState() => _UpNextState();
+}
+
+class _UpNextState extends State<_UpNext> with SingleTickerProviderStateMixin {
+  late final AnimationController _cycle = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 3),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _cycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final colors = t.series;
+    return AnimatedBuilder(
+      animation: _cycle,
+      builder: (context, _) {
+        // Glide from each palette colour to the next.
+        final at = _cycle.value * colors.length;
+        final from = colors[at.floor() % colors.length];
+        final to = colors[(at.floor() + 1) % colors.length];
+        final color = Color.lerp(from, to, at - at.floor())!;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          color: t.panel,
+          child: Text(
+            copy.workout.upNext,
+            textAlign: TextAlign.center,
+            style: t.mono(
+              TextStyle(
+                fontSize: widget.compact ? t.size.caption : t.size.small,
+                fontWeight: t.weight.bold,
+                letterSpacing: 0.5,
+                color: color,
+                height: 1.1,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

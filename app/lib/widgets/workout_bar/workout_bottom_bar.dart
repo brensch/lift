@@ -213,6 +213,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 stateLabel: status.stateLabel,
                 stateColor: status.stateColor,
                 upNext: upNext,
+                compact: true,
                 timerText: status.timerText,
                 set: status.proposedSet,
                 plan: p.proposedSets,
