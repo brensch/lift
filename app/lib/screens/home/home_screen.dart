@@ -241,7 +241,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   for (final template in templates)
                     TemplateChip(
                       template: template,
-                      trackers: wp.trackers,
                       selected: template.id == selected?.id,
                       recommended: template.id == suggestedId,
                       onTap: () =>
@@ -765,12 +764,10 @@ class _RecoveryChip extends StatelessWidget {
 
 // ── Template cards ───────────────────────────────────────────────────────────
 
-/// A small tappable summary of one template: name, rough duration, and a
-/// star on the volume recommendation. Deliberately dense — these wrap
-/// three-plus to a row.
+/// A small tappable summary of one template: its name and a star on the
+/// volume recommendation. The time it takes is on the selected card.
 class TemplateChip extends StatelessWidget {
   final WorkoutTemplate template;
-  final List<ExerciseTracker> trackers;
   final bool selected;
   final bool recommended;
   final VoidCallback onTap;
@@ -778,7 +775,6 @@ class TemplateChip extends StatelessWidget {
   const TemplateChip({
     super.key,
     required this.template,
-    required this.trackers,
     required this.selected,
     required this.recommended,
     required this.onTap,
@@ -787,7 +783,6 @@ class TemplateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final time = estimatedSessionLabel(template, trackers);
 
     return GestureDetector(
       onTap: onTap,
@@ -824,18 +819,6 @@ class TemplateChip extends StatelessWidget {
                 letterSpacing: -0.2,
               ),
             ),
-            if (time.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(left: 5),
-                child: Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.small,
-                    fontWeight: context.tokens.weight.bold,
-                    color: cs.onSurface.withValues(alpha: 0.55),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

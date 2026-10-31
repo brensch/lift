@@ -70,7 +70,7 @@ export function DeleteAccountPage() {
           <WobblyText text="DELETE ACCOUNT" seed={91} />
         </h1>
 
-        <div className="border border-danger-border bg-danger-bg rounded-[10px] p-4">
+        <div className="border border-danger-border bg-danger-bg rounded-md p-4">
           <p className="text-danger-text font-semibold text-[0.95rem] leading-relaxed m-0">
             This action permanently deletes your account, passkeys, workout history, heart-rate
             data, and active sessions.

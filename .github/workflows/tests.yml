@@ -135,6 +135,11 @@ jobs:
       - name: Run Rust tests
         run: cargo test --workspace --all-targets
 
+      # The dev-login build (make dev, make store-capture) compiles code
+      # nothing else does, such as the demo seed; keep it building.
+      - name: Check the test-auth build
+        run: cargo check --bin schlift --features test-auth
+
   # Randomised API sequences through the core, checking state invariants
   # after every mutation and that every log replays to the same account.
   # Fixed seed so a failure is reproducible.

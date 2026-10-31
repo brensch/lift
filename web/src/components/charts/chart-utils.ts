@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
-// Chart palette, validated with the dataviz six-checks against the site
-// surface #141414 (CVD ΔE ≥ 8, normal-vision ΔE ≥ 15, contrast ≥ 3:1).
-// Slot order is the safety mechanism — don't reshuffle casually.
-export const SERIES_1 = "#3987e5"; // blue — primary series / emphasis
-export const SERIES_2 = "#d95926"; // orange
-export const SERIES_3 = "#199e70"; // aqua
-export const CONTEXT = "#8f8f8f"; // de-emphasis gray for context series
-export const GRID = "#262626"; // hairline grid, one step off surface
-export const SURFACE = "#141414"; // chart surface (cards)
+// Chart palette: the app's own series colours (schlift_spec.dart), deep
+// enough to read on the warm-grey panel. Slot order matters — don't
+// reshuffle casually.
+export const SERIES_1 = "#1f4fd1"; // blue — primary series / emphasis
+export const SERIES_2 = "#d03a00"; // burnt orange
+export const SERIES_3 = "#1e7a3c"; // green
+export const CONTEXT = "#8a897f"; // de-emphasis grey for context series
+export const GRID = "#cac9c0"; // hairline grid, one step off surface
+export const SURFACE = "#edece5"; // chart surface (cards)
 
 /** Measure a container's content width via ResizeObserver. */
 export function useMeasuredWidth<T extends HTMLElement>() {

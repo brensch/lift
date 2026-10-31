@@ -240,10 +240,10 @@ copy:
 sounds:
 	python3 scripts/sync_sounds.py
 
-# brand: render the icon and feature-graphic candidates from
-# scripts/render_brand.py into marketing/. Pick one, then
-#   make icons ICON_SOURCE=marketing/icons/candidates/<name>.png
-#   cp marketing/feature_graphic_candidates/<name>.png marketing/feature_graphic.png
+# brand: render the icon master and the Play feature graphic from
+# scripts/render_brand.py into marketing/icon.png and
+# marketing/feature_graphic.png. Then put the icon on every platform with
+#   make icons ICON_SOURCE=marketing/icon.png
 STORE_VENV ?= .tmp/store-venv
 brand:
 	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }

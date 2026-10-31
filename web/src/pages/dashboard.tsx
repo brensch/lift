@@ -392,7 +392,7 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                         disabled={e.points.length < 2}
                         className={cn(
                           "w-full grid grid-cols-[1fr_auto_auto] items-center gap-3 py-2 px-2 -mx-2 rounded-lg text-left transition-colors cursor-pointer disabled:cursor-default",
-                          active ? "bg-white/[0.05]" : "hover:bg-white/[0.03]",
+                          active ? "bg-text/[0.05]" : "hover:bg-text/[0.03]",
                         )}
                       >
                         <span className="min-w-0">
