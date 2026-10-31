@@ -158,7 +158,8 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                         itemCount: _exercises.length,
                         onReorderItem: (oldIndex, newIndex) {
                           setState(() {
-                            if (newIndex > oldIndex) newIndex -= 1;
+                            // onReorderItem's newIndex is already adjusted
+                            // for the removed item: no `newIndex -= 1`.
                             final moved = _exercises.removeAt(oldIndex);
                             _exercises.insert(newIndex, moved);
                           });
