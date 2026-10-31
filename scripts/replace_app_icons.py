@@ -9,9 +9,10 @@ Two modes:
       every platform: iOS, macOS, watchOS, Android legacy + adaptive, Wear OS, web,
       Windows, and the Play store icon in marketing/.
 
-With --source the Android adaptive foreground becomes a raster layer (the
-master scaled to 88 of the 108dp canvas so its subject stays inside the 66dp
-safe zone) over a solid background of the master's own ground colour.
+With --source the Android adaptive foreground becomes a raster layer: the
+master fills the 72dp a launcher shows of the 108dp canvas, and its edges are
+stretched over the rest. The master is a full-bleed design (scripts/render_brand.py),
+so a round launcher mask crops it exactly as the circle preview does.
 """
 
 from __future__ import annotations
@@ -219,15 +220,29 @@ def collect_png_targets(repo_root: Path) -> list[Path]:
 
 
 ADAPTIVE_DENSITIES = {"mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}
-ADAPTIVE_CONTENT_DP = 88  # of the 108dp canvas; keeps a 72%-wide subject inside the 66dp safe zone
+ADAPTIVE_VISIBLE_DP = 72  # of the 108dp canvas: what a launcher shows before its mask
 
 
 def adaptive_foreground(master: Image.Image, px: int) -> Image.Image:
-    """The master scaled into the middle of a transparent 108dp canvas."""
-    canvas = Image.new("RGBA", (px, px), (0, 0, 0, 0))
-    inner = round(px * ADAPTIVE_CONTENT_DP / 108)
+    """The master filling the 72dp a launcher shows, its edges stretched out
+    over the rest of the 108dp canvas so parallax and odd masks never show a
+    seam. The master is drawn full bleed, so this is the icon as designed."""
+    inner = round(px * ADAPTIVE_VISIBLE_DP / 108)
+    pad = (px - inner) // 2
     scaled = master.resize((inner, inner), Image.Resampling.LANCZOS)
-    canvas.alpha_composite(scaled, ((px - inner) // 2, (px - inner) // 2))
+    rest = px - pad - inner
+    canvas = Image.new("RGBA", (px, px), (0, 0, 0, 0))
+    canvas.paste(scaled, (pad, pad))
+    # The top and bottom rows stretched up and down, then the full-height
+    # edge columns stretched sideways, which fills the corners too.
+    canvas.paste(scaled.crop((0, 0, inner, 1)).resize((inner, pad)), (pad, 0))
+    canvas.paste(
+        scaled.crop((0, inner - 1, inner, inner)).resize((inner, rest)), (pad, pad + inner)
+    )
+    canvas.paste(canvas.crop((pad, 0, pad + 1, px)).resize((pad, px)), (0, 0))
+    canvas.paste(
+        canvas.crop((pad + inner - 1, 0, pad + inner, px)).resize((rest, px)), (pad + inner, 0)
+    )
     return canvas
 
 

@@ -1,25 +1,31 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0a;
-  --color-surface: #141414;
-  --color-surface-hover: #1a1a1a;
-  --color-text: #fafafa;
-  --color-muted: #a3a3a3;
-  --color-border: #262626;
-  --color-primary: #fafafa;
-  --color-on-primary: #0a0a0a;
-  --color-danger: #ef4444;
-  --color-danger-bg: #3a0d10;
-  --color-danger-border: #7f1d1d;
-  --color-danger-text: #fecaca;
-  --color-ok: #22c55e;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --font-sans: "Manrope", "Avenir Next", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-display: "Space Grotesk", "Manrope", sans-serif;
+  /* The app's look (app/lib/theme/schlift_spec.dart): warm grey hardware,
+     one signal orange, Space Grotesk and Space Mono, corners nearly square. */
+  --color-background: #dbdad2;
+  --color-surface: #edece5;
+  --color-surface-hover: #e3e2da;
+  --color-text: #111111;
+  --color-muted: #4a4a44;
+  --color-border: #b7b6ac;
+  --color-primary: #ff4f00;
+  --color-on-primary: #ffffff;
+  --color-danger: #e0301e;
+  --color-danger-bg: #f6d9d4;
+  --color-danger-border: #e0301e;
+  --color-danger-text: #8a1a0f;
+  --color-ok: #3d8b4a;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-2xl: 6px;
+  --radius-3xl: 8px;
+  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --font-mono: "Space Mono", ui-monospace, Menlo, monospace;
 }
 
 @layer base {
@@ -30,9 +36,7 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background:
-      radial-gradient(circle at 10% 5%, rgba(127, 127, 127, 0.08), transparent 45%),
-      var(--color-background);
+    background: var(--color-background);
     color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;

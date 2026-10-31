@@ -85,12 +85,12 @@ export function HomePage() {
       <section className="relative flex flex-col items-center justify-center text-center px-5 min-h-[calc(100vh-4rem)]">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-[30%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-ok/[0.05] blur-[120px]" />
-          <div className="absolute -bottom-[20%] -right-[10%] w-[50vw] h-[50vw] rounded-full bg-white/[0.015] blur-[120px]" />
+          <div className="absolute -bottom-[20%] -right-[10%] w-[50vw] h-[50vw] rounded-full bg-primary/[0.04] blur-[120px]" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center">
           <div className="opacity-0" style={{ animation: "fade-in 0.8s ease-out 0.1s forwards" }}>
-            <h1 className="font-display text-[clamp(4rem,12vw,9rem)] font-black tracking-[-0.06em] leading-[0.85] m-0">
+            <h1 className="font-mono text-[clamp(3.5rem,11vw,8rem)] font-bold tracking-[-0.02em] leading-[0.85] m-0">
               <WobblyText text={CONTENT.name.toUpperCase()} seed={42} />
             </h1>
           </div>
@@ -158,7 +158,7 @@ export function HomePage() {
                   key={s.src}
                   className="snap-start shrink-0 w-[260px] sm:w-[300px] m-0 flex flex-col"
                 >
-                  <div className="rounded-[2rem] border border-border bg-surface p-2 shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
+                  <div className="rounded-[2rem] border border-border bg-surface p-2 shadow-[0_24px_64px_rgba(17,17,17,0.18)]">
                     <img
                       src={s.src}
                       alt={s.title}
@@ -240,7 +240,7 @@ export function HomePage() {
                     {item.emoji && (
                       <span
                         aria-hidden="true"
-                        className="shrink-0 w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-xl"
+                        className="shrink-0 w-11 h-11 rounded-xl bg-text/[0.04] border border-border flex items-center justify-center text-xl"
                       >
                         {item.emoji}
                       </span>
@@ -285,12 +285,20 @@ export function HomePage() {
             >
               <svg viewBox="0 0 400 160" className="w-full h-auto block">
                 {[20, 60, 100, 140].map((y) => (
-                  <line key={y} x1="0" x2="400" y1={y} y2={y} stroke="#262626" strokeWidth="1" />
+                  <line
+                    key={y}
+                    x1="0"
+                    x2="400"
+                    y1={y}
+                    y2={y}
+                    stroke="var(--color-border)"
+                    strokeWidth="1"
+                  />
                 ))}
                 <path
                   d="M8,140 L60,140 L72,118 L140,118 L152,96 L220,96 L232,74 L300,74 L312,50 L370,50 L382,26 L400,26"
                   fill="none"
-                  stroke="#3AD98B"
+                  stroke="var(--color-primary)"
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"

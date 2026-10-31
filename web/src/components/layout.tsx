@@ -29,7 +29,7 @@ export function Layout() {
       <header className="border-b border-border/50 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
         <div className="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
           <Link to="/" className="no-underline">
-            <h1 className="font-display text-2xl font-black tracking-[-0.06em] leading-none m-0">
+            <h1 className="font-mono text-2xl font-bold tracking-[-0.02em] leading-none m-0">
               <WobblyText text="SCHLIFT" seed={42} />
             </h1>
           </Link>
@@ -52,7 +52,7 @@ export function Layout() {
             ))}
             <Link
               to={authLink.to}
-              className="ml-2 px-4 py-2 rounded-[10px] text-sm font-semibold bg-primary text-on-primary no-underline transition-transform hover:-translate-y-0.5"
+              className="ml-2 px-4 py-2 rounded-md text-sm font-semibold bg-primary text-on-primary no-underline transition-transform hover:-translate-y-0.5"
             >
               {authLink.label}
             </Link>
@@ -88,7 +88,7 @@ export function Layout() {
             <Link
               to={authLink.to}
               onClick={() => setMenuOpen(false)}
-              className="px-4 py-2 rounded-[10px] text-sm font-semibold bg-primary text-on-primary no-underline text-center"
+              className="px-4 py-2 rounded-md text-sm font-semibold bg-primary text-on-primary no-underline text-center"
             >
               {authLink.label}
             </Link>

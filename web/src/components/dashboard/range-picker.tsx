@@ -107,7 +107,7 @@ export function RangePicker({
                   "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors",
                   active
                     ? "text-text font-semibold"
-                    : "text-muted hover:bg-white/[0.04] hover:text-text",
+                    : "text-muted hover:bg-text/[0.04] hover:text-text",
                 )}
               >
                 <span>
