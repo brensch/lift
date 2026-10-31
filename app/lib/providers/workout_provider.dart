@@ -661,6 +661,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> reorderExercises(List<Exercise> exercises) async {
     if (_workout == null) return;
+    // Show the new order now. The core answers a beat later, and until then
+    // the list would draw the old order again, so names would flash back.
+    final moved = [
+      for (final exercise in exercises)
+        ..._blocksCache.where((b) => b.exercise == exercise),
+      ..._blocksCache.where((b) => !exercises.contains(b.exercise)),
+    ];
+    _blocksCache
+      ..clear()
+      ..addAll(moved);
+    notifyListeners();
     await _mutate(
       _mutation()
         ..reorderExercises = (ReorderExercisesRequest()
