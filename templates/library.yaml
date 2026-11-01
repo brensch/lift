@@ -31,8 +31,8 @@ templates:
     default: true
     name: StrongLifts A
     group: programs
-    blurb: Squat, bench, row. The famous one.
-    exercises: [SQUAT, BENCH_PRESS, BARBELL_ROW]
+    blurb: Squat, row, bench. The famous one.
+    exercises: [SQUAT, BARBELL_ROW, BENCH_PRESS]
   - id: stronglifts_b
     default: true
     name: StrongLifts B

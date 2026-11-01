@@ -26,7 +26,7 @@ void main() {
       await s.completeOnboarding();
       await s.shot(
         'Home — proposed workout',
-        note: 'StrongLifts A: Squat / Bench / Row, the plan from the trackers.',
+        note: 'StrongLifts A: Squat / Row / Bench, the plan from the trackers.',
       );
 
       // Home → live workout (no briefing: START opens the bar directly).

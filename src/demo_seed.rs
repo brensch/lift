@@ -53,7 +53,7 @@ const TEMPLATES: &[Template] = &[
     Template {
         library_id: "stronglifts_a",
         name: "StrongLifts A",
-        exercises: &[Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow],
+        exercises: &[Exercise::Squat, Exercise::BarbellRow, Exercise::BenchPress],
     },
     Template {
         library_id: "stronglifts_b",
