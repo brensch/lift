@@ -57,7 +57,9 @@ void main() {
 
   bool endsTheWatch(WearWorkoutSnapshot s) =>
       s.state == WorkoutState.WORKOUT_STATE_ALL_DONE &&
-      !s.actions.any((a) => a.type == WearActionType.WEAR_ACTION_TYPE_END_WORKOUT);
+      !s.actions.any(
+        (a) => a.type == WearActionType.WEAR_ACTION_TYPE_END_WORKOUT,
+      );
 
   test('signing out mid-workout ends it on the watch', () async {
     await h.start([Exercise.EXERCISE_SQUAT]);
