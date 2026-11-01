@@ -46,6 +46,7 @@ class MainLayout extends StatelessWidget {
         currentPath == '/' ||
         currentPath == '/progress' ||
         currentPath == '/history' ||
+        currentPath == '/learn' ||
         currentPath == '/settings';
 
     return PopScope(
@@ -114,6 +115,13 @@ class MainLayout extends StatelessWidget {
                       label: 'History',
                       onTap: () => goToTopLevel('/history'),
                       isActive: currentPath == '/history',
+                    ),
+                    const SizedBox(height: 4),
+                    _MenuButton(
+                      icon: AppIcons.tutorial,
+                      label: 'Learn',
+                      onTap: () => goToTopLevel('/learn'),
+                      isActive: currentPath == '/learn',
                     ),
                   ],
                 ),
