@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../theme/theme_spec.dart';
 
@@ -65,59 +66,65 @@ class _WobblyLetter extends StatefulWidget {
 
 class _WobblyLetterState extends State<_WobblyLetter>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late double dxSeed;
-  late double dySeed;
-  late double rotateSeed;
-  late double durationFactor;
+  /// Seconds since the letter appeared. A clock, not a loop: nothing here
+  /// repeats, so neither does the motion.
+  final _seconds = ValueNotifier<double>(0);
+  late final Ticker _ticker;
+
+  /// Per axis (x, y, tilt): two phases and the speed of the first wave.
+  late final List<double> _phases;
+  late final List<double> _speeds;
+
+  /// Seconds for the first wave to come round once.
+  static const _period = 7.0;
+
+  /// The second wave's speed over the first's. Irrational, so the two never
+  /// come back into line and the sum never retraces itself.
+  static const _ratio = 1.6180339887;
 
   @override
   void initState() {
     super.initState();
-    dxSeed = widget.rng.nextDouble() * 2 * pi;
-    dySeed = widget.rng.nextDouble() * 2 * pi;
-    rotateSeed = widget.rng.nextDouble() * 2 * pi;
-    durationFactor = 0.5 + widget.rng.nextDouble();
-
-    // Forward only, and whole-number frequencies below, so the loop's end
-    // meets its start mid-motion: one continuous drift, never a turnaround.
-    // Each letter's own period keeps them out of step.
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: (4000 * durationFactor).round()),
-    )..repeat();
+    _phases = [for (var i = 0; i < 6; i++) widget.rng.nextDouble() * 2 * pi];
+    _speeds = [for (var i = 0; i < 3; i++) 0.7 + widget.rng.nextDouble() * 0.6];
+    _ticker = createTicker(
+      (elapsed) => _seconds.value = elapsed.inMicroseconds / 1e6,
+    )..start();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ticker.dispose();
+    _seconds.dispose();
     super.dispose();
+  }
+
+  /// -1..1: the sum of two waves whose speeds never line up.
+  double _drift(int axis, double t) {
+    final w = t * 2 * pi / _period * _speeds[axis];
+    return (sin(w + _phases[axis * 2]) +
+            sin(w * _ratio + _phases[axis * 2 + 1])) /
+        2;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value * 2 * pi;
+    return ValueListenableBuilder<double>(
+      valueListenable: _seconds,
+      builder: (context, t, child) {
         final wobble = widget.maxOffset;
-        final dx = sin(t + dxSeed) * wobble;
-        final dy = cos(2 * t + dySeed) * wobble;
-        final angle = sin(t + rotateSeed) * 0.0125 * wobble;
-
         return Transform.translate(
-          offset: Offset(dx, dy),
+          offset: Offset(_drift(0, t) * wobble, _drift(1, t) * wobble),
           child: Transform.rotate(
-            angle: angle,
-            child: Text(
-              widget.char == ' ' ? '\u00A0' : widget.char,
-              style: context.tokens.wordmark(
-                TextStyle(fontSize: widget.fontSize),
-              ),
-            ),
+            angle: _drift(2, t) * 0.0125 * wobble,
+            child: child,
           ),
         );
       },
+      child: Text(
+        widget.char == ' ' ? '\u00A0' : widget.char,
+        style: context.tokens.wordmark(TextStyle(fontSize: widget.fontSize)),
+      ),
     );
   }
 }
