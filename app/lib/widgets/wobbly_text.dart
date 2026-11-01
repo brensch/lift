@@ -79,10 +79,13 @@ class _WobblyLetterState extends State<_WobblyLetter>
     rotateSeed = widget.rng.nextDouble() * 2 * pi;
     durationFactor = 0.5 + widget.rng.nextDouble();
 
+    // Forward only, and whole-number frequencies below, so the loop's end
+    // meets its start mid-motion: one continuous drift, never a turnaround.
+    // Each letter's own period keeps them out of step.
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat(reverse: true);
+      duration: Duration(milliseconds: (4000 * durationFactor).round()),
+    )..repeat();
   }
 
   @override
@@ -98,9 +101,9 @@ class _WobblyLetterState extends State<_WobblyLetter>
       builder: (context, child) {
         final t = _controller.value * 2 * pi;
         final wobble = widget.maxOffset;
-        final dx = sin(t * 0.4 + dxSeed) * wobble;
-        final dy = cos(t * 0.5 + dySeed) * wobble;
-        final angle = sin(t * 0.3 + rotateSeed) * 0.0125 * wobble;
+        final dx = sin(t + dxSeed) * wobble;
+        final dy = cos(2 * t + dySeed) * wobble;
+        final angle = sin(t + rotateSeed) * 0.0125 * wobble;
 
         return Transform.translate(
           offset: Offset(dx, dy),
