@@ -148,7 +148,7 @@ def feature_graphic() -> str:
     return f"""<rect width="1024" height="500" fill="{GROUND}"/>
 {wordmark(52, word_y, word_size, INK)}
 <text x="60" y="{word_y + 52:.1f}" style="{GROTESK};font-size:30px" fill="{MUTED}"
->Free weightlifting tracker.</text>
+>Free, simple, planned lifting.</text>
 <rect y="{strip_y - 1}" width="1024" height="1" fill="{HAIRLINE}"/>
 <rect y="{strip_y}" width="1024" height="{strip_h}" fill="{PANEL}"/>
 {circles}

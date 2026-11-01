@@ -15,12 +15,12 @@ name: Schlift
 
 # both — one line: the byline on the Play feature graphic and the website,
 # and the first half of Play's one-liner
-tagline: Free weightlifting tracker.
+tagline: Free, simple, planned lifting.
 
 # App Store only — the subtitle under the name (30). Apple rejects any price
 # in it, "free" included (guideline 2.3.7), so it is not the tagline; CI
 # checks for price words.
-app_store_subtitle: Weightlifting tracker
+app_store_subtitle: Simple lifting planned for you
 
 # both — App Store promotional text above the description (170). Play's
 # one-liner on the listing card is tagline + a space + this, and must fit 80.
