@@ -171,29 +171,12 @@ class ScienceScreen extends StatelessWidget {
             citations: [],
           ),
           const _Section(
-            title: 'Gender',
+            title: 'Starting weights',
             body:
-                'Women average about 52% of men\'s upper-body strength '
-                'and 66% lower, so starting weights are scaled down. '
-                'That\'s the only difference. It\'s a first guess, and '
-                'two or three sessions fix it either way.',
-            citations: [
-              _Citation(
-                'Miller et al. (1993): sex differences in strength: '
-                    '~52% upper body, ~66% lower body',
-                'https://pubmed.ncbi.nlm.nih.gov/8477683/',
-              ),
-              _Citation(
-                'Nuzzo (2023): comprehensive review of sex differences '
-                    'in muscle strength and size',
-                'https://pubmed.ncbi.nlm.nih.gov/36696264/',
-              ),
-              _Citation(
-                'Roberts et al. (2020): sex differences in resistance '
-                    'training response, meta-analysis',
-                'https://pubmed.ncbi.nlm.nih.gov/32218059/',
-              ),
-            ],
+                'You picked an emoji. The chick starts near the empty '
+                'bar, the gorilla doesn\'t. It\'s a first guess, and two '
+                'or three sessions fix it either way.',
+            citations: [],
           ),
           const SizedBox(height: 8),
           Container(
