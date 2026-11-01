@@ -113,12 +113,18 @@ class _WobblyLetterState extends State<_WobblyLetter>
       valueListenable: _seconds,
       builder: (context, t, child) {
         final wobble = widget.maxOffset;
-        return Transform.translate(
-          offset: Offset(_drift(0, t) * wobble, _drift(1, t) * wobble),
-          child: Transform.rotate(
-            angle: _drift(2, t) * 0.0125 * wobble,
-            child: child,
-          ),
+        // One transform, drawn from the letter rasterised once and sampled
+        // smoothly. Re-laying the glyph at each sub-pixel offset snapped it
+        // to the pixel grid, a shake along the path.
+        return Transform(
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.medium,
+          transform: Matrix4.translationValues(
+            _drift(0, t) * wobble,
+            _drift(1, t) * wobble,
+            0,
+          )..rotateZ(_drift(2, t) * 0.0125 * wobble),
+          child: child,
         );
       },
       child: Text(
