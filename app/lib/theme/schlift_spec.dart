@@ -57,9 +57,11 @@ const schliftSpec = ThemeSpec(
   headingFont: 'Space Grotesk',
   buttonFont: 'Space Mono',
   monoFont: 'Space Mono',
-  // The wordmark in the buttons' face: Space Mono bold, wobbling.
+  // The wordmark in the buttons' face: Space Mono, wobbling, between its
+  // regular and its bold (it has nothing in between).
   wordmarkFont: 'Space Mono',
-  wordmarkWeight: FontWeight.w700,
+  wordmarkWeight: FontWeight.w400,
+  wordmarkEmbolden: 0.03,
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
   displayWeight: FontWeight.w500,

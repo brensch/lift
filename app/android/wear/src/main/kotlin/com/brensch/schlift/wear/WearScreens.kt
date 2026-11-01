@@ -285,7 +285,7 @@ private fun Face(
             )
             Rule(c.hairline)
             Band(face = face, d = d, inset = roundInset(d, round, bandTop, bandTop + BAND_ROW))
-            Rule(c.rule)
+            Rule(c.hairline)
             Box(
                 modifier =
                     Modifier

@@ -128,6 +128,7 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     this.wordmarkScale = 1,
     this.wordmarkTracking = 0,
     this.wordmarkWobble = 0.8,
+    this.wordmarkEmbolden = 0,
     this.headingWeightBoost = 0,
     this.fontScale = 1.06,
     this.radiusSm = 10,
@@ -228,6 +229,10 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   /// How far each wordmark letter drifts as it wobbles, in logical pixels.
   final double wordmarkWobble;
+
+  /// Thickens the wordmark's strokes past its weight, as a fraction of its
+  /// size: a weight between the font's own when it has too few.
+  final double wordmarkEmbolden;
 
   /// Added to every heading weight (in hundreds), for looks that want
   /// heavier or lighter display type. Clamped to w100–w900.
