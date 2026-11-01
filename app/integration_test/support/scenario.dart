@@ -387,7 +387,7 @@ class Scenario {
   }
 
   /// One of the library templates ticked by default (templates/library.yaml):
-  /// Squat, Bench Press, Barbell Row. StrongLifts B (Squat, Overhead Press,
+  /// Squat, Barbell Row, Bench Press. StrongLifts B (Squat, Overhead Press,
   /// Deadlift) is the other; home suggests whichever covers more unworked
   /// muscle, so a scenario that seeds history should seed all five lifts.
   static const defaultTemplateName = 'StrongLifts A';
@@ -395,8 +395,8 @@ class Scenario {
   /// Every lift the default templates can prescribe.
   static const defaultTemplateLifts = [
     Exercise.EXERCISE_SQUAT,
-    Exercise.EXERCISE_BENCH_PRESS,
     Exercise.EXERCISE_BARBELL_ROW,
+    Exercise.EXERCISE_BENCH_PRESS,
     Exercise.EXERCISE_OVERHEAD_PRESS,
     Exercise.EXERCISE_DEADLIFT,
   ];

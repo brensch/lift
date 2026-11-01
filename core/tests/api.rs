@@ -129,7 +129,7 @@ fn mark_performed(app: &mut App, exercises: &[Exercise], at: i64) {
         .unwrap();
 }
 
-const STRONGLIFTS_A: [Exercise; 3] = [Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow];
+const STRONGLIFTS_A: [Exercise; 3] = [Exercise::Squat, Exercise::BarbellRow, Exercise::BenchPress];
 
 fn tracker(home: &GetHomeResponse, exercise: Exercise) -> ExerciseTracker {
     home.trackers
@@ -234,8 +234,8 @@ mod home_and_onboarding {
             home.templates[0].exercises,
             vec![
                 Exercise::Squat as i32,
-                Exercise::BenchPress as i32,
-                Exercise::BarbellRow as i32
+                Exercise::BarbellRow as i32,
+                Exercise::BenchPress as i32
             ]
         );
 
