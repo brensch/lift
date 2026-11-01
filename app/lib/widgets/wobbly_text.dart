@@ -126,10 +126,32 @@ class _WobblyLetterState extends State<_WobblyLetter>
           child: child,
         );
       },
-      child: Text(
-        widget.char == ' ' ? '\u00A0' : widget.char,
-        style: context.tokens.wordmark(TextStyle(fontSize: widget.fontSize)),
-      ),
+      child: _letter(context),
+    );
+  }
+
+  /// The glyph, outlined in its own colour when the theme emboldens it.
+  Widget _letter(BuildContext context) {
+    final t = context.tokens;
+    final char = widget.char == ' ' ? '\u00A0' : widget.char;
+    final style = t.wordmark(TextStyle(fontSize: widget.fontSize));
+    final fill = Text(char, style: style);
+    if (t.wordmarkEmbolden <= 0) return fill;
+    final color = DefaultTextStyle.of(context).style.color ?? t.text;
+    return Stack(
+      children: [
+        Text(
+          char,
+          style: style.copyWith(
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeJoin = StrokeJoin.miter
+              ..strokeWidth = t.wordmarkEmbolden * (style.fontSize ?? 0)
+              ..color = color,
+          ),
+        ),
+        fill,
+      ],
     );
   }
 }
