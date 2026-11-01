@@ -7,7 +7,6 @@ import '../theme/theme_spec.dart';
 class WobblyText extends StatelessWidget {
   final String text;
   final double fontSize;
-  final int seed;
 
   /// How far each letter drifts, in logical pixels; its tilt scales with it.
   final double maxOffset;
@@ -16,13 +15,13 @@ class WobblyText extends StatelessWidget {
     super.key,
     required this.text,
     this.fontSize = 48,
-    this.seed = 42,
     this.maxOffset = 0.8,
   });
 
   @override
   Widget build(BuildContext context) {
-    final rng = Random(seed);
+    // Fresh every time: each launch wobbles its own way.
+    final rng = Random();
     final letters = text.split('');
 
     // Shrinks rather than overflows when the slot is narrow (large font
