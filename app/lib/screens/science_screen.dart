@@ -66,9 +66,10 @@ class ScienceScreen extends StatelessWidget {
           const _Section(
             title: 'Sets and reps',
             body:
-                'Barbell lifts are 5×5 (deadlifts 3×5). Everything '
-                'else is 3×8–12. Effort matters more than the exact '
-                'numbers, so I picked easy ones.',
+                'Barbell lifts are 5×5 (deadlifts 3×5). Other weights '
+                'are 3×8–12, bodyweight 3×5–15, core 3×10–20. Effort '
+                'matters more than the exact numbers, so I picked easy '
+                'ones.',
             citations: [
               _Citation(
                 'Schoenfeld et al. (2017): low- vs high-load training, '
