@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fixnum/fixnum.dart';
 
 import '../gen/workout/v1/wearable.pb.dart';
+import '../gen/workout/v1/workout.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
 import '../screens/workout/live_set_circle.dart';
@@ -148,6 +149,26 @@ class WearableSyncCoordinator {
       // the serialized content happens to equal a previously-published snapshot.
       _publishSnapshot(force: true);
     }
+  }
+
+  /// Signing out ends what the watch is tracking: the workout belongs to the
+  /// account that is leaving. Call before the workout is cleared. An ALL_DONE
+  /// snapshot with no End action is what both watches read as ended; iOS also
+  /// gets its dedicated end command for the HealthKit session.
+  Future<void> signOut() async {
+    final workoutId = _workoutProvider.activeWorkout?.id;
+    _pendingIntents.clear();
+    if (workoutId == null) return;
+    _endCommandSentForWorkoutId = workoutId;
+    _lastPublishedSnapshotKey = null;
+    await _bridgeService.publishSnapshot(
+      WearWorkoutSnapshot(
+        workoutId: workoutId,
+        state: WorkoutState.WORKOUT_STATE_ALL_DONE,
+        emittedAt: Int64(DateTime.now().millisecondsSinceEpoch),
+      ),
+    );
+    await _bridgeService.endWatchWorkout(workoutId);
   }
 
   Future<void> dispose() async {

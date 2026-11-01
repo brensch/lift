@@ -237,6 +237,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       final userId = _authProvider.userId;
       if (userId != _openUserId) {
         if (_openUserId != null) {
+          // Before the workout is cleared: the watch needs its id.
+          unawaited(_wearableSyncCoordinator.signOut());
           PageTracker.instance.onLogout();
           _settingsProvider.clear();
           unawaited(_soundProvider.reset());
