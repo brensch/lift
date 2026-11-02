@@ -86,6 +86,9 @@ class Peer {
     return core;
   }
 
+  /// The last seq of the account's log as the server holds it.
+  Future<int> serverSeq() async => (await (await _pulled()).syncState()).$1;
+
   Future<T> _read<T extends GeneratedMessage>(
     String method,
     GeneratedMessage request,

@@ -89,9 +89,10 @@ void main() {
       await s.devLogin('demo');
       await s.completeOnboarding(); // no-op for the seeded account
       await s.mustSee(Scenario.homeStart, seconds: 12);
-      if (await seedThinHistoryIfNeeded(await s.api.login('demo'))) {
+      final demo = await s.api.login('demo');
+      if (await seedThinHistoryIfNeeded(demo)) {
         s.note('Unseeded backend: thin history seeded for demo', kind: 'api');
-        await s.relaunch(); // home re-reads the plans and the volume
+        await s.waitForAppToCatchUp(demo);
         await s.mustSee(Scenario.homeStart, seconds: 12);
       }
 
@@ -144,6 +145,9 @@ void main() {
             'Unseeded backend: thin history seeded for demo-live',
             kind: 'api',
           );
+          // The app pulls the seeded sessions a few seconds later; until it
+          // has them all it can show one of them mid-way, live.
+          await s.waitForAppToCatchUp(live);
         }
         await s.startWorkoutFromHome();
       }

@@ -22,14 +22,21 @@ void main() {
       await s.devLogin('e2e_finish_${DateTime.now().millisecondsSinceEpoch}');
       await s.completeOnboarding();
 
-      // Home → live workout; Start, then Good, logs the first set.
+      // Home → live workout; a tap starts the first set (a calibration
+      // rung), a tap logs it in full, and its question is answered 0–1:
+      // the ramp ends and the working sets follow.
       await s.startWorkoutFromHome();
       await s.liftSet();
+      expect(
+        s.rungDialogShowing,
+        isFalse,
+        reason: 'the rung question is answered',
+      );
       await s.settle(seconds: 2);
       await s.shot('One set logged, mid-workout');
 
       // End the workout via the confirm dialog (the link under the list).
-      await s.tapText('End workout');
+      await s.tapText(copy.workout.endWorkout);
       await s.mustSee('This will end your current workout.', seconds: 6);
       await s.shot('End-workout confirm dialog');
       await s.tap(find.text('End Workout').last); // dialog's confirm button
@@ -57,7 +64,7 @@ void main() {
 
       s.note(
         'Full workout lifecycle verified',
-        detail: 'onboard → start → Start, Good → end → summary',
+        detail: 'onboard → start → a set on its circle → end → summary',
         kind: 'assert',
       );
     });

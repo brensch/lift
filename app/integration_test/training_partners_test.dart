@@ -66,11 +66,11 @@ void main() {
     // with) for a one-tap re-pair.
     await me.leaveSession();
     expect(
-      await s.waitForText('Multiplayer', seconds: 12),
+      await s.waitForSolo(seconds: 12),
       isTrue,
       reason: 'app should return to solo after leaving',
     );
-    await s.tapText('Multiplayer');
+    await s.openMultiplayer();
     final sawList = await s.waitForText('FRIENDS', seconds: 8);
     await s.shot(
       'Friends list in the app',
