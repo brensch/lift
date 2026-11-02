@@ -394,13 +394,13 @@ void main() {
     // Nothing picked: every row plain.
     expect(await pass(), [null, null, null, null]);
 
-    // Biceps: Arms (curls first) and Pull (barbell curl) are picked out,
-    // StrongLifts A and Push dimmed.
+    // Biceps, first or as a helper (as the bars count it): StrongLifts A
+    // (barbell row), Arms and Pull are picked out, Push dimmed.
     await tester.tap(muscle);
     await tester.pump();
     final bars = tester.widget<VolumeCard>(_inSheet(find.byType(VolumeCard)));
     expect(bars.highlight, {biceps});
-    expect(await pass(), [false, true, true, false]);
+    expect(await pass(), [true, true, true, false]);
     await scrollSheetTo(tester, row('Arms'), 100);
     expect(
       find.descendant(

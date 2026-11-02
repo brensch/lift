@@ -23,7 +23,7 @@ import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/common/flat.dart';
-import 'home_screen.dart' show VolumeCard, exercisesMuscles;
+import 'home_screen.dart' show VolumeCard;
 import 'template_editor.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
@@ -214,12 +214,17 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   void _pick(MuscleGroup muscle) =>
       setState(() => _muscle = _muscle == muscle ? null : muscle);
 
-  /// Whether a workout of [exercises] trains the picked muscle first;
-  /// null when none is picked.
+  /// Whether a workout of [exercises] works the picked muscle at all
+  /// (first or as a helper, as the bars count it); null when none is
+  /// picked.
   bool? _emphasis(List<Exercise> exercises, List<ExercisePlan> plans) {
     final muscle = _muscle;
     if (muscle == null) return null;
-    return exercisesMuscles(exercises, plans).contains(muscle);
+    return plans.any(
+      (p) =>
+          exercises.contains(p.decision.exercise) &&
+          (p.primaryMuscle == muscle || p.secondaryMuscles.contains(muscle)),
+    );
   }
 
   /// A library workout goes straight (it can be added again); one of the

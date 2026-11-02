@@ -1224,6 +1224,7 @@ class ExercisePlan extends $pb.GeneratedMessage {
     $1.MuscleGroup? primaryMuscle,
     EquipmentKind? equipment,
     $fixnum.Int64? lastPerformedAt,
+    $core.Iterable<$1.MuscleGroup>? secondaryMuscles,
   }) {
     final result = create();
     if (decision != null) result.decision = decision;
@@ -1231,6 +1232,8 @@ class ExercisePlan extends $pb.GeneratedMessage {
     if (primaryMuscle != null) result.primaryMuscle = primaryMuscle;
     if (equipment != null) result.equipment = equipment;
     if (lastPerformedAt != null) result.lastPerformedAt = lastPerformedAt;
+    if (secondaryMuscles != null)
+      result.secondaryMuscles.addAll(secondaryMuscles);
     return result;
   }
 
@@ -1255,6 +1258,11 @@ class ExercisePlan extends $pb.GeneratedMessage {
     ..aE<EquipmentKind>(4, _omitFieldNames ? '' : 'equipment',
         enumValues: EquipmentKind.values)
     ..aInt64(5, _omitFieldNames ? '' : 'lastPerformedAt')
+    ..pc<$1.MuscleGroup>(
+        6, _omitFieldNames ? '' : 'secondaryMuscles', $pb.PbFieldType.KE,
+        valueOf: $1.MuscleGroup.valueOf,
+        enumValues: $1.MuscleGroup.values,
+        defaultEnumValue: $1.MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1324,6 +1332,10 @@ class ExercisePlan extends $pb.GeneratedMessage {
   $core.bool hasLastPerformedAt() => $_has(4);
   @$pb.TagNumber(5)
   void clearLastPerformedAt() => $_clearField(5);
+
+  /// The other muscles it works, at half credit in the weekly sets.
+  @$pb.TagNumber(6)
+  $pb.PbList<$1.MuscleGroup> get secondaryMuscles => $_getList(5);
 }
 
 class StartWorkoutRequest extends $pb.GeneratedMessage {
