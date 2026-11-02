@@ -1,5 +1,6 @@
 /// The words for the rotation: Home's line under the suggested workout,
-/// from the core's structured reason, and the rotation check's lines.
+/// from the core's structured reason, the rotation check's warnings, and
+/// what a workout would add to the main plan.
 library;
 
 import '../gen/copy.dart';
@@ -61,42 +62,52 @@ String suggestionLine(SuggestionReason reason) {
   return _sentence(parts.join(' · '));
 }
 
-/// The rotation check in words: [trains] is one line of what a lap of
-/// the rotation trains (the gap, when there is one: [gap] is then true),
-/// and [warnings] one plain line for each other thing wrong, in the order
-/// the core gives them. [names] maps a template id to its name.
-({String trains, bool gap, List<String> warnings}) rotationCheckLines(
+/// One plain line per warning, in the order the core gives them (the gap
+/// is not said: each workout's addition says it instead); [names] maps a
+/// template id to its name.
+List<String> rotationWarningLines(
   RotationCheck check,
   Map<String, String> names,
 ) {
   final r = copy.rotation;
   String name(String id) => names[id] ?? '?';
-  var trains = check.volume.any((v) => v.completedSets7d > 0)
-      ? r.trainsEverything
-      : r.trainsNothing;
-  var gap = false;
-  final warnings = <String>[];
-  for (final w in check.warnings) {
-    switch (w.kind) {
-      case RotationWarningKind.ROTATION_WARNING_KIND_GAP:
-        gap = true;
-        trains = r.gap.replaceAll(
-          '{muscles}',
-          joinList([for (final m in w.muscles) _muscle(m).toLowerCase()]),
-        );
-      case RotationWarningKind.ROTATION_WARNING_KIND_OVERLAP:
-        warnings.add(
+  return [
+    for (final w in check.warnings)
+      switch (w.kind) {
+        RotationWarningKind.ROTATION_WARNING_KIND_OVERLAP =>
           r.overlap
               .replaceAll('{a}', name(w.templateIds.first))
               .replaceAll('{b}', name(w.templateIds.last))
               .replaceAll('{shared}', '${w.shared}')
               .replaceAll('{of}', '${w.of}'),
-        );
-      case RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW:
-        warnings.add(r.tooFew);
-      default:
-        break;
-    }
-  }
-  return (trains: trains, gap: gap, warnings: warnings);
+        RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW => r.tooFew,
+        _ => '',
+      },
+  ].where((line) => line.isNotEmpty).toList();
 }
+
+/// "Trains calves and core, which you don't have.": what a workout would
+/// add to the main plan. Empty when it adds nothing.
+String additionLine(List<MuscleGroup> muscles) => muscles.isEmpty
+    ? ''
+    : copy.rotation.adds.replaceAll(
+        '{muscles}',
+        joinList([for (final m in muscles) _muscle(m).toLowerCase()]),
+      );
+
+/// What each workout would add, from the check: the user's templates by
+/// id, and library entries by library id.
+({
+  Map<String, List<MuscleGroup>> templates,
+  Map<String, List<MuscleGroup>> library,
+})
+additionsOf(RotationCheck? check) => (
+  templates: {
+    for (final a in check?.additions ?? const <RotationAddition>[])
+      if (a.templateId.isNotEmpty) a.templateId: a.muscles,
+  },
+  library: {
+    for (final a in check?.additions ?? const <RotationAddition>[])
+      if (a.libraryId.isNotEmpty) a.libraryId: a.muscles,
+  },
+);

@@ -1,7 +1,7 @@
 /// One workout in a list, compact: a drag handle or a tick box (when it
-/// has one), the name (and, when asked, its lifts on one line under it),
-/// any actions, and a chevron that drops down what's in it — so a whole library fits on
-/// screen until you want detail. Onboarding's pick and Home's Manage sheet
+/// has one), the name (and, when asked, its lifts on one line under it,
+/// and a note under those), any actions, and a chevron that drops down
+/// what's in it — so a whole library fits on screen until you want detail. Onboarding's pick and Home's Manage sheet
 /// are the same rows.
 library;
 
@@ -38,6 +38,9 @@ class TemplateRow extends StatefulWidget {
   /// Has the chevron that drops down what's in it.
   final bool expandable;
 
+  /// A muted line under the name and lifts; none when empty.
+  final String note;
+
   const TemplateRow({
     super.key,
     required this.name,
@@ -50,6 +53,7 @@ class TemplateRow extends StatefulWidget {
     this.showLifts = false,
     this.leading,
     this.expandable = true,
+    this.note = '',
   });
 
   @override
@@ -113,6 +117,15 @@ class _TemplateRowState extends State<TemplateRow> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: context.tokens.size.small,
+                              color: context.tokens.muted,
+                            ),
+                          ),
+                        if (widget.note.isNotEmpty)
+                          Text(
+                            widget.note,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.small,
+                              fontStyle: FontStyle.italic,
                               color: context.tokens.muted,
                             ),
                           ),

@@ -2027,52 +2027,56 @@ mod rotation {
         assert_eq!(app.log.len(), events);
     }
 
-    /// Ignored muscles are a setting: Home names them, the rotation check
-    /// warns of no gap in them, and the suggestion counts none of them
-    /// behind.
+    /// Home's rotation check names what each backup and each library
+    /// entry the user does not have would add: the muscles its lifts train
+    /// first that the main plan trains none of. One adding nothing, and an
+    /// entry the user has, are not listed.
     #[test]
-    fn ignored_muscles_leave_the_gap_and_the_suggestion() {
+    fn the_check_names_what_each_workout_would_add() {
         let mut app = App::new();
         let onboarded = onboard(&mut app, WeightUnit::Lb);
-        let gap = |home: &GetHomeResponse| {
+        let adds = |home: &GetHomeResponse, template_id: &str, library_id: &str| {
             home.rotation_check
                 .as_ref()
                 .unwrap()
-                .warnings
+                .additions
                 .iter()
-                .find(|w| w.kind == RotationWarningKind::Gap as i32)
-                .map(|w| w.muscles.clone())
-                .unwrap_or_default()
+                .find(|a| a.template_id == template_id && a.library_id == library_id)
+                .map(|a| a.muscles.clone())
         };
-        let gaps = gap(&onboarded);
-        assert!(!gaps.is_empty(), "the defaults leave something untrained");
-        let mut ignored = gaps.clone();
-        // Given twice and with a nonsense value, kept once and valid.
-        ignored.push(gaps[0]);
-        ignored.push(MuscleGroup::Unspecified as i32);
+        let calves = MuscleGroup::Calves as i32;
+        let core = MuscleGroup::Core as i32;
+        // StrongLifts A and B train neither calves nor core.
+        assert_eq!(adds(&onboarded, "", "lower"), Some(vec![calves, core]));
+        assert_eq!(adds(&onboarded, "", "core"), Some(vec![core]));
+        assert_eq!(adds(&onboarded, "", "big_three"), None, "adds nothing");
+
+        // Core into the main plan, Legs as a backup.
         app.call()
-            .update_setting(UpdateSettingRequest {
-                setting: Some(UserSetting {
-                    setting: Some(user_setting::Setting::IgnoredMuscles(
-                        IgnoredMusclesConfig { muscles: ignored },
-                    )),
-                }),
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["core".into()],
+                in_rotation: true,
+                ..Default::default()
+            })
+            .unwrap();
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["legs".into()],
+                ..Default::default()
             })
             .unwrap();
         let after = home(&mut app);
-        assert!(gap(&after).is_empty(), "{:?}", after.rotation_check);
-        let mut sorted = gaps.clone();
-        sorted.sort_unstable();
-        assert_eq!(after.ignored_muscles, sorted);
-        let reason = after.suggestion_reason.unwrap();
-        assert!(reason
-            .behind
+        let legs = by_library(&after, "legs").id;
+        assert_eq!(adds(&after, "", "lower"), Some(vec![calves]));
+        assert_eq!(adds(&after, &legs, ""), Some(vec![calves]));
+        assert_eq!(adds(&after, "", "core"), None, "the user has it");
+        assert_eq!(adds(&after, "", "legs"), None, "the user has it");
+        assert!(after
+            .rotation_check
+            .unwrap()
+            .additions
             .iter()
-            .all(|m| !after.ignored_muscles.contains(&m.muscle)));
-        assert!(reason
-            .recovering
-            .iter()
-            .all(|m| !after.ignored_muscles.contains(&m.muscle)));
+            .all(|a| a.template_id != by_library(&onboarded, "stronglifts_a").id));
     }
 
     /// The Manage sheet's drag: one reorder that also splits the list into

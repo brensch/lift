@@ -68,22 +68,13 @@ void main() {
     });
   });
 
-  group('rotationCheckLines', () {
-    test('the gap is what it trains; one line per other warning', () {
+  group('rotationWarningLines', () {
+    test('one line per warning, the gap left unsaid', () {
       final check = RotationCheck(
-        volume: [
-          MuscleVolume(
-            muscle: MuscleGroup.MUSCLE_GROUP_CHEST,
-            completedSets7d: 3,
-          ),
-        ],
         warnings: [
           RotationWarning(
             kind: RotationWarningKind.ROTATION_WARNING_KIND_GAP,
-            muscles: [
-              MuscleGroup.MUSCLE_GROUP_CALVES,
-              MuscleGroup.MUSCLE_GROUP_CORE,
-            ],
+            muscles: [MuscleGroup.MUSCLE_GROUP_CALVES],
           ),
           RotationWarning(
             kind: RotationWarningKind.ROTATION_WARNING_KIND_OVERLAP,
@@ -96,41 +87,55 @@ void main() {
           ),
         ],
       );
-      final lines = rotationCheckLines(check, {
-        'a': 'Full Body',
-        'b': 'StrongLifts A',
-      });
       expect(
-        lines.trains,
-        r.gap.replaceAll('{muscles}', 'calves ${r.and} core'),
+        rotationWarningLines(check, {'a': 'Full Body', 'b': 'StrongLifts A'}),
+        [
+          r.overlap
+              .replaceAll('{a}', 'Full Body')
+              .replaceAll('{b}', 'StrongLifts A')
+              .replaceAll('{shared}', '3')
+              .replaceAll('{of}', '3'),
+          r.tooFew,
+        ],
       );
-      expect(lines.gap, isTrue);
-      expect(lines.warnings, [
-        r.overlap
-            .replaceAll('{a}', 'Full Body')
-            .replaceAll('{b}', 'StrongLifts A')
-            .replaceAll('{shared}', '3')
-            .replaceAll('{of}', '3'),
-        r.tooFew,
-      ]);
+      expect(rotationWarningLines(RotationCheck(), {}), isEmpty);
+    });
+  });
+
+  group('additionLine', () {
+    test('names the muscles; nothing added, no line', () {
+      expect(
+        additionLine([
+          MuscleGroup.MUSCLE_GROUP_CALVES,
+          MuscleGroup.MUSCLE_GROUP_CORE,
+        ]),
+        r.adds.replaceAll('{muscles}', 'calves ${r.and} core'),
+      );
+      expect(additionLine([]), isEmpty);
     });
 
-    test('nothing wrong, nothing but what it trains', () {
-      final everything = rotationCheckLines(
+    test('additionsOf splits templates from library entries', () {
+      final got = additionsOf(
         RotationCheck(
-          volume: [
-            MuscleVolume(
-              muscle: MuscleGroup.MUSCLE_GROUP_CHEST,
-              completedSets7d: 3,
+          additions: [
+            RotationAddition(
+              templateId: 't',
+              muscles: [MuscleGroup.MUSCLE_GROUP_CORE],
+            ),
+            RotationAddition(
+              libraryId: 'lower',
+              muscles: [MuscleGroup.MUSCLE_GROUP_CALVES],
             ),
           ],
         ),
-        {},
       );
-      expect(everything.trains, r.trainsEverything);
-      expect(everything.gap, isFalse);
-      expect(everything.warnings, isEmpty);
-      expect(rotationCheckLines(RotationCheck(), {}).trains, r.trainsNothing);
+      expect(got.templates, {
+        't': [MuscleGroup.MUSCLE_GROUP_CORE],
+      });
+      expect(got.library, {
+        'lower': [MuscleGroup.MUSCLE_GROUP_CALVES],
+      });
+      expect(additionsOf(null).templates, isEmpty);
     });
   });
 }

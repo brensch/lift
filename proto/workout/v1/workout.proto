@@ -5,7 +5,7 @@ import "workout/v1/settings.proto";
 
 // --- Data Structures ---
 
-// MuscleGroup is in settings.proto, so a setting can name muscles.
+// MuscleGroup is defined in settings.proto.
 
 enum ExerciseCategory {
   EXERCISE_CATEGORY_UNSPECIFIED = 0;
@@ -744,14 +744,11 @@ message GetHomeResponse {
   // what starting it then records.
   repeated TemplatePlan template_plans = 11;
   int32 budget_minutes = 12;
-  // The rotation's shape, one pass through it: sets per muscle and what
-  // is wrong with it.
+  // The rotation's shape, one pass through it: sets per muscle, what is
+  // wrong with it, and what each workout outside it would add.
   RotationCheck rotation_check = 14;
-  // The muscles the user does not train on purpose (the ignored-muscles
-  // setting): no gap is warned of and no suggestion counts them behind.
-  repeated MuscleGroup ignored_muscles = 15;
-  reserved 2, 4, 8;
-  reserved "trackers", "user_messages";
+  reserved 2, 4, 8, 15;
+  reserved "trackers", "user_messages", "ignored_muscles";
 }
 
 // Why the suggestion is the template it is.
@@ -792,11 +789,24 @@ message RotationCheck {
   repeated MuscleVolume volume = 1;
   // Empty when nothing is wrong.
   repeated RotationWarning warnings = 2;
+  // Each backup (a template out of rotation) and each library entry the
+  // user does not have whose lifts train first a muscle the pass trains
+  // none of; the rest are not listed.
+  repeated RotationAddition additions = 3;
+}
+
+// What one workout would add to the rotation.
+message RotationAddition {
+  // One of the two: the user's template, or the library entry.
+  string template_id = 1;
+  string library_id = 2;
+  // The muscles, in Home's order.
+  repeated MuscleGroup muscles = 3;
 }
 
 message RotationWarning {
   RotationWarningKind kind = 1;
-  // GAP: every muscle nothing trains, ignored muscles left out.
+  // GAP: every muscle nothing trains.
   repeated MuscleGroup muscles = 2;
   // OVERLAP: the two templates.
   repeated string template_ids = 3;

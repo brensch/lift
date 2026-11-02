@@ -1,5 +1,5 @@
-//! The rotation check: what one pass through the rotation trains, and
-//! what is wrong with it.
+//! The rotation check: what one pass through the rotation trains, what
+//! is wrong with it, and what each workout outside it would add.
 //!
 //! A pass is each rotation template once. Every lift counts three working
 //! sets, the same for every user and every week, so the check describes
@@ -10,10 +10,10 @@ use std::collections::HashMap;
 
 use crate::exercise_catalog::{muscles, ALL_MUSCLES};
 use crate::pb::{
-    Exercise, MuscleGroup, MuscleVolume, RotationCheck, RotationWarning, RotationWarningKind,
-    WorkoutTemplate,
+    Exercise, LibraryTemplate, MuscleGroup, MuscleVolume, RotationAddition, RotationCheck,
+    RotationWarning, RotationWarningKind, WorkoutTemplate,
 };
-use crate::volume::{VOLUME_TARGET_HIGH, VOLUME_TARGET_LOW};
+use crate::volume::{primary_muscles, VOLUME_TARGET_HIGH, VOLUME_TARGET_LOW};
 
 /// Working sets each lift counts in a pass.
 pub const SETS_PER_LIFT: f32 = 3.0;
@@ -40,10 +40,11 @@ fn lifts(template: &WorkoutTemplate) -> Vec<Exercise> {
     out
 }
 
-/// The check over the templates in rotation (the rest are left out), in
-/// the order given. A muscle in [ignored] is one the user does not train
-/// on purpose: never a gap.
-pub fn rotation_check(templates: &[WorkoutTemplate], ignored: &[MuscleGroup]) -> RotationCheck {
+/// The check over the templates in rotation, in the order given. The
+/// templates out of rotation, and the [library] entries given (the ones the
+/// user does not have), are each an addition when a lift of theirs trains
+/// first a muscle the pass trains none of.
+pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]) -> RotationCheck {
     let rotation: Vec<&WorkoutTemplate> = templates.iter().filter(|t| t.in_rotation).collect();
 
     let mut sets: HashMap<MuscleGroup, f32> = HashMap::new();
@@ -64,6 +65,37 @@ pub fn rotation_check(templates: &[WorkoutTemplate], ignored: &[MuscleGroup]) ->
             target_high: VOLUME_TARGET_HIGH,
         })
         .collect();
+    let untrained: Vec<MuscleGroup> = ALL_MUSCLES
+        .iter()
+        .copied()
+        .filter(|m| sets.get(m).copied().unwrap_or(0.0) <= 0.0)
+        .collect();
+
+    let added = |exercises: &[i32]| -> Vec<i32> {
+        let primary = primary_muscles(exercises);
+        untrained
+            .iter()
+            .filter(|m| primary.contains(m))
+            .map(|m| *m as i32)
+            .collect()
+    };
+    let backups = templates
+        .iter()
+        .filter(|t| !t.in_rotation)
+        .map(|t| RotationAddition {
+            template_id: t.id.clone(),
+            muscles: added(&t.exercises),
+            ..Default::default()
+        });
+    let entries = library.iter().map(|e| RotationAddition {
+        library_id: e.id.clone(),
+        muscles: added(&e.exercises),
+        ..Default::default()
+    });
+    let additions: Vec<RotationAddition> = backups
+        .chain(entries)
+        .filter(|a| !a.muscles.is_empty())
+        .collect();
 
     let mut warnings = Vec::new();
     if rotation.len() < MIN_ROTATION {
@@ -73,19 +105,17 @@ pub fn rotation_check(templates: &[WorkoutTemplate], ignored: &[MuscleGroup]) ->
         });
     }
     if rotation.is_empty() {
-        return RotationCheck { volume, warnings };
+        return RotationCheck {
+            volume,
+            warnings,
+            additions,
+        };
     }
 
-    let untrained: Vec<i32> = volume
-        .iter()
-        .filter(|v| v.completed_sets_7d <= 0.0)
-        .map(|v| v.muscle)
-        .filter(|m| !ignored.iter().any(|i| *i as i32 == *m))
-        .collect();
     if !untrained.is_empty() {
         warnings.push(RotationWarning {
             kind: RotationWarningKind::Gap as i32,
-            muscles: untrained,
+            muscles: untrained.iter().map(|m| *m as i32).collect(),
             ..Default::default()
         });
     }
@@ -108,7 +138,11 @@ pub fn rotation_check(templates: &[WorkoutTemplate], ignored: &[MuscleGroup]) ->
         }
     }
 
-    RotationCheck { volume, warnings }
+    RotationCheck {
+        volume,
+        warnings,
+        additions,
+    }
 }
 
 #[cfg(test)]
@@ -125,7 +159,8 @@ mod tests {
         }
     }
 
-    fn rotation_check_all(templates: &[WorkoutTemplate]) -> RotationCheck {
+    /// The check with no library entries offered.
+    fn pass(templates: &[WorkoutTemplate]) -> RotationCheck {
         rotation_check(templates, &[])
     }
 
@@ -150,7 +185,7 @@ mod tests {
     /// sets per lift are three, half for a secondary.
     #[test]
     fn a_sound_rotation_has_no_warnings() {
-        let check = rotation_check_all(&[
+        let check = pass(&[
             template(
                 "upper",
                 &[
@@ -182,22 +217,19 @@ mod tests {
     #[test]
     fn too_few_templates() {
         let one = template("legs", &[Exercise::Squat]);
-        assert!(kinds(&rotation_check_all(std::slice::from_ref(&one)))
-            .contains(&RotationWarningKind::TooFew));
-        let none = rotation_check_all(&[]);
+        assert!(kinds(&pass(std::slice::from_ref(&one))).contains(&RotationWarningKind::TooFew));
+        let none = pass(&[]);
         assert_eq!(kinds(&none), vec![RotationWarningKind::TooFew]);
         // Favourites do not count.
         let mut favourite = template("arms", &[Exercise::BarbellCurl]);
         favourite.in_rotation = false;
-        assert!(
-            kinds(&rotation_check_all(&[one, favourite])).contains(&RotationWarningKind::TooFew)
-        );
+        assert!(kinds(&pass(&[one, favourite])).contains(&RotationWarningKind::TooFew));
     }
 
     /// Nothing trains calves or core: one gap naming both.
     #[test]
     fn a_gap_names_every_untrained_muscle() {
-        let check = rotation_check_all(&[
+        let check = pass(&[
             template(
                 "a",
                 &[
@@ -229,31 +261,65 @@ mod tests {
         );
     }
 
-    /// An ignored muscle is never a gap; the others still are.
+    /// A backup or a library entry adds the muscles its lifts train first
+    /// that the pass trains none of, in Home's order; one adding
+    /// nothing is not listed, and a lift training a missing muscle only
+    /// second adds nothing.
     #[test]
-    fn an_ignored_muscle_is_no_gap() {
+    fn additions_name_the_muscles_the_pass_misses() {
+        let mut backup = template("calves", &[Exercise::CalfRaise, Exercise::Squat]);
+        backup.in_rotation = false;
+        let mut covered = template("more", &[Exercise::BenchPress]);
+        covered.in_rotation = false;
+        let library = [
+            LibraryTemplate {
+                id: "core_and_calves".into(),
+                exercises: vec![Exercise::Crunch as i32, Exercise::CalfRaise as i32],
+                ..Default::default()
+            },
+            LibraryTemplate {
+                id: "push".into(),
+                exercises: vec![Exercise::BenchPress as i32],
+                ..Default::default()
+            },
+        ];
         let rotation = [
             template("a", &[Exercise::BenchPress, Exercise::Squat]),
             template("b", &[Exercise::BarbellRow, Exercise::RomanianDeadlift]),
+            backup,
+            covered,
         ];
-        let gap = |check: &RotationCheck| {
-            check
-                .warnings
-                .iter()
-                .find(|w| w.kind == RotationWarningKind::Gap as i32)
-                .map(|w| w.muscles.clone())
-                .unwrap_or_default()
-        };
-        let all = gap(&rotation_check(&rotation, &[]));
-        assert!(all.contains(&(MuscleGroup::Calves as i32)), "{all:?}");
-        let some = gap(&rotation_check(&rotation, &[MuscleGroup::Calves]));
-        assert!(!some.contains(&(MuscleGroup::Calves as i32)), "{some:?}");
-        assert!(some.contains(&(MuscleGroup::Core as i32)), "{some:?}");
-        let every_gap: Vec<MuscleGroup> = all
-            .iter()
-            .map(|m| MuscleGroup::try_from(*m).unwrap())
+        let got: Vec<(String, String, Vec<i32>)> = rotation_check(&rotation, &library)
+            .additions
+            .into_iter()
+            .map(|a| (a.template_id, a.library_id, a.muscles))
             .collect();
-        assert!(!kinds(&rotation_check(&rotation, &every_gap)).contains(&RotationWarningKind::Gap));
+        assert_eq!(
+            got,
+            vec![
+                (
+                    "calves".to_string(),
+                    String::new(),
+                    vec![MuscleGroup::Calves as i32]
+                ),
+                (
+                    String::new(),
+                    "core_and_calves".to_string(),
+                    vec![MuscleGroup::Calves as i32, MuscleGroup::Core as i32]
+                ),
+            ]
+        );
+
+        // With nothing in rotation every muscle is missing: a backup adds
+        // all its lifts train first.
+        let mut alone = template("legs", &[Exercise::Squat, Exercise::CalfRaise]);
+        alone.in_rotation = false;
+        let additions = pass(&[alone]).additions;
+        assert_eq!(additions.len(), 1);
+        assert_eq!(
+            additions[0].muscles,
+            vec![MuscleGroup::Quads as i32, MuscleGroup::Calves as i32]
+        );
     }
 
     /// Overlap is over 70% of the smaller template's lifts: 3 of 4 is,
@@ -279,7 +345,7 @@ mod tests {
                 Exercise::CalfRaise,
             ],
         );
-        let check = rotation_check_all(&[big.clone(), near]);
+        let check = pass(&[big.clone(), near]);
         let overlap = check
             .warnings
             .iter()
@@ -292,6 +358,6 @@ mod tests {
             "apart",
             &[Exercise::Squat, Exercise::BenchPress, Exercise::CalfRaise],
         );
-        assert!(!kinds(&rotation_check_all(&[big, apart])).contains(&RotationWarningKind::Overlap));
+        assert!(!kinds(&pass(&[big, apart])).contains(&RotationWarningKind::Overlap));
     }
 }

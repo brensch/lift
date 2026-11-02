@@ -169,8 +169,8 @@ the first sync, the copy built into the app stands in.
   **has** an entry when a template follows it or was made from it
   (`Account::has_library_entry`); `AddLibraryTemplates` drops such an
   entry before it records the event, so no entry is added twice. The fold
-  itself skips only an entry a template still follows, as it always has,
-  so older logs fold as they did.
+  itself skips only an entry a template still follows, so older logs fold
+  as they did.
 - Every workout keeps its own exercises and sets plus `template_id`, so a
   change to a default never rewrites a past session.
 - In the app's Manage sheet a library workout the user does not have is

@@ -691,15 +691,21 @@ impl<'a> View<'a> {
             .iter()
             .map(|t| self.resolved(t))
             .collect();
-        let ignored = self.account.ignored_muscles();
         let suggestion = suggest_template(
             &templates,
             &volume,
             &muscle_recovery,
             self.now,
             &last_started,
-            &ignored,
         );
+        // The library entries the user does not have, for the check's
+        // additions.
+        let addable: Vec<LibraryTemplate> = self
+            .library
+            .iter()
+            .filter(|e| !self.account.has_library_entry(&e.id))
+            .cloned()
+            .collect();
         let template_plans = templates
             .iter()
             .map(|t| TemplatePlan {
@@ -716,8 +722,7 @@ impl<'a> View<'a> {
             active_workout_id: self.account.active_workout_id.clone(),
             volume,
             recovery,
-            rotation_check: Some(rotation_check(&templates, &ignored)),
-            ignored_muscles: ignored.iter().map(|m| *m as i32).collect(),
+            rotation_check: Some(rotation_check(&templates, &addable)),
             suggested_template_id: suggestion
                 .as_ref()
                 .map(|s| s.template_id.clone())

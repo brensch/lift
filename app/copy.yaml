@@ -93,17 +93,15 @@ rotation:
   # Every workout in rotation opens on a muscle still recovering: the one
   # whose first lift is back soonest.
   first_lift: "Every workout starts on something sore. First back: {muscle}, in {hours}h."
-  # The rotation check, at the top of the sheet: one line of what the
-  # rotation trains (ignored muscles left out), then any warnings.
-  trains_everything: Trains everything.
-  trains_nothing: Trains nothing yet.
-  gap: "Trains everything but {muscles}."
+  # The rotation check, at the top of the sheet: this line, the bars of
+  # one lap of the main plan's sets per muscle, then any warnings.
+  check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your main plan that we cycle through to make sure you're sculpting the right bits."
   overlap: "{a} and {b} share {shared} of {of} lifts."
   too_few: "Put two or more workouts in the main plan."
-  # The muscles under the check: tap one to stop counting it (no gap, no
-  # suggestion for it, greyed on Home).
-  muscles_title: Muscles you train
-  muscles_hint: Tap one you don't care about. It stops counting.
+  # Under a backup's or a library workout's lifts, when it trains muscles
+  # the main plan trains none of. {muscles} is "calves" or "calves and
+  # core". Placeholder.
+  adds: "Trains {muscles}, which you don't have."
 
 # Sign-in screen.
 login:

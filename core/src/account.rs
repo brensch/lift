@@ -8,9 +8,8 @@ use crate::history::WorkoutRecord;
 use crate::ids::Ids;
 use crate::pb::{
     event, user_setting, workout_mutation::Mutation, CompleteOnboardingRequest, Event, Exercise,
-    ExerciseDecision, ImportHistory, LibraryTemplate, MuscleGroup, SetOverrideRequest,
-    StartWorkoutRequest, UserSetting, WeightUnit, WeightUnitConfig, Workout, WorkoutMutation,
-    WorkoutTemplate,
+    ExerciseDecision, ImportHistory, LibraryTemplate, SetOverrideRequest, StartWorkoutRequest,
+    UserSetting, WeightUnit, WeightUnitConfig, Workout, WorkoutMutation, WorkoutTemplate,
 };
 use crate::plan::Override;
 use crate::weight_units::{unit_from_proto, AppWeightUnit};
@@ -179,18 +178,10 @@ impl Account {
             event::Kind::SetOverride(req) => self.set_override(req, at)?,
             event::Kind::CompleteOnboarding(req) => self.complete_onboarding(req, at, &mut ids)?,
             event::Kind::UpdateSetting(req) => {
-                let mut setting = req
+                let setting = req
                     .setting
                     .clone()
                     .ok_or_else(|| invalid("setting is required"))?;
-                if let Some(user_setting::Setting::IgnoredMuscles(config)) = &mut setting.setting {
-                    // Each muscle once, in the taxonomy's order.
-                    config.muscles.retain(|m| {
-                        MuscleGroup::try_from(*m).is_ok_and(|m| m != MuscleGroup::Unspecified)
-                    });
-                    config.muscles.sort_unstable();
-                    config.muscles.dedup();
-                }
                 let kind = setting_kind(&setting).ok_or_else(|| invalid("setting is empty"))?;
                 self.settings.retain(|s| setting_kind(s) != Some(kind));
                 self.settings.push(setting);
@@ -211,22 +202,6 @@ impl Account {
                 _ => None,
             })
             .unwrap_or(AppWeightUnit::Lb)
-    }
-
-    /// The muscles the user does not train on purpose.
-    pub fn ignored_muscles(&self) -> Vec<MuscleGroup> {
-        self.settings
-            .iter()
-            .find_map(|s| match &s.setting {
-                Some(user_setting::Setting::IgnoredMuscles(c)) => Some(
-                    c.muscles
-                        .iter()
-                        .filter_map(|m| MuscleGroup::try_from(*m).ok())
-                        .collect(),
-                ),
-                _ => None,
-            })
-            .unwrap_or_default()
     }
 
     pub fn workout(&self, id: &str) -> Option<&WorkoutRecord> {
@@ -571,14 +546,12 @@ pub fn mutation_workout_id(mutation: &Mutation) -> &str {
 enum SettingKind {
     PlateColors,
     WeightUnit,
-    IgnoredMuscles,
 }
 
 fn setting_kind(setting: &UserSetting) -> Option<SettingKind> {
     match setting.setting {
         Some(user_setting::Setting::PlateColors(_)) => Some(SettingKind::PlateColors),
         Some(user_setting::Setting::WeightUnit(_)) => Some(SettingKind::WeightUnit),
-        Some(user_setting::Setting::IgnoredMuscles(_)) => Some(SettingKind::IgnoredMuscles),
         None => None,
     }
 }

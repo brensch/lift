@@ -112,26 +112,6 @@ final $typed_data.Uint8List weightUnitConfigDescriptor = $convert.base64Decode(
     'ChBXZWlnaHRVbml0Q29uZmlnEioKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaX'
     'RSBHVuaXQ=');
 
-@$core.Deprecated('Use ignoredMusclesConfigDescriptor instead')
-const IgnoredMusclesConfig$json = {
-  '1': 'IgnoredMusclesConfig',
-  '2': [
-    {
-      '1': 'muscles',
-      '3': 1,
-      '4': 3,
-      '5': 14,
-      '6': '.workout.v1.MuscleGroup',
-      '10': 'muscles'
-    },
-  ],
-};
-
-/// Descriptor for `IgnoredMusclesConfig`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List ignoredMusclesConfigDescriptor = $convert.base64Decode(
-    'ChRJZ25vcmVkTXVzY2xlc0NvbmZpZxIxCgdtdXNjbGVzGAEgAygOMhcud29ya291dC52MS5NdX'
-    'NjbGVHcm91cFIHbXVzY2xlcw==');
-
 @$core.Deprecated('Use userSettingDescriptor instead')
 const UserSetting$json = {
   '1': 'UserSetting',
@@ -154,28 +134,22 @@ const UserSetting$json = {
       '9': 0,
       '10': 'weightUnit'
     },
-    {
-      '1': 'ignored_muscles',
-      '3': 13,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.IgnoredMusclesConfig',
-      '9': 0,
-      '10': 'ignoredMuscles'
-    },
   ],
   '8': [
     {'1': 'setting'},
   ],
+  '9': [
+    {'1': 13, '2': 14},
+  ],
+  '10': ['ignored_muscles'],
 };
 
 /// Descriptor for `UserSetting`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List userSettingDescriptor = $convert.base64Decode(
     'CgtVc2VyU2V0dGluZxJCCgxwbGF0ZV9jb2xvcnMYCiABKAsyHS53b3Jrb3V0LnYxLlBsYXRlQ2'
     '9sb3JzQ29uZmlnSABSC3BsYXRlQ29sb3JzEj8KC3dlaWdodF91bml0GAwgASgLMhwud29ya291'
-    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXQSSwoPaWdub3JlZF9tdXNjbGVzGA'
-    '0gASgLMiAud29ya291dC52MS5JZ25vcmVkTXVzY2xlc0NvbmZpZ0gAUg5pZ25vcmVkTXVzY2xl'
-    'c0IJCgdzZXR0aW5n');
+    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXRCCQoHc2V0dGluZ0oECA0QDlIPaW'
+    'dub3JlZF9tdXNjbGVz');
 
 @$core.Deprecated('Use updateSettingRequestDescriptor instead')
 const UpdateSettingRequest$json = {

@@ -1754,7 +1754,6 @@ fn rotation() -> RotationRun {
                         &recovery,
                         at,
                         &last_started,
-                        &[],
                     )
                     .expect("a template in rotation is suggested alone");
                     let behind: Vec<MuscleGroup> = alone

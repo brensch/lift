@@ -4,8 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
-import '../gen/workout/v1/settings.pb.dart'
-    show IgnoredMusclesConfig, MuscleGroup, UserSetting, WeightUnit;
+import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/first_workout.dart';
@@ -537,19 +536,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     bool inRotation = false,
   }) async {
     await _service.addLibraryTemplates(libraryIds, inRotation: inRotation);
-    await refreshHome();
-  }
-
-  /// The muscles the user does not train on purpose: no gap is warned of,
-  /// the suggestion never counts them behind, and Home greys them.
-  Set<MuscleGroup> get ignoredMuscles =>
-      _home?.ignoredMuscles.toSet() ?? const {};
-
-  /// Ignore [muscles] (and only those) from now on.
-  Future<void> setIgnoredMuscles(Set<MuscleGroup> muscles) async {
-    await _service.updateSetting(
-      UserSetting(ignoredMuscles: IgnoredMusclesConfig(muscles: muscles)),
-    );
     await refreshHome();
   }
 

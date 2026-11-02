@@ -109,15 +109,13 @@ pub fn primary_muscles(exercises: &[i32]) -> Vec<MuscleGroup> {
 /// behind, the one started least recently (`fallback`). When every
 /// template is left out, the one whose first lift's muscle recovers
 /// soonest (`first_lift_recovering`). Favourites (templates out of
-/// rotation) are never picked; None when nothing is in rotation. A muscle
-/// in [ignored] (the user does not train it on purpose) is never behind.
+/// rotation) are never picked; None when nothing is in rotation.
 pub fn suggest_template(
     templates: &[WorkoutTemplate],
     volume: &[MuscleVolume],
     recovery: &[MuscleRecovery],
     now: i64,
     last_started: &HashMap<String, i64>,
-    ignored: &[MuscleGroup],
 ) -> Option<Suggestion> {
     let sets = |muscle: MuscleGroup| {
         volume
@@ -128,9 +126,6 @@ pub fn suggest_template(
             })
     };
     let deficit = |muscle: MuscleGroup| {
-        if ignored.contains(&muscle) {
-            return 0.0;
-        }
         let (done, target) = sets(muscle);
         (target as f32 - done).max(0.0)
     };
@@ -351,7 +346,6 @@ mod tests {
             &per_muscle_recovery(history, now),
             now,
             last,
-            &[],
         )
     }
 
@@ -547,31 +541,5 @@ mod tests {
         let got = suggest(&[legs.clone(), arms], &[], now, &HashMap::new()).unwrap();
         assert_eq!(got.template_id, "arms");
         assert!(suggest(&[legs], &[], now, &HashMap::new()).is_none());
-    }
-
-    /// An ignored muscle is never behind: with back and biceps ignored,
-    /// pull scores nothing and legs (quads behind) wins instead.
-    #[test]
-    fn ignored_muscles_score_nothing() {
-        let now = 1_000_000;
-        let templates = vec![
-            template("legs", &[Exercise::LegExtension]),
-            template("pull", &[Exercise::BarbellRow, Exercise::BarbellCurl]),
-        ];
-        let history: Vec<WorkoutRecord> = vec![];
-        let plain = suggest(&templates, &history, now, &HashMap::new()).unwrap();
-        assert_eq!(plain.template_id, "pull");
-        let got = suggest_template(
-            &templates,
-            &muscle_volume_7d(&history, now),
-            &per_muscle_recovery(&history, now),
-            now,
-            &HashMap::new(),
-            &[MuscleGroup::Back, MuscleGroup::Biceps],
-        )
-        .unwrap();
-        assert_eq!(got.template_id, "legs");
-        let behind: Vec<i32> = got.reason.behind.iter().map(|m| m.muscle).collect();
-        assert_eq!(behind, vec![MuscleGroup::Quads as i32]);
     }
 }

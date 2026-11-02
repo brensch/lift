@@ -36125,8 +36125,8 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -36135,68 +36135,14 @@ public final class WorkoutOuterClass {
     boolean hasRotationCheck();
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
      * @return The rotationCheck.
      */
     workout.v1.WorkoutOuterClass.RotationCheck getRotationCheck();
-
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @return A list containing the ignoredMuscles.
-     */
-    java.util.List<workout.v1.Settings.MuscleGroup> getIgnoredMusclesList();
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @return The count of ignoredMuscles.
-     */
-    int getIgnoredMusclesCount();
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param index The index of the element to return.
-     * @return The ignoredMuscles at the given index.
-     */
-    workout.v1.Settings.MuscleGroup getIgnoredMuscles(int index);
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @return A list containing the enum numeric values on the wire for ignoredMuscles.
-     */
-    java.util.List<java.lang.Integer>
-    getIgnoredMusclesValueList();
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of ignoredMuscles at the given index.
-     */
-    int getIgnoredMusclesValue(int index);
   }
   /**
    * Protobuf type {@code workout.v1.GetHomeResponse}
@@ -36214,7 +36160,6 @@ public final class WorkoutOuterClass {
       suggestedTemplateId_ = "";
       plans_ = emptyProtobufList();
       templatePlans_ = emptyProtobufList();
-      ignoredMuscles_ = emptyIntList();
     }
     public static final int TEMPLATES_FIELD_NUMBER = 1;
     private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.WorkoutTemplate> templates_;
@@ -37083,8 +37028,8 @@ public final class WorkoutOuterClass {
     private workout.v1.WorkoutOuterClass.RotationCheck rotationCheck_;
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -37095,8 +37040,8 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -37107,8 +37052,8 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -37120,8 +37065,8 @@ public final class WorkoutOuterClass {
       }
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -37140,205 +37085,14 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The rotation's shape, one pass through it: sets per muscle and what
-     * is wrong with it.
+     * The rotation's shape, one pass through it: sets per muscle, what is
+     * wrong with it, and what each workout outside it would add.
      * </pre>
      *
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
      */
     private void clearRotationCheck() {  rotationCheck_ = null;
       
-    }
-
-    public static final int IGNORED_MUSCLES_FIELD_NUMBER = 15;
-    private com.google.protobuf.Internal.IntList ignoredMuscles_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.Settings.MuscleGroup> ignoredMuscles_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.Settings.MuscleGroup>() {
-              @java.lang.Override
-              public workout.v1.Settings.MuscleGroup convert(java.lang.Integer from) {
-                workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(from);
-                return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
-              }
-            };
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @return A list containing the ignoredMuscles.
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.Settings.MuscleGroup> getIgnoredMusclesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.Settings.MuscleGroup>(ignoredMuscles_, ignoredMuscles_converter_);
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @return The count of ignoredMuscles.
-     */
-    @java.lang.Override
-    public int getIgnoredMusclesCount() {
-      return ignoredMuscles_.size();
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param index The index of the element to return.
-     * @return The ignoredMuscles at the given index.
-     */
-    @java.lang.Override
-    public workout.v1.Settings.MuscleGroup getIgnoredMuscles(int index) {
-      workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(ignoredMuscles_.getInt(index));
-      return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @return A list containing the enum numeric values on the wire for ignoredMuscles.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getIgnoredMusclesValueList() {
-      return ignoredMuscles_;
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of ignoredMuscles at the given index.
-     */
-    @java.lang.Override
-    public int getIgnoredMusclesValue(int index) {
-      return ignoredMuscles_.getInt(index);
-    }
-    private int ignoredMusclesMemoizedSerializedSize;
-    private void ensureIgnoredMusclesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = ignoredMuscles_;
-      if (!tmp.isModifiable()) {
-        ignoredMuscles_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param index The index to set the value at.
-     * @param value The ignoredMuscles to set.
-     */
-    private void setIgnoredMuscles(
-        int index, workout.v1.Settings.MuscleGroup value) {
-      value.getClass();
-  ensureIgnoredMusclesIsMutable();
-      ignoredMuscles_.setInt(index, value.getNumber());
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param value The ignoredMuscles to add.
-     */
-    private void addIgnoredMuscles(workout.v1.Settings.MuscleGroup value) {
-      value.getClass();
-  ensureIgnoredMusclesIsMutable();
-      ignoredMuscles_.addInt(value.getNumber());
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param values The ignoredMuscles to add.
-     */
-    private void addAllIgnoredMuscles(
-        java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
-      ensureIgnoredMusclesIsMutable();
-      for (workout.v1.Settings.MuscleGroup value : values) {
-        ignoredMuscles_.addInt(value.getNumber());
-      }
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     */
-    private void clearIgnoredMuscles() {
-      ignoredMuscles_ = emptyIntList();
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param value The enum numeric value on the wire for ignoredMuscles to set.
-     */
-    private void setIgnoredMusclesValue(
-        int index, int value) {
-      ensureIgnoredMusclesIsMutable();
-      ignoredMuscles_.setInt(index, value);
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param value The enum numeric value on the wire for ignoredMuscles to add.
-     */
-    private void addIgnoredMusclesValue(int value) {
-      ensureIgnoredMusclesIsMutable();
-      ignoredMuscles_.addInt(value);
-    }
-    /**
-     * <pre>
-     * The muscles the user does not train on purpose (the ignored-muscles
-     * setting): no gap is warned of and no suggestion counts them behind.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-     * @param values The enum numeric values on the wire for ignoredMuscles to add.
-     */
-    private void addAllIgnoredMusclesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureIgnoredMusclesIsMutable();
-      for (int value : values) {
-        ignoredMuscles_.addInt(value);
-      }
     }
 
     public static workout.v1.WorkoutOuterClass.GetHomeResponse parseFrom(
@@ -38364,8 +38118,8 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * The rotation's shape, one pass through it: sets per muscle and what
-       * is wrong with it.
+       * The rotation's shape, one pass through it: sets per muscle, what is
+       * wrong with it, and what each workout outside it would add.
        * </pre>
        *
        * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -38376,8 +38130,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The rotation's shape, one pass through it: sets per muscle and what
-       * is wrong with it.
+       * The rotation's shape, one pass through it: sets per muscle, what is
+       * wrong with it, and what each workout outside it would add.
        * </pre>
        *
        * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -38388,8 +38142,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The rotation's shape, one pass through it: sets per muscle and what
-       * is wrong with it.
+       * The rotation's shape, one pass through it: sets per muscle, what is
+       * wrong with it, and what each workout outside it would add.
        * </pre>
        *
        * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -38401,8 +38155,8 @@ public final class WorkoutOuterClass {
         }
       /**
        * <pre>
-       * The rotation's shape, one pass through it: sets per muscle and what
-       * is wrong with it.
+       * The rotation's shape, one pass through it: sets per muscle, what is
+       * wrong with it, and what each workout outside it would add.
        * </pre>
        *
        * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -38415,8 +38169,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The rotation's shape, one pass through it: sets per muscle and what
-       * is wrong with it.
+       * The rotation's shape, one pass through it: sets per muscle, what is
+       * wrong with it, and what each workout outside it would add.
        * </pre>
        *
        * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
@@ -38428,192 +38182,14 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The rotation's shape, one pass through it: sets per muscle and what
-       * is wrong with it.
+       * The rotation's shape, one pass through it: sets per muscle, what is
+       * wrong with it, and what each workout outside it would add.
        * </pre>
        *
        * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
        */
       public Builder clearRotationCheck() {  copyOnWrite();
         instance.clearRotationCheck();
-        return this;
-      }
-
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @return A list containing the ignoredMuscles.
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.Settings.MuscleGroup> getIgnoredMusclesList() {
-        return instance.getIgnoredMusclesList();
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @return The count of ignoredMuscles.
-       */
-      @java.lang.Override
-      public int getIgnoredMusclesCount() {
-        return instance.getIgnoredMusclesCount();
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param index The index of the element to return.
-       * @return The ignoredMuscles at the given index.
-       */
-      @java.lang.Override
-      public workout.v1.Settings.MuscleGroup getIgnoredMuscles(int index) {
-        return instance.getIgnoredMuscles(index);
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param index The index to set the value at.
-       * @param value The ignoredMuscles to set.
-       * @return This builder for chaining.
-       */
-      public Builder setIgnoredMuscles(
-          int index, workout.v1.Settings.MuscleGroup value) {
-        copyOnWrite();
-        instance.setIgnoredMuscles(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param value The ignoredMuscles to add.
-       * @return This builder for chaining.
-       */
-      public Builder addIgnoredMuscles(workout.v1.Settings.MuscleGroup value) {
-        copyOnWrite();
-        instance.addIgnoredMuscles(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param values The ignoredMuscles to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllIgnoredMuscles(
-          java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
-        copyOnWrite();
-        instance.addAllIgnoredMuscles(values);  return this;
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearIgnoredMuscles() {
-        copyOnWrite();
-        instance.clearIgnoredMuscles();
-        return this;
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @return A list containing the enum numeric values on the wire for ignoredMuscles.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getIgnoredMusclesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getIgnoredMusclesValueList());
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of ignoredMuscles at the given index.
-       */
-      @java.lang.Override
-      public int getIgnoredMusclesValue(int index) {
-        return instance.getIgnoredMusclesValue(index);
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for ignoredMuscles to set.
-       * @return This builder for chaining.
-       */
-      public Builder setIgnoredMusclesValue(
-          int index, int value) {
-        copyOnWrite();
-        instance.setIgnoredMusclesValue(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param value The enum numeric value on the wire for ignoredMuscles to add.
-       * @return This builder for chaining.
-       */
-      public Builder addIgnoredMusclesValue(int value) {
-        instance.addIgnoredMusclesValue(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The muscles the user does not train on purpose (the ignored-muscles
-       * setting): no gap is warned of and no suggestion counts them behind.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.MuscleGroup ignored_muscles = 15 [json_name = "ignoredMuscles"];</code>
-       * @param values The enum numeric values on the wire for ignoredMuscles to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllIgnoredMusclesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllIgnoredMusclesValue(values);
         return this;
       }
 
@@ -38649,12 +38225,11 @@ public final class WorkoutOuterClass {
               "budgetMinutes_",
               "suggestionReason_",
               "rotationCheck_",
-              "ignoredMuscles_",
             };
             java.lang.String info =
-                "\u0000\f\u0000\u0000\u0001\u000f\f\u0000\u0006\u0000\u0001\u001b\u0003\u0208\u0005" +
-                "\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e\t\u000f" +
-                ",";
+                "\u0000\u000b\u0000\u0000\u0001\u000e\u000b\u0000\u0005\u0000\u0001\u001b\u0003\u0208" +
+                "\u0005\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e" +
+                "\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -40753,6 +40328,38 @@ public final class WorkoutOuterClass {
      * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
      */
     int getWarningsCount();
+
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.RotationAddition> 
+        getAdditionsList();
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    workout.v1.WorkoutOuterClass.RotationAddition getAdditions(int index);
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    int getAdditionsCount();
   }
   /**
    * <pre>
@@ -40771,6 +40378,7 @@ public final class WorkoutOuterClass {
     private RotationCheck() {
       volume_ = emptyProtobufList();
       warnings_ = emptyProtobufList();
+      additions_ = emptyProtobufList();
     }
     public static final int VOLUME_FIELD_NUMBER = 1;
     private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.MuscleVolume> volume_;
@@ -41046,6 +40654,166 @@ public final class WorkoutOuterClass {
     private void removeWarnings(int index) {
       ensureWarningsIsMutable();
       warnings_.remove(index);
+    }
+
+    public static final int ADDITIONS_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.RotationAddition> additions_;
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.RotationAddition> getAdditionsList() {
+      return additions_;
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.RotationAdditionOrBuilder> 
+        getAdditionsOrBuilderList() {
+      return additions_;
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    @java.lang.Override
+    public int getAdditionsCount() {
+      return additions_.size();
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RotationAddition getAdditions(int index) {
+      return additions_.get(index);
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.RotationAdditionOrBuilder getAdditionsOrBuilder(
+        int index) {
+      return additions_.get(index);
+    }
+    private void ensureAdditionsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.RotationAddition> tmp = additions_;
+      if (!tmp.isModifiable()) {
+        additions_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    private void setAdditions(
+        int index, workout.v1.WorkoutOuterClass.RotationAddition value) {
+      value.getClass();
+  ensureAdditionsIsMutable();
+      additions_.set(index, value);
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    private void addAdditions(workout.v1.WorkoutOuterClass.RotationAddition value) {
+      value.getClass();
+  ensureAdditionsIsMutable();
+      additions_.add(value);
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    private void addAdditions(
+        int index, workout.v1.WorkoutOuterClass.RotationAddition value) {
+      value.getClass();
+  ensureAdditionsIsMutable();
+      additions_.add(index, value);
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    private void addAllAdditions(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.RotationAddition> values) {
+      ensureAdditionsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, additions_);
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    private void clearAdditions() {
+      additions_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * Each backup (a template out of rotation) and each library entry the
+     * user does not have whose lifts train first a muscle the pass trains
+     * none of; the rest are not listed.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+     */
+    private void removeAdditions(int index) {
+      ensureAdditionsIsMutable();
+      additions_.remove(index);
     }
 
     public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
@@ -41449,6 +41217,180 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.RotationAddition> getAdditionsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getAdditionsList());
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      @java.lang.Override
+      public int getAdditionsCount() {
+        return instance.getAdditionsCount();
+      }/**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RotationAddition getAdditions(int index) {
+        return instance.getAdditions(index);
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder setAdditions(
+          int index, workout.v1.WorkoutOuterClass.RotationAddition value) {
+        copyOnWrite();
+        instance.setAdditions(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder setAdditions(
+          int index, workout.v1.WorkoutOuterClass.RotationAddition.Builder builderForValue) {
+        copyOnWrite();
+        instance.setAdditions(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder addAdditions(workout.v1.WorkoutOuterClass.RotationAddition value) {
+        copyOnWrite();
+        instance.addAdditions(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder addAdditions(
+          int index, workout.v1.WorkoutOuterClass.RotationAddition value) {
+        copyOnWrite();
+        instance.addAdditions(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder addAdditions(
+          workout.v1.WorkoutOuterClass.RotationAddition.Builder builderForValue) {
+        copyOnWrite();
+        instance.addAdditions(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder addAdditions(
+          int index, workout.v1.WorkoutOuterClass.RotationAddition.Builder builderForValue) {
+        copyOnWrite();
+        instance.addAdditions(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder addAllAdditions(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.RotationAddition> values) {
+        copyOnWrite();
+        instance.addAllAdditions(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder clearAdditions() {
+        copyOnWrite();
+        instance.clearAdditions();
+        return this;
+      }
+      /**
+       * <pre>
+       * Each backup (a template out of rotation) and each library entry the
+       * user does not have whose lifts train first a muscle the pass trains
+       * none of; the rest are not listed.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationAddition additions = 3 [json_name = "additions"];</code>
+       */
+      public Builder removeAdditions(int index) {
+        copyOnWrite();
+        instance.removeAdditions(index);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.RotationCheck)
     }
     @java.lang.Override
@@ -41469,10 +41411,12 @@ public final class WorkoutOuterClass {
               workout.v1.WorkoutOuterClass.MuscleVolume.class,
               "warnings_",
               workout.v1.WorkoutOuterClass.RotationWarning.class,
+              "additions_",
+              workout.v1.WorkoutOuterClass.RotationAddition.class,
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0002\u0000\u0001\u001b\u0002\u001b" +
-                "";
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0003\u0000\u0001\u001b\u0002\u001b" +
+                "\u0003\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -41527,6 +41471,861 @@ public final class WorkoutOuterClass {
     }
   }
 
+  public interface RotationAdditionOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RotationAddition)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    java.lang.String getTemplateId();
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    com.google.protobuf.ByteString
+        getTemplateIdBytes();
+
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     * @return The libraryId.
+     */
+    java.lang.String getLibraryId();
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     * @return The bytes for libraryId.
+     */
+    com.google.protobuf.ByteString
+        getLibraryIdBytes();
+
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList();
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    int getMusclesCount();
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    workout.v1.Settings.MuscleGroup getMuscles(int index);
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    java.util.List<java.lang.Integer>
+    getMusclesValueList();
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    int getMusclesValue(int index);
+  }
+  /**
+   * <pre>
+   * What one workout would add to the rotation.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.RotationAddition}
+   */
+  public  static final class RotationAddition extends
+      com.google.protobuf.GeneratedMessageLite<
+          RotationAddition, RotationAddition.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RotationAddition)
+      RotationAdditionOrBuilder {
+    private RotationAddition() {
+      templateId_ = "";
+      libraryId_ = "";
+      muscles_ = emptyIntList();
+    }
+    public static final int TEMPLATE_ID_FIELD_NUMBER = 1;
+    private java.lang.String templateId_;
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    @java.lang.Override
+    public java.lang.String getTemplateId() {
+      return templateId_;
+    }
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTemplateIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(templateId_);
+    }
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     * @param value The templateId to set.
+     */
+    private void setTemplateId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      templateId_ = value;
+    }
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     */
+    private void clearTemplateId() {
+      
+      templateId_ = getDefaultInstance().getTemplateId();
+    }
+    /**
+     * <pre>
+     * One of the two: the user's template, or the library entry.
+     * </pre>
+     *
+     * <code>string template_id = 1 [json_name = "templateId"];</code>
+     * @param value The bytes for templateId to set.
+     */
+    private void setTemplateIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      templateId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int LIBRARY_ID_FIELD_NUMBER = 2;
+    private java.lang.String libraryId_;
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     * @return The libraryId.
+     */
+    @java.lang.Override
+    public java.lang.String getLibraryId() {
+      return libraryId_;
+    }
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     * @return The bytes for libraryId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getLibraryIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(libraryId_);
+    }
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     * @param value The libraryId to set.
+     */
+    private void setLibraryId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      libraryId_ = value;
+    }
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     */
+    private void clearLibraryId() {
+      
+      libraryId_ = getDefaultInstance().getLibraryId();
+    }
+    /**
+     * <code>string library_id = 2 [json_name = "libraryId"];</code>
+     * @param value The bytes for libraryId to set.
+     */
+    private void setLibraryIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      libraryId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int MUSCLES_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.IntList muscles_;
+    private static final com.google.protobuf.Internal.ListAdapter.Converter<
+        java.lang.Integer, workout.v1.Settings.MuscleGroup> muscles_converter_ =
+            new com.google.protobuf.Internal.ListAdapter.Converter<
+                java.lang.Integer, workout.v1.Settings.MuscleGroup>() {
+              @java.lang.Override
+              public workout.v1.Settings.MuscleGroup convert(java.lang.Integer from) {
+                workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(from);
+                return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
+              }
+            };
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList() {
+      return new com.google.protobuf.Internal.ListAdapter<
+          java.lang.Integer, workout.v1.Settings.MuscleGroup>(muscles_, muscles_converter_);
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    @java.lang.Override
+    public int getMusclesCount() {
+      return muscles_.size();
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    @java.lang.Override
+    public workout.v1.Settings.MuscleGroup getMuscles(int index) {
+      workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(muscles_.getInt(index));
+      return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.Integer>
+    getMusclesValueList() {
+      return muscles_;
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    @java.lang.Override
+    public int getMusclesValue(int index) {
+      return muscles_.getInt(index);
+    }
+    private int musclesMemoizedSerializedSize;
+    private void ensureMusclesIsMutable() {
+      com.google.protobuf.Internal.IntList tmp = muscles_;
+      if (!tmp.isModifiable()) {
+        muscles_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+      }
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param index The index to set the value at.
+     * @param value The muscles to set.
+     */
+    private void setMuscles(
+        int index, workout.v1.Settings.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.setInt(index, value.getNumber());
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param value The muscles to add.
+     */
+    private void addMuscles(workout.v1.Settings.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.addInt(value.getNumber());
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param values The muscles to add.
+     */
+    private void addAllMuscles(
+        java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
+      ensureMusclesIsMutable();
+      for (workout.v1.Settings.MuscleGroup value : values) {
+        muscles_.addInt(value.getNumber());
+      }
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     */
+    private void clearMuscles() {
+      muscles_ = emptyIntList();
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to set.
+     */
+    private void setMusclesValue(
+        int index, int value) {
+      ensureMusclesIsMutable();
+      muscles_.setInt(index, value);
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to add.
+     */
+    private void addMusclesValue(int value) {
+      ensureMusclesIsMutable();
+      muscles_.addInt(value);
+    }
+    /**
+     * <pre>
+     * The muscles, in Home's order.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+     * @param values The enum numeric values on the wire for muscles to add.
+     */
+    private void addAllMusclesValue(
+        java.lang.Iterable<java.lang.Integer> values) {
+      ensureMusclesIsMutable();
+      for (int value : values) {
+        muscles_.addInt(value);
+      }
+    }
+
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationAddition parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.RotationAddition prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * What one workout would add to the rotation.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.RotationAddition}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.RotationAddition, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RotationAddition)
+        workout.v1.WorkoutOuterClass.RotationAdditionOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.RotationAddition.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * One of the two: the user's template, or the library entry.
+       * </pre>
+       *
+       * <code>string template_id = 1 [json_name = "templateId"];</code>
+       * @return The templateId.
+       */
+      @java.lang.Override
+      public java.lang.String getTemplateId() {
+        return instance.getTemplateId();
+      }
+      /**
+       * <pre>
+       * One of the two: the user's template, or the library entry.
+       * </pre>
+       *
+       * <code>string template_id = 1 [json_name = "templateId"];</code>
+       * @return The bytes for templateId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTemplateIdBytes() {
+        return instance.getTemplateIdBytes();
+      }
+      /**
+       * <pre>
+       * One of the two: the user's template, or the library entry.
+       * </pre>
+       *
+       * <code>string template_id = 1 [json_name = "templateId"];</code>
+       * @param value The templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTemplateId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * One of the two: the user's template, or the library entry.
+       * </pre>
+       *
+       * <code>string template_id = 1 [json_name = "templateId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTemplateId() {
+        copyOnWrite();
+        instance.clearTemplateId();
+        return this;
+      }
+      /**
+       * <pre>
+       * One of the two: the user's template, or the library entry.
+       * </pre>
+       *
+       * <code>string template_id = 1 [json_name = "templateId"];</code>
+       * @param value The bytes for templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTemplateIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string library_id = 2 [json_name = "libraryId"];</code>
+       * @return The libraryId.
+       */
+      @java.lang.Override
+      public java.lang.String getLibraryId() {
+        return instance.getLibraryId();
+      }
+      /**
+       * <code>string library_id = 2 [json_name = "libraryId"];</code>
+       * @return The bytes for libraryId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getLibraryIdBytes() {
+        return instance.getLibraryIdBytes();
+      }
+      /**
+       * <code>string library_id = 2 [json_name = "libraryId"];</code>
+       * @param value The libraryId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLibraryId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setLibraryId(value);
+        return this;
+      }
+      /**
+       * <code>string library_id = 2 [json_name = "libraryId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearLibraryId() {
+        copyOnWrite();
+        instance.clearLibraryId();
+        return this;
+      }
+      /**
+       * <code>string library_id = 2 [json_name = "libraryId"];</code>
+       * @param value The bytes for libraryId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLibraryIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setLibraryIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @return A list containing the muscles.
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList() {
+        return instance.getMusclesList();
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @return The count of muscles.
+       */
+      @java.lang.Override
+      public int getMusclesCount() {
+        return instance.getMusclesCount();
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param index The index of the element to return.
+       * @return The muscles at the given index.
+       */
+      @java.lang.Override
+      public workout.v1.Settings.MuscleGroup getMuscles(int index) {
+        return instance.getMuscles(index);
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscles(
+          int index, workout.v1.Settings.MuscleGroup value) {
+        copyOnWrite();
+        instance.setMuscles(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param value The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMuscles(workout.v1.Settings.MuscleGroup value) {
+        copyOnWrite();
+        instance.addMuscles(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param values The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMuscles(
+          java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
+        copyOnWrite();
+        instance.addAllMuscles(values);  return this;
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMuscles() {
+        copyOnWrite();
+        instance.clearMuscles();
+        return this;
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @return A list containing the enum numeric values on the wire for muscles.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Integer>
+      getMusclesValueList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getMusclesValueList());
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param index The index of the value to return.
+       * @return The enum numeric value on the wire of muscles at the given index.
+       */
+      @java.lang.Override
+      public int getMusclesValue(int index) {
+        return instance.getMusclesValue(index);
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The enum numeric value on the wire for muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMusclesValue(
+          int index, int value) {
+        copyOnWrite();
+        instance.setMusclesValue(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param value The enum numeric value on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMusclesValue(int value) {
+        instance.addMusclesValue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The muscles, in Home's order.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 3 [json_name = "muscles"];</code>
+       * @param values The enum numeric values on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMusclesValue(
+          java.lang.Iterable<java.lang.Integer> values) {
+        copyOnWrite();
+        instance.addAllMusclesValue(values);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RotationAddition)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.RotationAddition();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "templateId_",
+              "libraryId_",
+              "muscles_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003,";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.RotationAddition> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.RotationAddition.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.RotationAddition>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RotationAddition)
+    private static final workout.v1.WorkoutOuterClass.RotationAddition DEFAULT_INSTANCE;
+    static {
+      RotationAddition defaultInstance = new RotationAddition();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RotationAddition.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.RotationAddition getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RotationAddition> PARSER;
+
+    public static com.google.protobuf.Parser<RotationAddition> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface RotationWarningOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.RotationWarning)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -41544,7 +42343,7 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41553,7 +42352,7 @@ public final class WorkoutOuterClass {
     java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList();
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41562,7 +42361,7 @@ public final class WorkoutOuterClass {
     int getMusclesCount();
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41572,7 +42371,7 @@ public final class WorkoutOuterClass {
     workout.v1.Settings.MuscleGroup getMuscles(int index);
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41582,7 +42381,7 @@ public final class WorkoutOuterClass {
     getMusclesValueList();
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41716,7 +42515,7 @@ public final class WorkoutOuterClass {
             };
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41729,7 +42528,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41741,7 +42540,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41755,7 +42554,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41768,7 +42567,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41789,7 +42588,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41804,7 +42603,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41817,7 +42616,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41832,7 +42631,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41842,7 +42641,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41855,7 +42654,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -41867,7 +42666,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * GAP: every muscle nothing trains, ignored muscles left out.
+     * GAP: every muscle nothing trains.
      * </pre>
      *
      * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42217,7 +43016,7 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42229,7 +43028,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42241,7 +43040,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42254,7 +43053,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42270,7 +43069,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42284,7 +43083,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42298,7 +43097,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42311,7 +43110,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42325,7 +43124,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42338,7 +43137,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42354,7 +43153,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
@@ -42367,7 +43166,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * GAP: every muscle nothing trains, ignored muscles left out.
+       * GAP: every muscle nothing trains.
        * </pre>
        *
        * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>

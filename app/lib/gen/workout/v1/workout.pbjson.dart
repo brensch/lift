@@ -1840,21 +1840,14 @@ const GetHomeResponse$json = {
       '6': '.workout.v1.RotationCheck',
       '10': 'rotationCheck'
     },
-    {
-      '1': 'ignored_muscles',
-      '3': 15,
-      '4': 3,
-      '5': 14,
-      '6': '.workout.v1.MuscleGroup',
-      '10': 'ignoredMuscles'
-    },
   ],
   '9': [
     {'1': 2, '2': 3},
     {'1': 4, '2': 5},
     {'1': 8, '2': 9},
+    {'1': 15, '2': 16},
   ],
-  '10': ['trackers', 'user_messages'],
+  '10': ['trackers', 'user_messages', 'ignored_muscles'],
 };
 
 /// Descriptor for `GetHomeResponse`. Decode as a `google.protobuf.DescriptorProto`.
@@ -1869,9 +1862,9 @@ final $typed_data.Uint8List getHomeResponseDescriptor = $convert.base64Decode(
     'QSLgoFcGxhbnMYCiADKAsyGC53b3Jrb3V0LnYxLkV4ZXJjaXNlUGxhblIFcGxhbnMSPwoOdGVt'
     'cGxhdGVfcGxhbnMYCyADKAsyGC53b3Jrb3V0LnYxLlRlbXBsYXRlUGxhblINdGVtcGxhdGVQbG'
     'FucxIlCg5idWRnZXRfbWludXRlcxgMIAEoBVINYnVkZ2V0TWludXRlcxJACg5yb3RhdGlvbl9j'
-    'aGVjaxgOIAEoCzIZLndvcmtvdXQudjEuUm90YXRpb25DaGVja1INcm90YXRpb25DaGVjaxJACg'
-    '9pZ25vcmVkX211c2NsZXMYDyADKA4yFy53b3Jrb3V0LnYxLk11c2NsZUdyb3VwUg5pZ25vcmVk'
-    'TXVzY2xlc0oECAIQA0oECAQQBUoECAgQCVIIdHJhY2tlcnNSDXVzZXJfbWVzc2FnZXM=');
+    'aGVjaxgOIAEoCzIZLndvcmtvdXQudjEuUm90YXRpb25DaGVja1INcm90YXRpb25DaGVja0oECA'
+    'IQA0oECAQQBUoECAgQCUoECA8QEFIIdHJhY2tlcnNSDXVzZXJfbWVzc2FnZXNSD2lnbm9yZWRf'
+    'bXVzY2xlcw==');
 
 @$core.Deprecated('Use suggestionReasonDescriptor instead')
 const SuggestionReason$json = {
@@ -1981,6 +1974,14 @@ const RotationCheck$json = {
       '6': '.workout.v1.RotationWarning',
       '10': 'warnings'
     },
+    {
+      '1': 'additions',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.RotationAddition',
+      '10': 'additions'
+    },
   ],
 };
 
@@ -1988,7 +1989,31 @@ const RotationCheck$json = {
 final $typed_data.Uint8List rotationCheckDescriptor = $convert.base64Decode(
     'Cg1Sb3RhdGlvbkNoZWNrEjAKBnZvbHVtZRgBIAMoCzIYLndvcmtvdXQudjEuTXVzY2xlVm9sdW'
     '1lUgZ2b2x1bWUSNwoId2FybmluZ3MYAiADKAsyGy53b3Jrb3V0LnYxLlJvdGF0aW9uV2Fybmlu'
-    'Z1IId2FybmluZ3M=');
+    'Z1IId2FybmluZ3MSOgoJYWRkaXRpb25zGAMgAygLMhwud29ya291dC52MS5Sb3RhdGlvbkFkZG'
+    'l0aW9uUglhZGRpdGlvbnM=');
+
+@$core.Deprecated('Use rotationAdditionDescriptor instead')
+const RotationAddition$json = {
+  '1': 'RotationAddition',
+  '2': [
+    {'1': 'template_id', '3': 1, '4': 1, '5': 9, '10': 'templateId'},
+    {'1': 'library_id', '3': 2, '4': 1, '5': 9, '10': 'libraryId'},
+    {
+      '1': 'muscles',
+      '3': 3,
+      '4': 3,
+      '5': 14,
+      '6': '.workout.v1.MuscleGroup',
+      '10': 'muscles'
+    },
+  ],
+};
+
+/// Descriptor for `RotationAddition`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rotationAdditionDescriptor = $convert.base64Decode(
+    'ChBSb3RhdGlvbkFkZGl0aW9uEh8KC3RlbXBsYXRlX2lkGAEgASgJUgp0ZW1wbGF0ZUlkEh0KCm'
+    'xpYnJhcnlfaWQYAiABKAlSCWxpYnJhcnlJZBIxCgdtdXNjbGVzGAMgAygOMhcud29ya291dC52'
+    'MS5NdXNjbGVHcm91cFIHbXVzY2xlcw==');
 
 @$core.Deprecated('Use rotationWarningDescriptor instead')
 const RotationWarning$json = {

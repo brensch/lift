@@ -197,12 +197,6 @@ rest favourites). Either way a library template keeps following the
 library. Home shows the rotation's chips and the favourites', each in the
 user's order, under their own section labels.
 
-**Ignored muscles** are a setting (`UserSetting.ignored_muscles`, written
-with `UpdateSetting`): muscles the user does not train on purpose. The
-suggestion counts none of them behind, the rotation check warns of no
-gap in them, and `GetHome` names them (`ignored_muscles`) so Home's weekly
-volume greys them.
-
 `GetHome` suggests one rotation template (`core/src/volume.rs`,
 `suggest_template`), fresh each time from history, never stored:
 
@@ -213,7 +207,7 @@ volume greys them.
 2. A template whose first lift's primary muscle is still recovering is
    left out.
 3. A template's score is the sum, over its distinct primary muscles that
-   have recovered and are not ignored, of how far each is below 10 hard
+   have recovered, of how far each is below 10 hard
    sets this week.
 4. Every template within 20% of the best score is tied. The tie goes to
    the template started least recently (never started first).
@@ -240,11 +234,15 @@ check's overlap warning names a pair that shares most of its lifts.
 a lift, counted as the week is (primary 1.0, secondary 0.5). Three sets a
 lift, not the planner's, so the check describes the rotation and not this
 week's history or budget. It warns of a **gap** (a muscle nothing in
-rotation trains, ignored muscles left out), an **overlap** (two templates
-sharing over 70% of the smaller one's lifts) and **too few** (under two
-templates in rotation). The Manage sheet words it: one line of what a lap
-trains (the gap, when there is one), then the other warnings; the lap's
-sets per muscle are not shown.
+rotation trains), an **overlap** (two templates sharing over 70% of the
+smaller one's lifts) and **too few** (under two templates in rotation).
+Its **additions** name, for each favourite and each library entry the
+user does not have, the muscles its lifts train first that the lap
+trains none of (one adding nothing is not listed). The Manage sheet shows
+the lap's sets per muscle on Home's bars under a line saying what they
+are, then a line for an overlap or too few; the gap is not worded on its
+own, each favourite's and library entry's row says what it would add
+instead ("Trains calves and core, which you don't have.").
 
 ## Starting a workout
 

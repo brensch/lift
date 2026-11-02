@@ -39,22 +39,16 @@ message WeightUnitConfig {
   WeightUnit unit = 1;
 }
 
-// Muscles the user does not train on purpose: the rotation check warns of
-// no gap in them, the suggestion counts none of them behind, and Home's
-// weekly volume shows them muted.
-message IgnoredMusclesConfig {
-  repeated MuscleGroup muscles = 1;
-}
-
 // ─── User settings ────────────────────────────────────────────────────────────
 
 message UserSetting {
   oneof setting {
     PlateColorsConfig plate_colors = 10;
     WeightUnitConfig weight_unit = 12;
-    IgnoredMusclesConfig ignored_muscles = 13;
     // field 11 reserved (was workout_config)
   }
+  reserved 13;
+  reserved "ignored_muscles";
 }
 
 message UpdateSettingRequest {

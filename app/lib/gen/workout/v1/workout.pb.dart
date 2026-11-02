@@ -4764,7 +4764,6 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     $core.int? budgetMinutes,
     SuggestionReason? suggestionReason,
     RotationCheck? rotationCheck,
-    $core.Iterable<$1.MuscleGroup>? ignoredMuscles,
   }) {
     final result = create();
     if (templates != null) result.templates.addAll(templates);
@@ -4779,7 +4778,6 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
     if (suggestionReason != null) result.suggestionReason = suggestionReason;
     if (rotationCheck != null) result.rotationCheck = rotationCheck;
-    if (ignoredMuscles != null) result.ignoredMuscles.addAll(ignoredMuscles);
     return result;
   }
 
@@ -4814,11 +4812,6 @@ class GetHomeResponse extends $pb.GeneratedMessage {
         subBuilder: SuggestionReason.create)
     ..aOM<RotationCheck>(14, _omitFieldNames ? '' : 'rotationCheck',
         subBuilder: RotationCheck.create)
-    ..pc<$1.MuscleGroup>(
-        15, _omitFieldNames ? '' : 'ignoredMuscles', $pb.PbFieldType.KE,
-        valueOf: $1.MuscleGroup.valueOf,
-        enumValues: $1.MuscleGroup.values,
-        defaultEnumValue: $1.MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4910,8 +4903,8 @@ class GetHomeResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   SuggestionReason ensureSuggestionReason() => $_ensure(9);
 
-  /// The rotation's shape, one pass through it: sets per muscle and what
-  /// is wrong with it.
+  /// The rotation's shape, one pass through it: sets per muscle, what is
+  /// wrong with it, and what each workout outside it would add.
   @$pb.TagNumber(14)
   RotationCheck get rotationCheck => $_getN(10);
   @$pb.TagNumber(14)
@@ -4922,11 +4915,6 @@ class GetHomeResponse extends $pb.GeneratedMessage {
   void clearRotationCheck() => $_clearField(14);
   @$pb.TagNumber(14)
   RotationCheck ensureRotationCheck() => $_ensure(10);
-
-  /// The muscles the user does not train on purpose (the ignored-muscles
-  /// setting): no gap is warned of and no suggestion counts them behind.
-  @$pb.TagNumber(15)
-  $pb.PbList<$1.MuscleGroup> get ignoredMuscles => $_getList(11);
 }
 
 /// Why the suggestion is the template it is.
@@ -5177,10 +5165,12 @@ class RotationCheck extends $pb.GeneratedMessage {
   factory RotationCheck({
     $core.Iterable<MuscleVolume>? volume,
     $core.Iterable<RotationWarning>? warnings,
+    $core.Iterable<RotationAddition>? additions,
   }) {
     final result = create();
     if (volume != null) result.volume.addAll(volume);
     if (warnings != null) result.warnings.addAll(warnings);
+    if (additions != null) result.additions.addAll(additions);
     return result;
   }
 
@@ -5201,6 +5191,8 @@ class RotationCheck extends $pb.GeneratedMessage {
         subBuilder: MuscleVolume.create)
     ..pPM<RotationWarning>(2, _omitFieldNames ? '' : 'warnings',
         subBuilder: RotationWarning.create)
+    ..pPM<RotationAddition>(3, _omitFieldNames ? '' : 'additions',
+        subBuilder: RotationAddition.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5229,6 +5221,91 @@ class RotationCheck extends $pb.GeneratedMessage {
   /// Empty when nothing is wrong.
   @$pb.TagNumber(2)
   $pb.PbList<RotationWarning> get warnings => $_getList(1);
+
+  /// Each backup (a template out of rotation) and each library entry the
+  /// user does not have whose lifts train first a muscle the pass trains
+  /// none of; the rest are not listed.
+  @$pb.TagNumber(3)
+  $pb.PbList<RotationAddition> get additions => $_getList(2);
+}
+
+/// What one workout would add to the rotation.
+class RotationAddition extends $pb.GeneratedMessage {
+  factory RotationAddition({
+    $core.String? templateId,
+    $core.String? libraryId,
+    $core.Iterable<$1.MuscleGroup>? muscles,
+  }) {
+    final result = create();
+    if (templateId != null) result.templateId = templateId;
+    if (libraryId != null) result.libraryId = libraryId;
+    if (muscles != null) result.muscles.addAll(muscles);
+    return result;
+  }
+
+  RotationAddition._();
+
+  factory RotationAddition.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RotationAddition.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RotationAddition',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'templateId')
+    ..aOS(2, _omitFieldNames ? '' : 'libraryId')
+    ..pc<$1.MuscleGroup>(
+        3, _omitFieldNames ? '' : 'muscles', $pb.PbFieldType.KE,
+        valueOf: $1.MuscleGroup.valueOf,
+        enumValues: $1.MuscleGroup.values,
+        defaultEnumValue: $1.MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RotationAddition clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RotationAddition copyWith(void Function(RotationAddition) updates) =>
+      super.copyWith((message) => updates(message as RotationAddition))
+          as RotationAddition;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RotationAddition create() => RotationAddition._();
+  @$core.override
+  RotationAddition createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RotationAddition getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RotationAddition>(create);
+  static RotationAddition? _defaultInstance;
+
+  /// One of the two: the user's template, or the library entry.
+  @$pb.TagNumber(1)
+  $core.String get templateId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set templateId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTemplateId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTemplateId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get libraryId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set libraryId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLibraryId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLibraryId() => $_clearField(2);
+
+  /// The muscles, in Home's order.
+  @$pb.TagNumber(3)
+  $pb.PbList<$1.MuscleGroup> get muscles => $_getList(2);
 }
 
 class RotationWarning extends $pb.GeneratedMessage {
@@ -5301,7 +5378,7 @@ class RotationWarning extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearKind() => $_clearField(1);
 
-  /// GAP: every muscle nothing trains, ignored muscles left out.
+  /// GAP: every muscle nothing trains.
   @$pb.TagNumber(2)
   $pb.PbList<$1.MuscleGroup> get muscles => $_getList(1);
 

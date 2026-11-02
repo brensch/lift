@@ -233,18 +233,12 @@ template follows it (`library_id`) and none was made from it
 `AddLibraryTemplates` drops an entry the user has before recording, so
 an entry is never added twice.
 
-**Ignored muscles.** The user can mark muscles they do not train on
-purpose (the setting `ignored_muscles`, through `UpdateSetting`). An
-ignored muscle is never behind in the suggestion's score, never a gap in
-the rotation check, and greyed on Home's weekly volume (`GetHome` names
-them).
-
 Home suggests one rotation template, worked out at every `GetHome` and
 never stored:
 
 ```
-score(template) = Σ over its distinct primary muscles that have recovered
-                  and are not ignored, of max(0, 10 − hard sets this week)
+score(template) = Σ over its distinct primary muscles that have recovered,
+                  of max(0, 10 − hard sets this week)
 ```
 
 Recovered is the recovery windows, counted from the start of the last
@@ -289,14 +283,21 @@ wrong:
 
 | Warning | When |
 |---|---|
-| gap | a muscle nothing in rotation trains, ignored muscles left out |
+| gap | a muscle nothing in rotation trains |
 | overlap | two templates share over 70% of the smaller one's lifts |
 | too few | fewer than 2 templates in rotation |
 
-The Manage sheet words it: one line of what a lap trains ("Trains
-everything but calves and core." while there is a gap), then a plain line
-for an overlap or too few. Under it the ten muscles, each tapped to
-ignore it or count it again. Then one draggable list: the main plan's
+It also names what each workout outside the rotation would add: for each
+backup and each library entry the user does not have, the muscles its
+lifts train first that the lap trains none of (`additions`; one adding
+nothing is not listed).
+
+The Manage sheet opens on it: "Here's what an average rotation would
+work. Got enough butt in it? Legs? Biceps? …" above Home's bars of the
+lap's sets per muscle, then a plain line for an overlap or too few. The
+gap has no line of its own: each backup's and library entry's row says
+what it would add, under its lifts ("Trains calves and core, which you
+don't have."). Then one draggable list: the main plan's
 heading and its workouts, the backups' heading and theirs (an empty
 section shows "Drag a workout here" to drop on). Each row is a drag
 handle, the name with its lifts on one line, and delete (one of the
@@ -308,8 +309,8 @@ main plan.
 
 | Page | Shows | From |
 |---|---|---|
-| Home | the main plan's chips, the backups', then New and Manage, each group under its label; the weekly volume, ignored muscles greyed; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
-| Manage sheet | the rotation check in words; the muscles to ignore; the main plan, the backups, the library entries not yet had | `rotation_check`, `ignored_muscles` |
+| Home | the main plan's chips, the backups', then New and Manage, each group under its label; the weekly volume; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
+| Manage sheet | the rotation check: a lap's sets per muscle and its warnings; the main plan, the backups, the library entries not yet had, each backup and entry with what it would add | `rotation_check` (`volume`, `warnings`, `additions`) |
 | Template editor | in rotation or not; each lift's next plan, the list on screen planned as one workout with the budget (what Home's card shows for it once saved); the sheet that sets an override. Clone opens it on a library template and records nothing until Save, which makes it the user's own | `plan` (`GetTemplatePlan`) |
 | Live workout, watch | the set's weight and reps; the reason when the lift comes up; changes | the workout's log |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
@@ -372,8 +373,8 @@ Workouts logged offline and not synced before the deploy are lost.
   set after it taking the blame), the suggestion (recovered muscles only,
   a recovering first lift leaving a template out, the one back soonest
   when every one is, the 20% tie and the least recent, the fallback,
-  favourites left out, ignored muscles scoring nothing) and each
-  rotation-check warning (an ignored muscle never a gap); a library
+  favourites left out), each rotation-check warning and what a backup or
+  library entry would add; a library
   template added into the rotation, an entry the user has (coupled or
   made their own) never added again, and a reorder that also moves
   templates across the rotation's end; the progression

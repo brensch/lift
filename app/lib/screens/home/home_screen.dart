@@ -232,7 +232,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 volume: home.volume,
                 recovery: home.recovery,
                 highlight: highlight,
-                ignored: wp.ignoredMuscles,
               ),
             ),
             const SizedBox(height: 14),
@@ -552,15 +551,11 @@ class VolumeCard extends StatelessWidget {
   /// (no dimming, no colored names).
   final Set<MuscleGroup> highlight;
 
-  /// Muscles the user does not count: their rows greyed.
-  final Set<MuscleGroup> ignored;
-
   const VolumeCard({
     super.key,
     required this.volume,
     required this.recovery,
     this.highlight = const {},
-    this.ignored = const {},
   });
 
   static const _recoveryKeys = {
@@ -602,7 +597,6 @@ class VolumeCard extends StatelessWidget {
                 recovery: recoveryByMuscle[entry.muscle],
                 targeted: highlight.contains(entry.muscle),
                 anySelected: highlight.isNotEmpty,
-                ignored: ignored.contains(entry.muscle),
               ),
             ),
         ],
@@ -616,14 +610,12 @@ class _VolumeRow extends StatelessWidget {
   final MuscleRecoveryStatus? recovery;
   final bool targeted;
   final bool anySelected;
-  final bool ignored;
 
   const _VolumeRow({
     required this.entry,
     required this.recovery,
     required this.targeted,
     required this.anySelected,
-    required this.ignored,
   });
 
   static const _trackMax = 24.0;
@@ -644,12 +636,7 @@ class _VolumeRow extends StatelessWidget {
 
     final recovering = recovery != null && !recovery!.recovered;
     // The selected workout's muscles are picked out in the primary orange.
-    // An ignored muscle is muted whatever is selected.
-    final nameColor = ignored
-        ? context.tokens.muted
-        : targeted
-        ? context.tokens.primary
-        : cs.onSurface;
+    final nameColor = targeted ? context.tokens.primary : cs.onSurface;
 
     final row = Row(
       children: [
@@ -774,12 +761,8 @@ class _VolumeRow extends StatelessWidget {
       ],
     );
 
-    // With a workout selected, untargeted muscles step back; ignored ones
-    // always do.
-    return Opacity(
-      opacity: ignored || (anySelected && !targeted) ? 0.45 : 1.0,
-      child: row,
-    );
+    // With a workout selected, untargeted muscles step back.
+    return Opacity(opacity: anySelected && !targeted ? 0.45 : 1.0, child: row);
   }
 }
 

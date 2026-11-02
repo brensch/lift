@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
-import 'package:schlift/logic/exercises.dart';
 import 'package:schlift/logic/rotation_text.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/screens/home/home_screen.dart';
@@ -76,8 +75,8 @@ Future<void> settle(WidgetTester tester, bool Function() done) async {
 }
 
 /// The chips in their groups, the suggestion's reason, and the Manage
-/// sheet: the rotation check in words, the sections, adding into the
-/// rotation, moving to the favourites, ignoring a muscle.
+/// sheet: the rotation check (its line and bars), the sections, what a
+/// workout would add, adding into the rotation, moving to the favourites.
 void main() {
   testWidgets('Home: rotation, favourites, actions, the reason', (
     tester,
@@ -132,7 +131,7 @@ void main() {
     );
   });
 
-  testWidgets('the Manage sheet: words, sections, add, drag, delete, ignore', (
+  testWidgets('the Manage sheet: the check, sections, add, drag, delete', (
     tester,
   ) async {
     final h = await boot(tester);
@@ -171,20 +170,40 @@ void main() {
           inSheet(find.byType(CircularProgressIndicator)).evaluate().isEmpty,
     );
 
-    // The check in words, no bars.
+    // The check: the owner's line above the bars of one lap's sets per
+    // muscle, and only the warnings that apply; no gap line, no muscles
+    // to tap.
+    final r = copy.rotation;
+    final check = h.provider.rotationCheck!;
     final names = {for (final t in h.provider.templates) t.id: t.name};
-    final lines = rotationCheckLines(h.provider.rotationCheck!, names);
-    expect(lines.gap, isTrue, reason: 'nothing in it trains calves');
-    expect(inSheet(find.text(lines.trains)), findsOneWidget);
-    for (final w in lines.warnings) {
+    final body = inSheet(find.text(r.checkBody));
+    expect(body, findsOneWidget);
+    final bars = inSheet(find.byType(VolumeCard));
+    expect(bars, findsOneWidget);
+    expect(tester.getTopLeft(body).dy, lessThan(tester.getTopLeft(bars).dy));
+    expect(tester.widget<VolumeCard>(bars).volume, check.volume);
+    for (final w in rotationWarningLines(check, names)) {
       expect(inSheet(find.text(w)), findsOneWidget);
     }
-    expect(inSheet(find.byType(VolumeCard)), findsNothing);
+    expect(inSheet(find.text(r.tooFew)), findsNothing, reason: 'two in it');
+    expect(inSheet(find.textContaining('Trains everything')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(RotationCheckSection),
+        matching: find.byType(InkWell),
+      ),
+      findsNothing,
+      reason: 'no selector',
+    );
 
     // The sections, and no library row for what the user has.
     for (final title in [l.rotationHeading, l.favouritesHeading]) {
+      await scrollTo(inSheet(find.text(title.toUpperCase())), 100);
       expect(inSheet(find.text(title.toUpperCase())), findsOneWidget);
     }
+    // A backup that adds nothing the main plan misses says nothing.
+    await scrollTo(row('Arms'), 100);
+    expect(tester.widget<TemplateRow>(row('Arms')).note, isEmpty);
     expect(
       inSheet(find.widgetWithText(TemplateRow, 'StrongLifts B')),
       findsOneWidget,
@@ -255,7 +274,7 @@ void main() {
     drag(5, 1);
     await settle(tester, () => named('StrongLifts B').inRotation);
     expect(names_(false), isEmpty);
-    await scrollTo(inSheet(find.text(l.dropHere)), 200);
+    await scrollTo(inSheet(find.text(l.dropHere)), -200);
     expect(inSheet(find.text(l.dropHere)), findsOneWidget);
 
     // Delete removes one; a library workout goes without asking.
@@ -267,29 +286,42 @@ void main() {
     );
     expect(h.provider.templates.any((t) => t.name == 'Arms'), isFalse);
 
-    // Ignoring every muscle in the gap takes the gap away; Home's weekly
-    // volume greys them.
-    final gap = h.provider.rotationCheck!.warnings
-        .firstWhere(
-          (w) => w.kind == RotationWarningKind.ROTATION_WARNING_KIND_GAP,
-        )
-        .muscles
-        .toList();
-    await scrollTo(find.byType(RotationCheckSection), -200);
-    for (final muscle in gap) {
-      await tester.tap(
-        find.descendant(
-          of: find.byType(RotationCheckSection),
-          matching: find.text(muscleShortLabels[muscle]!),
-        ),
-      );
-      await settle(tester, () => h.provider.ignoredMuscles.contains(muscle));
-    }
-    final after = rotationCheckLines(h.provider.rotationCheck!, names);
-    expect(after.gap, isFalse);
-    expect(inSheet(find.text(lines.trains)), findsNothing);
-    expect(inSheet(find.text(copy.rotation.trainsEverything)), findsOneWidget);
-    final card = tester.widget<VolumeCard>(find.byType(VolumeCard));
-    expect(card.ignored, gap.toSet());
+    // A backup that adds a missing muscle says so. The main plan is B, A
+    // and Big Three now, none of which trains core; Core goes in as a
+    // backup.
+    await tester.runAsync(() => h.provider.addLibraryTemplates(['core']));
+    await tester.pump();
+    String note(String name) => tester.widget<TemplateRow>(row(name)).note;
+    expect(note('StrongLifts A'), isEmpty, reason: 'in the main plan');
+    await scrollTo(row('Core'), 200);
+    final core = additionLine([MuscleGroup.MUSCLE_GROUP_CORE]);
+    expect(note('Core'), core);
+    expect(
+      find.descendant(of: row('Core'), matching: find.text(core)),
+      findsOneWidget,
+    );
+
+    // So does a library row: Lower adds calves and core, Arms (back on
+    // offer) nothing.
+    await scrollTo(row('Lower'), 200);
+    expect(
+      note('Lower'),
+      additionLine([
+        MuscleGroup.MUSCLE_GROUP_CALVES,
+        MuscleGroup.MUSCLE_GROUP_CORE,
+      ]),
+    );
+    await scrollTo(rowIcon('Arms', l.addToPlan), 200);
+    expect(note('Arms'), isEmpty);
+
+    // Core goes (a library workout, without asking) and is back on offer.
+    await scrollTo(rowIcon('Core', l.delete), -200);
+    await tester.tap(rowIcon('Core', l.delete));
+    await settle(
+      tester,
+      () => h.provider.templates.every((t) => t.name != 'Core'),
+    );
+    await scrollTo(rowIcon('Core', l.addToPlan), 200);
+    expect(note('Core'), core);
   });
 }
