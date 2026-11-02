@@ -79,7 +79,6 @@ extension WatchBridgeManager {
         var ack = Workout_V1_WearSensorBatchAck()
         ack.batchID = batch.batchID
         ack.workoutID = batch.workoutID
-        ack.receivedAt = Int64(Date().timeIntervalSince1970 * 1000)
         guard let data = try? ack.serializedData() else { return }
 
         let message: [String: Any] = [

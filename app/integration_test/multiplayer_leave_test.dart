@@ -2,12 +2,9 @@
 // The app should reflect both transitions — count rising to 2, then the session
 // clearing back to solo.
 //
-// Note on what this does NOT assert: a *peer* leaving is not observable from the
-// app here. `leave_current_session` only clears the leaver's own
-// `user_current_session`; it doesn't prune `session_participants_current`, which
-// is what other members read — so a departed peer keeps showing until something
-// else rewrites that row. We therefore drive the leave from the app user's side,
-// which the backend does reflect (their GetCurrentSession returns empty).
+// The leave is driven from the app user's side (over the API, as the same
+// user): `LeaveCurrentSession` clears their session pointer and announces it,
+// and the server sends the now-empty session down the app's Sync stream.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -41,13 +38,12 @@ void main() {
     );
     expect(joined, isTrue, reason: 'app should show the peer join');
 
-    // The app user leaves; their GetCurrentSession then returns empty and the
-    // app polls back to solo — the button loses its count.
+    // The app user leaves; the server sends the empty session down the Sync
+    // stream and the app is solo again — the button loses its count.
     await host.leaveSession();
     s.note('App user left the session', kind: 'peer');
 
-    final left =
-        await s.waitForText('Multiplayer', seconds: 15) && !s.showsSessionOf(2);
+    final left = await s.waitForSolo(seconds: 15);
     await s.shot(
       'Left — back to solo',
       note: left

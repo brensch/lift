@@ -34,7 +34,7 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
     tester.element(find.byType(MaterialApp).first),
     listen: false,
   );
-  final workout = wp.activeWorkout;
+  final workout = wp.workout;
   if (workout == null) return;
   final nowMs = DateTime.now().millisecondsSinceEpoch;
   final startMs = workout.startTime.toInt() * 1000;
@@ -58,7 +58,6 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
     WearSensorBatch()
       ..batchId = 'store-$sinceMs-$nowMs'
       ..workoutId = workout.id
-      ..sentAt = Int64(nowMs)
       ..heartRateSamples.addAll(samples),
   );
   await tester.pump(const Duration(milliseconds: 300));
@@ -90,9 +89,10 @@ void main() {
       await s.devLogin('demo');
       await s.completeOnboarding(); // no-op for the seeded account
       await s.mustSee(Scenario.homeStart, seconds: 12);
-      if (await seedThinHistoryIfNeeded(await s.api.login('demo'))) {
+      final demo = await s.api.login('demo');
+      if (await seedThinHistoryIfNeeded(demo)) {
         s.note('Unseeded backend: thin history seeded for demo', kind: 'api');
-        await s.relaunch(); // home re-reads the plans and the volume
+        await s.waitForAppToCatchUp(demo);
         await s.mustSee(Scenario.homeStart, seconds: 12);
       }
 
@@ -145,6 +145,9 @@ void main() {
             'Unseeded backend: thin history seeded for demo-live',
             kind: 'api',
           );
+          // The app pulls the seeded sessions a few seconds later; until it
+          // has them all it can show one of them mid-way, live.
+          await s.waitForAppToCatchUp(live);
         }
         await s.startWorkoutFromHome();
       }

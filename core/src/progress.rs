@@ -3,7 +3,7 @@ use crate::pb::{
     CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
     WorkoutSummary,
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// Roll a finished (or in-progress) workout up into the render-ready summary the
 /// client displays. Volume and per-exercise stats cover **working sets only**;
@@ -76,7 +76,7 @@ pub fn compute_workout_summary(
 
         // Volume + per-exercise rollup — working sets only (a calibration
         // rung is a warmup here).
-        if proposed.warmup || proposed.calibration {
+        if !proposed.is_working() {
             continue;
         }
         let set_volume = c.actual_reps as f32 * c.actual_weight;
@@ -150,7 +150,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
         let proposed_by_id: HashMap<&str, &ProposedSet> =
             proposed.iter().map(|p| (p.id.as_str(), p)).collect();
 
-        let mut per_ex: HashMap<i32, Acc> = HashMap::new();
+        let mut per_ex: BTreeMap<i32, Acc> = BTreeMap::new();
         for c in completed {
             if c.ended_at == 0 {
                 continue;
@@ -159,7 +159,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
                 Some(p) => *p,
                 None => continue,
             };
-            if p.warmup || p.calibration {
+            if !p.is_working() {
                 continue;
             }
             let a = per_ex.entry(p.exercise).or_insert(Acc {
@@ -217,17 +217,30 @@ pub fn is_passed_warmup(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> bool {
-    let done = |id: &str| {
-        completed_sets
-            .iter()
-            .any(|c| c.proposed_set_id == id && c.ended_at > 0)
-    };
     set.warmup
-        && !done(&set.id)
+        && !is_done(&set.id, completed_sets)
         && (set.skipped
             || proposed_sets
                 .iter()
-                .any(|p| p.exercise == set.exercise && !p.warmup && done(&p.id)))
+                .any(|p| p.exercise == set.exercise && !p.warmup && is_done(&p.id, completed_sets)))
+}
+
+/// A proposed set with a finished completion.
+pub fn is_done(proposed_set_id: &str, completed_sets: &[CompletedSet]) -> bool {
+    completed_sets
+        .iter()
+        .any(|c| c.proposed_set_id == proposed_set_id && c.ended_at > 0)
+}
+
+/// A calibration set of an exercise never done before, not being lifted:
+/// none of the exercise's calibration sets is done yet. Started ("test
+/// me", or the watch), it is a set like any other.
+pub fn is_first_time(set: &ProposedSet, workout: &WorkoutRecord) -> bool {
+    set.calibration
+        && workout.workout.lifting_set_id != set.id
+        && !workout.proposed_sets.iter().any(|p| {
+            p.exercise == set.exercise && p.calibration && is_done(&p.id, &workout.completed_sets)
+        })
 }
 
 /// The set up next — the one source of truth for `next_up_set` and the
@@ -242,10 +255,7 @@ pub fn compute_next_up_set(
     proposed_sets
         .iter()
         .find(|p| {
-            !completed_sets
-                .iter()
-                .any(|c| c.proposed_set_id == p.id && c.ended_at > 0)
-                && !is_passed_warmup(p, proposed_sets, completed_sets)
+            !is_done(&p.id, completed_sets) && !is_passed_warmup(p, proposed_sets, completed_sets)
         })
         .cloned()
 }

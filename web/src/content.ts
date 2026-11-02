@@ -4,7 +4,12 @@
 import content from "./generated/content.json";
 
 export type Testimonial = { quote: string; name: string };
-export type Screenshot = { src: string; title: string; subtitle: string };
+export type Screenshot = {
+  src: string;
+  title: string;
+  subtitle: string;
+  device: "phone" | "watch";
+};
 export type LibraryGroup = { key: string; label: string };
 export type LibraryTemplate = {
   id: string;

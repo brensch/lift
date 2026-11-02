@@ -50,7 +50,7 @@ void main() {
       // The heaviest working set done is the calibrated weight, as the
       // server holds it.
       await api.adoptActiveWorkout();
-      api.workoutId ??= s.workout.activeWorkout?.id;
+      api.workoutId ??= s.workout.workout?.id;
       final detail = (await api.workoutDetail())!;
       final proposedById = {for (final p in detail.proposedSets) p.id: p};
       var calibrated = 0.0;

@@ -9,6 +9,7 @@
 use crate::exercise_catalog::{muscles, ALL_MUSCLES};
 use crate::history::WorkoutRecord;
 use crate::pb::{Exercise, MuscleGroup};
+use crate::progress::is_done;
 
 const HOUR: i64 = 3600;
 
@@ -35,8 +36,6 @@ pub struct MuscleRecovery {
     pub last_trained_at: i64,
     /// `last_trained_at + window` (0 = never trained).
     pub recovered_at: i64,
-    /// 0.0 (just trained) → 1.0 (recovered); 1.0 if never trained.
-    pub fraction: f32,
 }
 
 impl MuscleRecovery {
@@ -56,11 +55,7 @@ fn trained_exercises(record: &WorkoutRecord) -> Vec<Exercise> {
         if proposed.warmup {
             continue;
         }
-        let done = record
-            .completed_sets
-            .iter()
-            .any(|c| c.proposed_set_id == proposed.id && c.ended_at != 0);
-        if done {
+        if is_done(&proposed.id, &record.completed_sets) {
             let ex = Exercise::try_from(proposed.exercise).unwrap_or(Exercise::Unspecified);
             if !out.contains(&ex) {
                 out.push(ex);
@@ -71,7 +66,7 @@ fn trained_exercises(record: &WorkoutRecord) -> Vec<Exercise> {
 }
 
 /// Recovery for all 10 muscles, from history.
-pub fn per_muscle_recovery(history: &[WorkoutRecord], now: i64) -> Vec<MuscleRecovery> {
+pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
     let mut latest: std::collections::HashMap<MuscleGroup, i64> = std::collections::HashMap::new();
 
     for record in history {
@@ -98,18 +93,12 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord], now: i64) -> Vec<MuscleRec
                     muscle,
                     last_trained_at: 0,
                     recovered_at: 0,
-                    fraction: 1.0,
                 };
             }
-            let window = recovery_hours(muscle) * HOUR;
-            let recovered_at = last + window;
-            let elapsed = (now - last).max(0) as f32;
-            let fraction = (elapsed / window as f32).clamp(0.0, 1.0);
             MuscleRecovery {
                 muscle,
                 last_trained_at: last,
-                recovered_at,
-                fraction,
+                recovered_at: last + recovery_hours(muscle) * HOUR,
             }
         })
         .collect()

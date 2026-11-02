@@ -1,6 +1,6 @@
 use super::*;
 use crate::db::{Change, Diverged, Pushed};
-use schlift_core::sync::{pack, unpack};
+use schlift_core::sync::{pack, unpack_push};
 use tokio::sync::{broadcast, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Streaming;
@@ -18,6 +18,46 @@ use tonic::Streaming;
 /// heard to change them: the backstop for a missed notification, and how a
 /// request to join expires from view.
 const RESEND_EVERY: std::time::Duration = std::time::Duration::from_secs(20);
+
+// What one event in a push may hold (the batch's size and event count are
+// limited as it is decoded, in schlift_core::sync). Far above anything a
+// phone records; past them the push is refused whole.
+const MAX_HEART_RATE_SAMPLES_PER_EVENT: usize = 20_000;
+const MAX_IMPORTED_WORKOUTS: usize = 10_000;
+const MAX_IMPORTED_HEART_RATE_SAMPLES: usize = 2_000_000;
+
+/// Refuse a push larger than any phone makes.
+fn check_push(events: &[Event]) -> ServerResult<()> {
+    let too_big = |what: &str, limit: usize| -> ServerResult<()> {
+        Err(Status::invalid_argument(format!("push too large: more than {limit} {what}")).into())
+    };
+    for event in events {
+        match &event.kind {
+            Some(event::Kind::HeartRate(req))
+                if req.samples.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
+            {
+                return too_big(
+                    "heart-rate samples in one event",
+                    MAX_HEART_RATE_SAMPLES_PER_EVENT,
+                );
+            }
+            Some(event::Kind::ImportHistory(import)) => {
+                if import.workouts.len() > MAX_IMPORTED_WORKOUTS {
+                    return too_big("imported workouts", MAX_IMPORTED_WORKOUTS);
+                }
+                let samples: usize = import.workouts.iter().map(|w| w.heart_rate.len()).sum();
+                if samples > MAX_IMPORTED_HEART_RATE_SAMPLES {
+                    return too_big(
+                        "imported heart-rate samples",
+                        MAX_IMPORTED_HEART_RATE_SAMPLES,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
 
 #[derive(Clone)]
 pub struct ServerSyncService {
@@ -39,6 +79,7 @@ impl SyncService for ServerSyncService {
         let (metadata, extensions, inbound) = request.into_parts();
         let headers = Request::from_parts(metadata, extensions, ());
         let user_id = authed_user_id(&headers, &self.db).await?;
+        let token = session_token(&headers).unwrap_or_default().to_string();
         info!(rpc = "Sync", %user_id, "open");
         // Subscribed before the first send, so nothing between is missed.
         let changes = self.db.subscribe();
@@ -48,7 +89,9 @@ impl SyncService for ServerSyncService {
             let mut stream = Stream {
                 db,
                 user_id,
+                token,
                 tx,
+                pointer: None,
                 last_session: None,
                 last_requests: None,
             };
@@ -81,7 +124,14 @@ impl SyncService for ServerSyncService {
 struct Stream {
     db: ServerDb,
     user_id: String,
+    /// The session the stream was opened with: signing out, expiry or
+    /// deleting the account ends it, and the stream with it, checked before
+    /// anything is stored or sent.
+    token: String,
     tx: mpsc::Sender<SyncResult>,
+    /// The session the user's pointer named when the session was last sent:
+    /// a session's changes concern this stream only when it is that one.
+    pointer: Option<String>,
     /// What was last sent, so an unchanged view isn't sent again.
     last_session: Option<GetCurrentSessionResponse>,
     last_requests: Option<GetJoinRequestsResponse>,
@@ -96,11 +146,7 @@ impl Stream {
         mut inbound: Streaming<SyncRequest>,
         mut changes: broadcast::Receiver<Change>,
     ) -> ServerResult<()> {
-        let head = self
-            .db
-            .read_account(&self.user_id, |account| account.seq)
-            .await
-            .map_err(internal_error)?;
+        let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
         if self.send(sync_response::Kind::Head(head)).await.is_err() {
             return Ok(());
         }
@@ -144,11 +190,26 @@ impl Stream {
             .map_err(|_| Closed)
     }
 
+    /// Ends the stream once its session is signed out, expired or deleted.
+    async fn ensure_signed_in(&self) -> ServerResult<()> {
+        let signed_in = self
+            .db
+            .validate_auth_session(&self.token)
+            .await
+            .map_err(internal_error)?;
+        if signed_in.as_ref() != Some(&self.user_id) {
+            return Err(Status::unauthenticated("Invalid session token").into());
+        }
+        Ok(())
+    }
+
     /// Events (stored, then acked with the head) or a heartbeat (acked).
     async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
+        self.ensure_signed_in().await?;
         let head = match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
-                let events = unpack(&packed).map_err(core_status)?;
+                let events = unpack_push(&packed).map_err(core_status)?;
+                check_push(&events)?;
                 let pushed = self
                     .db
                     .push_events(&self.user_id, events)
@@ -161,19 +222,18 @@ impl Stream {
                 self.after_push(&pushed).await?;
                 pushed.head
             }
-            Some(sync_request::Kind::Heartbeat(_)) | None => self
-                .db
-                .read_account(&self.user_id, |account| account.seq)
-                .await
-                .map_err(internal_error)?,
+            Some(sync_request::Kind::Heartbeat(_)) | None => {
+                self.db.head(&self.user_id).await.map_err(internal_error)?
+            }
         };
         Ok(self.send(sync_response::Kind::Head(head)).await)
     }
 
-    /// New events change what session partners see; a workout ending takes
-    /// the caller out of the session, its final state left on show.
+    /// New events other than heart rate change what session partners see; a
+    /// workout ending takes the caller out of the session, its final state
+    /// left on show.
     async fn after_push(&self, pushed: &Pushed) -> ServerResult<()> {
-        if !pushed.changed {
+        if !pushed.progressed {
             return Ok(());
         }
         let Some(session_id) = self
@@ -210,17 +270,8 @@ impl Stream {
         match change {
             Change::JoinRequests(user) if *user == self.user_id => self.send_requests().await,
             Change::Membership(user) if *user == self.user_id => self.send_session().await,
-            Change::Session(session) => {
-                let mine = self
-                    .db
-                    .get_user_current_session(&self.user_id)
-                    .await
-                    .map_err(internal_error)?;
-                if mine.as_ref() == Some(session) {
-                    self.send_session().await
-                } else {
-                    Ok(Ok(()))
-                }
+            Change::Session(session) if self.pointer.as_ref() == Some(session) => {
+                self.send_session().await
             }
             _ => Ok(Ok(())),
         }
@@ -234,6 +285,14 @@ impl Stream {
     }
 
     async fn send_session(&mut self) -> ServerResult<Result<(), Closed>> {
+        self.ensure_signed_in().await?;
+        // Read before the session: the pointer is written before its change
+        // is announced, so a change that follows is never missed.
+        self.pointer = self
+            .db
+            .get_user_session_pointer(&self.user_id)
+            .await
+            .map_err(internal_error)?;
         let session = current_session(&self.db, &self.user_id).await?;
         if self.last_session.as_ref() == Some(&session) {
             return Ok(Ok(()));
@@ -243,11 +302,52 @@ impl Stream {
     }
 
     async fn send_requests(&mut self) -> ServerResult<Result<(), Closed>> {
+        self.ensure_signed_in().await?;
         let requests = join_requests(&self.db, &self.user_id).await?;
         if self.last_requests.as_ref() == Some(&requests) {
             return Ok(Ok(()));
         }
         self.last_requests = Some(requests.clone());
         Ok(self.send(sync_response::Kind::JoinRequests(requests)).await)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn heart_rate(samples: usize) -> Event {
+        Event {
+            kind: Some(event::Kind::HeartRate(AppendWorkoutHeartRateRequest {
+                workout_id: "w".to_string(),
+                samples: vec![WorkoutHeartRatePoint::default(); samples],
+            })),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_push_past_the_limits_is_refused() {
+        assert!(check_push(&[heart_rate(MAX_HEART_RATE_SAMPLES_PER_EVENT)]).is_ok());
+        let error = check_push(&[heart_rate(MAX_HEART_RATE_SAMPLES_PER_EVENT + 1)]).err();
+        let status = Status::from(error.unwrap());
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+    }
+
+    #[test]
+    fn a_large_import_is_allowed() {
+        let workout = ImportedWorkout {
+            heart_rate: vec![WorkoutHeartRatePoint::default(); 200],
+            completed_sets: vec![CompletedSet::default(); 30],
+            ..Default::default()
+        };
+        let import = Event {
+            kind: Some(event::Kind::ImportHistory(ImportHistory {
+                workouts: vec![workout; 500],
+                ..Default::default()
+            })),
+            ..Default::default()
+        };
+        assert!(check_push(&[import]).is_ok());
     }
 }

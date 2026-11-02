@@ -7,11 +7,10 @@
 
 use super::*;
 use crate::exercise_catalog::{progression_increment_lb, snap_down_weight_lb, snap_weight_lb};
+use crate::history::done_set_ids;
 use crate::ids::Ids;
 use crate::pb::{Exercise, ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
-use crate::weight_units::{
-    bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near, AppWeightUnit,
-};
+use crate::weight_units::{bar_weight, plates, simplest_loadable_near, AppWeightUnit};
 
 const WARMUP_REST_SECONDS: i32 = 30;
 /// A calibration rung is always five reps, rested 90 s whatever happened.
@@ -29,21 +28,6 @@ pub const TOO_HEAVY_REPS: i32 = 3;
 /// A too-heavy rung's next rung is this fraction of it: a fifth lighter.
 const CALIBRATION_STEP_DOWN: f32 = 0.8;
 
-/// Stored weights are pounds; warmup snapping happens in the caller's display
-/// unit so the numbers are actually loadable there. These convert at the edges.
-fn to_display(weight_lb: f32, unit: AppWeightUnit) -> f32 {
-    match unit {
-        AppWeightUnit::Lb => weight_lb,
-        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
-    }
-}
-fn to_pounds(display: f32, unit: AppWeightUnit) -> f32 {
-    match unit {
-        AppWeightUnit::Lb => display,
-        AppWeightUnit::Kg => kg_to_pounds(display),
-    }
-}
-
 /// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the
 /// simplest plate step-up in `unit` — empty bar first, then loads that prefer
 /// one big plate over several small ones. Computed in the display unit and
@@ -56,7 +40,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
     let pl = plates(unit);
     let smallest = pl.last().copied().unwrap_or(2.5);
 
-    let working = to_display(working_weight_lb, unit);
+    let working = unit.from_lb(working_weight_lb);
     // Warmups must sit below the working weight by at least one small plate.
     let max = (working - smallest).max(smallest);
 
@@ -79,7 +63,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
             continue;
         }
         prev = chosen;
-        out.push((to_pounds(chosen, unit), reps[idx]));
+        out.push((unit.to_lb(chosen), reps[idx]));
     }
 
     out
@@ -204,7 +188,7 @@ pub fn answered_calibration_weight(
         return usual;
     };
     let max = crate::plan::shown_max(weight, CALIBRATION_REPS, reserve, 1, false);
-    let one_left = max / (1.0 + (CALIBRATION_REPS + 1) as f32 / 30.0);
+    let one_left = crate::plan::weight_for(max, CALIBRATION_REPS, 1);
     snap_down_weight_lb(ex, one_left, unit).max(usual)
 }
 
@@ -331,21 +315,12 @@ fn block_sets(
 /// Plan ops only make sense on a live workout that the request names.
 fn require_open_workout(workout_ref: &WorkoutRecord, workout_id: &str) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     if workout_ref.workout.end_time > 0 {
-        return Err(WorkoutError::failed_precondition("Workout already ended"));
+        return Err(WorkoutError::FailedPrecondition("Workout already ended"));
     }
     Ok(())
-}
-
-fn completed_proposed_ids(workout_ref: &WorkoutRecord) -> std::collections::HashSet<String> {
-    workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| !c.proposed_set_id.is_empty())
-        .map(|c| c.proposed_set_id.clone())
-        .collect()
 }
 
 /// Append one block per decision at the end of the workout, each starting
@@ -387,16 +362,16 @@ pub fn apply_adjust_exercise_weight(
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
     if !(0.0..=2000.0).contains(&req.working_weight) {
-        return Err(WorkoutError::failed_precondition("Weight out of range"));
+        return Err(WorkoutError::FailedPrecondition("Weight out of range"));
     }
     if !(0..=100).contains(&req.target_reps) {
-        return Err(WorkoutError::failed_precondition("Reps out of range"));
+        return Err(WorkoutError::FailedPrecondition("Reps out of range"));
     }
     // On a lift still ramping this moves the pending rung: the ramp goes
     // on from the weight given, and the reps decide where it stops.
     apply_target_reps(workout_ref, req);
     let exercise = req.exercise;
-    let done = completed_proposed_ids(workout_ref);
+    let done = done_set_ids(&workout_ref.completed_sets);
     let before = workout_ref.planned_weight(exercise);
 
     // Working sets move in place — same count, same reps, same rest.
@@ -499,13 +474,9 @@ fn apply_target_reps(workout_ref: &mut WorkoutRecord, req: &AdjustExerciseWeight
     if req.target_reps <= 0 {
         return;
     }
-    let done = completed_proposed_ids(workout_ref);
+    let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
-        s.exercise == req.exercise
-            && !s.warmup
-            && !s.calibration
-            && !s.cancelled
-            && !done.contains(&s.id)
+        s.exercise == req.exercise && s.is_working() && !s.cancelled && !done.contains(&s.id)
     }) {
         set.target_reps = req.target_reps;
     }
@@ -517,7 +488,7 @@ pub fn apply_remove_exercise(
     req: &RemoveExerciseRequest,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
-    let done = completed_proposed_ids(workout_ref);
+    let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref
         .proposed_sets
         .iter_mut()
@@ -555,14 +526,11 @@ pub fn apply_reorder_exercises(
 mod warmup_tests {
     use super::*;
 
-    /// A dense sweep of every 2.5 lb increment from 5 to 600, plus sub-increment
-    /// values. Density matters: the Rust/Dart divergence this fixture exists to
-    /// catch came from `175.0 * 0.70` landing on opposite sides of a `.5`
-    /// rounding boundary in f32 vs f64, and a sparse table would have missed it.
-    /// The sweep also covers the branches in `snap_warmup_weight` — sub-bar
-    /// loads, the 45 lb bar boundary, exact 25/45-plate combos (45, 95, 135,
-    /// 185, 225) and the gaps between them where the ±5 lb probe runs.
-    fn golden_working_weights() -> Vec<f32> {
+    /// Every 2.5 lb from 5 to 600, plus values off that grid: sub-bar loads,
+    /// the 45 lb bar boundary, exact 25/45-plate combinations (45, 95, 135,
+    /// 185, 225) and the gaps between them where `simplest_loadable_near`
+    /// probes a step either side.
+    fn working_weights_sweep() -> Vec<f32> {
         let mut weights: Vec<f32> = Vec::new();
         let mut w = 5.0_f32;
         while w <= 600.0 {
@@ -589,7 +557,7 @@ mod warmup_tests {
     #[test]
     fn warmup_defs_are_non_decreasing_and_below_the_working_weight() {
         for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
-            for w in golden_working_weights() {
+            for w in working_weights_sweep() {
                 let defs = generate_warmup_defs(w, unit);
                 assert!(
                     (1..=4).contains(&defs.len()),
@@ -618,15 +586,12 @@ mod warmup_tests {
     /// caller's unit (no junk decimals after the kg conversion).
     #[test]
     fn warmups_are_exactly_loadable_in_their_unit() {
-        use crate::weight_units::{bar_weight, plate_count_per_side, plates, pounds_to_kg};
+        use crate::weight_units::{bar_weight, plate_count_per_side, plates};
         for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
             let (bar, pl) = (bar_weight(unit), plates(unit));
-            for w in golden_working_weights() {
+            for w in working_weights_sweep() {
                 for (weight_lb, _) in generate_warmup_defs(w, unit) {
-                    let display = match unit {
-                        AppWeightUnit::Lb => weight_lb,
-                        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
-                    };
+                    let display = unit.from_lb(weight_lb);
                     // Sub-bar warmups (very light working weights) fall on the
                     // smallest-plate grid rather than a barbell load; skip those.
                     if display < bar {
@@ -709,11 +674,7 @@ mod plan_op_tests {
     }
 
     fn pending_warmup_weights(active: &WorkoutRecord, exercise: i32) -> Vec<f32> {
-        let done: std::collections::HashSet<String> = active
-            .completed_sets
-            .iter()
-            .map(|c| c.proposed_set_id.clone())
-            .collect();
+        let done = done_set_ids(&active.completed_sets);
         active
             .proposed_sets
             .iter()
@@ -870,7 +831,7 @@ mod plan_op_tests {
         for set in &sets {
             assert_eq!((set.target_weight, set.target_reps), (95.0, 5));
             assert_eq!(set.rest_seconds, 180);
-            assert!(!set.warmup && !set.calibration);
+            assert!(set.is_working());
         }
     }
 

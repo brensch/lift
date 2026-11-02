@@ -2,7 +2,7 @@
 //! The server sends its copy to every phone on sync; a user's library
 //! templates follow it (coupled) until they clone one. The copy built into
 //! the app stands in before the first sync. The file is validated by
-//! `cargo test`. The file's ready-made main plans (`plans`) are read from
+//! `cargo test`. The file's ready-made rotations (`plans`) are read from
 //! the copy built in. See docs/architecture/data-model.md, "Template
 //! library".
 
@@ -103,7 +103,6 @@ fn parse(text: &str) -> Result<(Vec<LibraryTemplate>, Vec<LibraryPlan>), String>
             id: id.to_string(),
             name: entry.name.trim().to_string(),
             blurb: entry.blurb.trim().to_string(),
-            group_key: group.key.clone(),
             group_label: group.label.clone(),
             exercises,
             is_default: entry.default,
@@ -162,17 +161,19 @@ fn parse_plans(
     Ok(out)
 }
 
-/// The validated library, in file order. Startup has already run [`load`]
-/// and refused to boot on an error, so this never fails in a running server.
+/// The validated library, in file order. `cargo test` validates the
+/// embedded file (`embedded_library_is_valid`), so this never fails in a
+/// build that passed its tests.
 pub fn library() -> &'static [LibraryTemplate] {
     static LIBRARY: OnceLock<Vec<LibraryTemplate>> = OnceLock::new();
-    LIBRARY.get_or_init(|| load().expect("templates/library.yaml is validated at startup"))
+    LIBRARY.get_or_init(|| load().expect("templates/library.yaml is validated by cargo test"))
 }
 
-/// The validated ready-made plans, in file order.
+/// The validated ready-made plans, in file order. `cargo test` validates
+/// them too (`embedded_plans_are_valid`).
 pub fn plans() -> &'static [LibraryPlan] {
     static PLANS: OnceLock<Vec<LibraryPlan>> = OnceLock::new();
-    PLANS.get_or_init(|| load_plans().expect("templates/library.yaml is validated at startup"))
+    PLANS.get_or_init(|| load_plans().expect("templates/library.yaml is validated by cargo test"))
 }
 
 pub fn find(id: &str) -> Option<&'static LibraryTemplate> {

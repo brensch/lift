@@ -126,7 +126,7 @@ sequenceDiagram
     participant P as WorkoutProvider
     participant K as core (on the phone)
 
-    W->>B: WearIntent{intent_id, sent_at, oneof}
+    W->>B: WearIntent{intent_id, oneof}
     B->>C: intentStream
     alt workout matches and app ready
         C->>P: _executeIntent → StartSet / CompleteSet / …
@@ -182,8 +182,8 @@ into the account in batches (one `heart_rate` event per batch, not per
 sample); the projected `workout_heart_rate_samples` table has a row per
 sample, and the events sync to the server like any other.
 
-`HeartRateAvailability` distinguishes `AVAILABLE` / `ACQUIRING` / `UNAVAILABLE`,
-so the UI can show "finding your heart rate" rather than a misleading zero.
+Each `HeartRateSample` carries a `HeartRateAvailability`; the watches mark
+every sample `AVAILABLE`, and only the debug notifications screen reads it.
 
 ## Clock skew
 
@@ -213,7 +213,7 @@ user finished on their phone.
 ## Building and running
 
 ```bash
-make watch-setup        # one-time: generate Xcode project bits
+make watch-setup        # one-time: install swift-protobuf, generate the Swift protos
 make watch-build        # build the watchOS app
 make watch-sim          # run in the watch simulator
 make run-wear           # Wear OS on a connected device/emulator

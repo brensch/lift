@@ -57,6 +57,7 @@ impl ServerDb {
         Ok(user)
     }
 
+    #[cfg(any(test, feature = "test-auth"))]
     pub async fn get_or_create_user_with_auth_session(
         &self,
         username: &str,
@@ -103,14 +104,23 @@ impl ServerDb {
         Ok((user, token))
     }
 
+    /// A new 30-day session for the user. Sessions already expired, anyone's,
+    /// are deleted on the way.
     pub async fn create_auth_session(&self, user_id: &str) -> DbResult<String> {
+        let now = now_unix();
         let token = Uuid::new_v4().to_string();
+        let mut tx = self.write_pool.begin().await?;
+        sqlx::query("DELETE FROM auth_sessions WHERE expires_at <= ?")
+            .bind(now)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("INSERT INTO auth_sessions (token, user_id, expires_at) VALUES (?, ?, ?)")
             .bind(&token)
             .bind(user_id)
-            .bind(now_unix() + 30 * 24 * 60 * 60)
-            .execute(&self.write_pool)
+            .bind(now + 30 * 24 * 60 * 60)
+            .execute(&mut *tx)
             .await?;
+        tx.commit().await?;
         Ok(token)
     }
 
@@ -193,6 +203,19 @@ impl ServerDb {
         }
     }
 
+    /// Whether any account holds this passkey.
+    pub async fn credential_registered(&self, credential_id: &str) -> DbResult<bool> {
+        let held: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM passkey_credentials WHERE credential_id = ?",
+        )
+        .bind(credential_id)
+        .fetch_one(&self.read_pool)
+        .await?;
+        Ok(held)
+    }
+
+    /// Store a new passkey. A credential id already held, by anyone, is an
+    /// error: credential ids are public, and must never move between accounts.
     pub async fn store_credential(
         &self,
         credential_id: &str,
@@ -201,7 +224,7 @@ impl ServerDb {
         created_at_ip: Option<&str>,
     ) -> DbResult<()> {
         sqlx::query(
-            "INSERT OR REPLACE INTO passkey_credentials (credential_id, user_id, credential_json, created_at, created_at_ip) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO passkey_credentials (credential_id, user_id, credential_json, created_at, created_at_ip) VALUES (?, ?, ?, ?, ?)",
         )
         .bind(credential_id)
         .bind(user_id)
@@ -342,6 +365,59 @@ impl ServerDb {
 }
 
 #[cfg(test)]
+mod credential_tests {
+    use crate::db::ServerDb;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn a_held_credential_id_cannot_be_registered_again() {
+        let dir = std::env::temp_dir().join(format!("lift-cred-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        db.store_credential("cred", "victim", r#"{"k":"victim"}"#, None)
+            .await
+            .unwrap();
+        assert!(db.credential_registered("cred").await.unwrap());
+        assert!(db
+            .store_credential("cred", "attacker", r#"{"k":"attacker"}"#, None)
+            .await
+            .is_err());
+        assert_eq!(
+            db.get_credentials_for_user("victim").await.unwrap(),
+            vec![r#"{"k":"victim"}"#.to_string()]
+        );
+        assert!(db
+            .get_credentials_for_user("attacker")
+            .await
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[cfg(test)]
+mod session_tests {
+    use crate::db::ServerDb;
+    use uuid::Uuid;
+
+    #[tokio::test]
+    async fn signing_in_deletes_expired_sessions() {
+        let dir = std::env::temp_dir().join(format!("lift-session-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        sqlx::query(
+            "INSERT INTO auth_sessions (token, user_id, expires_at) VALUES ('old', 'u', 1)",
+        )
+        .execute(&db.write_pool)
+        .await
+        .unwrap();
+        let token = db.create_auth_session("u").await.unwrap();
+        let tokens: Vec<String> = sqlx::query_scalar("SELECT token FROM auth_sessions")
+            .fetch_all(&db.read_pool)
+            .await
+            .unwrap();
+        assert_eq!(tokens, vec![token]);
+    }
+}
+
+#[cfg(test)]
 mod account_deletion_tests {
     use crate::db::ServerDb;
     use sqlx::Row;
@@ -397,9 +473,9 @@ mod account_deletion_tests {
             ("workouts", format!("(id, user_id, name, start_time) VALUES ('{u}-w1', ?, 'W', 1)")),
             ("proposed_sets", format!("(id, user_id, workout_id, workout_order, exercise, target_reps, target_weight) VALUES ('{u}-p1', ?, '{u}-w1', 0, 1, 5, 100.0)")),
             ("completed_sets", format!("(id, user_id, workout_id, proposed_set_id, actual_reps, actual_weight, ended_at) VALUES ('{u}-c1', ?, '{u}-w1', '{u}-p1', 5, 100.0, 1)")),
-            ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
+            ("user_current_session", format!("(user_id, session_id) VALUES (?, '{u}-s1')")),
             ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),
-            ("session_members", format!("(session_id, user_id, first_joined_at, last_seen_at, left_at) VALUES ('{u}-s1', ?, 1, 1, 0)")),
+            ("session_members", format!("(session_id, user_id, first_joined_at, left_at) VALUES ('{u}-s1', ?, 1, 0)")),
             ("exercise_decisions", format!("(id, user_id, workout_id, position, exercise, sets, reps, weight, estimated_max, budget_minutes, log) VALUES ('{u}-d1', ?, '{u}-w1', 0, 1, 3, 5, 100.0, 120.0, 60, x'00')")),
             ("workout_heart_rate_samples", format!("(id, user_id, workout_id, sampled_at, bpm) VALUES ('{u}-h1', ?, '{u}-w1', 1, 120.0)")),
             ("page_views", "(user_id, app_session_id, seq, page, entered_at_ms) VALUES (?, 's', 1, '/settings', 1)".to_string()),
@@ -423,12 +499,11 @@ mod account_deletion_tests {
             .unwrap()
     }
 
-    /// `delete_user_account_and_data` lists its tables by hand, and has already
-    /// missed some (workout_events, profile_exercise_groups, user_message_events
-    /// were all left behind). This seeds every user-keyed table, deletes the
-    /// account, and fails naming any table that still holds rows — so adding a
-    /// table without updating the delete path fails here rather than silently
-    /// retaining personal data after an account deletion.
+    /// `delete_user_account_and_data` lists its tables by hand. This seeds
+    /// every user-keyed table, deletes the account, and fails naming any table
+    /// that still holds rows — so adding a table without updating the delete
+    /// path fails here rather than silently retaining personal data after an
+    /// account deletion.
     #[tokio::test]
     async fn deleting_an_account_clears_every_user_keyed_table() {
         let db = temp_db().await;

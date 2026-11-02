@@ -35,12 +35,17 @@ class HeartRateZonePercent {
   const HeartRateZonePercent(this.name, this.label, this.lowPct, this.highPct);
 }
 
-/// Vertical gradient colouring the trend line by heart-rate zone.
-LinearGradient zoneGradient(List<HeartRateZone> zones, double maxY) {
+/// Vertical gradient colouring the trend line by heart-rate zone, in
+/// [zoneColors] (the theme's heartZones).
+LinearGradient zoneGradient(
+  List<HeartRateZone> zones,
+  double maxY,
+  List<Color> zoneColors,
+) {
   final colors = <Color>[];
   final stops = <double>[];
   if (zones.isEmpty || maxY <= 0) {
-    return const LinearGradient(colors: [Color(0xFF22C55E), Color(0xFF22C55E)]);
+    return LinearGradient(colors: [zoneColors.first, zoneColors.first]);
   }
   void add(Color c, double stop) {
     final s = stop.clamp(0.0, 1.0);
@@ -49,13 +54,13 @@ LinearGradient zoneGradient(List<HeartRateZone> zones, double maxY) {
     stops.add(stops.isEmpty ? s : (s < stops.last ? stops.last : s));
   }
 
-  add(zoneColorByName(zones.first.name), 0.0);
+  add(zoneColorByName(zones.first.name, zoneColors), 0.0);
   for (final z in zones) {
-    final c = zoneColorByName(z.name);
+    final c = zoneColorByName(z.name, zoneColors);
     add(c, z.low / maxY);
     add(c, z.high / maxY);
   }
-  add(zoneColorByName(zones.last.name), 1.0);
+  add(zoneColorByName(zones.last.name, zoneColors), 1.0);
 
   return LinearGradient(
     begin: Alignment.bottomCenter,
@@ -65,22 +70,11 @@ LinearGradient zoneGradient(List<HeartRateZone> zones, double maxY) {
   );
 }
 
-/// Colour for a named heart-rate zone (Z1 recovery through Z5 max).
-Color zoneColorByName(String name) {
-  switch (name) {
-    case 'Z1':
-      return const Color(0xFF22C55E);
-    case 'Z2':
-      return const Color(0xFFEAB308);
-    case 'Z3':
-      return const Color(0xFFF59E0B);
-    case 'Z4':
-      return const Color(0xFFEF4444);
-    case 'Z5':
-      return const Color(0xFFB91C1C);
-    default:
-      return const Color(0xFF22C55E);
-  }
+/// Colour for a named heart-rate zone (Z1 recovery through Z5 max) out of
+/// [zoneColors]; Z1's for any other name.
+Color zoneColorByName(String name, List<Color> zoneColors) {
+  final i = const ['Z1', 'Z2', 'Z3', 'Z4', 'Z5'].indexOf(name);
+  return zoneColors[i < 0 ? 0 : i];
 }
 
 /// Zone containing `bpm`, or null when below every zone floor.
@@ -92,7 +86,7 @@ HeartRateZone? zoneFor(double bpm, List<HeartRateZone> zones) {
   return null;
 }
 
-/// h:mm:ss / m:ss for elapsed-time axis labels.
+/// m:ss, or h:mm from an hour, for elapsed-time axis labels.
 String formatElapsedHms(int seconds) {
   final s = max(0, seconds);
   final h = s ~/ 3600;

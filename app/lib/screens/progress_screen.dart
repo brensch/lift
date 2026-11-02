@@ -12,7 +12,6 @@ import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
@@ -29,6 +28,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   List<_ExerciseProgress>? _series;
   int _workoutCount = 0;
   double _totalVolume = 0;
+  DateTime _since = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isLoading = true;
 
   // Time-scale filter for the charts. null = all time.
@@ -71,7 +71,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Future<void> _loadData() async {
     final service = context.read<WorkoutServiceWrapper>();
     try {
-      // One call: the server returns the per-exercise series (most-improved
+      // One call: the core returns the per-exercise series (most-improved
       // first) plus the header totals, all precomputed.
       final resp = await service.getExerciseProgress();
       final series = <_ExerciseProgress>[];
@@ -97,6 +97,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         _series = series;
         _workoutCount = resp.workoutCount;
         _totalVolume = resp.totalVolume;
+        _since = DateTime.fromMillisecondsSinceEpoch(resp.since.toInt() * 1000);
         _isLoading = false;
       });
     } catch (e) {
@@ -110,17 +111,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
 
-    Widget scaffold(Widget body) => TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(AppIcons.back),
-            onPressed: () => context.go('/'),
-          ),
-          title: PageTitle('Progress'),
+    Widget scaffold(Widget body) => Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(AppIcons.back),
+          onPressed: () => context.go('/'),
         ),
-        body: body,
+        title: PageTitle('Progress'),
       ),
+      body: body,
     );
 
     if (_isLoading) {
@@ -140,10 +139,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: _SummaryHeader(
               workoutCount: _workoutCount,
               totalVolume: _totalVolume,
-              since: _series!
-                  .expand((s) => s.points)
-                  .map((p) => p.date)
-                  .reduce((a, b) => a.isBefore(b) ? a : b),
+              since: _since,
               unit: unit,
               cs: cs,
             ),
@@ -193,13 +189,11 @@ class _SummaryHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _headStat(context, '$workoutCount', 'workouts', cs),
+        HeadStat('$workoutCount', 'workouts'),
         const SizedBox(width: 24),
-        _headStat(
-          context,
+        HeadStat(
           compactVolume(totalVolume, unit),
           '${weightUnitSuffix(unit)} lifted',
-          cs,
         ),
         const Spacer(),
         Padding(
@@ -215,32 +209,6 @@ class _SummaryHeader extends StatelessWidget {
       ],
     );
   }
-
-  Widget _headStat(
-    BuildContext context,
-    String value,
-    String label,
-    ColorScheme cs,
-  ) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: context.tokens.size.titleLg,
-          fontWeight: context.tokens.weight.heavy,
-          height: 1,
-        ),
-      ),
-      Text(
-        label,
-        style: TextStyle(
-          color: cs.tertiary,
-          fontSize: context.tokens.size.small,
-        ),
-      ),
-    ],
-  );
 }
 
 class _ExerciseCard extends StatelessWidget {
@@ -255,9 +223,9 @@ class _ExerciseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = exerciseNames[series.exercise] ?? '?';
+    final name = exerciseName(series.exercise);
     final gain = series.gain;
-    final gainColor = gain > 0 ? context.tokens.accentGreen : cs.tertiary;
+    final gainColor = gain > 0 ? context.tokens.ready : cs.tertiary;
     final gainText = gain == 0
         ? ''
         : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';
@@ -525,7 +493,7 @@ class _Chart extends StatelessWidget {
             getTooltipItems: (spots) => spots.map((s) {
               final p = pts[s.x.round()];
               return LineTooltipItem(
-                '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${shortDate(p.date)}',
+                '${formatWeight(p.weight, unit, includeUnit: true)}\n${shortDate(p.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
                   fontWeight: context.tokens.weight.bold,

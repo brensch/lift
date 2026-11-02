@@ -32,7 +32,6 @@
 		7D9D1996BA5C1E3256F6A916 /* sound_you_died.wav in Resources */ = {isa = PBXBuildFile; fileRef = E74F06F10D927C906FDF066E /* sound_you_died.wav */; };
 		007F31BFDCE8A3EB5FFA7D02 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C129A9FB18F81555600E71B3 /* RunnerTests.swift */; };
 		0512486446519281E28F1B8A /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
-		2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
 		2FB20DD8BDBDEE445CEF4921 /* SchliftWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		34ED2D9264A9484E2CD750EE /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 56FCCA0B02AD162D3D1A6632 /* SwiftProtobuf */; };
 		3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
@@ -43,10 +42,8 @@
 		3897E08613EFB2354FC6ED77 /* PhoneConnector+HeartRate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BBB2E9A14BAE5FEED1C4BD /* PhoneConnector+HeartRate.swift */; };
 		F947BE4719B29D55082D0277 /* PhoneConnector+Messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */; };
 		5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2369EE1B891E190DF2D26271 /* SceneDelegate.swift */; };
-		6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */; };
 		7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */; };
 		DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */; };
-		79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
 		86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */; };
 		CB08C5C9F96CC826ED7B72E2 /* SpaceMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */; };
 		DD506040AC7D2AC77907EF98 /* SpaceMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */; };
@@ -67,10 +64,8 @@
 		E71E24BC7C805F70F56B0811 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 619E4DB7FFFAEAF2006D3497 /* SwiftProtobuf */; };
 		E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D3AC0EEF0175E2D2606A662 /* WatchBridgePlugin.swift */; };
 		E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */; };
-		EB8A841700E4A23E90DAF1DE /* auth.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */; };
 		ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F62DC64DD9F280581E7BEEC2 /* LaunchScreen.storyboard */; };
 		FAE0BE4DC5D6A982453D8746 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
-		FDECF3657063BF41CF7E0FE5 /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -132,7 +127,6 @@
 		1BA5CF54A368DD151691BD9F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		1C0B02B8A3792430DE97AC0B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2369EE1B891E190DF2D26271 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Manrope-Variable.ttf"; sourceTree = "<group>"; };
 		2BA101BC039C30FFF53AA926 /* workout.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = workout.pb.swift; sourceTree = "<group>"; };
 		3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SchliftWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -149,7 +143,6 @@
 		E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhoneConnector+Messaging.swift"; sourceTree = "<group>"; };
 		9A421681FD4BE14DDF968D0D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		9BFFD28DDBB97D71080156CC /* wearable.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wearable.pb.swift; sourceTree = "<group>"; };
-		ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = auth.pb.swift; sourceTree = "<group>"; };
 		B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSensorBatchOutbox.swift; sourceTree = "<group>"; };
 		B2E448C1951CDAF54DC87758 /* Runner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B51B61E8EB9ED1721D316467 /* settings.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = settings.pb.swift; sourceTree = "<group>"; };
@@ -164,7 +157,6 @@
 		77510EE945E6D867C33AE450 /* ContentView+WorkoutComplete.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+WorkoutComplete.swift"; sourceTree = "<group>"; };
 		47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ContentView+Formatting.swift"; sourceTree = "<group>"; };
 		DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
-		E0856CC1A3E00E1DFC68F89A /* group.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = group.pb.swift; sourceTree = "<group>"; };
 		E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgeManager.swift; sourceTree = "<group>"; };
 		033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchBridgeManager+Incoming.swift"; sourceTree = "<group>"; };
 		F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchliftWatchApp.swift; sourceTree = "<group>"; };
@@ -228,8 +220,6 @@
 		1C9C6F8B8A6637A2A86E298C /* v1 */ = {
 			isa = PBXGroup;
 			children = (
-				ADA9F860C96AA34AF2DC9AB8 /* auth.pb.swift */,
-				E0856CC1A3E00E1DFC68F89A /* group.pb.swift */,
 				B51B61E8EB9ED1721D316467 /* settings.pb.swift */,
 				9BFFD28DDBB97D71080156CC /* wearable.pb.swift */,
 				2BA101BC039C30FFF53AA926 /* workout.pb.swift */,
@@ -269,7 +259,6 @@
 		94944B13DDD876F1DF397D9D /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
-				2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */,
 				B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */,
 				9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */,
 				0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */,
@@ -475,7 +464,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */,
-				6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */,
 				86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */,
 				CB08C5C9F96CC826ED7B72E2 /* SpaceMono-Regular.ttf in Resources */,
 				DD506040AC7D2AC77907EF98 /* SpaceMono-Bold.ttf in Resources */,
@@ -577,8 +565,6 @@
 				E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */,
 				51D85966814D19E3AC30CB7B /* WatchSensorBatchOutbox.swift in Sources */,
 				96E4BC48B823583CD423DD72 /* WorkoutSessionManager.swift in Sources */,
-				79FFC0B57F1F65A1D32DAEE0 /* auth.pb.swift in Sources */,
-				FDECF3657063BF41CF7E0FE5 /* group.pb.swift in Sources */,
 				FAE0BE4DC5D6A982453D8746 /* settings.pb.swift in Sources */,
 				0512486446519281E28F1B8A /* wearable.pb.swift in Sources */,
 				D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */,
@@ -603,8 +589,6 @@
 				7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */,
 				DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */,
 				E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */,
-				EB8A841700E4A23E90DAF1DE /* auth.pb.swift in Sources */,
-				2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */,
 				3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */,
 				D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */,
 				4BFA56509017551A55367603 /* workout.pb.swift in Sources */,

@@ -43,6 +43,42 @@ impl ServerAuthService {
     }
 }
 
+/// Longest username a new account may take.
+const MAX_USERNAME_CHARS: usize = 64;
+/// Passkey names past this are cut short.
+const MAX_PASSKEY_NAME_CHARS: usize = 64;
+
+fn passkey_name(name: Option<String>) -> Option<String> {
+    name.map(|n| n.chars().take(MAX_PASSKEY_NAME_CHARS).collect())
+}
+
+/// Where the request came from: the client Caddy names in X-Forwarded-For
+/// (the last entry, the one it saw itself), else the connection's peer.
+fn client_ip<T>(request: &Request<T>) -> Option<String> {
+    request
+        .metadata()
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.rsplit(',').next())
+        .map(str::trim)
+        .filter(|ip| !ip.is_empty())
+        .map(str::to_string)
+        .or_else(|| request.remote_addr().map(|a| a.ip().to_string()))
+}
+
+/// Who is counted as one client for the limit on ceremonies in flight: the
+/// address, or for IPv6 its /64, which one host can move freely within.
+fn client_key<T>(request: &Request<T>) -> String {
+    let ip = client_ip(request).unwrap_or_default();
+    match ip.parse::<std::net::IpAddr>() {
+        Ok(std::net::IpAddr::V6(v6)) => {
+            let s = v6.segments();
+            format!("{:x}:{:x}:{:x}:{:x}::/64", s[0], s[1], s[2], s[3])
+        }
+        _ => ip,
+    }
+}
+
 #[tonic::async_trait]
 impl AuthService for ServerAuthService {
     /// Development-only login that bypasses WebAuthn entirely.
@@ -91,10 +127,7 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<LogoutRequest>,
     ) -> Result<Response<LogoutResponse>, Status> {
-        let token = request
-            .metadata()
-            .get("x-session-token")
-            .and_then(|v| v.to_str().ok())
+        let token = session_token(&request)
             .ok_or_else(|| Status::unauthenticated("Missing session token"))?;
         info!(rpc = "Logout", "request");
         self.db
@@ -109,6 +142,7 @@ impl AuthService for ServerAuthService {
         request: Request<RegisterStartRequest>,
     ) -> Result<Response<RegisterStartResponse>, Status> {
         let (platform, app_version) = client_labels(&request);
+        let client = client_key(&request);
         let req = request.into_inner();
         let username = req.username.trim().to_string();
         info!(rpc = "RegisterStart", %username, "request");
@@ -117,6 +151,9 @@ impl AuthService for ServerAuthService {
         }
         if username.contains(' ') {
             return Err(Status::invalid_argument("username cannot contain spaces"));
+        }
+        if username.chars().count() > MAX_USERNAME_CHARS || username.chars().any(char::is_control) {
+            return Err(Status::invalid_argument("username is not valid"));
         }
         if self
             .db
@@ -130,7 +167,7 @@ impl AuthService for ServerAuthService {
 
         let (user_id, options) = self
             .auth_state
-            .start_registration(&username)
+            .start_registration(&username, &client)
             .await
             .map_err(Status::internal)?;
         self.track_attempt_start(&user_id, "register", &platform, &app_version)
@@ -146,14 +183,19 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<RegisterFinishRequest>,
     ) -> Result<Response<AuthResponse>, Status> {
-        let remote_addr = request.remote_addr().map(|a| a.ip().to_string());
+        let remote_addr = client_ip(&request);
         let req = request.into_inner();
         info!(rpc = "RegisterFinish", user_id = %req.user_id, "request");
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         let username = match self
             .auth_state
-            .finish_registration(&req.user_id, &credential, remote_addr, req.name)
+            .finish_registration(
+                &req.user_id,
+                &credential,
+                remote_addr,
+                passkey_name(req.name),
+            )
             .await
         {
             Ok(username) => username,
@@ -180,17 +222,18 @@ impl AuthService for ServerAuthService {
         request: Request<LoginStartRequest>,
     ) -> Result<Response<LoginStartResponse>, Status> {
         let (platform, app_version) = client_labels(&request);
+        let client = client_key(&request);
         let req = request.into_inner();
         info!(rpc = "LoginStart", "request");
         let (challenge_id, options) = match req.username.as_deref() {
             Some(username) if !username.trim().is_empty() => self
                 .auth_state
-                .start_authentication_with_username(username.trim())
+                .start_authentication_with_username(username.trim(), &client)
                 .await
                 .map_err(Status::invalid_argument)?,
             _ => self
                 .auth_state
-                .start_authentication()
+                .start_authentication(&client)
                 .await
                 .map_err(Status::internal)?,
         };
@@ -244,7 +287,7 @@ impl AuthService for ServerAuthService {
             .ok_or_else(|| Status::not_found("User not found"))?;
         let options = self
             .auth_state
-            .start_add_passkey(&user_id, &user.name)
+            .start_add_passkey(&user_id, &user.name, &client_key(&request))
             .await
             .map_err(Status::internal)?;
         let options_json =
@@ -257,12 +300,12 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<AddPasskeyFinishResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "AddPasskeyFinish", %user_id, "request");
-        let remote_addr = request.remote_addr().map(|a| a.ip().to_string());
+        let remote_addr = client_ip(&request);
         let req = request.into_inner();
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         self.auth_state
-            .finish_add_passkey(&user_id, &credential, remote_addr, req.name)
+            .finish_add_passkey(&user_id, &credential, remote_addr, passkey_name(req.name))
             .await
             .map_err(Status::invalid_argument)?;
         Ok(Response::new(AddPasskeyFinishResponse {}))
@@ -333,11 +376,7 @@ impl AuthService for ServerAuthService {
             .delete_user_account_and_data(&user_id)
             .await
             .map_err(internal_error)?;
-        if let Some(token) = request
-            .metadata()
-            .get("x-session-token")
-            .and_then(|v| v.to_str().ok())
-        {
+        if let Some(token) = session_token(&request) {
             let _ = self.db.delete_auth_session(token).await;
         }
         Ok(Response::new(DeleteAccountResponse {
@@ -490,6 +529,39 @@ mod auth_attempt_tests {
         assert_eq!(row.get::<String, _>("outcome"), "started");
         assert_eq!(row.get::<String, _>("platform"), "android");
         assert_eq!(row.get::<String, _>("app_version"), "1.2.3");
+    }
+
+    fn login_from(ip: &str) -> Request<LoginStartRequest> {
+        let mut request = Request::new(LoginStartRequest { username: None });
+        request
+            .metadata_mut()
+            .insert("x-forwarded-for", ip.parse().unwrap());
+        request
+    }
+
+    /// One client starting sign-ins without end is refused past its share;
+    /// everyone else can still sign in.
+    #[tokio::test]
+    async fn one_client_cannot_crowd_out_the_others_sign_ins() {
+        let db = temp_db().await;
+        let auth = service(&db).await;
+        let mut refused = false;
+        for _ in 0..50 {
+            if auth.login_start(login_from("203.0.113.7")).await.is_err() {
+                refused = true;
+                break;
+            }
+        }
+        assert!(refused, "the flood is cut off");
+        // Another address in the same IPv6 /64 is the same client.
+        for ip in ["2001:db8::1", "2001:db8::2"] {
+            for _ in 0..25 {
+                let _ = auth.login_start(login_from(ip)).await;
+            }
+        }
+        assert!(auth.login_start(login_from("2001:db8::3")).await.is_err());
+        assert!(auth.login_start(login_from("198.51.100.1")).await.is_ok());
+        assert!(auth.login_start(login_from("2001:db8:1::1")).await.is_ok());
     }
 
     /// The unauthenticated report path must not be a way to write rows.

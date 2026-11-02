@@ -14,9 +14,7 @@ mod db;
 #[cfg(feature = "test-auth")]
 mod demo_seed;
 mod server;
-// The domain lives in schlift-core; these keep `crate::progress` and
-// friends naming it as before.
-use schlift_core::time;
+mod time;
 
 use auth::AuthState;
 use db::ServerDb;
@@ -74,10 +72,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
     let auth_state = std::sync::Arc::new(AuthState::new(server_db.clone()));
 
-    // PORT lets a throwaway instance (the API invariant harness, a second dev
-    // backend) run alongside the usual one on 50051.
+    // Loopback only: Caddy, on the same host, is the way in. PORT lets a
+    // throwaway instance (the API invariant harness, a second dev backend)
+    // run alongside the usual one on 50051.
     let port = std::env::var("PORT").unwrap_or_else(|_| "50051".to_string());
-    let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
+    let addr: SocketAddr = format!("127.0.0.1:{port}").parse()?;
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -91,60 +90,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             HeaderName::from_static("x-user-agent"),
         ]);
 
-    #[allow(deprecated)]
-    let grpc_router = tonic::transport::Server::builder()
-        // Disable Nagle: without this every small RPC response can stall on the
-        // ~40ms TCP delayed-ACK timer, adding that latency to essentially every
-        // request. Standard for a low-latency gRPC service.
-        .tcp_nodelay(true)
-        // Sync streams stay open for a whole workout: ping them, so a phone
-        // that vanished (dead wifi, killed app) is noticed within seconds
-        // rather than at the next TCP timeout.
-        .http2_keepalive_interval(Some(std::time::Duration::from_secs(10)))
-        .http2_keepalive_timeout(Some(std::time::Duration::from_secs(10)))
-        .accept_http1(true)
-        .add_service(tonic_web::enable(WorkoutServiceServer::new(
-            ServerWorkoutService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(UserServiceServer::new(
-            ServerUserService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(MultiplayerServiceServer::new(
-            ServerMultiplayerService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(AuthServiceServer::new(
-            ServerAuthService {
-                db: server_db.clone(),
-                auth_state: auth_state.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(SyncServiceServer::new(
-            ServerSyncService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(SettingsServiceServer::new(
-            ServerSettingsService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(AnalyticsServiceServer::new(
-            ServerAnalyticsService {
-                db: server_db.clone(),
-            },
-        )))
-        .add_service(tonic_web::enable(AdminServiceServer::new(
-            ServerAdminService {
-                db: server_db.clone(),
-            },
-        )))
-        .into_router();
+    let grpc_router = tonic::service::Routes::new(tonic_web::enable(WorkoutServiceServer::new(
+        ServerWorkoutService {
+            db: server_db.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(UserServiceServer::new(
+        ServerUserService {
+            db: server_db.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(MultiplayerServiceServer::new(
+        ServerMultiplayerService {
+            db: server_db.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(AuthServiceServer::new(
+        ServerAuthService {
+            db: server_db.clone(),
+            auth_state: auth_state.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(SyncServiceServer::new(
+        ServerSyncService {
+            db: server_db.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(SettingsServiceServer::new(
+        ServerSettingsService {
+            db: server_db.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(AnalyticsServiceServer::new(
+        ServerAnalyticsService {
+            db: server_db.clone(),
+        },
+    )))
+    .add_service(tonic_web::enable(AdminServiceServer::new(
+        ServerAdminService {
+            db: server_db.clone(),
+        },
+    )))
+    .into_axum_router();
 
     let app = axum::Router::new()
         .route("/api/health", get(|| async { "ok" }))
@@ -167,6 +154,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    // Disable Nagle: without this every small RPC response can stall on the
+    // ~40ms TCP delayed-ACK timer.
+    .tcp_nodelay(true)
     .await?;
 
     Ok(())

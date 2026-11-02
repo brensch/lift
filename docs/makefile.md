@@ -15,7 +15,6 @@ Variables worth knowing (all overridable, `make VAR=value target`):
 | Variable | Default | |
 |---|---|---|
 | `FLUTTER`, `DART` | `~/flutter-sdk/bin/…` | Not on `PATH` |
-| `BUN` | `~/.bun/bin/bun` | Not on `PATH` |
 | `ANDROID_SDK` | `~/android-sdk` | |
 | `ADB` | `$(ANDROID_SDK)/platform-tools/adb` | Not on `PATH`. A phone on wireless debugging shows up as `192.168.x.x:port` |
 | `PHONE_SERIAL`, `WEAR_SERIAL` | auto-detected | Pick the phone or watch when several are attached. Otherwise the first non-watch / watch device on adb |
@@ -76,8 +75,8 @@ channel that does come from CI, because it runs on the server.
 | `make run-backend-scratch` | Same as `run-backend` without the watch, on an empty database in `.tmp/scratch-backend` wiped every start. |
 | `make agent-backend-start` / `agent-backend-stop` | Background instance with a pidfile and a log, waits for `/api/health`. Uses `:50051`, so it collides with any other backend on the machine. |
 | `make run-web-dev` | Backend + web dev server together. `make run-frontend` is the web half. |
-| `make run-prod` | `docker-compose up --build`. |
 | `make check` | `cargo check` + web build. |
+| `make progression-explorer` | Rewrites `testdata/progression_scenarios.json` from the core (`UPDATE_SCENARIOS=1`) and builds `.tmp/progression-explorer.html` (`PROGRESSION_EXPLORER_OUT`). Review the snapshot diff before committing. |
 | `make fuzz-api` | The core's invariant fuzzer, in-process (`cargo run -p schlift-core --example fuzz`; `FUZZ_USERS`, `FUZZ_SESSIONS`, `FUZZ_SEED`). No backend needed. `make fuzz-api-ci` is the fixed-seed run CI does. |
 
 For a throwaway instance that collides with nothing, skip make:
@@ -96,13 +95,13 @@ The binary is also the admin CLI: `schlift admin add|remove|list <username>`
 
 | Target | |
 |---|---|
-| `make proto-dart` / `proto-android` / `proto-swift` / `proto-all` | Regenerate protobuf code. `proto-swift` needs `protoc-gen-swift`; CI does it on macOS. |
-| *(no target)* web TypeScript | `cd proto && buf generate --template buf.gen.yaml` |
+| `make proto-dart` / `proto-android` / `proto-web` / `proto-swift` / `proto-all` | Regenerate protobuf code. `proto-android` and `proto-swift` generate only `wearable.proto` and its imports, all the watches use. `proto-swift` needs `protoc-gen-swift`; CI does it on macOS. |
 | `make copy` | `app/copy.yaml` → `app/lib/gen/copy.dart` |
 | *(no target)* Rust ↔ Dart bridge | After changing `app/native/src/api/`: `flutter_rust_bridge_codegen generate` in `app/`. Writes `app/lib/gen/native/` and `app/native/src/frb_generated.rs` (config: `app/flutter_rust_bridge.yaml`). |
 | `make sounds`, `make icons`, `make brand` | Sound manifest, launcher icons, brand renders |
 
-Generated code is committed, and is the only code exempt from formatting and
+Generated code is committed, except Swift, which CI generates before each
+iOS build. Generated code is the only code exempt from formatting and
 linting.
 
 ## Formatting and linting
@@ -143,20 +142,17 @@ in [`android_dev.md`](android_dev.md).
 
 ## Release and signing
 
-`print-cert-hashes`, `ci-android-prepare-signing` (writes `key.properties` from
-env), `ci-android-check-signing`, `ci-android-build-release` (phone AAB + wear
-AAB), `build-aabs-release` (the same, moved to `aab/` with a date and hash),
-`ci-android-release-local`, `ci-android-clean-signing`. Uploading to the stores
-is tag-driven CI — [`releasing.md`](releasing.md).
+`print-cert-hashes` prints the signing certificate hashes. Building and
+uploading to the stores is tag-driven CI — [`releasing.md`](releasing.md).
 
 ## Wear OS and Apple Watch
 
 `run-wear`, `run-wear-logs`, `run-wear-debug`, `build-wear-release`,
 `deploy-wear` (never uninstalls, like `deploy-android`), `android-wear-avd-create`, `android-wear-emulator-start`,
 `android-wear-run-emulator`, `android-wear-pairing-notes`; and on macOS
-`watch-setup`, `watch-generate`, `watch-build`, `watch-build-release`,
+`watch-setup`, `watch-build`, `watch-build-release`,
 `watch-sim`, `watch-sim-list`.
 
 ## Setup
 
-`setup-flutter`, `install-deps`, `check-android-java`.
+`install-deps`, `check-android-java`.

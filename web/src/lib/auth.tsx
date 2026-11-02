@@ -27,33 +27,6 @@ function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
-function decodeClientDataChallenge(clientDataJSON: ArrayBuffer): string | null {
-  try {
-    const text = new TextDecoder().decode(new Uint8Array(clientDataJSON));
-    const parsed = JSON.parse(text) as { challenge?: string };
-    return typeof parsed.challenge === "string" ? parsed.challenge : null;
-  } catch {
-    return null;
-  }
-}
-
-function decodeClientDataChallengeFromBase64(
-  encodedClientDataJSON: string | null | undefined,
-): string | null {
-  if (!encodedClientDataJSON) return null;
-  try {
-    const padded = encodedClientDataJSON
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(encodedClientDataJSON.length / 4) * 4, "=");
-    const binary = atob(padded);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    return decodeClientDataChallenge(bytes.buffer);
-  } catch {
-    return null;
-  }
-}
-
 function toBase64Url(input: ArrayBuffer | Uint8Array | null): string | null {
   if (!input) return null;
 
@@ -158,37 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Unexpected passkey credential type.");
       }
 
-      const requestChallenge =
-        typeof startResp.optionsJson === "string"
-          ? ((JSON.parse(startResp.optionsJson) as { challenge?: string }).challenge ?? null)
-          : null;
-      const response = credential.response as AuthenticatorAssertionResponse;
-      const responseChallenge = decodeClientDataChallenge(response.clientDataJSON);
-
-      if (requestChallenge && responseChallenge !== requestChallenge) {
-        console.error("WebAuthn challenge mismatch before loginFinish", {
-          requestChallenge,
-          responseChallenge,
-          challengeId: startResp.challengeId,
-        });
-        throw new Error("Passkey response challenge did not match request.");
-      }
-
       const credentialJson = serializeAssertion(credential);
-      const serializedChallenge = decodeClientDataChallengeFromBase64(
-        credentialJson.response.clientDataJSON,
-      );
-
-      if (requestChallenge && serializedChallenge !== requestChallenge) {
-        console.error("WebAuthn serialized payload challenge mismatch", {
-          requestChallenge,
-          rawResponseChallenge: responseChallenge,
-          serializedChallenge,
-          challengeId: startResp.challengeId,
-          serializedClientDataJSON: credentialJson.response.clientDataJSON,
-        });
-        throw new Error("Serialized passkey payload challenge did not match request.");
-      }
 
       // Step 3: LoginFinish via gRPC
       const finishResp = await authClient.loginFinish({

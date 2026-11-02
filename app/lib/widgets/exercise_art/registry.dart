@@ -178,9 +178,6 @@ final Map<Exercise, ExerciseArt Function()> _artBuilders = {
 ExerciseArt artFor(Exercise exercise) =>
     (_artBuilders[exercise] ?? _genericArt)();
 
-/// True if a hand-drawn illustration exists (vs. the generic fallback).
-bool hasExerciseArt(Exercise exercise) => _artBuilders.containsKey(exercise);
-
 /// Plain standing figure used until an exercise has its own drawing.
 ExerciseArt _genericArt() => const ExerciseArt([
   Pose(

@@ -35,20 +35,6 @@ Future<Uint8List> call({
   request: request,
 );
 
-/// [call] with the clock set to `now` (unix seconds): for seeding a
-/// believable past, and for tests.
-Future<Uint8List> callAt({
-  required int handle,
-  required String method,
-  required List<int> request,
-  required PlatformInt64 now,
-}) => RustLib.instance.api.crateApiCallAt(
-  handle: handle,
-  method: method,
-  request: request,
-  now: now,
-);
-
 /// The events the server hasn't acknowledged, packed for the Sync stream,
 /// and the seq of the last one (0 when there are none).
 Future<(Uint8List, PlatformInt64)> outbox({required int handle}) =>

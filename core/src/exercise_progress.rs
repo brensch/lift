@@ -123,7 +123,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
     for set in record
         .proposed_sets
         .iter()
-        .filter(|s| !s.warmup && !s.calibration && !s.cancelled)
+        .filter(|s| s.is_working() && !s.cancelled)
     {
         if let Some(outcome) = out.get_mut(&set.exercise) {
             outcome.planned_sets += 1;
@@ -143,7 +143,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
     for set in record
         .proposed_sets
         .iter()
-        .filter(|s| !s.warmup && !s.calibration && !done_ids.contains(s.id.as_str()))
+        .filter(|s| s.is_working() && !done_ids.contains(s.id.as_str()))
     {
         if let Some(outcome) = out.get_mut(&set.exercise) {
             outcome.stopped_early = true;

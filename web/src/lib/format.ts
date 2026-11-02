@@ -45,11 +45,6 @@ export function formatDateFull(unixSeconds: number): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
-export function formatMonthYear(unixSeconds: number): string {
-  const d = new Date(unixSeconds * 1000);
-  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-}
-
 /** Things you have collectively lifted, heaviest comparison that fits. */
 const VOLUME_COMPARISONS: { lb: number; name: string; plural: string }[] = [
   { lb: 22_500_000, name: "Eiffel Tower", plural: "Eiffel Towers" },

@@ -61,8 +61,7 @@ The workout screen is deliberately not instrumented beyond its route (`/`).
 - Each view carries `(app_session_id, seq)`. The server's primary key is
   `(user_id, app_session_id, seq)` with `INSERT OR IGNORE`, so a retried batch
   cannot double count.
-- An old backend answers `UNIMPLEMENTED`; the tracker then stops trying until
-  the next launch. No version gate is involved in either direction.
+- A failed upload keeps the batch and retries it on the next flush.
 - Until `PageTracker.attach` is called (it is called in `main.dart`) the
   tracker follows pages but never starts a timer or touches the network, so
   widget tests that pump a screen stay quiet.

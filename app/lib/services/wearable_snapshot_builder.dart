@@ -7,11 +7,9 @@
 /// the watch's few seconds of taking reps off it.
 library;
 
-import 'dart:math';
 import 'package:fixnum/fixnum.dart';
 
 import '../gen/copy.dart';
-import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
@@ -20,6 +18,7 @@ import '../logic/exercises.dart';
 import '../logic/plate_calculator.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
+import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
@@ -33,24 +32,25 @@ class WearableSnapshotBuilder {
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
   }) {
-    final workout = workoutProvider.activeWorkout;
+    final workout = workoutProvider.workout;
     if (workout == null) return null;
     final isEnded = workout.endTime != Int64.ZERO;
     final hasActive = workoutProvider.hasActiveWorkout;
     if (!hasActive && !isEnded) return null;
 
     final stateSnapshot = workoutProvider.stateSnapshot;
-    final stateValue = isEnded
-        ? WorkoutState.WORKOUT_STATE_ALL_DONE.value
-        : (stateSnapshot?.state.value ??
-              WorkoutState.WORKOUT_STATE_UNSPECIFIED.value);
     final now = workoutProvider.now;
     final nowMs = now.millisecondsSinceEpoch;
     final nowUnix = nowMs ~/ 1000;
+    final state = isEnded
+        ? WorkoutState.WORKOUT_STATE_ALL_DONE
+        : stateAt(stateSnapshot, nowUnix);
+    final allDone = state == WorkoutState.WORKOUT_STATE_ALL_DONE;
     final nextSet = workoutProvider.nextPendingSet;
-    final proposedSets = workoutProvider.activeProposedSets;
-    final completedSets = workoutProvider.activeCompletedSets;
+    final proposedSets = workoutProvider.proposedSets;
+    final completedSets = workoutProvider.completedSets;
     final unit = workoutProvider.weightUnit;
+    final w = SectionWorkout.mine(workoutProvider);
 
     final elapsedSeconds = _elapsedSeconds(workout, nowUnix);
 
@@ -79,26 +79,20 @@ class WearableSnapshotBuilder {
       // Or a ramp set just done in full: the phone asks how many more you
       // could have done (only ever open with nothing being lifted).
       final firstTime =
-          (set.id != workout.liftingSetId &&
-              _isFirstEver(set, proposedSets, completedSets)) ||
-          workoutProvider.rungQuestionSetId.isNotEmpty;
+          w.isFirstTime(set) || workoutProvider.rungQuestionSetId.isNotEmpty;
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
       final weight = set.targetWeight.toDouble();
       final plates = barbell && !firstTime
-          ? calcPlatesPerSide(
-              displayWeightFromPounds(weight, unit),
-              unit,
-            ).plates
+          ? calcPlatesPerSide(displayWeightFromPounds(weight, unit), unit)
           : const <double>[];
-      String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
       final heaviest = standardPlates(unit).first;
       return WearStatusCard(
         stateLabel: stateLabel,
         timerText: timerText,
         displaySet: set,
-        exerciseName: exerciseNames[set.exercise] ?? '?',
+        exerciseName: exerciseName(set.exercise),
         setLine: setLineFor(set, proposedSets),
         setText: setTextFor(set, unit),
         yappingLabel: copy.workout.yapping,
@@ -111,8 +105,8 @@ class WearableSnapshotBuilder {
         plates: [
           for (final p in plates)
             WearPlate(
-              label: num(p),
-              colorHex: _hex(workoutProvider.plateColor(p).toARGB32()),
+              label: plateLabel(p),
+              colorHex: colorHex(workoutProvider.plateColor(p)),
               size: (p / heaviest).clamp(0.0, 1.0),
             ),
         ],
@@ -120,44 +114,25 @@ class WearableSnapshotBuilder {
             ? ''
             : plates.isEmpty
             ? copy.workout.emptyBar
-            : '${plates.map(num).join(' · ')} ${copy.workout.watchEachSide}',
+            : '${plates.map(plateLabel).join(' · ')} ${copy.workout.watchEachSide}',
         barText: !barbell || firstTime
             ? ''
-            : '${num(standardBarWeight(unit))} ${weightUnitSuffix(unit)}',
+            : '${plateLabel(standardBarWeight(unit))} ${weightUnitSuffix(unit)}',
       );
     }
 
     // The one button logs this set: the next pending one, or on an
     // unanswered rung the set "right" would append ("{done}:0").
     final target = isEnded ? null : workoutProvider.doneTargetSet;
-    // The watch shows the same state as the phone: lifting counts up from
-    // Start, resting counts down to the snapshot's rest end, yapping counts
-    // up from it.
-    final restEnd = stateSnapshot?.restUntil.toInt() ?? 0;
-    final lifting = isLiftingState(stateValue);
+    // The watch shows the same stage as the phone's bar.
+    final lifting = state == WorkoutState.WORKOUT_STATE_LIFTING;
 
-    if (target != null && !isAllDoneState(stateValue)) {
-      final String stateLabel;
-      final String timerText;
-      if (lifting) {
-        stateLabel = copy.workout.lifting;
-        timerText = formatRestClock(
-          max(0, nowUnix - stateSnapshot!.liftingStartedAt.toInt()),
-        );
-      } else if (isRestingState(stateValue)) {
-        stateLabel = copy.workout.resting;
-        timerText = formatRestClock(max(0, restEnd - nowUnix));
-      } else if (isYappingState(stateValue)) {
-        stateLabel = copy.workout.yapping;
-        timerText = formatRestClock(max(0, nowUnix - restEnd));
-      } else {
-        stateLabel = copy.workout.ready;
-        timerText = '';
-      }
+    if (target != null && !allDone) {
+      final stage = stageOf(stateSnapshot, nowUnix);
       snapshot.youCard = card(
         target,
-        stateLabel: stateLabel,
-        timerText: timerText,
+        stateLabel: stage.label,
+        timerText: stage.timer ?? '',
       );
       if (lifting) {
         actions.add(
@@ -178,13 +153,11 @@ class WearableSnapshotBuilder {
           ),
         );
       }
-    } else if (isAllDoneState(stateValue)) {
+    } else if (allDone) {
       snapshot.completionSummary = _buildCompletionSummary(
-        workout: workout,
-        nowUnix: nowUnix,
-        proposedSets: proposedSets,
-        completedSets: completedSets,
-        unit: unit,
+        workoutProvider.summary ?? WorkoutSummary(),
+        elapsedSeconds,
+        unit,
       );
       if (!isEnded) {
         actions.add(
@@ -200,21 +173,23 @@ class WearableSnapshotBuilder {
 
     snapshot.actions.addAll(actions);
     if (target != null) {
-      snapshot.circles.addAll(_circles(workoutProvider, target));
+      snapshot.circles.addAll(_circles(workoutProvider, w, target));
     }
     if (completedSets.isNotEmpty && !isEnded) {
       snapshot.lastSetEndedAt = completedSets
           .map((c) => c.endedAt)
           .reduce((a, b) => a > b ? a : b);
     }
-    final upNext = _upNextIsMe(
-      status: multiplayerProvider.sessionStatus,
-      myUserId: myUserId,
-      nowUnix: nowUnix,
-      stateValue: stateValue,
-      restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
-      nextSet: nextSet,
-    );
+    final upNext =
+        computeNextToLiftUserId(
+          myUserId: myUserId,
+          participants: multiplayerProvider.participants,
+          nowUnix: nowUnix,
+          state: state,
+          restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
+          nextSet: nextSet,
+        ) ==
+        myUserId;
     snapshot.ambientCopy = WearAmbientCopy(
       minLeft: copy.workout.watchMinLeft,
       underAMin: copy.workout.watchUnderAMin,
@@ -230,13 +205,13 @@ class WearableSnapshotBuilder {
   /// first; a tap on one is a TapSetIntent.
   static List<WearSetCircle> _circles(
     WorkoutProvider workoutProvider,
+    SectionWorkout w,
     ProposedSet target,
   ) {
     final block = workoutProvider.exerciseBlocks
         .where((b) => b.exercise == target.exercise)
         .firstOrNull;
     if (block == null) return const [];
-    final w = SectionWorkout.mine(workoutProvider);
     return [
       for (final set in block.sets)
         if (!set.cancelled)
@@ -255,7 +230,7 @@ class WearableSnapshotBuilder {
     if (LiveSetCircle.setCircleState(w, set) == SetCircleState.skipped) {
       return '–';
     }
-    if (LiveSetCircle.isFirstEver(w, set)) return '?';
+    if (w.isFirstTime(set)) return '?';
     return '${set.targetReps}';
   }
 
@@ -269,92 +244,27 @@ class WearableSnapshotBuilder {
     SetCircleState.skipped => WearCircleState.WEAR_CIRCLE_STATE_SKIPPED,
   };
 
-  /// The opening set of an exercise never done: a calibration set with
-  /// none of its exercise's calibration sets lifted yet.
-  static bool _isFirstEver(
-    ProposedSet set,
-    List<ProposedSet> proposedSets,
-    List<CompletedSet> completedSets,
+  /// The core's summary of the workout, rendered for the watch, over
+  /// [elapsedSeconds] (still counting until the workout is ended).
+  static WearCompletionSummary _buildCompletionSummary(
+    WorkoutSummary summary,
+    int elapsedSeconds,
+    WeightUnit unit,
   ) {
-    if (!set.calibration) return false;
-    final done = {for (final c in completedSets) c.proposedSetId};
-    return !proposedSets.any(
-      (p) => p.exercise == set.exercise && p.calibration && done.contains(p.id),
-    );
-  }
-
-  /// Whether the wearer lifts next in a session. False when solo or nobody
-  /// is up.
-  static bool _upNextIsMe({
-    required SessionStatus? status,
-    required String myUserId,
-    required int nowUnix,
-    required int stateValue,
-    required int restUntil,
-    required ProposedSet? nextSet,
-  }) {
-    if (status == null || status.participants.isEmpty) return false;
-
-    final others = status.participants
-        .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
-        .toList();
-    if (others.isEmpty) return false;
-
-    // The same client-side logic as the bottom bar decides who's next.
-    final nextToLiftUserId = computeNextToLiftUserId(
-      myUserId: myUserId,
-      others: others,
-      nowUnix: nowUnix,
-      stateValue: stateValue,
-      restUntil: restUntil,
-      nextSet: nextSet,
-    );
-    return nextToLiftUserId == myUserId;
-  }
-
-  static WearCompletionSummary _buildCompletionSummary({
-    required Workout workout,
-    required int nowUnix,
-    required List<ProposedSet> proposedSets,
-    required List<CompletedSet> completedSets,
-    required WeightUnit unit,
-  }) {
-    final durationSeconds = _elapsedSeconds(workout, nowUnix);
-    final proposedById = {for (final set in proposedSets) set.id: set};
-
-    var completedWorkingSets = 0;
-    var totalVolume = 0.0;
-    for (final completed in completedSets) {
-      final proposed = proposedById[completed.proposedSetId];
-      if (proposed == null || !isWorkingSet(proposed)) continue;
-      completedWorkingSets++;
-      totalVolume += completed.actualWeight * completed.actualReps;
-    }
-
+    final volume = summary.totalVolume.toDouble();
     // The watch prints volume_text as sent; it never formats a weight.
     return WearCompletionSummary(
-      durationText: _fmtDurationForSummary(durationSeconds),
-      completedWorkingSets: completedWorkingSets,
-      totalVolumeLb: totalVolume.round(),
-      volumeText: formatWeight(totalVolume, unit, includeUnit: true),
+      durationText: formatDurationShort(elapsedSeconds),
+      completedWorkingSets: summary.workingSets,
+      totalVolumeLb: volume.round(),
+      volumeText: formatWeight(volume, unit, includeUnit: true),
     );
   }
 }
-
-/// "#RRGGBB" for an ARGB colour.
-String _hex(int argb) =>
-    '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
 int _elapsedSeconds(Workout workout, int nowUnix) {
   final start = workout.startTime.toInt();
   if (start <= 0) return 0;
   final end = workout.endTime.toInt() > 0 ? workout.endTime.toInt() : nowUnix;
   return (end - start).clamp(0, 1 << 30);
-}
-
-String _fmtDurationForSummary(int totalSeconds) {
-  final hours = totalSeconds ~/ 3600;
-  final minutes = (totalSeconds % 3600) ~/ 60;
-  if (hours > 0) return '${hours}h ${minutes}m';
-  return '${minutes}m';
 }

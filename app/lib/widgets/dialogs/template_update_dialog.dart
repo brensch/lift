@@ -13,24 +13,20 @@ import '../../theme/theme_spec.dart';
 
 Future<void> showTemplateUpdateDialog(
   BuildContext context, {
-  required TemplateUpdateSuggestion suggestion,
+  required TemplateOffer offer,
   required WorkoutProvider provider,
 }) {
   return showDialog(
     context: context,
-    builder: (_) =>
-        _TemplateUpdateDialog(suggestion: suggestion, provider: provider),
+    builder: (_) => _TemplateUpdateDialog(offer: offer, provider: provider),
   );
 }
 
 class _TemplateUpdateDialog extends StatefulWidget {
-  final TemplateUpdateSuggestion suggestion;
+  final TemplateOffer offer;
   final WorkoutProvider provider;
 
-  const _TemplateUpdateDialog({
-    required this.suggestion,
-    required this.provider,
-  });
+  const _TemplateUpdateDialog({required this.offer, required this.provider});
 
   @override
   State<_TemplateUpdateDialog> createState() => _TemplateUpdateDialogState();
@@ -40,7 +36,7 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
   late final TextEditingController _nameController;
   bool _isSaving = false;
 
-  bool get _isNew => widget.suggestion.isNew;
+  bool get _isNew => widget.offer.templateId.isEmpty;
 
   @override
   void initState() {
@@ -57,14 +53,14 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
   Future<void> _save() async {
     final name = _isNew
         ? _nameController.text.trim()
-        : widget.suggestion.templateName;
+        : widget.offer.templateName;
     if (name.isEmpty || _isSaving) return;
     setState(() => _isSaving = true);
     try {
       final template = WorkoutTemplate()
-        ..id = widget.suggestion.templateId
+        ..id = widget.offer.templateId
         ..name = name
-        ..exercises.addAll(widget.suggestion.exercises);
+        ..exercises.addAll(widget.offer.exercises);
       await widget.provider.saveTemplate(template);
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -80,15 +76,13 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final names = widget.suggestion.exercises
-        .map((e) => exerciseNames[e] ?? '?')
-        .join(', ');
+    final names = widget.offer.exercises.map(exerciseName).join(', ');
 
     return AlertDialog(
       title: Text(
         _isNew
             ? 'Save as a template?'
-            : "Update '${widget.suggestion.templateName}'?",
+            : "Update '${widget.offer.templateName}'?",
         style: TextStyle(fontWeight: context.tokens.weight.heavy),
       ),
       content: Column(

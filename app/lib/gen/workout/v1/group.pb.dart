@@ -222,100 +222,6 @@ class GetMyInviteTokenResponse extends $pb.GeneratedMessage {
   void clearInviteToken() => $_clearField(1);
 }
 
-class RotateInviteTokenRequest extends $pb.GeneratedMessage {
-  factory RotateInviteTokenRequest() => create();
-
-  RotateInviteTokenRequest._();
-
-  factory RotateInviteTokenRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory RotateInviteTokenRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'RotateInviteTokenRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RotateInviteTokenRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RotateInviteTokenRequest copyWith(
-          void Function(RotateInviteTokenRequest) updates) =>
-      super.copyWith((message) => updates(message as RotateInviteTokenRequest))
-          as RotateInviteTokenRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static RotateInviteTokenRequest create() => RotateInviteTokenRequest._();
-  @$core.override
-  RotateInviteTokenRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static RotateInviteTokenRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<RotateInviteTokenRequest>(create);
-  static RotateInviteTokenRequest? _defaultInstance;
-}
-
-class RotateInviteTokenResponse extends $pb.GeneratedMessage {
-  factory RotateInviteTokenResponse({
-    $core.String? inviteToken,
-  }) {
-    final result = create();
-    if (inviteToken != null) result.inviteToken = inviteToken;
-    return result;
-  }
-
-  RotateInviteTokenResponse._();
-
-  factory RotateInviteTokenResponse.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory RotateInviteTokenResponse.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'RotateInviteTokenResponse',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'inviteToken')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RotateInviteTokenResponse clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RotateInviteTokenResponse copyWith(
-          void Function(RotateInviteTokenResponse) updates) =>
-      super.copyWith((message) => updates(message as RotateInviteTokenResponse))
-          as RotateInviteTokenResponse;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static RotateInviteTokenResponse create() => RotateInviteTokenResponse._();
-  @$core.override
-  RotateInviteTokenResponse createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static RotateInviteTokenResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<RotateInviteTokenResponse>(create);
-  static RotateInviteTokenResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get inviteToken => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set inviteToken($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasInviteToken() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearInviteToken() => $_clearField(1);
-}
-
 class LeaveCurrentSessionRequest extends $pb.GeneratedMessage {
   factory LeaveCurrentSessionRequest() => create();
 
@@ -397,75 +303,6 @@ class LeaveCurrentSessionResponse extends $pb.GeneratedMessage {
   static LeaveCurrentSessionResponse? _defaultInstance;
 }
 
-class GetParticipantWorkoutRequest extends $pb.GeneratedMessage {
-  factory GetParticipantWorkoutRequest({
-    $core.String? userId,
-    $core.String? workoutId,
-  }) {
-    final result = create();
-    if (userId != null) result.userId = userId;
-    if (workoutId != null) result.workoutId = workoutId;
-    return result;
-  }
-
-  GetParticipantWorkoutRequest._();
-
-  factory GetParticipantWorkoutRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory GetParticipantWorkoutRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetParticipantWorkoutRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'userId')
-    ..aOS(2, _omitFieldNames ? '' : 'workoutId')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetParticipantWorkoutRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetParticipantWorkoutRequest copyWith(
-          void Function(GetParticipantWorkoutRequest) updates) =>
-      super.copyWith(
-              (message) => updates(message as GetParticipantWorkoutRequest))
-          as GetParticipantWorkoutRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetParticipantWorkoutRequest create() =>
-      GetParticipantWorkoutRequest._();
-  @$core.override
-  GetParticipantWorkoutRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static GetParticipantWorkoutRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetParticipantWorkoutRequest>(create);
-  static GetParticipantWorkoutRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get userId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set userId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasUserId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearUserId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get workoutId => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set workoutId($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasWorkoutId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearWorkoutId() => $_clearField(2);
-}
-
 class GetCurrentSessionRequest extends $pb.GeneratedMessage {
   factory GetCurrentSessionRequest() => create();
 
@@ -505,113 +342,156 @@ class GetCurrentSessionRequest extends $pb.GeneratedMessage {
   static GetCurrentSessionRequest? _defaultInstance;
 }
 
-class GetSessionParticipantsRequest extends $pb.GeneratedMessage {
-  factory GetSessionParticipantsRequest({
-    $core.String? sessionId,
+class GetSessionRostersRequest extends $pb.GeneratedMessage {
+  factory GetSessionRostersRequest({
+    $core.Iterable<$core.String>? sessionIds,
   }) {
     final result = create();
-    if (sessionId != null) result.sessionId = sessionId;
+    if (sessionIds != null) result.sessionIds.addAll(sessionIds);
     return result;
   }
 
-  GetSessionParticipantsRequest._();
+  GetSessionRostersRequest._();
 
-  factory GetSessionParticipantsRequest.fromBuffer($core.List<$core.int> data,
+  factory GetSessionRostersRequest.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory GetSessionParticipantsRequest.fromJson($core.String json,
+  factory GetSessionRostersRequest.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetSessionParticipantsRequest',
+      _omitMessageNames ? '' : 'GetSessionRostersRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..pPS(1, _omitFieldNames ? '' : 'sessionIds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsRequest clone() => deepCopy();
+  GetSessionRostersRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsRequest copyWith(
-          void Function(GetSessionParticipantsRequest) updates) =>
-      super.copyWith(
-              (message) => updates(message as GetSessionParticipantsRequest))
-          as GetSessionParticipantsRequest;
+  GetSessionRostersRequest copyWith(
+          void Function(GetSessionRostersRequest) updates) =>
+      super.copyWith((message) => updates(message as GetSessionRostersRequest))
+          as GetSessionRostersRequest;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsRequest create() =>
-      GetSessionParticipantsRequest._();
+  static GetSessionRostersRequest create() => GetSessionRostersRequest._();
   @$core.override
-  GetSessionParticipantsRequest createEmptyInstance() => create();
+  GetSessionRostersRequest createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetSessionParticipantsRequest>(create);
-  static GetSessionParticipantsRequest? _defaultInstance;
+  static GetSessionRostersRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSessionRostersRequest>(create);
+  static GetSessionRostersRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get sessionId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set sessionId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSessionId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSessionId() => $_clearField(1);
+  $pb.PbList<$core.String> get sessionIds => $_getList(0);
 }
 
-class GetSessionParticipantsResponse extends $pb.GeneratedMessage {
-  factory GetSessionParticipantsResponse({
-    $core.String? sessionId,
-    $core.Iterable<ParticipantStatus>? participants,
+/// One roster per asked session the caller was in, in the order asked; a
+/// session the caller was not in is left out.
+class GetSessionRostersResponse extends $pb.GeneratedMessage {
+  factory GetSessionRostersResponse({
+    $core.Iterable<SessionRoster>? rosters,
   }) {
     final result = create();
-    if (sessionId != null) result.sessionId = sessionId;
-    if (participants != null) result.participants.addAll(participants);
+    if (rosters != null) result.rosters.addAll(rosters);
     return result;
   }
 
-  GetSessionParticipantsResponse._();
+  GetSessionRostersResponse._();
 
-  factory GetSessionParticipantsResponse.fromBuffer($core.List<$core.int> data,
+  factory GetSessionRostersResponse.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory GetSessionParticipantsResponse.fromJson($core.String json,
+  factory GetSessionRostersResponse.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetSessionParticipantsResponse',
+      _omitMessageNames ? '' : 'GetSessionRostersResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
-    ..pPM<ParticipantStatus>(2, _omitFieldNames ? '' : 'participants',
-        subBuilder: ParticipantStatus.create)
+    ..pPM<SessionRoster>(1, _omitFieldNames ? '' : 'rosters',
+        subBuilder: SessionRoster.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsResponse clone() => deepCopy();
+  GetSessionRostersResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsResponse copyWith(
-          void Function(GetSessionParticipantsResponse) updates) =>
-      super.copyWith(
-              (message) => updates(message as GetSessionParticipantsResponse))
-          as GetSessionParticipantsResponse;
+  GetSessionRostersResponse copyWith(
+          void Function(GetSessionRostersResponse) updates) =>
+      super.copyWith((message) => updates(message as GetSessionRostersResponse))
+          as GetSessionRostersResponse;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsResponse create() =>
-      GetSessionParticipantsResponse._();
+  static GetSessionRostersResponse create() => GetSessionRostersResponse._();
   @$core.override
-  GetSessionParticipantsResponse createEmptyInstance() => create();
+  GetSessionRostersResponse createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetSessionParticipantsResponse>(create);
-  static GetSessionParticipantsResponse? _defaultInstance;
+  static GetSessionRostersResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSessionRostersResponse>(create);
+  static GetSessionRostersResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<SessionRoster> get rosters => $_getList(0);
+}
+
+/// Everyone but the caller who was ever in a session, in the order they
+/// joined. It survives everyone leaving.
+class SessionRoster extends $pb.GeneratedMessage {
+  factory SessionRoster({
+    $core.String? sessionId,
+    $core.Iterable<$1.User>? partners,
+  }) {
+    final result = create();
+    if (sessionId != null) result.sessionId = sessionId;
+    if (partners != null) result.partners.addAll(partners);
+    return result;
+  }
+
+  SessionRoster._();
+
+  factory SessionRoster.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SessionRoster.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SessionRoster',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..pPM<$1.User>(2, _omitFieldNames ? '' : 'partners',
+        subBuilder: $1.User.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SessionRoster clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SessionRoster copyWith(void Function(SessionRoster) updates) =>
+      super.copyWith((message) => updates(message as SessionRoster))
+          as SessionRoster;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SessionRoster create() => SessionRoster._();
+  @$core.override
+  SessionRoster createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SessionRoster getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SessionRoster>(create);
+  static SessionRoster? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sessionId => $_getSZ(0);
@@ -623,7 +503,7 @@ class GetSessionParticipantsResponse extends $pb.GeneratedMessage {
   void clearSessionId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  $pb.PbList<ParticipantStatus> get participants => $_getList(1);
+  $pb.PbList<$1.User> get partners => $_getList(1);
 }
 
 class GetCurrentSessionResponse extends $pb.GeneratedMessage {
@@ -698,21 +578,10 @@ class GetCurrentSessionResponse extends $pb.GeneratedMessage {
 
 class SessionStatus extends $pb.GeneratedMessage {
   factory SessionStatus({
-    $core.String? sessionId,
     $core.Iterable<ParticipantStatus>? participants,
-    $core.String? nextUpUserId,
-    $1.ProposedSet? nextUpSet,
-    $fixnum.Int64? nextUpRestUntil,
-    $core.String? currentlyLiftingUserId,
   }) {
     final result = create();
-    if (sessionId != null) result.sessionId = sessionId;
     if (participants != null) result.participants.addAll(participants);
-    if (nextUpUserId != null) result.nextUpUserId = nextUpUserId;
-    if (nextUpSet != null) result.nextUpSet = nextUpSet;
-    if (nextUpRestUntil != null) result.nextUpRestUntil = nextUpRestUntil;
-    if (currentlyLiftingUserId != null)
-      result.currentlyLiftingUserId = currentlyLiftingUserId;
     return result;
   }
 
@@ -729,14 +598,8 @@ class SessionStatus extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SessionStatus',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
     ..pPM<ParticipantStatus>(2, _omitFieldNames ? '' : 'participants',
         subBuilder: ParticipantStatus.create)
-    ..aOS(3, _omitFieldNames ? '' : 'nextUpUserId')
-    ..aOM<$1.ProposedSet>(4, _omitFieldNames ? '' : 'nextUpSet',
-        subBuilder: $1.ProposedSet.create)
-    ..aInt64(5, _omitFieldNames ? '' : 'nextUpRestUntil')
-    ..aOS(6, _omitFieldNames ? '' : 'currentlyLiftingUserId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -758,55 +621,8 @@ class SessionStatus extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<SessionStatus>(create);
   static SessionStatus? _defaultInstance;
 
-  @$pb.TagNumber(1)
-  $core.String get sessionId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set sessionId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSessionId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSessionId() => $_clearField(1);
-
   @$pb.TagNumber(2)
-  $pb.PbList<ParticipantStatus> get participants => $_getList(1);
-
-  @$pb.TagNumber(3)
-  $core.String get nextUpUserId => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set nextUpUserId($core.String value) => $_setString(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasNextUpUserId() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearNextUpUserId() => $_clearField(3);
-
-  @$pb.TagNumber(4)
-  $1.ProposedSet get nextUpSet => $_getN(3);
-  @$pb.TagNumber(4)
-  set nextUpSet($1.ProposedSet value) => $_setField(4, value);
-  @$pb.TagNumber(4)
-  $core.bool hasNextUpSet() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearNextUpSet() => $_clearField(4);
-  @$pb.TagNumber(4)
-  $1.ProposedSet ensureNextUpSet() => $_ensure(3);
-
-  @$pb.TagNumber(5)
-  $fixnum.Int64 get nextUpRestUntil => $_getI64(4);
-  @$pb.TagNumber(5)
-  set nextUpRestUntil($fixnum.Int64 value) => $_setInt64(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasNextUpRestUntil() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearNextUpRestUntil() => $_clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.String get currentlyLiftingUserId => $_getSZ(5);
-  @$pb.TagNumber(6)
-  set currentlyLiftingUserId($core.String value) => $_setString(5, value);
-  @$pb.TagNumber(6)
-  $core.bool hasCurrentlyLiftingUserId() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearCurrentlyLiftingUserId() => $_clearField(6);
+  $pb.PbList<ParticipantStatus> get participants => $_getList(0);
 }
 
 class ParticipantStatus extends $pb.GeneratedMessage {
@@ -819,6 +635,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $1.ProposedSet? nextUpSet,
     $1.WorkoutStateSnapshot? stateSnapshot,
     $core.Iterable<$core.String>? passedWarmupIds,
+    $core.Iterable<$core.String>? firstTimeSetIds,
   }) {
     final result = create();
     if (user != null) result.user = user;
@@ -829,6 +646,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (nextUpSet != null) result.nextUpSet = nextUpSet;
     if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     if (passedWarmupIds != null) result.passedWarmupIds.addAll(passedWarmupIds);
+    if (firstTimeSetIds != null) result.firstTimeSetIds.addAll(firstTimeSetIds);
     return result;
   }
 
@@ -858,6 +676,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     ..aOM<$1.WorkoutStateSnapshot>(10, _omitFieldNames ? '' : 'stateSnapshot',
         subBuilder: $1.WorkoutStateSnapshot.create)
     ..pPS(11, _omitFieldNames ? '' : 'passedWarmupIds')
+    ..pPS(12, _omitFieldNames ? '' : 'firstTimeSetIds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -944,6 +763,10 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   /// As GetWorkoutResponse.passed_warmup_ids.
   @$pb.TagNumber(11)
   $pb.PbList<$core.String> get passedWarmupIds => $_getList(7);
+
+  /// As GetWorkoutResponse.first_time_set_ids.
+  @$pb.TagNumber(12)
+  $pb.PbList<$core.String> get firstTimeSetIds => $_getList(8);
 }
 
 /// Someone the caller has shared at least one session with.
@@ -1117,202 +940,6 @@ class GetTrainingPartnersResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<TrainingPartner> get partners => $_getList(0);
-}
-
-/// One session the caller and a partner were both in.
-class SharedSession extends $pb.GeneratedMessage {
-  factory SharedSession({
-    $core.String? sessionId,
-    $fixnum.Int64? trainedAt,
-    $core.bool? callerWorkedOut,
-    $core.bool? partnerWorkedOut,
-  }) {
-    final result = create();
-    if (sessionId != null) result.sessionId = sessionId;
-    if (trainedAt != null) result.trainedAt = trainedAt;
-    if (callerWorkedOut != null) result.callerWorkedOut = callerWorkedOut;
-    if (partnerWorkedOut != null) result.partnerWorkedOut = partnerWorkedOut;
-    return result;
-  }
-
-  SharedSession._();
-
-  factory SharedSession.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory SharedSession.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SharedSession',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
-    ..aInt64(2, _omitFieldNames ? '' : 'trainedAt')
-    ..aOB(3, _omitFieldNames ? '' : 'callerWorkedOut')
-    ..aOB(4, _omitFieldNames ? '' : 'partnerWorkedOut')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SharedSession clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SharedSession copyWith(void Function(SharedSession) updates) =>
-      super.copyWith((message) => updates(message as SharedSession))
-          as SharedSession;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static SharedSession create() => SharedSession._();
-  @$core.override
-  SharedSession createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static SharedSession getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<SharedSession>(create);
-  static SharedSession? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get sessionId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set sessionId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSessionId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSessionId() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get trainedAt => $_getI64(1);
-  @$pb.TagNumber(2)
-  set trainedAt($fixnum.Int64 value) => $_setInt64(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasTrainedAt() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearTrainedAt() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.bool get callerWorkedOut => $_getBF(2);
-  @$pb.TagNumber(3)
-  set callerWorkedOut($core.bool value) => $_setBool(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasCallerWorkedOut() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearCallerWorkedOut() => $_clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.bool get partnerWorkedOut => $_getBF(3);
-  @$pb.TagNumber(4)
-  set partnerWorkedOut($core.bool value) => $_setBool(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasPartnerWorkedOut() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearPartnerWorkedOut() => $_clearField(4);
-}
-
-class GetSharedSessionsRequest extends $pb.GeneratedMessage {
-  factory GetSharedSessionsRequest({
-    $core.String? partnerUserId,
-  }) {
-    final result = create();
-    if (partnerUserId != null) result.partnerUserId = partnerUserId;
-    return result;
-  }
-
-  GetSharedSessionsRequest._();
-
-  factory GetSharedSessionsRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory GetSharedSessionsRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetSharedSessionsRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'partnerUserId')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSharedSessionsRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSharedSessionsRequest copyWith(
-          void Function(GetSharedSessionsRequest) updates) =>
-      super.copyWith((message) => updates(message as GetSharedSessionsRequest))
-          as GetSharedSessionsRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetSharedSessionsRequest create() => GetSharedSessionsRequest._();
-  @$core.override
-  GetSharedSessionsRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static GetSharedSessionsRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetSharedSessionsRequest>(create);
-  static GetSharedSessionsRequest? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get partnerUserId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set partnerUserId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasPartnerUserId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearPartnerUserId() => $_clearField(1);
-}
-
-class GetSharedSessionsResponse extends $pb.GeneratedMessage {
-  factory GetSharedSessionsResponse({
-    $core.Iterable<SharedSession>? sessions,
-  }) {
-    final result = create();
-    if (sessions != null) result.sessions.addAll(sessions);
-    return result;
-  }
-
-  GetSharedSessionsResponse._();
-
-  factory GetSharedSessionsResponse.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory GetSharedSessionsResponse.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetSharedSessionsResponse',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..pPM<SharedSession>(1, _omitFieldNames ? '' : 'sessions',
-        subBuilder: SharedSession.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSharedSessionsResponse clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSharedSessionsResponse copyWith(
-          void Function(GetSharedSessionsResponse) updates) =>
-      super.copyWith((message) => updates(message as GetSharedSessionsResponse))
-          as GetSharedSessionsResponse;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetSharedSessionsResponse create() => GetSharedSessionsResponse._();
-  @$core.override
-  GetSharedSessionsResponse createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static GetSharedSessionsResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetSharedSessionsResponse>(create);
-  static GetSharedSessionsResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $pb.PbList<SharedSession> get sessions => $_getList(0);
 }
 
 class RequestJoinPartnerRequest extends $pb.GeneratedMessage {

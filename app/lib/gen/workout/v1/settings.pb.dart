@@ -22,11 +22,11 @@ export 'settings.pbenum.dart';
 
 class PlateColor extends $pb.GeneratedMessage {
   factory PlateColor({
-    $core.double? weightKg,
+    $core.double? weight,
     $core.String? hexColor,
   }) {
     final result = create();
-    if (weightKg != null) result.weightKg = weightKg;
+    if (weight != null) result.weight = weight;
     if (hexColor != null) result.hexColor = hexColor;
     return result;
   }
@@ -44,7 +44,7 @@ class PlateColor extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'PlateColor',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aD(1, _omitFieldNames ? '' : 'weightKg', fieldType: $pb.PbFieldType.OF)
+    ..aD(1, _omitFieldNames ? '' : 'weight', fieldType: $pb.PbFieldType.OF)
     ..aOS(2, _omitFieldNames ? '' : 'hexColor')
     ..hasRequiredFields = false;
 
@@ -67,13 +67,13 @@ class PlateColor extends $pb.GeneratedMessage {
   static PlateColor? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.double get weightKg => $_getN(0);
+  $core.double get weight => $_getN(0);
   @$pb.TagNumber(1)
-  set weightKg($core.double value) => $_setFloat(0, value);
+  set weight($core.double value) => $_setFloat(0, value);
   @$pb.TagNumber(1)
-  $core.bool hasWeightKg() => $_has(0);
+  $core.bool hasWeight() => $_has(0);
   @$pb.TagNumber(1)
-  void clearWeightKg() => $_clearField(1);
+  void clearWeight() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get hexColor => $_getSZ(1);
@@ -88,11 +88,9 @@ class PlateColor extends $pb.GeneratedMessage {
 class PlateColorsConfig extends $pb.GeneratedMessage {
   factory PlateColorsConfig({
     $core.Iterable<PlateColor>? plates,
-    $core.double? barWeightKg,
   }) {
     final result = create();
     if (plates != null) result.plates.addAll(plates);
-    if (barWeightKg != null) result.barWeightKg = barWeightKg;
     return result;
   }
 
@@ -111,7 +109,6 @@ class PlateColorsConfig extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..pPM<PlateColor>(1, _omitFieldNames ? '' : 'plates',
         subBuilder: PlateColor.create)
-    ..aD(2, _omitFieldNames ? '' : 'barWeightKg', fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -135,15 +132,6 @@ class PlateColorsConfig extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<PlateColor> get plates => $_getList(0);
-
-  @$pb.TagNumber(2)
-  $core.double get barWeightKg => $_getN(1);
-  @$pb.TagNumber(2)
-  set barWeightKg($core.double value) => $_setFloat(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasBarWeightKg() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearBarWeightKg() => $_clearField(2);
 }
 
 class WeightUnitConfig extends $pb.GeneratedMessage {

@@ -84,7 +84,7 @@ messages: the app passes it request bytes and gets response bytes back.
 graph LR
     proto["proto/workout/v1/*.proto"]
     proto -->|"prost-build (core/build.rs)<br/>tonic-build (build.rs)"| rust["Rust types<br/>schlift_core::pb, services"]
-    proto -->|"protoc --dart_out"| dart["app/lib/gen/"]
+    proto -->|"buf.gen.dart.yaml"| dart["app/lib/gen/"]
     proto -->|"buf.gen.android.yaml"| java["app/android/shared-proto/"]
     proto -->|"buf.gen.swift.yaml"| swift["Swift (watch)"]
     proto -->|"buf.gen.yaml"| ts["web/src/gen/"]
@@ -93,7 +93,7 @@ graph LR
 Regenerate after editing a `.proto`:
 
 ```bash
-make proto-all      # dart + android + swift
+make proto-all      # dart + android + web + swift
 ```
 
 Rust regenerates automatically via `build.rs` on the next `cargo build`.
@@ -166,9 +166,6 @@ Server layout (see `deploy/README.md`):
 Deployment is push-to-`main` via `.github/workflows/backend-deploy.yml`: an
 ARM64 GitHub runner builds the binary, a self-hosted runner on the server
 installs it into a new release directory and restarts the unit.
-
-`docker-compose.yml` + `nginx.conf` are a **separate local/container path**, not
-what production runs. Don't assume changes to one apply to the other.
 
 The backend is a single binary with an embedded SQLite file — no external
 database, no cache, no queue. See `deploy/` and `docs/releasing.md`.

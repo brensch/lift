@@ -5,7 +5,7 @@
 //   templates/library.yaml       -> content.json (library, the /routines page)
 //   release-notes/<latest>.md    -> content.json (whatsNew)
 //   store/screenshots/raw/*.png  -> public/generated/screens/
-//   marketing/schlift-square-512 -> public/generated/icon-512.png (favicon)
+//   marketing/schlift-square-512 -> public/generated/icon-512.png (apple-touch-icon)
 //   marketing/feature_graphic    -> public/generated/og.png
 // Runs before `vite dev` and `vite build` (see package.json). Generated
 // paths are gitignored.
@@ -87,6 +87,7 @@ const content = {
     src: `/generated/screens/${s.file}`,
     title: s.title,
     subtitle: s.subtitle ?? "",
+    device: s.device ?? "phone",
   })),
   whatsNew,
   library,

@@ -262,43 +262,37 @@ spec as a `ThemeExtension`, so widgets read `context.tokens`:
 | `tokens.size.caption` … `tokens.size.giant` | Every text size (a 12-step scale; nothing under 12pt) |
 | `tokens.weight.regular/medium/bold/heavy` | Every font weight |
 | `tokens.resting`, `tokens.primary`, … | Colours beyond the colour scheme |
-| `tokens.br(n)` / `tokens.radius(n)` | Corners, scaled by `cornerScale` (pills become rectangles) |
+| `tokens.brXs` … `tokens.brXl` / `tokens.radiusXs` … `tokens.radiusXl` | Corners (a five-step scale) |
 | `tokens.mono(style)` / `tokens.wordmark(style)` | Counting numbers; the SCHLIFT wordmark |
 
 > Never hard-code a colour, font family, text size, weight or radius in a
 > widget; if a token is missing, add it to `ThemeSpec`. Code without a
 > `BuildContext` takes the colours or the spec as a parameter; native UI
 > with no widget tree (Fluttertoast) reads `schliftSpec` directly. Data
-> colours a user picks (plate and profile colours) are the exception, and so
-> is the debug-only wordmark lab, which compares fonts on purpose.
+> colours a user picks (plate and profile colours) are the exception.
 
 Fonts come from Google Fonts and are bundled in `assets/google_fonts/`
 (Space Grotesk and Space Mono, static weights with their OFL
 licences), so they work offline and in tests. A new family needs its files
 bundled the same way.
 
-Debug builds have a wordmark lab (Settings → Wordmark lab, `/wordmarks`):
-SCHLIFT banner candidates in a mock app bar.
-
 ## Component layout
 
 Screens with real surface area are folders, one component per file, all public:
 
 ```
-screens/home/          home_screen, home_selection (model), readiness_banner,
-                       group_grid, exercise_config_details
+screens/home/          home_screen, template_editor, template_library_sheet
 screens/onboarding/    onboarding_screen + steps/ (one file per step)
-                       + widgets/ (form fields, cards, profile marker)
-screens/workout/       workout_screen, current_exercise_card,
-                       exercise_list_card, exschplanation_page, workout_panels
-widgets/workout_bar/   workout_bottom_bar, bar_controls, session_cards
+                       + widgets/ (selection cards, profile marker)
+screens/workout/       workout_screen, section_workout, exercise_section,
+                       set_circle, live_set_circle, workout_panels
+widgets/workout_bar/   workout_bottom_bar, workout_focus
 widgets/heart_rate/    heart_rate_chart, models (zones/viewport — pure),
-                       zone_summary, trend_painter, legend
-widgets/exercise_editor/  add/edit dialogs, chip selector, per-exercise
-                       config, group settings
-widgets/dialogs/       end-workout, participant viewer, health dialogs
-widgets/common/        section_header, weight_picker, rainbow_shimmer_text,
-                       horizontal_shaker — generic, screen-agnostic
+                       zone_summary, legend
+widgets/dialogs/       end-workout, participant workout, rung question,
+                       template update, weight adjust, workout sheet
+widgets/common/        flat, horizontal_shaker, primary_button,
+                       weight_selector — generic, screen-agnostic
 ```
 
 The rule of thumb: a widget goes in `widgets/common/` only when nothing about
@@ -341,14 +335,13 @@ the YAML and the files disagree. To add a sound: drop the WAV in
 
 ## Copy in YAML
 
-User-facing text is moving out of the Dart files and into `app/copy.yaml`,
-one key per string, grouped by screen. `make copy` runs
-`scripts/gen_copy.py`, which generates `app/lib/gen/copy.dart`: one
+User-facing text goes in `app/copy.yaml`, one key per string, grouped by
+screen. `make copy` runs `scripts/gen_copy.py`, which generates `app/lib/gen/copy.dart`: one
 `const copy = Copy(...)` tree of classes with a field per key, so a string
 the code uses but the YAML lost is a compile error, and a stale generated
 file fails CI (`gen_copy.py --check` in the tests workflow). Lists of maps
 (the tutorial's `pages`) become a list of a generated item class.
 
-Migrated so far: the tutorial (`tutorial:`), whose pages are driven entirely
-by the YAML list. Rename nothing in the YAML; reword anything.
+The tutorial's pages are driven entirely by its YAML list. Rename nothing in
+the YAML; reword anything.
 

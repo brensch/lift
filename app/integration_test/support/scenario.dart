@@ -16,8 +16,11 @@ import 'package:schlift/gen/copy.dart';
 import 'package:schlift/main.dart';
 import 'package:schlift/providers/sound_provider.dart';
 import 'package:schlift/providers/workout_provider.dart';
+import 'package:schlift/screens/workout/set_circle.dart';
+import 'package:schlift/services/account_sync.dart';
 import 'package:schlift/services/health_service.dart';
 import 'package:schlift/services/notification_service.dart';
+import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
 
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'api.dart';
@@ -289,14 +292,6 @@ class Scenario {
     }
   }
 
-  /// Scroll [within] (default: the first Scrollable) by [dy] logical pixels
-  /// (negative scrolls the content up, revealing what's below).
-  Future<void> scroll(double dy, {Finder? within}) async {
-    final target = within ?? find.byType(Scrollable).first;
-    await tester.drag(target, Offset(0, dy));
-    await settle(seconds: 1);
-  }
-
   void expectVisible(String text) => expect(
     find.text(text),
     findsWidgets,
@@ -321,6 +316,23 @@ class Scenario {
     return false;
   }
 
+  /// The header's multiplayer button carries no count: nobody else is in
+  /// a session with you.
+  bool get showsSolo => find
+      .descendant(of: find.byType(Badge), matching: find.byType(Text))
+      .evaluate()
+      .isEmpty;
+
+  /// Poll until the badge's count is gone (the leave arrives on the Sync
+  /// stream).
+  Future<bool> waitForSolo({int seconds = 15}) async {
+    for (var i = 0; i < seconds * 2; i++) {
+      if (showsSolo) return true;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
   /// Open the multiplayer sheet from the header.
   Future<void> openMultiplayer() => tap(find.byTooltip('Multiplayer'));
 
@@ -328,6 +340,15 @@ class Scenario {
   Future<bool> waitForText(String text, {int seconds = 8}) async {
     for (var i = 0; i < seconds * 2; i++) {
       if (isVisible(text)) return true;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
+  /// Poll until a text containing [text] appears.
+  Future<bool> waitForTextContaining(String text, {int seconds = 8}) async {
+    for (var i = 0; i < seconds * 2; i++) {
+      if (find.textContaining(text).evaluate().isNotEmpty) return true;
       await tester.pump(const Duration(milliseconds: 500));
     }
     return false;
@@ -465,7 +486,7 @@ class Scenario {
   Future<int> completeAllWorkingSetsInApp() async {
     var done = 0;
     for (var i = 0; i < 50; i++) {
-      final pending = workout.activeProposedSets.where(
+      final pending = workout.proposedSets.where(
         (p) => !p.warmup && !p.cancelled && !workout.isSetDone(p.id),
       );
       if (pending.isEmpty) break;
@@ -479,9 +500,9 @@ class Scenario {
     return done;
   }
 
-  /// A whole session through the app's own account, for history: [lifts]
-  /// at their weights, every working set done, ended.
-  Future<void> doWorkoutInApp(
+  /// Start a workout of [lifts] through the app's own account, each lift
+  /// at its weight (an override, so it skips the calibration ramp).
+  Future<void> startWorkoutInApp(
     String name,
     List<MapEntry<Exercise, double>> lifts, {
     int sets = 5,
@@ -501,9 +522,53 @@ class Scenario {
         exercises: [for (final lift in lifts) lift.key],
       );
     });
+    await settle(seconds: 1);
+  }
+
+  /// Every working set of the live workout done, then the workout ended,
+  /// through the app's own account.
+  Future<void> finishWorkoutInApp() async {
     await completeAllWorkingSetsInApp();
     await tester.runAsync(() => workout.endWorkout(fireEndedCallback: false));
     await settle(seconds: 1);
+  }
+
+  /// A whole session through the app's own account, for history: [lifts]
+  /// at their weights, every working set done, ended.
+  Future<void> doWorkoutInApp(
+    String name,
+    List<MapEntry<Exercise, double>> lifts, {
+    int sets = 5,
+    int reps = 5,
+  }) async {
+    await startWorkoutInApp(name, lifts, sets: sets, reps: reps);
+    await finishWorkoutInApp();
+  }
+
+  /// The app's sync stream, read straight from its provider.
+  AccountSync get accountSync => Provider.of<AccountSync>(
+    tester.element(find.byType(MaterialApp).first),
+    listen: false,
+  );
+
+  /// Wait until the app's copy of the account holds everything the server
+  /// does — after [peer], signed in as the app's own user, seeded history
+  /// for it. The app pulls what it is missing when the stream next reports
+  /// the server's head (a heartbeat, every few seconds), then reloads.
+  /// Until then a screen can show the account mid-seed.
+  Future<void> waitForAppToCatchUp(Peer peer, {int seconds = 30}) async {
+    final head = await peer.serverSeq();
+    for (var i = 0; i < seconds * 2; i++) {
+      final core = accountSync.core;
+      final seq = core == null ? 0 : (await core.syncState()).$1;
+      if (seq >= head) {
+        // The reload that follows the pull lands a beat later.
+        await settle(seconds: 2);
+        return;
+      }
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    throw StateError('the app never caught up to the server (seq $head)');
   }
 
   /// A first-ever exercise asks where its ramp starts: test me from the
@@ -519,11 +584,40 @@ class Scenario {
   static String get testMe =>
       copy.workout.firstTimeTest.split('{weight}').first;
 
+  /// The "how many more could you have done?" dialog a full calibration
+  /// rung opens.
+  bool get rungDialogShowing =>
+      find.byType(RungQuestionDialog).evaluate().isNotEmpty;
+
+  /// The rung's own circle in that dialog: a tap takes a rep off.
+  Finder get rungDialogCircle => find.descendant(
+    of: find.byType(RungQuestionDialog),
+    matching: find.byType(SetCircle),
+  );
+
+  /// Wait for the rung question on [setId] when the core has opened one.
+  Future<bool> _waitForRungDialog(String setId, {int seconds = 6}) async {
+    for (var i = 0; i < seconds * 2; i++) {
+      if (rungDialogShowing) return true;
+      if (workout.rungQuestionSetId != setId) return false;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return rungDialogShowing;
+  }
+
+  /// The answer to the rung question, by its button's label.
+  static String rungAnswerLabel(RepsLeft answer) =>
+      RungQuestionDialog.answers.firstWhere((a) => a.$1 == answer).$2;
+
   /// Lift the next set on its circle: tap to start it, tap again when it is
-  /// done, then once more per [missed] rep. On a calibration rung a
-  /// missed rep settles the working sets; a full one climbs.
+  /// done, then once more per [missed] rep. A calibration rung done in full
+  /// asks how many more could have been done, over the list: its dialog
+  /// holds the rung's circle, so missed reps are tapped there and then
+  /// acknowledged (OK); a rung with every rep is answered [rungAnswer]
+  /// (0–1 by default: the ramp ends and the working sets follow).
   Future<void> liftSet({
     int missed = 0,
+    RepsLeft rungAnswer = RepsLeft.REPS_LEFT_ZERO_TO_ONE,
     Future<void> Function()? whileLifting,
   }) async {
     for (var i = 0; i < 16 && !setOffered; i++) {
@@ -537,14 +631,26 @@ class Scenario {
     await settle(seconds: 1);
     await testMeIfAsked();
     expect(
-      workout.activeWorkout?.liftingSetId,
+      workout.workout?.liftingSetId,
       set.id,
       reason: 'the first tap starts the set',
     );
     if (whileLifting != null) await whileLifting();
-    for (var i = 0; i <= missed; i++) {
-      await tap(circleFor(set.id));
+    await tap(circleFor(set.id));
+    if (!set.calibration || !await _waitForRungDialog(set.id)) {
+      for (var i = 0; i < missed; i++) {
+        await tap(circleFor(set.id));
+      }
+      return;
     }
+    if (missed == 0) {
+      await tap(find.text(rungAnswerLabel(rungAnswer)));
+      return;
+    }
+    for (var i = 0; i < missed; i++) {
+      await tap(rungDialogCircle);
+    }
+    await tap(find.text(copy.workout.rungOk));
   }
 
   /// End the live workout through the confirm dialog and wait for the

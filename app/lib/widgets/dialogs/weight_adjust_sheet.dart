@@ -14,6 +14,7 @@ import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../common/flat.dart';
 import '../common/weight_selector.dart';
+import 'workout_sheet.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
 
@@ -21,24 +22,19 @@ Future<void> showWeightAdjustSheet(
   BuildContext context, {
   required ExerciseBlock block,
   required WorkoutProvider provider,
-  VoidCallback? onDelete,
+  required VoidCallback onDelete,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ChangeNotifierProvider.value(
-      value: provider,
-      child: _WeightAdjustSheet(block: block, onDelete: onDelete),
-    ),
+  return showWorkoutSheet(
+    context,
+    provider: provider,
+    child: _WeightAdjustSheet(block: block, onDelete: onDelete),
   );
 }
 
 class _WeightAdjustSheet extends StatefulWidget {
   final ExerciseBlock block;
-  final VoidCallback? onDelete;
-  const _WeightAdjustSheet({required this.block, this.onDelete});
+  final VoidCallback onDelete;
+  const _WeightAdjustSheet({required this.block, required this.onDelete});
 
   @override
   State<_WeightAdjustSheet> createState() => _WeightAdjustSheetState();
@@ -103,7 +99,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final name = exerciseNames[widget.block.exercise] ?? '?';
+    final name = exerciseName(widget.block.exercise);
 
     Widget stepper(
       String label,
@@ -165,15 +161,14 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             child: Row(
               children: [
                 Expanded(child: PageTitle(name)),
-                if (widget.onDelete != null)
-                  IconButton(
-                    tooltip: 'Remove from this workout',
-                    onPressed: () {
-                      Navigator.pop(context);
-                      widget.onDelete!();
-                    },
-                    icon: Icon(AppIcons.delete, color: t.error),
-                  ),
+                IconButton(
+                  tooltip: 'Remove from this workout',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onDelete();
+                  },
+                  icon: Icon(AppIcons.delete, color: t.error),
+                ),
               ],
             ),
           ),
@@ -188,6 +183,9 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: WeightSelector(
               weightLb: _weight,
+              stepLb: context.read<WorkoutProvider>().weightStepOf(
+                widget.block.exercise,
+              ),
               barbell: _barbell,
               onChanged: (lb) => setState(() => _weight = lb),
             ),

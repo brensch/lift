@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../gen/workout/v1/auth.pb.dart';
+import '../logic/utils.dart';
 import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
 
@@ -85,7 +86,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: colorScheme.error.withValues(alpha: 0.1),
-                borderRadius: context.tokens.br(8),
+                borderRadius: context.tokens.brSm,
               ),
               child: Text(
                 'Make sure you have one of the remaining passkeys before deleting anything. If you don\'t have a valid passkey you cannot recover your account.',
@@ -123,26 +124,12 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
 
   String _formatDate(int timestampSeconds) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestampSeconds * 1000);
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
     final hour = date.hour > 12
         ? date.hour - 12
         : (date.hour == 0 ? 12 : date.hour);
     final amPm = date.hour >= 12 ? 'PM' : 'AM';
     final minute = date.minute.toString().padLeft(2, '0');
-    return '${months[date.month - 1]} ${date.day}, ${date.year}, $hour:$minute $amPm';
+    return '${shortDate(date)}, ${date.year}, $hour:$minute $amPm';
   }
 
   String _formatTransports(List<String> transports) {
@@ -176,7 +163,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: colorScheme.error.withValues(alpha: 0.1),
-                          borderRadius: context.tokens.br(8),
+                          borderRadius: context.tokens.brSm,
                         ),
                         child: Text(
                           _error!,
@@ -220,7 +207,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: colorScheme.surfaceContainerHighest,
-                            borderRadius: context.tokens.br(8),
+                            borderRadius: context.tokens.brSm,
                           ),
                           child: Row(
                             children: [
@@ -266,9 +253,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                             decoration: BoxDecoration(
                                               color: colorScheme.onSurface
                                                   .withValues(alpha: 0.08),
-                                              borderRadius: context.tokens.br(
-                                                4,
-                                              ),
+                                              borderRadius: context.tokens.brXs,
                                             ),
                                             child: Text(
                                               pk.createdAtIp,

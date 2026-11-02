@@ -200,7 +200,6 @@ object WearBridgeManager {
                 .newBuilder()
                 .setBatchId(batch.batchId)
                 .setWorkoutId(batch.workoutId)
-                .setReceivedAt(System.currentTimeMillis())
                 .build()
         scope.launch {
             runCatching {

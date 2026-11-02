@@ -65,7 +65,7 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
 
   /// The done set this asks about.
   CompletedSet? _done(WorkoutProvider wp) {
-    for (final c in wp.activeCompletedSets.reversed) {
+    for (final c in wp.completedSets.reversed) {
       if (c.proposedSetId == widget.proposedSetId) return c;
     }
     return null;
@@ -75,8 +75,8 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
   /// rung after a too-heavy one, else the working sets the ramp settled on.
   ProposedSet? _next(WorkoutProvider wp) {
     final exercise = wp.proposedSetById(widget.proposedSetId)?.exercise;
-    final done = {for (final c in wp.activeCompletedSets) c.proposedSetId};
-    return wp.activeProposedSets
+    final done = {for (final c in wp.completedSets) c.proposedSetId};
+    return wp.proposedSets
         .where(
           (s) => s.exercise == exercise && !s.warmup && !done.contains(s.id),
         )
@@ -91,7 +91,7 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
 
   /// The weight the ramp set was lifted at, in pounds.
   double _rungWeight(WorkoutProvider wp) {
-    for (final c in wp.activeCompletedSets.reversed) {
+    for (final c in wp.completedSets.reversed) {
       if (c.proposedSetId == widget.proposedSetId && c.actualWeight > 0) {
         return c.actualWeight;
       }
@@ -130,7 +130,7 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
       fontWeight: t.weight.heavy,
     );
     final jumpLb = _jumpLb(wp, unit);
-    final rungLb = wp.activeProposedSets
+    final rungLb = wp.proposedSets
         .where((s) => s.id == proposedSetId)
         .firstOrNull
         ?.targetWeight;

@@ -1,6 +1,6 @@
 /// The words for the rotation: Home's line under the suggested workout,
 /// from the core's structured reason, the rotation check's warnings, and
-/// what a workout would add to the main plan.
+/// what a workout would add to the rotation.
 library;
 
 import '../gen/copy.dart';
@@ -86,7 +86,7 @@ List<String> rotationWarningLines(
 }
 
 /// "Trains calves and core, which you don't have.": what a workout would
-/// add to the main plan. Empty when it adds nothing.
+/// add to the rotation. Empty when it adds nothing.
 String additionLine(List<MuscleGroup> muscles) => muscles.isEmpty
     ? ''
     : copy.rotation.adds.replaceAll(

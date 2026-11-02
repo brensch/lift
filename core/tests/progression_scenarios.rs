@@ -34,7 +34,7 @@ use std::collections::HashMap;
 use schlift_core::account::{Account, CoreError};
 use schlift_core::api::{Call, View};
 use schlift_core::exercise_catalog::{
-    exercise_display_name, lift_class, progression_increment_lb, snap_weight_lb, LiftClass,
+    lift_class, progression_increment_lb, snap_weight_lb, LiftClass,
 };
 use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::*;
@@ -97,6 +97,17 @@ impl App {
 
     fn view(&self, now: i64) -> View<'_> {
         View::new(&self.account, now)
+    }
+
+    /// One change to a workout at `now`; the workout after it.
+    fn mutate(&mut self, now: i64, m: Mutation) -> GetWorkoutResponse {
+        self.call(now, |c| {
+            c.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation { mutation: Some(m) }],
+            })
+        })
+        .workout_state
+        .expect("the workout exists")
     }
 
     fn workout(&self, now: i64, id: &str) -> GetWorkoutResponse {
@@ -635,6 +646,38 @@ fn reps_left_name(reps_left: i32) -> &'static str {
     }
 }
 
+/// Human name for an exercise, derived from the enum name — e.g.
+/// `EXERCISE_INCLINE_BENCH_PRESS` → `Incline Bench Press`. A few common
+/// lifts get their colloquial short forms.
+fn exercise_display_name(exercise: Exercise) -> String {
+    match exercise {
+        Exercise::OverheadPress => "OHP".to_string(),
+        Exercise::RomanianDeadlift => "RDL".to_string(),
+        Exercise::BulgarianSplitSquat => "BSS".to_string(),
+        other => prettify_exercise_name(other.as_str_name()),
+    }
+}
+
+fn prettify_exercise_name(str_name: &str) -> String {
+    let trimmed = str_name.strip_prefix("EXERCISE_").unwrap_or(str_name);
+    if trimmed.is_empty() {
+        return "Unknown".to_string();
+    }
+    trimmed
+        .split('_')
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => {
+                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 fn cause_name(cause: i32) -> String {
     let c = WeightChangeCause::try_from(cause).unwrap_or(WeightChangeCause::Unspecified);
     c.as_str_name()
@@ -860,16 +903,8 @@ impl<'a> Runner<'a> {
         }
     }
 
-    fn mutate(&mut self, now: i64, m: Mutation) {
-        self.app.call(now, |c| {
-            c.append_workout_mutations(AppendWorkoutMutationsRequest {
-                mutations: vec![WorkoutMutation {
-                    event_id: String::new(),
-                    client_created_at: now,
-                    mutation: Some(m),
-                }],
-            })
-        });
+    fn mutate(&mut self, now: i64, m: Mutation) -> GetWorkoutResponse {
+        self.app.mutate(now, m)
     }
 
     fn run(mut self) -> J {
@@ -957,12 +992,13 @@ impl<'a> Runner<'a> {
         let mut t = start + 60;
         for ex in &script.skip {
             let ex = *ex;
-            self.app.call(t, |c| {
-                c.remove_exercise(RemoveExerciseRequest {
+            self.mutate(
+                t,
+                Mutation::RemoveExercise(RemoveExerciseRequest {
                     workout_id: id.clone(),
                     exercise: ex as i32,
-                })
-            });
+                }),
+            );
         }
         let mut lowered: Option<Exercise> = None;
         let mut opened: Vec<Exercise> = Vec::new();
@@ -995,14 +1031,15 @@ impl<'a> Runner<'a> {
                     let five = self.true_max(ex) / (1.0 + 5.0 / 30.0);
                     let to = snap_weight_lb(ex, five * of_five, self.unit());
                     let workout_id = id.clone();
-                    self.app.call(t, |c| {
-                        c.adjust_exercise_weight(AdjustExerciseWeightRequest {
+                    self.mutate(
+                        t,
+                        Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                             workout_id,
                             exercise: ex as i32,
                             working_weight: to,
                             target_reps: 0,
-                        })
-                    });
+                        }),
+                    );
                     continue;
                 }
             }
@@ -1012,14 +1049,15 @@ impl<'a> Runner<'a> {
                         let to =
                             snap_weight_lb(ex, next.target_weight * (1.0 - fraction), self.unit());
                         let workout_id = id.clone();
-                        self.app.call(t, |c| {
-                            c.adjust_exercise_weight(AdjustExerciseWeightRequest {
+                        self.mutate(
+                            t,
+                            Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                                 workout_id,
                                 exercise: ex as i32,
                                 working_weight: to,
                                 target_reps: 0,
-                            })
-                        });
+                            }),
+                        );
                         lowered = Some(ex);
                         continue;
                     }
@@ -1047,16 +1085,17 @@ impl<'a> Runner<'a> {
                 }),
             );
             t += LIFT_SECONDS;
-            let done = self.app.call(t, |c| {
-                c.complete_set(CompleteSetRequest {
+            let done = self.mutate(
+                t,
+                Mutation::CompleteSet(CompleteSetRequest {
                     workout_id: id.clone(),
                     proposed_set_id: next.id.clone(),
                     actual_reps: reps,
                     actual_weight: next.target_weight,
                     completed_at: t,
-                })
-            });
-            let rest_until = done.completed_set.map_or(t, |c| c.rest_until);
+                }),
+            );
+            let rest_until = rest_after(&done, &next.id).unwrap_or(t);
             if next.calibration && self.sc.answers != Answers::Never {
                 let asked = self.app.workout(t, &id).rung_question_set_id;
                 if asked == next.id {
@@ -1102,12 +1141,13 @@ impl<'a> Runner<'a> {
                 }
                 if script.remove_after == Some((ex, set_no)) {
                     let workout_id = id.clone();
-                    self.app.call(t + 10, |c| {
-                        c.remove_exercise(RemoveExerciseRequest {
+                    self.mutate(
+                        t + 10,
+                        Mutation::RemoveExercise(RemoveExerciseRequest {
                             workout_id,
                             exercise: ex as i32,
-                        })
-                    });
+                        }),
+                    );
                 }
             }
             t += rest.max(0);
@@ -1283,7 +1323,7 @@ impl<'a> Runner<'a> {
                 "{} min; {} at {} hard sets this week",
                 r.budget_minutes,
                 MuscleGroup::try_from(r.muscle)
-                    .map(|m| schlift_core::exercise_catalog::muscle_label(m).to_string())
+                    .map(|m| format!("{m:?}"))
                     .unwrap_or_default(),
                 (r.weekly_sets * 10.0).round() / 10.0
             )),
@@ -1899,7 +1939,7 @@ struct RotationRun {
 
 fn muscle(m: i32) -> String {
     let m = MuscleGroup::try_from(m).unwrap_or(MuscleGroup::Unspecified);
-    schlift_core::exercise_catalog::muscle_label(m).to_string()
+    format!("{m:?}")
 }
 
 /// Onboard with the five, then every training day for three weeks start
@@ -1936,7 +1976,7 @@ fn rotation() -> RotationRun {
             // Each rotation template on its own: what it would score.
             let history = app.account.workouts.clone();
             let volume = muscle_volume_7d(&history, at);
-            let recovery = per_muscle_recovery(&history, at);
+            let recovery = per_muscle_recovery(&history);
             let candidates = home
                 .templates
                 .iter()
@@ -2020,6 +2060,16 @@ fn rotation() -> RotationRun {
     run
 }
 
+/// When the rest after the latest done of `proposed_set_id` ends.
+fn rest_after(workout: &GetWorkoutResponse, proposed_set_id: &str) -> Option<i64> {
+    workout
+        .completed_sets
+        .iter()
+        .filter(|c| c.proposed_set_id == proposed_set_id)
+        .max_by_key(|c| c.ended_at)
+        .map(|c| c.rest_until)
+}
+
 /// Every set the workout plans, at its target (a calibration rung at what
 /// a lifter as strong as the slider said manages), resting as asked.
 fn lift_everything(
@@ -2050,30 +2100,26 @@ fn lift_everything(
         if !next.warmup && !next.calibration {
             working += 1;
         }
-        app.call(t, |c| {
-            c.append_workout_mutations(AppendWorkoutMutationsRequest {
-                mutations: vec![WorkoutMutation {
-                    event_id: String::new(),
-                    client_created_at: t,
-                    mutation: Some(Mutation::StartSet(StartSetRequest {
-                        workout_id: id.to_string(),
-                        proposed_set_id: next.id.clone(),
-                        started_at: t,
-                    })),
-                }],
-            })
-        });
+        app.mutate(
+            t,
+            Mutation::StartSet(StartSetRequest {
+                workout_id: id.to_string(),
+                proposed_set_id: next.id.clone(),
+                started_at: t,
+            }),
+        );
         t += LIFT_SECONDS;
-        let done = app.call(t, |c| {
-            c.complete_set(CompleteSetRequest {
+        let done = app.mutate(
+            t,
+            Mutation::CompleteSet(CompleteSetRequest {
                 workout_id: id.to_string(),
                 proposed_set_id: next.id.clone(),
                 actual_reps: reps,
                 actual_weight: next.target_weight,
                 completed_at: t,
-            })
-        });
-        t = done.completed_set.map_or(t, |c| c.rest_until.max(t));
+            }),
+        );
+        t = rest_after(&done, &next.id).map_or(t, |r| r.max(t));
     }
     app.call(t, |c| {
         c.end_workout(EndWorkoutRequest {

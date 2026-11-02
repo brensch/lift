@@ -11,7 +11,6 @@ import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
-import '../../logic/session_state.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/common/weight_selector.dart';
@@ -31,12 +30,11 @@ class LiveSetCircle extends StatelessWidget {
     final wp = w.actions;
 
     // The up-next circle wears the workout's state colour, like the banner.
-    final stateValue = w.stateValue;
-    final nextColor = isRestingState(stateValue)
-        ? t.workoutRestingFg
-        : isYappingState(stateValue)
-        ? t.workoutYappingFg
-        : t.primary;
+    final nextColor = switch (w.state) {
+      WorkoutState.WORKOUT_STATE_RESTING => t.resting,
+      WorkoutState.WORKOUT_STATE_YAPPING => t.yapping,
+      _ => t.primary,
+    };
 
     final done = w.doneFor(set.id);
     final reps = done?.actualReps ?? set.targetReps;
@@ -47,7 +45,7 @@ class LiveSetCircle extends StatelessWidget {
       onTap = null;
     } else if (done == null &&
         state != SetCircleState.lifting &&
-        isFirstEver(w, set)) {
+        w.isFirstTime(set)) {
       onTap = () => showFirstTimeDialog(context, wp, set);
     } else {
       onTap = () => tapSet(wp, w, set);
@@ -56,7 +54,7 @@ class LiveSetCircle extends StatelessWidget {
       number: reps,
       state: state,
       // Nothing known yet about a first-ever exercise.
-      text: done == null && isFirstEver(w, set) ? '?' : null,
+      text: done == null && w.isFirstTime(set) ? '?' : null,
       nextColor: nextColor,
       small: set.warmup,
       onTap: onTap,
@@ -82,8 +80,8 @@ class LiveSetCircle extends StatelessWidget {
 
   /// A tap on a set's circle: a done set loses a rep (and after zero is
   /// undone), the set being lifted is done with every rep, anything else
-  /// starts. The watch's taps run this too; on a first-ever exercise the
-  /// phone asks for the weight first, the watch just tests.
+  /// starts. The watch's taps run this too; a first-ever exercise waits on
+  /// the phone, which asks for the weight first.
   static Future<void> tapSet(
     WorkoutProvider wp,
     SectionWorkout w,
@@ -96,19 +94,6 @@ class LiveSetCircle extends StatelessWidget {
     }
     return wp.startSet(set.id);
   }
-
-  /// The opening set of an exercise never done before: nothing of its
-  /// calibration sets is lifted yet.
-  static bool isFirstEver(SectionWorkout w, ProposedSet set) =>
-      set.calibration &&
-      // Started ("test me", or the watch): it is a set like any other.
-      w.liftingSetId != set.id &&
-      !w.proposedSets.any(
-        (s) =>
-            s.exercise == set.exercise &&
-            s.calibration &&
-            w.doneFor(s.id) != null,
-      );
 }
 
 /// First time doing an exercise: give the weight you lift (the working sets
@@ -157,7 +142,7 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final w = copy.workout;
-    final name = exerciseNames[widget.set.exercise] ?? '?';
+    final name = exerciseName(widget.set.exercise);
     final unit = context.watch<SettingsProvider>().weightUnit;
     final label = TextStyle(
       fontSize: t.size.bodyLg,
@@ -183,6 +168,7 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
             // Where the ramp starts: as planned, or moved.
             WeightSelector(
               weightLb: _weightLb,
+              stepLb: widget.wp.weightStepOf(widget.set.exercise),
               barbell: _barbell,
               onChanged: (lb) => setState(() => _weightLb = lb),
             ),

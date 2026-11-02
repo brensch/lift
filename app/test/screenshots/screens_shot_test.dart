@@ -154,7 +154,6 @@ void main() {
         id: 'stronglifts_a',
         name: 'StrongLifts 5×5 A',
         blurb: 'Squat, bench, row.',
-        groupKey: 'programs',
         groupLabel: 'Programs',
         exercises: [Exercise.EXERCISE_SQUAT, Exercise.EXERCISE_BENCH_PRESS],
       ),
@@ -162,7 +161,6 @@ void main() {
         id: 'butt_stuff',
         name: 'Butt Stuff',
         blurb: 'Hip thrusts and friends.',
-        groupKey: 'parts',
         groupLabel: 'Body parts',
         exercises: [Exercise.EXERCISE_HIP_THRUST],
         isDefault: true,
@@ -321,7 +319,7 @@ void main() {
   testWidgets('weight adjust sheet: step up and down', (tester) async {
     // The core answers on real time, outside the test's fake clock.
     final h = (await tester.runAsync(() async {
-      final h = await ProviderHarness.boot(sandbox: true);
+      final h = await ProviderHarness.boot();
       await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
       await h.start([Exercise.EXERCISE_SQUAT]);
       return h;
@@ -346,6 +344,7 @@ void main() {
                     context,
                     block: h.provider.exerciseBlocks.single,
                     provider: h.provider,
+                    onDelete: () {},
                   ),
                   child: const Text('OPEN'),
                 ),

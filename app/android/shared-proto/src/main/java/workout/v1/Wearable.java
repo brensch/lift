@@ -144,14 +144,6 @@ public final class Wearable {
      * <code>HEART_RATE_AVAILABILITY_AVAILABLE = 1;</code>
      */
     HEART_RATE_AVAILABILITY_AVAILABLE(1),
-    /**
-     * <code>HEART_RATE_AVAILABILITY_ACQUIRING = 2;</code>
-     */
-    HEART_RATE_AVAILABILITY_ACQUIRING(2),
-    /**
-     * <code>HEART_RATE_AVAILABILITY_UNAVAILABLE = 3;</code>
-     */
-    HEART_RATE_AVAILABILITY_UNAVAILABLE(3),
     UNRECOGNIZED(-1),
     ;
 
@@ -163,14 +155,6 @@ public final class Wearable {
      * <code>HEART_RATE_AVAILABILITY_AVAILABLE = 1;</code>
      */
     public static final int HEART_RATE_AVAILABILITY_AVAILABLE_VALUE = 1;
-    /**
-     * <code>HEART_RATE_AVAILABILITY_ACQUIRING = 2;</code>
-     */
-    public static final int HEART_RATE_AVAILABILITY_ACQUIRING_VALUE = 2;
-    /**
-     * <code>HEART_RATE_AVAILABILITY_UNAVAILABLE = 3;</code>
-     */
-    public static final int HEART_RATE_AVAILABILITY_UNAVAILABLE_VALUE = 3;
 
 
     @java.lang.Override
@@ -196,8 +180,6 @@ public final class Wearable {
       switch (value) {
         case 0: return HEART_RATE_AVAILABILITY_UNSPECIFIED;
         case 1: return HEART_RATE_AVAILABILITY_AVAILABLE;
-        case 2: return HEART_RATE_AVAILABILITY_ACQUIRING;
-        case 3: return HEART_RATE_AVAILABILITY_UNAVAILABLE;
         default: return null;
       }
     }
@@ -9713,16 +9695,6 @@ public final class Wearable {
      */
     com.google.protobuf.ByteString
         getSetIdBytes();
-
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-     * @return The tappedAt.
-     */
-    long getTappedAt();
   }
   /**
    * <pre>
@@ -9833,44 +9805,6 @@ public final class Wearable {
       checkByteStringIsUtf8(value);
       setId_ = value.toStringUtf8();
       
-    }
-
-    public static final int TAPPED_AT_FIELD_NUMBER = 3;
-    private long tappedAt_;
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-     * @return The tappedAt.
-     */
-    @java.lang.Override
-    public long getTappedAt() {
-      return tappedAt_;
-    }
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-     * @param value The tappedAt to set.
-     */
-    private void setTappedAt(long value) {
-      
-      tappedAt_ = value;
-    }
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-     */
-    private void clearTappedAt() {
-      
-      tappedAt_ = 0L;
     }
 
     public static workout.v1.Wearable.TapSetIntent parseFrom(
@@ -10071,46 +10005,6 @@ public final class Wearable {
         return this;
       }
 
-      /**
-       * <pre>
-       * Unix seconds
-       * </pre>
-       *
-       * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-       * @return The tappedAt.
-       */
-      @java.lang.Override
-      public long getTappedAt() {
-        return instance.getTappedAt();
-      }
-      /**
-       * <pre>
-       * Unix seconds
-       * </pre>
-       *
-       * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-       * @param value The tappedAt to set.
-       * @return This builder for chaining.
-       */
-      public Builder setTappedAt(long value) {
-        copyOnWrite();
-        instance.setTappedAt(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Unix seconds
-       * </pre>
-       *
-       * <code>int64 tapped_at = 3 [json_name = "tappedAt"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearTappedAt() {
-        copyOnWrite();
-        instance.clearTappedAt();
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.TapSetIntent)
     }
     @java.lang.Override
@@ -10129,11 +10023,10 @@ public final class Wearable {
             java.lang.Object[] objects = new java.lang.Object[] {
               "workoutId_",
               "setId_",
-              "tappedAt_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0002";
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -10505,16 +10398,6 @@ public final class Wearable {
         getIntentIdBytes();
 
     /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-     * @return The sentAt.
-     */
-    long getSentAt();
-
-    /**
      * <code>.workout.v1.CompleteSetIntent complete_set = 11 [json_name = "completeSet"];</code>
      * @return Whether the completeSet field is set.
      */
@@ -10683,44 +10566,6 @@ public final class Wearable {
       checkByteStringIsUtf8(value);
       intentId_ = value.toStringUtf8();
       
-    }
-
-    public static final int SENT_AT_FIELD_NUMBER = 2;
-    private long sentAt_;
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-     * @return The sentAt.
-     */
-    @java.lang.Override
-    public long getSentAt() {
-      return sentAt_;
-    }
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-     * @param value The sentAt to set.
-     */
-    private void setSentAt(long value) {
-      
-      sentAt_ = value;
-    }
-    /**
-     * <pre>
-     * Unix seconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-     */
-    private void clearSentAt() {
-      
-      sentAt_ = 0L;
     }
 
     public static final int COMPLETE_SET_FIELD_NUMBER = 11;
@@ -11100,46 +10945,6 @@ public final class Wearable {
       }
 
       /**
-       * <pre>
-       * Unix seconds
-       * </pre>
-       *
-       * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-       * @return The sentAt.
-       */
-      @java.lang.Override
-      public long getSentAt() {
-        return instance.getSentAt();
-      }
-      /**
-       * <pre>
-       * Unix seconds
-       * </pre>
-       *
-       * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-       * @param value The sentAt to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSentAt(long value) {
-        copyOnWrite();
-        instance.setSentAt(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Unix seconds
-       * </pre>
-       *
-       * <code>int64 sent_at = 2 [json_name = "sentAt"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSentAt() {
-        copyOnWrite();
-        instance.clearSentAt();
-        return this;
-      }
-
-      /**
        * <code>.workout.v1.CompleteSetIntent complete_set = 11 [json_name = "completeSet"];</code>
        */
       @java.lang.Override
@@ -11350,15 +11155,14 @@ public final class Wearable {
               "intent_",
               "intentCase_",
               "intentId_",
-              "sentAt_",
               workout.v1.Wearable.CompleteSetIntent.class,
               workout.v1.Wearable.EndWorkoutIntent.class,
               workout.v1.Wearable.StartSetIntent.class,
               workout.v1.Wearable.TapSetIntent.class,
             };
             java.lang.String info =
-                "\u0000\u0006\u0001\u0000\u0001\u0013\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0002" +
-                "\u000b<\u0000\r<\u0000\u0011<\u0000\u0013<\u0000";
+                "\u0000\u0005\u0001\u0000\u0001\u0013\u0005\u0000\u0000\u0000\u0001\u0208\u000b<\u0000" +
+                "\r<\u0000\u0011<\u0000\u0013<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -11883,16 +11687,6 @@ public final class Wearable {
         getWorkoutIdBytes();
 
     /**
-     * <pre>
-     * Unix milliseconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-     * @return The sentAt.
-     */
-    long getSentAt();
-
-    /**
      * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
      */
     java.util.List<workout.v1.Wearable.HeartRateSample> 
@@ -12031,44 +11825,6 @@ public final class Wearable {
       checkByteStringIsUtf8(value);
       workoutId_ = value.toStringUtf8();
       
-    }
-
-    public static final int SENT_AT_FIELD_NUMBER = 3;
-    private long sentAt_;
-    /**
-     * <pre>
-     * Unix milliseconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-     * @return The sentAt.
-     */
-    @java.lang.Override
-    public long getSentAt() {
-      return sentAt_;
-    }
-    /**
-     * <pre>
-     * Unix milliseconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-     * @param value The sentAt to set.
-     */
-    private void setSentAt(long value) {
-      
-      sentAt_ = value;
-    }
-    /**
-     * <pre>
-     * Unix milliseconds
-     * </pre>
-     *
-     * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-     */
-    private void clearSentAt() {
-      
-      sentAt_ = 0L;
     }
 
     public static final int HEART_RATE_SAMPLES_FIELD_NUMBER = 4;
@@ -12379,46 +12135,6 @@ public final class Wearable {
       }
 
       /**
-       * <pre>
-       * Unix milliseconds
-       * </pre>
-       *
-       * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-       * @return The sentAt.
-       */
-      @java.lang.Override
-      public long getSentAt() {
-        return instance.getSentAt();
-      }
-      /**
-       * <pre>
-       * Unix milliseconds
-       * </pre>
-       *
-       * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-       * @param value The sentAt to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSentAt(long value) {
-        copyOnWrite();
-        instance.setSentAt(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Unix milliseconds
-       * </pre>
-       *
-       * <code>int64 sent_at = 3 [json_name = "sentAt"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearSentAt() {
-        copyOnWrite();
-        instance.clearSentAt();
-        return this;
-      }
-
-      /**
        * <code>repeated .workout.v1.HeartRateSample heart_rate_samples = 4 [json_name = "heartRateSamples"];</code>
        */
       @java.lang.Override
@@ -12538,13 +12254,12 @@ public final class Wearable {
             java.lang.Object[] objects = new java.lang.Object[] {
               "batchId_",
               "workoutId_",
-              "sentAt_",
               "heartRateSamples_",
               workout.v1.Wearable.HeartRateSample.class,
             };
             java.lang.String info =
-                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0002\u0004\u001b";
+                "\u0000\u0003\u0000\u0000\u0001\u0004\u0003\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\u0004\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -12626,16 +12341,6 @@ public final class Wearable {
      */
     com.google.protobuf.ByteString
         getWorkoutIdBytes();
-
-    /**
-     * <pre>
-     * Unix milliseconds on phone receipt
-     * </pre>
-     *
-     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-     * @return The receivedAt.
-     */
-    long getReceivedAt();
   }
   /**
    * Protobuf type {@code workout.v1.WearSensorBatchAck}
@@ -12741,44 +12446,6 @@ public final class Wearable {
       checkByteStringIsUtf8(value);
       workoutId_ = value.toStringUtf8();
       
-    }
-
-    public static final int RECEIVED_AT_FIELD_NUMBER = 3;
-    private long receivedAt_;
-    /**
-     * <pre>
-     * Unix milliseconds on phone receipt
-     * </pre>
-     *
-     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-     * @return The receivedAt.
-     */
-    @java.lang.Override
-    public long getReceivedAt() {
-      return receivedAt_;
-    }
-    /**
-     * <pre>
-     * Unix milliseconds on phone receipt
-     * </pre>
-     *
-     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-     * @param value The receivedAt to set.
-     */
-    private void setReceivedAt(long value) {
-      
-      receivedAt_ = value;
-    }
-    /**
-     * <pre>
-     * Unix milliseconds on phone receipt
-     * </pre>
-     *
-     * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-     */
-    private void clearReceivedAt() {
-      
-      receivedAt_ = 0L;
     }
 
     public static workout.v1.Wearable.WearSensorBatchAck parseFrom(
@@ -12974,46 +12641,6 @@ public final class Wearable {
         return this;
       }
 
-      /**
-       * <pre>
-       * Unix milliseconds on phone receipt
-       * </pre>
-       *
-       * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-       * @return The receivedAt.
-       */
-      @java.lang.Override
-      public long getReceivedAt() {
-        return instance.getReceivedAt();
-      }
-      /**
-       * <pre>
-       * Unix milliseconds on phone receipt
-       * </pre>
-       *
-       * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-       * @param value The receivedAt to set.
-       * @return This builder for chaining.
-       */
-      public Builder setReceivedAt(long value) {
-        copyOnWrite();
-        instance.setReceivedAt(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Unix milliseconds on phone receipt
-       * </pre>
-       *
-       * <code>int64 received_at = 3 [json_name = "receivedAt"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearReceivedAt() {
-        copyOnWrite();
-        instance.clearReceivedAt();
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.WearSensorBatchAck)
     }
     @java.lang.Override
@@ -13032,11 +12659,10 @@ public final class Wearable {
             java.lang.Object[] objects = new java.lang.Object[] {
               "batchId_",
               "workoutId_",
-              "receivedAt_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0002";
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

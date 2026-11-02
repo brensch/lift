@@ -17,7 +17,6 @@ extension PhoneConnector {
         var batch = Workout_V1_WearSensorBatch()
         batch.batchID = UUID().uuidString
         batch.workoutID = workoutID
-        batch.sentAt = Int64(Date().timeIntervalSince1970 * 1000)
         batch.heartRateSamples = samples
 
         let enqueued = enqueueSensorBatch(batch)

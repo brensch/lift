@@ -55,8 +55,6 @@ class PageTracker with WidgetsBindingObserver {
   bool Function() _isLoggedIn = () => false;
   Timer? _flushTimer;
   bool _uploading = false;
-  // The backend predates the RPC. Stop asking until the next launch.
-  bool _unsupported = false;
   String? _pausedPage;
 
   @visibleForTesting
@@ -73,7 +71,6 @@ class PageTracker with WidgetsBindingObserver {
     _page = null;
     _enteredAt = null;
     _pausedPage = null;
-    _unsupported = false;
     minView = const Duration(milliseconds: 250);
     _onPage
       ..stop()
@@ -164,7 +161,7 @@ class PageTracker with WidgetsBindingObserver {
   }
 
   void _scheduleFlush() {
-    if (_client == null || _unsupported || _flushTimer != null) return;
+    if (_client == null || _flushTimer != null) return;
     if (_queue.isEmpty || !_isLoggedIn()) return;
     _flushTimer = Timer(_flushAfter, () {
       _flushTimer = null;
@@ -174,7 +171,7 @@ class PageTracker with WidgetsBindingObserver {
 
   Future<void> flush() async {
     final client = _client;
-    if (client == null || _unsupported || _uploading) return;
+    if (client == null || _uploading) return;
     if (_queue.isEmpty || !_isLoggedIn()) return;
     _uploading = true;
     final batch = _queue.take(_maxPerUpload).toList();
@@ -186,12 +183,8 @@ class PageTracker with WidgetsBindingObserver {
       // Identity, not position: onLogout may have emptied the queue meanwhile.
       _queue.removeWhere(batch.contains);
     } on GrpcError catch (e) {
-      if (e.code == StatusCode.unimplemented) {
-        _unsupported = true;
-        _queue.clear();
-      }
-      // Anything else: keep the batch. The server ignores a (session, seq)
-      // it already has, so a retry can never double count.
+      // Keep the batch. The server ignores a (session, seq) it already has,
+      // so a retry can never double count.
       AppLogger.instance.debug(_tag, 'upload failed', {'code': e.codeName});
     } catch (e) {
       AppLogger.instance.debug(_tag, 'upload failed', {'error': '$e'});

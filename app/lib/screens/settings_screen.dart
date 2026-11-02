@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/workout/v1/settings.pb.dart';
+import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
@@ -16,7 +17,6 @@ import '../services/user_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -26,102 +26,100 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final auth = context.watch<AuthProvider>();
-    final unitLabel = settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
+    final unitLabel = isMetricUnit(settings.weightUnit)
         ? 'Kilograms (🌍)'
         : 'Pounds (🦅)';
     final bodyWeightLabel = auth.bodyWeightKg > 0
-        ? settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
+        ? isMetricUnit(settings.weightUnit)
               ? '${auth.bodyWeightKg.toStringAsFixed(1)} kg'
-              : '${(auth.bodyWeightKg * 2.20462).toStringAsFixed(1)} lb'
+              : '${kilogramsToPounds(auth.bodyWeightKg).toStringAsFixed(1)} lb'
         : 'Not set';
-    return TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(AppIcons.back),
-            onPressed: () => context.go('/'),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(AppIcons.back),
+          onPressed: () => context.go('/'),
+        ),
+        title: PageTitle('Settings'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          const FlatHeading('You'),
+          FlatRow(
+            icon: AppIcons.bodyWeight,
+            label: 'Body weight',
+            subtitle: bodyWeightLabel,
+            trailing: IconButton(
+              icon: const Icon(AppIcons.refresh),
+              tooltip: 'Sync from health data',
+              onPressed: () => _syncBodyWeightFromHealth(context, auth),
+            ),
+            onTap: () => _showBodyWeightPicker(context, auth, settings),
           ),
-          title: PageTitle('Settings'),
-        ),
-        body: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            const FlatHeading('You'),
-            FlatRow(
-              icon: AppIcons.bodyWeight,
-              label: 'Body weight',
-              subtitle: bodyWeightLabel,
-              trailing: IconButton(
-                icon: const Icon(AppIcons.refresh),
-                tooltip: 'Sync from health data',
-                onPressed: () => _syncBodyWeightFromHealth(context, auth),
-              ),
-              onTap: () => _showBodyWeightPicker(context, auth, settings),
-            ),
-            FlatRow(
-              icon: AppIcons.weightUnit,
-              label: 'Weight unit',
-              subtitle: unitLabel,
-              onTap: () => _showWeightUnitPicker(context, settings),
-            ),
-            FlatRow(
-              icon: AppIcons.palette,
-              label: 'Plate colours',
-              subtitle: 'Assign colours to plate weights',
-              onTap: () => context.push('/settings/plate-colors'),
-            ),
-            const FlatHeading('Account'),
-            FlatRow(
-              icon: AppIcons.cloud,
-              label: 'Sync',
-              subtitle: _syncLabel(context.watch<AccountSync>()),
-            ),
-            FlatRow(
-              icon: AppIcons.download,
-              label: 'Export your data',
-              subtitle: 'Everything, as one SQLite file',
-              onTap: () => _export(context, auth),
-            ),
-            FlatRow(
-              icon: AppIcons.upload,
-              label: 'Import a file',
-              subtitle: 'Bring back an export of this account',
-              onTap: () => _import(context),
-            ),
-            FlatRow(
-              icon: AppIcons.key,
-              label: 'Passkeys',
-              subtitle: 'Manage your login credentials',
-              onTap: () => context.push('/passkeys'),
-            ),
-            const FlatHeading('Sounds'),
-            FlatRow(
-              icon: AppIcons.notifications,
-              label: 'Pick sound',
-              subtitle: 'Choose notification sound',
-              onTap: () => context.push('/sound-settings'),
-            ),
-            const FlatHeading('Behind the scenes'),
-            FlatRow(
-              icon: AppIcons.debug,
-              label: 'Debug',
-              subtitle: 'Notification debugging',
-              onTap: () => context.push('/debug-notifications'),
-            ),
-            FlatRow(
-              icon: AppIcons.article,
-              label: 'App Logs',
-              subtitle: 'View and share diagnostic logs',
-              onTap: () => context.push('/debug-logs'),
-            ),
-            FlatRow(
-              icon: AppIcons.info,
-              label: 'Build info',
-              subtitle: 'Version, device, and watch details',
-              onTap: () => context.push('/build-info'),
-            ),
-          ],
-        ),
+          FlatRow(
+            icon: AppIcons.weightUnit,
+            label: 'Weight unit',
+            subtitle: unitLabel,
+            onTap: () => _showWeightUnitPicker(context, settings),
+          ),
+          FlatRow(
+            icon: AppIcons.palette,
+            label: 'Plate colours',
+            subtitle: 'Assign colours to plate weights',
+            onTap: () => context.push('/settings/plate-colors'),
+          ),
+          const FlatHeading('Account'),
+          FlatRow(
+            icon: AppIcons.cloud,
+            label: 'Sync',
+            subtitle: _syncLabel(context.watch<AccountSync>()),
+          ),
+          FlatRow(
+            icon: AppIcons.download,
+            label: 'Export your data',
+            subtitle: 'Everything, as one SQLite file',
+            onTap: () => _export(context, auth),
+          ),
+          FlatRow(
+            icon: AppIcons.upload,
+            label: 'Import a file',
+            subtitle: 'Bring back an export of this account',
+            onTap: () => _import(context),
+          ),
+          FlatRow(
+            icon: AppIcons.key,
+            label: 'Passkeys',
+            subtitle: 'Manage your login credentials',
+            onTap: () => context.push('/passkeys'),
+          ),
+          const FlatHeading('Sounds'),
+          FlatRow(
+            icon: AppIcons.notifications,
+            label: 'Pick sound',
+            subtitle: 'Choose notification sound',
+            onTap: () => context.push('/sound-settings'),
+          ),
+          const FlatHeading('Behind the scenes'),
+          FlatRow(
+            icon: AppIcons.debug,
+            label: 'Debug',
+            subtitle: 'Notification debugging',
+            onTap: () => context.push('/debug-notifications'),
+          ),
+          FlatRow(
+            icon: AppIcons.article,
+            label: 'App Logs',
+            subtitle: 'View and share diagnostic logs',
+            onTap: () => context.push('/debug-logs'),
+          ),
+          FlatRow(
+            icon: AppIcons.info,
+            label: 'Build info',
+            subtitle: 'Version, device, and watch details',
+            onTap: () => context.push('/build-info'),
+          ),
+        ],
       ),
     );
   }
@@ -311,11 +309,11 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
   @override
   void initState() {
     super.initState();
-    final isKg = widget.weightUnit == WeightUnit.WEIGHT_UNIT_KG;
+    final isKg = isMetricUnit(widget.weightUnit);
     final currentDisplayValue = widget.currentBodyWeightKg > 0
         ? isKg
               ? widget.currentBodyWeightKg
-              : widget.currentBodyWeightKg * 2.20462
+              : kilogramsToPounds(widget.currentBodyWeightKg)
         : null;
     _controller = TextEditingController(
       text: currentDisplayValue != null
@@ -336,8 +334,8 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
       Navigator.pop(context);
       return;
     }
-    final isKg = widget.weightUnit == WeightUnit.WEIGHT_UNIT_KG;
-    final kg = isKg ? raw : raw / 2.20462;
+    final isKg = isMetricUnit(widget.weightUnit);
+    final kg = isKg ? raw : poundsToKilograms(raw);
     FocusScope.of(context).unfocus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -347,7 +345,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isKg = widget.weightUnit == WeightUnit.WEIGHT_UNIT_KG;
+    final isKg = isMetricUnit(widget.weightUnit);
     final cs = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return SafeArea(

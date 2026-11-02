@@ -211,7 +211,7 @@ class _FormulaCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cs.primaryContainer.withValues(alpha: 0.4),
-        borderRadius: context.tokens.br(16),
+        borderRadius: context.tokens.brLg,
         border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -316,7 +316,7 @@ class _ExampleCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: context.tokens.br(16),
+        borderRadius: context.tokens.brLg,
         border: Border.all(color: cs.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -367,7 +367,7 @@ class _NoWeightCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.errorContainer.withValues(alpha: 0.3),
-        borderRadius: context.tokens.br(12),
+        borderRadius: context.tokens.brMd,
       ),
       child: Row(
         children: [

@@ -45,23 +45,15 @@ class HeartRateAvailability extends $pb.ProtobufEnum {
   static const HeartRateAvailability HEART_RATE_AVAILABILITY_AVAILABLE =
       HeartRateAvailability._(
           1, _omitEnumNames ? '' : 'HEART_RATE_AVAILABILITY_AVAILABLE');
-  static const HeartRateAvailability HEART_RATE_AVAILABILITY_ACQUIRING =
-      HeartRateAvailability._(
-          2, _omitEnumNames ? '' : 'HEART_RATE_AVAILABILITY_ACQUIRING');
-  static const HeartRateAvailability HEART_RATE_AVAILABILITY_UNAVAILABLE =
-      HeartRateAvailability._(
-          3, _omitEnumNames ? '' : 'HEART_RATE_AVAILABILITY_UNAVAILABLE');
 
   static const $core.List<HeartRateAvailability> values =
       <HeartRateAvailability>[
     HEART_RATE_AVAILABILITY_UNSPECIFIED,
     HEART_RATE_AVAILABILITY_AVAILABLE,
-    HEART_RATE_AVAILABILITY_ACQUIRING,
-    HEART_RATE_AVAILABILITY_UNAVAILABLE,
   ];
 
   static final $core.List<HeartRateAvailability?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
+      $pb.ProtobufEnum.$_initByValueList(values, 1);
   static HeartRateAvailability? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

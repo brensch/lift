@@ -25,7 +25,7 @@ void main() {
   Future<ProposedSet> boot(WidgetTester tester) async {
     final asked = <String>[];
     final first = (await tester.runAsync(() async {
-      h = await ProviderHarness.boot(sandbox: true);
+      h = await ProviderHarness.boot();
       h.provider.onRungQuestion = asked.add;
       await h.start([Exercise.EXERCISE_DEADLIFT]);
       final first = h.provider.doneTargetSet!;
@@ -78,7 +78,7 @@ void main() {
     expect(find.byType(RungQuestionDialog), findsNothing);
     expect(h.provider.rungQuestionSetId, isEmpty);
     expect(
-      h.provider.activeCompletedSets
+      h.provider.completedSets
           .firstWhere((c) => c.proposedSetId == first.id)
           .repsLeft,
       RepsLeft.REPS_LEFT_FIVE_PLUS,
@@ -133,7 +133,7 @@ void main() {
     await settle(tester);
     expect(find.byType(RungQuestionDialog), findsNothing);
     expect(h.provider.rungQuestionSetId, isEmpty);
-    final done = h.provider.activeCompletedSets.firstWhere(
+    final done = h.provider.completedSets.firstWhere(
       (c) => c.proposedSetId == first.id,
     );
     expect(done.jumpLb, 50);
@@ -158,7 +158,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(RungQuestionDialog.jumpApplyKey));
     await settle(tester);
-    final done = h.provider.activeCompletedSets.firstWhere(
+    final done = h.provider.completedSets.firstWhere(
       (c) => c.proposedSetId == first.id,
     );
     expect(done.jumpLb, closeTo(kilogramsToPounds(10), 0.01));

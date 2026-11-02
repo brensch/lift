@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../gen/workout/v1/settings.pb.dart';
+import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../services/app_logger.dart';
 import '../services/workout_service.dart';
@@ -33,13 +34,11 @@ class SettingsProvider extends ChangeNotifier {
 
   Map<double, Color> _plateColors = defaultPlateColors();
   WeightUnit _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
-  bool _loaded = false;
 
   SettingsProvider(this._account);
 
   Map<double, Color> get plateColors => _plateColors;
   WeightUnit get weightUnit => _weightUnit;
-  bool get loaded => _loaded;
 
   Color plateColor(double weight) {
     return _plateColors[weight] ?? Colors.purple;
@@ -48,7 +47,6 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> load() async {
     _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
     _plateColors = defaultPlateColors(_weightUnit);
-    _loaded = false;
     notifyListeners();
     try {
       for (final setting in await _account.getSettings()) {
@@ -66,19 +64,17 @@ class SettingsProvider extends ChangeNotifier {
         'error': e.toString(),
       });
     }
-    _loaded = true;
     notifyListeners();
   }
 
   void clear() {
     _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
     _plateColors = defaultPlateColors(_weightUnit);
-    _loaded = false;
     notifyListeners();
   }
 
-  /// Applied locally right away (onboarding uses this before the server
-  /// round-trips through CompleteOnboarding).
+  /// Shows [unit] without recording it (onboarding records it through
+  /// CompleteOnboarding).
   void applyWeightUnitLocally(WeightUnit unit) {
     if (_weightUnit == unit) return;
     _weightUnit = unit;
@@ -99,8 +95,10 @@ class SettingsProvider extends ChangeNotifier {
       await _account.updateSetting(
         UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
       );
-    } catch (_) {
-      // Optimistic update already applied.
+    } catch (e) {
+      AppLogger.instance.warn('Settings', 'weight unit update failed', {
+        'error': e.toString(),
+      });
     }
   }
 
@@ -110,53 +108,29 @@ class SettingsProvider extends ChangeNotifier {
 
     final config = PlateColorsConfig(
       plates: colors.entries
-          .map(
-            (e) => PlateColor(weightKg: e.key, hexColor: _colorToHex(e.value)),
-          )
+          .map((e) => PlateColor(weight: e.key, hexColor: colorHex(e.value)))
           .toList(),
     );
 
     try {
       await _account.updateSetting(UserSetting(plateColors: config));
     } catch (e) {
-      // Optimistic update already applied
+      AppLogger.instance.warn('Settings', 'plate colours update failed', {
+        'error': e.toString(),
+      });
     }
   }
 
   void _applyPlateColors(PlateColorsConfig config) {
     final Map<double, Color> colors = {};
     for (final plate in config.plates) {
-      final color = _hexToColor(plate.hexColor);
+      final color = colorFromHex(plate.hexColor);
       if (color != null) {
-        colors[plate.weightKg] = color;
+        colors[plate.weight] = color;
       }
     }
     if (colors.isNotEmpty) {
       _plateColors = colors;
     }
-  }
-
-  static Color? _hexToColor(String hex) {
-    hex = hex.replaceFirst('#', '');
-    if (hex.length == 6) {
-      final value = int.tryParse(hex, radix: 16);
-      if (value == null) return null;
-      return Color.fromARGB(
-        255,
-        (value >> 16) & 0xFF,
-        (value >> 8) & 0xFF,
-        value & 0xFF,
-      );
-    }
-    return null;
-  }
-
-  static String _colorToHex(Color color) {
-    final r = (color.r * 255).round();
-    final g = (color.g * 255).round();
-    final b = (color.b * 255).round();
-    return '#${r.toRadixString(16).padLeft(2, '0')}'
-        '${g.toRadixString(16).padLeft(2, '0')}'
-        '${b.toRadixString(16).padLeft(2, '0')}';
   }
 }

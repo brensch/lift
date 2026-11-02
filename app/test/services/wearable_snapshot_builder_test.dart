@@ -19,7 +19,7 @@ void main() {
   late MultiplayerProvider multiplayer;
 
   setUp(() async {
-    h = await ProviderHarness.boot(sandbox: true);
+    h = await ProviderHarness.boot();
     multiplayer = MultiplayerProvider(
       MultiplayerServiceWrapper(GrpcClient(host: '127.0.0.1', port: 1)),
     );

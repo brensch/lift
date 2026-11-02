@@ -16,7 +16,7 @@ const Map<BodyPart, String> bodyPartLabels = {
 };
 
 /// Single source of truth for everything we know about an exercise.
-/// The legacy lookup maps below are derived from this list.
+/// The name lookups below are derived from this list.
 class ExerciseInfo {
   final Exercise exercise;
   final String name;
@@ -348,22 +348,21 @@ const List<ExerciseInfo> exerciseCatalog = [
   ),
 ];
 
-/// Catalogue indexed by exercise for O(1) lookups.
-final Map<Exercise, ExerciseInfo> exerciseInfo = {
-  for (final info in exerciseCatalog) info.exercise: info,
-};
+// ── Names by exercise, from the catalogue ──
 
-// ── Legacy lookup maps, derived from the catalogue ──
-
-final Map<Exercise, String> exerciseNames = {
-  Exercise.EXERCISE_UNSPECIFIED: '?',
+final Map<Exercise, String> _exerciseNames = {
   for (final info in exerciseCatalog) info.exercise: info.name,
 };
 
-final Map<Exercise, String> shortNames = {
-  Exercise.EXERCISE_UNSPECIFIED: '?',
+/// An exercise's name; '?' for one the catalogue does not have.
+String exerciseName(Exercise e) => _exerciseNames[e] ?? '?';
+
+final Map<Exercise, String> _shortNames = {
   for (final info in exerciseCatalog) info.exercise: info.shortName,
 };
+
+/// An exercise's short name; '?' for one the catalogue does not have.
+String exerciseShortName(Exercise e) => _shortNames[e] ?? '?';
 
 /// Short display names for the ten muscles, shared by the volume rows, the
 /// template chips and the plan reasons.

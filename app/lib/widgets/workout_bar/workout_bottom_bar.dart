@@ -6,8 +6,6 @@
 /// first workout, what to do next instead.
 library;
 
-import 'dart:math';
-
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -38,82 +36,26 @@ import 'workout_focus.dart';
 const _maxPartnersInView = 3;
 const _gap = 6.0;
 
-/// Your stage, as your status bar shows it.
-class _YouState {
-  final String label;
-  final Color color;
-  final String? timerText;
-  final ProposedSet? set;
-
-  /// 0..1 of the rest still to go, while resting.
-  final double? restLeft;
-
-  const _YouState(
-    this.label,
-    this.color,
-    this.timerText,
-    this.set, {
-    this.restLeft,
-  });
-}
-
-_YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
-  final snapshot = wp.stateSnapshot;
-  final state =
-      snapshot?.state.value ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-  final restEnd = snapshot?.restUntil.toInt() ?? 0;
-  final set = wp.doneTargetSet;
-  if (isAllDoneState(state) || set == null) {
-    return _YouState(copy.workout.allDone, t.successFg, null, null);
-  }
-  if (isLiftingState(state)) {
-    final startedAt = snapshot!.liftingStartedAt.toInt();
-    return _YouState(
-      copy.workout.lifting,
-      t.workoutLiftingFg,
-      formatRestClock(max(0, nowUnix - startedAt)),
-      set,
-    );
-  }
-  if (isRestingState(state)) {
-    return _YouState(
-      copy.workout.resting,
-      t.workoutRestingFg,
-      formatRestClock(max(0, restEnd - nowUnix)),
-      set,
-      restLeft: restLeftFraction(wp.activeCompletedSets, restEnd, nowUnix),
-    );
-  }
-  if (isYappingState(state)) {
-    return _YouState(
-      copy.workout.yapping,
-      t.workoutYappingFg,
-      formatRestClock(max(0, nowUnix - restEnd)),
-      set,
-    );
-  }
-  return _YouState(copy.workout.ready, t.ready, null, set);
-}
-
 /// What to do next, said once: only during the first workout.
-String _hint(WorkoutProvider wp) {
-  final state =
-      wp.stateSnapshot?.state.value ??
-      WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-  if (isAllDoneState(state) || wp.doneTargetSet == null) {
+String _hint(WorkoutProvider wp, int nowUnix) {
+  final state = stateAt(wp.stateSnapshot, nowUnix);
+  if (state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
+      wp.doneTargetSet == null) {
     return copy.workout.hints.allDone;
   }
-  if (isLiftingState(state)) return copy.workout.hints.lifting;
-  if (isRestingState(state)) return copy.workout.hints.resting;
-  if (isYappingState(state)) return copy.workout.hints.yapping;
-  return copy.workout.hints.ready;
+  return switch (state) {
+    WorkoutState.WORKOUT_STATE_LIFTING => copy.workout.hints.lifting,
+    WorkoutState.WORKOUT_STATE_RESTING => copy.workout.hints.resting,
+    WorkoutState.WORKOUT_STATE_YAPPING => copy.workout.hints.yapping,
+    _ => copy.workout.hints.ready,
+  };
 }
 
 /// Why [set]'s lift has the numbers it has, while none of its sets is done
 /// yet (the lift has just come up); '' otherwise.
 String _liftReason(WorkoutProvider wp, ProposedSet? set, WeightUnit unit) {
   if (set == null) return '';
-  final started = wp.activeProposedSets.any(
+  final started = wp.proposedSets.any(
     (s) => s.exercise == set.exercise && wp.isSetDone(s.id),
   );
   if (started) return '';
@@ -197,15 +139,18 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         final t = context.tokens;
         final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
         final snapshot = wp.stateSnapshot;
-        final state =
-            snapshot?.state.value ??
-            WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-        final you = _youState(wp, t, nowUnix);
+        final you = workoutVisualStatus(
+          snapshot: snapshot,
+          set: wp.doneTargetSet,
+          completedSets: wp.completedSets,
+          nowUnix: nowUnix,
+          tokens: t,
+        );
         final topLine = wp.isFirstWorkout
-            ? _hint(wp)
+            ? _hint(wp, nowUnix)
             : _liftReason(
                 wp,
-                you.set,
+                you.proposedSet,
                 context.watch<SettingsProvider>().weightUnit,
               );
 
@@ -218,16 +163,14 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 (a, b) =>
                     compareParticipantsByNextWorkout(a, b, nowUnix: nowUnix),
               );
-        final nextToLift = others.isEmpty
-            ? null
-            : computeNextToLiftUserId(
-                myUserId: auth.userId,
-                others: others,
-                nowUnix: nowUnix,
-                stateValue: state,
-                restUntil: snapshot?.restUntil.toInt() ?? 0,
-                nextSet: wp.nextPendingSet,
-              );
+        final nextToLift = computeNextToLiftUserId(
+          myUserId: auth.userId,
+          participants: mp.participants,
+          nowUnix: nowUnix,
+          state: stateAt(snapshot, nowUnix),
+          restUntil: snapshot?.restUntil.toInt() ?? 0,
+          nextSet: wp.nextPendingSet,
+        );
 
         Widget partnerCard(ParticipantStatus p, {Key? key}) {
           final status = describeParticipantStatus(p, tokens: t, now: now);
@@ -257,7 +200,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         }
 
         final iAmNext = nextToLift != null && nextToLift == auth.userId;
-        final allDone = you.set == null;
+        final allDone = you.proposedSet == null;
 
         return GestureDetector(
           // The banner is the way back to where you're up to: the workout
@@ -357,28 +300,25 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                       child: StatusBox(
                         emoji: normalizedProfileEmoji(auth.profileEmoji),
                         profileColor: profileColorFromHex(auth.profileColorHex),
-                        stateLabel: you.label,
-                        stateColor: you.color,
+                        stateLabel: you.stateLabel,
+                        stateColor: you.stateColor,
                         upNext: iAmNext,
                         timerText: you.timerText,
                         restLeft: you.restLeft,
-                        set: you.set,
-                        plan: wp.activeProposedSets,
-                        circle: you.set == null
+                        set: you.proposedSet,
+                        plan: wp.proposedSets,
+                        circle: you.proposedSet == null
                             ? null
                             : LiveSetCircle(
                                 workout: SectionWorkout.mine(wp),
-                                set: you.set!,
+                                set: you.proposedSet!,
                               ),
                         firstTime:
-                            you.set != null &&
-                            LiveSetCircle.isFirstEver(
-                              SectionWorkout.mine(wp),
-                              you.set!,
-                            ),
+                            you.proposedSet != null &&
+                            wp.firstTimeSetIds.contains(you.proposedSet!.id),
                       ),
                     ),
-                    if (allDone && wp.activeWorkout?.endTime == Int64.ZERO) ...[
+                    if (allDone && wp.workout?.endTime == Int64.ZERO) ...[
                       const SizedBox(height: 10),
                       SizedBox(
                         height: 56,

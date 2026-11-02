@@ -72,10 +72,7 @@ class StatusBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final onBand =
-        ThemeData.estimateBrightnessForColor(stateColor) == Brightness.dark
-        ? Colors.white
-        : t.text;
+    final onBand = t.inkOn(stateColor);
     final set = this.set;
 
     TextStyle bandMono(double size) => t.mono(
@@ -262,7 +259,7 @@ class StatusBox extends StatelessWidget {
           ],
         ],
       );
-      final exercise = exerciseNames[set.exercise] ?? '?';
+      final exercise = exerciseName(set.exercise);
       final position = setLineFor(set, plan);
       final small = TextStyle(
         fontSize: t.size.body,
@@ -384,12 +381,7 @@ class _Plates extends StatelessWidget {
                   color: Colors.black,
                 ),
               )
-            : FittedBox(
-                child: PlateVisualization(
-                  weightLb: weight,
-                  isInteractive: false,
-                ),
-              ),
+            : FittedBox(child: PlateVisualization(weightLb: weight)),
       ),
     );
   }

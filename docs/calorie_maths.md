@@ -22,7 +22,7 @@ The constant 3.5 ml O₂ / kg / min represents resting oxygen consumption at 1 M
 
 ### Fallback
 
-If no bodyweight is stored, a flat **5 kcal/min** is used — the midpoint of the 4–10 kcal/min range observed across studies. This is what was used prior to bodyweight collection being added.
+If no bodyweight is stored, a flat **5 kcal/min** is used — the midpoint of the 4–10 kcal/min range observed across studies.
 
 ---
 

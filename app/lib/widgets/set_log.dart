@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
+import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
@@ -22,7 +23,6 @@ class SetLog extends StatelessWidget {
   final List<CompletedSet> completedSets;
   final void Function(String completedSetId)? onDelete;
   final String? deletableWorkoutId;
-  final Map<String, String>? workoutOwnerLabels;
   final Map<String, String>? workoutOwnerEmojis;
 
   /// When true the heading stays pinned and only the rows scroll. Requires
@@ -35,7 +35,6 @@ class SetLog extends StatelessWidget {
     required this.completedSets,
     this.onDelete,
     this.deletableWorkoutId,
-    this.workoutOwnerLabels,
     this.workoutOwnerEmojis,
     this.stickyHeader = false,
   });
@@ -249,7 +248,7 @@ class _LogRow extends StatelessWidget {
                 ),
                 if (rest != null)
                   Text(
-                    '+${rest ~/ 60}:${two(rest % 60)}',
+                    '+${formatRestClock(rest)}',
                     style: t.mono(
                       TextStyle(fontSize: t.size.caption, color: t.muted),
                     ),
@@ -276,9 +275,7 @@ class _LogRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  proposed == null
-                      ? '?'
-                      : (exerciseNames[proposed.exercise] ?? '?'),
+                  proposed == null ? '?' : exerciseName(proposed.exercise),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -355,8 +352,8 @@ class _MiniCircle extends StatelessWidget {
         : reps >= target
         ? (t.text, t.text, t.background)
         : reps == 0
-        ? (Colors.transparent, t.effort, t.effort)
-        : (t.effort, t.effort, t.text);
+        ? (Colors.transparent, t.short, t.short)
+        : (t.short, t.short, t.text);
     return Container(
       width: 30,
       height: 30,

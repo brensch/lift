@@ -56,9 +56,9 @@ class AuthProvider extends ChangeNotifier {
   bool get hasServerSession => _sessionToken != null;
 
   /// False until [loadSession] has read the saved session from disk. Until
-  /// then "not logged in" only means "not known yet", and the router must not
-  /// act on it — that is what used to flash the login screen at a signed-in
-  /// user on every cold start.
+  /// then "not logged in" only means "not known yet", and the router waits
+  /// for it before redirecting, so a signed-in user never sees the login
+  /// screen on a cold start.
   bool get sessionLoaded => _sessionLoaded;
 
   Future<void> loadSession() async {
@@ -204,7 +204,7 @@ class AuthProvider extends ChangeNotifier {
       return;
     }
     try {
-      final user = await UserServiceWrapper(_grpcClient).getUser(userId);
+      final user = await UserServiceWrapper(_grpcClient).getUser();
       if (user == null) return;
       _profileEmoji = normalizedProfileEmoji(user.profileEmoji);
       _profileColorHex = normalizedProfileColorHex(user.profileColorHex);

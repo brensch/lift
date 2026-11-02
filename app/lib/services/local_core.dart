@@ -68,25 +68,19 @@ class LocalCore {
 
   Stream<void> get writes => _writes.stream;
 
-  /// Answer [method] (the gRPC method name) for [request]. [at] sets the
-  /// clock the call runs at — for seeding a believable past.
+  /// Answer [method] (the gRPC method name) for [request].
   Future<T> call<T extends GeneratedMessage>(
     String method,
     GeneratedMessage request,
-    T Function(List<int>) parse, {
-    DateTime? at,
-  }) async {
-    final bytes = request.writeToBuffer();
+    T Function(List<int>) parse,
+  ) async {
     final List<int> response;
     try {
-      response = at == null
-          ? await native.call(handle: _handle, method: method, request: bytes)
-          : await native.callAt(
-              handle: _handle,
-              method: method,
-              request: bytes,
-              now: at.millisecondsSinceEpoch ~/ 1000,
-            );
+      response = await native.call(
+        handle: _handle,
+        method: method,
+        request: request.writeToBuffer(),
+      );
     } catch (e) {
       throw CoreException.from(e);
     }

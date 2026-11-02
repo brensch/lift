@@ -109,7 +109,7 @@ void main() {
   });
 
   test('StrongLifts B in a roomy budget plans its longest', () async {
-    final h = await ProviderHarness.boot(sandbox: true);
+    final h = await ProviderHarness.boot();
     addTearDown(h.dispose);
     await h.service.completeOnboarding(
       unit: WeightUnit.WEIGHT_UNIT_KG,
