@@ -19,9 +19,7 @@ import '../support/provider_harness.dart';
 /// below, the suggestion's reason under its name, and the rotation check
 /// at the top of the Edit sheet.
 void main() {
-  testWidgets('rotation, favourites, the reason and the check', (
-    tester,
-  ) async {
+  testWidgets('rotation, favourites, the reason and the check', (tester) async {
     final h = (await tester.runAsync(() async {
       final h = await ProviderHarness.boot(sandbox: true);
       await h.service.completeOnboarding(
@@ -105,7 +103,10 @@ void main() {
     await settle(
       () => h.provider.templates.firstWhere((t) => t.name == 'Arms').inRotation,
     );
-    expect(chipY('Arms'), lessThan(tester.getTopLeft(find.byType(Divider).first).dy));
+    expect(
+      chipY('Arms'),
+      lessThan(tester.getTopLeft(find.byType(Divider).first).dy),
+    );
 
     // The Edit sheet opens on the rotation check: one lap's bars and what
     // is wrong with it.
@@ -116,10 +117,7 @@ void main() {
           .evaluate()
           .isNotEmpty,
     );
-    expect(
-      find.text(copy.rotation.checkTitle.toUpperCase()),
-      findsOneWidget,
-    );
+    expect(find.text(copy.rotation.checkTitle.toUpperCase()), findsOneWidget);
     final names = {for (final t in h.provider.templates) t.id: t.name};
     final warnings = rotationWarningLines(h.provider.rotationCheck!, names);
     expect(warnings, isNotEmpty, reason: 'nothing in it trains calves');
