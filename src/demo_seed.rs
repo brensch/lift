@@ -37,8 +37,8 @@ use schlift_core::weight_units::AppWeightUnit;
 use uuid::Uuid;
 
 const DAY: i64 = 86_400;
-/// How many weeks of history to write. Enough for sparklines and the volume
-/// tracker to look lived-in, cheap enough to seed on every dev boot.
+/// How many weeks of history to write. Enough for sparklines and the weekly
+/// volume to look lived-in, cheap enough to seed on every dev boot.
 const WEEKS: i64 = 16;
 /// Exercises already finished in the `-live` user's in-progress session.
 const LIVE_DONE_EXERCISES: usize = 2;
