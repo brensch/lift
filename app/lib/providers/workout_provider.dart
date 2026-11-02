@@ -692,23 +692,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  /// Correct a done set: fewer reps than planned, a different weight.
-  Future<void> editCompletedSet(
-    String completedSetId,
-    int actualReps,
-    double actualWeight,
-  ) async {
-    if (_workout == null) return;
-    await _mutate(
-      WorkoutMutation()
-        ..editCompletedSet = (EditCompletedSetRequest()
-          ..workoutId = _workoutId
-          ..completedSetId = completedSetId
-          ..actualReps = actualReps
-          ..actualWeight = actualWeight),
-    );
-  }
-
   /// A tap on a done set's circle, StrongLifts style: each tap takes one
   /// rep off (one per rep missed), and the tap after zero undoes the set.
   /// A calibration rung stops at zero instead: the plan it settled hangs
@@ -717,10 +700,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final done = _doneById(completedSetId);
     if (done == null) return;
     if (done.actualReps > 0) {
-      await editCompletedSet(
-        completedSetId,
-        done.actualReps - 1,
-        done.actualWeight,
+      await _mutate(
+        WorkoutMutation()
+          ..editCompletedSet = (EditCompletedSetRequest()
+            ..workoutId = _workoutId
+            ..completedSetId = completedSetId
+            ..actualReps = done.actualReps - 1
+            ..actualWeight = done.actualWeight),
       );
       return;
     }

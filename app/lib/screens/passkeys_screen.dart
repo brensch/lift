@@ -86,7 +86,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: colorScheme.error.withValues(alpha: 0.1),
-                borderRadius: context.tokens.br(8),
+                borderRadius: context.tokens.brSm,
               ),
               child: Text(
                 'Make sure you have one of the remaining passkeys before deleting anything. If you don\'t have a valid passkey you cannot recover your account.',
@@ -163,7 +163,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: colorScheme.error.withValues(alpha: 0.1),
-                          borderRadius: context.tokens.br(8),
+                          borderRadius: context.tokens.brSm,
                         ),
                         child: Text(
                           _error!,
@@ -207,7 +207,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: colorScheme.surfaceContainerHighest,
-                            borderRadius: context.tokens.br(8),
+                            borderRadius: context.tokens.brSm,
                           ),
                           child: Row(
                             children: [
@@ -253,9 +253,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                                             decoration: BoxDecoration(
                                               color: colorScheme.onSurface
                                                   .withValues(alpha: 0.08),
-                                              borderRadius: context.tokens.br(
-                                                4,
-                                              ),
+                                              borderRadius: context.tokens.brXs,
                                             ),
                                             child: Text(
                                               pk.createdAtIp,

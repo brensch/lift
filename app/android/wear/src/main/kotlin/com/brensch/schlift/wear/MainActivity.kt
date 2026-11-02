@@ -14,15 +14,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -678,22 +676,29 @@ private fun WorkoutScreens(
             ?: action(Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET)
 
     // The rest drains the band from the end of the last set to restUntil,
-    // animated rather than redrawn on the tick so it moves smoothly.
+    // updated each time the fill moves by a pixel of the screen, so it moves
+    // smoothly without a redraw every frame.
     val restStartMs = data.lastSetEndedAt * 1000L
     val restUntilMs = data.restUntil.toLong() * 1000L
     val draining = resting && !yapping && restStartMs in 1 until restUntilMs
-    val bandFill = remember(data.workoutId) { Animatable(1f) }
-    val drainingFill = remember(bandFill) { { bandFill.value } }
-    // Dimmed, the band is never drawn draining: no animation to pay for.
+    val screenPx = LocalContext.current.resources.displayMetrics.widthPixels
+    val bandFill = remember(data.workoutId) { mutableFloatStateOf(1f) }
+    val drainingFill = remember(bandFill) { { bandFill.floatValue } }
+    // Dimmed, the band is never drawn draining: nothing to update.
     LaunchedEffect(draining, restStartMs, restUntilMs, isAmbientMode) {
         if (isAmbientMode) return@LaunchedEffect
-        val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
-        if (!draining || leftMs <= 0L) {
-            bandFill.snapTo(if (draining) 0f else 1f)
+        if (!draining) {
+            bandFill.floatValue = 1f
             return@LaunchedEffect
         }
-        bandFill.snapTo(leftMs.toFloat() / (restUntilMs - restStartMs))
-        bandFill.animateTo(0f, tween(durationMillis = leftMs.toInt(), easing = LinearEasing))
+        val spanMs = restUntilMs - restStartMs
+        val stepMs = (spanMs / screenPx.coerceAtLeast(1)).coerceAtLeast(16L)
+        while (true) {
+            val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
+            bandFill.floatValue = (leftMs.toFloat() / spanMs).coerceIn(0f, 1f)
+            if (leftMs <= 0L) break
+            delay(stepMs)
+        }
     }
 
     val stageColor =

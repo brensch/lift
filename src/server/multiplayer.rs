@@ -170,21 +170,21 @@ impl MultiplayerService for ServerMultiplayerService {
         info!(rpc = "GetSessionRosters", %caller_id, sessions = req.session_ids.len(), "request");
         // Historical rosters: read from the durable session_members table, not
         // the live participant cache (which is pruned when members leave), so
-        // they survive everyone leaving. Identity only.
+        // they survive everyone leaving. Identity only, and only for sessions
+        // the caller was in.
+        let mut sessions = self
+            .db
+            .list_session_partner_ids(&caller_id)
+            .await
+            .map_err(internal_error)?;
         let mut users: HashMap<String, Option<User>> = HashMap::new();
-        let mut rosters = Vec::with_capacity(req.session_ids.len());
+        let mut rosters = Vec::new();
         for session_id in req.session_ids {
-            let member_ids = self
-                .db
-                .list_session_member_ids(&session_id)
-                .await
-                .map_err(internal_error)?;
-            // Only someone who was in the session may see who else was.
-            if !member_ids.contains(&caller_id) {
+            let Some(partner_ids) = sessions.remove(&session_id) else {
                 continue;
-            }
-            let mut partners = Vec::with_capacity(member_ids.len());
-            for user_id in member_ids.into_iter().filter(|id| id != &caller_id) {
+            };
+            let mut partners = Vec::with_capacity(partner_ids.len());
+            for user_id in partner_ids {
                 if !users.contains_key(&user_id) {
                     let user = self.db.get_user(&user_id).await.map_err(internal_error)?;
                     users.insert(user_id.clone(), user);

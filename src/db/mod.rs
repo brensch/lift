@@ -62,8 +62,6 @@ CREATE TABLE IF NOT EXISTS user_current_session (
     user_id TEXT PRIMARY KEY,
     session_id TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_user_current_session_session
-    ON user_current_session(session_id);
 
 CREATE TABLE IF NOT EXISTS session_participants_current (
     session_id TEXT NOT NULL,
@@ -190,7 +188,59 @@ const DROPPED_INDEXES: &[&str] = &[
     "idx_session_members_session",
     "idx_workouts_session",
     "idx_completed_sets_proposed",
+    "idx_user_current_session_session",
 ];
+
+/// Rebuild each workout table still keyed by `id` alone with the schema's
+/// `(user_id, id)` key, copying its rows, so one account's ids can never
+/// collide with another's.
+async fn rekey_workout_tables(pool: &Pool<Sqlite>) -> DbResult<()> {
+    let schema = schlift_core::projection::WORKOUT_SCHEMA;
+    let mut rebuilt = false;
+    for statement in schema.split(';') {
+        // A statement may start with its comment.
+        let Some(start) = statement.find("CREATE TABLE IF NOT EXISTS ") else {
+            continue;
+        };
+        let create = &statement[start..];
+        let rest = &create["CREATE TABLE IF NOT EXISTS ".len()..];
+        let table = rest.split_whitespace().next().unwrap_or_default();
+        let wanted = create.contains("PRIMARY KEY (user_id, id)");
+        let keys: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM pragma_table_info(?) WHERE pk > 0")
+                .bind(table)
+                .fetch_one(pool)
+                .await?;
+        if !wanted || keys != 1 {
+            continue;
+        }
+        let new = format!("{table}_rekeyed");
+        let mut tx = pool.begin().await?;
+        sqlx::query(&create.replacen(table, &new, 1))
+            .execute(&mut *tx)
+            .await?;
+        let columns: Vec<String> = sqlx::query_scalar("SELECT name FROM pragma_table_info(?)")
+            .bind(&new)
+            .fetch_all(&mut *tx)
+            .await?;
+        let columns = columns.join(", ");
+        for sql in [
+            format!("INSERT INTO {new} ({columns}) SELECT {columns} FROM {table}"),
+            format!("DROP TABLE {table}"),
+            format!("ALTER TABLE {new} RENAME TO {table}"),
+        ] {
+            sqlx::query(&sql).execute(&mut *tx).await?;
+        }
+        tx.commit().await?;
+        tracing::info!(table, "rekeyed by (user_id, id)");
+        rebuilt = true;
+    }
+    if rebuilt {
+        // Dropping a table drops its indexes; the schema makes them again.
+        sqlx::query(schema).execute(pool).await?;
+    }
+    Ok(())
+}
 
 impl ServerDb {
     pub async fn new_in_dir(data_dir: impl AsRef<Path>) -> DbResult<Self> {
@@ -248,6 +298,7 @@ impl ServerDb {
                 .execute(&write_pool)
                 .await?;
         }
+        rekey_workout_tables(&write_pool).await?;
         Ok(Self {
             read_pool,
             write_pool,

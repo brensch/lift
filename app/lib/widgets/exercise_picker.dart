@@ -369,7 +369,7 @@ class _FilterChip extends StatelessWidget {
             color: selected
                 ? color
                 : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: context.tokens.br(20),
+            borderRadius: context.tokens.brLg,
             border: Border.all(
               color: alwaysOutlined && !selected
                   ? color
@@ -496,7 +496,7 @@ class _Tag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: context.tokens.br(6),
+        borderRadius: context.tokens.brXs,
       ),
       child: Text(
         bodyPartLabels[part]!.toUpperCase(),

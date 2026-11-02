@@ -20,7 +20,7 @@ import '../support/provider_harness.dart';
 /// reserve (added later), at phone size.
 Future<ProviderHarness> boot(WidgetTester tester) async {
   final h = (await tester.runAsync(() async {
-    final h = await ProviderHarness.boot(sandbox: true);
+    final h = await ProviderHarness.boot();
     await h.service.completeOnboarding(
       unit: WeightUnit.WEIGHT_UNIT_LB,
       libraryIds: ['stronglifts_a', 'stronglifts_b'],

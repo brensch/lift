@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 
 /// How long a group member can go without doing anything (no synced
 /// write other than heart rate) before they're out of it. A workout writes
@@ -215,18 +216,31 @@ impl ServerDb {
     /// The durable roster for a session: every user_id that was ever a member,
     /// earliest-joined first. Used for the historical "who was in this session"
     /// view, which must survive members leaving (the live blob cache is pruned).
-    pub async fn list_session_member_ids(&self, session_id: &str) -> DbResult<Vec<String>> {
+    /// Every session the user has been in, mapped to the others who were in
+    /// it, first to join first.
+    pub async fn list_session_partner_ids(
+        &self,
+        user_id: &str,
+    ) -> DbResult<HashMap<String, Vec<String>>> {
         let rows = sqlx::query(
-            "SELECT user_id FROM session_members WHERE session_id = ?
-             ORDER BY first_joined_at ASC",
+            "SELECT m1.session_id, m2.user_id AS partner_id
+             FROM session_members m1
+             LEFT JOIN session_members m2
+               ON m2.session_id = m1.session_id AND m2.user_id != m1.user_id
+             WHERE m1.user_id = ?
+             ORDER BY m2.first_joined_at ASC",
         )
-        .bind(session_id)
+        .bind(user_id)
         .fetch_all(&self.read_pool)
         .await?;
-        Ok(rows
-            .into_iter()
-            .map(|r| r.get::<String, _>("user_id"))
-            .collect())
+        let mut sessions: HashMap<String, Vec<String>> = HashMap::new();
+        for row in rows {
+            let partners = sessions.entry(row.get("session_id")).or_default();
+            if let Some(partner_id) = row.get::<Option<String>, _>("partner_id") {
+                partners.push(partner_id);
+            }
+        }
+        Ok(sessions)
     }
 
     /// Everyone the user has shared a session with, aggregated: (partner_id,

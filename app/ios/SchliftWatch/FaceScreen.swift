@@ -181,10 +181,12 @@ struct FaceScreen: View {
         .frame(height: height)
         .background(
             GeometryReader { geo in
-                // Every frame while the rest drains the band, so it moves smoothly;
-                // otherwise the screen's own tick is enough. Only the fill is redrawn.
-                if restSpan != nil, !colors.dim {
-                    TimelineView(.animation) { _ in
+                // While the rest drains the band, redrawn each time the fill moves
+                // by a point, so it moves smoothly; otherwise the screen's own tick
+                // is enough. Only the fill is redrawn.
+                if let span = restSpan, !colors.dim, geo.size.width > 0 {
+                    let spanSeconds = Double(span.upperBound - span.lowerBound) / 1000
+                    TimelineView(.animation(minimumInterval: spanSeconds / Double(geo.size.width))) { _ in
                         bandLayers(stage: stage, width: geo.size.width)
                     }
                 } else {

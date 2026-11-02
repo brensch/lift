@@ -28,20 +28,18 @@ class WorkoutServiceWrapper {
 
   WorkoutServiceWrapper(this._source);
 
-  /// [method] answered by the core, as of [at] (default: now).
+  /// [method] answered by the core.
   Future<T> _call<T extends GeneratedMessage>(
     String method,
     GeneratedMessage request,
-    T Function(List<int>) parse, {
-    DateTime? at,
-  }) async => (await _source.ready).call(method, request, parse, at: at);
+    T Function(List<int>) parse,
+  ) async => (await _source.ready).call(method, request, parse);
 
   Future<StartWorkoutResponse> startWorkout(
     String name, {
     String templateId = '',
     List<Exercise> exercises = const [],
     int budgetMinutes = 0,
-    DateTime? at,
   }) => _call(
     'StartWorkout',
     StartWorkoutRequest()
@@ -50,7 +48,6 @@ class WorkoutServiceWrapper {
       ..templateId = templateId
       ..budgetMinutes = budgetMinutes,
     StartWorkoutResponse.fromBuffer,
-    at: at,
   );
 
   Future<GetWorkoutResponse> getWorkout(String workoutId) => _call(
@@ -102,13 +99,11 @@ class WorkoutServiceWrapper {
   /// Changes to a workout, applied in order; one that can't apply is
   /// skipped. Answers with the workout after them.
   Future<AppendWorkoutMutationsResponse> appendWorkoutMutations(
-    List<WorkoutMutation> mutations, {
-    DateTime? at,
-  }) => _call(
+    List<WorkoutMutation> mutations,
+  ) => _call(
     'AppendWorkoutMutations',
     AppendWorkoutMutationsRequest()..mutations.addAll(mutations),
     AppendWorkoutMutationsResponse.fromBuffer,
-    at: at,
   );
 
   /// Ends the workout at the event's time.

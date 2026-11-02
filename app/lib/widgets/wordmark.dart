@@ -22,22 +22,25 @@ class Wordmark extends StatelessWidget {
     final rng = Random();
 
     // Shrinks rather than overflows when the slot is narrow (large font
-    // scaling, a crowded app bar); never scales up.
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          for (final ch in 'SCHLIFT'.split(''))
-            _WobblyLetter(
-              char: ch,
-              fontSize: fontSize,
-              maxOffset: maxOffset,
-              rng: rng,
-            ),
-        ],
+    // scaling, a crowded app bar); never scales up. Its own repaint
+    // boundary: the letters move every frame, the page around them doesn't.
+    return RepaintBoundary(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            for (final ch in 'SCHLIFT'.split(''))
+              _WobblyLetter(
+                char: ch,
+                fontSize: fontSize,
+                maxOffset: maxOffset,
+                rng: rng,
+              ),
+          ],
+        ),
       ),
     );
   }

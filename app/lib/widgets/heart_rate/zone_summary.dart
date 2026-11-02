@@ -60,7 +60,7 @@ class ZoneSummary extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: context.tokens.br(6),
+            borderRadius: context.tokens.brXs,
             child: SizedBox(
               height: 12,
               child: Row(

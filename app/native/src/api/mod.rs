@@ -34,13 +34,7 @@ pub fn close_account(handle: u32) {
 /// Answer one RPC by its gRPC method name, request and response as proto
 /// bytes. Errors read `code: message`.
 pub fn call(handle: u32, method: String, request: Vec<u8>) -> StoreResult<Vec<u8>> {
-    call_at(handle, method, request, now_unix())
-}
-
-/// [call] with the clock set to `now` (unix seconds): for seeding a
-/// believable past, and for tests.
-pub fn call_at(handle: u32, method: String, request: Vec<u8>, now: i64) -> StoreResult<Vec<u8>> {
-    with_store(handle, |store| store.call(&method, &request, now))
+    with_store(handle, |store| store.call(&method, &request, now_unix()))
 }
 
 /// The events the server hasn't acknowledged, packed for the Sync stream,

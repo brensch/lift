@@ -54198,12 +54198,6 @@ public final class WorkoutOuterClass {
   public interface AppendWorkoutHeartRateResponseOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.AppendWorkoutHeartRateResponse)
       com.google.protobuf.MessageLiteOrBuilder {
-
-    /**
-     * <code>int32 stored = 1 [json_name = "stored"];</code>
-     * @return The stored.
-     */
-    int getStored();
   }
   /**
    * Protobuf type {@code workout.v1.AppendWorkoutHeartRateResponse}
@@ -54215,32 +54209,6 @@ public final class WorkoutOuterClass {
       AppendWorkoutHeartRateResponseOrBuilder {
     private AppendWorkoutHeartRateResponse() {
     }
-    public static final int STORED_FIELD_NUMBER = 1;
-    private int stored_;
-    /**
-     * <code>int32 stored = 1 [json_name = "stored"];</code>
-     * @return The stored.
-     */
-    @java.lang.Override
-    public int getStored() {
-      return stored_;
-    }
-    /**
-     * <code>int32 stored = 1 [json_name = "stored"];</code>
-     * @param value The stored to set.
-     */
-    private void setStored(int value) {
-      
-      stored_ = value;
-    }
-    /**
-     * <code>int32 stored = 1 [json_name = "stored"];</code>
-     */
-    private void clearStored() {
-      
-      stored_ = 0;
-    }
-
     public static workout.v1.WorkoutOuterClass.AppendWorkoutHeartRateResponse parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -54336,34 +54304,6 @@ public final class WorkoutOuterClass {
       }
 
 
-      /**
-       * <code>int32 stored = 1 [json_name = "stored"];</code>
-       * @return The stored.
-       */
-      @java.lang.Override
-      public int getStored() {
-        return instance.getStored();
-      }
-      /**
-       * <code>int32 stored = 1 [json_name = "stored"];</code>
-       * @param value The stored to set.
-       * @return This builder for chaining.
-       */
-      public Builder setStored(int value) {
-        copyOnWrite();
-        instance.setStored(value);
-        return this;
-      }
-      /**
-       * <code>int32 stored = 1 [json_name = "stored"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearStored() {
-        copyOnWrite();
-        instance.clearStored();
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.AppendWorkoutHeartRateResponse)
     }
     @java.lang.Override
@@ -54379,11 +54319,8 @@ public final class WorkoutOuterClass {
           return new Builder();
         }
         case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = new java.lang.Object[] {
-              "stored_",
-            };
-            java.lang.String info =
-                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0004";
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

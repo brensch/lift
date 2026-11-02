@@ -2,7 +2,7 @@
 # Split from the top-level Makefile; variables live there.
 
 .PHONY: dev test-app run-web-dev run-frontend run-app run-android run-android-prod run-android-clean \
-	hot-reload hot-reload-on-save hot-restart run-linux stop-app setup-flutter install-deps check-android-java \
+	hot-reload hot-reload-on-save hot-restart run-linux stop-app install-deps check-android-java \
 	icons copy sounds brand deploy-android deploy-android-dev
 
 # The fast loop. The backend under cargo watch (rebuilds and restarts when
@@ -54,7 +54,6 @@ run-app:
 	@$(MAKE) stop-app || true
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
-		mkdir -p "$(TMP_RUN_DIR)"; \
 		ANDROID_DEVICE_ARGS=""; \
 		if [ -x "$(ADB)" ]; then \
 			while read -r DEVICE_ID DEVICE_STATE; do \
@@ -70,7 +69,7 @@ run-app:
 			done < <($(ADB) devices | awk "NR > 1 { print \$$1, \$$2 }"); \
 		fi; \
 		echo "Starting interactive Flutter hot-reload session (linux + non-watch android)..."; \
-		cd app && $(FLUTTER) run -d linux $$ANDROID_DEVICE_ARGS --dart-define=INSTANCE=ubuntu; \
+		cd app && $(FLUTTER) run -d linux $$ANDROID_DEVICE_ARGS; \
 	'
 
 # Debug build on the phone, attached, against the local backend through adb
@@ -147,28 +146,15 @@ run-linux:
 			XDG_CONFIG_HOME="$$SESSION_ROOT/config" \
 			XDG_CACHE_HOME="$$SESSION_ROOT/cache" \
 			LIBGL_ALWAYS_SOFTWARE="$(LINUX_SOFTWARE_RENDER)" \
-			$(FLUTTER) run -d linux --dart-define=INSTANCE=$$SESSION_ID; \
+			$(FLUTTER) run -d linux; \
 	'
 
 stop-app:
 	@echo "Stopping app processes..."
 	@bash -ec '\
-		if [ -d "$(TMP_RUN_DIR)" ]; then \
-			for pidfile in "$(TMP_RUN_DIR)"/*.pid; do \
-				[ -f "$$pidfile" ] || continue; \
-				pid=$$(cat "$$pidfile" 2>/dev/null || true); \
-				[ -n "$$pid" ] && kill "$$pid" 2>/dev/null || true; \
-				rm -f "$$pidfile"; \
-			done; \
-		fi; \
 		pkill -f "[/]app/build/linux/x64/debug/bundle/schlift" 2>/dev/null || true; \
 		pkill -f "[/]flutter-sdk/bin/flutter.*run -d" 2>/dev/null || true; \
 	'
-
-setup-flutter:
-	$(FLUTTER) config --enable-custom-devices
-	mkdir -p $(HOME)/.config/flutter
-	cp .flutter/custom_devices.json $(HOME)/.config/flutter/custom_devices.json
 
 TMP_RUN_DIR = .tmp/run-app
 LINUX_SOFTWARE_RENDER ?= 1

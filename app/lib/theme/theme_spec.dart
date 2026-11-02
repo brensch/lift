@@ -105,15 +105,14 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.wordmarkWeight,
     required this.wordmarkScale,
     required this.wordmarkWobble,
-    required this.headingWeightBoost,
     required this.fontScale,
+    required this.radiusXs,
     required this.radiusSm,
     required this.radiusMd,
-    required this.buttonRadius,
+    required this.radiusLg,
+    required this.radiusXl,
     required this.size,
     required this.weight,
-    required this.cornerScale,
-    required this.pills,
     required this.drawerRadius,
   });
 
@@ -193,9 +192,8 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   /// How far each wordmark letter drifts as it wobbles, in logical pixels.
   final double wordmarkWobble;
 
-  /// Added to every heading weight (in hundreds), for looks that want
-  /// heavier or lighter display type. Clamped to w100–w900.
-  final int headingWeightBoost;
+  /// Multiplies the Material text theme's sizes (the text Material
+  /// widgets draw for themselves, not [size]).
   final double fontScale;
 
   /// Every text size widgets draw at.
@@ -205,37 +203,30 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   final FontWeights weight;
 
   // ─── Shape ─────────────────────────────────────────────────────────
+  /// The smallest corners: tags, swatches, chart labels.
+  final double radiusXs;
+
   /// Chips, inputs, segmented controls, small buttons.
   final double radiusSm;
 
-  /// Cards and primary call-to-action panels.
+  /// Cards, primary call-to-action panels and every Material button.
   final double radiusMd;
 
-  /// Every Material button; large values make pills.
-  final double buttonRadius;
+  /// Large cards and selection panels.
+  final double radiusLg;
 
-  /// Multiplies every corner a widget asks for with [corner] / [br]: 1 keeps
-  /// the designed sizes, smaller squares the whole app off.
-  final double cornerScale;
-
-  /// Whether pill shapes (radius ≥ 99) stay pills. When false they become
-  /// [buttonRadius] rectangles.
-  final bool pills;
+  /// The largest panels.
+  final double radiusXl;
 
   /// The side menu's open edge. 0 for a hard edge.
   final double drawerRadius;
 
   // ─── Derived ───────────────────────────────────────────────────────
+  BorderRadius get brXs => BorderRadius.circular(radiusXs);
   BorderRadius get brSm => BorderRadius.circular(radiusSm);
   BorderRadius get brMd => BorderRadius.circular(radiusMd);
-
-  /// A widget's designed corner [r], in this look. Widgets use this (or
-  /// [br] / [radius]) instead of a literal, so a look can square or soften
-  /// everything at once. Circles (BoxShape.circle) stay circles.
-  double corner(double r) =>
-      r >= 99 ? (pills ? r : buttonRadius) : r * cornerScale;
-  BorderRadius br(double r) => BorderRadius.circular(corner(r));
-  Radius radius(double r) => Radius.circular(corner(r));
+  BorderRadius get brLg => BorderRadius.circular(radiusLg);
+  BorderRadius get brXl => BorderRadius.circular(radiusXl);
 
   /// [base] in the wordmark's font, weight and size.
   TextStyle wordmark([TextStyle base = const TextStyle()]) =>
@@ -253,7 +244,7 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   TextStyle mono([TextStyle base = const TextStyle()]) =>
       GoogleFonts.getFont(monoFont, textStyle: base);
 
-  // ThemeExtension plumbing. Specs are swapped whole, never blended.
+  // ThemeExtension plumbing. There is one spec, so nothing blends.
   @override
   ThemeSpec copyWith() => this;
 

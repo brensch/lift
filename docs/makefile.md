@@ -155,4 +155,4 @@ uploading to the stores is tag-driven CI — [`releasing.md`](releasing.md).
 
 ## Setup
 
-`setup-flutter`, `install-deps`, `check-android-java`.
+`install-deps`, `check-android-java`.

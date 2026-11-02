@@ -15,7 +15,7 @@ void main() {
   late ProviderHarness h;
 
   setUp(() async {
-    h = await ProviderHarness.boot(sandbox: true);
+    h = await ProviderHarness.boot();
     await h.seedHistory({
       Exercise.EXERCISE_SQUAT: (185, 5),
       Exercise.EXERCISE_LATERAL_RAISE: (20, 10),

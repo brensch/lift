@@ -2494,16 +2494,16 @@ final $typed_data.Uint8List appendWorkoutHeartRateRequestDescriptor =
 @$core.Deprecated('Use appendWorkoutHeartRateResponseDescriptor instead')
 const AppendWorkoutHeartRateResponse$json = {
   '1': 'AppendWorkoutHeartRateResponse',
-  '2': [
-    {'1': 'stored', '3': 1, '4': 1, '5': 5, '10': 'stored'},
+  '9': [
+    {'1': 1, '2': 2},
   ],
+  '10': ['stored'],
 };
 
 /// Descriptor for `AppendWorkoutHeartRateResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List appendWorkoutHeartRateResponseDescriptor =
     $convert.base64Decode(
-        'Ch5BcHBlbmRXb3Jrb3V0SGVhcnRSYXRlUmVzcG9uc2USFgoGc3RvcmVkGAEgASgFUgZzdG9yZW'
-        'Q=');
+        'Ch5BcHBlbmRXb3Jrb3V0SGVhcnRSYXRlUmVzcG9uc2VKBAgBEAJSBnN0b3JlZA==');
 
 @$core.Deprecated('Use getWorkoutHeartRateRequestDescriptor instead')
 const GetWorkoutHeartRateRequest$json = {

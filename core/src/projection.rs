@@ -13,10 +13,12 @@ use crate::account::Account;
 use crate::history::WorkoutRecord;
 use crate::pb::{event, Event};
 
-/// The workout tables, on the phone and the server alike.
+/// The workout tables, on the phone and the server alike. Ids are chosen by
+/// the client, so each row is keyed by its owner and its id: one account's
+/// rows never clash with another's.
 pub const WORKOUT_SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS workouts (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL DEFAULT '',
     start_time INTEGER NOT NULL,
@@ -24,12 +26,13 @@ CREATE TABLE IF NOT EXISTS workouts (
     session_id TEXT NOT NULL DEFAULT '',
     template_id TEXT NOT NULL DEFAULT '',
     lifting_set_id TEXT NOT NULL DEFAULT '',
-    lifting_started_at INTEGER NOT NULL DEFAULT 0
+    lifting_started_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_user_time ON workouts(user_id, start_time DESC);
 
 CREATE TABLE IF NOT EXISTS proposed_sets (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     workout_order INTEGER NOT NULL,
@@ -40,12 +43,13 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     cancelled INTEGER NOT NULL DEFAULT 0,
     rest_seconds INTEGER NOT NULL DEFAULT 0,
     calibration INTEGER NOT NULL DEFAULT 0,
-    skipped INTEGER NOT NULL DEFAULT 0
+    skipped INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_proposed_sets_workout ON proposed_sets(workout_id, workout_order);
 
 CREATE TABLE IF NOT EXISTS completed_sets (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     proposed_set_id TEXT NOT NULL,
@@ -53,17 +57,19 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     actual_weight REAL NOT NULL,
     ended_at INTEGER NOT NULL DEFAULT 0,
     rest_until INTEGER NOT NULL DEFAULT 0,
-    started_at INTEGER NOT NULL DEFAULT 0
+    started_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
 
 CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     sampled_at INTEGER NOT NULL,
     bpm REAL NOT NULL,
-    availability INTEGER NOT NULL DEFAULT 0
+    availability INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
     ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
@@ -72,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
 -- from, and `log`, its ExerciseLog (proto: the decision with its reasons,
 -- then every weight change).
 CREATE TABLE IF NOT EXISTS exercise_decisions (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     position INTEGER NOT NULL,
@@ -82,7 +88,8 @@ CREATE TABLE IF NOT EXISTS exercise_decisions (
     weight REAL NOT NULL,
     estimated_max REAL NOT NULL,
     budget_minutes INTEGER NOT NULL,
-    log BLOB NOT NULL
+    log BLOB NOT NULL,
+    PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_exercise_decisions_workout
     ON exercise_decisions(workout_id, position);

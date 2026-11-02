@@ -33,7 +33,7 @@ class UnitCard extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.08)
               : cs.surfaceContainerLowest,
-          borderRadius: context.tokens.br(14),
+          borderRadius: context.tokens.brMd,
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
             width: 2,

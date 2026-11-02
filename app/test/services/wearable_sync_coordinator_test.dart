@@ -36,7 +36,7 @@ void main() {
   late WearableSyncCoordinator coordinator;
 
   setUp(() async {
-    h = await ProviderHarness.boot(sandbox: true);
+    h = await ProviderHarness.boot();
     await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
     bridge = _FakeBridge();
     coordinator = WearableSyncCoordinator(

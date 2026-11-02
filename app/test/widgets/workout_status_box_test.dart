@@ -13,7 +13,7 @@ void main() {
   late ProviderHarness h;
 
   setUp(() async {
-    h = await ProviderHarness.boot(sandbox: true);
+    h = await ProviderHarness.boot();
   });
 
   tearDown(() => h.dispose());

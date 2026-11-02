@@ -11,7 +11,6 @@ import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
-import '../../logic/session_state.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/common/weight_selector.dart';
@@ -31,12 +30,11 @@ class LiveSetCircle extends StatelessWidget {
     final wp = w.actions;
 
     // The up-next circle wears the workout's state colour, like the banner.
-    final stateValue = w.stateValue;
-    final nextColor = isRestingState(stateValue)
-        ? t.resting
-        : isYappingState(stateValue)
-        ? t.yapping
-        : t.primary;
+    final nextColor = switch (w.state) {
+      WorkoutState.WORKOUT_STATE_RESTING => t.resting,
+      WorkoutState.WORKOUT_STATE_YAPPING => t.yapping,
+      _ => t.primary,
+    };
 
     final done = w.doneFor(set.id);
     final reps = done?.actualReps ?? set.targetReps;

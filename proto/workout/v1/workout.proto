@@ -1015,7 +1015,8 @@ message AppendWorkoutHeartRateRequest {
 }
 
 message AppendWorkoutHeartRateResponse {
-  int32 stored = 1;
+  reserved 1;
+  reserved "stored";
 }
 
 message GetWorkoutHeartRateRequest {

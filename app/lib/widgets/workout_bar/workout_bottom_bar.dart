@@ -78,17 +78,18 @@ _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
 }
 
 /// What to do next, said once: only during the first workout.
-String _hint(WorkoutProvider wp) {
-  final state =
-      wp.stateSnapshot?.state.value ??
-      WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-  if (isAllDoneState(state) || wp.doneTargetSet == null) {
+String _hint(WorkoutProvider wp, int nowUnix) {
+  final state = stateAt(wp.stateSnapshot, nowUnix);
+  if (state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
+      wp.doneTargetSet == null) {
     return copy.workout.hints.allDone;
   }
-  if (isLiftingState(state)) return copy.workout.hints.lifting;
-  if (isRestingState(state)) return copy.workout.hints.resting;
-  if (isYappingState(state)) return copy.workout.hints.yapping;
-  return copy.workout.hints.ready;
+  return switch (state) {
+    WorkoutState.WORKOUT_STATE_LIFTING => copy.workout.hints.lifting,
+    WorkoutState.WORKOUT_STATE_RESTING => copy.workout.hints.resting,
+    WorkoutState.WORKOUT_STATE_YAPPING => copy.workout.hints.yapping,
+    _ => copy.workout.hints.ready,
+  };
 }
 
 /// Why [set]'s lift has the numbers it has, while none of its sets is done
@@ -179,12 +180,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         final t = context.tokens;
         final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
         final snapshot = wp.stateSnapshot;
-        final state =
-            snapshot?.state.value ??
-            WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
         final you = _youState(wp, t, nowUnix);
         final topLine = wp.isFirstWorkout
-            ? _hint(wp)
+            ? _hint(wp, nowUnix)
             : _liftReason(
                 wp,
                 you.set,
@@ -206,7 +204,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 myUserId: auth.userId,
                 others: others,
                 nowUnix: nowUnix,
-                stateValue: state,
+                state: stateAt(snapshot, nowUnix),
                 restUntil: snapshot?.restUntil.toInt() ?? 0,
                 nextSet: wp.nextPendingSet,
               );

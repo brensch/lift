@@ -124,8 +124,9 @@ impl SyncService for ServerSyncService {
 struct Stream {
     db: ServerDb,
     user_id: String,
-    /// The session the stream was opened with: signing out or deleting the
-    /// account ends it, and the stream with it.
+    /// The session the stream was opened with: signing out, expiry or
+    /// deleting the account ends it, and the stream with it, checked before
+    /// anything is stored or sent.
     token: String,
     tx: mpsc::Sender<SyncResult>,
     /// The session the user's pointer named when the session was last sent:
@@ -193,9 +194,8 @@ impl Stream {
             .map_err(|_| Closed)
     }
 
-    /// Events (stored, then acked with the head) or a heartbeat (acked),
-    /// while the stream's session lasts.
-    async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
+    /// Ends the stream once its session is signed out, expired or deleted.
+    async fn ensure_signed_in(&self) -> ServerResult<()> {
         let signed_in = self
             .db
             .validate_auth_session(&self.token)
@@ -204,6 +204,12 @@ impl Stream {
         if signed_in.as_ref() != Some(&self.user_id) {
             return Err(Status::unauthenticated("Invalid session token").into());
         }
+        Ok(())
+    }
+
+    /// Events (stored, then acked with the head) or a heartbeat (acked).
+    async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
+        self.ensure_signed_in().await?;
         let head = match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
                 let events = unpack_push(&packed).map_err(core_status)?;
@@ -285,6 +291,7 @@ impl Stream {
     }
 
     async fn send_session(&mut self) -> ServerResult<Result<(), Closed>> {
+        self.ensure_signed_in().await?;
         // Read before the session: the pointer is written before its change
         // is announced, so a change that follows is never missed.
         self.pointer = self
@@ -301,6 +308,7 @@ impl Stream {
     }
 
     async fn send_requests(&mut self) -> ServerResult<Result<(), Closed>> {
+        self.ensure_signed_in().await?;
         let requests = join_requests(&self.db, &self.user_id).await?;
         if self.last_requests.as_ref() == Some(&requests) {
             return Ok(Ok(()));

@@ -239,7 +239,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                         builder: (context, _) => CustomPaint(
                           painter: _SpotlightPainter(
                             outline: context.tokens.primary,
-                            radius: context.tokens.radius(18),
+                            radius: Radius.circular(context.tokens.radiusLg),
                             target: _target,
                             throb: Curves.easeInOut.transform(_throb.value),
                           ),

@@ -322,7 +322,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: zoneColor.withValues(alpha: 0.12),
-              borderRadius: context.tokens.br(4),
+              borderRadius: context.tokens.brXs,
             ),
             child: Text(
               '${currentZone.name} ${currentZone.label}',
@@ -355,7 +355,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: colorScheme.onSurface.withValues(alpha: 0.06),
-              borderRadius: context.tokens.br(4),
+              borderRadius: context.tokens.brXs,
             ),
             child: Text(
               'zzz ${_zoneProfile!.restingHeartRateBpm!.round()}',

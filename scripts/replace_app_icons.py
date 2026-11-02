@@ -68,7 +68,7 @@ def collect_png_targets(repo_root: Path) -> list[Path]:
     targets: set[Path] = set()
     for pattern in patterns:
         for p in repo_root.glob(pattern):
-            # Hidden files are skipped, as glob.glob did before this moved to pathlib.
+            # Skip hidden files.
             if p.name.startswith("."):
                 continue
             if p.exists() and p.is_file():
@@ -285,8 +285,7 @@ def main() -> None:
     updated_files.add(watch_contents.relative_to(repo_root))
 
     # Raster adaptive foreground per density, solid background in the
-    # master's ground colour, and any vector foreground removed so the
-    # density drawables are what Android resolves.
+    # master's ground colour.
     background_xml = f"""<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">{ground_colour(master)}</color>
@@ -298,10 +297,6 @@ def main() -> None:
     }
     for module in ("app", "wear"):
         res = repo_root / "app" / "android" / module / "src" / "main" / "res"
-        vector = res / "drawable" / "ic_launcher_foreground.xml"
-        if vector.exists():
-            vector.unlink()
-            updated_files.add(vector.relative_to(repo_root))
         for density, px in ADAPTIVE_DENSITIES.items():
             out = res / f"drawable-{density}" / "ic_launcher_foreground.png"
             out.parent.mkdir(parents=True, exist_ok=True)

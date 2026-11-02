@@ -1,4 +1,6 @@
-/// Pure session/workout-state logic: snapshot-state predicates, participant ordering, and the client-side "who lifts next" derivation. No Flutter imports.
+/// Pure session/workout-state logic: a snapshot's state on this clock,
+/// participant ordering, and the client-side "who lifts next" derivation.
+/// No Flutter imports.
 library;
 
 import 'dart:math';
@@ -32,20 +34,6 @@ String formatDurationShort(int totalSeconds) {
   if (hours > 0) return '${hours}h ${minutes}m';
   return '${minutes}m';
 }
-
-bool isAllDoneState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_ALL_DONE.value;
-
-bool isRestingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_RESTING.value;
-
-/// A set has been started and isn't done yet.
-bool isLiftingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_LIFTING.value;
-
-/// The last set's rest has run out and the next set isn't started.
-bool isYappingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_YAPPING.value;
 
 /// A snapshot's state on this clock. The snapshot is from the last change,
 /// so a rest it says is running may have run out since: that is yapping.
@@ -107,12 +95,14 @@ ProposedSet? shownSet(WorkoutStateSnapshot? snapshot, ProposedSet? nextUp) =>
 /// with no rest running. Null while lifting (on the rack, not waiting for
 /// it), when all done, or with no set left.
 int? scheduledStartUnix({
-  required int stateValue,
+  required WorkoutState state,
   required int restUntil,
   required bool hasNextSet,
   required int nowUnix,
 }) {
-  if (!hasNextSet || isAllDoneState(stateValue) || isLiftingState(stateValue)) {
+  if (!hasNextSet ||
+      state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
+      state == WorkoutState.WORKOUT_STATE_LIFTING) {
     return null;
   }
   return restUntil > 0 ? restUntil : nowUnix;
@@ -131,8 +121,7 @@ int? participantScheduledStartUnix(
       ? participant.stateSnapshot
       : null;
   return scheduledStartUnix(
-    stateValue:
-        snapshot?.state.value ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED.value,
+    state: stateAt(snapshot, nowUnix),
     restUntil: snapshot?.restUntil.toInt() ?? 0,
     hasNextSet: participant.hasNextUpSet(),
     nowUnix: nowUnix,
@@ -188,7 +177,7 @@ String? computeNextToLiftUserId({
   required String? myUserId,
   required List<ParticipantStatus> others,
   required int nowUnix,
-  required int stateValue,
+  required WorkoutState state,
   required int restUntil,
   required ProposedSet? nextSet,
 }) {
@@ -214,7 +203,7 @@ String? computeNextToLiftUserId({
 
   if (myUserId != null && myUserId.isNotEmpty) {
     final myStart = scheduledStartUnix(
-      stateValue: stateValue,
+      state: state,
       restUntil: restUntil,
       hasNextSet: nextSet != null,
       nowUnix: nowUnix,

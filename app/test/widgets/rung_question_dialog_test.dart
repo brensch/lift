@@ -25,7 +25,7 @@ void main() {
   Future<ProposedSet> boot(WidgetTester tester) async {
     final asked = <String>[];
     final first = (await tester.runAsync(() async {
-      h = await ProviderHarness.boot(sandbox: true);
+      h = await ProviderHarness.boot();
       h.provider.onRungQuestion = asked.add;
       await h.start([Exercise.EXERCISE_DEADLIFT]);
       final first = h.provider.doneTargetSet!;

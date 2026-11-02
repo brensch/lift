@@ -6745,13 +6745,7 @@ class AppendWorkoutHeartRateRequest extends $pb.GeneratedMessage {
 }
 
 class AppendWorkoutHeartRateResponse extends $pb.GeneratedMessage {
-  factory AppendWorkoutHeartRateResponse({
-    $core.int? stored,
-  }) {
-    final result = create();
-    if (stored != null) result.stored = stored;
-    return result;
-  }
+  factory AppendWorkoutHeartRateResponse() => create();
 
   AppendWorkoutHeartRateResponse._();
 
@@ -6766,7 +6760,6 @@ class AppendWorkoutHeartRateResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'AppendWorkoutHeartRateResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aI(1, _omitFieldNames ? '' : 'stored')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -6790,15 +6783,6 @@ class AppendWorkoutHeartRateResponse extends $pb.GeneratedMessage {
   static AppendWorkoutHeartRateResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<AppendWorkoutHeartRateResponse>(create);
   static AppendWorkoutHeartRateResponse? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.int get stored => $_getIZ(0);
-  @$pb.TagNumber(1)
-  set stored($core.int value) => $_setSignedInt32(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasStored() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearStored() => $_clearField(1);
 }
 
 class GetWorkoutHeartRateRequest extends $pb.GeneratedMessage {

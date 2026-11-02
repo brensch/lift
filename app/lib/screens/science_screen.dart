@@ -199,7 +199,7 @@ class ScienceScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              borderRadius: context.tokens.br(12),
+              borderRadius: context.tokens.brMd,
               border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
             ),
             child: Text(

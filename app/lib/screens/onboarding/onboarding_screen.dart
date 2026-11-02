@@ -323,7 +323,7 @@ class _StepDots extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
             color: i == step ? cs.primary : cs.onSurface.withValues(alpha: 0.2),
-            borderRadius: context.tokens.br(4),
+            borderRadius: context.tokens.brXs,
           ),
         );
       }),

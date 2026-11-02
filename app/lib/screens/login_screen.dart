@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                   Card(
                     shape: RoundedRectangleBorder(
-                      borderRadius: context.tokens.br(8),
+                      borderRadius: context.tokens.brSm,
 
                       side: BorderSide(color: colorScheme.primary, width: 1.0),
                     ),
@@ -263,11 +263,11 @@ class _LoginScreenState extends State<LoginScreen>
               vertical: 16,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: context.tokens.br(8),
+              borderRadius: context.tokens.brSm,
               borderSide: BorderSide(color: colorScheme.primary, width: 1.0),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: context.tokens.br(8),
+              borderRadius: context.tokens.brSm,
               borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
           ),

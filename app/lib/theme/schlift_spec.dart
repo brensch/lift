@@ -64,13 +64,12 @@ const schliftSpec = ThemeSpec(
   wordmarkWeight: FontWeight.w400,
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
-  headingWeightBoost: -1,
   fontScale: 1.06,
+  radiusXs: 1,
   radiusSm: 2,
   radiusMd: 3,
-  buttonRadius: 3,
-  cornerScale: 0.25,
-  pills: false,
+  radiusLg: 4,
+  radiusXl: 7,
   drawerRadius: 0,
   // The small end runs large: nothing in the app is drawn under 12pt.
   size: TypeScale(

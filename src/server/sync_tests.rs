@@ -234,6 +234,49 @@ mod store {
     }
 
     #[tokio::test]
+    async fn workout_tables_keyed_by_id_alone_are_rekeyed_keeping_their_rows() {
+        let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let url = format!("sqlite://{}/server.sqlite?mode=rwc", dir.display());
+        let old = sqlx::SqlitePool::connect(&url).await.unwrap();
+        sqlx::query(
+            "CREATE TABLE workouts (
+                id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
+                start_time INTEGER NOT NULL, end_time INTEGER NOT NULL DEFAULT 0,
+                session_id TEXT NOT NULL DEFAULT '', template_id TEXT NOT NULL DEFAULT '',
+                lifting_set_id TEXT NOT NULL DEFAULT '',
+                lifting_started_at INTEGER NOT NULL DEFAULT 0)",
+        )
+        .execute(&old)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO workouts (id, user_id, start_time, session_id) VALUES ('w', 'u1', 1, 's')",
+        )
+        .execute(&old)
+        .await
+        .unwrap();
+        old.close().await;
+
+        for _ in 0..2 {
+            let db = ServerDb::new_in_dir(&dir).await.unwrap();
+            let keys: Vec<String> = sqlx::query_scalar(
+                "SELECT name FROM pragma_table_info('workouts') WHERE pk > 0 ORDER BY pk",
+            )
+            .fetch_all(&db.read_pool)
+            .await
+            .unwrap();
+            assert_eq!(keys, ["user_id", "id"]);
+            let session: String =
+                sqlx::query_scalar("SELECT session_id FROM workouts WHERE id = 'w'")
+                    .fetch_one(&db.read_pool)
+                    .await
+                    .unwrap();
+            assert_eq!(session, "s", "the row is kept, every column of it");
+        }
+    }
+
+    #[tokio::test]
     async fn a_database_from_before_a_projected_column_is_brought_up_to_date() {
         let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
@@ -537,6 +580,45 @@ mod stream {
         .expect("the stream ends");
         assert_eq!(status.code(), tonic::Code::Unauthenticated);
         assert!(db.events_after(&dave.id, 0).await.unwrap().is_empty());
+    }
+
+    /// Signing out ends the stream even when the phone sends nothing more:
+    /// the next view it would be sent is refused instead.
+    #[tokio::test]
+    async fn a_signed_out_stream_is_sent_nothing_more() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (erin, token) = db
+            .get_or_create_user_with_auth_session("erin")
+            .await
+            .unwrap();
+        let (frank, _) = db
+            .get_or_create_user_with_auth_session("frank")
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &token).await;
+        link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+
+        db.delete_auth_session(&token).await.unwrap();
+        db.create_join_request("r1", &frank.id, &erin.id)
+            .await
+            .unwrap();
+        let status = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match link.down.message().await {
+                    Ok(Some(message)) => assert!(
+                        !matches!(message.kind, Some(sync_response::Kind::JoinRequests(_))),
+                        "a join request reached a signed-out stream"
+                    ),
+                    Ok(None) => panic!("closed without a status"),
+                    Err(status) => return status,
+                }
+            }
+        })
+        .await
+        .expect("the stream ends");
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
     }
 
     /// The stream needs a signed-in caller.

@@ -57,7 +57,7 @@ void main() {
     tester,
   ) async {
     final h = (await tester.runAsync(() async {
-      final h = await ProviderHarness.boot(sandbox: true);
+      final h = await ProviderHarness.boot();
       await h.service.completeOnboarding(
         unit: WeightUnit.WEIGHT_UNIT_LB,
         libraryIds: ['stronglifts_a'],
@@ -111,9 +111,7 @@ void main() {
   });
 
   testWidgets('a drag down one place sticks', (tester) async {
-    final h = (await tester.runAsync(
-      () => ProviderHarness.boot(sandbox: true),
-    ))!;
+    final h = (await tester.runAsync(() => ProviderHarness.boot()))!;
     addTearDown(h.dispose);
     final template = WorkoutTemplate(
       name: 'Mine',

@@ -198,9 +198,8 @@ impl<'a> Call<'a> {
         &mut self,
         req: AppendWorkoutHeartRateRequest,
     ) -> Result<AppendWorkoutHeartRateResponse, CoreError> {
-        let stored = req.samples.len() as i32;
         self.record(event::Kind::HeartRate(req))?;
-        Ok(AppendWorkoutHeartRateResponse { stored })
+        Ok(AppendWorkoutHeartRateResponse {})
     }
 
     // ── Home, templates, overrides ──

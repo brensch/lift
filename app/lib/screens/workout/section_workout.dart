@@ -20,8 +20,8 @@ class SectionWorkout {
   /// The set up next, if any.
   final String? nextSetId;
 
-  /// The workout's state (`WorkoutState` value): colours the up-next ring.
-  final int stateValue;
+  /// The workout's state on this clock: colours the up-next ring.
+  final WorkoutState state;
 
   /// Undone warmups that are behind you, as the core worked out.
   final Set<String> passedWarmupIds;
@@ -38,7 +38,7 @@ class SectionWorkout {
     required this.proposedSets,
     required this.liftingSetId,
     required this.nextSetId,
-    required this.stateValue,
+    required this.state,
     required this.passedWarmupIds,
     required this.firstTimeSetIds,
     required this.actions,
@@ -50,9 +50,7 @@ class SectionWorkout {
     proposedSets: wp.proposedSets,
     liftingSetId: wp.workout?.liftingSetId ?? '',
     nextSetId: wp.doneTargetSet?.id,
-    stateValue:
-        wp.stateSnapshot?.state.value ??
-        WorkoutState.WORKOUT_STATE_UNSPECIFIED.value,
+    state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
     passedWarmupIds: {
       for (final s in wp.proposedSets)
         if (wp.isPassedWarmup(s)) s.id,
@@ -70,7 +68,7 @@ class SectionWorkout {
       proposedSets: p.proposedSets,
       liftingSetId: p.hasActiveWorkout() ? p.activeWorkout.liftingSetId : '',
       nextSetId: shownSet(snapshot, p.hasNextUpSet() ? p.nextUpSet : null)?.id,
-      stateValue: stateAt(snapshot, nowUnix).value,
+      state: stateAt(snapshot, nowUnix),
       passedWarmupIds: p.passedWarmupIds.toSet(),
       firstTimeSetIds: p.firstTimeSetIds.toSet(),
       actions: null,

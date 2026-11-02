@@ -319,7 +319,7 @@ void main() {
   testWidgets('weight adjust sheet: step up and down', (tester) async {
     // The core answers on real time, outside the test's fake clock.
     final h = (await tester.runAsync(() async {
-      final h = await ProviderHarness.boot(sandbox: true);
+      final h = await ProviderHarness.boot();
       await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
       await h.start([Exercise.EXERCISE_SQUAT]);
       return h;

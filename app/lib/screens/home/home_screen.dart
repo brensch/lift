@@ -447,7 +447,7 @@ class _ActionChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : context.tokens.panel,
-          borderRadius: context.tokens.br(10),
+          borderRadius: context.tokens.brSm,
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
@@ -677,7 +677,7 @@ class _VolumeRow extends StatelessWidget {
                         color: cs.surfaceContainerHighest.withValues(
                           alpha: 0.35,
                         ),
-                        borderRadius: context.tokens.br(6),
+                        borderRadius: context.tokens.brXs,
                       ),
                     ),
                     Positioned(
@@ -698,7 +698,7 @@ class _VolumeRow extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: fill,
-                          borderRadius: context.tokens.br(4),
+                          borderRadius: context.tokens.brXs,
                         ),
                       ),
                     ),
@@ -798,7 +798,7 @@ class _ShareRow extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-                    borderRadius: t.br(6),
+                    borderRadius: t.brXs,
                   ),
                 ),
                 FractionallySizedBox(
@@ -806,7 +806,7 @@ class _ShareRow extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: t.muted,
-                      borderRadius: t.br(6),
+                      borderRadius: t.brXs,
                     ),
                   ),
                 ),
@@ -839,7 +839,7 @@ class _RecoveryChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         border: Border.all(color: border),
-        borderRadius: context.tokens.br(6),
+        borderRadius: context.tokens.brXs,
       ),
       child: Text(
         '${hours}h',
@@ -884,7 +884,7 @@ class TemplateChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : context.tokens.panel,
-          borderRadius: context.tokens.br(10),
+          borderRadius: context.tokens.brSm,
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,

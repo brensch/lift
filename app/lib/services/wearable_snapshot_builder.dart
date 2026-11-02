@@ -40,13 +40,13 @@ class WearableSnapshotBuilder {
     if (!hasActive && !isEnded) return null;
 
     final stateSnapshot = workoutProvider.stateSnapshot;
-    final stateValue = isEnded
-        ? WorkoutState.WORKOUT_STATE_ALL_DONE.value
-        : (stateSnapshot?.state.value ??
-              WorkoutState.WORKOUT_STATE_UNSPECIFIED.value);
     final now = workoutProvider.now;
     final nowMs = now.millisecondsSinceEpoch;
     final nowUnix = nowMs ~/ 1000;
+    final state = isEnded
+        ? WorkoutState.WORKOUT_STATE_ALL_DONE
+        : stateAt(stateSnapshot, nowUnix);
+    final allDone = state == WorkoutState.WORKOUT_STATE_ALL_DONE;
     final nextSet = workoutProvider.nextPendingSet;
     final proposedSets = workoutProvider.proposedSets;
     final completedSets = workoutProvider.completedSets;
@@ -129,9 +129,9 @@ class WearableSnapshotBuilder {
     // unanswered rung the set "right" would append ("{done}:0").
     final target = isEnded ? null : workoutProvider.doneTargetSet;
     // The watch shows the same stage as the phone's bar.
-    final lifting = isLiftingState(stateValue);
+    final lifting = state == WorkoutState.WORKOUT_STATE_LIFTING;
 
-    if (target != null && !isAllDoneState(stateValue)) {
+    if (target != null && !allDone) {
       final stage = stageOf(stateSnapshot, nowUnix);
       snapshot.youCard = card(
         target,
@@ -157,7 +157,7 @@ class WearableSnapshotBuilder {
           ),
         );
       }
-    } else if (isAllDoneState(stateValue)) {
+    } else if (allDone) {
       snapshot.completionSummary = _buildCompletionSummary(
         workoutProvider.summary ?? WorkoutSummary(),
         elapsedSeconds,
@@ -188,7 +188,7 @@ class WearableSnapshotBuilder {
       status: multiplayerProvider.sessionStatus,
       myUserId: myUserId,
       nowUnix: nowUnix,
-      stateValue: stateValue,
+      state: state,
       restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
       nextSet: nextSet,
     );
@@ -252,7 +252,7 @@ class WearableSnapshotBuilder {
     required SessionStatus? status,
     required String myUserId,
     required int nowUnix,
-    required int stateValue,
+    required WorkoutState state,
     required int restUntil,
     required ProposedSet? nextSet,
   }) {
@@ -268,7 +268,7 @@ class WearableSnapshotBuilder {
       myUserId: myUserId,
       others: others,
       nowUnix: nowUnix,
-      stateValue: stateValue,
+      state: state,
       restUntil: restUntil,
       nextSet: nextSet,
     );
