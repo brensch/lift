@@ -101,6 +101,8 @@ class LiveSetCircle extends StatelessWidget {
   /// calibration sets is lifted yet.
   static bool isFirstEver(SectionWorkout w, ProposedSet set) =>
       set.calibration &&
+      // Started ("test me", or the watch): it is a set like any other.
+      w.liftingSetId != set.id &&
       !w.proposedSets.any(
         (s) =>
             s.exercise == set.exercise &&
