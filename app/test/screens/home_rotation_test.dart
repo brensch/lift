@@ -201,7 +201,7 @@ void main() {
       await scrollTo(inSheet(find.text(title.toUpperCase())), 100);
       expect(inSheet(find.text(title.toUpperCase())), findsOneWidget);
     }
-    // A benched workout that adds nothing the rotation misses says nothing.
+    // A reserve that adds nothing the rotation misses says nothing.
     await scrollTo(row('Arms'), 100);
     expect(tester.widget<TemplateRow>(row('Arms')).note, isEmpty);
     expect(
@@ -238,9 +238,9 @@ void main() {
     expect(named('Big Three').inRotation, isTrue);
     expect(rowIcon('Big Three', l.addToPlan), findsNothing);
 
-    // The list is [Rotation, A, B, Big Three, Bench, Arms]. A drag
-    // (through the list's own callback) of B past the Bench heading makes
-    // it the first on the bench.
+    // The list is [Rotation, A, B, Big Three, Reserves, Arms]. A drag
+    // (through the list's own callback) of B past the Reserves heading makes
+    // it the first in the reserves.
     List<String> names_(bool main) => [
       for (final t in h.provider.templates)
         if (t.inRotation == main) t.name,
@@ -255,7 +255,7 @@ void main() {
     expect(names_(false), ['StrongLifts B', 'Arms']);
 
     // Arms up to the top of the rotation: [Rotation, Arms, A, Big Three,
-    // Bench, B].
+    // Reserves, B].
     drag(5, 1);
     await settle(tester, () => named('Arms').inRotation);
     expect(names_(true), ['Arms', 'StrongLifts A', 'Big Three']);
@@ -270,7 +270,7 @@ void main() {
       ),
     );
 
-    // Emptying the benched workouts leaves a line to drop on.
+    // Emptying the reserves leaves a line to drop on.
     drag(5, 1);
     await settle(tester, () => named('StrongLifts B').inRotation);
     expect(names_(false), isEmpty);
@@ -286,9 +286,9 @@ void main() {
     );
     expect(h.provider.templates.any((t) => t.name == 'Arms'), isFalse);
 
-    // A benched workout that adds a missing muscle says so. The rotation is B, A
+    // A reserve that adds a missing muscle says so. The rotation is B, A
     // and Big Three now, none of which trains core; Core goes in as a
-    // bench.
+    // reserves.
     await tester.runAsync(() => h.provider.addLibraryTemplates(['core']));
     await tester.pump();
     String note(String name) => tester.widget<TemplateRow>(row(name)).note;
@@ -399,17 +399,17 @@ void main() {
     expect(inPlan('stronglifts', find.byTooltip(l.applyPlan)), findsOneWidget);
 
     // Home's chips: the plan's three under the rotation's heading, the
-    // old rotation under the benched workouts'.
+    // old rotation under the reserves'.
     await tester.tap(find.byIcon(AppIcons.close));
     await tester.pumpAndSettle();
     double y(Finder f) => tester.getTopLeft(f).dy;
     double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
-    final bench = y(find.text(l.favouritesHeading.toUpperCase()));
+    final reserves = y(find.text(l.favouritesHeading.toUpperCase()));
     for (final name in ['Push', 'Pull', 'Legs']) {
-      expect(chipY(name), lessThan(bench), reason: name);
+      expect(chipY(name), lessThan(reserves), reason: name);
     }
     for (final name in ['StrongLifts A', 'StrongLifts B', 'Arms']) {
-      expect(chipY(name), greaterThan(bench), reason: name);
+      expect(chipY(name), greaterThan(reserves), reason: name);
     }
   });
 }

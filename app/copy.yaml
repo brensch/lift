@@ -48,9 +48,9 @@ library:
   edit_button: Manage
   sheet_title: Your workouts
   # The groups, on Home's chips and in the sheet: the rotation (what the
-  # suggestion picks from) and the bench (saved, never suggested).
+  # suggestion picks from) and the reserves (saved, never suggested).
   rotation_heading: Rotation
-  favourites_heading: Bench
+  favourites_heading: Reserves
   # Under each heading in the Manage sheet.
   rotation_description: The workouts the app uses to work out your least trained muscles.
   favourites_description: In case you want to sneak a cheeky butt sesh, keep it here ready to choose.
@@ -64,7 +64,7 @@ library:
   # The sheet's library rows: + adds it to the rotation. Placeholder.
   add_to_plan: Add to the rotation
   # Under Add, first: ready-made rotations, one tap each. Applying one
-  # makes its workouts the rotation and moves the rest to the bench.
+  # makes its workouts the rotation and moves the rest to the reserves.
   # Placeholders.
   plans_heading: Ready-made plans
   apply_plan: Make this the rotation
@@ -80,16 +80,16 @@ library:
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
-# The rotation: the workouts the suggestion picks from. The rest are on
-# the bench, on Home in their own group and never suggested. {…} are
+# The rotation: the workouts the suggestion picks from. The rest are
+# reserves, on Home in their own group and never suggested. {…} are
 # substituted by the code. All placeholder copy.
 rotation:
   # The template editor's switch, and the line under it.
   switch_label: In the rotation
-  switch_hint: The suggestion picks from these. Off, it's on the bench.
+  switch_hint: The suggestion picks from these. Off, it's a reserve.
   # Home card menu.
   add: Move to rotation
-  remove: Move to bench
+  remove: Move to reserves
   # Home, under the suggested workout's name: the (at most two) muscles
   # most behind. {muscles} is "chest 2/10" or "chest 2/10 and back 0/10".
   rested_one: "{muscles} this week, rested"
@@ -107,7 +107,7 @@ rotation:
   # one lap of the rotation's sets per muscle, then any warnings.
   check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your rotation that we cycle through to make sure you're sculpting the right bits."
   overlap: "{a} and {b} share {shared} of {of} lifts."
-  # Under a benched or a library workout's lifts, when it trains muscles
+  # Under a reserve's or a library workout's lifts, when it trains muscles
   # the rotation trains none of. {muscles} is "calves" or "calves and
   # core". Placeholder.
   adds: "Trains {muscles}, which you don't have."

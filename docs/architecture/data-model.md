@@ -177,18 +177,18 @@ the first sync, the copy built into the app stands in.
   change to a default never rewrites a past session.
 - In the app's Manage sheet a library workout the user does not have is
   added to the rotation with + (`AddLibraryTemplates`, `in_rotation`;
-  without it an entry is added as a benched workout); the user's own are dragged
-  within or between the rotation and the benched workouts (one
+  without it an entry is added as a reserve); the user's own are dragged
+  within or between the rotation and the reserves (one
   `ReorderTemplates` with `rotation_count`: the order, and where the
   rotation ends), opened in the editor, or deleted.
 - A ready-made plan is applied with `ApplyLibraryPlan(plan_id)`, which
   records existing events, no kind of its own: an `AddLibraryTemplates`
-  (as benched workouts) for the plan's entries the user does not have, then one
+  (as reserves) for the plan's entries the user does not have, then one
   `ReorderTemplates` whose first `rotation_count` ids are the user's
   template for each entry in the plan's order (one already in the main
   plan first, else the first following or made from it, so a
   personalised copy is used rather than a second one), and after them
-  every other template, the old rotation first, as benched workouts. Nothing is
+  every other template, the old rotation first, as reserves. Nothing is
   deleted. Plans come from the copy built into the core, not the
   server's sync; `ListTemplateLibrary` lists those whose every entry the
   library in use has.

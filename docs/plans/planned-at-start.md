@@ -260,17 +260,17 @@ rests and tries again; someone who is cooked lowers the weight.
 
 ## Which workout: the rotation and the suggestion
 
-A template is in the **rotation** or on the **bench**. The workouts picked at onboarding are the
+A template is in the **rotation** or in the **reserves**. The workouts picked at onboarding are the
 rotation; a library template added from the Manage sheet joins it
-(`AddLibraryTemplates` with `in_rotation`; without it, on the bench); one
-the user makes starts on the bench. The template editor has an In the
+(`AddLibraryTemplates` with `in_rotation`; without it, in the reserves); one
+the user makes starts in the reserves. The template editor has an In the
 rotation switch and Home's card menu moves a template either way (saved
 with `SaveTemplate`); in the Manage sheet a drag moves it, within its
 section or across into the other, recorded as one `ReorderTemplates`
 whose `rotation_count` says where the rotation ends. A library template
 stays coupled either way. Home's chips are in three groups, each under a section label:
 the rotation (☆ on the suggestion; a one-line hint when it is empty),
-the benched workouts with the Empty workout, then a line of New and Manage.
+the reserves with the Empty workout, then a line of New and Manage.
 
 A library entry is offered only while the user does not have it: no
 template follows it (`library_id`) and none was made from it
@@ -295,7 +295,7 @@ template within 20% of the best score is tied; the tie goes to the one
 started least recently, never started first. If none of them scores above
 0, the one started least recently (the fallback). If every rotation
 template is left out, the one whose first lift's muscle recovers soonest.
-Benched workouts are never suggested.
+Reserves are never suggested.
 
 The answer is structured:
 
@@ -332,7 +332,7 @@ wrong:
 | overlap | two templates share over 70% of the smaller one's lifts |
 
 It also names what each workout outside the rotation would add: for each
-benched workout and each library entry the user does not have, the muscles its
+reserve and each library entry the user does not have, the muscles its
 lifts train first that the lap trains none of (`additions`; one adding
 nothing is not listed).
 
@@ -342,10 +342,10 @@ plain line for an overlap. The bars are Home's rows drawn as
 shares: each muscle's sets against the most-trained muscle's, with no
 target band, no tick and no numbers, since a lap is not a week and the
 suggestion does not go through the rotation in order. The
-gap has no line of its own: each benched workout's and library entry's row says
+gap has no line of its own: each reserve's and library entry's row says
 what it would add, under its lifts ("Trains calves and core, which you
 don't have."). Then one draggable list: the rotation's
-heading and its workouts, the benched workouts' heading and theirs (an empty
+heading and its workouts, the reserves' heading and theirs (an empty
 section shows "Drag a workout here" to drop on). Each row is a drag
 handle, the name with its lifts on one line, and delete (one of the
 user's own asks first); tapping it opens the editor. Below, Add: first
@@ -353,7 +353,7 @@ the ready-made plans (StrongLifts, Upper / Lower, Push / Pull / Legs,
 Full Body; `plans` in `templates/library.yaml`), each its name, its
 workouts and a line, with + to make it the rotation
 (`ApplyLibraryPlan`: what the user lacks is added, the user's own copy of
-an entry is used, the old rotation moves to the benched workouts); the one whose
+an entry is used, the old rotation moves to the reserves); the one whose
 workouts the rotation already is (in any order) says Current instead.
 Then the library entries the user does not have, by group, each with +
 into the rotation.
@@ -362,8 +362,8 @@ into the rotation.
 
 | Page | Shows | From |
 |---|---|---|
-| Home | the rotation's chips, the benched workouts', then New and Manage, each group under its label; the weekly volume; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
-| Manage sheet | the rotation check: each muscle's share of a lap, and its warnings; the rotation, the benched workouts, the ready-made plans, the library entries not yet had, each benched workout and entry with what it would add | `rotation_check` (`volume`, `warnings`, `additions`); `ListTemplateLibrary` (`plans`); `ApplyLibraryPlan` |
+| Home | the rotation's chips, the reserves', then New and Manage, each group under its label; the weekly volume; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
+| Manage sheet | the rotation check: each muscle's share of a lap, and its warnings; the rotation, the reserves, the ready-made plans, the library entries not yet had, each reserve and entry with what it would add | `rotation_check` (`volume`, `warnings`, `additions`); `ListTemplateLibrary` (`plans`); `ApplyLibraryPlan` |
 | Template editor | in rotation or not; each lift's next plan, the list on screen planned as one workout with the budget (what Home's card shows for it once saved); the sheet that sets an override. Clone opens it on a library template and records nothing until Save, which makes it the user's own | `plan` (`GetTemplatePlan`) |
 | Live workout, watch | the set's weight and reps; the reason when the lift comes up; changes | the workout's log |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
@@ -404,7 +404,7 @@ No compatibility code; the new log is the only shape the core reads.
    decisions does not fold, and a push carrying one is refused as
    `account_diverged` with nothing stored.
 3. On the phone: install fresh and sign in; it pulls the converted log.
-   Android Auto Bench excludes the account files so a reinstall cannot
+   Android Auto Backup excludes the account files so a reinstall cannot
    bring the old log back.
 
 Order: both stores hold the release (Play at 0%, App Store manual
@@ -426,7 +426,7 @@ Workouts logged offline and not synced before the deploy are lost.
   set after it taking the blame), the suggestion (recovered muscles only,
   a recovering first lift leaving a template out, the one back soonest
   when every one is, the 20% tie and the least recent, the fallback,
-  the bench left out), each rotation-check warning and what a benched workout or
+  the reserves left out), each rotation-check warning and what a reserve or
   library entry would add; a library
   template added into the rotation, an entry the user has (coupled or
   made their own) never added again, and a reorder that also moves

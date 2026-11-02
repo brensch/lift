@@ -1,11 +1,11 @@
 /// The Manage sheet ("Your workouts"): the rotation check at the top (a
 /// line, the bars of one lap of the rotation as each muscle's share of
 /// the most-trained one, and what is wrong with it); then one draggable
-/// list of the rotation (the rotation) and the the bench (the favourites),
-/// each row a drag handle, the name and lifts, and delete; a drag reorders
+/// list of the rotation and the reserves, each row a drag handle, the name
+/// and lifts, and delete; a drag reorders
 /// within a section or moves a workout across into the other. Below it,
 /// Add: the ready-made plans, one tap each, then the library workouts the
-/// user does not have yet, each added to the rotation with +. A bench or
+/// user does not have yet, each added to the rotation with +. A reserve or
 /// a library row says which muscles it would add that the rotation
 /// trains none of. Tapping one of the user's workouts opens it in the
 /// editor.
@@ -100,39 +100,39 @@ class _MineItem extends _Item {
 }
 
 /// The draggable list: the rotation's heading, its workouts (or the drop
-/// line), then the the bench' heading and theirs.
+/// line), then the reserves' heading and theirs.
 List<_Item> _sheetItems(
   List<WorkoutTemplate> main,
-  List<WorkoutTemplate> bench,
+  List<WorkoutTemplate> reserves,
 ) => [
   const _SectionItem(true),
   if (main.isEmpty) const _EmptyItem(true),
   for (final t in main) _MineItem(t),
   const _SectionItem(false),
-  if (bench.isEmpty) const _EmptyItem(false),
-  for (final t in bench) _MineItem(t),
+  if (reserves.isEmpty) const _EmptyItem(false),
+  for (final t in reserves) _MineItem(t),
 ];
 
-/// The list after a drag: every workout above the the bench' heading is in
+/// The list after a drag: every workout above the reserves' heading is in
 /// the rotation (one dropped above the rotation's heading too), the rest
-/// are the bench, each in the order shown.
-({List<WorkoutTemplate> main, List<WorkoutTemplate> bench}) _splitItems(
+/// are reserves, each in the order shown.
+({List<WorkoutTemplate> main, List<WorkoutTemplate> reserves}) _splitItems(
   List<_Item> items,
 ) {
   final main = <WorkoutTemplate>[];
-  final bench = <WorkoutTemplate>[];
-  var onBench = false;
+  final reserves = <WorkoutTemplate>[];
+  var inReserves = false;
   for (final item in items) {
     switch (item) {
       case _SectionItem(main: false):
-        onBench = true;
+        inReserves = true;
       case _MineItem(:final template):
-        (onBench ? bench : main).add(template);
+        (inReserves ? reserves : main).add(template);
       default:
         break;
     }
   }
-  return (main: main, bench: bench);
+  return (main: main, reserves: reserves);
 }
 
 class _LibrarySheetState extends State<_LibrarySheet> {
@@ -140,7 +140,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   final Set<String> _busy = {};
 
   /// A drag's result, shown until the core's answer replaces it.
-  ({List<WorkoutTemplate> main, List<WorkoutTemplate> bench})? _dragged;
+  ({List<WorkoutTemplate> main, List<WorkoutTemplate> reserves})? _dragged;
 
   @override
   void initState() {
@@ -184,7 +184,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     await _run(
       '__order__',
       () => wp.reorderTemplates([
-        for (final t in [...split.main, ...split.bench]) t.id,
+        for (final t in [...split.main, ...split.reserves]) t.id,
       ], rotationCount: split.main.length),
     );
     if (mounted) setState(() => _dragged = null);
@@ -233,7 +233,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   }
 
   /// One entry of the draggable list. Only a workout has a handle; a
-  /// bench says what it would add.
+  /// reserve says what it would add.
   Widget _item(_Item item, int index, Map<String, List<MuscleGroup>> adds) {
     final l = copy.library;
     final cs = Theme.of(context).colorScheme;
@@ -354,9 +354,9 @@ class _LibrarySheetState extends State<_LibrarySheet> {
         _dragged ??
         (
           main: templates.where((t) => t.inRotation).toList(),
-          bench: templates.where((t) => !t.inRotation).toList(),
+          reserves: templates.where((t) => !t.inRotation).toList(),
         );
-    final items = _sheetItems(split.main, split.bench);
+    final items = _sheetItems(split.main, split.reserves);
     final t = copy.library;
     final adds = additionsOf(wp.rotationCheck);
 
@@ -478,7 +478,7 @@ Map<String, List<LibraryTemplate>> _grouped(List<LibraryTemplate> entries) {
   return out;
 }
 
-/// A section of the sheet: the rotation, the the bench, Add.
+/// A section of the sheet: the rotation, the reserves, Add.
 class _Heading extends StatelessWidget {
   final String label;
 
