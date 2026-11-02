@@ -41,10 +41,6 @@ class TemplateRow extends StatefulWidget {
   /// A muted line under the name and lifts; none when empty.
   final String note;
 
-  /// Picked out (true: an accent bar before it, the name in the primary
-  /// colour) or stepped back (false: dimmed); null is neither.
-  final bool? emphasis;
-
   const TemplateRow({
     super.key,
     required this.name,
@@ -58,7 +54,6 @@ class TemplateRow extends StatefulWidget {
     this.leading,
     this.expandable = true,
     this.note = '',
-    this.emphasis,
   });
 
   @override
@@ -75,8 +70,7 @@ class _TemplateRowState extends State<TemplateRow> {
     final names = widget.exercises
         .map((e) => exerciseNames[e] ?? e.name)
         .join(' · ');
-    final picked = widget.emphasis == true;
-    final column = Column(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         InkWell(
@@ -91,17 +85,6 @@ class _TemplateRowState extends State<TemplateRow> {
             padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
             child: Row(
               children: [
-                if (picked)
-                  Container(
-                    key: const ValueKey('template-row-picked'),
-                    width: 3,
-                    height: 32,
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: context.tokens.primary,
-                      borderRadius: context.tokens.br(2),
-                    ),
-                  ),
                 ?widget.leading,
                 if (selected != null) ...[
                   SelectBox(selected: selected, colorScheme: cs),
@@ -125,7 +108,6 @@ class _TemplateRowState extends State<TemplateRow> {
                                 ? context.tokens.weight.heavy
                                 : context.tokens.weight.bold,
                             letterSpacing: -0.2,
-                            color: picked ? context.tokens.primary : null,
                           ),
                         ),
                         if (widget.showLifts)
@@ -206,9 +188,6 @@ class _TemplateRowState extends State<TemplateRow> {
           ),
       ],
     );
-    return widget.emphasis == false
-        ? Opacity(opacity: 0.4, child: column)
-        : column;
   }
 }
 

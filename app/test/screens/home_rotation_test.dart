@@ -366,63 +366,6 @@ void main() {
     expect(tester.widget<VolumeCard>(home.first).proportional, isFalse);
   });
 
-  testWidgets('the Manage sheet: a muscle picks out what trains it', (
-    tester,
-  ) async {
-    final h = await boot(tester);
-    addTearDown(h.dispose);
-    await openSheet(tester);
-    Finder row(String name) => _inSheet(find.widgetWithText(TemplateRow, name));
-    bool? emphasis(String name) =>
-        tester.widget<TemplateRow>(row(name)).emphasis;
-    const biceps = MuscleGroup.MUSCLE_GROUP_BICEPS;
-    final muscle = find.byKey(ValueKey('muscle-${biceps.name}'));
-
-    // Each row's emphasis, top to bottom: the main plan, the backups and
-    // the library.
-    Future<List<bool?>> pass() async {
-      final out = <bool?>[];
-      for (final name in ['StrongLifts A', 'Arms', 'Pull', 'Push']) {
-        await scrollSheetTo(tester, row(name), 100);
-        out.add(emphasis(name));
-      }
-      await scrollSheetTo(tester, muscle, -400);
-      return out;
-    }
-
-    // Nothing picked: every row plain.
-    expect(await pass(), [null, null, null, null]);
-
-    // Biceps, first or as a helper (as the bars count it): StrongLifts A
-    // (barbell row), Arms and Pull are picked out, Push dimmed.
-    await tester.tap(muscle);
-    await tester.pump();
-    final bars = tester.widget<VolumeCard>(_inSheet(find.byType(VolumeCard)));
-    expect(bars.highlight, {biceps});
-    expect(await pass(), [true, true, true, false]);
-    await scrollSheetTo(tester, row('Arms'), 100);
-    expect(
-      find.descendant(
-        of: row('Arms'),
-        matching: find.byKey(const ValueKey('template-row-picked')),
-      ),
-      findsOneWidget,
-    );
-    await scrollSheetTo(tester, muscle, -400);
-
-    // Another muscle moves the pick; tapping it again clears it.
-    const chest = MuscleGroup.MUSCLE_GROUP_CHEST;
-    final chestBar = find.byKey(ValueKey('muscle-${chest.name}'));
-    await scrollSheetTo(tester, chestBar, -400);
-    await tester.tap(chestBar);
-    await tester.pump();
-    expect(await pass(), [true, false, false, true]);
-    await scrollSheetTo(tester, chestBar, -400);
-    await tester.tap(chestBar);
-    await tester.pump();
-    expect(await pass(), [null, null, null, null]);
-  });
-
   testWidgets('the Manage sheet: a ready-made plan becomes the main plan', (
     tester,
   ) async {

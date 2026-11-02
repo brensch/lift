@@ -616,15 +616,11 @@ const ExercisePlan$json = {
       '10': 'equipment'
     },
     {'1': 'last_performed_at', '3': 5, '4': 1, '5': 3, '10': 'lastPerformedAt'},
-    {
-      '1': 'secondary_muscles',
-      '3': 6,
-      '4': 3,
-      '5': 14,
-      '6': '.workout.v1.MuscleGroup',
-      '10': 'secondaryMuscles'
-    },
   ],
+  '9': [
+    {'1': 6, '2': 7},
+  ],
+  '10': ['secondary_muscles'],
 };
 
 /// Descriptor for `ExercisePlan`. Decode as a `google.protobuf.DescriptorProto`.
@@ -633,9 +629,8 @@ final $typed_data.Uint8List exercisePlanDescriptor = $convert.base64Decode(
     'VjaXNpb25SCGRlY2lzaW9uEh4KCm92ZXJyaWRkZW4YAiABKAhSCm92ZXJyaWRkZW4SPgoOcHJp'
     'bWFyeV9tdXNjbGUYAyABKA4yFy53b3Jrb3V0LnYxLk11c2NsZUdyb3VwUg1wcmltYXJ5TXVzY2'
     'xlEjcKCWVxdWlwbWVudBgEIAEoDjIZLndvcmtvdXQudjEuRXF1aXBtZW50S2luZFIJZXF1aXBt'
-    'ZW50EioKEWxhc3RfcGVyZm9ybWVkX2F0GAUgASgDUg9sYXN0UGVyZm9ybWVkQXQSRAoRc2Vjb2'
-    '5kYXJ5X211c2NsZXMYBiADKA4yFy53b3Jrb3V0LnYxLk11c2NsZUdyb3VwUhBzZWNvbmRhcnlN'
-    'dXNjbGVz');
+    'ZW50EioKEWxhc3RfcGVyZm9ybWVkX2F0GAUgASgDUg9sYXN0UGVyZm9ybWVkQXRKBAgGEAdSEX'
+    'NlY29uZGFyeV9tdXNjbGVz');
 
 @$core.Deprecated('Use startWorkoutRequestDescriptor instead')
 const StartWorkoutRequest$json = {

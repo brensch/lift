@@ -882,7 +882,6 @@ impl<'a> Planner<'a> {
         ExercisePlan {
             overridden: self.account.overrides.contains_key(&decision.exercise),
             primary_muscle: primary_muscle(ex) as i32,
-            secondary_muscles: muscles(ex).iter().skip(1).map(|m| *m as i32).collect(),
             equipment: load_style(ex).to_proto() as i32,
             last_performed_at: self
                 .sessions

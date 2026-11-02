@@ -341,8 +341,8 @@ message ExercisePlan {
   EquipmentKind equipment = 4;
   // When it was last done (the session's end), 0 = never.
   int64 last_performed_at = 5;
-  // The other muscles it works, at half credit in the weekly sets.
-  repeated MuscleGroup secondary_muscles = 6;
+  reserved 6;
+  reserved "secondary_muscles";
 }
 
 // --- RPC Requests/Responses ---

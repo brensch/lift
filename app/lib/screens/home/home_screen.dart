@@ -476,23 +476,17 @@ class _ActionChip extends StatelessWidget {
   }
 }
 
-/// The distinct primary muscles a template trains, in exercise order.
+/// The distinct primary muscles a template trains, in exercise order, from
+/// each lift's plan (Home's [plans] hold every lift's).
 List<MuscleGroup> templateMuscles(
   WorkoutTemplate template,
-  List<ExercisePlan> plans,
-) => exercisesMuscles(template.exercises, plans);
-
-/// The distinct primary muscles of [exercises], in order, from each lift's
-/// plan (Home's [plans] hold every lift's).
-List<MuscleGroup> exercisesMuscles(
-  List<Exercise> exercises,
   List<ExercisePlan> plans,
 ) {
   final byExercise = {
     for (final p in plans) p.decision.exercise: p.primaryMuscle,
   };
   final out = <MuscleGroup>[];
-  for (final exercise in exercises) {
+  for (final exercise in template.exercises) {
     final muscle = byExercise[exercise];
     if (muscle != null &&
         muscle != MuscleGroup.MUSCLE_GROUP_UNSPECIFIED &&
@@ -559,14 +553,11 @@ class VolumeCard extends StatelessWidget {
   final List<MuscleRecoveryStatus> recovery;
 
   /// Primary muscles of the selected template; empty = nothing selected
-  /// (no dimming, no colored names).
+  /// (no dimming, no colored names). Not drawn when [proportional].
   final Set<MuscleGroup> highlight;
 
   /// Bars as shares of the largest, not against the weekly target.
   final bool proportional;
-
-  /// A tap on a muscle's row; null leaves the rows untappable.
-  final ValueChanged<MuscleGroup>? onTapMuscle;
 
   const VolumeCard({
     super.key,
@@ -574,7 +565,6 @@ class VolumeCard extends StatelessWidget {
     required this.recovery,
     this.highlight = const {},
     this.proportional = false,
-    this.onTapMuscle,
   });
 
   static const _recoveryKeys = {
@@ -612,41 +602,20 @@ class VolumeCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (final entry in volume) _row(entry, recoveryByMuscle, most),
+          for (final entry in volume)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3.5),
+              child: proportional
+                  ? _ShareRow(entry: entry, most: most)
+                  : _VolumeRow(
+                      entry: entry,
+                      recovery: recoveryByMuscle[entry.muscle],
+                      targeted: highlight.contains(entry.muscle),
+                      anySelected: highlight.isNotEmpty,
+                    ),
+            ),
         ],
       ),
-    );
-  }
-
-  /// One muscle's row, tappable when the card takes taps.
-  Widget _row(
-    MuscleVolume entry,
-    Map<MuscleGroup, MuscleRecoveryStatus> recoveryByMuscle,
-    double most,
-  ) {
-    final targeted = highlight.contains(entry.muscle);
-    final Widget row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.5),
-      child: proportional
-          ? _ShareRow(
-              entry: entry,
-              most: most,
-              targeted: targeted,
-              anySelected: highlight.isNotEmpty,
-            )
-          : _VolumeRow(
-              entry: entry,
-              recovery: recoveryByMuscle[entry.muscle],
-              targeted: targeted,
-              anySelected: highlight.isNotEmpty,
-            ),
-    );
-    final onTap = onTapMuscle;
-    if (onTap == null) return row;
-    return InkWell(
-      key: ValueKey('muscle-${entry.muscle.name}'),
-      onTap: () => onTap(entry.muscle),
-      child: row,
     );
   }
 }
@@ -817,15 +786,8 @@ class _VolumeRow extends StatelessWidget {
 class _ShareRow extends StatelessWidget {
   final MuscleVolume entry;
   final double most;
-  final bool targeted;
-  final bool anySelected;
 
-  const _ShareRow({
-    required this.entry,
-    required this.most,
-    required this.targeted,
-    required this.anySelected,
-  });
+  const _ShareRow({required this.entry, required this.most});
 
   @override
   Widget build(BuildContext context) {
@@ -834,7 +796,7 @@ class _ShareRow extends StatelessWidget {
     final share = most > 0
         ? (entry.completedSets7d / most).clamp(0.0, 1.0)
         : 0.0;
-    final row = Row(
+    return Row(
       children: [
         SizedBox(
           width: 96,
@@ -844,7 +806,7 @@ class _ShareRow extends StatelessWidget {
             style: TextStyle(
               fontSize: t.size.bodyLg,
               fontWeight: t.weight.bold,
-              color: targeted ? t.primary : cs.onSurface,
+              color: cs.onSurface,
             ),
           ),
         ),
@@ -864,7 +826,7 @@ class _ShareRow extends StatelessWidget {
                   widthFactor: share,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: targeted ? t.primary : t.muted,
+                      color: t.muted,
                       borderRadius: t.br(6),
                     ),
                   ),
@@ -875,7 +837,6 @@ class _ShareRow extends StatelessWidget {
         ),
       ],
     );
-    return Opacity(opacity: anySelected && !targeted ? 0.45 : 1.0, child: row);
   }
 }
 
