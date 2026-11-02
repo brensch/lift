@@ -397,6 +397,68 @@ impl<'a> Call<'a> {
         })
     }
 
+    /// A ready-made plan as the main plan: its entries the user lacks are
+    /// added, then one reorder puts the user's template for each entry
+    /// first, in the plan's order, as the main plan, and every other
+    /// template after it (the old main plan first) as a backup.
+    pub fn apply_library_plan(
+        &mut self,
+        req: ApplyLibraryPlanRequest,
+    ) -> Result<ApplyLibraryPlanResponse, CoreError> {
+        let plan = crate::template_library::plans()
+            .iter()
+            .find(|p| p.id == req.plan_id)
+            .ok_or_else(|| CoreError::NotFound(format!("unknown plan {:?}", req.plan_id)))?;
+        let missing: Vec<String> = plan
+            .library_ids
+            .iter()
+            .filter(|id| !self.account.has_library_entry(id))
+            .cloned()
+            .collect();
+        if !missing.is_empty() {
+            let entries = self.library_entries(&missing)?;
+            self.record(event::Kind::AddLibraryTemplates(
+                AddLibraryTemplatesRequest {
+                    library_ids: missing,
+                    entries,
+                    in_rotation: false,
+                },
+            ))?;
+        }
+        let templates = &self.account.templates;
+        let mut main: Vec<String> = Vec::with_capacity(plan.library_ids.len());
+        for id in &plan.library_ids {
+            // One already in the main plan before any other made from it.
+            let from = |t: &&WorkoutTemplate| &t.library_id == id || &t.origin_library_id == id;
+            let mine = templates
+                .iter()
+                .filter(from)
+                .find(|t| t.in_rotation && !main.contains(&t.id))
+                .or_else(|| {
+                    templates
+                        .iter()
+                        .filter(from)
+                        .find(|t| !main.contains(&t.id))
+                })
+                .ok_or_else(|| CoreError::NotFound(format!("no template for {id:?}")))?;
+            main.push(mine.id.clone());
+        }
+        let rest = templates
+            .iter()
+            .filter(|t| t.in_rotation)
+            .chain(templates.iter().filter(|t| !t.in_rotation))
+            .filter(|t| !main.contains(&t.id))
+            .map(|t| t.id.clone());
+        let template_ids: Vec<String> = main.iter().cloned().chain(rest).collect();
+        self.record(event::Kind::ReorderTemplates(ReorderTemplatesRequest {
+            template_ids,
+            rotation_count: Some(main.len() as i32),
+        }))?;
+        Ok(ApplyLibraryPlanResponse {
+            home: Some(self.view().home(0)),
+        })
+    }
+
     /// Bring in history from elsewhere as it was (an account moving here).
     pub fn import_history(
         &mut self,
@@ -748,6 +810,16 @@ impl<'a> View<'a> {
     pub fn list_template_library(&self) -> ListTemplateLibraryResponse {
         ListTemplateLibraryResponse {
             templates: self.library.to_vec(),
+            // Only the plans whose every entry the library has.
+            plans: crate::template_library::plans()
+                .iter()
+                .filter(|p| {
+                    p.library_ids
+                        .iter()
+                        .all(|id| self.library.iter().any(|e| &e.id == id))
+                })
+                .cloned()
+                .collect(),
         }
     }
 
@@ -822,6 +894,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "SetOverride" => set_override,
             "CompleteOnboarding" => complete_onboarding,
             "AddLibraryTemplates" => add_library_templates,
+            "ApplyLibraryPlan" => apply_library_plan,
             "CloneTemplate" => clone_template,
             "UpdateSetting" => update_setting,
             "ImportHistory" => import_history,

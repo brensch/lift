@@ -26,12 +26,12 @@ use schlift_core::account::Account;
 use schlift_core::api::{Call, View};
 use schlift_core::pb::{
     workout_mutation::Mutation, AddExercisesRequest, AdjustExerciseWeightRequest,
-    AppendWorkoutMutationsRequest, CompleteOnboardingRequest, CompleteSetRequest, CompletedSet,
-    DeleteCompletedSetRequest, EditCompletedSetRequest, EndWorkoutRequest, Event, Exercise,
-    ExerciseDecision, ExercisePlan, GetHomeRequest, GetWorkoutRequest, GetWorkoutResponse,
-    PlanReasonKind, RemoveExerciseRequest, ReorderExercisesRequest, SetOverrideRequest,
-    SkipWarmupsRequest, StartSetRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation,
-    WorkoutState,
+    AppendWorkoutMutationsRequest, ApplyLibraryPlanRequest, CompleteOnboardingRequest,
+    CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest, EditCompletedSetRequest,
+    EndWorkoutRequest, Event, Exercise, ExerciseDecision, ExercisePlan, GetHomeRequest,
+    GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
+    ReorderExercisesRequest, SetOverrideRequest, SkipWarmupsRequest, StartSetRequest,
+    StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutState,
 };
 use schlift_core::plan::Planner;
 
@@ -152,6 +152,47 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             });
             Vec::new()
         }
+    };
+
+    // A third of users then pick a ready-made plan: it is the main plan
+    // afterwards, in its order.
+    let plans = schlift_core::template_library::plans();
+    let templates = if !plans.is_empty() && rng.gen_bool(0.3) {
+        let plan = &plans[rng.gen_range(0..plans.len())];
+        match sim.call(now).apply_library_plan(ApplyLibraryPlanRequest {
+            plan_id: plan.id.clone(),
+        }) {
+            Ok(r) => {
+                let after = r.home.map(|h| h.templates).unwrap_or_default();
+                let main: Vec<&str> = after
+                    .iter()
+                    .filter(|t| t.in_rotation)
+                    .map(|t| t.origin_library_id.as_str())
+                    .collect();
+                if main != plan.library_ids {
+                    violations.push(Violation {
+                        user: username.clone(),
+                        workout_id: String::new(),
+                        step: "apply_library_plan".into(),
+                        invariant: "a ready-made plan is not the main plan after applying it",
+                        detail: format!("{} gave {main:?}", plan.id),
+                    });
+                }
+                after
+            }
+            Err(e) => {
+                violations.push(Violation {
+                    user: username.clone(),
+                    workout_id: String::new(),
+                    step: "apply_library_plan".into(),
+                    invariant: "ApplyLibraryPlan returned an error",
+                    detail: e.to_string(),
+                });
+                templates
+            }
+        }
+    } else {
+        templates
     };
 
     // Time only moves forward: a session two days after the last one ended,

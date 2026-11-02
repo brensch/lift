@@ -1914,6 +1914,128 @@ mod rotation {
         assert!(after.rotation_check.is_some());
     }
 
+    /// The main plan and the backups, by name, in order.
+    fn sections(home: &GetHomeResponse) -> (Vec<String>, Vec<String>) {
+        let names = |main: bool| {
+            home.templates
+                .iter()
+                .filter(|t| t.in_rotation == main)
+                .map(|t| t.name.clone())
+                .collect()
+        };
+        (names(true), names(false))
+    }
+
+    fn apply_plan(app: &mut App, plan_id: &str) -> GetHomeResponse {
+        app.call()
+            .apply_library_plan(ApplyLibraryPlanRequest {
+                plan_id: plan_id.into(),
+            })
+            .unwrap()
+            .home
+            .unwrap()
+    }
+
+    /// The library lists the ready-made plans built in.
+    #[test]
+    fn library_lists_the_plans() {
+        let app = App::new();
+        let listed = app.view().list_template_library().plans;
+        assert_eq!(listed, schlift_core::template_library::plans());
+        assert!(listed.iter().any(|p| p.id == "push_pull_legs"));
+    }
+
+    /// A ready-made plan becomes the main plan in its order: the entries
+    /// the user lacks are added, the old main plan moves to the backups
+    /// (nothing is deleted), and the user's own copy of an entry is used
+    /// rather than a second one. The replay (App's drop) rebuilds it all.
+    #[test]
+    fn applying_a_plan_makes_it_the_main_plan() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["arms".into()],
+                ..Default::default()
+            })
+            .unwrap();
+        // Pull, made the user's own: it stands for the entry.
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["pull".into()],
+                ..Default::default()
+            })
+            .unwrap();
+        let mut pull = by_library(&home(&mut app), "pull");
+        pull.name = "My Pull".into();
+        app.call()
+            .save_template(SaveTemplateRequest {
+                template: Some(pull.clone()),
+                ..Default::default()
+            })
+            .unwrap();
+        let before = home(&mut app).templates.len();
+
+        let home = apply_plan(&mut app, "push_pull_legs");
+        assert_eq!(
+            sections(&home),
+            (
+                vec!["Push".into(), "My Pull".into(), "Legs".into()],
+                vec![
+                    "StrongLifts A".into(),
+                    "StrongLifts B".into(),
+                    "Arms".into()
+                ],
+            ),
+        );
+        assert_eq!(home.templates.len(), before + 2, "push and legs added");
+        let mine = home.templates.iter().find(|t| t.id == pull.id).unwrap();
+        assert!(mine.in_rotation && !mine.coupled, "the user's own is used");
+        assert!(
+            home.templates
+                .iter()
+                .filter(|t| t.name == "Push" || t.name == "Legs")
+                .all(|t| t.coupled),
+            "added ones follow the library"
+        );
+
+        // Back to StrongLifts: nothing added, the user's A and B go first
+        // and PPL moves to the backups ahead of Arms.
+        let count = home.templates.len();
+        let events = app.log.len();
+        let home = apply_plan(&mut app, "stronglifts");
+        assert_eq!(home.templates.len(), count);
+        assert_eq!(app.log.len(), events + 1, "only the reorder");
+        assert_eq!(
+            sections(&home),
+            (
+                vec!["StrongLifts A".into(), "StrongLifts B".into()],
+                vec![
+                    "Push".into(),
+                    "My Pull".into(),
+                    "Legs".into(),
+                    "Arms".into()
+                ],
+            ),
+        );
+    }
+
+    /// An unknown plan records nothing.
+    #[test]
+    fn applying_an_unknown_plan_fails() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let events = app.log.len();
+        let err = app
+            .call()
+            .apply_library_plan(ApplyLibraryPlanRequest {
+                plan_id: "nope".into(),
+            })
+            .unwrap_err();
+        assert!(matches!(err, CoreError::NotFound(_)), "{err:?}");
+        assert_eq!(app.log.len(), events);
+    }
+
     /// Putting a library template in rotation (or out) keeps it following
     /// the library, even after the library has changed it.
     #[test]

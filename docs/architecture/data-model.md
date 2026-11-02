@@ -138,9 +138,11 @@ server keeps those in the fold.
 `templates/library.yaml` is the source of truth for the templates everyone
 can pick from: `groups` (key + label, in display order) and `templates`
 (stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
-exercises as `Exercise` enum names without the `EXERCISE_` prefix). The core
-embeds the file at build time (`core/src/template_library.rs`; `cargo test`
-fails on an unknown exercise name).
+exercises as `Exercise` enum names without the `EXERCISE_` prefix), and
+`plans`: ready-made main plans (stable `id`, `name`, `blurb`, and
+`templates`, a list of template ids). The core embeds the file at build
+time (`core/src/template_library.rs`; `cargo test` fails on an unknown
+exercise name, or a plan naming an unknown or repeated template).
 
 **Editing the defaults:** change the YAML and deploy the backend. The server
 sends its library down every Sync stream on connect; the phone keeps it in
@@ -179,6 +181,17 @@ the first sync, the copy built into the app stands in.
   within or between the main plan and the backups (one
   `ReorderTemplates` with `rotation_count`: the order, and where the
   rotation ends), opened in the editor, or deleted.
+- A ready-made plan is applied with `ApplyLibraryPlan(plan_id)`, which
+  records existing events, no kind of its own: an `AddLibraryTemplates`
+  (as backups) for the plan's entries the user does not have, then one
+  `ReorderTemplates` whose first `rotation_count` ids are the user's
+  template for each entry in the plan's order (one already in the main
+  plan first, else the first following or made from it, so a
+  personalised copy is used rather than a second one), and after them
+  every other template, the old main plan first, as backups. Nothing is
+  deleted. Plans come from the copy built into the core, not the
+  server's sync; `ListTemplateLibrary` lists those whose every entry the
+  library in use has.
   Never reuse or rename an id in the YAML.
 - The website's `/routines` page is rendered from the same YAML at build
   time (`web/scripts/sync-content.mjs`), not from an RPC.

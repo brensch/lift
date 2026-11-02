@@ -7,7 +7,6 @@ import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/logic/rotation_text.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/screens/home/home_screen.dart';
-import 'package:schlift/screens/home/template_library_sheet.dart';
 import 'package:schlift/widgets/template_row.dart';
 import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/services/grpc_client.dart';
@@ -74,6 +73,38 @@ Future<void> settle(WidgetTester tester, bool Function() done) async {
   }
 }
 
+final _sheet = find.byType(DraggableScrollableSheet);
+Finder _inSheet(Finder f) => find.descendant(of: _sheet, matching: f);
+
+/// Drag the sheet's list until [target] is built, letting the core answer
+/// (the library loads from it) between drags.
+Future<void> scrollSheetTo(
+  WidgetTester tester,
+  Finder target,
+  double by,
+) async {
+  for (var i = 0; i < 30 && target.evaluate().isEmpty; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.drag(_inSheet(find.byType(Scrollable)).first, Offset(0, -by));
+    await tester.pump();
+  }
+  await tester.ensureVisible(target);
+  await tester.pump();
+}
+
+/// Open the Manage sheet and wait for the library.
+Future<void> openSheet(WidgetTester tester) async {
+  await tester.tap(find.text(copy.library.editButton));
+  await settle(
+    tester,
+    () =>
+        _sheet.evaluate().isNotEmpty &&
+        _inSheet(find.byType(CircularProgressIndicator)).evaluate().isEmpty,
+  );
+}
+
 /// The chips in their groups, the suggestion's reason, and the Manage
 /// sheet: the rotation check (its line and bars), the sections, what a
 /// workout would add, adding into the rotation, moving to the favourites.
@@ -137,42 +168,20 @@ void main() {
     final h = await boot(tester);
     addTearDown(h.dispose);
     final l = copy.library;
-    final sheet = find.byType(DraggableScrollableSheet);
-    Finder inSheet(Finder f) => find.descendant(of: sheet, matching: f);
+    final inSheet = _inSheet;
     Finder row(String name) => find.widgetWithText(TemplateRow, name);
     Finder rowIcon(String name, String tooltip) =>
         find.descendant(of: row(name), matching: find.byTooltip(tooltip));
-    // Drag the sheet's list until [target] is built, letting the core
-    // answer (the library loads from it) between drags.
-    Future<void> scrollTo(Finder target, double by) async {
-      for (var i = 0; i < 30 && target.evaluate().isEmpty; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 50)),
-        );
-        await tester.drag(
-          inSheet(find.byType(Scrollable)).first,
-          Offset(0, -by),
-        );
-        await tester.pump();
-      }
-      await tester.ensureVisible(target);
-      await tester.pump();
-    }
+    Future<void> scrollTo(Finder target, double by) =>
+        scrollSheetTo(tester, target, by);
 
     WorkoutTemplate named(String name) =>
         h.provider.templates.firstWhere((t) => t.name == name);
 
-    await tester.tap(find.text(l.editButton));
-    await settle(
-      tester,
-      () =>
-          sheet.evaluate().isNotEmpty &&
-          inSheet(find.byType(CircularProgressIndicator)).evaluate().isEmpty,
-    );
+    await openSheet(tester);
 
-    // The check: the owner's line above the bars of one lap's sets per
-    // muscle, and only the warnings that apply; no gap line, no muscles
-    // to tap.
+    // The check: the owner's line above the bars of one lap's shares per
+    // muscle, and only the warnings that apply; no gap line.
     final r = copy.rotation;
     final check = h.provider.rotationCheck!;
     final names = {for (final t in h.provider.templates) t.id: t.name};
@@ -187,14 +196,6 @@ void main() {
     }
     expect(inSheet(find.text(r.tooFew)), findsNothing, reason: 'two in it');
     expect(inSheet(find.textContaining('Trains everything')), findsNothing);
-    expect(
-      find.descendant(
-        of: find.byType(RotationCheckSection),
-        matching: find.byType(InkWell),
-      ),
-      findsNothing,
-      reason: 'no selector',
-    );
 
     // The sections, and no library row for what the user has.
     for (final title in [l.rotationHeading, l.favouritesHeading]) {
@@ -323,5 +324,150 @@ void main() {
     );
     await scrollTo(rowIcon('Core', l.addToPlan), 200);
     expect(note('Core'), core);
+  });
+
+  testWidgets('the Manage sheet: shares, no target, no numbers', (
+    tester,
+  ) async {
+    final h = await boot(tester);
+    addTearDown(h.dispose);
+    await openSheet(tester);
+
+    final bars = _inSheet(find.byType(VolumeCard));
+    final card = tester.widget<VolumeCard>(bars);
+    expect(card.proportional, isTrue);
+    expect(card.volume, h.provider.rotationCheck!.volume);
+    // A row per muscle and nothing that reads as a number: no set counts,
+    // no target, no recovery hours.
+    expect(
+      find.descendant(of: bars, matching: find.textContaining(RegExp(r'\d'))),
+      findsNothing,
+    );
+    expect(find.descendant(of: bars, matching: find.text('▲')), findsNothing);
+    // The biggest share fills its track; Home's card is the weekly one.
+    final most = card.volume
+        .map((v) => v.completedSets7d)
+        .reduce((a, b) => a > b ? a : b);
+    expect(most, greaterThan(0));
+    final shares = tester
+        .widgetList<FractionallySizedBox>(
+          find.descendant(
+            of: bars,
+            matching: find.byType(FractionallySizedBox),
+          ),
+        )
+        .map((b) => b.widthFactor)
+        .toList();
+    expect(shares.length, card.volume.length);
+    expect(shares.reduce((a, b) => a! > b! ? a : b), 1.0);
+    final home = find.descendant(
+      of: find.byType(HomeScreen),
+      matching: find.byType(VolumeCard),
+    );
+    expect(tester.widget<VolumeCard>(home.first).proportional, isFalse);
+  });
+
+  testWidgets('the Manage sheet: a muscle picks out what trains it', (
+    tester,
+  ) async {
+    final h = await boot(tester);
+    addTearDown(h.dispose);
+    await openSheet(tester);
+    Finder row(String name) => _inSheet(find.widgetWithText(TemplateRow, name));
+    bool? emphasis(String name) =>
+        tester.widget<TemplateRow>(row(name)).emphasis;
+    const biceps = MuscleGroup.MUSCLE_GROUP_BICEPS;
+    final muscle = find.byKey(ValueKey('muscle-${biceps.name}'));
+
+    // Each row's emphasis, top to bottom: the main plan, the backups and
+    // the library.
+    Future<List<bool?>> pass() async {
+      final out = <bool?>[];
+      for (final name in ['StrongLifts A', 'Arms', 'Pull', 'Push']) {
+        await scrollSheetTo(tester, row(name), 100);
+        out.add(emphasis(name));
+      }
+      await scrollSheetTo(tester, muscle, -400);
+      return out;
+    }
+
+    // Nothing picked: every row plain.
+    expect(await pass(), [null, null, null, null]);
+
+    // Biceps: Arms (curls first) and Pull (barbell curl) are picked out,
+    // StrongLifts A and Push dimmed.
+    await tester.tap(muscle);
+    await tester.pump();
+    final bars = tester.widget<VolumeCard>(_inSheet(find.byType(VolumeCard)));
+    expect(bars.highlight, {biceps});
+    expect(await pass(), [false, true, true, false]);
+    await scrollSheetTo(tester, row('Arms'), 100);
+    expect(
+      find.descendant(
+        of: row('Arms'),
+        matching: find.byKey(const ValueKey('template-row-picked')),
+      ),
+      findsOneWidget,
+    );
+    await scrollSheetTo(tester, muscle, -400);
+
+    // Another muscle moves the pick; tapping it again clears it.
+    const chest = MuscleGroup.MUSCLE_GROUP_CHEST;
+    final chestBar = find.byKey(ValueKey('muscle-${chest.name}'));
+    await scrollSheetTo(tester, chestBar, -400);
+    await tester.tap(chestBar);
+    await tester.pump();
+    expect(await pass(), [true, false, false, true]);
+    await scrollSheetTo(tester, chestBar, -400);
+    await tester.tap(chestBar);
+    await tester.pump();
+    expect(await pass(), [null, null, null, null]);
+  });
+
+  testWidgets('the Manage sheet: a ready-made plan becomes the main plan', (
+    tester,
+  ) async {
+    final h = await boot(tester);
+    addTearDown(h.dispose);
+    await openSheet(tester);
+    final l = copy.library;
+    Finder plan(String id) => find.byKey(ValueKey('plan-$id'));
+    Finder inPlan(String id, Finder f) =>
+        find.descendant(of: plan(id), matching: f);
+
+    // StrongLifts is what the main plan is; the others can be applied.
+    await scrollSheetTo(tester, plan('push_pull_legs'), 200);
+    expect(inPlan('stronglifts', find.text(l.planCurrent)), findsOneWidget);
+    expect(inPlan('stronglifts', find.byTooltip(l.applyPlan)), findsNothing);
+    expect(
+      inPlan('push_pull_legs', find.text('Push · Pull · Legs')),
+      findsOneWidget,
+    );
+
+    await tester.tap(inPlan('push_pull_legs', find.byTooltip(l.applyPlan)));
+    List<String> names(bool main) => [
+      for (final t in h.provider.templates)
+        if (t.inRotation == main) t.name,
+    ];
+    await settle(tester, () => names(true).join() == 'PushPullLegs');
+    expect(names(true), ['Push', 'Pull', 'Legs']);
+    expect(names(false), ['StrongLifts A', 'StrongLifts B', 'Arms']);
+    await scrollSheetTo(tester, plan('push_pull_legs'), 200);
+    expect(inPlan('push_pull_legs', find.text(l.planCurrent)), findsOneWidget);
+    expect(inPlan('stronglifts', find.byTooltip(l.applyPlan)), findsOneWidget);
+
+    // Home's chips: the plan's three under the main plan's heading, the
+    // old main plan under the backups'.
+    await tester.tap(find.byIcon(AppIcons.close));
+    await tester.pumpAndSettle();
+    double y(Finder f) => tester.getTopLeft(f).dy;
+    double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
+    final backups = y(find.text(l.favouritesHeading.toUpperCase()));
+    for (final name in ['Push', 'Pull', 'Legs']) {
+      expect(chipY(name), lessThan(backups), reason: name);
+    }
+    for (final name in ['StrongLifts A', 'StrongLifts B', 'Arms']) {
+      expect(chipY(name), greaterThan(backups), reason: name);
+    }
   });
 }

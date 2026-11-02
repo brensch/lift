@@ -1609,6 +1609,14 @@ const ListTemplateLibraryResponse$json = {
       '6': '.workout.v1.LibraryTemplate',
       '10': 'templates'
     },
+    {
+      '1': 'plans',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.LibraryPlan',
+      '10': 'plans'
+    },
   ],
 };
 
@@ -1616,7 +1624,58 @@ const ListTemplateLibraryResponse$json = {
 final $typed_data.Uint8List listTemplateLibraryResponseDescriptor =
     $convert.base64Decode(
         'ChtMaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2USOQoJdGVtcGxhdGVzGAEgAygLMhsud29ya2'
-        '91dC52MS5MaWJyYXJ5VGVtcGxhdGVSCXRlbXBsYXRlcw==');
+        '91dC52MS5MaWJyYXJ5VGVtcGxhdGVSCXRlbXBsYXRlcxItCgVwbGFucxgCIAMoCzIXLndvcmtv'
+        'dXQudjEuTGlicmFyeVBsYW5SBXBsYW5z');
+
+@$core.Deprecated('Use libraryPlanDescriptor instead')
+const LibraryPlan$json = {
+  '1': 'LibraryPlan',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'blurb', '3': 3, '4': 1, '5': 9, '10': 'blurb'},
+    {'1': 'library_ids', '3': 4, '4': 3, '5': 9, '10': 'libraryIds'},
+  ],
+};
+
+/// Descriptor for `LibraryPlan`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List libraryPlanDescriptor = $convert.base64Decode(
+    'CgtMaWJyYXJ5UGxhbhIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIUCgVibH'
+    'VyYhgDIAEoCVIFYmx1cmISHwoLbGlicmFyeV9pZHMYBCADKAlSCmxpYnJhcnlJZHM=');
+
+@$core.Deprecated('Use applyLibraryPlanRequestDescriptor instead')
+const ApplyLibraryPlanRequest$json = {
+  '1': 'ApplyLibraryPlanRequest',
+  '2': [
+    {'1': 'plan_id', '3': 1, '4': 1, '5': 9, '10': 'planId'},
+  ],
+};
+
+/// Descriptor for `ApplyLibraryPlanRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List applyLibraryPlanRequestDescriptor =
+    $convert.base64Decode(
+        'ChdBcHBseUxpYnJhcnlQbGFuUmVxdWVzdBIXCgdwbGFuX2lkGAEgASgJUgZwbGFuSWQ=');
+
+@$core.Deprecated('Use applyLibraryPlanResponseDescriptor instead')
+const ApplyLibraryPlanResponse$json = {
+  '1': 'ApplyLibraryPlanResponse',
+  '2': [
+    {
+      '1': 'home',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.GetHomeResponse',
+      '10': 'home'
+    },
+  ],
+};
+
+/// Descriptor for `ApplyLibraryPlanResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List applyLibraryPlanResponseDescriptor =
+    $convert.base64Decode(
+        'ChhBcHBseUxpYnJhcnlQbGFuUmVzcG9uc2USLwoEaG9tZRgBIAEoCzIbLndvcmtvdXQudjEuR2'
+        'V0SG9tZVJlc3BvbnNlUgRob21l');
 
 @$core.Deprecated('Use addLibraryTemplatesRequestDescriptor instead')
 const AddLibraryTemplatesRequest$json = {

@@ -60,6 +60,13 @@ library:
   drop_here: Drag a workout here
   # The sheet's library rows: + adds it to the main plan. Placeholder.
   add_to_plan: Add to the main plan
+  # Under Add, first: ready-made main plans, one tap each. Applying one
+  # makes its workouts the main plan and moves the rest to the backups.
+  # Placeholders.
+  plans_heading: Ready-made plans
+  apply_plan: Make this the main plan
+  # A ready-made plan whose workouts are the main plan already.
+  plan_current: Current
   # Marks a workout as the user's own, on home and in the sheet.
   personal: Personalised
   # Makes a library workout the user's own to edit; it stops following

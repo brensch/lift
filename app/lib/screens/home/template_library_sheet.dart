@@ -1,12 +1,15 @@
 /// The Manage sheet ("Your workouts"): the rotation check at the top (a
-/// line, the bars of one lap of the main plan's sets per muscle, and what
-/// is wrong with it); then one draggable list of the main plan (the
-/// rotation) and the backups (the favourites), each row a drag handle, the
-/// name and lifts, and delete; a drag reorders within a section or moves a
-/// workout across into the other. Below it the library workouts the user
-/// does not have yet, each added to the main plan with +. A backup or a
-/// library row says which muscles it would add that the main plan trains
-/// none of. Tapping one of the user's opens it in the editor.
+/// line, the bars of one lap of the main plan as each muscle's share of
+/// the most-trained one, and what is wrong with it); then one draggable
+/// list of the main plan (the rotation) and the backups (the favourites),
+/// each row a drag handle, the name and lifts, and delete; a drag reorders
+/// within a section or moves a workout across into the other. Below it,
+/// Add: the ready-made plans, one tap each, then the library workouts the
+/// user does not have yet, each added to the main plan with +. A backup or
+/// a library row says which muscles it would add that the main plan
+/// trains none of. Tapping a muscle's bar picks out every workout whose
+/// lifts train it first (and dims the rest); tapping it again clears it.
+/// Tapping one of the user's workouts opens it in the editor.
 library;
 
 import 'package:flutter/material.dart';
@@ -20,7 +23,7 @@ import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/common/flat.dart';
-import 'home_screen.dart' show VolumeCard;
+import 'home_screen.dart' show VolumeCard, exercisesMuscles;
 import 'template_editor.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
@@ -48,6 +51,19 @@ bool hasLibraryEntry(List<WorkoutTemplate> templates, LibraryTemplate entry) =>
     templates.any(
       (t) => t.libraryId == entry.id || t.originLibraryId == entry.id,
     );
+
+/// Whether [main] is [plan] already: the same workouts, each one following
+/// or made from one of the plan's entries. The order is not compared (the
+/// suggestion does not go through the main plan in order).
+bool isCurrentPlan(List<WorkoutTemplate> main, LibraryPlan plan) {
+  if (main.length != plan.libraryIds.length) return false;
+  final left = plan.libraryIds.toSet();
+  for (final t in main) {
+    final id = left.contains(t.libraryId) ? t.libraryId : t.originLibraryId;
+    if (!left.remove(id)) return false;
+  }
+  return left.isEmpty;
+}
 
 class _LibrarySheet extends StatefulWidget {
   const _LibrarySheet();
@@ -121,8 +137,12 @@ List<_Item> _sheetItems(
 }
 
 class _LibrarySheetState extends State<_LibrarySheet> {
-  late Future<List<LibraryTemplate>> _library;
+  late Future<ListTemplateLibraryResponse> _library;
   final Set<String> _busy = {};
+
+  /// The muscle picked on the bars: the workouts training it first are
+  /// picked out, the rest dimmed. Null for none.
+  MuscleGroup? _muscle;
 
   /// A drag's result, shown until the core's answer replaces it.
   ({List<WorkoutTemplate> main, List<WorkoutTemplate> backup})? _dragged;
@@ -130,7 +150,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   @override
   void initState() {
     super.initState();
-    _library = context.read<WorkoutProvider>().service.listTemplateLibrary();
+    _library = context.read<WorkoutProvider>().service.templateLibrary();
   }
 
   /// Run [action] for [id], one at a time, saying so if it fails.
@@ -184,6 +204,24 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     );
   }
 
+  /// A ready-made plan as the main plan.
+  Future<void> _apply(LibraryPlan plan) {
+    final wp = context.read<WorkoutProvider>();
+    return _run('plan:${plan.id}', () => wp.applyLibraryPlan(plan.id));
+  }
+
+  /// A tap on a muscle's bar: picks it, or clears it when it is picked.
+  void _pick(MuscleGroup muscle) =>
+      setState(() => _muscle = _muscle == muscle ? null : muscle);
+
+  /// Whether a workout of [exercises] trains the picked muscle first;
+  /// null when none is picked.
+  bool? _emphasis(List<Exercise> exercises, List<ExercisePlan> plans) {
+    final muscle = _muscle;
+    if (muscle == null) return null;
+    return exercisesMuscles(exercises, plans).contains(muscle);
+  }
+
   /// A library workout goes straight (it can be added again); one of the
   /// user's own is asked about first.
   Future<void> _remove(WorkoutTemplate template) async {
@@ -213,7 +251,12 @@ class _LibrarySheetState extends State<_LibrarySheet> {
 
   /// One entry of the draggable list. Only a workout has a handle; a
   /// backup says what it would add.
-  Widget _item(_Item item, int index, Map<String, List<MuscleGroup>> adds) {
+  Widget _item(
+    _Item item,
+    int index,
+    Map<String, List<MuscleGroup>> adds,
+    List<ExercisePlan> plans,
+  ) {
     final l = copy.library;
     final cs = Theme.of(context).colorScheme;
     return switch (item) {
@@ -230,6 +273,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
         showLifts: true,
         expandable: false,
         note: additionLine(adds[template.id] ?? const []),
+        emphasis: _emphasis(template.exercises, plans),
         onTap: _busy.contains(template.id) ? null : () => _edit(template),
         leading: ReorderableDragStartListener(
           index: index,
@@ -252,34 +296,52 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     };
   }
 
-  /// Below the list: the library workouts the user does not have, by
-  /// group, each added to the main plan with +, each saying what it would
-  /// add.
+  /// Below the list: the ready-made plans (the one the main plan is
+  /// already says so), then the library workouts the user does not have,
+  /// by group, each added to the main plan with +, each saying what it
+  /// would add.
   Widget _addSection(
     List<WorkoutTemplate> templates,
+    List<WorkoutTemplate> main,
     Map<String, List<MuscleGroup>> adds,
+    List<ExercisePlan> plans,
   ) {
     final l = copy.library;
-    return FutureBuilder<List<LibraryTemplate>>(
+    return FutureBuilder<ListTemplateLibraryResponse>(
       future: _library,
       builder: (context, snap) {
-        final entries = snap.data;
+        final library = snap.data;
         if (snap.hasError) return _Note(l.loadingFailed);
-        if (entries == null) {
+        if (library == null) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 32),
             child: Center(child: CircularProgressIndicator()),
           );
         }
+        final entries = library.templates;
         if (entries.isEmpty) return _Note(l.empty);
+        final names = {for (final e in entries) e.id: e.name};
         final addable = entries
             .where((e) => !hasLibraryEntry(templates, e))
             .toList();
-        if (addable.isEmpty) return const SizedBox.shrink();
+        if (addable.isEmpty && library.plans.isEmpty) {
+          return const SizedBox.shrink();
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Heading(l.addHeading),
+            if (library.plans.isNotEmpty) _GroupHeading(l.plansHeading),
+            for (final plan in library.plans)
+              _PlanRow(
+                key: ValueKey('plan-${plan.id}'),
+                plan: plan,
+                workouts: [for (final id in plan.libraryIds) names[id] ?? id],
+                current: isCurrentPlan(main, plan),
+                onApply: _busy.contains('plan:${plan.id}')
+                    ? null
+                    : () => _apply(plan),
+              ),
             for (final group in _grouped(addable).entries) ...[
               _GroupHeading(group.key),
               for (final entry in group.value)
@@ -289,6 +351,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                   exercises: entry.exercises,
                   showLifts: true,
                   note: additionLine(adds[entry.id] ?? const []),
+                  emphasis: _emphasis(entry.exercises, plans),
                   actions: [
                     IconButton(
                       tooltip: l.addToPlan,
@@ -362,15 +425,22 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                   final check? => RotationCheckSection(
                     check: check,
                     names: {for (final t in templates) t.id: t.name},
+                    muscle: _muscle,
+                    onTapMuscle: _pick,
                   ),
                   null => null,
                 },
-                footer: _addSection(templates, adds.library),
+                footer: _addSection(
+                  templates,
+                  split.main,
+                  adds.library,
+                  wp.plans,
+                ),
                 itemCount: items.length,
                 // newIndex is already adjusted for the removed item.
                 onReorderItem: (from, to) => _reorder(items, from, to),
                 itemBuilder: (context, index) =>
-                    _item(items[index], index, adds.templates),
+                    _item(items[index], index, adds.templates, wp.plans),
               ),
             ),
           ],
@@ -380,19 +450,28 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   }
 }
 
-/// One lap of the main plan: the line that says what it is, its sets per
-/// muscle on Home's bars, and a plain line for each thing wrong with it
-/// (none when nothing is).
+/// One lap of the main plan: the line that says what it is, each
+/// muscle's share of the most-trained one's sets on Home's bars (no
+/// target, no numbers: a lap is not a week), each bar tappable to pick
+/// the muscle out, and a plain line for each thing wrong with it (none
+/// when nothing is).
 class RotationCheckSection extends StatelessWidget {
   final RotationCheck check;
 
   /// Template id → name, for the overlap warning.
   final Map<String, String> names;
 
+  /// The muscle picked out; null for none.
+  final MuscleGroup? muscle;
+
+  final ValueChanged<MuscleGroup>? onTapMuscle;
+
   const RotationCheckSection({
     super.key,
     required this.check,
     required this.names,
+    this.muscle,
+    this.onTapMuscle,
   });
 
   @override
@@ -407,7 +486,13 @@ class RotationCheckSection extends StatelessWidget {
           style: TextStyle(fontSize: t.size.body, color: t.muted),
         ),
         const SizedBox(height: 8),
-        VolumeCard(volume: check.volume, recovery: const []),
+        VolumeCard(
+          volume: check.volume,
+          recovery: const [],
+          proportional: true,
+          highlight: {?muscle},
+          onTapMuscle: onTapMuscle,
+        ),
         for (final warning in warnings)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -463,6 +548,92 @@ class _GroupHeading extends StatelessWidget {
           fontWeight: t.weight.heavy,
           color: t.muted,
         ),
+      ),
+    );
+  }
+}
+
+/// A ready-made plan under Add: its name, its blurb and workouts, and
+/// the button that makes it the main plan, or "Current" when it is.
+class _PlanRow extends StatelessWidget {
+  final LibraryPlan plan;
+  final List<String> workouts;
+  final bool current;
+  final VoidCallback? onApply;
+
+  const _PlanRow({
+    super.key,
+    required this.plan,
+    required this.workouts,
+    required this.current,
+    required this.onApply,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final cs = Theme.of(context).colorScheme;
+    final l = copy.library;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(2, 6, 0, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  plan.name,
+                  style: TextStyle(
+                    fontSize: t.size.bodyLg,
+                    fontWeight: t.weight.heavy,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                Text(
+                  workouts.join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: t.size.small, color: t.muted),
+                ),
+                if (plan.blurb.isNotEmpty)
+                  Text(
+                    plan.blurb,
+                    style: TextStyle(
+                      fontSize: t.size.small,
+                      fontStyle: FontStyle.italic,
+                      color: t.muted,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (current)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                l.planCurrent,
+                style: TextStyle(
+                  fontSize: t.size.small,
+                  fontWeight: t.weight.heavy,
+                  color: t.primary,
+                ),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: l.applyPlan,
+              visualDensity: VisualDensity.compact,
+              onPressed: onApply,
+              icon: const Icon(AppIcons.add, size: 20),
+            ),
+        ],
       ),
     );
   }

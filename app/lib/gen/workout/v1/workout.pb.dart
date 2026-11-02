@@ -4155,9 +4155,11 @@ class ListTemplateLibraryRequest extends $pb.GeneratedMessage {
 class ListTemplateLibraryResponse extends $pb.GeneratedMessage {
   factory ListTemplateLibraryResponse({
     $core.Iterable<LibraryTemplate>? templates,
+    $core.Iterable<LibraryPlan>? plans,
   }) {
     final result = create();
     if (templates != null) result.templates.addAll(templates);
+    if (plans != null) result.plans.addAll(plans);
     return result;
   }
 
@@ -4176,6 +4178,8 @@ class ListTemplateLibraryResponse extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..pPM<LibraryTemplate>(1, _omitFieldNames ? '' : 'templates',
         subBuilder: LibraryTemplate.create)
+    ..pPM<LibraryPlan>(2, _omitFieldNames ? '' : 'plans',
+        subBuilder: LibraryPlan.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4202,6 +4206,217 @@ class ListTemplateLibraryResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<LibraryTemplate> get templates => $_getList(0);
+
+  /// The ready-made main plans, each naming only templates listed here.
+  /// Filled by the core from the plans built in; the server's sync leaves
+  /// it empty.
+  @$pb.TagNumber(2)
+  $pb.PbList<LibraryPlan> get plans => $_getList(1);
+}
+
+/// A ready-made main plan (templates/library.yaml, `plans`): library
+/// entries, in the order the main plan takes them.
+class LibraryPlan extends $pb.GeneratedMessage {
+  factory LibraryPlan({
+    $core.String? id,
+    $core.String? name,
+    $core.String? blurb,
+    $core.Iterable<$core.String>? libraryIds,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (name != null) result.name = name;
+    if (blurb != null) result.blurb = blurb;
+    if (libraryIds != null) result.libraryIds.addAll(libraryIds);
+    return result;
+  }
+
+  LibraryPlan._();
+
+  factory LibraryPlan.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LibraryPlan.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LibraryPlan',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'blurb')
+    ..pPS(4, _omitFieldNames ? '' : 'libraryIds')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LibraryPlan clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LibraryPlan copyWith(void Function(LibraryPlan) updates) =>
+      super.copyWith((message) => updates(message as LibraryPlan))
+          as LibraryPlan;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LibraryPlan create() => LibraryPlan._();
+  @$core.override
+  LibraryPlan createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LibraryPlan getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LibraryPlan>(create);
+  static LibraryPlan? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get blurb => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set blurb($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBlurb() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBlurb() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<$core.String> get libraryIds => $_getList(3);
+}
+
+/// Makes a ready-made plan the main plan: its entries the user does not
+/// have are added (an AddLibraryTemplates event), then one
+/// ReorderTemplates puts the user's template for each entry (one following
+/// it or made from it) first, in the plan's order, as the main plan and
+/// everything else after it as backups. Nothing is deleted. Returns the
+/// refreshed home.
+class ApplyLibraryPlanRequest extends $pb.GeneratedMessage {
+  factory ApplyLibraryPlanRequest({
+    $core.String? planId,
+  }) {
+    final result = create();
+    if (planId != null) result.planId = planId;
+    return result;
+  }
+
+  ApplyLibraryPlanRequest._();
+
+  factory ApplyLibraryPlanRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ApplyLibraryPlanRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ApplyLibraryPlanRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'planId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ApplyLibraryPlanRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ApplyLibraryPlanRequest copyWith(
+          void Function(ApplyLibraryPlanRequest) updates) =>
+      super.copyWith((message) => updates(message as ApplyLibraryPlanRequest))
+          as ApplyLibraryPlanRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ApplyLibraryPlanRequest create() => ApplyLibraryPlanRequest._();
+  @$core.override
+  ApplyLibraryPlanRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ApplyLibraryPlanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ApplyLibraryPlanRequest>(create);
+  static ApplyLibraryPlanRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get planId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set planId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlanId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlanId() => $_clearField(1);
+}
+
+class ApplyLibraryPlanResponse extends $pb.GeneratedMessage {
+  factory ApplyLibraryPlanResponse({
+    GetHomeResponse? home,
+  }) {
+    final result = create();
+    if (home != null) result.home = home;
+    return result;
+  }
+
+  ApplyLibraryPlanResponse._();
+
+  factory ApplyLibraryPlanResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ApplyLibraryPlanResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ApplyLibraryPlanResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<GetHomeResponse>(1, _omitFieldNames ? '' : 'home',
+        subBuilder: GetHomeResponse.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ApplyLibraryPlanResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ApplyLibraryPlanResponse copyWith(
+          void Function(ApplyLibraryPlanResponse) updates) =>
+      super.copyWith((message) => updates(message as ApplyLibraryPlanResponse))
+          as ApplyLibraryPlanResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ApplyLibraryPlanResponse create() => ApplyLibraryPlanResponse._();
+  @$core.override
+  ApplyLibraryPlanResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ApplyLibraryPlanResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ApplyLibraryPlanResponse>(create);
+  static ApplyLibraryPlanResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  GetHomeResponse get home => $_getN(0);
+  @$pb.TagNumber(1)
+  set home(GetHomeResponse value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasHome() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearHome() => $_clearField(1);
+  @$pb.TagNumber(1)
+  GetHomeResponse ensureHome() => $_ensure(0);
 }
 
 /// Adds library entries to the caller's templates, coupled, skipping any

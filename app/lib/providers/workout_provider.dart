@@ -539,6 +539,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
+  /// Makes the ready-made plan [planId] the main plan (the core adds what
+  /// the user lacks and moves the old main plan to the backups).
+  Future<void> applyLibraryPlan(String planId) async {
+    await _service.applyLibraryPlan(planId);
+    await refreshHome();
+  }
+
   /// The user's own weight and reps (and optionally sets) for [exercise]:
   /// the plan carries on from it.
   Future<void> setOverride({

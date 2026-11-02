@@ -2,9 +2,11 @@
 //! The server sends its copy to every phone on sync; a user's library
 //! templates follow it (coupled) until they clone one. The copy built into
 //! the app stands in before the first sync. The file is validated by
-//! `cargo test`. See docs/architecture/data-model.md, "Template library".
+//! `cargo test`. The file's ready-made main plans (`plans`) are read from
+//! the copy built in. See docs/architecture/data-model.md, "Template
+//! library".
 
-use crate::pb::{Exercise, LibraryTemplate};
+use crate::pb::{Exercise, LibraryPlan, LibraryTemplate};
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::sync::OnceLock;
@@ -15,6 +17,17 @@ const SOURCE: &str = include_str!("../../templates/library.yaml");
 struct File {
     groups: Vec<Group>,
     templates: Vec<Entry>,
+    #[serde(default)]
+    plans: Vec<Plan>,
+}
+
+#[derive(Deserialize)]
+struct Plan {
+    id: String,
+    name: String,
+    #[serde(default)]
+    blurb: String,
+    templates: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -37,21 +50,29 @@ struct Entry {
 
 /// Parses and validates the embedded file. An error names the entry.
 pub fn load() -> Result<Vec<LibraryTemplate>, String> {
-    parse(SOURCE)
+    parse(SOURCE).map(|(templates, _)| templates)
 }
 
-fn parse(text: &str) -> Result<Vec<LibraryTemplate>, String> {
+/// The embedded file's ready-made plans, validated against its templates.
+pub fn load_plans() -> Result<Vec<LibraryPlan>, String> {
+    parse(SOURCE).map(|(_, plans)| plans)
+}
+
+fn snake_case(id: &str) -> bool {
+    !id.is_empty()
+        && id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+}
+
+fn parse(text: &str) -> Result<(Vec<LibraryTemplate>, Vec<LibraryPlan>), String> {
     let file: File =
         serde_yaml::from_str(text).map_err(|e| format!("templates/library.yaml: {e}"))?;
     let mut seen = HashSet::new();
     let mut out = Vec::with_capacity(file.templates.len());
     for entry in file.templates {
         let id = entry.id.trim();
-        if id.is_empty()
-            || id
-                .chars()
-                .any(|c| !(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
-        {
+        if !snake_case(id) {
             return Err(format!("template id {id:?} must be lower_snake_case"));
         }
         if !seen.insert(id.to_string()) {
@@ -94,6 +115,50 @@ fn parse(text: &str) -> Result<Vec<LibraryTemplate>, String> {
     if !out.iter().any(|t| t.is_default) {
         return Err("templates/library.yaml marks nothing default: true".into());
     }
+    let plans = parse_plans(file.plans, &out)?;
+    Ok((out, plans))
+}
+
+/// Each plan: a lower_snake_case id of its own, a name, and one or more
+/// distinct ids of [templates].
+fn parse_plans(
+    plans: Vec<Plan>,
+    templates: &[LibraryTemplate],
+) -> Result<Vec<LibraryPlan>, String> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::with_capacity(plans.len());
+    for plan in plans {
+        let id = plan.id.trim();
+        if !snake_case(id) {
+            return Err(format!("plan id {id:?} must be lower_snake_case"));
+        }
+        if !seen.insert(id.to_string()) {
+            return Err(format!("plan id {id:?} appears twice"));
+        }
+        if plan.name.trim().is_empty() {
+            return Err(format!("plan {id}: empty name"));
+        }
+        if plan.templates.is_empty() {
+            return Err(format!("plan {id}: no templates"));
+        }
+        let mut library_ids: Vec<String> = Vec::with_capacity(plan.templates.len());
+        for template in &plan.templates {
+            let template = template.trim();
+            if !templates.iter().any(|t| t.id == template) {
+                return Err(format!("plan {id}: unknown template {template:?}"));
+            }
+            if library_ids.iter().any(|t| t == template) {
+                return Err(format!("plan {id}: template {template:?} listed twice"));
+            }
+            library_ids.push(template.to_string());
+        }
+        out.push(LibraryPlan {
+            id: id.to_string(),
+            name: plan.name.trim().to_string(),
+            blurb: plan.blurb.trim().to_string(),
+            library_ids,
+        });
+    }
     Ok(out)
 }
 
@@ -102,6 +167,12 @@ fn parse(text: &str) -> Result<Vec<LibraryTemplate>, String> {
 pub fn library() -> &'static [LibraryTemplate] {
     static LIBRARY: OnceLock<Vec<LibraryTemplate>> = OnceLock::new();
     LIBRARY.get_or_init(|| load().expect("templates/library.yaml is validated at startup"))
+}
+
+/// The validated ready-made plans, in file order.
+pub fn plans() -> &'static [LibraryPlan] {
+    static PLANS: OnceLock<Vec<LibraryPlan>> = OnceLock::new();
+    PLANS.get_or_init(|| load_plans().expect("templates/library.yaml is validated at startup"))
 }
 
 pub fn find(id: &str) -> Option<&'static LibraryTemplate> {
@@ -157,5 +228,49 @@ mod tests {
         assert!(parse(dup).unwrap_err().contains("twice"));
         let group = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: nope, exercises: [SQUAT]}\n";
         assert!(parse(group).unwrap_err().contains("unknown group"));
+    }
+
+    #[test]
+    fn embedded_plans_are_valid() {
+        let plans = load_plans().expect("templates/library.yaml plans must validate");
+        let ids = |id: &str| {
+            plans
+                .iter()
+                .find(|p| p.id == id)
+                .unwrap_or_else(|| panic!("plan {id}"))
+                .library_ids
+                .clone()
+        };
+        assert_eq!(ids("stronglifts"), ["stronglifts_a", "stronglifts_b"]);
+        assert_eq!(ids("upper_lower"), ["upper", "lower"]);
+        assert_eq!(ids("push_pull_legs"), ["push", "pull", "legs"]);
+        assert_eq!(ids("full_body"), ["full_body"]);
+        for plan in &plans {
+            assert!(
+                !plan.name.is_empty() && !plan.blurb.is_empty(),
+                "{}",
+                plan.id
+            );
+            for id in &plan.library_ids {
+                assert!(find(id).is_some(), "plan {} names {id}", plan.id);
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_a_plan_naming_an_unknown_or_repeated_template() {
+        let head = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, default: true, exercises: [SQUAT]}\n";
+        let unknown = format!("{head}plans:\n  - {{id: p, name: P, templates: [a, nope]}}\n");
+        assert!(parse(&unknown).unwrap_err().contains("unknown template"));
+        let twice = format!("{head}plans:\n  - {{id: p, name: P, templates: [a, a]}}\n");
+        assert!(parse(&twice).unwrap_err().contains("listed twice"));
+        let empty = format!("{head}plans:\n  - {{id: p, name: P, templates: []}}\n");
+        assert!(parse(&empty).unwrap_err().contains("no templates"));
+        let dup = format!(
+            "{head}plans:\n  - {{id: p, name: P, templates: [a]}}\n  - {{id: p, name: Q, templates: [a]}}\n"
+        );
+        assert!(parse(&dup).unwrap_err().contains("appears twice"));
+        // No plans at all is fine.
+        assert!(parse(head).unwrap().1.is_empty());
     }
 }

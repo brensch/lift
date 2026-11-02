@@ -293,24 +293,39 @@ lifts train first that the lap trains none of (`additions`; one adding
 nothing is not listed).
 
 The Manage sheet opens on it: "Here's what an average rotation would
-work. Got enough butt in it? Legs? Biceps? …" above Home's bars of the
-lap's sets per muscle, then a plain line for an overlap or too few. The
+work. Got enough butt in it? Legs? Biceps? …" above the lap's bars, then a
+plain line for an overlap or too few. The bars are Home's rows drawn as
+shares: each muscle's sets against the most-trained muscle's, with no
+target band, no tick and no numbers, since a lap is not a week and the
+suggestion does not go through the main plan in order. Tapping a muscle
+picks it out: every row in the sheet (main plan, backups, library) whose
+lifts train it first gets an accent bar and its name in the primary
+colour, the rest are dimmed; tapping it again, or another, clears or
+moves the pick. Primary muscles only (the plan's `primary_muscle` per
+lift), as the additions count them; secondaries would light up nearly
+everything. The
 gap has no line of its own: each backup's and library entry's row says
 what it would add, under its lifts ("Trains calves and core, which you
 don't have."). Then one draggable list: the main plan's
 heading and its workouts, the backups' heading and theirs (an empty
 section shows "Drag a workout here" to drop on). Each row is a drag
 handle, the name with its lifts on one line, and delete (one of the
-user's own asks first); tapping it opens the editor. Below, Add: the
-library entries the user does not have, by group, each with + into the
-main plan.
+user's own asks first); tapping it opens the editor. Below, Add: first
+the ready-made plans (StrongLifts, Upper / Lower, Push / Pull / Legs,
+Full Body; `plans` in `templates/library.yaml`), each its name, its
+workouts and a line, with + to make it the main plan
+(`ApplyLibraryPlan`: what the user lacks is added, the user's own copy of
+an entry is used, the old main plan moves to the backups); the one whose
+workouts the main plan already is (in any order) says Current instead.
+Then the library entries the user does not have, by group, each with +
+into the main plan.
 
 ## What each page shows
 
 | Page | Shows | From |
 |---|---|---|
 | Home | the main plan's chips, the backups', then New and Manage, each group under its label; the weekly volume; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
-| Manage sheet | the rotation check: a lap's sets per muscle and its warnings; the main plan, the backups, the library entries not yet had, each backup and entry with what it would add | `rotation_check` (`volume`, `warnings`, `additions`) |
+| Manage sheet | the rotation check: each muscle's share of a lap, tappable to pick out what trains it, and its warnings; the main plan, the backups, the ready-made plans, the library entries not yet had, each backup and entry with what it would add | `rotation_check` (`volume`, `warnings`, `additions`); `ListTemplateLibrary` (`plans`); `ApplyLibraryPlan` |
 | Template editor | in rotation or not; each lift's next plan, the list on screen planned as one workout with the budget (what Home's card shows for it once saved); the sheet that sets an override. Clone opens it on a library template and records nothing until Save, which makes it the user's own | `plan` (`GetTemplatePlan`) |
 | Live workout, watch | the set's weight and reps; the reason when the lift comes up; changes | the workout's log |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |

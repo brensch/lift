@@ -223,11 +223,23 @@ class WorkoutServiceWrapper {
       )).steps;
 
   /// The template library everyone picks from.
-  Future<List<LibraryTemplate>> listTemplateLibrary() async => (await _call(
+  Future<List<LibraryTemplate>> listTemplateLibrary() async =>
+      (await templateLibrary()).templates;
+
+  /// The template library and the ready-made plans made from it.
+  Future<ListTemplateLibraryResponse> templateLibrary() => _call(
     'ListTemplateLibrary',
     ListTemplateLibraryRequest(),
     ListTemplateLibraryResponse.fromBuffer,
-  )).templates;
+  );
+
+  /// Makes a ready-made plan the main plan: entries the user lacks are
+  /// added, the old main plan becomes backups. Returns the refreshed home.
+  Future<GetHomeResponse> applyLibraryPlan(String planId) async => (await _call(
+    'ApplyLibraryPlan',
+    ApplyLibraryPlanRequest(planId: planId),
+    ApplyLibraryPlanResponse.fromBuffer,
+  )).home;
 
   /// Adds library entries to the user's templates, following the library,
   /// into the rotation or (by default) as favourites; ones the user already

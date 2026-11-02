@@ -669,6 +669,32 @@ message LibraryTemplate {
 message ListTemplateLibraryRequest {}
 message ListTemplateLibraryResponse {
   repeated LibraryTemplate templates = 1;
+  // The ready-made main plans, each naming only templates listed here.
+  // Filled by the core from the plans built in; the server's sync leaves
+  // it empty.
+  repeated LibraryPlan plans = 2;
+}
+
+// A ready-made main plan (templates/library.yaml, `plans`): library
+// entries, in the order the main plan takes them.
+message LibraryPlan {
+  string id = 1;
+  string name = 2;
+  string blurb = 3;
+  repeated string library_ids = 4;
+}
+
+// Makes a ready-made plan the main plan: its entries the user does not
+// have are added (an AddLibraryTemplates event), then one
+// ReorderTemplates puts the user's template for each entry (one following
+// it or made from it) first, in the plan's order, as the main plan and
+// everything else after it as backups. Nothing is deleted. Returns the
+// refreshed home.
+message ApplyLibraryPlanRequest {
+  string plan_id = 1;
+}
+message ApplyLibraryPlanResponse {
+  GetHomeResponse home = 1;
 }
 
 // Adds library entries to the caller's templates, coupled, skipping any
