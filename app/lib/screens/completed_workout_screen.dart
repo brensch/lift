@@ -11,7 +11,6 @@ import '../logic/plan_text.dart';
 import '../logic/session_state.dart';
 import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
-import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
@@ -159,7 +158,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final ownCompletedSets = _completedSets
         .where((c) => c.workoutId == workout.id)
         .toList();
-    final auth = context.watch<AuthProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
     final summary = WorkoutSummaryData(_summary ?? WorkoutSummary(), unit);
     final hasHeartRateChart =
@@ -249,9 +247,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             SetLog(
               proposedSets: ownProposedSets,
               completedSets: ownCompletedSets,
-              workoutOwnerEmojis: {
-                workout.id: normalizedProfileEmoji(auth.profileEmoji),
-              },
             ),
           ],
         ),

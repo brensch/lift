@@ -289,14 +289,6 @@ class Scenario {
     }
   }
 
-  /// Scroll [within] (default: the first Scrollable) by [dy] logical pixels
-  /// (negative scrolls the content up, revealing what's below).
-  Future<void> scroll(double dy, {Finder? within}) async {
-    final target = within ?? find.byType(Scrollable).first;
-    await tester.drag(target, Offset(0, dy));
-    await settle(seconds: 1);
-  }
-
   void expectVisible(String text) => expect(
     find.text(text),
     findsWidgets,

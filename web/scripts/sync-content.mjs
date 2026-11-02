@@ -87,6 +87,7 @@ const content = {
     src: `/generated/screens/${s.file}`,
     title: s.title,
     subtitle: s.subtitle ?? "",
+    device: s.device ?? "phone",
   })),
   whatsNew,
   library,

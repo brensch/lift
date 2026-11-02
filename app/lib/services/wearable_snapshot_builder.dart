@@ -7,7 +7,6 @@
 /// the watch's few seconds of taking reps off it.
 library;
 
-import 'dart:math';
 import 'package:fixnum/fixnum.dart';
 
 import '../gen/copy.dart';
@@ -129,34 +128,15 @@ class WearableSnapshotBuilder {
     // The one button logs this set: the next pending one, or on an
     // unanswered rung the set "right" would append ("{done}:0").
     final target = isEnded ? null : workoutProvider.doneTargetSet;
-    // The watch shows the same state as the phone: lifting counts up from
-    // Start, resting counts down to the snapshot's rest end, yapping counts
-    // up from it.
-    final restEnd = stateSnapshot?.restUntil.toInt() ?? 0;
+    // The watch shows the same stage as the phone's bar.
     final lifting = isLiftingState(stateValue);
 
     if (target != null && !isAllDoneState(stateValue)) {
-      final String stateLabel;
-      final String timerText;
-      if (lifting) {
-        stateLabel = copy.workout.lifting;
-        timerText = formatRestClock(
-          max(0, nowUnix - stateSnapshot!.liftingStartedAt.toInt()),
-        );
-      } else if (isRestingState(stateValue)) {
-        stateLabel = copy.workout.resting;
-        timerText = formatRestClock(max(0, restEnd - nowUnix));
-      } else if (isYappingState(stateValue)) {
-        stateLabel = copy.workout.yapping;
-        timerText = formatRestClock(max(0, nowUnix - restEnd));
-      } else {
-        stateLabel = copy.workout.ready;
-        timerText = '';
-      }
+      final stage = stageOf(stateSnapshot, nowUnix);
       snapshot.youCard = card(
         target,
-        stateLabel: stateLabel,
-        timerText: timerText,
+        stateLabel: stage.label,
+        timerText: stage.timer ?? '',
       );
       if (lifting) {
         actions.add(

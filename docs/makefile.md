@@ -95,12 +95,13 @@ The binary is also the admin CLI: `schlift admin add|remove|list <username>`
 
 | Target | |
 |---|---|
-| `make proto-dart` / `proto-android` / `proto-web` / `proto-swift` / `proto-all` | Regenerate protobuf code. `proto-android` generates only `wearable.proto` and its imports, all Kotlin uses. `proto-swift` needs `protoc-gen-swift`; CI does it on macOS. |
+| `make proto-dart` / `proto-android` / `proto-web` / `proto-swift` / `proto-all` | Regenerate protobuf code. `proto-android` and `proto-swift` generate only `wearable.proto` and its imports, all the watches use. `proto-swift` needs `protoc-gen-swift`; CI does it on macOS. |
 | `make copy` | `app/copy.yaml` → `app/lib/gen/copy.dart` |
 | *(no target)* Rust ↔ Dart bridge | After changing `app/native/src/api/`: `flutter_rust_bridge_codegen generate` in `app/`. Writes `app/lib/gen/native/` and `app/native/src/frb_generated.rs` (config: `app/flutter_rust_bridge.yaml`). |
 | `make sounds`, `make icons`, `make brand` | Sound manifest, launcher icons, brand renders |
 
-Generated code is committed, and is the only code exempt from formatting and
+Generated code is committed, except Swift, which CI generates before each
+iOS build. Generated code is the only code exempt from formatting and
 linting.
 
 ## Formatting and linting

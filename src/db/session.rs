@@ -1,8 +1,9 @@
 use super::*;
 
 /// How long a group member can go without doing anything (no synced
-/// write) before they're out of it. A workout writes every set, so only an
-/// abandoned session or a join that never started gets this old.
+/// write other than heart rate) before they're out of it. A workout writes
+/// every set, so only an abandoned session or a join that never started gets
+/// this old.
 pub const SESSION_IDLE_SECONDS: i64 = 3 * 3600;
 
 impl ServerDb {
@@ -51,8 +52,9 @@ impl ServerDb {
 
     /// The session the user is in: their pointer, while they've been active
     /// in it (their live status refreshed — on joining and on every synced
-    /// write) within [`SESSION_IDLE_SECONDS`]. Someone who joined and never
-    /// started, or walked off without ending, drops out on their own.
+    /// write other than heart rate) within [`SESSION_IDLE_SECONDS`]. Someone
+    /// who joined and never started, or walked off without ending, drops out
+    /// on their own.
     pub async fn get_user_current_session(&self, user_id: &str) -> DbResult<Option<String>> {
         let row: Option<String> = sqlx::query_scalar(
             "SELECT u.session_id FROM user_current_session u
@@ -372,23 +374,5 @@ impl ServerDb {
         .fetch_one(&self.read_pool)
         .await?;
         Ok(n > 0)
-    }
-
-    /// Stamp a session_id onto an existing workout row (used when the user joins a group
-    /// mid-workout — we backfill the historical marker so the workout remembers which
-    /// session it was attached to).
-    pub async fn update_workout_session_id(
-        &self,
-        user_id: &str,
-        workout_id: &str,
-        session_id: &str,
-    ) -> DbResult<()> {
-        sqlx::query("UPDATE workouts SET session_id = ? WHERE id = ? AND user_id = ?")
-            .bind(session_id)
-            .bind(workout_id)
-            .bind(user_id)
-            .execute(&self.write_pool)
-            .await?;
-        Ok(())
     }
 }

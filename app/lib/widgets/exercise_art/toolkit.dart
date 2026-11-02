@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 // ── Fixed skeleton proportions (box units) ─────────────────────────────────
 const double _torsoLen = 26;
 const double _headOffset = 9; // neck → head centre, along the torso line
+const double _headR = 6.5;
 const double _upperArm = 13;
 const double _forearm = 12;
 const double _thigh = 19;
@@ -83,14 +84,11 @@ class Figure {
   /// 0–2 legs, hung from the pelvis.
   final List<Limb> legs;
 
-  final double headR;
-
   const Figure({
     required this.pelvis,
     required this.torso,
     this.arms = const [],
     this.legs = const [],
-    this.headR = 6.5,
   });
 
   Offset get neck => pelvis + _dir(torso) * _torsoLen;
@@ -119,7 +117,6 @@ class Figure {
     return Figure(
       pelvis: Offset.lerp(a.pelvis, b.pelvis, t)!,
       torso: _lerpAngle(a.torso, b.torso, t),
-      headR: a.headR + (b.headR - a.headR) * t,
       arms: [
         for (var i = 0; i < a.arms.length; i++)
           Limb(
@@ -175,19 +172,16 @@ class PropDisc {
 ///   • `hands: [i, j]`  — spans both hands (front view → bar centred between
 ///                        them, angled along the line connecting them).
 ///   • `hips: true`     — rests on the pelvis (e.g. hip thrust).
-///   • `center: P(..)`  — a fixed point (rarely needed; overrides anchors).
 /// [nudge] offsets the bar from its anchor (box units).
 class Barbell {
   final List<int> hands;
   final bool hips;
-  final Offset? center;
   final Offset nudge;
   final double length;
 
   const Barbell({
     this.hands = const [],
     this.hips = false,
-    this.center,
     this.nudge = Offset.zero,
     this.length = 40,
   });
@@ -196,9 +190,7 @@ class Barbell {
   (Offset, double) resolve(Figure fig) {
     Offset c;
     double angle = 0;
-    if (center != null) {
-      c = center!;
-    } else if (hands.isNotEmpty) {
+    if (hands.isNotEmpty) {
       final pts = [for (final i in hands) fig.armPoints(fig.arms[i]).last];
       c = pts.reduce((a, b) => a + b) / pts.length.toDouble();
       if (pts.length >= 2) {
@@ -216,9 +208,6 @@ class Barbell {
   static Barbell lerp(Barbell a, Barbell b, double t) => Barbell(
     hands: a.hands,
     hips: a.hips,
-    center: (a.center == null || b.center == null)
-        ? null
-        : Offset.lerp(a.center, b.center, t),
     nudge: Offset.lerp(a.nudge, b.nudge, t)!,
     length: a.length + (b.length - a.length) * t,
   );
@@ -357,7 +346,7 @@ class ExerciseArtPainter extends CustomPainter {
       ..color = figureColor
       ..strokeWidth = 5.0 * s;
     drawPolyline([fig.pelvis, fig.neck]); // spine
-    canvas.drawCircle(sc(fig.head), fig.headR * s, _stroke);
+    canvas.drawCircle(sc(fig.head), _headR * s, _stroke);
     for (final arm in fig.arms) {
       drawPolyline(fig.armPoints(arm));
     }

@@ -50,6 +50,9 @@ class AccountSync extends ChangeNotifier
   /// The open account, or null before sign-in.
   LocalCore? get core => _core;
 
+  /// The open account is usable: on this phone already, or restored.
+  bool get isReady => _ready.isCompleted;
+
   // ── What the stream brings down ──
 
   GetCurrentSessionResponse _session = GetCurrentSessionResponse();
@@ -106,7 +109,7 @@ class AccountSync extends ChangeNotifier
     _core = core;
     _writesSub = core.writes.listen((_) => unawaited(_push()));
     final (seq, _) = await core.syncState();
-    if (seq == 0) await _restoreFromServer(core, userId);
+    if (seq == 0 && !await _restoreFromServer(core, userId)) return;
     if (_userId != userId) return;
     _ready.complete(core);
     await _refreshUnsynced();
@@ -116,8 +119,9 @@ class AccountSync extends ChangeNotifier
   /// A fresh install (or a reinstall) of an account that already exists:
   /// the server's log first, so this phone carries on from it rather than
   /// starting a history of its own. Retried until it gets through; the
-  /// account isn't usable before (see [ready]).
-  Future<void> _restoreFromServer(LocalCore core, String userId) async {
+  /// account isn't usable before (see [ready]). False when it never will:
+  /// the user signed out, or the server turned the session down.
+  Future<bool> _restoreFromServer(LocalCore core, String userId) async {
     var wait = const Duration(seconds: 1);
     while (_userId == userId) {
       try {
@@ -127,8 +131,13 @@ class AccountSync extends ChangeNotifier
         );
         final seq = await core.restore(pulled.events);
         AppLogger.instance.info(_tag, 'restored', {'seq': seq});
-        return;
+        return true;
       } catch (e) {
+        if (e is GrpcError && e.code == StatusCode.unauthenticated) {
+          AppLogger.instance.warn(_tag, 'restore refused: session lapsed');
+          onSessionRejected?.call();
+          return false;
+        }
         AppLogger.instance.warn(_tag, 'restore failed, retrying', {
           'error': e.toString(),
         });
@@ -136,6 +145,7 @@ class AccountSync extends ChangeNotifier
         wait = wait * 2 > _maxBackoff ? _maxBackoff : wait * 2;
       }
     }
+    return false;
   }
 
   /// Put the account file at [path] (an export) on this phone, replacing
@@ -334,7 +344,8 @@ class AccountSync extends ChangeNotifier
     _redial = Timer(wait, _dial);
   }
 
-  /// Called when the server turns the session down.
+  /// Called when the server turns the session down, before the account is
+  /// restored ([isReady] false) or after.
   VoidCallback? onSessionRejected;
 
   /// Signed in again (or for the first time): dial now.

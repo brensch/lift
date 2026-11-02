@@ -314,8 +314,9 @@ It frames committed screenshots and pushes text + images to both stores by
 API, from two committed sources:
 
 - **`store/listing.yaml`** — the single source of listing text: `name`,
-  `tagline` (App Store subtitle, feature graphic byline, and the first half
-  of Play's one-liner), `promotional_text` (App Store promo; Play's one-liner
+  `tagline` (feature graphic byline, website, and the first half of Play's
+  one-liner), `app_store_subtitle` (App Store subtitle, 30 max, no price
+  words), `promotional_text` (App Store promo; Play's one-liner
   is tagline + promo, 80 max), `keywords` (App Store), and the description
   as typed pieces: `about` (paragraphs), `testimonials_heading` +
   `testimonials` (quote, name), `other_features` (heading, items). The

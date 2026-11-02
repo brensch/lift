@@ -126,10 +126,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         .toList(growable: false);
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
-    final workoutOwnerLabels = <String, String>{};
     final workoutOwnerEmojis = <String, String>{};
     if (wp.workout != null) {
-      workoutOwnerLabels[wp.workout!.id] = 'You';
       workoutOwnerEmojis[wp.workout!.id] = normalizedProfileEmoji(
         auth.profileEmoji,
       );
@@ -139,10 +137,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         sessionLedgerProposed.addAll(participant.proposedSets);
         sessionLedgerCompleted.addAll(participant.completedSets);
         if (participant.activeWorkoutId.isNotEmpty) {
-          final rawName = participant.user.name.isNotEmpty
-              ? participant.user.name
-              : participant.user.id;
-          workoutOwnerLabels[participant.activeWorkoutId] = rawName;
           workoutOwnerEmojis[participant.activeWorkoutId] =
               normalizedProfileEmoji(participant.user.profileEmoji);
         }
@@ -354,7 +348,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 completedSets: logCompletedSets,
                 onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
                 deletableWorkoutId: wp.workout?.id,
-                workoutOwnerLabels: workoutOwnerLabels,
                 workoutOwnerEmojis: workoutOwnerEmojis,
                 stickyHeader: true,
               ),

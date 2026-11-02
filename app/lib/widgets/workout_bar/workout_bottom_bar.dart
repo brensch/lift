@@ -6,8 +6,6 @@
 /// first workout, what to do next instead.
 library;
 
-import 'dart:math';
-
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -59,40 +57,24 @@ class _YouState {
 
 _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
   final snapshot = wp.stateSnapshot;
-  final state =
-      snapshot?.state.value ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
-  final restEnd = snapshot?.restUntil.toInt() ?? 0;
+  final stage = stageOf(snapshot, nowUnix);
   final set = wp.doneTargetSet;
-  if (isAllDoneState(state) || set == null) {
+  if (stage.state == WorkoutState.WORKOUT_STATE_ALL_DONE || set == null) {
     return _YouState(copy.workout.allDone, t.success, null, null);
   }
-  if (isLiftingState(state)) {
-    final startedAt = snapshot!.liftingStartedAt.toInt();
-    return _YouState(
-      copy.workout.lifting,
-      t.lifting,
-      formatRestClock(max(0, nowUnix - startedAt)),
-      set,
-    );
-  }
-  if (isRestingState(state)) {
-    return _YouState(
-      copy.workout.resting,
-      t.resting,
-      formatRestClock(max(0, restEnd - nowUnix)),
-      set,
-      restLeft: restLeftFraction(wp.completedSets, restEnd, nowUnix),
-    );
-  }
-  if (isYappingState(state)) {
-    return _YouState(
-      copy.workout.yapping,
-      t.yapping,
-      formatRestClock(max(0, nowUnix - restEnd)),
-      set,
-    );
-  }
-  return _YouState(copy.workout.ready, t.ready, null, set);
+  return _YouState(
+    stage.label,
+    stageColor(stage.state, t),
+    stage.timer,
+    set,
+    restLeft: stage.state == WorkoutState.WORKOUT_STATE_RESTING
+        ? restLeftFraction(
+            wp.completedSets,
+            snapshot!.restUntil.toInt(),
+            nowUnix,
+          )
+        : null,
+  );
 }
 
 /// What to do next, said once: only during the first workout.

@@ -1,6 +1,6 @@
 use super::*;
 use crate::db::{Change, Diverged, Pushed};
-use schlift_core::sync::{pack, unpack};
+use schlift_core::sync::{pack, unpack_push};
 use tokio::sync::{broadcast, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Streaming;
@@ -19,10 +19,9 @@ use tonic::Streaming;
 /// request to join expires from view.
 const RESEND_EVERY: std::time::Duration = std::time::Duration::from_secs(20);
 
-// What one push may hold. Far above anything a phone records (an outbox
-// after weeks offline, an import of years of training); past them the push
-// is refused whole.
-const MAX_EVENTS_PER_PUSH: usize = 100_000;
+// What one event in a push may hold (the batch's size and event count are
+// limited as it is decoded, in schlift_core::sync). Far above anything a
+// phone records; past them the push is refused whole.
 const MAX_HEART_RATE_SAMPLES_PER_EVENT: usize = 20_000;
 const MAX_IMPORTED_WORKOUTS: usize = 10_000;
 const MAX_IMPORTED_HEART_RATE_SAMPLES: usize = 2_000_000;
@@ -32,9 +31,6 @@ fn check_push(events: &[Event]) -> ServerResult<()> {
     let too_big = |what: &str, limit: usize| -> ServerResult<()> {
         Err(Status::invalid_argument(format!("push too large: more than {limit} {what}")).into())
     };
-    if events.len() > MAX_EVENTS_PER_PUSH {
-        return too_big("events", MAX_EVENTS_PER_PUSH);
-    }
     for event in events {
         match &event.kind {
             Some(event::Kind::HeartRate(req))
@@ -210,7 +206,7 @@ impl Stream {
         }
         let head = match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
-                let events = unpack(&packed).map_err(core_status)?;
+                let events = unpack_push(&packed).map_err(core_status)?;
                 check_push(&events)?;
                 let pushed = self
                     .db
@@ -334,8 +330,6 @@ mod tests {
         let error = check_push(&[heart_rate(MAX_HEART_RATE_SAMPLES_PER_EVENT + 1)]).err();
         let status = Status::from(error.unwrap());
         assert_eq!(status.code(), tonic::Code::InvalidArgument);
-        let many = vec![Event::default(); MAX_EVENTS_PER_PUSH + 1];
-        assert!(check_push(&many).is_err());
     }
 
     #[test]

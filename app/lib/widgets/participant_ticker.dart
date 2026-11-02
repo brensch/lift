@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/group.pb.dart';
@@ -29,82 +27,53 @@ ParticipantVisualStatus describeParticipantStatus(
   final snapshot = participant.hasStateSnapshot()
       ? participant.stateSnapshot
       : null;
-  final restUntil = snapshot?.restUntil.toInt() ?? 0;
-  // On this clock, as it would be on their phone.
-  final state = stateAt(snapshot, nowUnix);
-
   // In the group, no workout started yet: picking one.
   if (!participant.hasActiveWorkout() && snapshot == null && nextSet == null) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.choosing,
       stateColor: tokens.muted,
-      sortPriority: 0,
     );
   }
 
-  if (participant.hasActiveWorkout() &&
-      participant.activeWorkout.endTime != Int64.ZERO) {
+  final ended =
+      participant.hasActiveWorkout() &&
+      participant.activeWorkout.endTime != Int64.ZERO;
+  // On this clock, as it would be on their phone.
+  final stage = stageOf(snapshot, nowUnix);
+  final set = stage.state == WorkoutState.WORKOUT_STATE_LIFTING
+      ? shownSet(snapshot, nextSet)
+      : nextSet;
+  if (ended ||
+      set == null ||
+      stage.state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.allDone,
       stateColor: tokens.success,
-      sortPriority: 0,
-      isComplete: true,
     );
   }
-
-  final shown = shownSet(snapshot, nextSet);
-
-  if (state == WorkoutState.WORKOUT_STATE_LIFTING && shown != null) {
-    return ParticipantVisualStatus(
-      stateLabel: copy.workout.lifting,
-      stateColor: tokens.lifting,
-      proposedSet: shown,
-      timerText: formatRestClock(
-        max(0, nowUnix - snapshot!.liftingStartedAt.toInt()),
-      ),
-      sortPriority: 3,
-    );
-  }
-
-  if (state == WorkoutState.WORKOUT_STATE_RESTING && nextSet != null) {
-    return ParticipantVisualStatus(
-      stateLabel: copy.workout.resting,
-      stateColor: tokens.resting,
-      proposedSet: nextSet,
-      timerText: formatRestClock(max(0, restUntil - nowUnix)),
-      restLeft: restLeftFraction(participant.completedSets, restUntil, nowUnix),
-      sortPriority: 2,
-    );
-  }
-
-  // Their rest has run out and the next set isn't started: yapping,
-  // counting up from the rest end.
-  if (state == WorkoutState.WORKOUT_STATE_YAPPING && nextSet != null) {
-    return ParticipantVisualStatus(
-      stateLabel: copy.workout.yapping,
-      stateColor: tokens.yapping,
-      proposedSet: nextSet,
-      timerText: formatRestClock(max(0, nowUnix - restUntil)),
-      sortPriority: 1,
-    );
-  }
-
-  if (nextSet != null) {
-    return ParticipantVisualStatus(
-      stateLabel: copy.workout.ready,
-      stateColor: tokens.warmup,
-      proposedSet: nextSet,
-      sortPriority: 1,
-    );
-  }
-
   return ParticipantVisualStatus(
-    stateLabel: copy.workout.allDone,
-    stateColor: tokens.success,
-    sortPriority: 0,
-    isComplete: true,
+    stateLabel: stage.label,
+    stateColor: stageColor(stage.state, tokens),
+    proposedSet: set,
+    timerText: stage.timer,
+    restLeft: stage.state == WorkoutState.WORKOUT_STATE_RESTING
+        ? restLeftFraction(
+            participant.completedSets,
+            snapshot!.restUntil.toInt(),
+            nowUnix,
+          )
+        : null,
   );
 }
+
+/// The colour of a stage's label, one per state, wherever it's shown.
+Color stageColor(WorkoutState state, ThemeSpec t) => switch (state) {
+  WorkoutState.WORKOUT_STATE_LIFTING => t.lifting,
+  WorkoutState.WORKOUT_STATE_RESTING => t.resting,
+  WorkoutState.WORKOUT_STATE_YAPPING => t.yapping,
+  WorkoutState.WORKOUT_STATE_ALL_DONE => t.success,
+  _ => t.ready,
+};
 
 class ParticipantVisualStatus {
   final String stateLabel;
@@ -114,8 +83,6 @@ class ParticipantVisualStatus {
 
   /// 0..1 of the rest still to go, while resting.
   final double? restLeft;
-  final int sortPriority;
-  final bool isComplete;
 
   const ParticipantVisualStatus({
     required this.stateLabel,
@@ -123,7 +90,5 @@ class ParticipantVisualStatus {
     this.proposedSet,
     this.timerText,
     this.restLeft,
-    required this.sortPriority,
-    this.isComplete = false,
   });
 }

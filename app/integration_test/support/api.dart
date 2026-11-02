@@ -343,13 +343,4 @@ class Peer {
     );
     return r.requestId;
   }
-
-  /// Approve or decline a join request; returns the session id when accepted.
-  Future<String> respondJoinRequest(String requestId, bool accept) async {
-    final r = await _api.multiplayer.respondJoinRequest(
-      RespondJoinRequestRequest(requestId: requestId, accept: accept),
-      options: _opts,
-    );
-    return r.sessionId;
-  }
 }

@@ -43,7 +43,6 @@ void main() {
       now: now,
     );
     expect(status.stateLabel, copy.workout.choosing);
-    expect(status.isComplete, isFalse);
   });
 
   test('a partner whose workout has ended is all done', () {
@@ -53,7 +52,6 @@ void main() {
       now: now,
     );
     expect(status.stateLabel, copy.workout.allDone);
-    expect(status.isComplete, isTrue);
   });
 
   test("a partner's rest that ran out since their last change is yapping", () {

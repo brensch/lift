@@ -262,8 +262,7 @@ impl ServerDb {
         for record in workouts {
             let workout = &record.workout;
             // The phone records the session once it hears of it; until then
-            // a workout keeps the one it was first seen in (or was joined to
-            // since).
+            // a workout keeps the one it was first seen in.
             let existing: Option<String> =
                 sqlx::query_scalar("SELECT session_id FROM workouts WHERE id = ? AND user_id = ?")
                     .bind(&workout.id)

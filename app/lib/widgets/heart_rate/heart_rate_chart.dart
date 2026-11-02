@@ -246,7 +246,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
 
     final currentBpm = spots.last.y;
     final currentZone = zoneFor(currentBpm, zones);
-    final zoneColor = _zoneColorForBpm(currentBpm, zones);
+    final zoneColor = zoneColorByName(currentZone?.name ?? 'Z1');
     final restBands = _clipVerticalAnnotations(
       _buildPhaseBands(startMs, nowSec),
       minX: minX,
@@ -849,25 +849,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return 900;
   }
 
-  Color _zoneColorForBpm(double bpm, List<HeartRateZone> zones) {
-    final zone = zoneFor(bpm, zones);
-    if (zone == null) return const Color(0xFF22C55E);
-    switch (zone.name) {
-      case 'Z1':
-        return const Color(0xFF22C55E);
-      case 'Z2':
-        return const Color(0xFFEAB308);
-      case 'Z3':
-        return const Color(0xFFF59E0B);
-      case 'Z4':
-        return const Color(0xFFEF4444);
-      case 'Z5':
-        return const Color(0xFFB91C1C);
-      default:
-        return const Color(0xFF22C55E);
-    }
-  }
-
   List<HeartRateZone> _zonesForMaxHr(int maxHr) {
     return HeartRateChart._zonePercents.map((z) {
       final low = (z.lowPct * maxHr).round();
@@ -898,10 +879,4 @@ class _HeartRateChartState extends State<HeartRateChart> {
     }
     return out;
   }
-
-  /// A vertical, hard-stepped gradient that paints the line in its HR-zone
-  /// colour by y-position. Maps each zone's [low, high] bpm to a fraction of
-  /// the chart's y-range and repeats the colour at both ends for a sharp edge.
-
-  // ── Full-view summary: avg/max/min + time in zone ──
 }

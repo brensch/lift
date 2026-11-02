@@ -115,7 +115,7 @@ fn reserve(sets: i32) -> f32 {
 }
 
 /// The weight `max` takes for `sets` × `reps`: the inverse of [max_needed].
-fn weight_for(max: f32, reps: i32, sets: i32) -> f32 {
+pub(crate) fn weight_for(max: f32, reps: i32, sets: i32) -> f32 {
     max / (1.0 + (reps as f32 + reserve(sets)) / 30.0)
 }
 

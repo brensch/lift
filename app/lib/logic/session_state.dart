@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/group.pb.dart';
 
@@ -55,6 +56,47 @@ WorkoutState stateAt(WorkoutStateSnapshot? snapshot, int nowUnix) {
     return WorkoutState.WORKOUT_STATE_YAPPING;
   }
   return state;
+}
+
+/// A workout's stage as every status line says it (your bar, a partner's
+/// bar, the watch): its state on this clock ([stateAt]), the label, and the
+/// clock. Lifting counts up from Start, resting down to the rest end,
+/// yapping up from it; ready and all done have no clock.
+({WorkoutState state, String label, String? timer}) stageOf(
+  WorkoutStateSnapshot? snapshot,
+  int nowUnix,
+) {
+  final state = stateAt(snapshot, nowUnix);
+  final restEnd = snapshot?.restUntil.toInt() ?? 0;
+  return switch (state) {
+    WorkoutState.WORKOUT_STATE_LIFTING => (
+      state: state,
+      label: copy.workout.lifting,
+      timer: formatRestClock(
+        max(0, nowUnix - snapshot!.liftingStartedAt.toInt()),
+      ),
+    ),
+    WorkoutState.WORKOUT_STATE_RESTING => (
+      state: state,
+      label: copy.workout.resting,
+      timer: formatRestClock(max(0, restEnd - nowUnix)),
+    ),
+    WorkoutState.WORKOUT_STATE_YAPPING => (
+      state: state,
+      label: copy.workout.yapping,
+      timer: formatRestClock(max(0, nowUnix - restEnd)),
+    ),
+    WorkoutState.WORKOUT_STATE_ALL_DONE => (
+      state: state,
+      label: copy.workout.allDone,
+      timer: null,
+    ),
+    _ => (
+      state: WorkoutState.WORKOUT_STATE_READY,
+      label: copy.workout.ready,
+      timer: null,
+    ),
+  };
 }
 
 /// The set a workout shows: the snapshot's, else the next one up.

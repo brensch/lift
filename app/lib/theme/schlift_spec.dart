@@ -7,7 +7,6 @@ import 'theme_spec.dart';
 /// colour, font, size and radius the app draws with is here; change the look
 /// by changing a value.
 const schliftSpec = ThemeSpec(
-  brightness: Brightness.light,
   background: Color(0xFFDBDAD2),
   panel: Color(0xFFEDECE5),
   surfaceHigh: Color(0xFFCAC9C0),
@@ -20,6 +19,7 @@ const schliftSpec = ThemeSpec(
   outline: Color(0xFF74746E),
   switchThumbOff: Color(0xFFADACA2),
   error: Color(0xFFE0301E),
+  onError: Colors.white,
   // State colours keep their hues but sit with the warm grey: less neon,
   // a touch deeper.
   ready: Color(0xFF3D8B4A),
@@ -31,6 +31,8 @@ const schliftSpec = ThemeSpec(
   lifting: Color(0xFFFF4F00),
   // Yapping: rest has run out and the next set isn't started. Pink.
   yapping: Color(0xFFD94F8C),
+  warmup: Color(0xFF6B7280),
+  heart: Color(0xFFE11D48),
   // Chart lines: deep, saturated, each distinct on the warm grey.
   series: [
     Color(0xFF1F4FD1), // blue
@@ -63,6 +65,7 @@ const schliftSpec = ThemeSpec(
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
   headingWeightBoost: -1,
+  fontScale: 1.06,
   radiusSm: 2,
   radiusMd: 3,
   buttonRadius: 3,
@@ -78,5 +81,16 @@ const schliftSpec = ThemeSpec(
     subtitle: 19,
     title: 21,
     titleLg: 25,
+    headline: 28,
+    headlineLg: 32,
+    display: 40,
+    displayLg: 48,
+    giant: 64,
+  ),
+  weight: FontWeights(
+    regular: FontWeight.w400,
+    medium: FontWeight.w500,
+    bold: FontWeight.w700,
+    heavy: FontWeight.w900,
   ),
 );

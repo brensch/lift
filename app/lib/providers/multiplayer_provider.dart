@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import '../gen/workout/v1/group.pb.dart';
-import '../logic/utils.dart';
+import '../services/grpc_client.dart';
 import '../services/account_sync.dart';
 import '../services/app_logger.dart';
 import '../services/error_modal_service.dart';

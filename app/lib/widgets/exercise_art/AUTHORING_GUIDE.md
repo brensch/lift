@@ -23,7 +23,6 @@ Figure(
   torso: -90,          // direction pelvis -> neck. -90 = standing upright.
   arms: [Limb(upper, fore), ...],  // 0–2 arms, hung from the neck
   legs: [Limb(thigh, shin), ...],  // 0–2 legs, hung from the pelvis
-  headR: 6.5,          // optional, default 6.5
 )
 ```
 - `Limb(a, b)`: `a` = direction of the upper segment (upperArm / thigh),

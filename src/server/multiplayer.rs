@@ -8,11 +8,10 @@ use std::collections::HashMap;
 // (workouts.session_id, session_participants_current) is derived/historical cache.
 //
 // Transitions:
-//   - JoinViaInvite: upsert both users' rows, backfill their active workouts' session_id,
-//     refresh both participant blobs.
+//   - JoinViaInvite: upsert both users' rows, refresh both participant blobs.
 //   - A workout's first synced events: its projected row is stamped with the
 //     caller's current session (db/accounts.rs).
-//   - Any synced event: refresh the caller's blob (sync.rs).
+//   - Any synced event other than heart rate: refresh the caller's blob (sync.rs).
 //   - A synced EndWorkout: refresh the caller's final blob, then delete the
 //     caller's row and stamp left_at (sync.rs): ending is leaving.
 //   - Idle: a member whose blob hasn't been refreshed for SESSION_IDLE_SECONDS
@@ -38,9 +37,8 @@ pub struct ServerMultiplayerService {
 }
 
 impl ServerMultiplayerService {
-    /// Place `user_id` into `session_id` (upsert), backfill their active workout's
-    /// historical session stamp if any, and refresh their participant blob so peers see
-    /// them at once (the change goes out on their Sync streams).
+    /// Place `user_id` into `session_id` (upsert) and refresh their participant blob so
+    /// peers see them at once (the change goes out on their Sync streams).
     async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> ServerResult<()> {
         self.db
             .set_user_current_session(user_id, session_id)
@@ -57,12 +55,6 @@ impl ServerMultiplayerService {
             .await
             .map_err(internal_error)?;
         let active_workout_id = Some(active_workout_id).filter(|id| !id.is_empty());
-        if let Some(workout_id) = active_workout_id.as_deref() {
-            self.db
-                .update_workout_session_id(user_id, workout_id, session_id)
-                .await
-                .map_err(internal_error)?;
-        }
         refresh_participant_for_user(&self.db, user_id, session_id, active_workout_id.as_deref())
             .await
     }

@@ -5,13 +5,11 @@ import '../gen/workout/v1/wearable.pb.dart';
 import 'app_logger.dart';
 
 class HeartRateZoneProfile {
-  final DateTime? birthDate;
   final int? ageYears;
   final double? restingHeartRateBpm;
   final int estimatedMaxHeartRateBpm;
 
   const HeartRateZoneProfile({
-    required this.birthDate,
     required this.ageYears,
     required this.restingHeartRateBpm,
     required this.estimatedMaxHeartRateBpm,
@@ -233,7 +231,7 @@ class HealthService {
     // READ_DISTANCE/READ_STEPS — permissions it has no business asking for. A
     // successful insert (result=true) is Health Connect's own confirmation that
     // the record was stored; readability was verified out-of-band via the Health
-    // Connect UI. Sync status is surfaced to the user in Settings instead.
+    // Connect UI.
     debugPrint('Health: writeWorkoutData result=$success');
     return success;
   }
@@ -357,7 +355,6 @@ class HealthService {
       );
 
       return HeartRateZoneProfile(
-        birthDate: birthDate,
         ageYears: ageYears,
         restingHeartRateBpm: restingHr,
         estimatedMaxHeartRateBpm: estimatedMaxHr,

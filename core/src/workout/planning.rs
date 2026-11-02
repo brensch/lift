@@ -187,7 +187,7 @@ pub fn answered_calibration_weight(
         return usual;
     };
     let max = crate::plan::shown_max(weight, CALIBRATION_REPS, reserve, 1, false);
-    let one_left = max / (1.0 + (CALIBRATION_REPS + 1) as f32 / 30.0);
+    let one_left = crate::plan::weight_for(max, CALIBRATION_REPS, 1);
     snap_down_weight_lb(ex, one_left, unit).max(usual)
 }
 
@@ -538,14 +538,11 @@ pub fn apply_reorder_exercises(
 mod warmup_tests {
     use super::*;
 
-    /// A dense sweep of every 2.5 lb increment from 5 to 600, plus sub-increment
-    /// values. Density matters: the Rust/Dart divergence this fixture exists to
-    /// catch came from `175.0 * 0.70` landing on opposite sides of a `.5`
-    /// rounding boundary in f32 vs f64, and a sparse table would have missed it.
-    /// The sweep also covers the branches in `snap_warmup_weight` — sub-bar
-    /// loads, the 45 lb bar boundary, exact 25/45-plate combos (45, 95, 135,
-    /// 185, 225) and the gaps between them where the ±5 lb probe runs.
-    fn golden_working_weights() -> Vec<f32> {
+    /// Every 2.5 lb from 5 to 600, plus values off that grid: sub-bar loads,
+    /// the 45 lb bar boundary, exact 25/45-plate combinations (45, 95, 135,
+    /// 185, 225) and the gaps between them where `simplest_loadable_near`
+    /// probes a step either side.
+    fn working_weights_sweep() -> Vec<f32> {
         let mut weights: Vec<f32> = Vec::new();
         let mut w = 5.0_f32;
         while w <= 600.0 {
@@ -572,7 +569,7 @@ mod warmup_tests {
     #[test]
     fn warmup_defs_are_non_decreasing_and_below_the_working_weight() {
         for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
-            for w in golden_working_weights() {
+            for w in working_weights_sweep() {
                 let defs = generate_warmup_defs(w, unit);
                 assert!(
                     (1..=4).contains(&defs.len()),
@@ -604,7 +601,7 @@ mod warmup_tests {
         use crate::weight_units::{bar_weight, plate_count_per_side, plates};
         for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
             let (bar, pl) = (bar_weight(unit), plates(unit));
-            for w in golden_working_weights() {
+            for w in working_weights_sweep() {
                 for (weight_lb, _) in generate_warmup_defs(w, unit) {
                     let display = unit.from_lb(weight_lb);
                     // Sub-bar warmups (very light working weights) fall on the

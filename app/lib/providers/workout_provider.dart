@@ -20,7 +20,7 @@ import '../services/notification_service.dart';
 import '../services/health_service.dart' show HealthService;
 import '../services/error_modal_service.dart';
 import '../logic/exercises.dart';
-import '../logic/utils.dart';
+import '../services/grpc_client.dart';
 import '../services/app_logger.dart';
 import '../theme/schlift_spec.dart';
 
@@ -889,14 +889,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
 
       // Title from the exercise names, in order.
-      final seen = <int>{};
-      final names = <String>[];
-      for (final set in _proposed) {
-        if (!set.warmup && seen.add(set.exercise.value)) {
-          names.add(shortNames[set.exercise] ?? set.exercise.name);
-        }
-      }
-      final title = names.join(', ');
+      final title = exerciseBlocks
+          .where((b) => b.sets.any((s) => !s.warmup))
+          .map((b) => shortNames[b.exercise] ?? b.exercise.name)
+          .join(', ');
 
       final stored = await HealthService.writeCompletedWorkout(
         startTime: startTime,

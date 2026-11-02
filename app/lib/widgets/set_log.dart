@@ -23,7 +23,6 @@ class SetLog extends StatelessWidget {
   final List<CompletedSet> completedSets;
   final void Function(String completedSetId)? onDelete;
   final String? deletableWorkoutId;
-  final Map<String, String>? workoutOwnerLabels;
   final Map<String, String>? workoutOwnerEmojis;
 
   /// When true the heading stays pinned and only the rows scroll. Requires
@@ -36,7 +35,6 @@ class SetLog extends StatelessWidget {
     required this.completedSets,
     this.onDelete,
     this.deletableWorkoutId,
-    this.workoutOwnerLabels,
     this.workoutOwnerEmojis,
     this.stickyHeader = false,
   });

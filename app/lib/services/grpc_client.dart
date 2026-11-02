@@ -63,6 +63,12 @@ class AuthInterceptor extends ClientInterceptor {
   }
 }
 
+/// An error as the user reads it: a server error's own message.
+String cleanErrorMessage(Object error) {
+  if (error is GrpcError) return error.message ?? error.codeName;
+  return error.toString().trim();
+}
+
 String formatGrpcError(Object error) {
   if (error is GrpcError) {
     return '${error.codeName}: ${error.message}';

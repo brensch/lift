@@ -527,8 +527,9 @@ export const MultiplayerService: GenService<{
     output: typeof GetCurrentSessionResponseSchema;
   },
   /**
-   * Manually leave the caller's current session. Keeps the caller's last participant blob
-   * so peers in the session still see their historical state.
+   * Manually leave the caller's current session. Clears the caller's session pointer,
+   * removes their live participant blob so peers stop seeing them, and stamps left_at on
+   * the durable roster.
    *
    * @generated from rpc workout.v1.MultiplayerService.LeaveCurrentSession
    */
@@ -573,8 +574,8 @@ export const MultiplayerService: GenService<{
     output: typeof RequestJoinPartnerResponseSchema;
   },
   /**
-   * The caller's incoming (pending) join requests, to show an approve/decline
-   * prompt. Polled alongside the session.
+   * The caller's incoming (pending) join requests, read on demand. The Sync
+   * stream (account.proto) pushes the same list whenever it changes.
    *
    * @generated from rpc workout.v1.MultiplayerService.GetJoinRequests
    */
@@ -584,8 +585,8 @@ export const MultiplayerService: GenService<{
     output: typeof GetJoinRequestsResponseSchema;
   },
   /**
-   * Approve or decline an incoming join request. On approve, both users land in a
-   * session together (the responder's current session, or a fresh one).
+   * Approve or decline an incoming join request. On approve, the responder joins the
+   * requester's current session, or a fresh one if the requester has none.
    *
    * @generated from rpc workout.v1.MultiplayerService.RespondJoinRequest
    */

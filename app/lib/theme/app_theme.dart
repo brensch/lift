@@ -79,18 +79,16 @@ class AppTheme {
     final flatPanel = RoundedRectangleBorder(
       side: BorderSide(color: s.outline),
     );
-    final typography = s.isDark
-        ? Typography.material2021().white
-        : Typography.material2021().black;
+    final typography = Typography.material2021().black;
 
     return ThemeData(
       useMaterial3: true,
-      brightness: s.brightness,
+      brightness: Brightness.light,
       extensions: [s],
       scaffoldBackgroundColor: s.background,
       textTheme: _textTheme(typography, s),
       colorScheme: ColorScheme(
-        brightness: s.brightness,
+        brightness: Brightness.light,
         surface: s.background,
         onSurface: s.text,
         primary: s.primary,

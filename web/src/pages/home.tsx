@@ -158,14 +158,27 @@ export function HomePage() {
                   key={s.src}
                   className="snap-start shrink-0 w-[260px] sm:w-[300px] m-0 flex flex-col"
                 >
-                  <div className="rounded-[2rem] border border-border bg-surface p-2 shadow-[0_24px_64px_rgba(17,17,17,0.18)]">
-                    <img
-                      src={s.src}
-                      alt={s.title}
-                      loading="lazy"
-                      className="block w-full h-auto rounded-[1.6rem]"
-                    />
-                  </div>
+                  {s.device === "watch" ? (
+                    // A round Wear OS capture: no phone frame, centred in
+                    // the height the phone slides take.
+                    <div className="flex-1 flex items-center">
+                      <img
+                        src={s.src}
+                        alt={s.title}
+                        loading="lazy"
+                        className="block w-full h-auto rounded-full shadow-[0_24px_64px_rgba(17,17,17,0.18)]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="rounded-[2rem] border border-border bg-surface p-2 shadow-[0_24px_64px_rgba(17,17,17,0.18)]">
+                      <img
+                        src={s.src}
+                        alt={s.title}
+                        loading="lazy"
+                        className="block w-full h-auto rounded-[1.6rem]"
+                      />
+                    </div>
+                  )}
                   <figcaption className="mt-5">
                     <h3 className="font-display font-bold text-lg tracking-tight m-0">{s.title}</h3>
                     {s.subtitle && (

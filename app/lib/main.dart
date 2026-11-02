@@ -154,6 +154,11 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       unawaited(_reloadAccount());
     };
     _accountSync.onSessionRejected = () {
+      // Nothing of the account on this phone yet: sign in from the start.
+      if (!_accountSync.isReady) {
+        unawaited(_authProvider.logout());
+        return;
+      }
       unawaited(
         _authProvider.expireSession(
           message: 'Sign in again to sync this phone with your account.',
