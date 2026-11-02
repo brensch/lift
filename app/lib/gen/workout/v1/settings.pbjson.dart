@@ -15,6 +15,33 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use muscleGroupDescriptor instead')
+const MuscleGroup$json = {
+  '1': 'MuscleGroup',
+  '2': [
+    {'1': 'MUSCLE_GROUP_UNSPECIFIED', '2': 0},
+    {'1': 'MUSCLE_GROUP_QUADS', '2': 1},
+    {'1': 'MUSCLE_GROUP_HAMSTRINGS', '2': 2},
+    {'1': 'MUSCLE_GROUP_GLUTES', '2': 3},
+    {'1': 'MUSCLE_GROUP_CHEST', '2': 4},
+    {'1': 'MUSCLE_GROUP_BACK', '2': 5},
+    {'1': 'MUSCLE_GROUP_SHOULDERS', '2': 6},
+    {'1': 'MUSCLE_GROUP_BICEPS', '2': 7},
+    {'1': 'MUSCLE_GROUP_TRICEPS', '2': 8},
+    {'1': 'MUSCLE_GROUP_CALVES', '2': 9},
+    {'1': 'MUSCLE_GROUP_CORE', '2': 10},
+  ],
+};
+
+/// Descriptor for `MuscleGroup`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List muscleGroupDescriptor = $convert.base64Decode(
+    'CgtNdXNjbGVHcm91cBIcChhNVVNDTEVfR1JPVVBfVU5TUEVDSUZJRUQQABIWChJNVVNDTEVfR1'
+    'JPVVBfUVVBRFMQARIbChdNVVNDTEVfR1JPVVBfSEFNU1RSSU5HUxACEhcKE01VU0NMRV9HUk9V'
+    'UF9HTFVURVMQAxIWChJNVVNDTEVfR1JPVVBfQ0hFU1QQBBIVChFNVVNDTEVfR1JPVVBfQkFDSx'
+    'AFEhoKFk1VU0NMRV9HUk9VUF9TSE9VTERFUlMQBhIXChNNVVNDTEVfR1JPVVBfQklDRVBTEAcS'
+    'GAoUTVVTQ0xFX0dST1VQX1RSSUNFUFMQCBIXChNNVVNDTEVfR1JPVVBfQ0FMVkVTEAkSFQoRTV'
+    'VTQ0xFX0dST1VQX0NPUkUQCg==');
+
 @$core.Deprecated('Use weightUnitDescriptor instead')
 const WeightUnit$json = {
   '1': 'WeightUnit',
@@ -111,13 +138,18 @@ const UserSetting$json = {
   '8': [
     {'1': 'setting'},
   ],
+  '9': [
+    {'1': 13, '2': 14},
+  ],
+  '10': ['ignored_muscles'],
 };
 
 /// Descriptor for `UserSetting`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List userSettingDescriptor = $convert.base64Decode(
     'CgtVc2VyU2V0dGluZxJCCgxwbGF0ZV9jb2xvcnMYCiABKAsyHS53b3Jrb3V0LnYxLlBsYXRlQ2'
     '9sb3JzQ29uZmlnSABSC3BsYXRlQ29sb3JzEj8KC3dlaWdodF91bml0GAwgASgLMhwud29ya291'
-    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXRCCQoHc2V0dGluZw==');
+    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXRCCQoHc2V0dGluZ0oECA0QDlIPaW'
+    'dub3JlZF9tdXNjbGVz');
 
 @$core.Deprecated('Use updateSettingRequestDescriptor instead')
 const UpdateSettingRequest$json = {

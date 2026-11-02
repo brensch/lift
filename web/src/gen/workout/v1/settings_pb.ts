@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/settings.proto.
  */
 export const file_workout_v1_settings: GenFile = /*@__PURE__*/
-  fileDesc("Chl3b3Jrb3V0L3YxL3NldHRpbmdzLnByb3RvEgp3b3Jrb3V0LnYxIjIKClBsYXRlQ29sb3ISEQoJd2VpZ2h0X2tnGAEgASgCEhEKCWhleF9jb2xvchgCIAEoCSJSChFQbGF0ZUNvbG9yc0NvbmZpZxImCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ29sb3ISFQoNYmFyX3dlaWdodF9rZxgCIAEoAiI4ChBXZWlnaHRVbml0Q29uZmlnEiQKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXQihAEKC1VzZXJTZXR0aW5nEjUKDHBsYXRlX2NvbG9ycxgKIAEoCzIdLndvcmtvdXQudjEuUGxhdGVDb2xvcnNDb25maWdIABIzCgt3ZWlnaHRfdW5pdBgMIAEoCzIcLndvcmtvdXQudjEuV2VpZ2h0VW5pdENvbmZpZ0gAQgkKB3NldHRpbmciQAoUVXBkYXRlU2V0dGluZ1JlcXVlc3QSKAoHc2V0dGluZxgBIAEoCzIXLndvcmtvdXQudjEuVXNlclNldHRpbmciFwoVVXBkYXRlU2V0dGluZ1Jlc3BvbnNlIhQKEkdldFNldHRpbmdzUmVxdWVzdCJAChNHZXRTZXR0aW5nc1Jlc3BvbnNlEikKCHNldHRpbmdzGAEgAygLMhcud29ya291dC52MS5Vc2VyU2V0dGluZypRCgpXZWlnaHRVbml0EhsKF1dFSUdIVF9VTklUX1VOU1BFQ0lGSUVEEAASEgoOV0VJR0hUX1VOSVRfTEIQARISCg5XRUlHSFRfVU5JVF9LRxACMmEKD1NldHRpbmdzU2VydmljZRJOCgtHZXRTZXR0aW5ncxIeLndvcmtvdXQudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh8ud29ya291dC52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlYgZwcm90bzM");
+  fileDesc("Chl3b3Jrb3V0L3YxL3NldHRpbmdzLnByb3RvEgp3b3Jrb3V0LnYxIjIKClBsYXRlQ29sb3ISEQoJd2VpZ2h0X2tnGAEgASgCEhEKCWhleF9jb2xvchgCIAEoCSJSChFQbGF0ZUNvbG9yc0NvbmZpZxImCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ29sb3ISFQoNYmFyX3dlaWdodF9rZxgCIAEoAiI4ChBXZWlnaHRVbml0Q29uZmlnEiQKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXQimwEKC1VzZXJTZXR0aW5nEjUKDHBsYXRlX2NvbG9ycxgKIAEoCzIdLndvcmtvdXQudjEuUGxhdGVDb2xvcnNDb25maWdIABIzCgt3ZWlnaHRfdW5pdBgMIAEoCzIcLndvcmtvdXQudjEuV2VpZ2h0VW5pdENvbmZpZ0gAQgkKB3NldHRpbmdKBAgNEA5SD2lnbm9yZWRfbXVzY2xlcyJAChRVcGRhdGVTZXR0aW5nUmVxdWVzdBIoCgdzZXR0aW5nGAEgASgLMhcud29ya291dC52MS5Vc2VyU2V0dGluZyIXChVVcGRhdGVTZXR0aW5nUmVzcG9uc2UiFAoSR2V0U2V0dGluZ3NSZXF1ZXN0IkAKE0dldFNldHRpbmdzUmVzcG9uc2USKQoIc2V0dGluZ3MYASADKAsyFy53b3Jrb3V0LnYxLlVzZXJTZXR0aW5nKqcCCgtNdXNjbGVHcm91cBIcChhNVVNDTEVfR1JPVVBfVU5TUEVDSUZJRUQQABIWChJNVVNDTEVfR1JPVVBfUVVBRFMQARIbChdNVVNDTEVfR1JPVVBfSEFNU1RSSU5HUxACEhcKE01VU0NMRV9HUk9VUF9HTFVURVMQAxIWChJNVVNDTEVfR1JPVVBfQ0hFU1QQBBIVChFNVVNDTEVfR1JPVVBfQkFDSxAFEhoKFk1VU0NMRV9HUk9VUF9TSE9VTERFUlMQBhIXChNNVVNDTEVfR1JPVVBfQklDRVBTEAcSGAoUTVVTQ0xFX0dST1VQX1RSSUNFUFMQCBIXChNNVVNDTEVfR1JPVVBfQ0FMVkVTEAkSFQoRTVVTQ0xFX0dST1VQX0NPUkUQCipRCgpXZWlnaHRVbml0EhsKF1dFSUdIVF9VTklUX1VOU1BFQ0lGSUVEEAASEgoOV0VJR0hUX1VOSVRfTEIQARISCg5XRUlHSFRfVU5JVF9LRxACMmEKD1NldHRpbmdzU2VydmljZRJOCgtHZXRTZXR0aW5ncxIeLndvcmtvdXQudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh8ud29ya291dC52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlYgZwcm90bzM");
 
 /**
  * @generated from message workout.v1.PlateColor
@@ -165,6 +165,75 @@ export const GetSettingsResponseSchema: GenMessage<GetSettingsResponse> = /*@__P
   messageDesc(file_workout_v1_settings, 7);
 
 /**
+ * The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
+ * use this one list — there is no second muscle grouping anywhere.
+ *
+ * @generated from enum workout.v1.MuscleGroup
+ */
+export enum MuscleGroup {
+  /**
+   * @generated from enum value: MUSCLE_GROUP_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_QUADS = 1;
+   */
+  QUADS = 1,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_HAMSTRINGS = 2;
+   */
+  HAMSTRINGS = 2,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_GLUTES = 3;
+   */
+  GLUTES = 3,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_CHEST = 4;
+   */
+  CHEST = 4,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_BACK = 5;
+   */
+  BACK = 5,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_SHOULDERS = 6;
+   */
+  SHOULDERS = 6,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_BICEPS = 7;
+   */
+  BICEPS = 7,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_TRICEPS = 8;
+   */
+  TRICEPS = 8,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_CALVES = 9;
+   */
+  CALVES = 9,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_CORE = 10;
+   */
+  CORE = 10,
+}
+
+/**
+ * Describes the enum workout.v1.MuscleGroup.
+ */
+export const MuscleGroupSchema: GenEnum<MuscleGroup> = /*@__PURE__*/
+  enumDesc(file_workout_v1_settings, 0);
+
+/**
  * @generated from enum workout.v1.WeightUnit
  */
 export enum WeightUnit {
@@ -188,7 +257,7 @@ export enum WeightUnit {
  * Describes the enum workout.v1.WeightUnit.
  */
 export const WeightUnitSchema: GenEnum<WeightUnit> = /*@__PURE__*/
-  enumDesc(file_workout_v1_settings, 0);
+  enumDesc(file_workout_v1_settings, 1);
 
 /**
  * @generated from service workout.v1.SettingsService

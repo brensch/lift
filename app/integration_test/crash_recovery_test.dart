@@ -1,7 +1,7 @@
 // Bug hunt: crash recovery. Start a workout, log a set, then cold-restart the
 // app. The in-progress workout should come back with the set intact — this is
-// the path where state that only lives in memory (the effort prompt, the
-// pending rest) is known to be fragile.
+// the path where state that only lives in memory (the pending rest) is known
+// to be fragile.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';

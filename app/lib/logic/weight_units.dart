@@ -70,3 +70,12 @@ double barbellIncrement(WeightUnit unit) => standardPlates(unit).last * 2;
 bool isEmptyBar(double pounds, WeightUnit unit) =>
     (displayWeightFromPounds(pounds, unit) - standardBarWeight(unit)).abs() <
     0.05;
+
+/// A total lifted, short: "940", "1.5k", "12k", "1.2M" — in the user's
+/// unit, from stored pounds.
+String compactVolume(double pounds, WeightUnit unit) {
+  final v = displayWeightFromPounds(pounds, unit);
+  if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+  if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
+  return v.round().toString();
+}

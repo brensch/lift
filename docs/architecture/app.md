@@ -31,9 +31,12 @@ graph TD
 
 The rules that matter:
 
-- **No domain rules in Dart.** Planning, the set state machine, progression,
-  summaries, volume and the home's suggestion are the core's. A provider
-  makes one call and shows the answer.
+- **No domain rules in Dart.** The plan (every lift's sets, reps, weight
+  and reasons), the set state machine, summaries, volume and the home's
+  suggestion are the core's. A provider makes one call and shows the
+  answer; Dart only words the reasons (`logic/plan_text.dart`) and the
+  suggestion's reason, the rotation check's warnings and what a workout
+  would add (`logic/rotation_text.dart`).
 - **`logic/` must not import Flutter.** It is display-side helpers only —
   plate maths for the bar picture, unit formatting, grouping sets into
   exercise blocks — testable without a widget harness.
@@ -155,7 +158,7 @@ graph TD
     onb -->|no| onboarding["OnboardingScreen"]
     onb -->|yes| shell["MainLayout"]
 
-    shell --> home["HomeScreen<br/>proposal, readiness, pending updates"]
+    shell --> home["HomeScreen<br/>time budget, each template's plan,<br/>readiness"]
     shell --> workout["WorkoutTab → WorkoutScreen"]
     shell --> history["HistoryScreen"]
     shell --> progress["ProgressScreen"]
@@ -167,11 +170,32 @@ graph TD
     settings --> passkeys["PasskeysScreen"]
 ```
 
-`OnboardingScreen` is three steps (marker, unit, optional bodyweight and
-experience) ending in `CompleteOnboarding`, which the core applies on the
-phone: it seeds the trackers and the chosen library templates. An account
-counts as onboarded once it has any templates or workouts
+`OnboardingScreen` is five steps (marker, unit, the chick-to-gorilla
+strength slider, optional bodyweight for calories, templates) ending in
+`CompleteOnboarding`. The app sends the slider's strength; the core records
+the starting weights it picks on the event, with the chosen library
+templates. A lift never done calibrates from its starting weight. An
+account counts as onboarded once it has any templates or workouts
 (`GetHomeResponse.onboarded`).
+
+### Plans on screen
+
+Every screen shows the core's decisions, never its own numbers:
+
+| Screen | Shows | From |
+|---|---|---|
+| Home | the chips in three groups, each under a section label: the rotation (☆ on the suggestion; a one-line hint instead when it is empty), the reserves (its workouts, then the Empty workout), and a line with New and Manage; the weekly volume; under the suggested template's name, why (its rested muscles behind, what is still recovering, or that every workout opens on something recovering); the recovery chips; the time control (5-minute steps, 60 by default) with the workout's estimated length, how long it needs, or "the longest it gets" with + off — or, when a lift in it is never done, the calibration line in its place; each template's lifts as sets × reps @ weight with the reason (the plan against last time: "Down to 107.5 kg: 4 sets today, 3 last time.") | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason`, `recovery` |
+| Manage sheet | the rotation check: a line saying what it is ("Here's what an average rotation would work. …") above Home's bars drawn as shares of one lap (`VolumeCard(proportional: true)`: each muscle against the most-trained one, no target, no numbers), then a line for an overlap; then one `ReorderableListView` of the rotation and the reserves under their headings (an empty section shows a line to drop on), each row a drag handle, the name with its lifts, and delete, a reserve's with a muted line under its lifts of the muscles it would add that the rotation trains none of ("Trains calves and core, which you don't have."); a drag reorders within a section or moves a workout across; tapping a row opens the editor. Below it, Add: the ready-made plans first, each its name, workouts and line with + to make it the rotation (or Current when the rotation is those workouts already), then the library entries the user does not have, by group, each with its lifts, what it would add, and + into the rotation | `GetHome`: `rotation_check` (`volume`, `warnings`, `additions`); `ListTemplateLibrary` (`plans`); `ApplyLibraryPlan`; `ReorderTemplates(rotation_count)`; `AddLibraryTemplates(in_rotation)`; `DeleteTemplate` |
+| Template editor | the In the rotation switch | `SaveTemplate` |
+| Template editor | each lift's next plan, the list on screen planned as one workout in Home's budget (so a saved template reads as Home's card does); the sheet that sets or removes an override | `GetTemplatePlan(exercises, budget_minutes)`, `SetOverride` |
+| Home card menu | Clone: the editor on the template, recording nothing until Save, which saves it as the user's own (`unlink`) | `SaveTemplate` |
+| Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
+| Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
+| Progress, exercise detail | the estimated max over time beside the heaviest set each session | `GetExerciseProgress` |
+
+The weight sheet during a workout changes this workout only
+(`AdjustExerciseWeight`); a lasting change is an override, made in the
+template editor.
 
 Settings → Export your data shares the account file whole; Settings →
 Import a file replaces this phone's copy with an export of the same
@@ -288,7 +312,7 @@ it is specific to one screen; otherwise it lives with its screen.
   in-memory account. Build it first: `make test-app` does
   `cargo build -p schlift_native` then `flutter test`.
 - `test/logic/` — the display helpers: plate calculator, weight units,
-  exercise blocks, prescriptions, starting weights.
+  exercise blocks, plan wording, starting weights.
 - `test/screenshots/` — real screens at phone size; see
   [`docs/testing/app-harness.md`](../testing/app-harness.md).
 - `test/grpc_recovery_test.dart` — channel reset/retry behaviour.

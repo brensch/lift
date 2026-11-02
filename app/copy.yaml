@@ -29,27 +29,47 @@ tutorial:
     - screen: home
       target: home_add
       title: Need more options?
-      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your favourites, or make your own.
+      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your rotation, or make your own.
     - screen: home
-      target: home_plan
-      title: I got your numbers
-      body: The last thing I want is for you to have to worry about numbers. I track them for you - sets × reps @ weight. Just decide what you want to work on.
+      target: home_time
+      title: I got your number(s)
+      body: You're working hard in the gym. I'm working hard crunching the numbers. What a team. Tell me how long you want to work out and on which workout template, I'll figure out the rest.
     - screen: home
       target: home_start
       title: Start
       body: Pressing Start is how you Start. Let's get schlifting!
 
 # The template library: templates/library.yaml, offered during setup and
-# from the Edit chip on the home screen.
+# from the Manage chip on the home screen.
 library:
   # The home chip that opens a blank workout of your own. Placeholder.
   new_button: New
   # The home chip that opens the sheet. Placeholder.
-  edit_button: Edit
+  edit_button: Manage
   sheet_title: Your workouts
-  # Your own workouts (cloned or made from scratch), above the library.
+  # The groups, on Home's chips and in the sheet: the rotation (what the
+  # suggestion picks from) and the reserves (saved, never suggested).
+  rotation_heading: Rotation
+  favourites_heading: Reserves
+  # Under each heading in the Manage sheet.
+  rotation_description: The workouts the app picks from when suggesting the best workout to do next.
+  favourites_description: In case you want to sneak a cheeky butt sesh, keep it here ready to choose.
+  # The sheet's last section: library workouts the user doesn't have yet.
+  add_heading: Add
+  # Home, when nothing is in the rotation. Placeholder.
+  rotation_empty_home: Nothing in the rotation. Manage puts some in.
+  # An empty section in the sheet, where a workout can be dropped.
+  # Placeholder.
+  drop_here: Drag a workout here
+  # The sheet's library rows: + adds it to the rotation. Placeholder.
+  add_to_plan: Add to the rotation
+  # Under Add, first: ready-made rotations, one tap each. Applying one
+  # makes its workouts the rotation and moves the rest to the reserves.
   # Placeholders.
-  yours_heading: Yours
+  plans_heading: Ready-made plans
+  apply_plan: Make this the rotation
+  # A ready-made plan whose workouts are the rotation already.
+  plan_current: Current
   # Marks a workout as the user's own, on home and in the sheet.
   personal: Personalised
   # Makes a library workout the user's own to edit; it stops following
@@ -59,6 +79,38 @@ library:
   delete: Delete
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
+
+# The rotation: the workouts the suggestion picks from. The rest are
+# reserves, on Home in their own group and never suggested. {…} are
+# substituted by the code. All placeholder copy.
+rotation:
+  # The template editor's switch, and the line under it.
+  switch_label: In the rotation
+  switch_hint: The suggestion picks from these. Off, it's a reserve.
+  # Home card menu.
+  add: Move to rotation
+  remove: Move to reserves
+  # Home, under the suggested workout's name: the (at most two) muscles
+  # most behind. {muscles} is "chest 2/10" or "chest 2/10 and back 0/10".
+  rested_one: "{muscles} this week, rested"
+  rested_two: "{muscles} this week, both rested"
+  # Joins the last two of a list.
+  and: and
+  # A muscle that would have counted but isn't ready.
+  recovering: "{muscle} recovering ({hours}h)"
+  # Nothing is both rested and behind: the one waiting longest.
+  fallback: "Everything's recovering or done. This one's waited longest."
+  # Every workout in rotation opens on a muscle still recovering: the one
+  # whose first lift is back soonest.
+  first_lift: "Every workout starts on something sore. First back: {muscle}, in {hours}h."
+  # The rotation check, at the top of the sheet: this line, the bars of
+  # one lap of the rotation's sets per muscle, then any warnings.
+  check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your rotation that we cycle through to make sure you're sculpting the right bits."
+  overlap: "{a} and {b} share {shared} of {of} lifts."
+  # Under a reserve's or a library workout's lifts, when it trains muscles
+  # the rotation trains none of. {muscles} is "calves" or "calves and
+  # core". Placeholder.
+  adds: "Trains {muscles}, which you don't have."
 
 # Sign-in screen.
 login:
@@ -123,8 +175,9 @@ onboarding:
     pounds_body: Best for making you think you lift more because the number is larger.
     kilograms: Kilograms
     kilograms_body: Best for science and everywhere except America
-  # The chick-to-gorilla slider. The lifts underneath show the first
-  # working weights that setting gives (the server seeds the same numbers).
+  # The chick-to-gorilla slider. The lifts underneath show the starting
+  # weights that setting gives (the core records the same numbers; a lift's
+  # first workout ramps up from 60% of its own).
   strength:
     title: How huge are you
     body: This does not reflect on who you are as a person, just helps me get your starting weight right.
@@ -147,7 +200,7 @@ onboarding:
     field: Bodyweight
     failed: "Setup failed: {error}. Try again."
   templates:
-    title: Pick your favourite workouts
+    title: Pick your rotation
     body: You can add, remove, or edit them later. Pretty cool.
     none_selected: Pick at least one. Or one hundred.
     finish: START LIFTING
@@ -232,13 +285,40 @@ workout:
   up_next: "UP\nNEXT!"
   skip_warmups: Skip
   # Asked when someone starts the first set of an exercise they have never
-  # done: give their weight, or find it with 5-rep sets. {exercise} is its
-  # name.
+  # done: the ramp of 5-rep sets starts from the weight picked. {exercise}
+  # is its name, {weight} the weight picked.
   first_time_title: First time doing {exercise}.
-  first_time_lift: I know I do
-  first_time_test: Dunno. Test me
+  first_time_test: Test me from {weight}
   # In your status box while that first set waits for the answer.
   first_time_status: First time!
+  # The watch's status while that first set waits: the answer is on the phone.
+  watch_first_time_status: Open phone!
+  # Asked when a ramp set (the 5-rep sets that find a new lift's weight) is
+  # done with every rep. The answer picks the next set's weight, or ends the
+  # ramp. The answers are the buttons, on the phone and the watch.
+  # Placeholders.
+  rung_question: How many more could you have done?
+  # Under the set's circle at the top of the ramp question.
+  rung_circle_hint: Missed some? Tap the circle once for each rep you didn't get. Works the same on every set.
+  # After reps are taken off there: what that did. {n} reps missed,
+  # {weight} the next set's.
+  rung_missed_settled: "Missed {n}. Ramp done: working sets at {weight}."
+  rung_missed_too_heavy: "Too heavy. Next set {weight}."
+  rung_ok: OK
+  rung_question_hint: Be honest. The next set and your integrity depends on it.
+  rung_answer_zero_to_one: "0–1"
+  rung_answer_two_to_four: "2–4"
+  rung_answer_five_plus: "5+"
+  # Under each answer: where it takes you. {weight} with its unit, {jump}
+  # the difference from the set just done.
+  rung_outcome_next: "Next set {weight} (+{jump})"
+  rung_outcome_settle: "Done. Working sets at {weight}"
+  # Under the three answers, after a line with "or" on it: type how much to
+  # add for the next ramp set instead, in your unit, and apply it. The ramp
+  # goes on from there. Placeholders.
+  rung_or: or
+  rung_jump_label: Specific jump
+  rung_jump_apply: Add that
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
   # The dimmed (always-on) watch face counts rest in whole minutes, since it
@@ -256,3 +336,77 @@ workout:
     resting: Missed reps? Tap that circle once for each.
     yapping: Rest is over. Tap the next circle to start.
     all_done: That's everything. End the workout when you're ready.
+
+# The plan: what each lift is given when a workout starts, and why. Home's
+# workout card, the template editor, the live workout when a lift comes up,
+# and the summary. {…} are substituted by the code. All placeholder copy.
+plan:
+  # Home's time control: "− 60 min +".
+  budget: "{min} min"
+  # In place of the time control when a lift in the workout is new.
+  calibration: "Calibration session due to new exercise. Go in and try your darndest."
+  # The workout's estimated length beside the time control.
+  estimate: "~{min} min"
+  # The same, when the budget is at or past what the workout can use
+  # (every lift at its most sets): + is off.
+  longest: "~{min} min · the longest it gets"
+  # When two sets a lift don't fit the time.
+  needs: "Needs {min} min"
+  # A lift never done, loaded: its first set, where the ramp starts.
+  ramp: "Ramp from {weight}"
+  # Why the numbers are what they are. {max} is the estimated max (a rep
+  # max for bodyweight lifts).
+  reasons:
+    max_up: "Hit every rep. Max up to {max}."
+    max_from_miss: "Missed a rep. Max back to {max}."
+    held: "Max held at {max}."
+    # HELD after a miss started before the rest was up: excused.
+    held_rushed: "Held at {max}: you missed a set you didn't rest for."
+    held_stopped_early: "Held at {max}: you stopped early."
+    time_off: "{days} days off. Max cut to {max}."
+    first_time: "First time. The ramp finds your max."
+    first_time_bodyweight: "First time. Bottom of the range."
+    user_set: "Your numbers, from {date}."
+    # SETS_FROM_TIME: more than the two every lift gets.
+    sets_extra: "{sets} sets. {muscle} is behind this week."
+    sets_floor: "{sets} sets. That's what the time fits."
+  # The first line about a lift: this plan against its last session,
+  # "{change}: {why}.". {after} is the weight now, {n} a number of reps.
+  versus:
+    weight_up: "Up to {after}"
+    weight_down: "Down to {after}"
+    reps_up_one: "One more rep"
+    reps_up: "{n} more reps"
+    reps_down_one: "One rep fewer"
+    reps_down: "{n} fewer reps"
+    same: "Same as last time"
+    # Why. {sets} is today's sets, {last} last time's.
+    hit: "every rep last time"
+    missed: "missed reps last time"
+    stopped_early: "stopped early last time"
+    rushed: "you missed a set you didn't rest for"
+    sets: "{sets} sets today, {last} last time"
+    time_off: "{days} days off"
+  # Changes to a weight during a workout.
+  changes:
+    user_adjust: "You changed it: {before} → {after}"
+    calibration_step: "Ramp: {before} → {after}"
+    # A ramp set under three reps was too heavy: the next one is lighter.
+    calibration_step_down: "Too heavy: ramp down to {after}"
+    calibration_settled: "Ramp done: {after}"
+    correction: "Fixed a set: {before} → {after}"
+  # The sheet in the template editor: the user's own numbers for a lift.
+  override:
+    body: Your weight and reps. I carry on from here.
+    weight: Weight
+    reps: Reps
+    sets: Sets
+    # The sets toggle off: the time budget decides.
+    sets_auto: From the time
+    save: SAVE
+    remove: Let the plan decide
+    # On a row with an override.
+    custom: yours
+  # The completed workout screen, per lift.
+  summary:
+    planned: "Planned: {plan}"

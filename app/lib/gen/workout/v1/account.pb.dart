@@ -29,12 +29,11 @@ enum Event_Kind {
   deleteTemplate,
   reorderTemplates,
   addLibraryTemplates,
-  setExerciseTracker,
   completeOnboarding,
   updateSetting,
-  dismissUserMessages,
   importHistory,
   cloneTemplate,
+  setOverride,
   notSet
 }
 
@@ -50,12 +49,11 @@ class Event extends $pb.GeneratedMessage {
     $1.DeleteTemplateRequest? deleteTemplate,
     $1.ReorderTemplatesRequest? reorderTemplates,
     $1.AddLibraryTemplatesRequest? addLibraryTemplates,
-    $1.SetExerciseTrackerRequest? setExerciseTracker,
     $1.CompleteOnboardingRequest? completeOnboarding,
     $2.UpdateSettingRequest? updateSetting,
-    $1.DismissUserMessagesRequest? dismissUserMessages,
     ImportHistory? importHistory,
     $1.CloneTemplateRequest? cloneTemplate,
+    $1.SetOverrideRequest? setOverride,
   }) {
     final result = create();
     if (seq != null) result.seq = seq;
@@ -69,15 +67,12 @@ class Event extends $pb.GeneratedMessage {
     if (reorderTemplates != null) result.reorderTemplates = reorderTemplates;
     if (addLibraryTemplates != null)
       result.addLibraryTemplates = addLibraryTemplates;
-    if (setExerciseTracker != null)
-      result.setExerciseTracker = setExerciseTracker;
     if (completeOnboarding != null)
       result.completeOnboarding = completeOnboarding;
     if (updateSetting != null) result.updateSetting = updateSetting;
-    if (dismissUserMessages != null)
-      result.dismissUserMessages = dismissUserMessages;
     if (importHistory != null) result.importHistory = importHistory;
     if (cloneTemplate != null) result.cloneTemplate = cloneTemplate;
+    if (setOverride != null) result.setOverride = setOverride;
     return result;
   }
 
@@ -98,19 +93,18 @@ class Event extends $pb.GeneratedMessage {
     14: Event_Kind.deleteTemplate,
     15: Event_Kind.reorderTemplates,
     16: Event_Kind.addLibraryTemplates,
-    17: Event_Kind.setExerciseTracker,
     18: Event_Kind.completeOnboarding,
     19: Event_Kind.updateSetting,
-    20: Event_Kind.dismissUserMessages,
     21: Event_Kind.importHistory,
     22: Event_Kind.cloneTemplate,
+    23: Event_Kind.setOverride,
     0: Event_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'Event',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22])
+    ..oo(0, [10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23])
     ..aInt64(1, _omitFieldNames ? '' : 'seq')
     ..aOS(2, _omitFieldNames ? '' : 'id')
     ..aInt64(3, _omitFieldNames ? '' : 'at')
@@ -131,21 +125,17 @@ class Event extends $pb.GeneratedMessage {
     ..aOM<$1.AddLibraryTemplatesRequest>(
         16, _omitFieldNames ? '' : 'addLibraryTemplates',
         subBuilder: $1.AddLibraryTemplatesRequest.create)
-    ..aOM<$1.SetExerciseTrackerRequest>(
-        17, _omitFieldNames ? '' : 'setExerciseTracker',
-        subBuilder: $1.SetExerciseTrackerRequest.create)
     ..aOM<$1.CompleteOnboardingRequest>(
         18, _omitFieldNames ? '' : 'completeOnboarding',
         subBuilder: $1.CompleteOnboardingRequest.create)
     ..aOM<$2.UpdateSettingRequest>(19, _omitFieldNames ? '' : 'updateSetting',
         subBuilder: $2.UpdateSettingRequest.create)
-    ..aOM<$1.DismissUserMessagesRequest>(
-        20, _omitFieldNames ? '' : 'dismissUserMessages',
-        subBuilder: $1.DismissUserMessagesRequest.create)
     ..aOM<ImportHistory>(21, _omitFieldNames ? '' : 'importHistory',
         subBuilder: ImportHistory.create)
     ..aOM<$1.CloneTemplateRequest>(22, _omitFieldNames ? '' : 'cloneTemplate',
         subBuilder: $1.CloneTemplateRequest.create)
+    ..aOM<$1.SetOverrideRequest>(23, _omitFieldNames ? '' : 'setOverride',
+        subBuilder: $1.SetOverrideRequest.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -173,12 +163,11 @@ class Event extends $pb.GeneratedMessage {
   @$pb.TagNumber(14)
   @$pb.TagNumber(15)
   @$pb.TagNumber(16)
-  @$pb.TagNumber(17)
   @$pb.TagNumber(18)
   @$pb.TagNumber(19)
-  @$pb.TagNumber(20)
   @$pb.TagNumber(21)
   @$pb.TagNumber(22)
+  @$pb.TagNumber(23)
   Event_Kind whichKind() => _Event_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(10)
   @$pb.TagNumber(11)
@@ -187,12 +176,11 @@ class Event extends $pb.GeneratedMessage {
   @$pb.TagNumber(14)
   @$pb.TagNumber(15)
   @$pb.TagNumber(16)
-  @$pb.TagNumber(17)
   @$pb.TagNumber(18)
   @$pb.TagNumber(19)
-  @$pb.TagNumber(20)
   @$pb.TagNumber(21)
   @$pb.TagNumber(22)
+  @$pb.TagNumber(23)
   void clearKind() => $_clearField($_whichOneof(0));
 
   /// Position in the account's log: 1, 2, 3…, no gaps.
@@ -308,86 +296,74 @@ class Event extends $pb.GeneratedMessage {
   @$pb.TagNumber(16)
   $1.AddLibraryTemplatesRequest ensureAddLibraryTemplates() => $_ensure(9);
 
-  @$pb.TagNumber(17)
-  $1.SetExerciseTrackerRequest get setExerciseTracker => $_getN(10);
-  @$pb.TagNumber(17)
-  set setExerciseTracker($1.SetExerciseTrackerRequest value) =>
-      $_setField(17, value);
-  @$pb.TagNumber(17)
-  $core.bool hasSetExerciseTracker() => $_has(10);
-  @$pb.TagNumber(17)
-  void clearSetExerciseTracker() => $_clearField(17);
-  @$pb.TagNumber(17)
-  $1.SetExerciseTrackerRequest ensureSetExerciseTracker() => $_ensure(10);
-
   @$pb.TagNumber(18)
-  $1.CompleteOnboardingRequest get completeOnboarding => $_getN(11);
+  $1.CompleteOnboardingRequest get completeOnboarding => $_getN(10);
   @$pb.TagNumber(18)
   set completeOnboarding($1.CompleteOnboardingRequest value) =>
       $_setField(18, value);
   @$pb.TagNumber(18)
-  $core.bool hasCompleteOnboarding() => $_has(11);
+  $core.bool hasCompleteOnboarding() => $_has(10);
   @$pb.TagNumber(18)
   void clearCompleteOnboarding() => $_clearField(18);
   @$pb.TagNumber(18)
-  $1.CompleteOnboardingRequest ensureCompleteOnboarding() => $_ensure(11);
+  $1.CompleteOnboardingRequest ensureCompleteOnboarding() => $_ensure(10);
 
   @$pb.TagNumber(19)
-  $2.UpdateSettingRequest get updateSetting => $_getN(12);
+  $2.UpdateSettingRequest get updateSetting => $_getN(11);
   @$pb.TagNumber(19)
   set updateSetting($2.UpdateSettingRequest value) => $_setField(19, value);
   @$pb.TagNumber(19)
-  $core.bool hasUpdateSetting() => $_has(12);
+  $core.bool hasUpdateSetting() => $_has(11);
   @$pb.TagNumber(19)
   void clearUpdateSetting() => $_clearField(19);
   @$pb.TagNumber(19)
-  $2.UpdateSettingRequest ensureUpdateSetting() => $_ensure(12);
-
-  @$pb.TagNumber(20)
-  $1.DismissUserMessagesRequest get dismissUserMessages => $_getN(13);
-  @$pb.TagNumber(20)
-  set dismissUserMessages($1.DismissUserMessagesRequest value) =>
-      $_setField(20, value);
-  @$pb.TagNumber(20)
-  $core.bool hasDismissUserMessages() => $_has(13);
-  @$pb.TagNumber(20)
-  void clearDismissUserMessages() => $_clearField(20);
-  @$pb.TagNumber(20)
-  $1.DismissUserMessagesRequest ensureDismissUserMessages() => $_ensure(13);
+  $2.UpdateSettingRequest ensureUpdateSetting() => $_ensure(11);
 
   @$pb.TagNumber(21)
-  ImportHistory get importHistory => $_getN(14);
+  ImportHistory get importHistory => $_getN(12);
   @$pb.TagNumber(21)
   set importHistory(ImportHistory value) => $_setField(21, value);
   @$pb.TagNumber(21)
-  $core.bool hasImportHistory() => $_has(14);
+  $core.bool hasImportHistory() => $_has(12);
   @$pb.TagNumber(21)
   void clearImportHistory() => $_clearField(21);
   @$pb.TagNumber(21)
-  ImportHistory ensureImportHistory() => $_ensure(14);
+  ImportHistory ensureImportHistory() => $_ensure(12);
 
   @$pb.TagNumber(22)
-  $1.CloneTemplateRequest get cloneTemplate => $_getN(15);
+  $1.CloneTemplateRequest get cloneTemplate => $_getN(13);
   @$pb.TagNumber(22)
   set cloneTemplate($1.CloneTemplateRequest value) => $_setField(22, value);
   @$pb.TagNumber(22)
-  $core.bool hasCloneTemplate() => $_has(15);
+  $core.bool hasCloneTemplate() => $_has(13);
   @$pb.TagNumber(22)
   void clearCloneTemplate() => $_clearField(22);
   @$pb.TagNumber(22)
-  $1.CloneTemplateRequest ensureCloneTemplate() => $_ensure(15);
+  $1.CloneTemplateRequest ensureCloneTemplate() => $_ensure(13);
+
+  @$pb.TagNumber(23)
+  $1.SetOverrideRequest get setOverride => $_getN(14);
+  @$pb.TagNumber(23)
+  set setOverride($1.SetOverrideRequest value) => $_setField(23, value);
+  @$pb.TagNumber(23)
+  $core.bool hasSetOverride() => $_has(14);
+  @$pb.TagNumber(23)
+  void clearSetOverride() => $_clearField(23);
+  @$pb.TagNumber(23)
+  $1.SetOverrideRequest ensureSetOverride() => $_ensure(14);
 }
 
-/// History brought in from elsewhere, as it was: finished workouts and the
-/// trackers they led to. Nothing is recomputed from it.
+/// History brought in from elsewhere, as it was: finished workouts, and the
+/// starting weights of lifts never done. Plans read the workouts like any
+/// others; nothing else is recomputed from it.
 class ImportHistory extends $pb.GeneratedMessage {
   factory ImportHistory({
     $core.Iterable<ImportedWorkout>? workouts,
-    $core.Iterable<TrackerRecord>? trackers,
+    $core.Iterable<$1.ExerciseWeight>? startingWeights,
   }) {
     final result = create();
     if (workouts != null) result.workouts.addAll(workouts);
-    if (trackers != null) result.trackers.addAll(trackers);
+    if (startingWeights != null) result.startingWeights.addAll(startingWeights);
     return result;
   }
 
@@ -406,8 +382,8 @@ class ImportHistory extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..pPM<ImportedWorkout>(1, _omitFieldNames ? '' : 'workouts',
         subBuilder: ImportedWorkout.create)
-    ..pPM<TrackerRecord>(2, _omitFieldNames ? '' : 'trackers',
-        subBuilder: TrackerRecord.create)
+    ..pPM<$1.ExerciseWeight>(3, _omitFieldNames ? '' : 'startingWeights',
+        subBuilder: $1.ExerciseWeight.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -432,8 +408,8 @@ class ImportHistory extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   $pb.PbList<ImportedWorkout> get workouts => $_getList(0);
 
-  @$pb.TagNumber(2)
-  $pb.PbList<TrackerRecord> get trackers => $_getList(1);
+  @$pb.TagNumber(3)
+  $pb.PbList<$1.ExerciseWeight> get startingWeights => $_getList(1);
 }
 
 class ImportHistoryResponse extends $pb.GeneratedMessage {
@@ -482,12 +458,14 @@ class ImportedWorkout extends $pb.GeneratedMessage {
     $core.Iterable<$1.ProposedSet>? proposedSets,
     $core.Iterable<$1.CompletedSet>? completedSets,
     $core.Iterable<$1.WorkoutHeartRatePoint>? heartRate,
+    $core.Iterable<$1.ExerciseLog>? exerciseLogs,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
     if (proposedSets != null) result.proposedSets.addAll(proposedSets);
     if (completedSets != null) result.completedSets.addAll(completedSets);
     if (heartRate != null) result.heartRate.addAll(heartRate);
+    if (exerciseLogs != null) result.exerciseLogs.addAll(exerciseLogs);
     return result;
   }
 
@@ -512,6 +490,8 @@ class ImportedWorkout extends $pb.GeneratedMessage {
         subBuilder: $1.CompletedSet.create)
     ..pPM<$1.WorkoutHeartRatePoint>(4, _omitFieldNames ? '' : 'heartRate',
         subBuilder: $1.WorkoutHeartRatePoint.create)
+    ..pPM<$1.ExerciseLog>(5, _omitFieldNames ? '' : 'exerciseLogs',
+        subBuilder: $1.ExerciseLog.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -552,148 +532,9 @@ class ImportedWorkout extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(4)
   $pb.PbList<$1.WorkoutHeartRatePoint> get heartRate => $_getList(3);
-}
-
-/// What the account knows about one exercise: the weight and reps the next
-/// workout will use, and how it got there.
-class TrackerRecord extends $pb.GeneratedMessage {
-  factory TrackerRecord({
-    $1.Exercise? exercise,
-    $core.double? workingWeight,
-    $core.int? currentReps,
-    $core.int? consecutiveMisses,
-    $fixnum.Int64? lastPerformedAt,
-    $core.int? overrideSets,
-    $core.int? overrideRepLow,
-    $core.int? overrideRepHigh,
-  }) {
-    final result = create();
-    if (exercise != null) result.exercise = exercise;
-    if (workingWeight != null) result.workingWeight = workingWeight;
-    if (currentReps != null) result.currentReps = currentReps;
-    if (consecutiveMisses != null) result.consecutiveMisses = consecutiveMisses;
-    if (lastPerformedAt != null) result.lastPerformedAt = lastPerformedAt;
-    if (overrideSets != null) result.overrideSets = overrideSets;
-    if (overrideRepLow != null) result.overrideRepLow = overrideRepLow;
-    if (overrideRepHigh != null) result.overrideRepHigh = overrideRepHigh;
-    return result;
-  }
-
-  TrackerRecord._();
-
-  factory TrackerRecord.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory TrackerRecord.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'TrackerRecord',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aE<$1.Exercise>(1, _omitFieldNames ? '' : 'exercise',
-        enumValues: $1.Exercise.values)
-    ..aD(2, _omitFieldNames ? '' : 'workingWeight',
-        fieldType: $pb.PbFieldType.OF)
-    ..aI(3, _omitFieldNames ? '' : 'currentReps')
-    ..aI(4, _omitFieldNames ? '' : 'consecutiveMisses')
-    ..aInt64(5, _omitFieldNames ? '' : 'lastPerformedAt')
-    ..aI(6, _omitFieldNames ? '' : 'overrideSets')
-    ..aI(7, _omitFieldNames ? '' : 'overrideRepLow')
-    ..aI(8, _omitFieldNames ? '' : 'overrideRepHigh')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TrackerRecord clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  TrackerRecord copyWith(void Function(TrackerRecord) updates) =>
-      super.copyWith((message) => updates(message as TrackerRecord))
-          as TrackerRecord;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static TrackerRecord create() => TrackerRecord._();
-  @$core.override
-  TrackerRecord createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static TrackerRecord getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<TrackerRecord>(create);
-  static TrackerRecord? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $1.Exercise get exercise => $_getN(0);
-  @$pb.TagNumber(1)
-  set exercise($1.Exercise value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasExercise() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearExercise() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.double get workingWeight => $_getN(1);
-  @$pb.TagNumber(2)
-  set workingWeight($core.double value) => $_setFloat(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasWorkingWeight() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearWorkingWeight() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.int get currentReps => $_getIZ(2);
-  @$pb.TagNumber(3)
-  set currentReps($core.int value) => $_setSignedInt32(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasCurrentReps() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearCurrentReps() => $_clearField(3);
-
-  @$pb.TagNumber(4)
-  $core.int get consecutiveMisses => $_getIZ(3);
-  @$pb.TagNumber(4)
-  set consecutiveMisses($core.int value) => $_setSignedInt32(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasConsecutiveMisses() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearConsecutiveMisses() => $_clearField(4);
 
   @$pb.TagNumber(5)
-  $fixnum.Int64 get lastPerformedAt => $_getI64(4);
-  @$pb.TagNumber(5)
-  set lastPerformedAt($fixnum.Int64 value) => $_setInt64(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasLastPerformedAt() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearLastPerformedAt() => $_clearField(5);
-
-  @$pb.TagNumber(6)
-  $core.int get overrideSets => $_getIZ(5);
-  @$pb.TagNumber(6)
-  set overrideSets($core.int value) => $_setSignedInt32(5, value);
-  @$pb.TagNumber(6)
-  $core.bool hasOverrideSets() => $_has(5);
-  @$pb.TagNumber(6)
-  void clearOverrideSets() => $_clearField(6);
-
-  @$pb.TagNumber(7)
-  $core.int get overrideRepLow => $_getIZ(6);
-  @$pb.TagNumber(7)
-  set overrideRepLow($core.int value) => $_setSignedInt32(6, value);
-  @$pb.TagNumber(7)
-  $core.bool hasOverrideRepLow() => $_has(6);
-  @$pb.TagNumber(7)
-  void clearOverrideRepLow() => $_clearField(7);
-
-  @$pb.TagNumber(8)
-  $core.int get overrideRepHigh => $_getIZ(7);
-  @$pb.TagNumber(8)
-  set overrideRepHigh($core.int value) => $_setSignedInt32(7, value);
-  @$pb.TagNumber(8)
-  $core.bool hasOverrideRepHigh() => $_has(7);
-  @$pb.TagNumber(8)
-  void clearOverrideRepHigh() => $_clearField(8);
+  $pb.PbList<$1.ExerciseLog> get exerciseLogs => $_getList(4);
 }
 
 enum SyncRequest_Kind { events, heartbeat, notSet }

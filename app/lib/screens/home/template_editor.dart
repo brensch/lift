@@ -1,16 +1,21 @@
-/// The template editor, a page of its own: a name and an ordered exercise
-/// list. That is the
-/// whole thing — sets, reps, rest and weight are prescribed, and per-
-/// exercise adjustments live on the tracker (tap a row), so they apply in
-/// every template that contains the exercise.
+/// The template editor, a page of its own: a name, whether it is in the
+/// rotation the suggestion picks from, and an ordered exercise list. That
+/// is the whole thing — sets, reps and weight are planned, each
+/// row shows its next plan (the list planned as one workout in Home's
+/// budget, so it reads what Home's card reads), and tapping one sets your
+/// own numbers for the exercise (an override), which apply in every
+/// template that contains it. Nothing is recorded until Save.
 library;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../gen/copy.dart';
 import '../../logic/exercises.dart';
+import '../../logic/plan_text.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
@@ -20,17 +25,24 @@ import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
 
+/// Edit [template] (null: a new one). [personalise] is Clone: Save makes a
+/// library template the user's own, changed or not; backing out leaves it
+/// following the library.
 Future<void> showTemplateEditor(
   BuildContext context, {
   required WorkoutTemplate? template,
   required WorkoutProvider provider,
+  bool personalise = false,
 }) {
   return Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<void>(
       settings: const RouteSettings(name: '/template-editor'),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
-        child: _TemplateEditorSheet(template: template),
+        child: _TemplateEditorSheet(
+          template: template,
+          personalise: personalise,
+        ),
       ),
     ),
   );
@@ -38,7 +50,11 @@ Future<void> showTemplateEditor(
 
 class _TemplateEditorSheet extends StatefulWidget {
   final WorkoutTemplate? template;
-  const _TemplateEditorSheet({required this.template});
+  final bool personalise;
+  const _TemplateEditorSheet({
+    required this.template,
+    required this.personalise,
+  });
 
   @override
   State<_TemplateEditorSheet> createState() => _TemplateEditorSheetState();
@@ -47,7 +63,12 @@ class _TemplateEditorSheet extends StatefulWidget {
 class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   late final TextEditingController _nameController;
   late List<Exercise> _exercises;
+  // A new workout starts as a favourite.
+  late bool _inRotation;
   bool _isSaving = false;
+  // The list on screen planned as one workout; null until the first plan.
+  TemplatePlan? _plan;
+  late final WorkoutProvider _provider;
 
   bool get _isNew => widget.template == null;
 
@@ -56,12 +77,49 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     super.initState();
     _nameController = TextEditingController(text: widget.template?.name ?? '');
     _exercises = List.of(widget.template?.exercises ?? const <Exercise>[]);
+    _inRotation = widget.template?.inRotation ?? false;
+    // A new budget, an override or a finished workout changes the plan.
+    _provider = context.read<WorkoutProvider>()..addListener(_replan);
+    _replan();
   }
 
   @override
   void dispose() {
+    _provider.removeListener(_replan);
     _nameController.dispose();
     super.dispose();
+  }
+
+  /// Plan the list on screen, keeping the answer only if the list has not
+  /// changed since.
+  Future<void> _replan() async {
+    final exercises = List.of(_exercises);
+    if (exercises.isEmpty) {
+      if (mounted) setState(() => _plan = null);
+      return;
+    }
+    try {
+      final plan = await _provider.planTemplate(exercises);
+      if (mounted && listEquals(exercises, _exercises)) {
+        setState(() => _plan = plan);
+      }
+    } catch (e) {
+      debugPrint('Template plan failed: $e');
+    }
+  }
+
+  /// [exercise]'s plan in this list; null until the list is planned.
+  ExercisePlan? _planFor(Exercise exercise) {
+    for (final plan in _plan?.plans ?? const <ExercisePlan>[]) {
+      if (plan.decision.exercise == exercise) return plan;
+    }
+    return null;
+  }
+
+  /// Change the list and plan it again.
+  void _setExercises(List<Exercise> exercises) {
+    setState(() => _exercises = exercises);
+    _replan();
   }
 
   Future<void> _save() async {
@@ -72,8 +130,12 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
       final template = WorkoutTemplate()
         ..id = widget.template?.id ?? ''
         ..name = name
+        ..inRotation = _inRotation
         ..exercises.addAll(_exercises);
-      await context.read<WorkoutProvider>().saveTemplate(template);
+      await context.read<WorkoutProvider>().saveTemplate(
+        template,
+        unlink: widget.personalise,
+      );
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -89,20 +151,18 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   void _addExercises() {
     showExercisePicker(
       context: context,
-      trackers: context.read<WorkoutProvider>().trackers,
+      plans: context.read<WorkoutProvider>().plans,
       initialSelected: _exercises.toSet(),
       onSave: (selected) {
-        setState(() {
-          // Keep the existing order for retained exercises; append the
-          // newly picked ones in catalog order.
-          _exercises = [
-            ..._exercises.where(selected.contains),
-            for (final info in exerciseCatalog)
-              if (selected.contains(info.exercise) &&
-                  !_exercises.contains(info.exercise))
-                info.exercise,
-          ];
-        });
+        // Keep the existing order for retained exercises; append the newly
+        // picked ones in catalog order.
+        _setExercises([
+          ..._exercises.where(selected.contains),
+          for (final info in exerciseCatalog)
+            if (selected.contains(info.exercise) &&
+                !_exercises.contains(info.exercise))
+              info.exercise,
+        ]);
       },
     );
   }
@@ -110,7 +170,6 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final wp = context.watch<WorkoutProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     return Scaffold(
@@ -138,15 +197,33 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 14),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  copy.rotation.switchLabel,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.body,
+                    fontWeight: context.tokens.weight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  copy.rotation.switchHint,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.small,
+                    color: cs.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                value: _inRotation,
+                onChanged: (v) => setState(() => _inRotation = v),
+              ),
+              const SizedBox(height: 6),
               Expanded(
                 child: _exercises.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'Add exercises. Tap one to adjust its weight or '
-                          'sets. That adjustment follows the exercise '
-                          'everywhere.',
+                          'Add exercises. Tap one to set your own weight '
+                          'and reps. They follow the exercise everywhere.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: cs.onSurface.withValues(alpha: 0.55),
@@ -157,12 +234,12 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                         buildDefaultDragHandles: false,
                         itemCount: _exercises.length,
                         onReorderItem: (oldIndex, newIndex) {
-                          setState(() {
-                            // onReorderItem's newIndex is already adjusted
-                            // for the removed item: no `newIndex -= 1`.
-                            final moved = _exercises.removeAt(oldIndex);
-                            _exercises.insert(newIndex, moved);
-                          });
+                          // onReorderItem's newIndex is already adjusted
+                          // for the removed item: no `newIndex -= 1`.
+                          final next = List.of(_exercises);
+                          final moved = next.removeAt(oldIndex);
+                          next.insert(newIndex, moved);
+                          _setExercises(next);
                         },
                         itemBuilder: (context, index) {
                           final exercise = _exercises[index];
@@ -170,11 +247,12 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                             key: ValueKey(exercise.value),
                             index: index,
                             exercise: exercise,
-                            tracker: wp.trackerFor(exercise),
+                            plan: _planFor(exercise),
                             unit: unit,
-                            onRemove: () =>
-                                setState(() => _exercises.removeAt(index)),
-                            onTap: () => _editTracker(exercise),
+                            onRemove: () => _setExercises(
+                              List.of(_exercises)..removeAt(index),
+                            ),
+                            onTap: () => _editOverride(exercise),
                           );
                         },
                       ),
@@ -218,20 +296,20 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     );
   }
 
-  Future<void> _editTracker(Exercise exercise) async {
+  Future<void> _editOverride(Exercise exercise) async {
     final wp = context.read<WorkoutProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
-    final tracker = wp.trackerFor(exercise);
-    if (tracker == null) return;
-    await showTrackerSheet(context, tracker: tracker, unit: unit, provider: wp);
-    if (mounted) setState(() {});
+    final plan = _planFor(exercise) ?? wp.planFor(exercise);
+    if (plan == null) return;
+    // The override refreshes Home, and the provider's notice plans again.
+    await showOverrideSheet(context, plan: plan, unit: unit, provider: wp);
   }
 }
 
 class _ExerciseRow extends StatelessWidget {
   final int index;
   final Exercise exercise;
-  final ExerciseTracker? tracker;
+  final ExercisePlan? plan;
   final WeightUnit unit;
   final VoidCallback onRemove;
   final VoidCallback onTap;
@@ -240,7 +318,7 @@ class _ExerciseRow extends StatelessWidget {
     super.key,
     required this.index,
     required this.exercise,
-    required this.tracker,
+    required this.plan,
     required this.unit,
     required this.onRemove,
     required this.onTap,
@@ -249,19 +327,14 @@ class _ExerciseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final resolved = tracker;
-    // A fixed count (5×5) reads as one number, a range as low–high.
-    final reps = resolved == null
+    final p = plan;
+    final detail = p == null
         ? ''
-        : resolved.repRangeLow == resolved.repRangeHigh
-        ? '${resolved.repRangeLow}'
-        : '${resolved.repRangeLow}–${resolved.repRangeHigh}';
-    final detail = resolved == null
-        ? ''
-        : resolved.workingWeight > 0
-        ? '${resolved.sets}×$reps'
-              ' @ ${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
-        : '${resolved.sets}×$reps';
+        : [
+            planLine(p.decision, unit),
+            if (p.overridden) copy.plan.override.custom,
+            reasonShort(p.decision, unit),
+          ].where((part) => part.isNotEmpty).join('  · ');
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 4, right: 0),
       dense: true,
@@ -279,10 +352,7 @@ class _ExerciseRow extends StatelessWidget {
       ),
       subtitle: detail.isEmpty
           ? null
-          : Text(
-              '$detail${(resolved?.overridden ?? false) ? '  · custom' : ''}',
-              style: TextStyle(fontSize: context.tokens.size.small),
-            ),
+          : Text(detail, style: TextStyle(fontSize: context.tokens.size.small)),
       trailing: IconButton(
         icon: const Icon(AppIcons.removeCircle, size: 20),
         onPressed: onRemove,
@@ -291,55 +361,59 @@ class _ExerciseRow extends StatelessWidget {
   }
 }
 
-// ── Tracker sheet ────────────────────────────────────────────────────────────
+// ── Override sheet ───────────────────────────────────────────────────────────
 
-/// Adjust one exercise's weight, sets and rep range. Writes to the
-/// tracker, so it applies everywhere the exercise appears — templates
-/// hold no numbers.
-Future<void> showTrackerSheet(
+/// Set your own weight and reps (and optionally sets) for one exercise, or
+/// hand it back to the plan. An override follows the exercise everywhere —
+/// templates hold no numbers — and the plan carries on from it.
+Future<void> showOverrideSheet(
   BuildContext context, {
-  required ExerciseTracker tracker,
+  required ExercisePlan plan,
   required WeightUnit unit,
   required WorkoutProvider provider,
 }) {
   return showModalBottomSheet(
     context: context,
-    routeSettings: const RouteSettings(name: 'sheet/tracker'),
+    routeSettings: const RouteSettings(name: 'sheet/override'),
     isScrollControlled: true,
     useRootNavigator: true,
     backgroundColor: Colors.transparent,
     builder: (_) => ChangeNotifierProvider.value(
       value: provider,
-      child: _TrackerSheet(tracker: tracker, unit: unit),
+      child: _OverrideSheet(plan: plan, unit: unit),
     ),
   );
 }
 
-class _TrackerSheet extends StatefulWidget {
-  final ExerciseTracker tracker;
+class _OverrideSheet extends StatefulWidget {
+  final ExercisePlan plan;
   final WeightUnit unit;
-  const _TrackerSheet({required this.tracker, required this.unit});
+  const _OverrideSheet({required this.plan, required this.unit});
 
   @override
-  State<_TrackerSheet> createState() => _TrackerSheetState();
+  State<_OverrideSheet> createState() => _OverrideSheetState();
 }
 
-class _TrackerSheetState extends State<_TrackerSheet> {
+class _OverrideSheetState extends State<_OverrideSheet> {
   late final TextEditingController _weightController;
+  late int _reps;
   late int _sets;
-  late int _repLow;
-  late int _repHigh;
+  // Off: the time budget decides the sets.
+  bool _fixSets = false;
   bool _isSaving = false;
+
+  ExerciseDecision get _decision => widget.plan.decision;
+  bool get _bodyweight =>
+      widget.plan.equipment == EquipmentKind.EQUIPMENT_KIND_BODYWEIGHT;
 
   @override
   void initState() {
     super.initState();
     _weightController = TextEditingController(
-      text: formatWeight(widget.tracker.workingWeight, widget.unit),
+      text: formatWeight(_decision.weight, widget.unit),
     );
-    _sets = widget.tracker.sets;
-    _repLow = widget.tracker.repRangeLow;
-    _repHigh = widget.tracker.repRangeHigh;
+    _reps = _decision.reps > 0 ? _decision.reps : _decision.repLow;
+    _sets = _decision.sets;
   }
 
   @override
@@ -348,19 +422,11 @@ class _TrackerSheetState extends State<_TrackerSheet> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  Future<void> _write(Future<void> Function(WorkoutProvider wp) write) async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
     try {
-      final display = double.tryParse(_weightController.text.trim()) ?? 0;
-      final pounds = poundsFromDisplayWeight(display, widget.unit);
-      await context.read<WorkoutProvider>().setExerciseTracker(
-        exercise: widget.tracker.exercise,
-        workingWeightLb: pounds,
-        overrideSets: _sets,
-        overrideRepLow: _repLow,
-        overrideRepHigh: _repHigh,
-      );
+      await write(context.read<WorkoutProvider>());
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -373,10 +439,29 @@ class _TrackerSheetState extends State<_TrackerSheet> {
     }
   }
 
+  Future<void> _save() {
+    final display = double.tryParse(_weightController.text.trim()) ?? 0;
+    return _write(
+      (wp) => wp.setOverride(
+        exercise: _decision.exercise,
+        weightLb: _bodyweight
+            ? 0
+            : poundsFromDisplayWeight(display, widget.unit),
+        reps: _reps,
+        sets: _fixSets ? _sets : null,
+      ),
+    );
+  }
+
+  Future<void> _remove() =>
+      _write((wp) => wp.removeOverride(_decision.exercise));
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = exerciseNames[widget.tracker.exercise] ?? '?';
+    final o = copy.plan.override;
+    final name = exerciseNames[_decision.exercise] ?? '?';
+    final reasons = reasonLines(_decision, widget.unit);
 
     return Container(
       decoration: BoxDecoration(
@@ -412,48 +497,72 @@ class _TrackerSheetState extends State<_TrackerSheet> {
               ),
             ],
           ),
+          // The next plan, and why.
           Text(
-            'Changes here follow the exercise into every template.',
+            planLine(_decision, widget.unit),
+            style: TextStyle(
+              fontSize: context.tokens.size.body,
+              fontWeight: context.tokens.weight.bold,
+            ),
+          ),
+          for (final line in reasons)
+            Text(
+              line,
+              style: TextStyle(
+                fontSize: context.tokens.size.small,
+                color: cs.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          const SizedBox(height: 12),
+          Text(
+            o.body,
             style: TextStyle(
               fontSize: context.tokens.size.small,
               color: cs.onSurface.withValues(alpha: 0.55),
             ),
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _weightController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Working weight',
-              suffixText: weightUnitSuffix(widget.unit),
-              border: const OutlineInputBorder(),
+          if (!_bodyweight) ...[
+            TextField(
+              controller: _weightController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: o.weight,
+                suffixText: weightUnitSuffix(widget.unit),
+                border: const OutlineInputBorder(),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
           _Stepper(
-            label: 'Sets',
-            value: _sets,
-            min: 1,
-            max: 8,
-            onChanged: (v) => setState(() => _sets = v),
-          ),
-          _Stepper(
-            label: 'Rep range from',
-            value: _repLow,
+            label: o.reps,
+            value: _reps,
             min: 1,
             max: 30,
-            onChanged: (v) => setState(() {
-              _repLow = v;
-              if (_repHigh < _repLow) _repHigh = _repLow;
-            }),
+            onChanged: (v) => setState(() => _reps = v),
           ),
-          _Stepper(
-            label: 'Rep range to',
-            value: _repHigh,
-            min: _repLow,
-            max: 30,
-            onChanged: (v) => setState(() => _repHigh = v),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              _fixSets ? o.sets : o.setsAuto,
+              style: TextStyle(
+                fontSize: context.tokens.size.body,
+                fontWeight: context.tokens.weight.bold,
+              ),
+            ),
+            value: _fixSets,
+            onChanged: (v) => setState(() => _fixSets = v),
           ),
+          if (_fixSets)
+            _Stepper(
+              label: o.sets,
+              value: _sets,
+              min: 1,
+              max: 8,
+              onChanged: (v) => setState(() => _sets = v),
+            ),
           const SizedBox(height: 16),
           SizedBox(
             height: 54,
@@ -466,7 +575,7 @@ class _TrackerSheetState extends State<_TrackerSheet> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(
-                      'SAVE',
+                      o.save,
                       style: TextStyle(
                         fontWeight: context.tokens.weight.heavy,
                         fontSize: context.tokens.size.bodyLg,
@@ -474,6 +583,13 @@ class _TrackerSheetState extends State<_TrackerSheet> {
                     ),
             ),
           ),
+          if (widget.plan.overridden) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _isSaving ? null : _remove,
+              child: Text(o.remove),
+            ),
+          ],
         ],
       ),
     );

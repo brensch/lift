@@ -424,14 +424,28 @@ class Scenario {
   Finder circleFor(String setId) => find.byKey(ValueKey('set-circle-$setId'));
 
   /// The set whose circle is up next, when one can be started now.
-  ProposedSet? get nextSet {
-    final set = workout.doneTargetSet;
-    if (set == null || circleFor(set.id).evaluate().isEmpty) return null;
-    return set;
-  }
+  ProposedSet? get nextSet => workout.doneTargetSet;
 
-  /// Whether a set is ready to lift: the up-next circle is on screen.
+  /// Whether a set is ready to lift: the workout has one up next. Its
+  /// circle may be further down the list (`revealNextSet`).
   bool get setOffered => nextSet != null;
+
+  /// Scroll the workout list until the next set's circle is built and on
+  /// screen: the list builds lazily, so a lift further down has no circle
+  /// to find until it scrolls in.
+  Future<void> revealNextSet() async {
+    final set = nextSet;
+    if (set == null) return;
+    final circle = circleFor(set.id);
+    if (circle.evaluate().isNotEmpty) return _reveal(circle);
+    await tester.scrollUntilVisible(
+      circle,
+      300,
+      scrollable: find.byType(Scrollable).first,
+      maxScrolls: 30,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+  }
 
   /// From home, start the expanded template's workout (the suggestion by
   /// default) and wait for its first circle: a calibration rung, a warmup
@@ -475,12 +489,11 @@ class Scenario {
   }) async {
     await tester.runAsync(() async {
       for (final lift in lifts) {
-        await workout.setExerciseTracker(
+        await workout.setOverride(
           exercise: lift.key,
-          workingWeightLb: lift.value,
-          overrideSets: sets,
-          overrideRepLow: reps,
-          overrideRepHigh: reps,
+          weightLb: lift.value,
+          reps: reps,
+          sets: sets,
         );
       }
       await workout.startWorkout(
@@ -493,13 +506,18 @@ class Scenario {
     await settle(seconds: 1);
   }
 
-  /// A first-ever exercise asks for its weight: answer "test me", so the
-  /// calibration sets find it.
+  /// A first-ever exercise asks where its ramp starts: test me from the
+  /// planned weight, and the calibration sets find it.
   Future<void> testMeIfAsked() async {
-    if (!isVisible(copy.workout.firstTimeTest)) return;
-    await tapText(copy.workout.firstTimeTest);
+    final button = find.textContaining(testMe);
+    if (button.evaluate().isEmpty) return;
+    await tap(button);
     await settle(seconds: 1);
   }
+
+  /// The first-time dialog's one button, up to the weight it names.
+  static String get testMe =>
+      copy.workout.firstTimeTest.split('{weight}').first;
 
   /// Lift the next set on its circle: tap to start it, tap again when it is
   /// done, then once more per [missed] rep. On a calibration rung a
@@ -513,6 +531,7 @@ class Scenario {
     }
     final set = nextSet;
     expect(set, isNotNull, reason: 'no set to lift');
+    await revealNextSet();
     await tap(circleFor(set!.id));
     // The core answers asynchronously; give it a beat.
     await settle(seconds: 1);

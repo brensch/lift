@@ -1,7 +1,8 @@
-/// One workout in a list, compact: a tick box (when it can be ticked), the
-/// name, any actions, and a chevron that drops down what's in it — so a
-/// whole library fits on screen until you want detail. Onboarding's pick
-/// and the home Edit sheet are the same rows.
+/// One workout in a list, compact: a drag handle or a tick box (when it
+/// has one), the name (and, when asked, its lifts on one line under it,
+/// and a note under those), any actions, and a chevron that drops down
+/// what's in it — so a whole library fits on screen until you want detail. Onboarding's pick and Home's Manage sheet
+/// are the same rows.
 library;
 
 import 'package:flutter/material.dart';
@@ -28,6 +29,18 @@ class TemplateRow extends StatefulWidget {
   /// Between the name and the chevron.
   final List<Widget> actions;
 
+  /// The lifts on one line under the name.
+  final bool showLifts;
+
+  /// Before everything (a drag handle).
+  final Widget? leading;
+
+  /// Has the chevron that drops down what's in it.
+  final bool expandable;
+
+  /// A muted line under the name and lifts; none when empty.
+  final String note;
+
   const TemplateRow({
     super.key,
     required this.name,
@@ -37,6 +50,10 @@ class TemplateRow extends StatefulWidget {
     this.personal = false,
     this.onTap,
     this.actions = const [],
+    this.showLifts = false,
+    this.leading,
+    this.expandable = true,
+    this.note = '',
   });
 
   @override
@@ -68,6 +85,7 @@ class _TemplateRowState extends State<TemplateRow> {
             padding: const EdgeInsets.fromLTRB(2, 0, 0, 0),
             child: Row(
               children: [
+                ?widget.leading,
                 if (selected != null) ...[
                   SelectBox(selected: selected, colorScheme: cs),
                   const SizedBox(width: 12),
@@ -77,29 +95,57 @@ class _TemplateRowState extends State<TemplateRow> {
                   const SizedBox(width: 8),
                 ],
                 Expanded(
-                  child: Text(
-                    widget.name,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.bodyLg,
-                      fontWeight: selected ?? true
-                          ? context.tokens.weight.heavy
-                          : context.tokens.weight.bold,
-                      letterSpacing: -0.2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.name,
+                          style: TextStyle(
+                            fontSize: context.tokens.size.bodyLg,
+                            fontWeight: selected ?? true
+                                ? context.tokens.weight.heavy
+                                : context.tokens.weight.bold,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        if (widget.showLifts)
+                          Text(
+                            names,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.small,
+                              color: context.tokens.muted,
+                            ),
+                          ),
+                        if (widget.note.isNotEmpty)
+                          Text(
+                            widget.note,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.small,
+                              fontStyle: FontStyle.italic,
+                              color: context.tokens.muted,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
                 ...widget.actions,
-                IconButton(
-                  onPressed: () => setState(() => _open = !_open),
-                  icon: Icon(_open ? AppIcons.expandUp : AppIcons.expandDown),
-                  color: cs.onSurface.withValues(alpha: 0.6),
-                  visualDensity: VisualDensity.compact,
-                ),
+                if (widget.expandable)
+                  IconButton(
+                    onPressed: () => setState(() => _open = !_open),
+                    icon: Icon(_open ? AppIcons.expandUp : AppIcons.expandDown),
+                    color: cs.onSurface.withValues(alpha: 0.6),
+                    visualDensity: VisualDensity.compact,
+                  ),
               ],
             ),
           ),
         ),
-        if (_open)
+        if (_open && widget.expandable)
           Padding(
             padding: EdgeInsets.fromLTRB(selected != null ? 36 : 2, 6, 12, 10),
             child: Column(

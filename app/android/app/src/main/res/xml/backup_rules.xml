@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and earlier: the same exclusion as data_extraction_rules.xml.
+     The account files are never backed up; the server restores them. -->
+<full-backup-content>
+    <exclude domain="file" path="accounts/" />
+</full-backup-content>

@@ -325,8 +325,10 @@ API, from two committed sources:
   uses each piece as its own section. The same text goes to every language
   the listing has. Screenshot captions live here too.
 - **`store/screenshots/raw/`** — raw captures: `store_NN.png` phone slides
-  (1080×2400, dark mode), `wear_*.png` Wear OS captures (384×384),
-  `apple_watch_*.png` Apple Watch captures (396×484).
+  (1080×2400, dark mode), `wear_*.png` Wear OS captures (454×454, round),
+  `apple_watch_*.png` Apple Watch images (396×484: the Wear face on black).
+  A slide with `device: watch` frames a Wear capture as a watch on a
+  phone-sized image.
 
 CI checks `listing.yaml` on every pull request against both stores' limits
 (`scripts/check_store_text.py`), including that each referenced screenshot
@@ -384,9 +386,27 @@ only with `--features test-auth`, see `src/demo_seed.rs`), then drives
 Add, remove or reorder slides there and in `listing.yaml` together. Commit the
 new PNGs.
 
-Watch captures are not automated (two emulators cannot be paired from the
-CLI); the committed ones are reused. To redo them see the Wear OS notes in
-`docs/android_dev.md` and the watch notes in `docs/architecture/wearable.md`.
+Watch captures need no phone. The debug watch app has a receiver
+(`app/android/wear/src/debug/.../DebugSnapshotReceiver.kt`, never in a
+release build) that takes a `WearWorkoutSnapshot` over adb, plus a heart
+rate, since an emulator has no sensor:
+
+```bash
+make android-wear-emulator-start            # lift_wear_api34, 454×454 round
+adb -s <watch> install -r app/build/wear/outputs/apk/debug/wear-debug.apk
+adb -s <watch> shell am start -n com.brensch.schlift.debug/com.brensch.schlift.wear.MainActivity
+B64=$(protoc --proto_path=proto --encode=workout.v1.WearWorkoutSnapshot \
+  workout/v1/wearable.proto < snapshot.txtpb | base64 -w0)
+adb -s <watch> shell am broadcast \
+  -n com.brensch.schlift.debug/com.brensch.schlift.wear.DebugSnapshotReceiver \
+  --es snapshot "$B64" --ef bpm 141
+adb -s <watch> exec-out screencap -p > store/screenshots/raw/wear_01_active_set.png
+```
+
+`snapshot.txtpb` is a text-format snapshot (state, circles, `you_card`).
+Send `bpm` again just before the screenshot while lifting: the emulator's
+sensor reads 0 once a set starts. The Apple Watch images are the same
+captures scaled to 396 wide and centred on a black 396×484.
 
 ### Render and review
 

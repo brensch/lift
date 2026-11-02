@@ -51,7 +51,14 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   final GlobalKey _stageKey = GlobalKey();
   int _step = 0;
+
+  /// The step's target, where it is this frame.
   Rect? _target;
+
+  /// Which side of the target the card sits, decided once a step: below,
+  /// unless the step's scroll leaves too little room there. Never decided
+  /// per frame, so the card doesn't hop sides mid-scroll.
+  bool _below = true;
 
   /// Moving between steps, or (at first) the sample account still being
   /// built: taps wait.
@@ -65,13 +72,23 @@ class _TutorialScreenState extends State<TutorialScreen>
   @override
   void initState() {
     super.initState();
-    unawaited(TutorialAccount.create().then(_account.complete));
+    unawaited(
+      TutorialAccount.create(
+        context.read<SettingsProvider>().weightUnit,
+      ).then(_account.complete),
+    );
     _workouts = WorkoutProvider(
       WorkoutServiceWrapper(_SandboxCore(_account.future)),
       context.read<SettingsProvider>(),
       sandbox: true,
+      // Short enough that every sample workout fills it: the time control
+      // shows an estimate, never its cap.
+      budgetMinutes: 45,
     );
     _registry.addListener(_measure);
+    // The pulse ticks every frame: follow the target on it, so the outline
+    // and the card stay on it as the page scrolls or its content settles.
+    _throb.addListener(_follow);
     // The sandbox account, then the first step once home has laid out.
     unawaited(
       _workouts.refreshHome().then((_) async {
@@ -136,34 +153,53 @@ class _TutorialScreenState extends State<TutorialScreen>
     if (!mounted) return;
     final index = _pending ?? _step;
     final ctx = _registry.contextFor(_steps[index].target);
-    if (ctx == null) {
-      setState(() {
-        _step = index;
-        _pending = null;
-        _target = null;
-      });
-      return;
-    }
-    // Bring it on screen first; the ListView on home is tall.
-    await Scrollable.ensureVisible(
-      ctx,
-      alignment: 0.35,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
-    if (!mounted || !ctx.mounted) return;
-    await WidgetsBinding.instance.endOfFrame;
-    if (!mounted || !ctx.mounted) return;
-    final box = ctx.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return;
-    final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+    // The new step at once: the outline rides its target (`_follow`) while
+    // the page scrolls it into view, one motion rather than two.
     setState(() {
       _step = index;
       _pending = null;
-      _target = topLeft & box.size;
+      _target = ctx == null ? null : _rectOf(ctx) ?? _target;
+      _below = true;
     });
+    if (ctx == null) return;
+    // Near the top, so the card has room under it.
+    await Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.1,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+    // Measured once the scroll's last frame is laid out.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || !ctx.mounted) return;
+    final rect = _rectOf(ctx);
+    final stage = _stageKey.currentContext?.findRenderObject() as RenderBox?;
+    if (rect == null || stage == null || !stage.hasSize) return;
+    final below = _Popover.fitsBelow(
+      rect,
+      Offset.zero & stage.size,
+      MediaQuery.paddingOf(context),
+    );
+    if (below != _below) setState(() => _below = below);
+  }
+
+  /// Where [ctx]'s box is on the stage, or null before it is laid out.
+  Rect? _rectOf(BuildContext ctx) {
+    final box = ctx.findRenderObject() as RenderBox?;
+    final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || !box.hasSize || overlay == null) {
+      return null;
+    }
+    return box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
+  }
+
+  /// Each frame: where the shown step's target is now, so the outline sits
+  /// exactly on it as the page scrolls to it or its content settles.
+  void _follow() {
+    if (_pending != null || _target == null) return;
+    final ctx = _registry.contextFor(_steps[_step].target);
+    final now = ctx == null ? null : _rectOf(ctx);
+    if (now != null && now != _target) setState(() => _target = now);
   }
 
   void _next() {
@@ -239,6 +275,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                       onPrevious: _step > 0 ? _previous : null,
                       onNext: _next,
                       onSkip: () => Navigator.pop(context),
+                      below: _below,
                     ),
                   ],
                 ],
@@ -309,6 +346,9 @@ class _Popover extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onSkip;
 
+  /// The side the card sits on (the screen decides it once a step).
+  final bool below;
+
   const _Popover({
     required this.step,
     required this.index,
@@ -318,6 +358,7 @@ class _Popover extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onSkip,
+    required this.below,
   });
 
   static const _margin = 12.0;
@@ -325,6 +366,15 @@ class _Popover extends StatelessWidget {
   static const _needed = 210.0; // title, three lines, the buttons
 
   bool get _last => index == count - 1;
+
+  /// Whether the card fits under [target]: below unless the room there is
+  /// short of what it needs and the room above is more.
+  static bool fitsBelow(Rect target, Rect bounds, EdgeInsets padding) {
+    final roomBelow =
+        bounds.bottom - padding.bottom - _margin - (target.bottom + _gap);
+    final roomAbove = target.top - _gap - padding.top - _margin;
+    return roomBelow >= _needed || roomBelow >= roomAbove;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -342,7 +392,6 @@ class _Popover extends StatelessWidget {
     }
     final roomBelow = bounds.bottom - bottomSafe - (t.bottom + _gap);
     final roomAbove = t.top - _gap - topSafe;
-    final below = roomBelow >= roomAbove;
     // A tall target on a short screen can leave less than the card needs
     // on either side; then the card creeps over the target's far edge by
     // the shortfall rather than clipping its text.

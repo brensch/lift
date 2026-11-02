@@ -96,6 +96,15 @@ weight (tap for the plates) × the reps in the set's circle, then heart rate,
 workout length and the time. A tap on any circle is a `TapSetIntent`: the
 phone does what a tap on its own circle does (start, done, a rep off, undone),
 so the watch knows no workout rules. The rep circle taps the set in hand.
+The first set of an exercise never done (`first_time`, until it is started)
+waits on the phone, which asks for your weight or tests you: the band shows
+the state as usual, the weight row shows `first_time_text` ("Open phone!")
+in place of weight × reps, and nothing on the face taps a set. Once the
+phone starts the set, the face is the usual one again. A ramp set done in
+full asks "How many more could you have done?" on the phone; while that is
+open (`rung_question_set_id`) the card is `first_time` with "Open phone!"
+the same way, and the watch never answers it. Answered, or the next set
+started, the face is the usual one again.
 Done (on `ALL_DONE`, with `END_WORKOUT`) and Idle (no snapshot) are their own
 screens. Hardware keys (the crown) never act on the face.
 

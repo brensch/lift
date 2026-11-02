@@ -1,9 +1,9 @@
 /// Setup, five steps long: your marker, your unit, how strong you are
-/// (a slider that sets the first weights), your bodyweight for calories,
+/// (a slider that sets the starting weights), your bodyweight for calories,
 /// and the library templates you want to start with. Finishing calls
-/// CompleteOnboarding, which seeds the trackers and copies the chosen
-/// templates — after that the app is usable and nothing else is required,
-/// ever.
+/// CompleteOnboarding, which records the starting weights the slider picked
+/// and copies the chosen templates — after that the app is usable and
+/// nothing else is required, ever.
 library;
 
 import 'package:flutter/material.dart';
@@ -15,7 +15,7 @@ import 'dart:math';
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart'
-    show ExperienceLevel, LibraryTemplate, StartingWeightsStep;
+    show LibraryTemplate, StartingWeightsStep;
 import '../../logic/user_profile.dart';
 import '../../logic/whimsical_emojis.dart';
 import '../../logic/weight_units.dart';
@@ -194,14 +194,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         context.read<SettingsProvider>().applyWeightUnitLocally(_unit);
       }
 
-      // The server seeds trackers and the default templates.
+      // The core records the starting weights and the chosen templates.
       if (!mounted) return;
       final service = context.read<WorkoutServiceWrapper>();
       await service.completeOnboarding(
-        bodyWeightKg: bodyWeightKg,
-        experience: ExperienceLevel.EXPERIENCE_LEVEL_UNSPECIFIED,
         unit: _unit,
-        // The step the slider showed, so the seeds are what was on screen.
+        // The step the slider showed: the core records exactly the
+        // starting weights that step had on screen.
         strength: (_strength.clamp(0.0, 1.0) * 100).round() / 100,
         libraryIds: _selectedLibraryIds.toList(),
       );

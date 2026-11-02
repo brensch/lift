@@ -168,6 +168,16 @@ pub struct ServerDb {
     changes: tokio::sync::broadcast::Sender<Change>,
 }
 
+/// Columns of the projected tables added after the table already existed
+/// in production: `CREATE TABLE IF NOT EXISTS` leaves an old table as it
+/// was, so each is added at startup when it is missing. Columns the
+/// projections no longer write stay, with their defaults.
+const ADDED_COLUMNS: &[(&str, &str, &str)] = &[(
+    "proposed_sets",
+    "rest_seconds",
+    "INTEGER NOT NULL DEFAULT 0",
+)];
+
 impl ServerDb {
     pub async fn new_in_dir(data_dir: impl AsRef<Path>) -> DbResult<Self> {
         let data_dir = data_dir.as_ref();
@@ -191,6 +201,21 @@ impl ServerDb {
         sqlx::query(schlift_core::projection::WORKOUT_SCHEMA)
             .execute(&write_pool)
             .await?;
+        for (table, column, declaration) in ADDED_COLUMNS {
+            let has: bool =
+                sqlx::query_scalar("SELECT COUNT(*) > 0 FROM pragma_table_info(?) WHERE name = ?")
+                    .bind(table)
+                    .bind(column)
+                    .fetch_one(&write_pool)
+                    .await?;
+            if !has {
+                sqlx::query(&format!(
+                    "ALTER TABLE {table} ADD COLUMN {column} {declaration}"
+                ))
+                .execute(&write_pool)
+                .await?;
+            }
+        }
         Ok(Self {
             read_pool,
             write_pool,

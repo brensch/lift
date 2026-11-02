@@ -9,7 +9,7 @@ with the same statements (`core/src/projection.rs`). See
 ```mermaid
 graph LR
     log["Event log<br/>(the truth)"] -->|"Account::fold"| acc["Account<br/>in memory"]
-    acc -->|"projection.rs"| tables["Readable tables<br/>workouts, sets, heart rate,<br/>trackers, templates"]
+    acc -->|"projection.rs"| tables["Readable tables<br/>workouts, sets, heart rate,<br/>exercise decisions, templates"]
 ```
 
 ## The event log
@@ -21,12 +21,12 @@ graph LR
 | Server | `account_events(user_id, seq, event_blob)`, PK `(user_id, seq)` | Every account's log |
 
 `event_blob` is an `Event` (`proto/workout/v1/account.proto`): `seq`, `id`,
-`at` and one `kind` — `start_workout`, `workout` (a `WorkoutMutation`:
-complete/edit/delete a set, start a set, skip warmups, add/adjust/remove/
-reorder exercises, rate, set the session, end), `heart_rate`,
-`save_template`, `delete_template`, `reorder_templates`,
-`add_library_templates`, `set_exercise_tracker`, `complete_onboarding`,
-`update_setting`, `dismiss_user_messages`, `import_history`.
+`at` and one `kind` — `start_workout` (with each lift's recorded
+decision), `workout` (a `WorkoutMutation`: complete/edit/delete a set,
+start a set, skip warmups, add/adjust/remove/reorder exercises, set the
+session, end), `heart_rate`, `save_template`, `delete_template`,
+`reorder_templates`, `add_library_templates`, `clone_template`,
+`set_override`, `complete_onboarding`, `update_setting`, `import_history`.
 
 `seq` runs 1, 2, 3… with no gaps. Ids the event creates (the workout, its
 sets, a template) derive from the event's `id` (`core/src/ids.rs`), so a
@@ -35,11 +35,15 @@ replay rebuilds them exactly.
 ## The account
 
 `Account` (`core/src/account.rs`) is what the fold produces: settings,
-templates, trackers (one per exercise), every workout (`WorkoutRecord`:
-the workout, its proposed and completed sets, heart rate), the active
-workout's id and the coaching messages. It is never stored whole; the phone
-holds it in memory while the account is open, the server caches recently
-used ones.
+templates, the starting weights (per lift, from onboarding or imported
+history), the user's overrides (per lift: weight, reps, maybe sets, and
+when), every workout (`WorkoutRecord`: the workout, its proposed and
+completed sets, heart rate, and per lift its `ExerciseLog` — the decision
+it was laid out from and every weight change since), and the active
+workout's id. Nothing else is kept: each lift's estimated max is walked
+from the workouts whenever a plan is made (`core/src/plan.rs`). The
+account is never stored whole; the phone holds it in memory while the
+account is open, the server caches recently used ones.
 
 ## Projected tables
 
@@ -51,6 +55,7 @@ erDiagram
     workouts ||--o{ proposed_sets : "plans"
     proposed_sets ||--o| completed_sets : "logged as"
     workouts ||--o{ workout_heart_rate_samples : "records"
+    workouts ||--o{ exercise_decisions : "plans each lift"
 
     workouts {
         TEXT id PK
@@ -72,6 +77,7 @@ erDiagram
         REAL target_weight
         INTEGER warmup
         INTEGER cancelled
+        INTEGER rest_seconds
         INTEGER calibration
         INTEGER skipped
     }
@@ -84,7 +90,6 @@ erDiagram
         INTEGER started_at
         INTEGER ended_at
         INTEGER rest_until
-        INTEGER effort "retired: ratings from before 0.12.2"
     }
     workout_heart_rate_samples {
         TEXT id PK
@@ -92,12 +97,23 @@ erDiagram
         INTEGER sampled_at
         REAL bpm
     }
+    exercise_decisions {
+        TEXT id PK "workout id : position"
+        TEXT workout_id
+        INTEGER position "the order planned"
+        INTEGER exercise "enum"
+        INTEGER sets
+        INTEGER reps
+        REAL weight
+        REAL estimated_max "the max it was planned from"
+        INTEGER budget_minutes
+        BLOB log "ExerciseLog: decision, reasons, weight changes"
+    }
 ```
 
 `WORKOUT_SCHEMA` (above) is on both the phone and the server; the server's
 analytics and multiplayer history ("trained with") read it.
-`ACCOUNT_SCHEMA` — `exercise_trackers` and `workout_templates` — is on the
-phone only, so an exported file reads as everything the app knows; the
+`ACCOUNT_SCHEMA` — `workout_templates` — is on the phone only, so an exported file reads as everything the app knows; the
 server keeps those in the fold.
 
 - **`end_time = 0` means in progress.** There is no status column;
@@ -106,6 +122,9 @@ server keeps those in the fold.
   workout's lifting marker (`lifting_set_id`), not a row.
 - **`proposed_sets.calibration`** marks a calibration rung; rungs count as
   warmups for volume.
+- **`exercise_decisions`** is one row per lift per workout: the decision's
+  numbers as columns for SQL, and `log`, the whole `ExerciseLog` (reasons
+  and weight changes) as a proto blob.
 - **`proposed_sets.cancelled`** is a soft delete (an exercise removed
   mid-workout), so ordering and history stay stable. `skipped` marks warmups
   skipped with "Skip".
@@ -119,9 +138,11 @@ server keeps those in the fold.
 `templates/library.yaml` is the source of truth for the templates everyone
 can pick from: `groups` (key + label, in display order) and `templates`
 (stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
-exercises as `Exercise` enum names without the `EXERCISE_` prefix). The core
-embeds the file at build time (`core/src/template_library.rs`; `cargo test`
-fails on an unknown exercise name).
+exercises as `Exercise` enum names without the `EXERCISE_` prefix), and
+`plans`: ready-made rotations (stable `id`, `name`, `blurb`, and
+`templates`, a list of template ids). The core embeds the file at build
+time (`core/src/template_library.rs`; `cargo test` fails on an unknown
+exercise name, or a plan naming an unknown or repeated template).
 
 **Editing the defaults:** change the YAML and deploy the backend. The server
 sends its library down every Sync stream on connect; the phone keeps it in
@@ -140,13 +161,38 @@ the first sync, the copy built into the app stands in.
 - `CloneTemplate` makes a coupled template the user's own **in place**
   (same id, so the workouts recorded against it stay with it): it stops
   following the library. A `SaveTemplate` that changes a coupled
-  template's name or exercises does the same; saved unchanged it stays
-  coupled. Templates made from scratch are never coupled.
+  template's name or exercises does the same, and so does one with
+  `unlink` (the app's Clone: the editor opens on the template and Save
+  records it as the user's own, changed or not; backing out records
+  nothing); saved unchanged without it, it stays coupled. Templates made
+  from scratch are never coupled.
+- `origin_library_id` is the entry a template was added from, and unlike
+  `library_id` it is kept when the template becomes the user's own. A user
+  **has** an entry when a template follows it or was made from it
+  (`Account::has_library_entry`); `AddLibraryTemplates` drops such an
+  entry before it records the event, so no entry is added twice. The fold
+  itself skips only an entry a template still follows, so older logs fold
+  as they did.
 - Every workout keeps its own exercises and sets plus `template_id`, so a
   change to a default never rewrites a past session.
-- In the app's Edit sheet library workouts are ticked in and out
-  (`AddLibraryTemplates` / `DeleteTemplate`); the user's own are edited or
-  deleted. Never reuse or rename an id in the YAML.
+- In the app's Manage sheet a library workout the user does not have is
+  added to the rotation with + (`AddLibraryTemplates`, `in_rotation`;
+  without it an entry is added as a reserve); the user's own are dragged
+  within or between the rotation and the reserves (one
+  `ReorderTemplates` with `rotation_count`: the order, and where the
+  rotation ends), opened in the editor, or deleted.
+- A ready-made plan is applied with `ApplyLibraryPlan(plan_id)`, which
+  records existing events, no kind of its own: an `AddLibraryTemplates`
+  (as reserves) for the plan's entries the user does not have, then one
+  `ReorderTemplates` whose first `rotation_count` ids are the user's
+  template for each entry in the plan's order (one already in the main
+  plan first, else the first following or made from it, so a
+  personalised copy is used rather than a second one), and after them
+  every other template, the old rotation first, as reserves. Nothing is
+  deleted. Plans come from the copy built into the core, not the
+  server's sync; `ListTemplateLibrary` lists those whose every entry the
+  library in use has.
+  Never reuse or rename an id in the YAML.
 - The website's `/routines` page is rendered from the same YAML at build
   time (`web/scripts/sync-content.mjs`), not from an RPC.
 

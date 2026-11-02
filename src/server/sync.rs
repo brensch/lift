@@ -106,6 +106,7 @@ impl Stream {
         }
         let library = ListTemplateLibraryResponse {
             templates: schlift_core::template_library::library().to_vec(),
+            plans: Vec::new(),
         };
         if self
             .send(sync_response::Kind::Library(library))

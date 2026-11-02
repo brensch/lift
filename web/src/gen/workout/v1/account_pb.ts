@@ -8,7 +8,7 @@ import type { GetCurrentSessionResponse, GetJoinRequestsResponse } from "./group
 import { file_workout_v1_group } from "./group_pb";
 import type { UpdateSettingRequest } from "./settings_pb";
 import { file_workout_v1_settings } from "./settings_pb";
-import type { AddLibraryTemplatesRequest, AppendWorkoutHeartRateRequest, CloneTemplateRequest, CompletedSet, CompleteOnboardingRequest, DeleteTemplateRequest, DismissUserMessagesRequest, Exercise, ListTemplateLibraryResponse, ProposedSet, ReorderTemplatesRequest, SaveTemplateRequest, SetExerciseTrackerRequest, StartWorkoutRequest, Workout, WorkoutHeartRatePoint, WorkoutMutation } from "./workout_pb";
+import type { AddLibraryTemplatesRequest, AppendWorkoutHeartRateRequest, CloneTemplateRequest, CompletedSet, CompleteOnboardingRequest, DeleteTemplateRequest, ExerciseLog, ExerciseWeight, ListTemplateLibraryResponse, ProposedSet, ReorderTemplatesRequest, SaveTemplateRequest, SetOverrideRequest, StartWorkoutRequest, Workout, WorkoutHeartRatePoint, WorkoutMutation } from "./workout_pb";
 import { file_workout_v1_workout } from "./workout_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/account.proto.
  */
 export const file_workout_v1_account: GenFile = /*@__PURE__*/
-  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEi5QYKBUV2ZW50EgsKA3NlcRgBIAEoAxIKCgJpZBgCIAEoCRIKCgJhdBgDIAEoAxI4Cg1zdGFydF93b3Jrb3V0GAogASgLMh8ud29ya291dC52MS5TdGFydFdvcmtvdXRSZXF1ZXN0SAASLgoHd29ya291dBgLIAEoCzIbLndvcmtvdXQudjEuV29ya291dE11dGF0aW9uSAASPwoKaGVhcnRfcmF0ZRgMIAEoCzIpLndvcmtvdXQudjEuQXBwZW5kV29ya291dEhlYXJ0UmF0ZVJlcXVlc3RIABI4Cg1zYXZlX3RlbXBsYXRlGA0gASgLMh8ud29ya291dC52MS5TYXZlVGVtcGxhdGVSZXF1ZXN0SAASPAoPZGVsZXRlX3RlbXBsYXRlGA4gASgLMiEud29ya291dC52MS5EZWxldGVUZW1wbGF0ZVJlcXVlc3RIABJAChFyZW9yZGVyX3RlbXBsYXRlcxgPIAEoCzIjLndvcmtvdXQudjEuUmVvcmRlclRlbXBsYXRlc1JlcXVlc3RIABJHChVhZGRfbGlicmFyeV90ZW1wbGF0ZXMYECABKAsyJi53b3Jrb3V0LnYxLkFkZExpYnJhcnlUZW1wbGF0ZXNSZXF1ZXN0SAASRQoUc2V0X2V4ZXJjaXNlX3RyYWNrZXIYESABKAsyJS53b3Jrb3V0LnYxLlNldEV4ZXJjaXNlVHJhY2tlclJlcXVlc3RIABJEChNjb21wbGV0ZV9vbmJvYXJkaW5nGBIgASgLMiUud29ya291dC52MS5Db21wbGV0ZU9uYm9hcmRpbmdSZXF1ZXN0SAASOgoOdXBkYXRlX3NldHRpbmcYEyABKAsyIC53b3Jrb3V0LnYxLlVwZGF0ZVNldHRpbmdSZXF1ZXN0SAASRwoVZGlzbWlzc191c2VyX21lc3NhZ2VzGBQgASgLMiYud29ya291dC52MS5EaXNtaXNzVXNlck1lc3NhZ2VzUmVxdWVzdEgAEjMKDmltcG9ydF9oaXN0b3J5GBUgASgLMhkud29ya291dC52MS5JbXBvcnRIaXN0b3J5SAASOgoOY2xvbmVfdGVtcGxhdGUYFiABKAsyIC53b3Jrb3V0LnYxLkNsb25lVGVtcGxhdGVSZXF1ZXN0SABCBgoEa2luZCJrCg1JbXBvcnRIaXN0b3J5Ei0KCHdvcmtvdXRzGAEgAygLMhsud29ya291dC52MS5JbXBvcnRlZFdvcmtvdXQSKwoIdHJhY2tlcnMYAiADKAsyGS53b3Jrb3V0LnYxLlRyYWNrZXJSZWNvcmQiFwoVSW1wb3J0SGlzdG9yeVJlc3BvbnNlItABCg9JbXBvcnRlZFdvcmtvdXQSJAoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgDIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EjUKCmhlYXJ0X3JhdGUYBCADKAsyIS53b3Jrb3V0LnYxLldvcmtvdXRIZWFydFJhdGVQb2ludCKAAgoNVHJhY2tlclJlY29yZBImCghleGVyY2lzZRgBIAEoDjIULndvcmtvdXQudjEuRXhlcmNpc2USFgoOd29ya2luZ193ZWlnaHQYAiABKAISFAoMY3VycmVudF9yZXBzGAMgASgFEhoKEmNvbnNlY3V0aXZlX21pc3NlcxgEIAEoBRIZChFsYXN0X3BlcmZvcm1lZF9hdBgFIAEoAxIVCg1vdmVycmlkZV9zZXRzGAYgASgFEhgKEG92ZXJyaWRlX3JlcF9sb3cYByABKAUSGQoRb3ZlcnJpZGVfcmVwX2hpZ2gYCCABKAVKBAgJEApSEGNvbnNlY3V0aXZlX2hhcmQiUwoLU3luY1JlcXVlc3QSEAoGZXZlbnRzGAEgASgMSAASKgoJaGVhcnRiZWF0GAIgASgLMhUud29ya291dC52MS5IZWFydGJlYXRIAEIGCgRraW5kIgsKCUhlYXJ0YmVhdCLaAQoMU3luY1Jlc3BvbnNlEg4KBGhlYWQYASABKANIABI4CgdzZXNzaW9uGAIgASgLMiUud29ya291dC52MS5HZXRDdXJyZW50U2Vzc2lvblJlc3BvbnNlSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIABI6CgdsaWJyYXJ5GAQgASgLMicud29ya291dC52MS5MaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2VIAEIGCgRraW5kIiYKEVB1bGxFdmVudHNSZXF1ZXN0EhEKCWFmdGVyX3NlcRgBIAEoAyIkChJQdWxsRXZlbnRzUmVzcG9uc2USDgoGZXZlbnRzGAEgASgMIi8KCkV2ZW50QmF0Y2gSIQoGZXZlbnRzGAEgAygLMhEud29ya291dC52MS5FdmVudDKZAQoLU3luY1NlcnZpY2USPQoEU3luYxIXLndvcmtvdXQudjEuU3luY1JlcXVlc3QaGC53b3Jrb3V0LnYxLlN5bmNSZXNwb25zZSgBMAESSwoKUHVsbEV2ZW50cxIdLndvcmtvdXQudjEuUHVsbEV2ZW50c1JlcXVlc3QaHi53b3Jrb3V0LnYxLlB1bGxFdmVudHNSZXNwb25zZWIGcHJvdG8z", [file_workout_v1_group, file_workout_v1_settings, file_workout_v1_workout]);
+  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEixgYKBUV2ZW50EgsKA3NlcRgBIAEoAxIKCgJpZBgCIAEoCRIKCgJhdBgDIAEoAxI4Cg1zdGFydF93b3Jrb3V0GAogASgLMh8ud29ya291dC52MS5TdGFydFdvcmtvdXRSZXF1ZXN0SAASLgoHd29ya291dBgLIAEoCzIbLndvcmtvdXQudjEuV29ya291dE11dGF0aW9uSAASPwoKaGVhcnRfcmF0ZRgMIAEoCzIpLndvcmtvdXQudjEuQXBwZW5kV29ya291dEhlYXJ0UmF0ZVJlcXVlc3RIABI4Cg1zYXZlX3RlbXBsYXRlGA0gASgLMh8ud29ya291dC52MS5TYXZlVGVtcGxhdGVSZXF1ZXN0SAASPAoPZGVsZXRlX3RlbXBsYXRlGA4gASgLMiEud29ya291dC52MS5EZWxldGVUZW1wbGF0ZVJlcXVlc3RIABJAChFyZW9yZGVyX3RlbXBsYXRlcxgPIAEoCzIjLndvcmtvdXQudjEuUmVvcmRlclRlbXBsYXRlc1JlcXVlc3RIABJHChVhZGRfbGlicmFyeV90ZW1wbGF0ZXMYECABKAsyJi53b3Jrb3V0LnYxLkFkZExpYnJhcnlUZW1wbGF0ZXNSZXF1ZXN0SAASRAoTY29tcGxldGVfb25ib2FyZGluZxgSIAEoCzIlLndvcmtvdXQudjEuQ29tcGxldGVPbmJvYXJkaW5nUmVxdWVzdEgAEjoKDnVwZGF0ZV9zZXR0aW5nGBMgASgLMiAud29ya291dC52MS5VcGRhdGVTZXR0aW5nUmVxdWVzdEgAEjMKDmltcG9ydF9oaXN0b3J5GBUgASgLMhkud29ya291dC52MS5JbXBvcnRIaXN0b3J5SAASOgoOY2xvbmVfdGVtcGxhdGUYFiABKAsyIC53b3Jrb3V0LnYxLkNsb25lVGVtcGxhdGVSZXF1ZXN0SAASNgoMc2V0X292ZXJyaWRlGBcgASgLMh4ud29ya291dC52MS5TZXRPdmVycmlkZVJlcXVlc3RIAEIGCgRraW5kSgQIERASSgQIFBAVUhRzZXRfZXhlcmNpc2VfdHJhY2tlclIVZGlzbWlzc191c2VyX21lc3NhZ2VzIoQBCg1JbXBvcnRIaXN0b3J5Ei0KCHdvcmtvdXRzGAEgAygLMhsud29ya291dC52MS5JbXBvcnRlZFdvcmtvdXQSNAoQc3RhcnRpbmdfd2VpZ2h0cxgDIAMoCzIaLndvcmtvdXQudjEuRXhlcmNpc2VXZWlnaHRKBAgCEANSCHRyYWNrZXJzIhcKFUltcG9ydEhpc3RvcnlSZXNwb25zZSKAAgoPSW1wb3J0ZWRXb3Jrb3V0EiQKB3dvcmtvdXQYASABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXQSLgoNcHJvcG9zZWRfc2V0cxgCIAMoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXQSMAoOY29tcGxldGVkX3NldHMYAyADKAsyGC53b3Jrb3V0LnYxLkNvbXBsZXRlZFNldBI1CgpoZWFydF9yYXRlGAQgAygLMiEud29ya291dC52MS5Xb3Jrb3V0SGVhcnRSYXRlUG9pbnQSLgoNZXhlcmNpc2VfbG9ncxgFIAMoCzIXLndvcmtvdXQudjEuRXhlcmNpc2VMb2ciUwoLU3luY1JlcXVlc3QSEAoGZXZlbnRzGAEgASgMSAASKgoJaGVhcnRiZWF0GAIgASgLMhUud29ya291dC52MS5IZWFydGJlYXRIAEIGCgRraW5kIgsKCUhlYXJ0YmVhdCLaAQoMU3luY1Jlc3BvbnNlEg4KBGhlYWQYASABKANIABI4CgdzZXNzaW9uGAIgASgLMiUud29ya291dC52MS5HZXRDdXJyZW50U2Vzc2lvblJlc3BvbnNlSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIABI6CgdsaWJyYXJ5GAQgASgLMicud29ya291dC52MS5MaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2VIAEIGCgRraW5kIiYKEVB1bGxFdmVudHNSZXF1ZXN0EhEKCWFmdGVyX3NlcRgBIAEoAyIkChJQdWxsRXZlbnRzUmVzcG9uc2USDgoGZXZlbnRzGAEgASgMIi8KCkV2ZW50QmF0Y2gSIQoGZXZlbnRzGAEgAygLMhEud29ya291dC52MS5FdmVudDKZAQoLU3luY1NlcnZpY2USPQoEU3luYxIXLndvcmtvdXQudjEuU3luY1JlcXVlc3QaGC53b3Jrb3V0LnYxLlN5bmNSZXNwb25zZSgBMAESSwoKUHVsbEV2ZW50cxIdLndvcmtvdXQudjEuUHVsbEV2ZW50c1JlcXVlc3QaHi53b3Jrb3V0LnYxLlB1bGxFdmVudHNSZXNwb25zZWIGcHJvdG8z", [file_workout_v1_group, file_workout_v1_settings, file_workout_v1_workout]);
 
 /**
  * @generated from message workout.v1.Event
@@ -94,12 +94,6 @@ export type Event = Message<"workout.v1.Event"> & {
     case: "addLibraryTemplates";
   } | {
     /**
-     * @generated from field: workout.v1.SetExerciseTrackerRequest set_exercise_tracker = 17;
-     */
-    value: SetExerciseTrackerRequest;
-    case: "setExerciseTracker";
-  } | {
-    /**
      * @generated from field: workout.v1.CompleteOnboardingRequest complete_onboarding = 18;
      */
     value: CompleteOnboardingRequest;
@@ -112,12 +106,6 @@ export type Event = Message<"workout.v1.Event"> & {
     case: "updateSetting";
   } | {
     /**
-     * @generated from field: workout.v1.DismissUserMessagesRequest dismiss_user_messages = 20;
-     */
-    value: DismissUserMessagesRequest;
-    case: "dismissUserMessages";
-  } | {
-    /**
      * @generated from field: workout.v1.ImportHistory import_history = 21;
      */
     value: ImportHistory;
@@ -128,6 +116,12 @@ export type Event = Message<"workout.v1.Event"> & {
      */
     value: CloneTemplateRequest;
     case: "cloneTemplate";
+  } | {
+    /**
+     * @generated from field: workout.v1.SetOverrideRequest set_override = 23;
+     */
+    value: SetOverrideRequest;
+    case: "setOverride";
   } | { case: undefined; value?: undefined };
 };
 
@@ -139,8 +133,9 @@ export const EventSchema: GenMessage<Event> = /*@__PURE__*/
   messageDesc(file_workout_v1_account, 0);
 
 /**
- * History brought in from elsewhere, as it was: finished workouts and the
- * trackers they led to. Nothing is recomputed from it.
+ * History brought in from elsewhere, as it was: finished workouts, and the
+ * starting weights of lifts never done. Plans read the workouts like any
+ * others; nothing else is recomputed from it.
  *
  * @generated from message workout.v1.ImportHistory
  */
@@ -151,9 +146,9 @@ export type ImportHistory = Message<"workout.v1.ImportHistory"> & {
   workouts: ImportedWorkout[];
 
   /**
-   * @generated from field: repeated workout.v1.TrackerRecord trackers = 2;
+   * @generated from field: repeated workout.v1.ExerciseWeight starting_weights = 3;
    */
-  trackers: TrackerRecord[];
+  startingWeights: ExerciseWeight[];
 };
 
 /**
@@ -201,6 +196,11 @@ export type ImportedWorkout = Message<"workout.v1.ImportedWorkout"> & {
    * @generated from field: repeated workout.v1.WorkoutHeartRatePoint heart_rate = 4;
    */
   heartRate: WorkoutHeartRatePoint[];
+
+  /**
+   * @generated from field: repeated workout.v1.ExerciseLog exercise_logs = 5;
+   */
+  exerciseLogs: ExerciseLog[];
 };
 
 /**
@@ -209,63 +209,6 @@ export type ImportedWorkout = Message<"workout.v1.ImportedWorkout"> & {
  */
 export const ImportedWorkoutSchema: GenMessage<ImportedWorkout> = /*@__PURE__*/
   messageDesc(file_workout_v1_account, 3);
-
-/**
- * What the account knows about one exercise: the weight and reps the next
- * workout will use, and how it got there.
- *
- * @generated from message workout.v1.TrackerRecord
- */
-export type TrackerRecord = Message<"workout.v1.TrackerRecord"> & {
-  /**
-   * @generated from field: workout.v1.Exercise exercise = 1;
-   */
-  exercise: Exercise;
-
-  /**
-   * lb
-   *
-   * @generated from field: float working_weight = 2;
-   */
-  workingWeight: number;
-
-  /**
-   * @generated from field: int32 current_reps = 3;
-   */
-  currentReps: number;
-
-  /**
-   * @generated from field: int32 consecutive_misses = 4;
-   */
-  consecutiveMisses: number;
-
-  /**
-   * @generated from field: int64 last_performed_at = 5;
-   */
-  lastPerformedAt: bigint;
-
-  /**
-   * @generated from field: int32 override_sets = 6;
-   */
-  overrideSets: number;
-
-  /**
-   * @generated from field: int32 override_rep_low = 7;
-   */
-  overrideRepLow: number;
-
-  /**
-   * @generated from field: int32 override_rep_high = 8;
-   */
-  overrideRepHigh: number;
-};
-
-/**
- * Describes the message workout.v1.TrackerRecord.
- * Use `create(TrackerRecordSchema)` to create a new message.
- */
-export const TrackerRecordSchema: GenMessage<TrackerRecord> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 4);
 
 /**
  * @generated from message workout.v1.SyncRequest
@@ -300,7 +243,7 @@ export type SyncRequest = Message<"workout.v1.SyncRequest"> & {
  * Use `create(SyncRequestSchema)` to create a new message.
  */
 export const SyncRequestSchema: GenMessage<SyncRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 5);
+  messageDesc(file_workout_v1_account, 4);
 
 /**
  * @generated from message workout.v1.Heartbeat
@@ -313,7 +256,7 @@ export type Heartbeat = Message<"workout.v1.Heartbeat"> & {
  * Use `create(HeartbeatSchema)` to create a new message.
  */
 export const HeartbeatSchema: GenMessage<Heartbeat> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 6);
+  messageDesc(file_workout_v1_account, 5);
 
 /**
  * @generated from message workout.v1.SyncResponse
@@ -364,7 +307,7 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
  * Use `create(SyncResponseSchema)` to create a new message.
  */
 export const SyncResponseSchema: GenMessage<SyncResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 7);
+  messageDesc(file_workout_v1_account, 6);
 
 /**
  * @generated from message workout.v1.PullEventsRequest
@@ -381,7 +324,7 @@ export type PullEventsRequest = Message<"workout.v1.PullEventsRequest"> & {
  * Use `create(PullEventsRequestSchema)` to create a new message.
  */
 export const PullEventsRequestSchema: GenMessage<PullEventsRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 8);
+  messageDesc(file_workout_v1_account, 7);
 
 /**
  * @generated from message workout.v1.PullEventsResponse
@@ -400,7 +343,7 @@ export type PullEventsResponse = Message<"workout.v1.PullEventsResponse"> & {
  * Use `create(PullEventsResponseSchema)` to create a new message.
  */
 export const PullEventsResponseSchema: GenMessage<PullEventsResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 9);
+  messageDesc(file_workout_v1_account, 8);
 
 /**
  * @generated from message workout.v1.EventBatch
@@ -417,7 +360,7 @@ export type EventBatch = Message<"workout.v1.EventBatch"> & {
  * Use `create(EventBatchSchema)` to create a new message.
  */
 export const EventBatchSchema: GenMessage<EventBatch> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 10);
+  messageDesc(file_workout_v1_account, 9);
 
 /**
  * @generated from service workout.v1.SyncService

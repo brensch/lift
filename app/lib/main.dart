@@ -13,6 +13,7 @@ import 'services/permissions_service.dart';
 import 'services/page_tracker.dart';
 import 'services/grpc_client.dart';
 import 'widgets/dialogs/template_update_dialog.dart';
+import 'widgets/dialogs/rung_question_dialog.dart';
 import 'services/auth_service.dart';
 import 'services/account_sync.dart';
 import 'services/workout_service.dart';
@@ -33,6 +34,7 @@ import 'screens/workout_tab.dart';
 import 'screens/completed_workout_screen.dart';
 import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/learn_screen.dart';
 import 'screens/exercise_detail_screen.dart';
 import 'gen/workout/v1/workout.pbenum.dart';
 import 'screens/sound_settings_screen.dart';
@@ -199,6 +201,15 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       myUserId: () => _authProvider.userId ?? '',
     );
     unawaited(_wearableSyncCoordinator.init());
+    // A ramp set done in full, on the phone or the watch: ask how many more.
+    _workoutProvider.onRungQuestion = (proposedSetId) {
+      final dialogContext =
+          ErrorModalService.rootNavigatorKey.currentState?.context;
+      if (dialogContext == null) return;
+      unawaited(
+        showRungQuestionDialog(dialogContext, _workoutProvider, proposedSetId),
+      );
+    };
     _workoutProvider.onWorkoutEnded = (workoutId) {
       final navigator = ErrorModalService.rootNavigatorKey.currentState;
       navigator?.push(
@@ -237,6 +248,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       final userId = _authProvider.userId;
       if (userId != _openUserId) {
         if (_openUserId != null) {
+          // Before the workout is cleared: the watch needs its id.
+          unawaited(_wearableSyncCoordinator.signOut());
           PageTracker.instance.onLogout();
           _settingsProvider.clear();
           unawaited(_soundProvider.reset());
@@ -354,6 +367,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
               path: '/history',
               builder: (_, __) => const HistoryScreen(),
             ),
+            GoRoute(path: '/learn', builder: (_, __) => const LearnScreen()),
             GoRoute(
               path: '/exercise/:ex',
               builder: (_, state) {

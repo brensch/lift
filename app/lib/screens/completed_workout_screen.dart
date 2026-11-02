@@ -7,6 +7,7 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
+import '../logic/plan_text.dart';
 import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
@@ -42,6 +43,10 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   WorkoutSummary? _summary;
   List<ProposedSet> _proposedSets = [];
   List<CompletedSet> _completedSets = [];
+  List<ExerciseLog> _logs = [];
+
+  /// Each lift's estimated max after this session, from the walk.
+  Map<Exercise, double> _maxAfter = {};
   bool _isLoading = true;
   String? _loadError;
   List<User> _sessionFriends = [];
@@ -71,6 +76,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           _summary = response.summary;
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
+          _logs = List.from(response.exerciseLogs);
           _heartRateSamples = workoutProvider.workout?.id == response.workout.id
               ? workoutProvider.wearHeartRateSamples
               : const [];
@@ -81,12 +87,10 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         });
       }
 
-      final userId = auth.userId;
+      await _loadMaxAfter(service, response.workout.id);
       if (sessionId.isNotEmpty) {
         await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
       }
-
-      if (!widget.isHistory && userId != null && userId.isNotEmpty) {}
     } catch (e, st) {
       debugPrint(
         'CompletedWorkoutScreen: failed to load workout ${widget.workoutId}: $e\n$st',
@@ -125,6 +129,29 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       Error.throwWithStackTrace(lastError!, lastStack);
     }
     throw lastError ?? StateError('Failed to load finalized workout summary.');
+  }
+
+  Future<void> _loadMaxAfter(
+    WorkoutServiceWrapper service,
+    String workoutId,
+  ) async {
+    final GetExerciseProgressResponse progress;
+    try {
+      progress = await service.getExerciseProgress();
+    } catch (e) {
+      // The summary stands without it.
+      debugPrint('CompletedWorkoutScreen: no max after: $e');
+      return;
+    }
+    final maxAfter = <Exercise, double>{};
+    for (final exercise in progress.exercises) {
+      for (final point in exercise.points) {
+        if (point.workoutId == workoutId && point.estimatedMax > 0) {
+          maxAfter[exercise.exercise] = point.estimatedMax;
+        }
+      }
+    }
+    if (mounted) setState(() => _maxAfter = maxAfter);
   }
 
   Future<void> _loadSessionFriends(
@@ -263,12 +290,18 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             if (hasHeartRateChart)
               FlatSection(
                 label: 'Heart',
-                child: HeartRateChart(
-                  heartRateSamples: _heartRateSamples,
-                  completedSets: ownCompletedSets,
-                  workoutStartTime: workout.startTime,
-                  now: chartNow,
-                  followLiveClock: false,
+                bleed: true,
+                // Edge to edge, as the workout's Heart tab draws it.
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: HeartRateChart(
+                    heartRateSamples: _heartRateSamples,
+                    completedSets: ownCompletedSets,
+                    workoutStartTime: workout.startTime,
+                    now: chartNow,
+                    followLiveClock: false,
+                    fullView: true,
+                  ),
                 ),
               ),
             FlatSection(label: 'Trained with', child: _buildFriends(context)),
@@ -282,7 +315,12 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               child: const SectionLabel('Exercises'),
             ),
             for (final exercise in summary.exerciseSummaries)
-              _ExerciseSummaryRow(exercise: exercise),
+              _ExerciseSummaryRow(
+                exercise: exercise,
+                log: _logFor(exercise.exercise),
+                maxAfter: _maxAfter[exercise.exercise],
+                unit: unit,
+              ),
             SetLog(
               proposedSets: ownProposedSets,
               completedSets: ownCompletedSets,
@@ -294,6 +332,13 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         ),
       ),
     );
+  }
+
+  ExerciseLog? _logFor(Exercise exercise) {
+    for (final log in _logs) {
+      if (log.decision.exercise == exercise) return log;
+    }
+    return null;
   }
 
   /// Who you trained with: a chip each, their emoji on their colour.
@@ -395,15 +440,18 @@ class _MetricGrid extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              m.$2,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.titleLg,
-                  fontWeight: t.weight.bold,
-                  color: t.text,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                m.$2,
+                maxLines: 1,
+                style: t.mono(
+                  TextStyle(
+                    fontSize: t.size.titleLg,
+                    fontWeight: t.weight.bold,
+                    color: t.text,
+                  ),
                 ),
               ),
             ),
@@ -438,15 +486,34 @@ class _MetricGrid extends StatelessWidget {
   }
 }
 
-/// One exercise's totals: a full-width row, name then the numbers.
+/// One exercise's totals: a full-width row, name then the numbers, then what
+/// was planned and why, the weight changes along the way, and the max after.
 class _ExerciseSummaryRow extends StatelessWidget {
   final ExerciseSummaryView exercise;
+  final ExerciseLog? log;
+  final double? maxAfter;
+  final WeightUnit unit;
 
-  const _ExerciseSummaryRow({required this.exercise});
+  const _ExerciseSummaryRow({
+    required this.exercise,
+    required this.log,
+    required this.maxAfter,
+    required this.unit,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final log = this.log;
+    final max = maxAfter;
+    final s = copy.plan.summary;
+    final notes = [
+      if (log != null) ...[
+        s.planned.replaceAll('{plan}', planLine(log.decision, unit)),
+        ...reasonLines(log.decision, unit),
+        for (final change in log.changes) changeText(change, unit),
+      ],
+    ].where((line) => line.isNotEmpty);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
@@ -477,8 +544,15 @@ class _ExerciseSummaryRow extends StatelessWidget {
               ),
               _ExerciseStatColumn(label: 'Volume', value: exercise.volumeLabel),
               _ExerciseStatColumn(
-                label: 'Est. 1RM',
-                value: exercise.formattedOneRm,
+                label: 'Max',
+                value: max == null
+                    ? '-'
+                    : maxText(
+                        max,
+                        unit,
+                        bodyweight:
+                            log != null && isBodyweightDecision(log.decision),
+                      ),
               ),
             ],
           ),
@@ -487,6 +561,11 @@ class _ExerciseSummaryRow extends StatelessWidget {
             'Heaviest set: ${exercise.heaviestSetWeightLabel}',
             style: TextStyle(fontSize: t.size.body, color: t.muted),
           ),
+          for (final note in notes)
+            Text(
+              note,
+              style: TextStyle(fontSize: t.size.body, color: t.muted),
+            ),
         ],
       ),
     );
@@ -539,7 +618,7 @@ class WorkoutSummaryData {
   String get durationLabel =>
       _formatDuration(Duration(seconds: _s.durationSeconds.toInt()));
   String get volumeLabel =>
-      '${formatWeight(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
+      '${compactVolume(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get liftingTimeLabel =>
       _formatDuration(Duration(seconds: _s.liftingSeconds.toInt()));
   String get restingTimeLabel =>
@@ -571,10 +650,7 @@ class ExerciseSummaryView {
   int get totalReps => _e.totalReps;
   String get name => exerciseNames[_e.exercise] ?? 'Unknown';
   String get volumeLabel =>
-      '${formatWeight(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
-  String get formattedOneRm => _e.bestOneRepMax > 0
-      ? '${formatWeight(_e.bestOneRepMax, unit)} ${weightUnitSuffix(unit)}'
-      : '-';
+      '${compactVolume(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get heaviestSetWeightLabel => _e.heaviestSetWeight > 0
       ? '${formatWeight(_e.heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
       : '-';

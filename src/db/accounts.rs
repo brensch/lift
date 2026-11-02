@@ -50,6 +50,21 @@ pub struct Pushed {
     pub ended_workout: Option<String>,
 }
 
+/// A start or an add naming lifts with no decisions recorded: the shape of
+/// a log made before workouts were planned at the start.
+fn undecided(event: &Event) -> bool {
+    match &event.kind {
+        Some(event::Kind::StartWorkout(req)) => {
+            !req.exercises.is_empty() && req.decisions.is_empty()
+        }
+        Some(event::Kind::Workout(WorkoutMutation {
+            mutation: Some(Mutation::AddExercises(req)),
+            ..
+        })) => !req.exercises.is_empty() && req.decisions.is_empty(),
+        _ => false,
+    }
+}
+
 impl ServerDb {
     async fn account_lock(&self, user_id: &str) -> DbResult<Arc<Mutex<Account>>> {
         let mut cache = self.accounts.0.lock().await;
@@ -143,6 +158,15 @@ impl ServerDb {
         let mut ended_workout = None;
         for event in &new {
             if let Some(error) = account.replay(event) {
+                if undecided(event) {
+                    // A log from before plans were recorded: this account's
+                    // log was rewritten since, so the phone's disagrees.
+                    // Nothing is stored, and the fold is refolded from what
+                    // is.
+                    drop(account);
+                    self.accounts.0.lock().await.remove(user_id);
+                    return Err(Box::new(Diverged));
+                }
                 tracing::warn!(%user_id, seq = event.seq, %error, "event did not apply");
             }
             touched.extend(event_workout_ids(event));
@@ -220,6 +244,7 @@ impl ServerDb {
                         Value::Int(v) => query.bind(v),
                         Value::Real(v) => query.bind(v),
                         Value::Text(v) => query.bind(v),
+                        Value::Blob(v) => query.bind(v),
                     };
                 }
                 query.execute(&mut *tx).await?;
