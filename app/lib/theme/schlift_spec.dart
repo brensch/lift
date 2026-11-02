@@ -61,7 +61,7 @@ const schliftSpec = ThemeSpec(
   // regular and its bold (it has nothing in between).
   wordmarkFont: 'Space Mono',
   wordmarkWeight: FontWeight.w400,
-  wordmarkEmbolden: 0.03,
+  wordmarkEmbolden: 0,
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
   displayWeight: FontWeight.w500,

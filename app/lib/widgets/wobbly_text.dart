@@ -75,7 +75,7 @@ class _WobblyLetterState extends State<_WobblyLetter>
   late final List<double> _speeds;
 
   /// Seconds for the first wave to come round once.
-  static const _period = 7.0;
+  static const _period = 13.0;
 
   /// The second wave's speed over the first's. Irrational, so the two never
   /// come back into line and the sum never retraces itself.
