@@ -13,18 +13,18 @@ import 'package:google_fonts/google_fonts.dart';
 @immutable
 class TypeScale {
   const TypeScale({
-    this.caption = 10,
-    this.small = 12,
-    this.body = 14,
-    this.bodyLg = 16,
-    this.subtitle = 18,
-    this.title = 20,
-    this.titleLg = 24,
-    this.headline = 28,
-    this.headlineLg = 32,
-    this.display = 40,
-    this.displayLg = 48,
-    this.giant = 64,
+    required this.caption,
+    required this.small,
+    required this.body,
+    required this.bodyLg,
+    required this.subtitle,
+    required this.title,
+    required this.titleLg,
+    required this.headline,
+    required this.headlineLg,
+    required this.display,
+    required this.displayLg,
+    required this.giant,
   });
 
   /// Tags, axis labels, the smallest print.
@@ -56,10 +56,10 @@ class TypeScale {
 @immutable
 class FontWeights {
   const FontWeights({
-    this.regular = FontWeight.w400,
-    this.medium = FontWeight.w500,
-    this.bold = FontWeight.w700,
-    this.heavy = FontWeight.w900,
+    required this.regular,
+    required this.medium,
+    required this.bold,
+    required this.heavy,
   });
 
   final FontWeight regular;
@@ -73,7 +73,6 @@ class FontWeights {
 @immutable
 class ThemeSpec extends ThemeExtension<ThemeSpec> {
   const ThemeSpec({
-    required this.brightness,
     required this.background,
     required this.panel,
     required this.surfaceHigh,
@@ -86,63 +85,45 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.outline,
     required this.switchThumbOff,
     required this.error,
-    this.onError = Colors.white,
-    this.success = const Color(0xFF16A34A),
-    this.ready = const Color(0xFF3AD98B),
-    this.warning = const Color(0xFFCA8A04),
-    this.overdue = const Color(0xFFF5B544),
-    this.active = const Color(0xFFEA580C),
-    this.destructive = const Color(0xFFDC2626),
-    this.warmup = const Color(0xFF6B7280),
-    this.resting = const Color(0xFF3B82F6),
-    this.yapping = const Color(0xFFEC4899),
-    this.lifting = const Color(0xFF16A34A),
-    this.effort = const Color(0xFFF59E0B),
-    this.info = const Color(0xFF6EA8FF),
-    this.heart = const Color(0xFFE11D48),
-    this.series = const [
-      Color(0xFF60A5FA), // blue
-      Color(0xFFF59E0B), // amber
-      Color(0xFF34D399), // green
-      Color(0xFFF472B6), // pink
-      Color(0xFFA78BFA), // violet
-      Color(0xFF22D3EE), // cyan
-      Color(0xFFFB7185), // rose
-    ],
-    this.bodyParts = const [
-      Color(0xFF6BB6FF), // chest
-      Color(0xFFE3C66B), // back
-      Color(0xFFC79BFF), // shoulders
-      Color(0xFFFFB36B), // arms
-      Color(0xFF7CF2C0), // legs
-      Color(0xFFFF7EB6), // ass
-      Color(0xFF6BE3E3), // core
-    ],
+    required this.onError,
+    required this.success,
+    required this.ready,
+    required this.overdue,
+    required this.warmup,
+    required this.resting,
+    required this.yapping,
+    required this.lifting,
+    required this.short,
+    required this.heart,
+    required this.heartZones,
+    required this.barSteel,
+    required this.sleeveSteel,
+    required this.collarSteel,
+    required this.plateEdge,
+    required this.dumbbellPlate,
+    required this.dumbbellHandle,
+    required this.machine,
+    required this.scrim,
+    required this.series,
+    required this.bodyParts,
     required this.bodyFont,
     required this.headingFont,
     required this.buttonFont,
     required this.monoFont,
-    this.wordmarkFont,
-    this.displayWeight = FontWeight.w900,
-    this.wordmarkWeight = FontWeight.w900,
-    this.wordmarkScale = 1,
-    this.wordmarkTracking = 0,
-    this.wordmarkWobble = 0.8,
-    this.wordmarkEmbolden = 0,
-    this.headingWeightBoost = 0,
-    this.fontScale = 1.06,
-    this.radiusSm = 10,
-    this.radiusMd = 16,
-    this.radiusLg = 24,
-    this.buttonRadius = 10,
-    this.size = const TypeScale(),
-    this.weight = const FontWeights(),
-    this.cornerScale = 1,
-    this.pills = true,
-    this.drawerRadius = 16,
+    required this.wordmarkFont,
+    required this.wordmarkWeight,
+    required this.wordmarkScale,
+    required this.wordmarkWobble,
+    required this.fontScale,
+    required this.radiusXs,
+    required this.radiusSm,
+    required this.radiusMd,
+    required this.radiusLg,
+    required this.radiusXl,
+    required this.size,
+    required this.weight,
+    required this.drawerRadius,
   });
-
-  final Brightness brightness;
 
   // ─── Neutrals ──────────────────────────────────────────────────────
   /// Page ground: scaffold, app bar, drawer.
@@ -177,25 +158,47 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   /// Ready / done-today green on the home screen.
   final Color ready;
-  final Color warning;
 
   /// Overdue amber.
   final Color overdue;
-  final Color active;
-  final Color destructive;
   final Color warmup;
 
   /// The live workout states: lifting (counting up from Start), resting
-  /// (blue countdown), yapping (pink
-  /// count-up) and the effort question (amber).
+  /// (blue countdown) and yapping (pink count-up).
   final Color resting;
   final Color yapping;
   final Color lifting;
-  final Color effort;
-  final Color info;
+
+  /// A set done with fewer reps than planned (amber).
+  final Color short;
 
   /// Heart-rate icons.
   final Color heart;
+
+  /// The heart-rate zones, Z1 (recovery) to Z5 (max).
+  final List<Color> heartZones;
+
+  // ─── Hardware: the drawn bars and dumbbells ────────────────────────
+  /// The bar between the plates in the inline drawing.
+  final Color barSteel;
+
+  /// The loading sleeves outside the plates.
+  final Color sleeveSteel;
+
+  /// The collars inside the plates.
+  final Color collarSteel;
+
+  /// The outline round each plate.
+  final Color plateEdge;
+
+  final Color dumbbellPlate;
+  final Color dumbbellHandle;
+
+  /// The equipment in a machine exercise's drawing.
+  final Color machine;
+
+  /// The shade over the screen around the tutorial's spotlight.
+  final Color scrim;
 
   // ─── Categorical ───────────────────────────────────────────────────
   /// Chart lines, one per exercise (cycled), first one for single charts.
@@ -213,30 +216,18 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   /// Timers and other numbers that must not jiggle as they count.
   final String monoFont;
 
-  /// The big live numbers in the workout bar: the set (weight × reps) and
-  /// the rest timer.
-  final FontWeight displayWeight;
-
-  /// The SCHLIFT wordmark; null uses [headingFont].
-  final String? wordmarkFont;
+  /// The SCHLIFT wordmark.
+  final String wordmarkFont;
   final FontWeight wordmarkWeight;
 
   /// Multiplies the size each screen draws the wordmark at.
   final double wordmarkScale;
 
-  /// Extra space after each wordmark letter, in logical pixels.
-  final double wordmarkTracking;
-
   /// How far each wordmark letter drifts as it wobbles, in logical pixels.
   final double wordmarkWobble;
 
-  /// Thickens the wordmark's strokes past its weight, as a fraction of its
-  /// size: a weight between the font's own when it has too few.
-  final double wordmarkEmbolden;
-
-  /// Added to every heading weight (in hundreds), for looks that want
-  /// heavier or lighter display type. Clamped to w100–w900.
-  final int headingWeightBoost;
+  /// Multiplies the Material text theme's sizes (the text Material
+  /// widgets draw for themselves, not [size]).
   final double fontScale;
 
   /// Every text size widgets draw at.
@@ -246,82 +237,54 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   final FontWeights weight;
 
   // ─── Shape ─────────────────────────────────────────────────────────
+  /// The smallest corners: tags, swatches, chart labels.
+  final double radiusXs;
+
   /// Chips, inputs, segmented controls, small buttons.
   final double radiusSm;
 
-  /// Cards and primary call-to-action panels.
+  /// Cards, primary call-to-action panels and every Material button.
   final double radiusMd;
 
-  /// Sheets and dialogs.
+  /// Large cards and selection panels.
   final double radiusLg;
 
-  /// Every Material button; large values make pills.
-  final double buttonRadius;
-
-  /// Multiplies every corner a widget asks for with [corner] / [br]: 1 keeps
-  /// the designed sizes, smaller squares the whole app off.
-  final double cornerScale;
-
-  /// Whether pill shapes (radius ≥ 99) stay pills. When false they become
-  /// [buttonRadius] rectangles.
-  final bool pills;
+  /// The largest panels.
+  final double radiusXl;
 
   /// The side menu's open edge. 0 for a hard edge.
   final double drawerRadius;
 
   // ─── Derived ───────────────────────────────────────────────────────
-  bool get isDark => brightness == Brightness.dark;
+  BorderRadius get brXs => BorderRadius.circular(radiusXs);
   BorderRadius get brSm => BorderRadius.circular(radiusSm);
   BorderRadius get brMd => BorderRadius.circular(radiusMd);
   BorderRadius get brLg => BorderRadius.circular(radiusLg);
+  BorderRadius get brXl => BorderRadius.circular(radiusXl);
 
-  /// A widget's designed corner [r], in this look. Widgets use this (or
-  /// [br] / [radius]) instead of a literal, so a look can square or soften
-  /// everything at once. Circles (BoxShape.circle) stay circles.
-  double corner(double r) =>
-      r >= 99 ? (pills ? r : buttonRadius) : r * cornerScale;
-  BorderRadius br(double r) => BorderRadius.circular(corner(r));
-  Radius radius(double r) => Radius.circular(corner(r));
+  /// Text that reads on [fill]: white on a dark fill, [text] on a light one.
+  Color inkOn(Color fill) =>
+      ThemeData.estimateBrightnessForColor(fill) == Brightness.dark
+      ? Colors.white
+      : text;
 
-  Color get successFg => success;
-  Color get successBg => success.withValues(alpha: 0.1);
-  Color get warningFg => warning;
-  Color get warningBg => warning.withValues(alpha: 0.1);
-  Color get activeFg => active;
-  Color get activeBg => active.withValues(alpha: 0.1);
-  Color get warmupFg => warmup;
-  Color get warmupLight => warmup.withValues(alpha: 0.1);
-  Color get accentGreen => ready;
-  Color get accentAmber => overdue;
-  Color get accentRed => destructive;
-  Color get accentBlue => info;
-  Color get workoutRestingFg => resting;
-  Color get workoutRestingBg => resting.withValues(alpha: 0.1);
-  Color get workoutLiftingFg => lifting;
-  Color get workoutLiftingBg => lifting.withValues(alpha: 0.1);
-  Color get workoutYappingFg => yapping;
-  Color get workoutYappingBg => yapping.withValues(alpha: 0.1);
-  Color get workoutEffortFg => effort;
-  Color get workoutEffortBg => effort.withValues(alpha: 0.1);
-
-  /// [base] in the wordmark's font, weight, size and spacing.
+  /// [base] in the wordmark's font, weight and size.
   TextStyle wordmark([TextStyle base = const TextStyle()]) =>
       GoogleFonts.getFont(
-        wordmarkFont ?? headingFont,
+        wordmarkFont,
         textStyle: base.copyWith(
           fontSize: base.fontSize == null
               ? null
               : base.fontSize! * wordmarkScale,
         ),
         fontWeight: wordmarkWeight,
-        letterSpacing: wordmarkTracking,
       );
 
   /// [base] in the mono font, for counting numbers.
   TextStyle mono([TextStyle base = const TextStyle()]) =>
       GoogleFonts.getFont(monoFont, textStyle: base);
 
-  // ThemeExtension plumbing. Specs are swapped whole, never blended.
+  // ThemeExtension plumbing. There is one spec, so nothing blends.
   @override
   ThemeSpec copyWith() => this;
 

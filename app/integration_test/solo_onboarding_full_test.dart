@@ -39,11 +39,11 @@ void main() {
       await s.shot('Onboarding 4/5 — bodyweight');
       await s.tapText(o.next);
 
-      // Step 5 — favourite workouts from the library (the defaults come
+      // Step 5 — the rotation from the library (the defaults come
       // pre-ticked), then commit.
       await s.mustSee(o.templates.title, seconds: 6);
       await s.mustSee(Scenario.defaultTemplateName, seconds: 10);
-      await s.shot('Onboarding 5/5 — favourite workouts');
+      await s.shot('Onboarding 5/5 — rotation');
       await s.tapText(o.templates.finish);
 
       // Landed on home (past the first-run tutorial), ready to train.

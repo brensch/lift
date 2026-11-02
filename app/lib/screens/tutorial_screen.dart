@@ -1,5 +1,4 @@
-/// The walkthrough: the real app (header, home, active workout, bottom
-/// bar) running on a sample account inside a sandbox, with one piece at a
+/// The walkthrough: the real app (header, home, bottom bar) running on a sample account inside a sandbox, with one piece at a
 /// time picked out by a throbbing red outline and explained in a popover
 /// beside it. The popover carries BACK / NEXT / SKIP. Steps and every word
 /// come from app/copy.yaml (gen/copy.dart). Shown once on first arrival at
@@ -60,8 +59,7 @@ class _TutorialScreenState extends State<TutorialScreen>
   /// per frame, so the card doesn't hop sides mid-scroll.
   bool _below = true;
 
-  /// Moving between steps, or (at first) the sample account still being
-  /// built: taps wait.
+  /// The sample account is still being built: taps wait.
   bool _busy = true;
 
   /// The first step has been shown; until then there is nothing to point at.
@@ -110,12 +108,10 @@ class _TutorialScreenState extends State<TutorialScreen>
     super.dispose();
   }
 
-  /// Move to [index]: run the step's action (the sandbox's workout starts,
-  /// its first set starts), give the screen a frame, then scroll the target
-  /// into view and measure it.
+  /// Move to [index]: give the screen a frame, then scroll the target into
+  /// view and measure it.
   Future<void> _enter(int index, {required bool forward}) async {
     if (_busy) return;
-    _busy = true;
     // The old step stays on screen, outline and all, until the new one
     // has been measured; then text and position change in one frame.
     _pending = index;
@@ -124,22 +120,6 @@ class _TutorialScreenState extends State<TutorialScreen>
     PageTracker.instance.enter(
       'tutorial/${(index + 1).toString().padLeft(2, '0')}-${step.target}',
     );
-    try {
-      if (step.screen == 'workout' && !_workouts.hasActiveWorkout) {
-        // The session two exercises in, resting.
-        await (await _account.future).startSession();
-        await _workouts.loadActiveWorkout('tutorial');
-        // A watch on the wrist, as far as the bar is concerned.
-        _workouts.ingestWearHeartRateBatch(
-          TutorialAccount.heartRateBatch(_workouts.activeWorkout!.id),
-        );
-      } else if (step.screen == 'home' && _workouts.hasActiveWorkout) {
-        await _workouts.endWorkout(fireEndedCallback: false);
-        await _workouts.refreshHome();
-      }
-    } finally {
-      _busy = false;
-    }
     if (!mounted) return;
     await WidgetsBinding.instance.endOfFrame;
     await _measure();
@@ -247,7 +227,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                 fit: StackFit.expand,
                 children: [
                   // The real app on the sandbox account, not tappable:
-                  // header, home or workout, and the bottom bar.
+                  // header, home and the bottom bar.
                   const IgnorePointer(
                     child: MainLayout(currentPath: '/', child: WorkoutTab()),
                   ),
@@ -259,7 +239,8 @@ class _TutorialScreenState extends State<TutorialScreen>
                         builder: (context, _) => CustomPaint(
                           painter: _SpotlightPainter(
                             outline: context.tokens.primary,
-                            radius: context.tokens.radius(18),
+                            scrim: context.tokens.scrim,
+                            radius: Radius.circular(context.tokens.radiusLg),
                             target: _target,
                             throb: Curves.easeInOut.transform(_throb.value),
                           ),
@@ -293,11 +274,13 @@ class _SpotlightPainter extends CustomPainter {
   final Rect? target;
   final double throb;
   final Color outline;
+  final Color scrim;
 
   _SpotlightPainter({
     required this.target,
     required this.throb,
     required this.outline,
+    required this.scrim,
     required Radius radius,
   }) : _radius = radius;
 
@@ -306,17 +289,17 @@ class _SpotlightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final full = Path()..addRect(Offset.zero & size);
-    final scrim = Paint()..color = Colors.black.withValues(alpha: 0.55);
+    final shade = Paint()..color = scrim;
     final t = target;
     if (t == null) {
-      canvas.drawPath(full, scrim);
+      canvas.drawPath(full, shade);
       return;
     }
     final hole = t.inflate(6);
     final holePath = Path()..addRRect(RRect.fromRectAndRadius(hole, _radius));
     canvas.drawPath(
       Path.combine(PathOperation.difference, full, holePath),
-      scrim,
+      shade,
     );
     // A crisp orange outline that beats a little thicker, no glow.
     canvas.drawRRect(
@@ -330,7 +313,10 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SpotlightPainter old) =>
-      old.target != target || old.throb != throb || old.outline != outline;
+      old.target != target ||
+      old.throb != throb ||
+      old.outline != outline ||
+      old.scrim != scrim;
 }
 
 /// The explanation with the controls: placed below the target when there

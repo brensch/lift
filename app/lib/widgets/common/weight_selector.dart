@@ -1,7 +1,7 @@
 /// Picking a weight: the number, big and typeable; for a barbell the bar
-/// drawn loaded, live, and the plates each side; steps down and up a plate
-/// pair or a big plate at a time; and a slider for the long way. Used
-/// wherever a lift's weight is chosen.
+/// drawn loaded, live, and the plates each side; steps down and up the
+/// lift's step or a big plate at a time; and a slider for the long way.
+/// Used wherever a lift's weight is chosen.
 library;
 
 import 'package:flutter/material.dart';
@@ -20,19 +20,20 @@ class WeightSelector extends StatefulWidget {
   final double weightLb;
   final ValueChanged<double> onChanged;
 
-  /// A barbell: the bar and plates are shown, steps are a plate pair and a
-  /// big plate pair, and it never goes under the empty bar.
+  /// A barbell: the bar and plates are shown, the big step is a big plate
+  /// pair, and it never goes under the empty bar.
   final bool barbell;
 
-  /// Enter on the keyboard.
-  final VoidCallback? onSubmitted;
+  /// The lift's step (lb), as its plan has it: the small step, and the
+  /// grid the weight snaps to. 0 (bodyweight) steps a plate pair.
+  final double stepLb;
 
   const WeightSelector({
     super.key,
     required this.weightLb,
     required this.onChanged,
+    required this.stepLb,
     this.barbell = true,
-    this.onSubmitted,
   });
 
   @override
@@ -79,7 +80,9 @@ class _WeightSelectorState extends State<WeightSelector> {
   double _display(double lb) => displayWeightFromPounds(lb, _unit);
   String _shown(double lb) => formatWeight(lb, _unit);
 
-  double get _small => _kg ? 2.5 : 5;
+  double get _small => widget.stepLb > 0
+      ? (_display(widget.stepLb) * 100).round() / 100
+      : (_kg ? 2.5 : 5);
   double get _big => widget.barbell ? (_kg ? 20 : 45) : (_kg ? 10 : 25);
   double get _min => widget.barbell ? standardBarWeight(_unit) : 0;
   double get _max => _kg ? 300 : 650;
@@ -99,7 +102,6 @@ class _WeightSelectorState extends State<WeightSelector> {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final settings = context.watch<SettingsProvider>();
     final display = _display(widget.weightLb);
-    String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
 
     Widget step(double by, {bool last = false}) => Expanded(
       child: Material(
@@ -119,7 +121,7 @@ class _WeightSelectorState extends State<WeightSelector> {
               ),
             ),
             child: Text(
-              '${by > 0 ? '+' : '−'}${num(by.abs())}',
+              '${by > 0 ? '+' : '−'}${plateLabel(by.abs())}',
               style: t.mono(
                 TextStyle(
                   fontSize: t.size.title,
@@ -136,10 +138,10 @@ class _WeightSelectorState extends State<WeightSelector> {
     final plates = calcPlatesPerSide(
       displayWeightFromPounds(widget.weightLb, unit),
       unit,
-    ).plates;
+    );
     final perSide = plates.isEmpty
         ? 'Empty bar'
-        : '${plates.map(num).join(' · ')}  each side';
+        : '${plates.map(plateLabel).join(' · ')}  each side';
 
     return Container(
       decoration: BoxDecoration(
@@ -175,10 +177,7 @@ class _WeightSelectorState extends State<WeightSelector> {
                         widget.onChanged(_current);
                       }
                     },
-                    onSubmitted: (_) {
-                      _focus.unfocus();
-                      widget.onSubmitted?.call();
-                    },
+                    onSubmitted: (_) => _focus.unfocus(),
                     style: t.mono(
                       TextStyle(
                         fontSize: t.size.giant,

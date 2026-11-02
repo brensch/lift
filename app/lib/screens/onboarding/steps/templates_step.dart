@@ -1,6 +1,6 @@
 /// Onboarding's last step: tick the library templates to start with. The
 /// library's defaults come ticked; at least one is required, since the
-/// server treats an empty choice as "give me the defaults".
+/// core treats an empty choice as "give me the defaults".
 library;
 
 import 'package:flutter/material.dart';

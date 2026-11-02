@@ -286,10 +286,14 @@ public final class Settings {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-     * @return The weightKg.
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
+     * @return The weight.
      */
-    float getWeightKg();
+    float getWeight();
 
     /**
      * <code>string hex_color = 2 [json_name = "hexColor"];</code>
@@ -314,30 +318,42 @@ public final class Settings {
     private PlateColor() {
       hexColor_ = "";
     }
-    public static final int WEIGHT_KG_FIELD_NUMBER = 1;
-    private float weightKg_;
+    public static final int WEIGHT_FIELD_NUMBER = 1;
+    private float weight_;
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-     * @return The weightKg.
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
+     * @return The weight.
      */
     @java.lang.Override
-    public float getWeightKg() {
-      return weightKg_;
+    public float getWeight() {
+      return weight_;
     }
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-     * @param value The weightKg to set.
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
+     * @param value The weight to set.
      */
-    private void setWeightKg(float value) {
+    private void setWeight(float value) {
       
-      weightKg_ = value;
+      weight_ = value;
     }
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
      */
-    private void clearWeightKg() {
+    private void clearWeight() {
       
-      weightKg_ = 0F;
+      weight_ = 0F;
     }
 
     public static final int HEX_COLOR_FIELD_NUMBER = 2;
@@ -483,30 +499,42 @@ public final class Settings {
 
 
       /**
-       * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-       * @return The weightKg.
+       * <pre>
+       * the plate's size, in the user's unit
+       * </pre>
+       *
+       * <code>float weight = 1 [json_name = "weight"];</code>
+       * @return The weight.
        */
       @java.lang.Override
-      public float getWeightKg() {
-        return instance.getWeightKg();
+      public float getWeight() {
+        return instance.getWeight();
       }
       /**
-       * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-       * @param value The weightKg to set.
+       * <pre>
+       * the plate's size, in the user's unit
+       * </pre>
+       *
+       * <code>float weight = 1 [json_name = "weight"];</code>
+       * @param value The weight to set.
        * @return This builder for chaining.
        */
-      public Builder setWeightKg(float value) {
+      public Builder setWeight(float value) {
         copyOnWrite();
-        instance.setWeightKg(value);
+        instance.setWeight(value);
         return this;
       }
       /**
-       * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
+       * <pre>
+       * the plate's size, in the user's unit
+       * </pre>
+       *
+       * <code>float weight = 1 [json_name = "weight"];</code>
        * @return This builder for chaining.
        */
-      public Builder clearWeightKg() {
+      public Builder clearWeight() {
         copyOnWrite();
-        instance.clearWeightKg();
+        instance.clearWeight();
         return this;
       }
 
@@ -575,7 +603,7 @@ public final class Settings {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "weightKg_",
+              "weight_",
               "hexColor_",
             };
             java.lang.String info =
@@ -652,12 +680,6 @@ public final class Settings {
      * <code>repeated .workout.v1.PlateColor plates = 1 [json_name = "plates"];</code>
      */
     int getPlatesCount();
-
-    /**
-     * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-     * @return The barWeightKg.
-     */
-    float getBarWeightKg();
   }
   /**
    * Protobuf type {@code workout.v1.PlateColorsConfig}
@@ -762,32 +784,6 @@ public final class Settings {
     private void removePlates(int index) {
       ensurePlatesIsMutable();
       plates_.remove(index);
-    }
-
-    public static final int BAR_WEIGHT_KG_FIELD_NUMBER = 2;
-    private float barWeightKg_;
-    /**
-     * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-     * @return The barWeightKg.
-     */
-    @java.lang.Override
-    public float getBarWeightKg() {
-      return barWeightKg_;
-    }
-    /**
-     * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-     * @param value The barWeightKg to set.
-     */
-    private void setBarWeightKg(float value) {
-      
-      barWeightKg_ = value;
-    }
-    /**
-     * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-     */
-    private void clearBarWeightKg() {
-      
-      barWeightKg_ = 0F;
     }
 
     public static workout.v1.Settings.PlateColorsConfig parseFrom(
@@ -987,34 +983,6 @@ public final class Settings {
         return this;
       }
 
-      /**
-       * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-       * @return The barWeightKg.
-       */
-      @java.lang.Override
-      public float getBarWeightKg() {
-        return instance.getBarWeightKg();
-      }
-      /**
-       * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-       * @param value The barWeightKg to set.
-       * @return This builder for chaining.
-       */
-      public Builder setBarWeightKg(float value) {
-        copyOnWrite();
-        instance.setBarWeightKg(value);
-        return this;
-      }
-      /**
-       * <code>float bar_weight_kg = 2 [json_name = "barWeightKg"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearBarWeightKg() {
-        copyOnWrite();
-        instance.clearBarWeightKg();
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.PlateColorsConfig)
     }
     @java.lang.Override
@@ -1033,11 +1001,9 @@ public final class Settings {
             java.lang.Object[] objects = new java.lang.Object[] {
               "plates_",
               workout.v1.Settings.PlateColor.class,
-              "barWeightKg_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\u001b\u0002\u0001" +
-                "";
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0001\u0000\u0001\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -1390,19 +1356,11 @@ public final class Settings {
     workout.v1.Settings.PlateColorsConfig getPlateColors();
 
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      * @return Whether the weightUnit field is set.
      */
     boolean hasWeightUnit();
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      * @return The weightUnit.
      */
@@ -1515,10 +1473,6 @@ public final class Settings {
 
     public static final int WEIGHT_UNIT_FIELD_NUMBER = 12;
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     @java.lang.Override
@@ -1526,10 +1480,6 @@ public final class Settings {
       return settingCase_ == 12;
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     @java.lang.Override
@@ -1540,10 +1490,6 @@ public final class Settings {
       return workout.v1.Settings.WeightUnitConfig.getDefaultInstance();
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     private void setWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1552,10 +1498,6 @@ public final class Settings {
       settingCase_ = 12;
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     private void mergeWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1570,10 +1512,6 @@ public final class Settings {
       settingCase_ = 12;
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     private void clearWeightUnit() {
@@ -1739,10 +1677,6 @@ public final class Settings {
       }
 
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       @java.lang.Override
@@ -1750,10 +1684,6 @@ public final class Settings {
         return instance.hasWeightUnit();
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       @java.lang.Override
@@ -1761,10 +1691,6 @@ public final class Settings {
         return instance.getWeightUnit();
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder setWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1773,10 +1699,6 @@ public final class Settings {
         return this;
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder setWeightUnit(
@@ -1786,10 +1708,6 @@ public final class Settings {
         return this;
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder mergeWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1798,10 +1716,6 @@ public final class Settings {
         return this;
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder clearWeightUnit() {

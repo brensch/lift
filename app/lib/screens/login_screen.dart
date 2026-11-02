@@ -13,7 +13,6 @@ import '../services/account_sync.dart';
 import '../widgets/wordmark.dart';
 import '../widgets/common/primary_button.dart';
 import '../theme/theme_spec.dart';
-import '../theme/app_icons.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -108,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                   Card(
                     shape: RoundedRectangleBorder(
-                      borderRadius: context.tokens.br(8),
+                      borderRadius: context.tokens.brSm,
 
                       side: BorderSide(color: colorScheme.primary, width: 1.0),
                     ),
@@ -264,11 +263,11 @@ class _LoginScreenState extends State<LoginScreen>
               vertical: 16,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: context.tokens.br(8),
+              borderRadius: context.tokens.brSm,
               borderSide: BorderSide(color: colorScheme.primary, width: 1.0),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: context.tokens.br(8),
+              borderRadius: context.tokens.brSm,
               borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
           ),
@@ -294,9 +293,8 @@ class _LoginScreenState extends State<LoginScreen>
         const SizedBox(height: 8),
         PrimaryButton(
           label: copy.login.createAccount,
-          icon: AppIcons.fingerprint,
           loading: auth.isLoading,
-          onPressed: auth.isLoading ? null : () => _createAccount(),
+          onPressed: _createAccount,
         ),
       ],
     );
@@ -328,9 +326,8 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         PrimaryButton(
           label: copy.login.signIn,
-          icon: AppIcons.fingerprint,
           loading: auth.isLoading,
-          onPressed: auth.isLoading ? null : _passkeyLogin,
+          onPressed: _passkeyLogin,
         ),
         const SizedBox(height: 4),
         Align(

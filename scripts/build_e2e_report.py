@@ -110,7 +110,7 @@ def _section(name, steps) -> str:
 
 
 def main(argv) -> int:
-    # Hidden files are skipped, as glob.glob did before this moved to pathlib.
+    # Skip hidden files.
     paths = argv[1:] or sorted(
         str(p) for p in SHOTS.glob("*.drive.log") if not p.name.startswith(".")
     )

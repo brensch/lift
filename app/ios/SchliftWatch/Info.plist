@@ -46,7 +46,6 @@
 	<string>com.brensch.schlift</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Fonts/Manrope-Variable.ttf</string>
 		<string>Fonts/SpaceGrotesk-Variable.ttf</string>
 		<string>Fonts/SpaceMono-Bold.ttf</string>
 		<string>Fonts/SpaceMono-Regular.ttf</string>

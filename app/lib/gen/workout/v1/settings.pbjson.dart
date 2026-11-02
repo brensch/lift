@@ -61,15 +61,15 @@ final $typed_data.Uint8List weightUnitDescriptor = $convert.base64Decode(
 const PlateColor$json = {
   '1': 'PlateColor',
   '2': [
-    {'1': 'weight_kg', '3': 1, '4': 1, '5': 2, '10': 'weightKg'},
+    {'1': 'weight', '3': 1, '4': 1, '5': 2, '10': 'weight'},
     {'1': 'hex_color', '3': 2, '4': 1, '5': 9, '10': 'hexColor'},
   ],
 };
 
 /// Descriptor for `PlateColor`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List plateColorDescriptor = $convert.base64Decode(
-    'CgpQbGF0ZUNvbG9yEhsKCXdlaWdodF9rZxgBIAEoAlIId2VpZ2h0S2cSGwoJaGV4X2NvbG9yGA'
-    'IgASgJUghoZXhDb2xvcg==');
+    'CgpQbGF0ZUNvbG9yEhYKBndlaWdodBgBIAEoAlIGd2VpZ2h0EhsKCWhleF9jb2xvchgCIAEoCV'
+    'IIaGV4Q29sb3I=');
 
 @$core.Deprecated('Use plateColorsConfigDescriptor instead')
 const PlateColorsConfig$json = {
@@ -83,14 +83,17 @@ const PlateColorsConfig$json = {
       '6': '.workout.v1.PlateColor',
       '10': 'plates'
     },
-    {'1': 'bar_weight_kg', '3': 2, '4': 1, '5': 2, '10': 'barWeightKg'},
   ],
+  '9': [
+    {'1': 2, '2': 3},
+  ],
+  '10': ['bar_weight_kg'],
 };
 
 /// Descriptor for `PlateColorsConfig`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List plateColorsConfigDescriptor = $convert.base64Decode(
     'ChFQbGF0ZUNvbG9yc0NvbmZpZxIuCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ2'
-    '9sb3JSBnBsYXRlcxIiCg1iYXJfd2VpZ2h0X2tnGAIgASgCUgtiYXJXZWlnaHRLZw==');
+    '9sb3JSBnBsYXRlc0oECAIQA1INYmFyX3dlaWdodF9rZw==');
 
 @$core.Deprecated('Use weightUnitConfigDescriptor instead')
 const WeightUnitConfig$json = {
@@ -139,17 +142,18 @@ const UserSetting$json = {
     {'1': 'setting'},
   ],
   '9': [
+    {'1': 11, '2': 12},
     {'1': 13, '2': 14},
   ],
-  '10': ['ignored_muscles'],
+  '10': ['workout_config', 'ignored_muscles'],
 };
 
 /// Descriptor for `UserSetting`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List userSettingDescriptor = $convert.base64Decode(
     'CgtVc2VyU2V0dGluZxJCCgxwbGF0ZV9jb2xvcnMYCiABKAsyHS53b3Jrb3V0LnYxLlBsYXRlQ2'
     '9sb3JzQ29uZmlnSABSC3BsYXRlQ29sb3JzEj8KC3dlaWdodF91bml0GAwgASgLMhwud29ya291'
-    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXRCCQoHc2V0dGluZ0oECA0QDlIPaW'
-    'dub3JlZF9tdXNjbGVz');
+    'dC52MS5XZWlnaHRVbml0Q29uZmlnSABSCndlaWdodFVuaXRCCQoHc2V0dGluZ0oECAsQDEoECA'
+    '0QDlIOd29ya291dF9jb25maWdSD2lnbm9yZWRfbXVzY2xlcw==');
 
 @$core.Deprecated('Use updateSettingRequestDescriptor instead')
 const UpdateSettingRequest$json = {

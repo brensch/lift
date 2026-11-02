@@ -36,7 +36,6 @@ class PlateColorsScreen extends StatelessWidget {
     final unit = settings.weightUnit;
     final plates = standardPlates(unit);
     final suffix = weightUnitSuffix(unit);
-    String num(double v) => v % 1 == 0 ? '${v.toInt()}' : '$v';
     String nameOf(Color c) => _colorOptions
         .firstWhere(
           (o) => o.value.toARGB32() == c.toARGB32(),
@@ -95,7 +94,7 @@ class PlateColorsScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 14),
                         Text(
-                          '${num(plate)} $suffix',
+                          '${plateLabel(plate)} $suffix',
                           style: t.mono(
                             TextStyle(
                               fontSize: t.size.title,

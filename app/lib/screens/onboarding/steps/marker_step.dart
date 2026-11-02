@@ -61,7 +61,7 @@ class MarkerStep extends StatelessWidget {
               height: 120,
               decoration: BoxDecoration(
                 color: profileColorFromHex(selectedColorHex),
-                borderRadius: context.tokens.br(28),
+                borderRadius: context.tokens.brXl,
               ),
               alignment: Alignment.center,
               child: Text(

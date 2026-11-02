@@ -4,8 +4,6 @@
 target/
 *.sqlite
 
-# Server
-server/gen/
 bin/
 
 # Frontend
@@ -25,11 +23,8 @@ data/
 *.log
 .DS_Store
 
-user_dbs/
-
 .tmp/
 tmp/
-aab/
 
 # Python caches
 __pycache__/

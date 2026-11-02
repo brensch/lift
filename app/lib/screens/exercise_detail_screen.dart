@@ -10,12 +10,11 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import '../theme/theme_spec.dart';
 
-/// One lift, in depth: tap a card on Progress to see its full history — a
-/// weight / estimated-1RM trend you can toggle between, personal bests, and a
-/// per-session breakdown. Progress shows the trend across lifts; this is the
+/// One lift, in depth: tap a card on Progress to see its full history — the
+/// estimated max after each session with the heaviest set under it, the
+/// totals, and a per-session breakdown. Progress shows the trend across lifts; this is the
 /// drill-down for a single one.
 class ExerciseDetailScreen extends StatefulWidget {
   final Exercise exercise;
@@ -72,13 +71,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final name = exerciseNames[widget.exercise] ?? '?';
+    final name = exerciseName(widget.exercise);
 
-    Widget scaffold(Widget body) => TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(title: PageTitle(name)),
-        body: body,
-      ),
+    Widget scaffold(Widget body) => Scaffold(
+      appBar: AppBar(title: PageTitle(name)),
+      body: body,
     );
 
     if (_isLoading) {
@@ -117,20 +114,19 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _headStat(
+                HeadStat(
                   maxText(maxNow, unit, bodyweight: bodyweight),
                   'estimated max',
-                  cs,
-                  big: true,
+                  size: context.tokens.size.headline,
                   color: context.tokens.series.first,
                 ),
                 const Spacer(),
-                _headStat(
+                HeadStat(
                   bodyweight
                       ? '${sessions.last.topReps} reps'
-                      : '${formatWeight(current, unit)} $suffix',
+                      : formatWeight(current, unit, includeUnit: true),
                   'heaviest set last time',
-                  cs,
+                  size: context.tokens.size.subtitle,
                   color: context.tokens.series[1],
                 ),
               ],
@@ -163,7 +159,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               children: [
                 _footStat(
                   'Best set',
-                  '${formatWeight(best, unit)} $suffix',
+                  formatWeight(best, unit, includeUnit: true),
                   cs,
                 ),
                 const SizedBox(width: 18),
@@ -171,7 +167,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 const SizedBox(width: 18),
                 _footStat('Total sets', '$totalSets', cs),
                 const SizedBox(width: 18),
-                _footStat('Volume', '${_compact(totalVolume)} $suffix', cs),
+                _footStat(
+                  'Volume',
+                  '${compactVolume(totalVolume, unit)} $suffix',
+                  cs,
+                ),
               ],
             ),
           ),
@@ -190,40 +190,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       ),
     );
   }
-
-  static String _compact(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
-    return v.round().toString();
-  }
-
-  Widget _headStat(
-    String value,
-    String label,
-    ColorScheme cs, {
-    bool big = false,
-    Color? color,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: big ? 30 : 18,
-          fontWeight: context.tokens.weight.heavy,
-          height: 1,
-          color: color,
-        ),
-      ),
-      Text(
-        label,
-        style: TextStyle(
-          color: cs.tertiary,
-          fontSize: context.tokens.size.small,
-        ),
-      ),
-    ],
-  );
 
   Widget _footStat(String label, String value, ColorScheme cs) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +390,7 @@ class _SessionRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${formatWeight(session.topWeight, unit)} $suffix × ${session.topReps}',
+              '${formatWeight(session.topWeight, unit, includeUnit: true)} × ${session.topReps}',
               style: TextStyle(
                 fontWeight: context.tokens.weight.heavy,
                 fontSize: context.tokens.size.body,
@@ -432,7 +398,7 @@ class _SessionRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${session.sets} sets · ${_compactVol(session.volume)} $suffix',
+            '${session.sets} sets · ${compactVolume(session.volume, unit)} $suffix',
             style: TextStyle(
               color: cs.tertiary,
               fontSize: context.tokens.size.small,
@@ -441,11 +407,6 @@ class _SessionRow extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  static String _compactVol(double v) {
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
-    return v.round().toString();
   }
 }
 

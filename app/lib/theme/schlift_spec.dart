@@ -7,7 +7,6 @@ import 'theme_spec.dart';
 /// colour, font, size and radius the app draws with is here; change the look
 /// by changing a value.
 const schliftSpec = ThemeSpec(
-  brightness: Brightness.light,
   background: Color(0xFFDBDAD2),
   panel: Color(0xFFEDECE5),
   surfaceHigh: Color(0xFFCAC9C0),
@@ -20,18 +19,35 @@ const schliftSpec = ThemeSpec(
   outline: Color(0xFF74746E),
   switchThumbOff: Color(0xFFADACA2),
   error: Color(0xFFE0301E),
+  onError: Colors.white,
   // State colours keep their hues but sit with the warm grey: less neon,
   // a touch deeper.
   ready: Color(0xFF3D8B4A),
   success: Color(0xFF3D8B4A),
-  effort: Color(0xFFD99A00),
+  short: Color(0xFFD99A00),
   overdue: Color(0xFFA85F00),
-  warning: Color(0xFF8A5A00),
   resting: Color(0xFF3C5FB0),
   // Lifting: a set has been started. The signal orange: do it now.
   lifting: Color(0xFFFF4F00),
   // Yapping: rest has run out and the next set isn't started. Pink.
   yapping: Color(0xFFD94F8C),
+  warmup: Color(0xFF6B7280),
+  heart: Color(0xFFE11D48),
+  heartZones: [
+    Color(0xFF22C55E), // Z1: green
+    Color(0xFFEAB308), // Z2: yellow
+    Color(0xFFF59E0B), // Z3: amber
+    Color(0xFFEF4444), // Z4: red
+    Color(0xFFB91C1C), // Z5: deep red
+  ],
+  barSteel: Color(0xFFBDBDBD),
+  sleeveSteel: Color(0xFF9E9E9E),
+  collarSteel: Color(0xFF616161),
+  plateEdge: Color(0x59000000),
+  dumbbellPlate: Color(0xFF6B7280),
+  dumbbellHandle: Color(0xFF111827),
+  machine: Color(0xFF9098A3),
+  scrim: Color(0x8C000000),
   // Chart lines: deep, saturated, each distinct on the warm grey.
   series: [
     Color(0xFF1F4FD1), // blue
@@ -61,17 +77,14 @@ const schliftSpec = ThemeSpec(
   // regular and its bold (it has nothing in between).
   wordmarkFont: 'Space Mono',
   wordmarkWeight: FontWeight.w400,
-  wordmarkEmbolden: 0,
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
-  displayWeight: FontWeight.w500,
-  headingWeightBoost: -1,
+  fontScale: 1.06,
+  radiusXs: 1,
   radiusSm: 2,
   radiusMd: 3,
   radiusLg: 4,
-  buttonRadius: 3,
-  cornerScale: 0.25,
-  pills: false,
+  radiusXl: 7,
   drawerRadius: 0,
   // The small end runs large: nothing in the app is drawn under 12pt.
   size: TypeScale(
@@ -82,5 +95,16 @@ const schliftSpec = ThemeSpec(
     subtitle: 19,
     title: 21,
     titleLg: 25,
+    headline: 28,
+    headlineLg: 32,
+    display: 40,
+    displayLg: 48,
+    giant: 64,
+  ),
+  weight: FontWeights(
+    regular: FontWeight.w400,
+    medium: FontWeight.w500,
+    bold: FontWeight.w700,
+    heavy: FontWeight.w900,
   ),
 );

@@ -60,7 +60,7 @@ class ZoneSummary extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: context.tokens.br(6),
+            borderRadius: context.tokens.brXs,
             child: SizedBox(
               height: 12,
               child: Row(
@@ -68,7 +68,12 @@ class ZoneSummary extends StatelessWidget {
                   for (final z in zones)
                     Expanded(
                       flex: (zoneSeconds[z.name] ?? 0).round(),
-                      child: Container(color: zoneColorByName(z.name)),
+                      child: Container(
+                        color: zoneColorByName(
+                          z.name,
+                          context.tokens.heartZones,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -88,7 +93,10 @@ class ZoneSummary extends StatelessWidget {
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color: zoneColorByName(z.name),
+                          color: zoneColorByName(
+                            z.name,
+                            context.tokens.heartZones,
+                          ),
                           shape: BoxShape.circle,
                         ),
                       ),

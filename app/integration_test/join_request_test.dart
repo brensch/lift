@@ -31,7 +31,7 @@ void main() {
     await bob.leaveSession();
     await me.leaveSession();
     expect(
-      await s.waitForText('Multiplayer', seconds: 12),
+      await s.waitForSolo(seconds: 12),
       isTrue,
       reason: 'app should return to solo',
     );

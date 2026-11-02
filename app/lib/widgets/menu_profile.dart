@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/copy.dart';
+import '../logic/session_state.dart';
 import '../logic/user_profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/workout_service.dart';
@@ -68,13 +69,6 @@ class _MenuProfileState extends State<MenuProfile> {
     } catch (e) {
       debugPrint('Menu totals failed: $e');
     }
-  }
-
-  /// "2h 14m", or "14m" under an hour.
-  static String _time(int seconds) {
-    final minutes = seconds ~/ 60;
-    if (minutes < 60) return '${minutes}m';
-    return '${minutes ~/ 60}h ${minutes % 60}m';
   }
 
   @override
@@ -144,10 +138,7 @@ class _MenuProfileState extends State<MenuProfile> {
     );
 
     final bannerColor = profileColorFromHex(auth.profileColorHex);
-    final onColor =
-        ThemeData.estimateBrightnessForColor(bannerColor) == Brightness.dark
-        ? Colors.white
-        : t.text;
+    final onColor = t.inkOn(bannerColor);
 
     String show(int Function(_Totals) f, String Function(int) fmt) =>
         totals == null ? '–' : fmt(f(totals));
@@ -195,23 +186,23 @@ class _MenuProfileState extends State<MenuProfile> {
         ),
         row([
           cell('Workouts', show((x) => x.workouts, (v) => '$v')),
-          cell('Time', show((x) => x.seconds, _time), last: true),
+          cell('Time', show((x) => x.seconds, formatDurationShort), last: true),
         ]),
         row([
           cell(
             copy.workout.lifting,
-            show((x) => x.lifting, _time),
-            color: t.workoutLiftingFg,
+            show((x) => x.lifting, formatDurationShort),
+            color: t.lifting,
           ),
           cell(
             copy.workout.resting,
-            show((x) => x.resting, _time),
-            color: t.workoutRestingFg,
+            show((x) => x.resting, formatDurationShort),
+            color: t.resting,
           ),
           cell(
             copy.workout.yapping,
-            show((x) => x.yapping, _time),
-            color: t.workoutYappingFg,
+            show((x) => x.yapping, formatDurationShort),
+            color: t.yapping,
             last: true,
           ),
         ]),

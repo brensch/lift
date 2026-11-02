@@ -1,19 +1,15 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
-import '../gen/workout/v1/workout.pb.dart';
+import '../gen/workout/v1/wearable.pb.dart';
 import 'app_logger.dart';
 
-enum HealthWriteResult { success, permissionDenied, error }
-
 class HeartRateZoneProfile {
-  final DateTime? birthDate;
   final int? ageYears;
   final double? restingHeartRateBpm;
   final int estimatedMaxHeartRateBpm;
 
   const HeartRateZoneProfile({
-    required this.birthDate,
     required this.ageYears,
     required this.restingHeartRateBpm,
     required this.estimatedMaxHeartRateBpm,
@@ -193,12 +189,11 @@ class HealthService {
     return (durationMinutes * _fallbackKcalPerMin).round();
   }
 
-  static Future<HealthWriteResult> writeCompletedWorkout({
+  /// Whether the platform stored the workout.
+  static Future<bool> writeCompletedWorkout({
     required DateTime startTime,
     required DateTime endTime,
     required String title,
-    required double totalVolumeKg,
-    required int workingSets,
     required double bodyWeightKg,
   }) async {
     debugPrint('Health: writeCompletedWorkout called');
@@ -236,14 +231,14 @@ class HealthService {
     // READ_DISTANCE/READ_STEPS — permissions it has no business asking for. A
     // successful insert (result=true) is Health Connect's own confirmation that
     // the record was stored; readability was verified out-of-band via the Health
-    // Connect UI. Sync status is surfaced to the user in Settings instead.
+    // Connect UI.
     debugPrint('Health: writeWorkoutData result=$success');
-    return success ? HealthWriteResult.success : HealthWriteResult.error;
+    return success;
   }
 
   static Future<void> writeHeartRateSamples({
     required String workoutId,
-    required List<WorkoutHeartRatePoint> samples,
+    required List<HeartRateSample> samples,
   }) async {
     if (samples.isEmpty) return;
 
@@ -265,14 +260,8 @@ class HealthService {
     }
   }
 
-  static Future<HeartRateZoneProfile?> readHeartRateZoneProfile({
-    bool useCache = true,
-  }) {
-    if (!useCache || _cachedZoneProfileFuture == null) {
-      _cachedZoneProfileFuture = _readHeartRateZoneProfileImpl();
-    }
-    return _cachedZoneProfileFuture!;
-  }
+  static Future<HeartRateZoneProfile?> readHeartRateZoneProfile() =>
+      _cachedZoneProfileFuture ??= _readHeartRateZoneProfileImpl();
 
   /// Never prompts: without the resting HR / birth date reads it returns null.
   static Future<HeartRateZoneProfile?> _readHeartRateZoneProfileImpl() async {
@@ -366,7 +355,6 @@ class HealthService {
       );
 
       return HeartRateZoneProfile(
-        birthDate: birthDate,
         ageYears: ageYears,
         restingHeartRateBpm: restingHr,
         estimatedMaxHeartRateBpm: estimatedMaxHr,

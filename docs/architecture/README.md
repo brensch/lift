@@ -23,8 +23,8 @@ reasons — is specified in
 [`docs/plans/planned-at-start.md`](../plans/planned-at-start.md); the code
 lives in `core/src/plan.rs`, `core/src/exercise_progress.rs`,
 `core/src/exercise_catalog.rs` and `core/src/volume.rs`. The other files in
-`docs/plans/` and `docs/design-history/` are the history of earlier
-designs, not descriptions of the current one.
+`docs/plans/` are the history of earlier designs, not descriptions of the
+current one.
 
 ## Conventions used here
 

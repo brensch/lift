@@ -49,7 +49,7 @@ pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume
             let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
                 continue;
             };
-            if proposed.warmup || proposed.calibration || proposed.cancelled {
+            if !proposed.is_working() || proposed.cancelled {
                 continue;
             }
             let Ok(ex) = Exercise::try_from(proposed.exercise) else {
@@ -108,7 +108,7 @@ pub fn primary_muscles(exercises: &[i32]) -> Vec<MuscleGroup> {
 /// template winning every day. When none of them is both recovered and
 /// behind, the one started least recently (`fallback`). When every
 /// template is left out, the one whose first lift's muscle recovers
-/// soonest (`first_lift_recovering`). Favourites (templates out of
+/// soonest (`first_lift_recovering`). Reserves (templates out of
 /// rotation) are never picked; None when nothing is in rotation.
 pub fn suggest_template(
     templates: &[WorkoutTemplate],
@@ -343,7 +343,7 @@ mod tests {
         suggest_template(
             templates,
             &muscle_volume_7d(history, now),
-            &per_muscle_recovery(history, now),
+            &per_muscle_recovery(history),
             now,
             last,
         )
@@ -530,10 +530,10 @@ mod tests {
         assert!(got.reason.behind.is_empty());
     }
 
-    /// Favourites are never suggested, however far behind; with nothing in
+    /// Reserves are never suggested, however far behind; with nothing in
     /// rotation there is no suggestion.
     #[test]
-    fn favourites_are_never_suggested() {
+    fn reserves_are_never_suggested() {
         let now = 1_000_000;
         let mut legs = template("legs", &[Exercise::Squat, Exercise::RomanianDeadlift]);
         legs.in_rotation = false;

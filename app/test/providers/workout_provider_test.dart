@@ -15,7 +15,7 @@ void main() {
   late ProviderHarness h;
 
   setUp(() async {
-    h = await ProviderHarness.boot(sandbox: true);
+    h = await ProviderHarness.boot();
     await h.seedHistory({
       Exercise.EXERCISE_SQUAT: (185, 5),
       Exercise.EXERCISE_LATERAL_RAISE: (20, 10),
@@ -43,7 +43,7 @@ void main() {
     );
     expect(decision.budgetMinutes, 60);
     expect(h.working(squat).length, decision.sets);
-    expect(p.activeProposedSets.first.warmup, isTrue);
+    expect(p.proposedSets.first.warmup, isTrue);
     expect(
       p.stateSnapshot!.state,
       WorkoutState.WORKOUT_STATE_READY,
@@ -66,11 +66,11 @@ void main() {
     await h.start([raise]);
     final first = h.working(raise).first;
     await h.provider.completeSet(first.id, 1, 20);
-    final done = h.provider.activeCompletedSets.single;
+    final done = h.provider.completedSets.single;
     await h.provider.tapDoneSet(done.id);
-    expect(h.provider.activeCompletedSets.single.actualReps, 0);
+    expect(h.provider.completedSets.single.actualReps, 0);
     await h.provider.tapDoneSet(done.id);
-    expect(h.provider.activeCompletedSets, isEmpty);
+    expect(h.provider.completedSets, isEmpty);
   });
 
   test('a reorder shows at once, before the core answers', () async {
@@ -83,7 +83,7 @@ void main() {
 
   test('skipping warmups puts them behind you, kept', () async {
     await h.start([squat]);
-    final warmups = h.provider.activeProposedSets.where((s) => s.warmup);
+    final warmups = h.provider.proposedSets.where((s) => s.warmup);
     expect(warmups, isNotEmpty);
     await h.provider.skipWarmups(squat);
     expect(warmups.every(h.provider.isPassedWarmup), isTrue);
@@ -145,7 +145,7 @@ void main() {
   test('the session a workout is in is recorded on it', () async {
     await h.start([raise]);
     await h.provider.recordSession('s1');
-    expect(h.provider.activeWorkout!.sessionId, 's1');
+    expect(h.provider.workout!.sessionId, 's1');
   });
 
   test('an adjusted weight moves the pending sets', () async {
@@ -180,9 +180,8 @@ void main() {
     expect(p.rungQuestionSetId, isEmpty);
 
     // A ramp set short of its reps is a miss: no question.
-    ProposedSet rung() => p.activeProposedSets.firstWhere(
-      (s) => s.calibration && !p.isSetDone(s.id),
-    );
+    ProposedSet rung() =>
+        p.proposedSets.firstWhere((s) => s.calibration && !p.isSetDone(s.id));
     final first = rung();
     await p.completeSet(first.id, first.targetReps, first.targetWeight);
     expect(asked, [first.id], reason: 'every rep: asked');
@@ -196,15 +195,11 @@ void main() {
     await p.answerRung(first.id, RepsLeft.REPS_LEFT_ZERO_TO_ONE);
     expect(p.rungQuestionSetId, isEmpty);
     expect(
-      p.activeCompletedSets
-          .firstWhere((c) => c.proposedSetId == first.id)
-          .repsLeft,
+      p.completedSets.firstWhere((c) => c.proposedSetId == first.id).repsLeft,
       RepsLeft.REPS_LEFT_ZERO_TO_ONE,
     );
     expect(
-      p.activeProposedSets.where(
-        (s) => s.exercise == deadlift && s.calibration,
-      ),
+      p.proposedSets.where((s) => s.exercise == deadlift && s.calibration),
       hasLength(1),
       reason: 'no rung after it',
     );

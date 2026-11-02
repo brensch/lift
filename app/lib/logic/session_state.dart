@@ -1,9 +1,15 @@
-/// Pure session/workout-state logic: snapshot-state predicates, participant ordering, and the client-side "who lifts next" derivation. No Flutter imports.
+/// Pure session/workout-state logic: a snapshot's state on this clock,
+/// participant ordering, and the client-side "who lifts next" derivation.
+/// No Flutter imports.
 library;
 
+import 'dart:math';
+
+import 'package:fixnum/fixnum.dart';
+
+import '../gen/copy.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/group.pb.dart';
-import '../widgets/participant_ticker.dart';
 
 String formatRestClock(int seconds) {
   final m = seconds.abs() ~/ 60;
@@ -21,21 +27,128 @@ String formatElapsedClock(int totalSeconds) {
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
-bool isAllDoneState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_ALL_DONE.value;
+/// A duration in hours and minutes: "1h 5m", "45m".
+String formatDurationShort(int totalSeconds) {
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  if (hours > 0) return '${hours}h ${minutes}m';
+  return '${minutes}m';
+}
 
-bool isRestingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_RESTING.value;
+/// A snapshot's state on this clock. The snapshot is from the last change,
+/// so a rest it says is running may have run out since: that is yapping.
+WorkoutState stateAt(WorkoutStateSnapshot? snapshot, int nowUnix) {
+  final state = snapshot?.state ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED;
+  if (state == WorkoutState.WORKOUT_STATE_RESTING &&
+      snapshot!.restUntil.toInt() <= nowUnix) {
+    return WorkoutState.WORKOUT_STATE_YAPPING;
+  }
+  return state;
+}
 
-bool isReadyState(int state) => state == WorkoutState.WORKOUT_STATE_READY.value;
+/// A workout's stage as every status line says it (your bar, a partner's
+/// bar, the watch): its state on this clock ([stateAt]), the label, and the
+/// clock. Lifting counts up from Start, resting down to the rest end,
+/// yapping up from it; ready and all done have no clock.
+({WorkoutState state, String label, String? timer}) stageOf(
+  WorkoutStateSnapshot? snapshot,
+  int nowUnix,
+) {
+  final state = stateAt(snapshot, nowUnix);
+  final restEnd = snapshot?.restUntil.toInt() ?? 0;
+  return switch (state) {
+    WorkoutState.WORKOUT_STATE_LIFTING => (
+      state: state,
+      label: copy.workout.lifting,
+      timer: formatRestClock(
+        max(0, nowUnix - snapshot!.liftingStartedAt.toInt()),
+      ),
+    ),
+    WorkoutState.WORKOUT_STATE_RESTING => (
+      state: state,
+      label: copy.workout.resting,
+      timer: formatRestClock(max(0, restEnd - nowUnix)),
+    ),
+    WorkoutState.WORKOUT_STATE_YAPPING => (
+      state: state,
+      label: copy.workout.yapping,
+      timer: formatRestClock(max(0, nowUnix - restEnd)),
+    ),
+    WorkoutState.WORKOUT_STATE_ALL_DONE => (
+      state: state,
+      label: copy.workout.allDone,
+      timer: null,
+    ),
+    _ => (
+      state: WorkoutState.WORKOUT_STATE_READY,
+      label: copy.workout.ready,
+      timer: null,
+    ),
+  };
+}
 
-/// A set has been started and isn't done yet.
-bool isLiftingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_LIFTING.value;
+/// The set a workout shows: the snapshot's, else the next one up.
+ProposedSet? shownSet(WorkoutStateSnapshot? snapshot, ProposedSet? nextUp) =>
+    snapshot != null && snapshot.hasDisplaySet() ? snapshot.displaySet : nextUp;
 
-/// The last set's rest has run out and the next set isn't started.
-bool isYappingState(int state) =>
-    state == WorkoutState.WORKOUT_STATE_YAPPING.value;
+/// When a lifter is due at the rack: their rest end, past or not, or now
+/// with no rest running. Null while lifting (on the rack, not waiting for
+/// it), when all done, or with no set left.
+int? scheduledStartUnix({
+  required WorkoutState state,
+  required int restUntil,
+  required bool hasNextSet,
+  required int nowUnix,
+}) {
+  if (!hasNextSet ||
+      state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
+      state == WorkoutState.WORKOUT_STATE_LIFTING) {
+    return null;
+  }
+  return restUntil > 0 ? restUntil : nowUnix;
+}
+
+/// A partner's [scheduledStartUnix]; null once their workout has ended.
+int? participantScheduledStartUnix(
+  ParticipantStatus participant, {
+  required int nowUnix,
+}) {
+  if (participant.hasActiveWorkout() &&
+      participant.activeWorkout.endTime != Int64.ZERO) {
+    return null;
+  }
+  final snapshot = participant.hasStateSnapshot()
+      ? participant.stateSnapshot
+      : null;
+  return scheduledStartUnix(
+    state: stateAt(snapshot, nowUnix),
+    restUntil: snapshot?.restUntil.toInt() ?? 0,
+    hasNextSet: participant.hasNextUpSet(),
+    nowUnix: nowUnix,
+  );
+}
+
+String participantDisplayName(ParticipantStatus participant) {
+  final name = participant.user.name.trim();
+  if (name.isNotEmpty) return name;
+  final id = participant.user.id.trim();
+  if (id.isNotEmpty) return id;
+  return 'Unknown';
+}
+
+/// How much of a rest is still to go, 0..1: from the last set's Done to
+/// [restUntil]. Null when there's no rest to measure.
+double? restLeftFraction(
+  Iterable<CompletedSet> completedSets,
+  int restUntil,
+  int nowUnix,
+) {
+  if (completedSets.isEmpty || restUntil <= 0) return null;
+  final start = completedSets.map((c) => c.endedAt.toInt()).reduce(max);
+  final total = restUntil - start;
+  if (total <= 0) return null;
+  return ((restUntil - nowUnix) / total).clamp(0.0, 1.0);
+}
 
 int compareParticipantsByNextWorkout(
   ParticipantStatus a,
@@ -57,25 +170,22 @@ int compareParticipantsByNextWorkout(
   return a.user.id.compareTo(b.user.id);
 }
 
-int compareParticipantsStable(ParticipantStatus a, ParticipantStatus b) {
-  final nameCompare = participantDisplayName(
-    a,
-  ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
-  if (nameCompare != 0) return nameCompare;
-  return a.user.id.compareTo(b.user.id);
-}
-
 /// Returns the userId of whoever is "next to lift" across all session members:
 /// of those waiting (not lifting, not finished), the earliest scheduled start.
-/// Tiebreak: lexicographic userId.
+/// Tiebreak: lexicographic userId. Null when nobody else is in the session.
 String? computeNextToLiftUserId({
   required String? myUserId,
-  required List<ParticipantStatus> others,
+  required List<ParticipantStatus> participants,
   required int nowUnix,
-  required int stateValue,
+  required WorkoutState state,
   required int restUntil,
   required ProposedSet? nextSet,
 }) {
+  final others = participants.where(
+    (p) => p.user.id.isNotEmpty && p.user.id != myUserId,
+  );
+  if (others.isEmpty) return null;
+
   String? bestId;
   int? bestStart;
 
@@ -97,13 +207,12 @@ String? computeNextToLiftUserId({
   }
 
   if (myUserId != null && myUserId.isNotEmpty) {
-    // Lifting is on the rack already, not waiting for it.
-    final myStart =
-        !isAllDoneState(stateValue) &&
-            !isLiftingState(stateValue) &&
-            nextSet != null
-        ? (restUntil > 0 ? restUntil : nowUnix)
-        : null;
+    final myStart = scheduledStartUnix(
+      state: state,
+      restUntil: restUntil,
+      hasNextSet: nextSet != null,
+      nowUnix: nowUnix,
+    );
     if (myStart != null && isCandidate(myUserId, myStart)) {
       bestId = myUserId;
       bestStart = myStart;
@@ -112,5 +221,3 @@ String? computeNextToLiftUserId({
 
   return bestId;
 }
-
-// ─── WorkoutBottomBar ─────────────────────────────────────────────────────────

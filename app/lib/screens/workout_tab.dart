@@ -17,24 +17,12 @@ class WorkoutTab extends StatefulWidget {
 }
 
 class _WorkoutTabState extends State<WorkoutTab> {
-  bool _initialSyncComplete = false;
-  String? _startupError;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
-  }
-
-  /// The account is on this phone, so this is a read, not a round trip.
-  Future<void> _load() async {
+  /// The app shell loads the account once it is open; this only retries.
+  void _retry() {
     final userId = context.read<AuthProvider>().userId;
     if (userId != null) {
-      final workoutProvider = context.read<WorkoutProvider>();
-      await workoutProvider.loadActiveWorkout(userId);
-      _startupError = workoutProvider.lastLoadError;
+      context.read<WorkoutProvider>().loadActiveWorkout(userId);
     }
-    if (mounted) setState(() => _initialSyncComplete = true);
   }
 
   Future<bool> _confirmExit() async {
@@ -65,11 +53,13 @@ class _WorkoutTabState extends State<WorkoutTab> {
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
 
-    if (!_initialSyncComplete && !wp.hasActiveWorkout) {
+    // Until the first load has answered there is nothing to show.
+    final startupError = wp.home == null ? wp.lastLoadError : null;
+    if (wp.home == null && startupError == null && !wp.hasActiveWorkout) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (_startupError != null && !wp.hasActiveWorkout) {
+    if (startupError != null && !wp.hasActiveWorkout) {
       return Scaffold(
         body: Center(
           child: Padding(
@@ -88,9 +78,9 @@ class _WorkoutTabState extends State<WorkoutTab> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  Text(_startupError!, textAlign: TextAlign.center),
+                  Text(startupError, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
-                  FilledButton(onPressed: _load, child: const Text('Retry')),
+                  FilledButton(onPressed: _retry, child: const Text('Retry')),
                 ],
               ),
             ),

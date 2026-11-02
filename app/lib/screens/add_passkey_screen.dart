@@ -86,7 +86,7 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: colorScheme.error.withValues(alpha: 0.1),
-                  borderRadius: context.tokens.br(8),
+                  borderRadius: context.tokens.brSm,
                 ),
                 child: Text(
                   _error!,

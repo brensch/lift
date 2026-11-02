@@ -33,27 +33,4 @@ impl WorkoutService for ServerWorkoutService {
             read_api(&self.db, &user_id, |call| call.get_exercise_progress()).await?,
         ))
     }
-
-    async fn get_workout(
-        &self,
-        request: Request<GetWorkoutRequest>,
-    ) -> Result<Response<GetWorkoutResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "GetWorkout", %user_id, workout_id = %req.workout_id, "request");
-        let response = read_api(&self.db, &user_id, |call| call.get_workout(req)).await?;
-        Ok(Response::new(response.map_err(core_status)?))
-    }
-
-    async fn get_workout_heart_rate(
-        &self,
-        request: Request<GetWorkoutHeartRateRequest>,
-    ) -> Result<Response<GetWorkoutHeartRateResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "GetWorkoutHeartRate", %user_id, workout_id = %req.workout_id, "request");
-        let response =
-            read_api(&self.db, &user_id, |call| call.get_workout_heart_rate(req)).await?;
-        Ok(Response::new(response.map_err(core_status)?))
-    }
 }

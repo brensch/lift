@@ -136,7 +136,7 @@ cd app/android
 ```
 
 Output:
-- `app/android/wear/build/outputs/bundle/release/wear-release.aab`
+- `app/build/wear/outputs/bundle/release/wear-release.aab`
 
 ## 6) Upload and Rollout
 
@@ -192,8 +192,7 @@ Run options:
 ## iOS (App Store)
 
 Workflow file: `.github/workflows/ios-build.yml`, triggered on `v*` tags or
-manual dispatch. It regenerates `Runner.xcodeproj` from `app/ios/project.yml`,
-then:
+manual dispatch. It builds the committed `Runner.xcodeproj`, then:
 
 - **If Apple signing secrets are present:** imports the distribution
   certificate into a temporary CI keychain, installs the iPhone + watch
@@ -315,8 +314,9 @@ It frames committed screenshots and pushes text + images to both stores by
 API, from two committed sources:
 
 - **`store/listing.yaml`** — the single source of listing text: `name`,
-  `tagline` (App Store subtitle, feature graphic byline, and the first half
-  of Play's one-liner), `promotional_text` (App Store promo; Play's one-liner
+  `tagline` (feature graphic byline, website, and the first half of Play's
+  one-liner), `app_store_subtitle` (App Store subtitle, 30 max, no price
+  words), `promotional_text` (App Store promo; Play's one-liner
   is tagline + promo, 80 max), `keywords` (App Store), and the description
   as typed pieces: `about` (paragraphs), `testimonials_heading` +
   `testimonials` (quote, name), `other_features` (heading, items). The
@@ -325,7 +325,7 @@ API, from two committed sources:
   uses each piece as its own section. The same text goes to every language
   the listing has. Screenshot captions live here too.
 - **`store/screenshots/raw/`** — raw captures: `store_NN.png` phone slides
-  (1080×2400, dark mode), `wear_*.png` Wear OS captures (454×454, round),
+  (1080×2337, dark mode), `wear_*.png` Wear OS captures (454×454, round),
   `apple_watch_*.png` Apple Watch images (396×484: the Wear face on black).
   A slide with `device: watch` frames a Wear capture as a watch on a
   phone-sized image.
@@ -342,10 +342,10 @@ from `scripts/render_brand.py`: SVG in the app's own palette and faces, so a
 change to a shape or a colour is a diff, not a design-tool export.
 
 To put the icon on every platform (iOS, watchOS, macOS, Android legacy +
-adaptive, Wear OS, web, Windows, and the Play store icon):
+adaptive, Wear OS, Windows, and the Play store icon):
 
 ```bash
-make icons ICON_SOURCE=marketing/icon.png
+make icons
 ```
 
 The master is full bleed: the Android adaptive foreground fills the 72dp a
@@ -364,8 +364,8 @@ promotional text, `about`, `testimonials`, `other_features`, the slides and
 their captions, the `website:` section for the few site-only lines), the
 latest `release-notes/<version>.md`, `templates/library.yaml` (the
 `/routines` page), the raw
-screenshots, the app icon (favicon) and the feature graphic (link preview),
-and writes them under `web/src/generated/` and `web/public/generated/`
+screenshots, the store icon (apple-touch-icon) and the feature graphic (link
+preview), draws the SVG favicon, and writes them under `web/src/generated/` and `web/public/generated/`
 (gitignored). `npm run dev` and `npm run build` run it automatically. The
 site deploys with the backend on every push to `main`, so a listing edit is
 live on schlift.com as soon as it merges, before either store has reviewed

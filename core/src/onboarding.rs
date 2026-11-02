@@ -7,8 +7,7 @@ use crate::weight_units::AppWeightUnit;
 
 /// The setup slider's range per lift, in pounds: chick (0) is the bar
 /// (a little under for bench), gorilla (1) is truly huge. Linear between,
-/// snapped loadable in the user's unit. Mirrored in
-/// app/lib/logic/starting_weights.dart, which shows the same numbers.
+/// snapped loadable in the user's unit.
 pub const STRENGTH_RANGE_LB: [(Exercise, f32, f32); 5] = [
     (Exercise::Squat, 45.0, 315.0),
     (Exercise::BenchPress, 35.0, 225.0),

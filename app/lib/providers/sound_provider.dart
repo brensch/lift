@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../logic/audio.dart';
 
 class SoundProvider extends ChangeNotifier {
-  static String get defaultPreset => defaultSoundPreset;
   String _currentPreset = defaultSoundPreset;
   final SoundPlayer _player = SoundPlayer();
 
@@ -11,7 +10,7 @@ class SoundProvider extends ChangeNotifier {
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    // An id from before the sound set changed falls back to the default.
+    // An id the app no longer offers falls back to the default.
     _currentPreset = knownSoundPreset(prefs.getString('schlift-rest-sound'));
     notifyListeners();
   }
@@ -24,7 +23,7 @@ class SoundProvider extends ChangeNotifier {
   }
 
   Future<void> reset() async {
-    _currentPreset = defaultPreset;
+    _currentPreset = defaultSoundPreset;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('schlift-rest-sound');
     notifyListeners();

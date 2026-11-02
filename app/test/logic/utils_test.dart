@@ -3,11 +3,6 @@ import 'package:passkeys/exceptions.dart';
 import 'package:schlift/logic/utils.dart';
 
 void main() {
-  testWidgets('App placeholder test', (WidgetTester tester) async {
-    // Placeholder test
-    expect(true, isTrue);
-  });
-
   test('formatPasskeyError includes native passkey code', () {
     final message = formatPasskeyError(
       DomainNotAssociatedException(

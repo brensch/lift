@@ -108,4 +108,4 @@ android-wear-pairing-notes:
 		'    adb connect <watch_ip>:<debug_port>' \
 		'    WEAR_SERIAL=<watch_ip>:<debug_port> make run-wear'
 
-WEAR_LOG_FILTER ?= SchliftWear:D SchliftWearBridge:D Wearable:D WearTransport:D *:S
+WEAR_LOG_FILTER ?= SchliftWear:D SchliftWearBridge:D *:S

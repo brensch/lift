@@ -4,8 +4,8 @@ use schlift::workout::v1::{
 };
 use std::collections::HashSet;
 
-/// The widest window GetStats will aggregate. Analytics rows are kept until
-/// the account is deleted; this only bounds what one stats query reads.
+/// The widest window GetStats will aggregate. Page views are kept until the
+/// account is deleted; auth attempts older than this are dropped.
 pub const MAX_STATS_WINDOW_DAYS: i64 = 365;
 
 /// A 'started' attempt younger than this may still be mid-ceremony, so it is
@@ -51,6 +51,8 @@ impl ServerDb {
 
     // ── Auth attempts ──
 
+    /// Record a ceremony starting, and drop attempts older than any stats
+    /// window reads.
     pub async fn start_auth_attempt(
         &self,
         attempt_id: &str,
@@ -58,17 +60,24 @@ impl ServerDb {
         platform: &str,
         app_version: &str,
     ) -> DbResult<()> {
+        let now = now_unix();
+        let mut tx = self.write_pool.begin().await?;
+        sqlx::query("DELETE FROM auth_attempts WHERE started_at < ?")
+            .bind(now - MAX_STATS_WINDOW_DAYS * 86_400)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query(
             "INSERT OR IGNORE INTO auth_attempts (attempt_id, kind, started_at, platform, app_version)
              VALUES (?, ?, ?, ?, ?)",
         )
         .bind(attempt_id)
         .bind(kind)
-        .bind(now_unix())
+        .bind(now)
         .bind(platform)
         .bind(app_version)
-        .execute(&self.write_pool)
+        .execute(&mut *tx)
         .await?;
+        tx.commit().await?;
         Ok(())
     }
 

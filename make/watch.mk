@@ -1,25 +1,17 @@
-# Apple Watch: project generation, builds, simulator.
+# Apple Watch: builds, simulator.
 # Split from the top-level Makefile; variables live there.
 
-.PHONY: watch-setup watch-generate watch-build watch-build-release watch-sim watch-sim-list
+.PHONY: watch-setup watch-build watch-build-release watch-sim watch-sim-list
 
-# One-time setup: install xcodegen + swift-protobuf, generate xcodeproj
+# One-time setup: install swift-protobuf, generate the Swift protos
 watch-setup:
 	@echo "=== Apple Watch: checking dependencies ==="
-	@command -v xcodegen >/dev/null 2>&1 || { echo "Installing xcodegen..."; brew install xcodegen; }
 	@command -v protoc-gen-swift >/dev/null 2>&1 || { echo "Installing swift-protobuf..."; brew install swift-protobuf; }
 	@echo "=== Generating Swift protobuf files ==="
 	$(MAKE) proto-swift
-	@echo "=== Generating Xcode project from project.yml ==="
-	$(MAKE) watch-generate
 	@echo ""
 	@echo "Done! Build with: make watch-build"
 	@echo "Run on simulator: make watch-sim"
-
-# Regenerate Runner.xcodeproj from project.yml (run after changing project.yml)
-watch-generate:
-	cd app/ios && xcodegen generate
-	@echo "Generated Runner.xcodeproj from project.yml"
 
 # Build SchliftWatch for watchOS simulator
 WATCH_SIM_DEST ?= platform=watchOS Simulator,name=Apple Watch Series 10 (46mm)

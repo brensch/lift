@@ -4,6 +4,7 @@ import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/group.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/theme/schlift_spec.dart';
+import 'package:schlift/logic/session_state.dart';
 import 'package:schlift/widgets/participant_ticker.dart';
 
 void main() {
@@ -42,7 +43,6 @@ void main() {
       now: now,
     );
     expect(status.stateLabel, copy.workout.choosing);
-    expect(status.isComplete, isFalse);
   });
 
   test('a partner whose workout has ended is all done', () {
@@ -52,7 +52,6 @@ void main() {
       now: now,
     );
     expect(status.stateLabel, copy.workout.allDone);
-    expect(status.isComplete, isTrue);
   });
 
   test("a partner's rest that ran out since their last change is yapping", () {

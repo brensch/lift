@@ -93,7 +93,7 @@ class SessionStrip extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: ClipRRect(
-                borderRadius: context.tokens.br(999),
+                borderRadius: context.tokens.brMd,
                 child: LinearProgressIndicator(
                   value: progress.clamp(0.0, 1.0),
                   minHeight: 6,
@@ -225,7 +225,7 @@ class PageTabs extends StatelessWidget {
                         margin: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
                           color: i == index ? cs.primary : Colors.transparent,
-                          borderRadius: context.tokens.br(3),
+                          borderRadius: context.tokens.brXs,
                         ),
                       ),
                     ],
@@ -238,8 +238,6 @@ class PageTabs extends StatelessWidget {
     );
   }
 }
-
-// ─── Page indicator (legacy dots, kept for reference) ───────────────────────
 
 // ─── Add exercise (a full-width row, like the sections above it) ────────────
 

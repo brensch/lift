@@ -7,18 +7,12 @@ class UserServiceWrapper {
 
   UserServiceWrapper(this._client);
 
-  Future<User> createUser(String name) async {
-    final response = await _client.userService.createUser(
-      CreateUserRequest()..name = name,
-    );
-    return response.user;
-  }
-
-  Future<User?> getUser(String userId) async {
+  /// The signed-in user.
+  Future<User?> getUser() async {
     final response = await retryReadAfterReconnect(
       operation: 'GetUser',
       resetChannel: _client.resetChannel,
-      rpc: () => _client.userService.getUser(GetUserRequest()..userId = userId),
+      rpc: () => _client.userService.getUser(GetUserRequest()),
     );
     return response.hasUser() ? response.user : null;
   }

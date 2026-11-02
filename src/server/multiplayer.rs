@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 
 // ── Multiplayer Service ──
 //
@@ -7,11 +8,10 @@ use super::*;
 // (workouts.session_id, session_participants_current) is derived/historical cache.
 //
 // Transitions:
-//   - JoinViaInvite: upsert both users' rows, backfill their active workouts' session_id,
-//     refresh both participant blobs.
+//   - JoinViaInvite: upsert both users' rows, refresh both participant blobs.
 //   - A workout's first synced events: its projected row is stamped with the
 //     caller's current session (db/accounts.rs).
-//   - Any synced event: refresh the caller's blob (sync.rs).
+//   - Any synced event other than heart rate: refresh the caller's blob (sync.rs).
 //   - A synced EndWorkout: refresh the caller's final blob, then delete the
 //     caller's row and stamp left_at (sync.rs): ending is leaving.
 //   - Idle: a member whose blob hasn't been refreshed for SESSION_IDLE_SECONDS
@@ -21,8 +21,8 @@ use super::*;
 //     seeing them, and stamp left_at on the durable session_members roster.
 //
 // Durable history: session_members(session_id, user_id, first_joined_at, left_at) is
-// never deleted — it records who trained together and backs GetTrainingPartners /
-// GetSharedSessions / JoinPartnerSession.
+// never deleted — it records who trained together and backs GetTrainingPartners
+// and the prior-pairing check in RequestJoinPartner.
 
 /// Serialises the JoinViaInvite read-decide-write so two people joining the same
 /// inviter at once can't each read "no session yet", mint separate sessions, and
@@ -37,9 +37,8 @@ pub struct ServerMultiplayerService {
 }
 
 impl ServerMultiplayerService {
-    /// Place `user_id` into `session_id` (upsert), backfill their active workout's
-    /// historical session stamp if any, and refresh their participant blob so peers see
-    /// them at once (the change goes out on their Sync streams).
+    /// Place `user_id` into `session_id` (upsert) and refresh their participant blob so
+    /// peers see them at once (the change goes out on their Sync streams).
     async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> ServerResult<()> {
         self.db
             .set_user_current_session(user_id, session_id)
@@ -56,12 +55,6 @@ impl ServerMultiplayerService {
             .await
             .map_err(internal_error)?;
         let active_workout_id = Some(active_workout_id).filter(|id| !id.is_empty());
-        if let Some(workout_id) = active_workout_id.as_deref() {
-            self.db
-                .update_workout_session_id(user_id, workout_id, session_id)
-                .await
-                .map_err(internal_error)?;
-        }
         refresh_participant_for_user(&self.db, user_id, session_id, active_workout_id.as_deref())
             .await
     }
@@ -159,31 +152,6 @@ impl MultiplayerService for ServerMultiplayerService {
         Ok(Response::new(GetMyInviteTokenResponse { invite_token }))
     }
 
-    async fn rotate_invite_token(
-        &self,
-        request: Request<RotateInviteTokenRequest>,
-    ) -> Result<Response<RotateInviteTokenResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        let invite_token = self
-            .db
-            .rotate_invite_token(&caller_id)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(RotateInviteTokenResponse { invite_token }))
-    }
-
-    async fn get_participant_workout(
-        &self,
-        request: Request<GetParticipantWorkoutRequest>,
-    ) -> Result<Response<ParticipantStatus>, Status> {
-        let _caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "GetParticipantWorkout", user_id = %req.user_id, "request");
-        Ok(Response::new(
-            participant_status(&self.db, &req.user_id, None).await?,
-        ))
-    }
-
     async fn get_current_session(
         &self,
         request: Request<GetCurrentSessionRequest>,
@@ -193,35 +161,44 @@ impl MultiplayerService for ServerMultiplayerService {
         Ok(Response::new(current_session(&self.db, &caller_id).await?))
     }
 
-    async fn get_session_participants(
+    async fn get_session_rosters(
         &self,
-        request: Request<GetSessionParticipantsRequest>,
-    ) -> Result<Response<GetSessionParticipantsResponse>, Status> {
-        let _caller_id = authed_user_id(&request, &self.db).await?;
+        request: Request<GetSessionRostersRequest>,
+    ) -> Result<Response<GetSessionRostersResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
-        info!(rpc = "GetSessionParticipants", session_id = %req.session_id, "request");
-        if req.session_id.is_empty() {
-            return Err(Status::invalid_argument("session_id is required"));
-        }
-        // Historical roster: read from the durable session_members table, not the
-        // live participant cache (which is pruned when members leave). This is what
-        // backs "who did I train with" on a past workout's summary, so it must
-        // survive everyone leaving. Identity only — live progress isn't retained.
-        let member_ids = self
+        info!(rpc = "GetSessionRosters", %caller_id, sessions = req.session_ids.len(), "request");
+        // Historical rosters: read from the durable session_members table, not
+        // the live participant cache (which is pruned when members leave), so
+        // they survive everyone leaving. Identity only, and only for sessions
+        // the caller was in.
+        let mut sessions = self
             .db
-            .list_session_member_ids(&req.session_id)
+            .list_session_partner_ids(&caller_id)
             .await
             .map_err(internal_error)?;
-        let mut participants = Vec::with_capacity(member_ids.len());
-        for user_id in member_ids {
-            if let Some(user) = self.db.get_user(&user_id).await.map_err(internal_error)? {
-                participants.push(build_participant_status(user, None));
+        let mut users: HashMap<String, Option<User>> = HashMap::new();
+        let mut rosters = Vec::new();
+        for session_id in req.session_ids {
+            let Some(partner_ids) = sessions.remove(&session_id) else {
+                continue;
+            };
+            let mut partners = Vec::with_capacity(partner_ids.len());
+            for user_id in partner_ids {
+                if !users.contains_key(&user_id) {
+                    let user = self.db.get_user(&user_id).await.map_err(internal_error)?;
+                    users.insert(user_id.clone(), user.map(as_seen_by_others));
+                }
+                if let Some(Some(user)) = users.get(&user_id) {
+                    partners.push(user.clone());
+                }
             }
+            rosters.push(SessionRoster {
+                session_id,
+                partners,
+            });
         }
-        Ok(Response::new(GetSessionParticipantsResponse {
-            session_id: req.session_id,
-            participants,
-        }))
+        Ok(Response::new(GetSessionRostersResponse { rosters }))
     }
 
     async fn leave_current_session(
@@ -276,42 +253,13 @@ impl MultiplayerService for ServerMultiplayerService {
                 .map_err(internal_error)?
             {
                 partners.push(TrainingPartner {
-                    user: Some(user),
+                    user: Some(as_seen_by_others(user)),
                     sessions_together: sessions_together as i32,
                     last_trained_at,
                 });
             }
         }
         Ok(Response::new(GetTrainingPartnersResponse { partners }))
-    }
-
-    async fn get_shared_sessions(
-        &self,
-        request: Request<GetSharedSessionsRequest>,
-    ) -> Result<Response<GetSharedSessionsResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        if req.partner_user_id.is_empty() {
-            return Err(Status::invalid_argument("partner_user_id is required"));
-        }
-        info!(rpc = "GetSharedSessions", %caller_id, partner = %req.partner_user_id, "request");
-        let rows = self
-            .db
-            .list_shared_sessions(&caller_id, &req.partner_user_id)
-            .await
-            .map_err(internal_error)?;
-        let sessions = rows
-            .into_iter()
-            .map(
-                |(session_id, trained_at, caller_wo, partner_wo)| SharedSession {
-                    session_id,
-                    trained_at,
-                    caller_worked_out: caller_wo,
-                    partner_worked_out: partner_wo,
-                },
-            )
-            .collect();
-        Ok(Response::new(GetSharedSessionsResponse { sessions }))
     }
 
     async fn request_join_partner(
@@ -367,7 +315,7 @@ impl MultiplayerService for ServerMultiplayerService {
         }
         let (from_id, to_id) = self
             .db
-            .get_join_request(&req.request_id)
+            .get_join_request(&req.request_id, now_unix() - JOIN_REQUEST_TTL_SECONDS)
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("request not found or already handled"))?;
@@ -415,14 +363,7 @@ pub(super) async fn current_session(
     participants.retain(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some(user_id));
     Ok(GetCurrentSessionResponse {
         session_id: session_id.clone(),
-        session_status: Some(SessionStatus {
-            session_id,
-            participants,
-            next_up_user_id: String::new(),
-            next_up_set: None,
-            next_up_rest_until: 0,
-            currently_lifting_user_id: String::new(),
-        }),
+        session_status: Some(SessionStatus { participants }),
     })
 }
 
@@ -442,7 +383,7 @@ pub(super) async fn join_requests(
         if let Some(user) = db.get_user(&from_id).await.map_err(internal_error)? {
             requests.push(JoinRequest {
                 request_id,
-                from_user: Some(user),
+                from_user: Some(as_seen_by_others(user)),
                 created_at,
             });
         }

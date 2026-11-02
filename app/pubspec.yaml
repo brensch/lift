@@ -12,10 +12,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
   grpc: ^5.1.0
   protobuf: ^6.0.0
-  http: ^1.2.0
   provider: ^6.1.0
   go_router: ^17.3.0
   shared_preferences: ^2.3.0
@@ -55,7 +53,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    # Bundled Manrope + Space Grotesk (the fonts google_fonts otherwise fetches).
+    # Bundled Space Grotesk + Space Mono (the fonts google_fonts otherwise fetches).
     # Lets google_fonts load them offline — no first-run network flash in the
     # app, and deterministic rendering in the e2e screenshot harness.
     - assets/google_fonts/

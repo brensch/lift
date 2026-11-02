@@ -15,9 +15,12 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::Channel;
 
+/// A fresh database holding the account `u1`.
 async fn db() -> ServerDb {
     let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
-    ServerDb::new_in_dir(&dir).await.unwrap()
+    let db = ServerDb::new_in_dir(&dir).await.unwrap();
+    db.create_user_with_id("u1", "u1").await.unwrap();
+    db
 }
 
 /// A phone: an account and the events it has recorded.
@@ -64,7 +67,7 @@ mod store {
         let (started, events) = phone.start_squats(1_000);
         let pushed = db.push_events("u1", events).await.unwrap();
         assert_eq!(pushed.head, 1);
-        assert!(pushed.changed);
+        assert!(pushed.progressed);
 
         let server = db.read_account("u1", Clone::clone).await.unwrap();
         assert_eq!(server, phone.account, "the server folds what the phone did");
@@ -88,13 +91,45 @@ mod store {
         });
         // Out of order: the second alone is after a gap, so it waits.
         let pushed = db.push_events("u1", second.clone()).await.unwrap();
-        assert_eq!((pushed.head, pushed.changed), (0, false));
+        assert_eq!((pushed.head, pushed.progressed), (0, false));
         // The whole outbox again, twice: applied once.
         let all: Vec<Event> = first.into_iter().chain(second).collect();
         assert_eq!(db.push_events("u1", all.clone()).await.unwrap().head, 2);
         let again = db.push_events("u1", all).await.unwrap();
-        assert_eq!((again.head, again.changed), (2, false));
+        assert_eq!((again.head, again.progressed), (2, false));
         assert_eq!(db.events_after("u1", 0).await.unwrap(), phone.log);
+    }
+
+    #[tokio::test]
+    async fn heart_rate_alone_is_not_progress() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (started, events) = phone.start_squats(1_000);
+        db.push_events("u1", events).await.unwrap();
+        let (_, beats) = phone.write(1_005, |call| {
+            call.append_workout_heart_rate(AppendWorkoutHeartRateRequest {
+                workout_id: started.id.clone(),
+                samples: vec![WorkoutHeartRatePoint {
+                    sampled_at: 1_005_000,
+                    bpm: 120.0,
+                }],
+            })
+            .unwrap()
+        });
+        let pushed = db.push_events("u1", beats).await.unwrap();
+        assert_eq!((pushed.head, pushed.progressed), (2, false));
+    }
+
+    #[tokio::test]
+    async fn a_push_after_the_account_is_deleted_stores_nothing() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (_, first) = phone.start_squats(1_000);
+        db.push_events("u1", first).await.unwrap();
+        db.delete_user_account_and_data("u1").await.unwrap();
+        let (_, events) = Phone::new().start_squats(1_000);
+        assert!(db.push_events("u1", events).await.is_err());
+        assert!(db.events_after("u1", 0).await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -147,12 +182,18 @@ mod store {
         db.push_events("u1", events).await.unwrap();
         let set = started.proposed_sets[0].clone();
         let (_, events) = phone.write(1_100, |call| {
-            call.complete_set(CompleteSetRequest {
-                workout_id: started.id.clone(),
-                proposed_set_id: set.id.clone(),
-                actual_reps: 8,
-                actual_weight: 0.0,
-                completed_at: 1_100,
+            call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::CompleteSet(
+                        CompleteSetRequest {
+                            workout_id: started.id.clone(),
+                            proposed_set_id: set.id.clone(),
+                            actual_reps: 8,
+                            actual_weight: 0.0,
+                            completed_at: 1_100,
+                        },
+                    )),
+                }],
             })
             .unwrap()
         });
@@ -169,6 +210,83 @@ mod store {
         .unwrap();
         assert_eq!(sets, started.proposed_sets.len() as i64);
         assert_eq!(done, 1);
+    }
+
+    #[tokio::test]
+    async fn heart_rate_is_projected_as_it_arrives() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (started, events) = phone.start_squats(1_000);
+        db.push_events("u1", events).await.unwrap();
+        for (at, bpms) in [(1_100, [100.0, 110.0]), (1_200, [120.0, 130.0])] {
+            let (_, events) = phone.write(at, |call| {
+                call.append_workout_heart_rate(AppendWorkoutHeartRateRequest {
+                    workout_id: started.id.clone(),
+                    samples: bpms
+                        .iter()
+                        .zip(0..)
+                        .map(|(&bpm, n)| WorkoutHeartRatePoint {
+                            sampled_at: at * 1_000 + n,
+                            bpm,
+                        })
+                        .collect(),
+                })
+                .unwrap()
+            });
+            db.push_events("u1", events).await.unwrap();
+        }
+
+        let bpms: Vec<f64> = sqlx::query_scalar(
+            "SELECT bpm FROM workout_heart_rate_samples WHERE workout_id = ? ORDER BY sampled_at",
+        )
+        .bind(&started.id)
+        .fetch_all(&db.read_pool)
+        .await
+        .unwrap();
+        assert_eq!(bpms, [100.0, 110.0, 120.0, 130.0], "each sample once");
+    }
+
+    #[tokio::test]
+    async fn workout_tables_keyed_by_id_alone_are_rekeyed_keeping_their_rows() {
+        let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let url = format!("sqlite://{}/server.sqlite?mode=rwc", dir.display());
+        let old = sqlx::SqlitePool::connect(&url).await.unwrap();
+        sqlx::query(
+            "CREATE TABLE workouts (
+                id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL DEFAULT '',
+                start_time INTEGER NOT NULL, end_time INTEGER NOT NULL DEFAULT 0,
+                session_id TEXT NOT NULL DEFAULT '', template_id TEXT NOT NULL DEFAULT '',
+                lifting_set_id TEXT NOT NULL DEFAULT '',
+                lifting_started_at INTEGER NOT NULL DEFAULT 0)",
+        )
+        .execute(&old)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO workouts (id, user_id, start_time, session_id) VALUES ('w', 'u1', 1, 's')",
+        )
+        .execute(&old)
+        .await
+        .unwrap();
+        old.close().await;
+
+        for _ in 0..2 {
+            let db = ServerDb::new_in_dir(&dir).await.unwrap();
+            let keys: Vec<String> = sqlx::query_scalar(
+                "SELECT name FROM pragma_table_info('workouts') WHERE pk > 0 ORDER BY pk",
+            )
+            .fetch_all(&db.read_pool)
+            .await
+            .unwrap();
+            assert_eq!(keys, ["user_id", "id"]);
+            let session: String =
+                sqlx::query_scalar("SELECT session_id FROM workouts WHERE id = 'w'")
+                    .fetch_one(&db.read_pool)
+                    .await
+                    .unwrap();
+            assert_eq!(session, "s", "the row is kept, every column of it");
+        }
     }
 
     #[tokio::test]
@@ -197,6 +315,7 @@ mod store {
         old.close().await;
 
         let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        db.create_user_with_id("u1", "u1").await.unwrap();
         let (started, events) = Phone::new().start_squats(1_000);
         db.push_events("u1", events).await.unwrap();
         let rests: Vec<i64> =
@@ -378,12 +497,18 @@ mod stream {
 
         let set = started.proposed_sets[0].clone();
         let (_, events) = phone.write(now_unix(), |call| {
-            call.complete_set(CompleteSetRequest {
-                workout_id: started.id.clone(),
-                proposed_set_id: set.id.clone(),
-                actual_reps: 8,
-                actual_weight: 0.0,
-                completed_at: now_unix(),
+            call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::CompleteSet(
+                        CompleteSetRequest {
+                            workout_id: started.id.clone(),
+                            proposed_set_id: set.id.clone(),
+                            actual_reps: 8,
+                            actual_weight: 0.0,
+                            completed_at: now_unix(),
+                        },
+                    )),
+                }],
             })
             .unwrap()
         });
@@ -436,6 +561,78 @@ mod stream {
             .await
             .unwrap();
         assert_eq!(link.acked(0).await, 0, "the heartbeat's answer");
+    }
+
+    /// Deleting the account ends its open streams: a push after it is
+    /// refused, so the deleted log is not stored again.
+    #[tokio::test]
+    async fn a_deleted_account_cannot_push_again() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (dave, token) = db
+            .get_or_create_user_with_auth_session("dave")
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &token).await;
+        let mut phone = Phone::new();
+        let (_, events) = phone.start_squats(now_unix());
+        link.push(events).await;
+        assert_eq!(link.acked(1).await, 1);
+
+        db.delete_user_account_and_data(&dave.id).await.unwrap();
+        link.push(phone.log.clone()).await;
+        let status = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match link.down.message().await {
+                    Ok(Some(_)) => continue,
+                    Ok(None) => panic!("closed without a status"),
+                    Err(status) => return status,
+                }
+            }
+        })
+        .await
+        .expect("the stream ends");
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+        assert!(db.events_after(&dave.id, 0).await.unwrap().is_empty());
+    }
+
+    /// Signing out ends the stream even when the phone sends nothing more:
+    /// the next view it would be sent is refused instead.
+    #[tokio::test]
+    async fn a_signed_out_stream_is_sent_nothing_more() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (erin, token) = db
+            .get_or_create_user_with_auth_session("erin")
+            .await
+            .unwrap();
+        let (frank, _) = db
+            .get_or_create_user_with_auth_session("frank")
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &token).await;
+        link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+
+        db.delete_auth_session(&token).await.unwrap();
+        db.create_join_request("r1", &frank.id, &erin.id)
+            .await
+            .unwrap();
+        let status = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match link.down.message().await {
+                    Ok(Some(message)) => assert!(
+                        !matches!(message.kind, Some(sync_response::Kind::JoinRequests(_))),
+                        "a join request reached a signed-out stream"
+                    ),
+                    Ok(None) => panic!("closed without a status"),
+                    Err(status) => return status,
+                }
+            }
+        })
+        .await
+        .expect("the stream ends");
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
     }
 
     /// The stream needs a signed-in caller.

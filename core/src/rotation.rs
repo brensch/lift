@@ -77,7 +77,7 @@ pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]
             .map(|m| *m as i32)
             .collect()
     };
-    let backups = templates
+    let reserves = templates
         .iter()
         .filter(|t| !t.in_rotation)
         .map(|t| RotationAddition {
@@ -90,7 +90,7 @@ pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]
         muscles: added(&e.exercises),
         ..Default::default()
     });
-    let additions: Vec<RotationAddition> = backups
+    let additions: Vec<RotationAddition> = reserves
         .chain(entries)
         .filter(|a| !a.muscles.is_empty())
         .collect();
@@ -241,14 +241,14 @@ mod tests {
         );
     }
 
-    /// A backup or a library entry adds the muscles its lifts train first
+    /// A reserve or a library entry adds the muscles its lifts train first
     /// that the pass trains none of, in Home's order; one adding
     /// nothing is not listed, and a lift training a missing muscle only
     /// second adds nothing.
     #[test]
     fn additions_name_the_muscles_the_pass_misses() {
-        let mut backup = template("calves", &[Exercise::CalfRaise, Exercise::Squat]);
-        backup.in_rotation = false;
+        let mut reserve = template("calves", &[Exercise::CalfRaise, Exercise::Squat]);
+        reserve.in_rotation = false;
         let mut covered = template("more", &[Exercise::BenchPress]);
         covered.in_rotation = false;
         let library = [
@@ -266,7 +266,7 @@ mod tests {
         let rotation = [
             template("a", &[Exercise::BenchPress, Exercise::Squat]),
             template("b", &[Exercise::BarbellRow, Exercise::RomanianDeadlift]),
-            backup,
+            reserve,
             covered,
         ];
         let got: Vec<(String, String, Vec<i32>)> = rotation_check(&rotation, &library)
@@ -290,7 +290,7 @@ mod tests {
             ]
         );
 
-        // With nothing in rotation every muscle is missing: a backup adds
+        // With nothing in rotation every muscle is missing: a reserve adds
         // all its lifts train first.
         let mut alone = template("legs", &[Exercise::Squat, Exercise::CalfRaise]);
         alone.in_rotation = false;

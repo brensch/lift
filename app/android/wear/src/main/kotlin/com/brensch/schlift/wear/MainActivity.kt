@@ -14,21 +14,20 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -386,7 +385,6 @@ class MainActivity : ComponentActivity() {
                         .newBuilder()
                         .setWorkoutId(workoutId)
                         .setSetId(setId)
-                        .setTappedAt(System.currentTimeMillis() / 1000)
                         .build(),
                 ).build(),
         )
@@ -443,7 +441,7 @@ class MainActivity : ComponentActivity() {
         send(intent)
     }
 
-    /** Stamp [unsent] with an id and the time, and send it to the phone. */
+    /** Stamp [unsent] with an id, and send it to the phone. */
     private fun send(unsent: Wearable.WearIntent) {
         val intent =
             unsent
@@ -452,8 +450,7 @@ class MainActivity : ComponentActivity() {
                     java.util.UUID
                         .randomUUID()
                         .toString(),
-                ).setSentAt(System.currentTimeMillis() / 1000)
-                .build()
+                ).build()
 
         scope.launch {
             runCatching {
@@ -512,7 +509,6 @@ private fun WearApp(
     ambientUpdates: Int,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
-    val latestBpm by WearDataRepository.latestBpm.collectAsState()
     // Every second; dimmed, once a minute, on the minute rest turns over.
     val nowTick by produceState(
         initialValue = System.currentTimeMillis() / 1000,
@@ -525,6 +521,14 @@ private fun WearApp(
             delay(if (isAmbientMode) ambientDelayMs(snapshot) else 1000L)
         }
     }
+    // Live when lit; dimmed, read on the tick, so a reading does not redraw
+    // the always-on face between its ticks.
+    val latestBpm =
+        if (isAmbientMode) {
+            remember(nowTick) { WearDataRepository.latestBpm.value }
+        } else {
+            WearDataRepository.latestBpm.collectAsState().value
+        }
     LaunchedEffect(snapshot) {
         Log.d(
             SCHLIFT_WEAR_TAG,
@@ -673,21 +677,31 @@ private fun WorkoutScreens(
             ?: action(Wearable.WearActionType.WEAR_ACTION_TYPE_START_SET)
 
     // The rest drains the band from the end of the last set to restUntil,
-    // animated rather than redrawn on the tick so it moves smoothly.
+    // updated each time the fill moves by a pixel of the screen, so it moves
+    // smoothly without a redraw every frame. Each step waits for a frame, so
+    // the loop parks while the face is off screen.
     val restStartMs = data.lastSetEndedAt * 1000L
     val restUntilMs = data.restUntil.toLong() * 1000L
     val draining = resting && !yapping && restStartMs in 1 until restUntilMs
-    val bandFill = remember(data.workoutId) { Animatable(1f) }
-    // Dimmed, the band is never drawn draining: no animation to pay for.
+    val screenPx = LocalContext.current.resources.displayMetrics.widthPixels
+    val bandFill = remember(data.workoutId) { mutableFloatStateOf(1f) }
+    val drainingFill = remember(bandFill) { { bandFill.floatValue } }
+    // Dimmed, the band is never drawn draining: nothing to update.
     LaunchedEffect(draining, restStartMs, restUntilMs, isAmbientMode) {
         if (isAmbientMode) return@LaunchedEffect
-        val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
-        if (!draining || leftMs <= 0L) {
-            bandFill.snapTo(if (draining) 0f else 1f)
+        if (!draining) {
+            bandFill.floatValue = 1f
             return@LaunchedEffect
         }
-        bandFill.snapTo(leftMs.toFloat() / (restUntilMs - restStartMs))
-        bandFill.animateTo(0f, tween(durationMillis = leftMs.toInt(), easing = LinearEasing))
+        val spanMs = restUntilMs - restStartMs
+        val stepMs = (spanMs / screenPx.coerceAtLeast(1)).coerceAtLeast(16L)
+        while (true) {
+            val leftMs = restUntilMs - WearDataRepository.synchronizedNowUnixMillis()
+            bandFill.floatValue = (leftMs.toFloat() / spanMs).coerceIn(0f, 1f)
+            if (leftMs <= 0L) break
+            delay(stepMs)
+            withFrameMillis { }
+        }
     }
 
     val stageColor =
@@ -731,7 +745,7 @@ private fun WorkoutScreens(
                     lifting -> WearPalette.Text
                     else -> WearPalette.OnDark
                 },
-            bandFill = if (draining && !dim) bandFill.value else 1f,
+            bandFill = if (draining && !dim) drainingFill else FULL_BAND,
             exercise = card.exerciseName,
             position = card.setLine,
             weight = card.weightText.ifEmpty { card.setText },
@@ -762,6 +776,8 @@ private fun WorkoutScreens(
         onWeight = { showPlates = true },
     )
 }
+
+private val FULL_BAND: () -> Float = { 1f }
 
 /** Keys that would press a focused clickable. */
 private val ACTIVATING_KEYS =

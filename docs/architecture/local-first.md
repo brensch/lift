@@ -75,10 +75,11 @@ name, so the app keeps its generated types and only the transport changed.
   `app/lib/gen/native`, regenerate with `flutter_rust_bridge_codegen
   generate` in `app/`). Its `Store` keeps the account in memory and the file
   on disk: `events` (the log), `meta` (whose account, what the server has
-  acknowledged) and the readable tables of `core/src/projection.rs`, rewritten
-  as events land. A write is in the file before the app is answered.
-- The file is the user's: Settings → Export gives them it whole (every
-  workout, set and lift's decision as plain tables, next to the log).
+  acknowledged) and `library` (the template library the server last sent).
+  A write is in the file before the app is answered.
+- The account is the user's: Settings → Export writes the log with the
+  readable tables of `core/src/projection.rs` beside it (every workout, set
+  and lift's decision as plain tables). Only an export has those tables.
 - The account files (`accounts/<user>.sqlite` in the app's support
   directory) are kept out of Android Auto Backup and device transfer
   (`app/android/app/src/main/res/xml/`): a new install always pulls the
@@ -107,7 +108,7 @@ acknowledges its seq, and is sent again after any reconnect; the server skips
 seqs it already holds. Every down message is whole, so a dropped one is healed
 by the next. The phone heartbeats every 5 s and redials (fresh channel,
 backoff to 10 s) when nothing has come back for 15 s — a half-open link on bad
-wifi is found in seconds. Both ends run HTTP/2 keepalive pings too.
+wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
 
 A fresh install pulls the account's log first (`PullEvents`) and only then
 opens for use, so it carries on the server's history rather than starting

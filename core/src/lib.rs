@@ -1,5 +1,5 @@
 //! Schlift's domain, with no IO: one implementation of every rule, linked by
-//! the server and the app alike. See `docs/plans/local-first.md`.
+//! the server and the app alike. See `docs/architecture/local-first.md`.
 
 /// The proto messages (`workout.v1`).
 pub mod pb {
@@ -20,7 +20,6 @@ pub mod recovery;
 pub mod rotation;
 pub mod sync;
 pub mod template_library;
-pub mod time;
 pub mod volume;
 pub mod weight_units;
 pub mod workout;

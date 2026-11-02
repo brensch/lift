@@ -28,7 +28,6 @@ LIMITS = {
 }
 DESCRIPTION_LIMIT = 4000
 PLAY_SHORT_LIMIT = 80
-RETIRED = ("subtitle", "short_description", "feature_graphic_byline", "description")
 # Apple rejects a price in the name or subtitle, "free" included (2.3.7).
 APP_STORE_PRICE_FREE = ("name", "app_store_subtitle")
 PRICE_WORDS = ("free", "price", "discount", "sale", "$", "cheap")
@@ -95,11 +94,6 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
                 f"{field}: mentions a price ({', '.join(found)}); App Store rejects that"
             )
 
-    for field in RETIRED:
-        if field in listing:
-            problems.append(
-                f"{field}: retired; see the comments in store/listing.yaml for what replaced it"
-            )
     for i, t in enumerate(listing.get("testimonials") or []):
         if (
             not isinstance(t, dict)

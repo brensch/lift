@@ -8,9 +8,9 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/plan_text.dart';
+import '../logic/session_state.dart';
 import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
-import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
@@ -45,8 +45,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   List<CompletedSet> _completedSets = [];
   List<ExerciseLog> _logs = [];
 
-  /// Each lift's estimated max after this session, from the walk.
-  Map<Exercise, double> _maxAfter = {};
   bool _isLoading = true;
   String? _loadError;
   List<User> _sessionFriends = [];
@@ -61,14 +59,12 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
 
   Future<void> _loadWorkout() async {
     final grpc = context.read<GrpcClient>();
-    final auth = context.read<AuthProvider>();
     final workoutProvider = context.read<WorkoutProvider>();
     final service = context.read<WorkoutServiceWrapper>();
     final multiplayer = MultiplayerServiceWrapper(grpc);
-    final sessionSelfId = auth.userId ?? '';
     try {
       _loadError = null;
-      final response = await _getWorkoutWithRetry(service);
+      final response = await service.getWorkout(widget.workoutId);
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
@@ -87,9 +83,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         });
       }
 
-      await _loadMaxAfter(service, response.workout.id);
       if (sessionId.isNotEmpty) {
-        await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
+        await _loadSessionFriends(sessionId, multiplayer);
       }
     } catch (e, st) {
       debugPrint(
@@ -104,73 +99,14 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     }
   }
 
-  Future<GetWorkoutResponse> _getWorkoutWithRetry(
-    WorkoutServiceWrapper service,
-  ) async {
-    Object? lastError;
-    StackTrace? lastStack;
-    // Freshly ended workouts can briefly race backend persistence.
-    final attempts = widget.isHistory ? 1 : 8;
-    for (var attempt = 1; attempt <= attempts; attempt++) {
-      try {
-        final response = await service.getWorkout(widget.workoutId);
-        if (widget.isHistory || response.workout.endTime != Int64.ZERO) {
-          return response;
-        }
-        lastError = StateError('Workout summary is not finalized yet.');
-      } catch (e, st) {
-        lastError = e;
-        lastStack = st;
-      }
-      if (attempt == attempts) break;
-      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
-    }
-    if (lastStack != null) {
-      Error.throwWithStackTrace(lastError!, lastStack);
-    }
-    throw lastError ?? StateError('Failed to load finalized workout summary.');
-  }
-
-  Future<void> _loadMaxAfter(
-    WorkoutServiceWrapper service,
-    String workoutId,
-  ) async {
-    final GetExerciseProgressResponse progress;
-    try {
-      progress = await service.getExerciseProgress();
-    } catch (e) {
-      // The summary stands without it.
-      debugPrint('CompletedWorkoutScreen: no max after: $e');
-      return;
-    }
-    final maxAfter = <Exercise, double>{};
-    for (final exercise in progress.exercises) {
-      for (final point in exercise.points) {
-        if (point.workoutId == workoutId && point.estimatedMax > 0) {
-          maxAfter[exercise.exercise] = point.estimatedMax;
-        }
-      }
-    }
-    if (mounted) setState(() => _maxAfter = maxAfter);
-  }
-
   Future<void> _loadSessionFriends(
     String sessionId,
     MultiplayerServiceWrapper service,
-    String selfId,
   ) async {
     List<User> friends = [];
     try {
-      final sessionResponse = await service.getSessionParticipants(sessionId);
-      final participants = sessionResponse.participants;
-      final seen = <String>{};
-      for (final participant in participants) {
-        final user = participant.user;
-        if (user.id.isEmpty || (selfId.isNotEmpty && user.id == selfId)) {
-          continue;
-        }
-        if (seen.add(user.id)) friends.add(user);
-      }
+      final rosters = await service.getSessionRosters([sessionId]);
+      friends = [for (final r in rosters) ...r.partners];
     } catch (_) {
       friends = [];
     }
@@ -222,19 +158,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final ownCompletedSets = _completedSets
         .where((c) => c.workoutId == workout.id)
         .toList();
-    final auth = context.watch<AuthProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
-    // The server computes the rollup; this is a thin formatting view over it.
     final summary = WorkoutSummaryData(_summary ?? WorkoutSummary(), unit);
-    // Working sets only: warmups and calibration rungs are not counted,
-    // matching the server's per-exercise rollup.
-    final ownProposedById = {for (final p in ownProposedSets) p.id: p};
-    final workingSetsDone = ownCompletedSets.where((c) {
-      final proposed = ownProposedById[c.proposedSetId];
-      return proposed != null &&
-          isWorkingSet(proposed) &&
-          c.endedAt != Int64.ZERO;
-    }).length;
     final hasHeartRateChart =
         workout.startTime != Int64.ZERO && _heartRateSamples.isNotEmpty;
     final chartNow = workout.endTime != Int64.ZERO
@@ -268,21 +193,21 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                 metrics: [
                   ('Duration', summary.durationLabel, null),
                   ('Volume', summary.volumeLabel, null),
-                  ('Sets', '$workingSetsDone', null),
+                  ('Sets', '${summary.workingSets}', null),
                   (
                     copy.workout.lifting,
                     summary.liftingTimeLabel,
-                    context.tokens.workoutLiftingFg,
+                    context.tokens.lifting,
                   ),
                   (
                     copy.workout.resting,
                     summary.restingTimeLabel,
-                    context.tokens.workoutRestingFg,
+                    context.tokens.resting,
                   ),
                   (
                     copy.workout.yapping,
                     summary.yappingTimeLabel,
-                    context.tokens.workoutYappingFg,
+                    context.tokens.yapping,
                   ),
                 ],
               ),
@@ -300,7 +225,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                     workoutStartTime: workout.startTime,
                     now: chartNow,
                     followLiveClock: false,
-                    fullView: true,
                   ),
                 ),
               ),
@@ -318,15 +242,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               _ExerciseSummaryRow(
                 exercise: exercise,
                 log: _logFor(exercise.exercise),
-                maxAfter: _maxAfter[exercise.exercise],
                 unit: unit,
               ),
             SetLog(
               proposedSets: ownProposedSets,
               completedSets: ownCompletedSets,
-              workoutOwnerEmojis: {
-                workout.id: normalizedProfileEmoji(auth.profileEmoji),
-              },
             ),
           ],
         ),
@@ -491,13 +411,11 @@ class _MetricGrid extends StatelessWidget {
 class _ExerciseSummaryRow extends StatelessWidget {
   final ExerciseSummaryView exercise;
   final ExerciseLog? log;
-  final double? maxAfter;
   final WeightUnit unit;
 
   const _ExerciseSummaryRow({
     required this.exercise,
     required this.log,
-    required this.maxAfter,
     required this.unit,
   });
 
@@ -505,7 +423,7 @@ class _ExerciseSummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final log = this.log;
-    final max = maxAfter;
+    final max = exercise.maxAfter;
     final s = copy.plan.summary;
     final notes = [
       if (log != null) ...[
@@ -607,39 +525,25 @@ class _ExerciseStatColumn extends StatelessWidget {
   }
 }
 
-/// Thin formatting view over the server-computed [WorkoutSummary]. All the
-/// numbers are already rolled up on the backend; this only turns them into
-/// display strings.
+/// Thin formatting view over the core's [WorkoutSummary]. The numbers are
+/// already rolled up; this only turns them into display strings.
 class WorkoutSummaryData {
   final WorkoutSummary _s;
   final WeightUnit unit;
   WorkoutSummaryData(this._s, this.unit);
 
-  String get durationLabel =>
-      _formatDuration(Duration(seconds: _s.durationSeconds.toInt()));
+  String get durationLabel => formatDurationShort(_s.durationSeconds.toInt());
   String get volumeLabel =>
       '${compactVolume(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
-  String get liftingTimeLabel =>
-      _formatDuration(Duration(seconds: _s.liftingSeconds.toInt()));
-  String get restingTimeLabel =>
-      _formatDuration(Duration(seconds: _s.restingSeconds.toInt()));
-  String get yappingTimeLabel =>
-      _formatDuration(Duration(seconds: _s.yappingSeconds.toInt()));
+  String get liftingTimeLabel => formatDurationShort(_s.liftingSeconds.toInt());
+  String get restingTimeLabel => formatDurationShort(_s.restingSeconds.toInt());
+  String get yappingTimeLabel => formatDurationShort(_s.yappingSeconds.toInt());
+  int get workingSets => _s.workingSets;
   List<ExerciseSummaryView> get exerciseSummaries =>
       _s.exercises.map((e) => ExerciseSummaryView(e, unit)).toList();
-
-  static String _formatDuration(Duration duration) {
-    if (duration == Duration.zero) return '0m';
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
-    }
-    return '${minutes}m';
-  }
 }
 
-/// Thin formatting view over the server's per-exercise [ExerciseSummary].
+/// Thin formatting view over the core's per-exercise [ExerciseSummary].
 class ExerciseSummaryView {
   final ExerciseSummary _e;
   final WeightUnit unit;
@@ -648,10 +552,14 @@ class ExerciseSummaryView {
   Exercise get exercise => _e.exercise;
   int get totalSets => _e.totalSets;
   int get totalReps => _e.totalReps;
-  String get name => exerciseNames[_e.exercise] ?? 'Unknown';
+  String get name => exerciseName(_e.exercise);
+
+  /// The lift's estimated max after this session (lb), when it has one.
+  double? get maxAfter =>
+      _e.estimatedMaxAfter > 0 ? _e.estimatedMaxAfter : null;
   String get volumeLabel =>
       '${compactVolume(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get heaviestSetWeightLabel => _e.heaviestSetWeight > 0
-      ? '${formatWeight(_e.heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
+      ? formatWeight(_e.heaviestSetWeight, unit, includeUnit: true)
       : '-';
 }

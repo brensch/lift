@@ -3,7 +3,7 @@
 /// A template is an ordered list of exercises and nothing else — the core
 /// plans sets, reps, rest and weight in the time the user has, so every
 /// card here shows the numbers the workout will actually start with, and
-/// why. The chips are in groups: the rotation, the favourites, then New
+/// why. The chips are in groups: the rotation, the reserves, then New
 /// and Manage.
 /// The suggestion is the rotation template whose rested muscles are
 /// furthest below the 10–20 weekly-set band, and the card says which; it
@@ -242,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   for (final template in templates)
                     if (template.inRotation) chip(template),
                 ],
-                favourites: [
+                reserves: [
                   for (final template in templates)
                     if (!template.inRotation) chip(template),
                   _ActionChip(
@@ -307,18 +307,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// The template chips in three groups: the rotation and the favourites
+/// The template chips in three groups: the rotation and the reserves
 /// (the Empty workout chip last), each under its title, then a line of
 /// the action chips. A group with nothing in it has no title; an empty
 /// rotation says how to fill it.
 class _TemplateChips extends StatelessWidget {
   final List<Widget> rotation;
-  final List<Widget> favourites;
+  final List<Widget> reserves;
   final List<Widget> actions;
 
   const _TemplateChips({
     required this.rotation,
-    required this.favourites,
+    required this.reserves,
     required this.actions,
   });
 
@@ -342,9 +342,9 @@ class _TemplateChips extends StatelessWidget {
           )
         else
           group(l.rotationHeading, rotation),
-        if (favourites.isNotEmpty) ...[
+        if (reserves.isNotEmpty) ...[
           const SizedBox(height: 12),
-          group(l.favouritesHeading, favourites),
+          group(l.reservesHeading, reserves),
         ],
         const SizedBox(height: 12),
         wrap(actions),
@@ -447,7 +447,7 @@ class _ActionChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : context.tokens.panel,
-          borderRadius: context.tokens.br(10),
+          borderRadius: context.tokens.brSm,
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
@@ -535,14 +535,14 @@ class _EmptyState extends StatelessWidget {
 
 // ── Weekly volume ────────────────────────────────────────────────────────────
 
-/// The V10 tracker: one row per muscle carrying three signals on three
+/// The weekly volume card: one row per muscle carrying three signals on three
 /// channels — weekly volume (bar vs the 10–20 band), freshness (a
 /// countdown chip until the muscle is recovered), and selection (name
 /// color: green = the selected workout hits it and it's ready, amber =
 /// it hits it but the muscle isn't recovered yet; untargeted rows dim).
 ///
-/// [proportional] draws shares instead (the Manage sheet's lap of the main
-/// plan, which is not a week): each bar against the most-trained muscle's,
+/// [proportional] draws shares instead (the Manage sheet's lap of the
+/// rotation, which is not a week): each bar against the most-trained muscle's,
 /// with no band, no tick, no set count and no recovery chip.
 class VolumeCard extends StatelessWidget {
   final List<MuscleVolume> volume;
@@ -563,27 +563,12 @@ class VolumeCard extends StatelessWidget {
     this.proportional = false,
   });
 
-  static const _recoveryKeys = {
-    'chest': MuscleGroup.MUSCLE_GROUP_CHEST,
-    'back': MuscleGroup.MUSCLE_GROUP_BACK,
-    'shoulders': MuscleGroup.MUSCLE_GROUP_SHOULDERS,
-    'biceps': MuscleGroup.MUSCLE_GROUP_BICEPS,
-    'triceps': MuscleGroup.MUSCLE_GROUP_TRICEPS,
-    'quads': MuscleGroup.MUSCLE_GROUP_QUADS,
-    'hamstrings': MuscleGroup.MUSCLE_GROUP_HAMSTRINGS,
-    'glutes': MuscleGroup.MUSCLE_GROUP_GLUTES,
-    'calves': MuscleGroup.MUSCLE_GROUP_CALVES,
-    'core': MuscleGroup.MUSCLE_GROUP_CORE,
-  };
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     if (volume.isEmpty) return const SizedBox.shrink();
     final recoveryByMuscle = <MuscleGroup, MuscleRecoveryStatus>{
-      for (final entry in recovery)
-        if (_recoveryKeys[entry.muscleKey] != null)
-          _recoveryKeys[entry.muscleKey]!: entry,
+      for (final entry in recovery) entry.muscle: entry,
     };
     final most = volume.fold<double>(
       0,
@@ -640,9 +625,9 @@ class _VolumeRow extends StatelessWidget {
     final inBand = sets >= low && sets <= high;
     final over = sets > high;
     final fill = over
-        ? context.tokens.accentAmber
+        ? context.tokens.overdue
         : inBand
-        ? context.tokens.accentGreen
+        ? context.tokens.ready
         : context.tokens.outline;
 
     final recovering = recovery != null && !recovery!.recovered;
@@ -692,7 +677,7 @@ class _VolumeRow extends StatelessWidget {
                         color: cs.surfaceContainerHighest.withValues(
                           alpha: 0.35,
                         ),
-                        borderRadius: context.tokens.br(6),
+                        borderRadius: context.tokens.brXs,
                       ),
                     ),
                     Positioned(
@@ -701,9 +686,7 @@ class _VolumeRow extends StatelessWidget {
                       top: 0,
                       bottom: 0,
                       child: Container(
-                        color: context.tokens.accentGreen.withValues(
-                          alpha: 0.10,
-                        ),
+                        color: context.tokens.ready.withValues(alpha: 0.10),
                       ),
                     ),
                     // The fill, inset like the mock's rounded pill.
@@ -715,7 +698,7 @@ class _VolumeRow extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: fill,
-                          borderRadius: context.tokens.br(4),
+                          borderRadius: context.tokens.brXs,
                         ),
                       ),
                     ),
@@ -748,7 +731,7 @@ class _VolumeRow extends StatelessWidget {
                   // In the target range the number goes green.
                   style: TextStyle(
                     color: inBand
-                        ? context.tokens.accentGreen
+                        ? context.tokens.ready
                         : over
                         ? cs.onSurface
                         : cs.onSurface.withValues(alpha: 0.55),
@@ -757,7 +740,7 @@ class _VolumeRow extends StatelessWidget {
                 if (over)
                   TextSpan(
                     text: '▲',
-                    style: TextStyle(color: context.tokens.accentAmber),
+                    style: TextStyle(color: context.tokens.overdue),
                   ),
               ],
             ),
@@ -815,7 +798,7 @@ class _ShareRow extends StatelessWidget {
                 Container(
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
-                    borderRadius: t.br(6),
+                    borderRadius: t.brXs,
                   ),
                 ),
                 FractionallySizedBox(
@@ -823,7 +806,7 @@ class _ShareRow extends StatelessWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: t.muted,
-                      borderRadius: t.br(6),
+                      borderRadius: t.brXs,
                     ),
                   ),
                 ),
@@ -856,7 +839,7 @@ class _RecoveryChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         border: Border.all(color: border),
-        borderRadius: context.tokens.br(6),
+        borderRadius: context.tokens.brXs,
       ),
       child: Text(
         '${hours}h',
@@ -901,7 +884,7 @@ class TemplateChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : context.tokens.panel,
-          borderRadius: context.tokens.br(10),
+          borderRadius: context.tokens.brSm,
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
             width: selected ? 2 : 1,
@@ -1197,7 +1180,7 @@ class _ExerciseLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = exerciseNames[decision.exercise] ?? '?';
+    final name = exerciseName(decision.exercise);
     final reason = reasonShort(decision, unit);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -12,30 +12,25 @@ import '../../theme/theme_spec.dart';
 /// A small mono heading: what the section below is.
 class SectionLabel extends StatelessWidget {
   final String text;
-  final Widget? trailing;
 
-  const SectionLabel(this.text, {super.key, this.trailing});
+  const SectionLabel(this.text, {super.key});
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            text.toUpperCase(),
-            style: t.mono(
-              TextStyle(
-                fontSize: t.size.small,
-                fontWeight: t.weight.bold,
-                letterSpacing: 1,
-                color: t.muted,
-              ),
-            ),
+    return SizedBox(
+      width: double.infinity,
+      child: Text(
+        text.toUpperCase(),
+        style: t.mono(
+          TextStyle(
+            fontSize: t.size.small,
+            fontWeight: t.weight.bold,
+            letterSpacing: 1,
+            color: t.muted,
           ),
         ),
-        ?trailing,
-      ],
+      ),
     );
   }
 }
@@ -44,13 +39,11 @@ class SectionLabel extends StatelessWidget {
 /// page margins, and a hairline under it that runs edge to edge.
 class FlatSection extends StatelessWidget {
   final String? label;
-  final Widget? trailing;
   final Widget child;
 
   /// Lets the child run to the edges (a list, a chart) instead of sitting
   /// in the margins.
   final bool bleed;
-  final bool divider;
 
   /// The child runs to the divider (a grid whose vertical lines must meet
   /// it) rather than sitting above a margin.
@@ -59,10 +52,8 @@ class FlatSection extends StatelessWidget {
   const FlatSection({
     super.key,
     this.label,
-    this.trailing,
     required this.child,
     this.bleed = false,
-    this.divider = true,
     this.flushBottom = false,
   });
 
@@ -73,9 +64,7 @@ class FlatSection extends StatelessWidget {
     final t = context.tokens;
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: divider
-            ? Border(bottom: BorderSide(color: t.hairline))
-            : const Border(),
+        border: Border(bottom: BorderSide(color: t.hairline)),
       ),
       child: Padding(
         padding: EdgeInsets.only(top: 14, bottom: flushBottom ? 0 : 14),
@@ -85,7 +74,7 @@ class FlatSection extends StatelessWidget {
             if (label != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(margin, 0, margin, 10),
-                child: SectionLabel(label!, trailing: trailing),
+                child: SectionLabel(label!),
               ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: bleed ? 0 : margin),
@@ -244,6 +233,41 @@ class FlatHeading extends StatelessWidget {
         border: Border(bottom: BorderSide(color: context.tokens.hairline)),
       ),
       child: SectionLabel(text),
+    );
+  }
+}
+
+/// A headline number over its label, at the top of a page.
+class HeadStat extends StatelessWidget {
+  final String value;
+  final String label;
+
+  /// The number's text size; the theme's titleLg when null.
+  final double? size;
+  final Color? color;
+
+  const HeadStat(this.value, this.label, {super.key, this.size, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: size ?? t.size.titleLg,
+            fontWeight: t.weight.heavy,
+            height: 1,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(color: t.muted, fontSize: t.size.small),
+        ),
+      ],
     );
   }
 }

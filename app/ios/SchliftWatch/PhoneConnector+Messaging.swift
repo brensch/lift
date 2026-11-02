@@ -18,7 +18,6 @@ extension PhoneConnector {
 
         var intent = Workout_V1_WearIntent()
         intent.intentID = UUID().uuidString
-        intent.sentAt = Int64(Date().timeIntervalSince1970)
         guard fill(&intent, with: action, workoutId: workoutId) else { return }
 
         guard let data = try? intent.serializedData() else { return }
@@ -37,10 +36,8 @@ extension PhoneConnector {
         var tap = Workout_V1_TapSetIntent()
         tap.workoutID = workoutId
         tap.setID = setID
-        tap.tappedAt = Int64(Date().timeIntervalSince1970)
         var intent = Workout_V1_WearIntent()
         intent.intentID = UUID().uuidString
-        intent.sentAt = Int64(Date().timeIntervalSince1970)
         intent.intent = .tapSet(tap)
         guard let data = try? intent.serializedData() else { return }
         beginPendingAction()

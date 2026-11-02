@@ -65,22 +65,39 @@ void main() {
       expect(lifting, isTrue, reason: 'the first tap lifts the set');
 
       // The second tap logs it with every rep: a full rung climbs to the
-      // next one. A third tap takes a rep off, which settles the working
-      // weight under it instead.
+      // next one, and asks over the list how many more could have been
+      // done. The dialog holds the rung's own circle: a tap there takes a
+      // rep off, which settles the working weight under it instead.
       await s.tap(s.circleFor(first.id));
       expect(s.workout.isSetDone(first.id), isTrue, reason: 'logged');
       expect(
-        s.workout.activeProposedSets.where(
+        s.workout.proposedSets.where(
           (p) => p.exercise == first.exercise && p.calibration,
         ),
         hasLength(2),
         reason: 'a full rung climbs',
       );
-      await s.shot('Rung logged in full — the next rung');
-      await s.tap(s.circleFor(first.id));
-      await s.settle(seconds: 1);
       expect(
-        s.workout.activeProposedSets.where(
+        s.rungDialogShowing && s.isVisible(copy.workout.rungQuestion),
+        isTrue,
+        reason: 'a full rung asks how many more',
+      );
+      await s.shot('Rung logged in full — how many more?');
+      await s.tap(s.rungDialogCircle);
+      await s.settle(seconds: 1);
+      final settledLine = copy.workout.rungMissedSettled
+          .split('{weight}')
+          .first
+          .replaceAll('{n}', '1');
+      expect(
+        find.textContaining(settledLine),
+        findsOneWidget,
+        reason: 'the dialog says the missed rep settled the ramp',
+      );
+      await s.shot('A rep off the rung — the ramp settles');
+      await s.tapText(copy.workout.rungOk);
+      expect(
+        s.workout.proposedSets.where(
           (p) => p.exercise == first.exercise && !p.calibration && !p.warmup,
         ),
         isNotEmpty,
@@ -96,7 +113,7 @@ void main() {
       // A working set one rep short: start, done, one more tap.
       final working = s.nextSet!;
       await s.liftSet(missed: 1);
-      final logged = s.workout.activeCompletedSets.singleWhere(
+      final logged = s.workout.completedSets.singleWhere(
         (c) => c.proposedSetId == working.id,
       );
       expect(

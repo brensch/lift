@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 
-import '../../tutorial/tutorial_target.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../gen/copy.dart';
@@ -120,17 +119,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     // Completed blocks stay pinned (green) at the top of the list; only the
     // unfinished ones below them can be dragged/reordered.
     final completedBlocks = blocks
-        .where((block) => _isBlockCompleted(block, wp.completedSets))
+        .where((block) => _isBlockCompleted(block, wp))
         .toList(growable: false);
     final unfinishedBlocks = blocks
-        .where((block) => !_isBlockCompleted(block, wp.completedSets))
+        .where((block) => !_isBlockCompleted(block, wp))
         .toList(growable: false);
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
-    final workoutOwnerLabels = <String, String>{};
     final workoutOwnerEmojis = <String, String>{};
     if (wp.workout != null) {
-      workoutOwnerLabels[wp.workout!.id] = 'You';
       workoutOwnerEmojis[wp.workout!.id] = normalizedProfileEmoji(
         auth.profileEmoji,
       );
@@ -140,10 +137,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         sessionLedgerProposed.addAll(participant.proposedSets);
         sessionLedgerCompleted.addAll(participant.completedSets);
         if (participant.activeWorkoutId.isNotEmpty) {
-          final rawName = participant.user.name.isNotEmpty
-              ? participant.user.name
-              : participant.user.id;
-          workoutOwnerLabels[participant.activeWorkoutId] = rawName;
           workoutOwnerEmojis[participant.activeWorkoutId] =
               normalizedProfileEmoji(participant.user.profileEmoji);
         }
@@ -167,13 +160,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           sets.any((s) => s.calibration) &&
           !sets.any((s) => !s.warmup && !s.calibration);
       if (calibrating) totalSets += wp.logFor(g.exercise)?.decision.sets ?? 0;
-      doneSets += sets
-          .where(
-            (s) => wp.completedSets.any(
-              (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-            ),
-          )
-          .length;
+      doneSets += sets.where((s) => wp.isSetDone(s.id)).length;
     }
     final overallProgress = totalSets == 0 ? 0.0 : doneSets / totalSets;
 
@@ -230,13 +217,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
         const SizedBox(height: 8),
         // ── The views, by name ──
-        TutorialTarget(
-          id: 'workout_tabs',
-          child: PageTabs(
-            tabs: pageTabs,
-            index: _page,
-            onTap: (i) => setState(() => _page = i),
-          ),
+        PageTabs(
+          tabs: pageTabs,
+          index: _page,
+          onTap: (i) => setState(() => _page = i),
         ),
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 
@@ -364,12 +348,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 completedSets: logCompletedSets,
                 onDelete: isEnded ? null : (id) => wp.deleteCompletedSet(id),
                 deletableWorkoutId: wp.workout?.id,
-                workoutOwnerLabels: workoutOwnerLabels,
                 workoutOwnerEmojis: workoutOwnerEmojis,
                 stickyHeader: true,
               ),
               // ════ PAGE 3 — heart rate (full detail) ════
-              if (hasHeartRate)
+              // Built only while on show: the live chart redraws every second.
+              if (_page != 2)
+                const SizedBox.shrink()
+              else if (hasHeartRate)
                 ListView(
                   physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -380,7 +366,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       workoutStartTime: workout.startTime,
                       now: wp.now,
                       stateSnapshot: wp.stateSnapshot,
-                      fullView: true,
                     ),
                   ],
                 )
@@ -393,29 +378,17 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  static bool _isBlockCompleted(
-    ExerciseBlock block,
-    List<CompletedSet> completedSets,
-  ) {
-    final workingSets = block.workingSets.toList();
-    if (workingSets.isEmpty) return false;
-    final completedCount = workingSets
-        .where(
-          (s) => completedSets.any(
-            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-          ),
-        )
-        .length;
-    return completedCount == workingSets.length;
+  static bool _isBlockCompleted(ExerciseBlock block, WorkoutProvider wp) {
+    final workingSets = block.workingSets;
+    return workingSets.isNotEmpty &&
+        workingSets.every((s) => wp.isSetDone(s.id));
   }
 
   static ExerciseBlock? _focusedBlock(
     WorkoutProvider wp,
     List<ExerciseBlock> blocks,
   ) {
-    final focusedSet = wp.stateSnapshot?.hasDisplaySet() == true
-        ? wp.stateSnapshot!.displaySet
-        : wp.nextPendingSet;
+    final focusedSet = wp.doneTargetSet;
     if (focusedSet == null) return null;
     // The would-be set a rung is waiting on is not in the plan yet; its
     // exercise's block is still the one in focus.
@@ -436,7 +409,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   ) async {
     final confirmed = await showDeleteExerciseDialog(
       context,
-      exerciseNames[block.exercise] ?? '?',
+      exerciseName(block.exercise),
     );
     if (confirmed != true || !context.mounted) return;
     unawaited(wp.removeExercise(block.exercise));

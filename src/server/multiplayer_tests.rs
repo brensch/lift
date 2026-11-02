@@ -83,33 +83,41 @@ mod session_history_tests {
             );
         }
 
-        // Historical roster survives leaving: GetSessionParticipants (which backs a
-        // past workout's "friends worked out with") still lists both, even though
+        // Historical roster survives leaving: GetSessionRosters (which backs a
+        // past workout's "friends worked out with") still lists bob, even though
         // the live cache was pruned.
-        let shared_session = svc
-            .db
-            .list_shared_sessions(&alice_id, &bob_id)
-            .await
-            .unwrap()[0]
-            .0
-            .clone();
-        let roster = svc
-            .get_session_participants(authed(
-                &alice_tok,
-                GetSessionParticipantsRequest {
-                    session_id: shared_session,
+        let shared_session = sess.session_id.clone();
+        let (_, carol_tok) = user(&svc, "carol").await;
+        let outsider = svc
+            .get_session_rosters(authed(
+                &carol_tok,
+                GetSessionRostersRequest {
+                    session_ids: vec![shared_session.clone()],
                 },
             ))
             .await
             .unwrap()
             .into_inner()
-            .participants;
-        let roster_ids: Vec<_> = roster
-            .iter()
-            .filter_map(|p| p.user.as_ref().map(|u| u.id.clone()))
-            .collect();
-        assert!(roster_ids.contains(&alice_id));
-        assert!(roster_ids.contains(&bob_id));
+            .rosters;
+        assert!(
+            outsider.is_empty(),
+            "someone who was not in the session must not see its roster"
+        );
+        let rosters = svc
+            .get_session_rosters(authed(
+                &alice_tok,
+                GetSessionRostersRequest {
+                    session_ids: vec![shared_session.clone(), "no-such-session".into()],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .rosters;
+        assert_eq!(rosters.len(), 1, "only the session alice was in");
+        assert_eq!(rosters[0].session_id, shared_session);
+        let partner_ids: Vec<_> = rosters[0].partners.iter().map(|u| u.id.clone()).collect();
+        assert_eq!(partner_ids, vec![bob_id.clone()], "everyone but alice");
 
         // History still records the pairing.
         let partners = svc
@@ -217,39 +225,6 @@ mod session_history_tests {
                 > 0,
             "bob's leave is on the roster"
         );
-    }
-
-    /// GetSharedSessions lists the sessions two users were both in.
-    #[tokio::test]
-    async fn shared_sessions_lists_the_pairing() {
-        let svc = setup().await;
-        let (alice_id, alice_tok) = user(&svc, "alice").await;
-        let (bob_id, bob_tok) = user(&svc, "bob").await;
-        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
-        svc.join_via_invite(authed(
-            &bob_tok,
-            JoinViaInviteRequest {
-                invite_token: alice_invite,
-            },
-        ))
-        .await
-        .unwrap();
-
-        let shared = svc
-            .get_shared_sessions(authed(
-                &alice_tok,
-                GetSharedSessionsRequest {
-                    partner_user_id: bob_id.clone(),
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner()
-            .sessions;
-        assert_eq!(shared.len(), 1, "alice and bob share exactly one session");
-        // Neither logged a workout in this test, so both flags are false.
-        assert!(!shared[0].caller_worked_out);
-        assert!(!shared[0].partner_worked_out);
     }
 
     /// Request → approve: gated on a prior pairing; the recipient sees the request
@@ -424,6 +399,68 @@ mod session_history_tests {
             .is_none());
     }
 
+    /// A request past its TTL can no longer be accepted, so it pulls no one
+    /// into a session.
+    #[tokio::test]
+    async fn expired_request_cannot_be_accepted() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+        svc.leave_current_session(authed(&bob_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+        svc.leave_current_session(authed(&alice_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+
+        let request_id = svc
+            .request_join_partner(authed(
+                &alice_tok,
+                RequestJoinPartnerRequest {
+                    partner_user_id: bob_id.clone(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .request_id;
+        svc.db
+            .age_join_request(
+                &request_id,
+                super::multiplayer::JOIN_REQUEST_TTL_SECONDS + 1,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            svc.respond_join_request(authed(
+                &bob_tok,
+                RespondJoinRequestRequest {
+                    request_id,
+                    accept: true,
+                },
+            ))
+            .await
+            .unwrap_err()
+            .code(),
+            tonic::Code::NotFound
+        );
+        assert!(svc
+            .db
+            .get_user_current_session(&alice_id)
+            .await
+            .unwrap()
+            .is_none());
+    }
+
     /// Two people joining the same inviter's link at the same time must both land
     /// in the one session — not race into separate sessions that leave the inviter
     /// with only one of them.
@@ -543,5 +580,70 @@ mod session_history_tests {
         let status = sess.session_status.as_ref().unwrap();
         assert!(has_participant(status, &bob_id), "alice should see bob");
         assert!(has_participant(status, &carol_id), "alice should see carol");
+    }
+
+    /// Someone's body weight is theirs alone: partners see them without it.
+    #[tokio::test]
+    async fn partners_do_not_see_body_weight() {
+        let svc = setup().await;
+        let (alice_id, _) = user(&svc, "alice").await;
+        let (_, bob_tok) = user(&svc, "bob").await;
+        svc.db
+            .update_user_profile(&alice_id, "", "", 82.5)
+            .await
+            .unwrap();
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+
+        let sess = svc
+            .get_current_session(authed(&bob_tok, GetCurrentSessionRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let status = sess.session_status.unwrap();
+        let alice = status
+            .participants
+            .iter()
+            .filter_map(|p| p.user.as_ref())
+            .find(|u| u.id == alice_id)
+            .expect("bob sees alice");
+        assert_eq!(alice.body_weight_kg, 0.0);
+
+        let partners = svc
+            .get_training_partners(authed(&bob_tok, GetTrainingPartnersRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .partners;
+        assert_eq!(partners[0].user.as_ref().unwrap().body_weight_kg, 0.0);
+
+        let rosters = svc
+            .get_session_rosters(authed(
+                &bob_tok,
+                GetSessionRostersRequest {
+                    session_ids: vec![sess.session_id],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .rosters;
+        assert_eq!(rosters[0].partners[0].body_weight_kg, 0.0);
+
+        let own = svc
+            .db
+            .get_user(&alice_id)
+            .await
+            .unwrap()
+            .unwrap()
+            .body_weight_kg;
+        assert_eq!(own, 82.5, "alice's own record keeps it");
     }
 }

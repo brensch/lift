@@ -36,9 +36,8 @@ class _PlateSheet extends StatelessWidget {
     final barWeight = standardBarWeight(unit);
     // Plates are counted in the user's unit, from the stored pounds.
     final weight = displayWeightFromPounds(weightLb, unit);
-    final plates = calcPlatesPerSide(weight, unit).plates;
+    final plates = calcPlatesPerSide(weight, unit);
     final colorOf = settings.plateColor;
-    String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
 
     // Each plate size once, heaviest (loaded first) first, with its count.
     final counts = <double, int>{};
@@ -52,10 +51,10 @@ class _PlateSheet extends StatelessWidget {
         ? '—'
         : plates.isEmpty
         ? 'None'
-        : '${num(perSide)} $suffix';
+        : '${plateLabel(perSide)} $suffix';
     final barText = weight < barWeight
         ? 'Dumbbells'
-        : '${num(barWeight)} $suffix';
+        : '${plateLabel(barWeight)} $suffix';
 
     Widget column(
       String label,
@@ -117,7 +116,7 @@ class _PlateSheet extends StatelessWidget {
                 column('Bar', barText, null),
                 column(
                   'Total',
-                  '${formatWeight(weightLb, unit)} $suffix',
+                  formatWeight(weightLb, unit, includeUnit: true),
                   null,
                   last: true,
                 ),
@@ -169,7 +168,7 @@ class _PlateSheet extends StatelessWidget {
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
-                        '${num(size)} $suffix',
+                        '${plateLabel(size)} $suffix',
                         style: t.mono(
                           TextStyle(
                             fontSize: t.size.title,
@@ -228,12 +227,12 @@ class BigBarbell extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 1),
         decoration: BoxDecoration(
           color: colorOf(p),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.35)),
+          border: Border.all(color: t.plateEdge),
         ),
       );
     }
 
-    final sleeve = Container(width: 24, height: 8, color: Colors.grey.shade500);
+    final sleeve = Container(width: 24, height: 8, color: t.sleeveSteel);
     return SizedBox(
       height: _fullHeight,
       child: Row(
@@ -242,9 +241,9 @@ class BigBarbell extends StatelessWidget {
           sleeve,
           for (final p in plates.reversed) plate(p),
           // Collar, then the bar between the hands.
-          Container(width: 10, height: 22, color: Colors.grey.shade700),
+          Container(width: 10, height: 22, color: t.collarSteel),
           Container(width: 70, height: 6, color: t.muted),
-          Container(width: 10, height: 22, color: Colors.grey.shade700),
+          Container(width: 10, height: 22, color: t.collarSteel),
           for (final p in plates) plate(p),
           sleeve,
         ],
@@ -253,20 +252,12 @@ class BigBarbell extends StatelessWidget {
   }
 }
 
-/// The bar loaded for [weightLb] (stored pounds), small: inline wherever a set's load is
-/// shown. Tappable (the default) it sits in a flat white box and opens the
-/// plate breakdown.
+/// The bar loaded for [weightLb] (stored pounds), small: inline wherever a
+/// set's load is shown.
 class PlateVisualization extends StatelessWidget {
   final double weightLb;
-  final double scale;
-  final bool isInteractive;
 
-  const PlateVisualization({
-    super.key,
-    required this.weightLb,
-    this.scale = 1.0,
-    this.isInteractive = true,
-  });
+  const PlateVisualization({super.key, required this.weightLb});
 
   Color _plateColor(BuildContext context, double plate) =>
       context.read<SettingsProvider>().plateColor(plate);
@@ -277,32 +268,17 @@ class PlateVisualization extends StatelessWidget {
     context.watch<SettingsProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
     final weight = displayWeightFromPounds(weightLb, unit);
-    final plates = calcPlatesPerSide(weight, unit).plates;
-    final content = FittedBox(
+    final plates = calcPlatesPerSide(weight, unit);
+    return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Transform.scale(
-        scale: scale,
-        child: weight < standardBarWeight(unit)
-            ? _buildDumbbell()
-            : _buildBarbell(context, plates),
-      ),
-    );
-    if (!isInteractive) return content;
-    final t = context.tokens;
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(side: BorderSide(color: t.outline)),
-      child: InkWell(
-        onTap: () => showPlateBreakdownDialog(context, weightLb: weightLb),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: content,
-        ),
-      ),
+      child: weight < standardBarWeight(unit)
+          ? _buildDumbbell(context.tokens)
+          : _buildBarbell(context, plates),
     );
   }
 
   Widget _buildBarbell(BuildContext context, List<double> plates) {
+    final t = context.tokens;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -315,10 +291,7 @@ class PlateVisualization extends StatelessWidget {
             child: Container(
               width: width,
               height: 32,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(1),
-              ),
+              decoration: BoxDecoration(color: color, borderRadius: t.brXs),
             ),
           );
         }),
@@ -331,7 +304,7 @@ class PlateVisualization extends StatelessWidget {
           child: Container(
             width: 24,
             height: 4,
-            decoration: BoxDecoration(color: Colors.grey.shade400),
+            decoration: BoxDecoration(color: t.barSteel),
           ),
         ),
         const SizedBox(width: 1),
@@ -344,10 +317,7 @@ class PlateVisualization extends StatelessWidget {
             child: Container(
               width: width,
               height: 32,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(1),
-              ),
+              decoration: BoxDecoration(color: color, borderRadius: t.brXs),
             ),
           );
         }),
@@ -355,9 +325,7 @@ class PlateVisualization extends StatelessWidget {
     );
   }
 
-  Widget _buildDumbbell() {
-    const plateColor = Color(0xFF6B7280);
-    const handleColor = Color(0xFF111827);
+  Widget _buildDumbbell(ThemeSpec t) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -365,24 +333,24 @@ class PlateVisualization extends StatelessWidget {
           width: 7,
           height: 22,
           decoration: BoxDecoration(
-            color: plateColor,
-            borderRadius: BorderRadius.circular(2),
+            color: t.dumbbellPlate,
+            borderRadius: t.brSm,
           ),
         ),
         Container(
           width: 18,
           height: 4,
           decoration: BoxDecoration(
-            color: handleColor,
-            borderRadius: BorderRadius.circular(2),
+            color: t.dumbbellHandle,
+            borderRadius: t.brSm,
           ),
         ),
         Container(
           width: 7,
           height: 22,
           decoration: BoxDecoration(
-            color: plateColor,
-            borderRadius: BorderRadius.circular(2),
+            color: t.dumbbellPlate,
+            borderRadius: t.brSm,
           ),
         ),
       ],

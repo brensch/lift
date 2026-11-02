@@ -43,7 +43,10 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
@@ -54,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -128,11 +132,11 @@ internal data class WearFace(
     // Empty: no timer (ready).
     val timer: String,
     // The band is [stageColor] over [trackColor], filled to [bandFill]: rest
-    // drains it.
+    // drains it. Read only while drawing, so the drain redraws the band alone.
     val stageColor: Color,
     val trackColor: Color,
     val bandInk: Color,
-    val bandFill: Float,
+    val bandFill: () -> Float,
     val exercise: String,
     val position: String,
     val weight: String,
@@ -460,15 +464,13 @@ private fun Band(
             Modifier
                 .fillMaxWidth()
                 .height(d * BAND_ROW)
-                .background(face.trackColor),
+                .background(face.trackColor)
+                .drawBehind {
+                    val width = size.width * face.bandFill().coerceIn(0f, 1f)
+                    val left = if (layoutDirection == LayoutDirection.Rtl) size.width - width else 0f
+                    drawRect(face.stageColor, topLeft = Offset(left, 0f), size = Size(width, size.height))
+                },
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(face.bandFill.coerceIn(0f, 1f))
-                    .background(face.stageColor),
-        )
         Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             FitText(
                 text = face.label.uppercase(),
@@ -497,6 +499,19 @@ private fun UpNextChip(
     d: Dp,
 ) {
     val c = LocalFaceColors.current
+    // Dimmed, nothing moves: the chip keeps the face's grey and no animation runs.
+    if (c.dim) {
+        UpNextText(text = text, d = d, color = c.text)
+    } else {
+        CyclingUpNextChip(text = text, d = d)
+    }
+}
+
+@Composable
+private fun CyclingUpNextChip(
+    text: String,
+    d: Dp,
+) {
     val colors = WearPalette.Series
     val cycle by rememberInfiniteTransition(label = "upNext").animateFloat(
         initialValue = 0f,
@@ -505,8 +520,20 @@ private fun UpNextChip(
         label = "upNextCycle",
     )
     val at = cycle.toInt()
-    // Dimmed, nothing moves: the chip keeps the face's grey.
-    val color = if (c.dim) c.text else lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at)
+    UpNextText(
+        text = text,
+        d = d,
+        color = lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at),
+    )
+}
+
+@Composable
+private fun UpNextText(
+    text: String,
+    d: Dp,
+    color: Color,
+) {
+    val c = LocalFaceColors.current
     Text(
         text = text,
         color = color,

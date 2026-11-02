@@ -172,7 +172,7 @@ class MainLayout extends StatelessWidget {
                 ],
               ),
         bottomNavigationBar: WorkoutBottomBar(
-          key: ValueKey(wp.activeWorkout?.id ?? 'none'),
+          key: ValueKey(wp.workout?.id ?? 'none'),
         ),
       ),
     );
@@ -196,7 +196,7 @@ class MainLayout extends StatelessWidget {
           style: IconButton.styleFrom(
             backgroundColor: colorScheme.primary,
             foregroundColor: colorScheme.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: context.tokens.br(8)),
+            shape: RoundedRectangleBorder(borderRadius: context.tokens.brSm),
           ),
         ),
       ),
@@ -241,7 +241,7 @@ class _MenuButton extends StatelessWidget {
 
     return Material(
       color: isActive ? colorScheme.primary : Colors.transparent,
-      borderRadius: edgeToEdge ? null : context.tokens.br(8),
+      borderRadius: edgeToEdge ? null : context.tokens.brSm,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,

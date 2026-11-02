@@ -1113,12 +1113,10 @@ class TapSetIntent extends $pb.GeneratedMessage {
   factory TapSetIntent({
     $core.String? workoutId,
     $core.String? setId,
-    $fixnum.Int64? tappedAt,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (setId != null) result.setId = setId;
-    if (tappedAt != null) result.tappedAt = tappedAt;
     return result;
   }
 
@@ -1137,7 +1135,6 @@ class TapSetIntent extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'workoutId')
     ..aOS(2, _omitFieldNames ? '' : 'setId')
-    ..aInt64(3, _omitFieldNames ? '' : 'tappedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1176,15 +1173,6 @@ class TapSetIntent extends $pb.GeneratedMessage {
   $core.bool hasSetId() => $_has(1);
   @$pb.TagNumber(2)
   void clearSetId() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get tappedAt => $_getI64(2);
-  @$pb.TagNumber(3)
-  set tappedAt($fixnum.Int64 value) => $_setInt64(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasTappedAt() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearTappedAt() => $_clearField(3);
 }
 
 class EndWorkoutIntent extends $pb.GeneratedMessage {
@@ -1246,7 +1234,6 @@ enum WearIntent_Intent { completeSet, endWorkout, startSet, tapSet, notSet }
 class WearIntent extends $pb.GeneratedMessage {
   factory WearIntent({
     $core.String? intentId,
-    $fixnum.Int64? sentAt,
     CompleteSetIntent? completeSet,
     EndWorkoutIntent? endWorkout,
     StartSetIntent? startSet,
@@ -1254,7 +1241,6 @@ class WearIntent extends $pb.GeneratedMessage {
   }) {
     final result = create();
     if (intentId != null) result.intentId = intentId;
-    if (sentAt != null) result.sentAt = sentAt;
     if (completeSet != null) result.completeSet = completeSet;
     if (endWorkout != null) result.endWorkout = endWorkout;
     if (startSet != null) result.startSet = startSet;
@@ -1285,7 +1271,6 @@ class WearIntent extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..oo(0, [11, 13, 17, 19])
     ..aOS(1, _omitFieldNames ? '' : 'intentId')
-    ..aInt64(2, _omitFieldNames ? '' : 'sentAt')
     ..aOM<CompleteSetIntent>(11, _omitFieldNames ? '' : 'completeSet',
         subBuilder: CompleteSetIntent.create)
     ..aOM<EndWorkoutIntent>(13, _omitFieldNames ? '' : 'endWorkout',
@@ -1334,58 +1319,49 @@ class WearIntent extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearIntentId() => $_clearField(1);
 
-  @$pb.TagNumber(2)
-  $fixnum.Int64 get sentAt => $_getI64(1);
-  @$pb.TagNumber(2)
-  set sentAt($fixnum.Int64 value) => $_setInt64(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasSentAt() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearSentAt() => $_clearField(2);
-
   @$pb.TagNumber(11)
-  CompleteSetIntent get completeSet => $_getN(2);
+  CompleteSetIntent get completeSet => $_getN(1);
   @$pb.TagNumber(11)
   set completeSet(CompleteSetIntent value) => $_setField(11, value);
   @$pb.TagNumber(11)
-  $core.bool hasCompleteSet() => $_has(2);
+  $core.bool hasCompleteSet() => $_has(1);
   @$pb.TagNumber(11)
   void clearCompleteSet() => $_clearField(11);
   @$pb.TagNumber(11)
-  CompleteSetIntent ensureCompleteSet() => $_ensure(2);
+  CompleteSetIntent ensureCompleteSet() => $_ensure(1);
 
   @$pb.TagNumber(13)
-  EndWorkoutIntent get endWorkout => $_getN(3);
+  EndWorkoutIntent get endWorkout => $_getN(2);
   @$pb.TagNumber(13)
   set endWorkout(EndWorkoutIntent value) => $_setField(13, value);
   @$pb.TagNumber(13)
-  $core.bool hasEndWorkout() => $_has(3);
+  $core.bool hasEndWorkout() => $_has(2);
   @$pb.TagNumber(13)
   void clearEndWorkout() => $_clearField(13);
   @$pb.TagNumber(13)
-  EndWorkoutIntent ensureEndWorkout() => $_ensure(3);
+  EndWorkoutIntent ensureEndWorkout() => $_ensure(2);
 
   @$pb.TagNumber(17)
-  StartSetIntent get startSet => $_getN(4);
+  StartSetIntent get startSet => $_getN(3);
   @$pb.TagNumber(17)
   set startSet(StartSetIntent value) => $_setField(17, value);
   @$pb.TagNumber(17)
-  $core.bool hasStartSet() => $_has(4);
+  $core.bool hasStartSet() => $_has(3);
   @$pb.TagNumber(17)
   void clearStartSet() => $_clearField(17);
   @$pb.TagNumber(17)
-  StartSetIntent ensureStartSet() => $_ensure(4);
+  StartSetIntent ensureStartSet() => $_ensure(3);
 
   @$pb.TagNumber(19)
-  TapSetIntent get tapSet => $_getN(5);
+  TapSetIntent get tapSet => $_getN(4);
   @$pb.TagNumber(19)
   set tapSet(TapSetIntent value) => $_setField(19, value);
   @$pb.TagNumber(19)
-  $core.bool hasTapSet() => $_has(5);
+  $core.bool hasTapSet() => $_has(4);
   @$pb.TagNumber(19)
   void clearTapSet() => $_clearField(19);
   @$pb.TagNumber(19)
-  TapSetIntent ensureTapSet() => $_ensure(5);
+  TapSetIntent ensureTapSet() => $_ensure(4);
 }
 
 class HeartRateSample extends $pb.GeneratedMessage {
@@ -1471,13 +1447,11 @@ class WearSensorBatch extends $pb.GeneratedMessage {
   factory WearSensorBatch({
     $core.String? batchId,
     $core.String? workoutId,
-    $fixnum.Int64? sentAt,
     $core.Iterable<HeartRateSample>? heartRateSamples,
   }) {
     final result = create();
     if (batchId != null) result.batchId = batchId;
     if (workoutId != null) result.workoutId = workoutId;
-    if (sentAt != null) result.sentAt = sentAt;
     if (heartRateSamples != null)
       result.heartRateSamples.addAll(heartRateSamples);
     return result;
@@ -1498,7 +1472,6 @@ class WearSensorBatch extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'batchId')
     ..aOS(2, _omitFieldNames ? '' : 'workoutId')
-    ..aInt64(3, _omitFieldNames ? '' : 'sentAt')
     ..pPM<HeartRateSample>(4, _omitFieldNames ? '' : 'heartRateSamples',
         subBuilder: HeartRateSample.create)
     ..hasRequiredFields = false;
@@ -1540,29 +1513,18 @@ class WearSensorBatch extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearWorkoutId() => $_clearField(2);
 
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get sentAt => $_getI64(2);
-  @$pb.TagNumber(3)
-  set sentAt($fixnum.Int64 value) => $_setInt64(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasSentAt() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearSentAt() => $_clearField(3);
-
   @$pb.TagNumber(4)
-  $pb.PbList<HeartRateSample> get heartRateSamples => $_getList(3);
+  $pb.PbList<HeartRateSample> get heartRateSamples => $_getList(2);
 }
 
 class WearSensorBatchAck extends $pb.GeneratedMessage {
   factory WearSensorBatchAck({
     $core.String? batchId,
     $core.String? workoutId,
-    $fixnum.Int64? receivedAt,
   }) {
     final result = create();
     if (batchId != null) result.batchId = batchId;
     if (workoutId != null) result.workoutId = workoutId;
-    if (receivedAt != null) result.receivedAt = receivedAt;
     return result;
   }
 
@@ -1581,7 +1543,6 @@ class WearSensorBatchAck extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'batchId')
     ..aOS(2, _omitFieldNames ? '' : 'workoutId')
-    ..aInt64(3, _omitFieldNames ? '' : 'receivedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1620,15 +1581,6 @@ class WearSensorBatchAck extends $pb.GeneratedMessage {
   $core.bool hasWorkoutId() => $_has(1);
   @$pb.TagNumber(2)
   void clearWorkoutId() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get receivedAt => $_getI64(2);
-  @$pb.TagNumber(3)
-  set receivedAt($fixnum.Int64 value) => $_setInt64(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasReceivedAt() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearReceivedAt() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =

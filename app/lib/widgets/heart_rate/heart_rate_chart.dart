@@ -13,8 +13,6 @@ import '../../theme/theme_spec.dart';
 import 'legend.dart';
 import 'models.dart';
 import 'zone_summary.dart';
-import 'trend_painter.dart';
-import '../../theme/app_icons.dart';
 
 class HeartRateChart extends StatefulWidget {
   final List<HeartRateSample> heartRateSamples;
@@ -23,12 +21,6 @@ class HeartRateChart extends StatefulWidget {
   final DateTime now;
   final WorkoutStateSnapshot? stateSnapshot;
   final bool followLiveClock;
-  final bool collapsible;
-  final bool startCollapsed;
-
-  /// Full-page mode: no card chrome, never collapsible, taller chart, and an
-  /// extra avg/max/min + time-in-zone summary below it.
-  final bool fullView;
 
   const HeartRateChart({
     super.key,
@@ -38,9 +30,6 @@ class HeartRateChart extends StatefulWidget {
     required this.now,
     this.stateSnapshot,
     this.followLiveClock = true,
-    this.collapsible = false,
-    this.startCollapsed = false,
-    this.fullView = false,
   });
 
   // Standard fallback when a personalized max HR isn't available.
@@ -98,12 +87,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
   double? _gestureStartWindowStartSec;
   double? _gestureStartWindowSpanSec;
   double? _gestureStartLocalFocalX;
-  bool _collapsed = false;
 
   @override
   void initState() {
     super.initState();
-    _collapsed = widget.collapsible && widget.startCollapsed;
     _syncUiSnapshotFromWidget();
     _configureRepaintTimer();
     unawaited(_loadZoneProfile());
@@ -201,19 +188,12 @@ class _HeartRateChartState extends State<HeartRateChart> {
         ? (_uiNow.isAfter(localNow) ? _uiNow : localNow)
         : _uiNow;
 
-    final available = heartRateSamples
-        .where(
-          (s) =>
-              s.availability ==
-              HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE,
-        )
-        .toList();
-    if (available.isEmpty) return const SizedBox.shrink();
+    if (heartRateSamples.isEmpty) return const SizedBox.shrink();
 
     final nowSec = (effectiveNow.millisecondsSinceEpoch - startMs) / 1000.0;
     final dataMaxX = max(
       nowSec,
-      (available.last.sampledAt.toInt() - startMs) / 1000.0,
+      (heartRateSamples.last.sampledAt.toInt() - startMs) / 1000.0,
     );
     final predictedRestEndSec = _predictedCurrentRestEndSec(startMs);
     final domainMaxX = max(dataMaxX, predictedRestEndSec ?? 0.0);
@@ -236,7 +216,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final minX = viewport.startSec;
     final maxX = viewport.endSec;
     final viewportSamples = _samplesInRange(
-      available,
+      heartRateSamples,
       startMs: startMs,
       minX: minX,
       maxX: maxX,
@@ -259,7 +239,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
 
     final currentBpm = spots.last.y;
     final currentZone = zoneFor(currentBpm, zones);
-    final zoneColor = _zoneColorForBpm(currentBpm, zones);
+    final zoneColor = zoneColorByName(
+      currentZone?.name ?? 'Z1',
+      context.tokens.heartZones,
+    );
     final restBands = _clipVerticalAnnotations(
       _buildPhaseBands(startMs, nowSec),
       minX: minX,
@@ -292,16 +275,14 @@ class _HeartRateChartState extends State<HeartRateChart> {
       'Z5',
       caption.copyWith(fontWeight: context.tokens.weight.bold),
     ).height;
-    final pxPerBpm =
-        ((widget.fullView ? 320 : 160) - bottomAxisHeight) /
-        max(1.0, maxY - minY);
+    final pxPerBpm = (320 - bottomAxisHeight) / max(1.0, maxY - minY);
     bool zoneLabelFits(HeartRateZone z) =>
         (z.high - z.low) * pxPerBpm >= zoneLabelHeight;
     // Colour the single line by HR zone with a vertical stepped gradient
     // (one series) instead of emitting a separate series per point pair.
-    final gradient = zoneGradient(zones, maxY);
+    final gradient = zoneGradient(zones, maxY, context.tokens.heartZones);
 
-    final expandedHeader = Row(
+    final header = Row(
       children: [
         Text(
           'HEART RATE',
@@ -337,7 +318,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: zoneColor.withValues(alpha: 0.12),
-              borderRadius: context.tokens.br(4),
+              borderRadius: context.tokens.brXs,
             ),
             child: Text(
               '${currentZone.name} ${currentZone.label}',
@@ -370,7 +351,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: colorScheme.onSurface.withValues(alpha: 0.06),
-              borderRadius: context.tokens.br(4),
+              borderRadius: context.tokens.brXs,
             ),
             child: Text(
               'zzz ${_zoneProfile!.restingHeartRateBpm!.round()}',
@@ -383,390 +364,258 @@ class _HeartRateChartState extends State<HeartRateChart> {
             ),
           ),
         ],
-        if (widget.collapsible) ...[
-          const SizedBox(width: 6),
-          Icon(
-            _collapsed ? AppIcons.expandDown : AppIcons.expandUp,
-            color: colorScheme.tertiary,
-          ),
-        ],
       ],
     );
 
-    final collapsedHeader = Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'HEART RATE',
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            fontWeight: context.tokens.weight.bold,
-            letterSpacing: 1.5,
-            color: colorScheme.tertiary,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: SizedBox(
-            height: 24,
-            child: CustomPaint(
-              painter: HeartRateTrendPainter(samples: available, zones: zones),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          '${currentBpm.round()}',
-          style: TextStyle(
-            fontSize: context.tokens.size.titleLg,
-            fontWeight: context.tokens.weight.heavy,
-            height: 1.0,
-            color: zoneColor,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          'BPM',
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            fontWeight: context.tokens.weight.bold,
-            color: colorScheme.tertiary,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Icon(AppIcons.expandDown, color: colorScheme.tertiary),
-      ],
-    );
+        // A finished workout has no "now" to read a current BPM from.
+        if (widget.followLiveClock) header,
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 320,
+          child: LayoutBuilder(
+            builder: (context, constraints) => GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: (details) {
+                _gestureStartWindowStartSec = minX;
+                _gestureStartWindowSpanSec = maxX - minX;
+                _gestureStartLocalFocalX = details.localFocalPoint.dx;
+              },
+              onScaleUpdate: (details) {
+                final width = constraints.maxWidth;
+                final startStart = _gestureStartWindowStartSec;
+                final startSpan = _gestureStartWindowSpanSec;
+                final startFocalX = _gestureStartLocalFocalX;
+                if (width <= 0 ||
+                    startStart == null ||
+                    startSpan == null ||
+                    startFocalX == null) {
+                  return;
+                }
 
-    return Container(
-      padding: widget.fullView ? EdgeInsets.zero : const EdgeInsets.all(12),
-      decoration: widget.fullView
-          ? null
-          : BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: context.tokens.br(12),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.35),
-              ),
-            ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // A finished workout has no "now" to read a current BPM from.
-          if (widget.followLiveClock)
-            InkWell(
-              borderRadius: context.tokens.br(8),
-              onTap: widget.collapsible
-                  ? () => setState(() => _collapsed = !_collapsed)
-                  : null,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                child: _collapsed && widget.collapsible
-                    ? KeyedSubtree(
-                        key: const ValueKey('collapsed-hr-header'),
-                        child: collapsedHeader,
-                      )
-                    : KeyedSubtree(
-                        key: const ValueKey('expanded-hr-header'),
-                        child: expandedHeader,
-                      ),
-              ),
-            ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 240),
-            curve: Curves.easeInOutCubic,
-            alignment: Alignment.topCenter,
-            child: ClipRect(
-              child: _collapsed && widget.collapsible
-                  ? const SizedBox.shrink()
-                  : Column(
-                      children: [
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: widget.fullView ? 320 : 160,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) => GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onScaleStart: (details) {
-                                _gestureStartWindowStartSec = minX;
-                                _gestureStartWindowSpanSec = maxX - minX;
-                                _gestureStartLocalFocalX =
-                                    details.localFocalPoint.dx;
-                              },
-                              onScaleUpdate: (details) {
-                                final width = constraints.maxWidth;
-                                final startStart = _gestureStartWindowStartSec;
-                                final startSpan = _gestureStartWindowSpanSec;
-                                final startFocalX = _gestureStartLocalFocalX;
-                                if (width <= 0 ||
-                                    startStart == null ||
-                                    startSpan == null ||
-                                    startFocalX == null) {
-                                  return;
-                                }
+                final clampedScale = details.scale.clamp(0.5, 4.0);
+                var newSpan = (startSpan / clampedScale).clamp(
+                  _minWindowSeconds,
+                  _maxWindowSeconds,
+                );
 
-                                final clampedScale = details.scale.clamp(
-                                  0.5,
-                                  4.0,
-                                );
-                                var newSpan = (startSpan / clampedScale).clamp(
-                                  _minWindowSeconds,
-                                  _maxWindowSeconds,
-                                );
+                final startFrac = (startFocalX / width).clamp(0.0, 1.0);
+                final currFrac = (details.localFocalPoint.dx / width).clamp(
+                  0.0,
+                  1.0,
+                );
+                final focalTimeAtStart = startStart + startSpan * startFrac;
+                var newStart = focalTimeAtStart - newSpan * currFrac;
 
-                                final startFrac = (startFocalX / width).clamp(
-                                  0.0,
-                                  1.0,
-                                );
-                                final currFrac =
-                                    (details.localFocalPoint.dx / width).clamp(
-                                      0.0,
-                                      1.0,
-                                    );
-                                final focalTimeAtStart =
-                                    startStart + startSpan * startFrac;
-                                var newStart =
-                                    focalTimeAtStart - newSpan * currFrac;
-
-                                final clamped = _clampViewport(
-                                  startSec: newStart,
-                                  spanSec: newSpan,
-                                  domainMaxX: domainMaxX,
-                                );
-                                setState(() {
-                                  _hasManualViewport = true;
-                                  if (widget.followLiveClock) {
-                                    _isLiveViewport = false;
-                                  }
-                                  _manualWindowStartSec = clamped.startSec;
-                                  _manualWindowSpanSec = clamped.spanSec;
-                                });
-                              },
-                              child: LineChart(
-                                LineChartData(
-                                  minX: minX,
-                                  maxX: maxX,
-                                  minY: minY,
-                                  maxY: maxY,
-                                  clipData: const FlClipData.all(),
-                                  lineTouchData: const LineTouchData(
-                                    enabled: false,
+                final clamped = _clampViewport(
+                  startSec: newStart,
+                  spanSec: newSpan,
+                  domainMaxX: domainMaxX,
+                );
+                setState(() {
+                  _hasManualViewport = true;
+                  if (widget.followLiveClock) {
+                    _isLiveViewport = false;
+                  }
+                  _manualWindowStartSec = clamped.startSec;
+                  _manualWindowSpanSec = clamped.spanSec;
+                });
+              },
+              child: LineChart(
+                LineChartData(
+                  minX: minX,
+                  maxX: maxX,
+                  minY: minY,
+                  maxY: maxY,
+                  clipData: const FlClipData.all(),
+                  lineTouchData: const LineTouchData(enabled: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: leftAxisWidth,
+                        interval: 10,
+                        minIncluded: false,
+                        maxIncluded: false,
+                        getTitlesWidget: (value, meta) {
+                          final bpm = value.round();
+                          final boundaryValues = <int>{
+                            0,
+                            ...zones.map((z) => z.low),
+                            ...zones.map((z) => z.high),
+                          };
+                          if (boundaryValues.contains(bpm)) {
+                            return SideTitleWidget(
+                              meta: meta,
+                              space: _axisGap,
+                              fitInside: SideTitleFitInsideData.fromTitleMeta(
+                                meta,
+                              ),
+                              child: Text(
+                                '$bpm',
+                                maxLines: 1,
+                                softWrap: false,
+                                style: TextStyle(
+                                  fontSize: context.tokens.size.caption,
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: 0.4,
                                   ),
-                                  titlesData: FlTitlesData(
-                                    leftTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize: leftAxisWidth,
-                                        interval: 10,
-                                        minIncluded: false,
-                                        maxIncluded: false,
-                                        getTitlesWidget: (value, meta) {
-                                          final bpm = value.round();
-                                          final boundaryValues = <int>{
-                                            0,
-                                            ...zones.map((z) => z.low),
-                                            ...zones.map((z) => z.high),
-                                          };
-                                          if (boundaryValues.contains(bpm)) {
-                                            return SideTitleWidget(
-                                              meta: meta,
-                                              space: _axisGap,
-                                              fitInside:
-                                                  SideTitleFitInsideData.fromTitleMeta(
-                                                    meta,
-                                                  ),
-                                              child: Text(
-                                                '$bpm',
-                                                maxLines: 1,
-                                                softWrap: false,
-                                                style: TextStyle(
-                                                  fontSize: context
-                                                      .tokens
-                                                      .size
-                                                      .caption,
-                                                  color: colorScheme.onSurface
-                                                      .withValues(alpha: 0.4),
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                          return const SizedBox.shrink();
-                                        },
-                                      ),
-                                    ),
-                                    rightTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize: rightAxisWidth,
-                                        interval: 5,
-                                        minIncluded: false,
-                                        maxIncluded: false,
-                                        getTitlesWidget: (value, meta) {
-                                          for (final z in zones) {
-                                            final mid = (z.low + z.high) / 2.0;
-                                            if ((value - mid).abs() < 1 &&
-                                                zoneLabelFits(z)) {
-                                              return SideTitleWidget(
-                                                meta: meta,
-                                                space: _axisGap,
-                                                fitInside:
-                                                    SideTitleFitInsideData.fromTitleMeta(
-                                                      meta,
-                                                    ),
-                                                child: Text(
-                                                  z.name,
-                                                  maxLines: 1,
-                                                  softWrap: false,
-                                                  style: TextStyle(
-                                                    fontSize: context
-                                                        .tokens
-                                                        .size
-                                                        .caption,
-                                                    fontWeight: context
-                                                        .tokens
-                                                        .weight
-                                                        .bold,
-                                                    color: colorScheme.onSurface
-                                                        .withValues(
-                                                          alpha: 0.35,
-                                                        ),
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          }
-                                          return const SizedBox.shrink();
-                                        },
-                                      ),
-                                    ),
-                                    topTitles: const AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize: bottomAxisHeight,
-                                        interval: bottomInterval,
-                                        // The window's own ends aren't on
-                                        // the interval; their labels would
-                                        // land on the neighbours'.
-                                        minIncluded: false,
-                                        maxIncluded: false,
-                                        getTitlesWidget: (value, meta) {
-                                          if (value < 0 || value > maxX + 0.5) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return SideTitleWidget(
-                                            meta: meta,
-                                            space: 6,
-                                            fitInside:
-                                                SideTitleFitInsideData.fromTitleMeta(
-                                                  meta,
-                                                ),
-                                            child: Text(
-                                              formatElapsedHms(value.round()),
-                                              maxLines: 1,
-                                              softWrap: false,
-                                              style: TextStyle(
-                                                fontSize:
-                                                    context.tokens.size.caption,
-                                                color: colorScheme.onSurface
-                                                    .withValues(alpha: 0.45),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  gridData: const FlGridData(show: false),
-                                  borderData: FlBorderData(show: false),
-                                  rangeAnnotations: RangeAnnotations(
-                                    horizontalRangeAnnotations: const [],
-                                    verticalRangeAnnotations: restBands,
-                                  ),
-                                  extraLinesData: ExtraLinesData(
-                                    verticalLines: [
-                                      VerticalLine(
-                                        x: nowSec,
-                                        color: colorScheme.primary.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        strokeWidth: 1,
-                                        dashArray: [4, 4],
-                                      ),
-                                    ],
-                                  ),
-                                  lineBarsData: [
-                                    LineChartBarData(
-                                      spots: spots,
-                                      isCurved: true,
-                                      curveSmoothness: 0.2,
-                                      gradient: gradient,
-                                      barWidth: 2.0,
-                                      dotData: const FlDotData(show: false),
-                                      belowBarData: BarAreaData(show: false),
-                                    ),
-                                  ],
                                 ),
-                                duration: Duration.zero,
-                                transformationConfig:
-                                    const FlTransformationConfig(
-                                      scaleAxis: FlScaleAxis.none,
-                                    ),
                               ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Wrap(
-                                spacing: 10,
-                                runSpacing: 4,
-                                children: [
-                                  HeartRateLegendItem(
-                                    label: copy.workout.lifting,
-                                    color: context.tokens.workoutLiftingFg,
-                                  ),
-                                  HeartRateLegendItem(
-                                    label: copy.workout.resting,
-                                    color: context.tokens.workoutRestingFg,
-                                  ),
-                                  HeartRateLegendItem(
-                                    label: copy.workout.yapping,
-                                    color: context.tokens.workoutYappingFg,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (widget.followLiveClock) ...[
-                              const SizedBox(width: 8),
-                              _buildLiveWindowButton(
-                                context,
-                                label: '5m',
-                                spanSec: 300,
-                              ),
-                              const SizedBox(width: 6),
-                              _buildLiveWindowButton(
-                                context,
-                                label: '10m',
-                                spanSec: 600,
-                              ),
-                            ],
-                          ],
-                        ),
-                        if (widget.fullView) ...[
-                          const SizedBox(height: 18),
-                          ZoneSummary(samples: available, zones: zones),
-                        ],
-                      ],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: rightAxisWidth,
+                        interval: 5,
+                        minIncluded: false,
+                        maxIncluded: false,
+                        getTitlesWidget: (value, meta) {
+                          for (final z in zones) {
+                            final mid = (z.low + z.high) / 2.0;
+                            if ((value - mid).abs() < 1 && zoneLabelFits(z)) {
+                              return SideTitleWidget(
+                                meta: meta,
+                                space: _axisGap,
+                                fitInside: SideTitleFitInsideData.fromTitleMeta(
+                                  meta,
+                                ),
+                                child: Text(
+                                  z.name,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: TextStyle(
+                                    fontSize: context.tokens.size.caption,
+                                    fontWeight: context.tokens.weight.bold,
+                                    color: colorScheme.onSurface.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: bottomAxisHeight,
+                        interval: bottomInterval,
+                        // The window's own ends aren't on
+                        // the interval; their labels would
+                        // land on the neighbours'.
+                        minIncluded: false,
+                        maxIncluded: false,
+                        getTitlesWidget: (value, meta) {
+                          if (value < 0 || value > maxX + 0.5) {
+                            return const SizedBox.shrink();
+                          }
+                          return SideTitleWidget(
+                            meta: meta,
+                            space: 6,
+                            fitInside: SideTitleFitInsideData.fromTitleMeta(
+                              meta,
+                            ),
+                            child: Text(
+                              formatElapsedHms(value.round()),
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                fontSize: context.tokens.size.caption,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.45,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  rangeAnnotations: RangeAnnotations(
+                    horizontalRangeAnnotations: const [],
+                    verticalRangeAnnotations: restBands,
+                  ),
+                  extraLinesData: ExtraLinesData(
+                    verticalLines: [
+                      VerticalLine(
+                        x: nowSec,
+                        color: colorScheme.primary.withValues(alpha: 0.35),
+                        strokeWidth: 1,
+                        dashArray: [4, 4],
+                      ),
+                    ],
+                  ),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      curveSmoothness: 0.2,
+                      gradient: gradient,
+                      barWidth: 2.0,
+                      dotData: const FlDotData(show: false),
+                      belowBarData: BarAreaData(show: false),
+                    ),
+                  ],
+                ),
+                duration: Duration.zero,
+                transformationConfig: const FlTransformationConfig(
+                  scaleAxis: FlScaleAxis.none,
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                children: [
+                  HeartRateLegendItem(
+                    label: copy.workout.lifting,
+                    color: context.tokens.lifting,
+                  ),
+                  HeartRateLegendItem(
+                    label: copy.workout.resting,
+                    color: context.tokens.resting,
+                  ),
+                  HeartRateLegendItem(
+                    label: copy.workout.yapping,
+                    color: context.tokens.yapping,
+                  ),
+                ],
+              ),
+            ),
+            if (widget.followLiveClock) ...[
+              const SizedBox(width: 8),
+              _buildLiveWindowButton(context, label: '5m', spanSec: 300),
+              const SizedBox(width: 6),
+              _buildLiveWindowButton(context, label: '10m', spanSec: 600),
+            ],
+          ],
+        ),
+        const SizedBox(height: 18),
+        ZoneSummary(samples: heartRateSamples, zones: zones),
+      ],
     );
   }
 
@@ -826,9 +675,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return filtered.isEmpty ? samples.take(2).toList() : filtered;
   }
 
-  /// Two bands per done set: resting (blue) from its completion to its rest
-  /// target, cut short by the next Done; then yapping (pink) from the rest
-  /// target to the next Done, if the next set came after the rest ran out.
   /// The workout's phases as shaded bands: lifting (a set's start to its
   /// end), resting (the end to the rest's end) and yapping (rest over, next
   /// set not started). Live, the phase in progress runs to [nowSec].
@@ -871,12 +717,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
       final c = deduped[i];
       final ended = at(c.endedAt);
       if (c.startedAt > Int64.ZERO) {
-        band(
-          at(c.startedAt),
-          ended,
-          context.tokens.workoutLiftingFg,
-          alpha: 0.4,
-        );
+        band(at(c.startedAt), ended, context.tokens.lifting, alpha: 0.4);
       }
       // Where this set's rest-and-chat stops: the next set's start (its end
       // when its start wasn't recorded), or, live, the set now being lifted
@@ -891,14 +732,14 @@ class _HeartRateChartState extends State<HeartRateChart> {
       band(
         ended,
         stop == null ? restEnd : min(restEnd, stop),
-        context.tokens.workoutRestingFg,
+        context.tokens.resting,
       );
       if (stop != null) {
-        band(max(restEnd, ended), stop, context.tokens.workoutYappingFg);
+        band(max(restEnd, ended), stop, context.tokens.yapping);
       }
     }
     if (liveLiftStart != null) {
-      band(liveLiftStart, nowSec, context.tokens.workoutLiftingFg, alpha: 0.4);
+      band(liveLiftStart, nowSec, context.tokens.lifting, alpha: 0.4);
     }
     return bands;
   }
@@ -1001,25 +842,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return 900;
   }
 
-  Color _zoneColorForBpm(double bpm, List<HeartRateZone> zones) {
-    final zone = zoneFor(bpm, zones);
-    if (zone == null) return const Color(0xFF22C55E);
-    switch (zone.name) {
-      case 'Z1':
-        return const Color(0xFF22C55E);
-      case 'Z2':
-        return const Color(0xFFEAB308);
-      case 'Z3':
-        return const Color(0xFFF59E0B);
-      case 'Z4':
-        return const Color(0xFFEF4444);
-      case 'Z5':
-        return const Color(0xFFB91C1C);
-      default:
-        return const Color(0xFF22C55E);
-    }
-  }
-
   List<HeartRateZone> _zonesForMaxHr(int maxHr) {
     return HeartRateChart._zonePercents.map((z) {
       final low = (z.lowPct * maxHr).round();
@@ -1050,10 +872,4 @@ class _HeartRateChartState extends State<HeartRateChart> {
     }
     return out;
   }
-
-  /// A vertical, hard-stepped gradient that paints the line in its HR-zone
-  /// colour by y-position. Maps each zone's [low, high] bpm to a fraction of
-  /// the chart's y-range and repeats the colour at both ends for a sharp edge.
-
-  // ── Full-view summary: avg/max/min + time in zone ──
 }

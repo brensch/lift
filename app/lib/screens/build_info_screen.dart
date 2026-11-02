@@ -169,7 +169,7 @@ class _Section extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: context.tokens.br(12),
+            borderRadius: context.tokens.brMd,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(

@@ -105,7 +105,7 @@ class ExerciseSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      exerciseNames[block.exercise] ?? '?',
+                      exerciseName(block.exercise),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

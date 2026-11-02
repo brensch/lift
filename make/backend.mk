@@ -2,7 +2,7 @@
 # Split from the top-level Makefile; variables live there.
 
 .PHONY: run-backend run-backend-release run-backend-scratch agent-backend-start agent-backend-stop \
-	fuzz-api fuzz-api-ci progression-explorer run-prod check
+	fuzz-api fuzz-api-ci progression-explorer check
 
 STOP_LOCAL_BACKENDS = pkill -f "[t]arget/(debug|release)/schlift" || true
 
@@ -81,9 +81,6 @@ PROGRESSION_EXPLORER_OUT ?= .tmp/progression-explorer.html
 progression-explorer:
 	UPDATE_SCENARIOS=1 cargo test -p schlift-core --test progression_scenarios
 	node scripts/build_progression_explorer.mjs $(PROGRESSION_EXPLORER_OUT)
-
-run-prod:
-	docker-compose up --build
 
 check:
 	cargo check

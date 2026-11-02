@@ -23,7 +23,7 @@ class ProfilePreviewCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cs.surfaceContainerLowest,
-        borderRadius: context.tokens.br(16),
+        borderRadius: context.tokens.brLg,
         border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -34,7 +34,7 @@ class ProfilePreviewCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: accent,
               borderRadius: BorderRadius.horizontal(
-                left: context.tokens.radius(16),
+                left: Radius.circular(context.tokens.radiusLg),
               ),
             ),
             alignment: Alignment.center,
@@ -92,7 +92,7 @@ class EmojiChoiceChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      borderRadius: context.tokens.br(14),
+      borderRadius: context.tokens.brMd,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         width: 52,
@@ -102,7 +102,7 @@ class EmojiChoiceChip extends StatelessWidget {
           color: selected
               ? cs.primary.withValues(alpha: 0.12)
               : cs.surfaceContainerLowest,
-          borderRadius: context.tokens.br(14),
+          borderRadius: context.tokens.brMd,
           border: Border.all(
             color: selected ? cs.primary : cs.outline.withValues(alpha: 0.35),
             width: selected ? 2 : 1,

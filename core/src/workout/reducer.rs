@@ -1,10 +1,11 @@
 use super::*;
+use crate::history::done_set_ids;
 use crate::ids::{derived_id, Ids};
 use crate::pb::{
     AnswerRungRequest, EditCompletedSetRequest, RepsLeft, SkipWarmupsRequest, StartSetRequest,
     WeightChange, WeightChangeCause, Workout,
 };
-use crate::progress::compute_next_up_set;
+use crate::progress::{compute_next_up_set, is_done};
 use crate::weight_units::AppWeightUnit;
 
 const STATE_ALL_DONE: i32 = 1;
@@ -19,25 +20,6 @@ pub fn active_proposed_sets(proposed_sets: &[ProposedSet]) -> Vec<ProposedSet> {
         .filter(|set| !set.cancelled)
         .cloned()
         .collect()
-}
-
-pub fn workout_plan_change_stats_from_sets(
-    proposed_sets: &[ProposedSet],
-) -> WorkoutPlanChangeStats {
-    let cancelled_total = proposed_sets.iter().filter(|set| set.cancelled).count() as i32;
-    let cancelled_warmups = proposed_sets
-        .iter()
-        .filter(|set| set.cancelled && set.warmup)
-        .count() as i32;
-    let cancelled_working = proposed_sets
-        .iter()
-        .filter(|set| set.cancelled && !set.warmup)
-        .count() as i32;
-    WorkoutPlanChangeStats {
-        cancelled_total,
-        cancelled_warmups,
-        cancelled_working,
-    }
 }
 
 pub fn is_final_set_of_exercise_after_completion(
@@ -64,11 +46,7 @@ pub fn is_final_set_of_exercise_after_completion(
                 && set.id != proposed_set_id
                 && (current.warmup || !set.warmup)
         })
-        .any(|set| {
-            !completed_sets
-                .iter()
-                .any(|done| done.proposed_set_id == set.id && done.ended_at != 0)
-        })
+        .any(|set| !is_done(&set.id, completed_sets))
 }
 
 /// The most recently finished set, by `ended_at`.
@@ -83,7 +61,7 @@ fn last_done_set(completed_sets: &[CompletedSet]) -> Option<&CompletedSet> {
 /// `WorkoutState` in workout.proto): LIFTING while the marker points at a
 /// set that is still pending; otherwise, after a done set, RESTING while its
 /// rest runs and YAPPING once it has run out; READY before any set; ALL_DONE
-/// with nothing left. Mirrored in the app's `WorkoutProvider`.
+/// with nothing left.
 pub fn workout_state_snapshot(
     workout: &Workout,
     proposed_sets: &[ProposedSet],
@@ -99,11 +77,7 @@ pub fn workout_state_snapshot(
         let lifting = proposed_active
             .iter()
             .find(|p| p.id == workout.lifting_set_id)
-            .filter(|p| {
-                !completed_sets
-                    .iter()
-                    .any(|c| c.proposed_set_id == p.id && c.ended_at != 0)
-            });
+            .filter(|p| !is_done(&p.id, completed_sets));
         if let Some(set) = lifting {
             return WorkoutStateSnapshot {
                 state: STATE_LIFTING,
@@ -178,15 +152,21 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         })
         .map(|s| s.id.clone())
         .collect();
+    let first_time_set_ids = active
+        .proposed_sets
+        .iter()
+        .filter(|s| crate::progress::is_first_time(s, active))
+        .map(|s| s.id.clone())
+        .collect();
     GetWorkoutResponse {
         rung_question_set_id: rung_question(active).unwrap_or_default(),
         rung_outcomes: Vec::new(),
         passed_warmup_ids,
+        first_time_set_ids,
         workout: Some(active.workout.clone()),
         proposed_sets: active.proposed_sets.clone(),
         completed_sets: active.completed_sets.clone(),
         next_up_set,
-        plan_change_stats: Some(workout_plan_change_stats_from_sets(&active.proposed_sets)),
         state_snapshot,
         summary,
         exercise_logs: active.exercise_logs.clone(),
@@ -209,23 +189,6 @@ pub fn start_workout_response_from_active(
     }
 }
 
-pub fn active_from_get_workout_response(
-    resp: GetWorkoutResponse,
-) -> Result<WorkoutRecord, WorkoutError> {
-    let workout = resp
-        .workout
-        .ok_or_else(|| WorkoutError::internal("Checkpoint missing workout"))?;
-    Ok(WorkoutRecord {
-        exercise_logs: resp.exercise_logs,
-        ..WorkoutRecord::new(workout, resp.proposed_sets, resp.completed_sets)
-    })
-}
-
-/// Begin a set: the workout is LIFTING it until its Done. Open questions
-/// resolve first, as for Done, so a rung's would-be next set exists to be
-/// started. Starting a set already being lifted keeps its first start;
-/// starting another moves the start; a done, cancelled or unknown set is a
-/// no-op.
 /// "Skip all warmups": the exercise's undone warmups are marked skipped.
 /// Nothing is removed; they stay in the plan, nothing waits on them
 /// (`is_passed_warmup`), and doing one later still records it.
@@ -234,31 +197,29 @@ pub fn apply_skip_warmups_to_active(
     req: &SkipWarmupsRequest,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
-    let done: std::collections::HashSet<String> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .map(|c| c.proposed_set_id.clone())
-        .collect();
-    for set in workout_ref
-        .proposed_sets
-        .iter_mut()
-        .filter(|s| s.exercise == req.exercise && s.warmup && !s.cancelled && !done.contains(&s.id))
-    {
+    let done = done_set_ids(&workout_ref.completed_sets);
+    for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
+        s.exercise == req.exercise && s.warmup && !s.cancelled && !done.contains(s.id.as_str())
+    }) {
         set.skipped = true;
     }
     Ok(())
 }
 
+/// Begin a set: the workout is LIFTING it until its Done. Open questions
+/// resolve first, as for Done, so a rung's would-be next set exists to be
+/// started. Starting a set already being lifted keeps its first start;
+/// starting another moves the start; a done, cancelled or unknown set is a
+/// no-op.
 pub fn apply_start_set_to_active(
     workout_ref: &mut WorkoutRecord,
     req: &StartSetRequest,
     now: i64,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     let pending = workout_ref
         .proposed_sets
@@ -289,7 +250,7 @@ pub fn apply_complete_set_to_active(
     ids: &mut Ids,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     // Done is idempotent: a set already logged is never logged twice (a
     // re-sent watch intent, a double tap that raced the snapshot).
@@ -368,13 +329,13 @@ pub fn apply_edit_completed_set_to_active(
     at: i64,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     if req.actual_reps < 0 {
-        return Err(WorkoutError::failed_precondition("Reps out of range"));
+        return Err(WorkoutError::FailedPrecondition("Reps out of range"));
     }
     if !(0.0..=2000.0).contains(&req.actual_weight) {
-        return Err(WorkoutError::failed_precondition("Weight out of range"));
+        return Err(WorkoutError::FailedPrecondition("Weight out of range"));
     }
     let Some(idx) = workout_ref
         .completed_sets
@@ -481,12 +442,7 @@ fn resettle_rung(
     };
     let ours: std::collections::HashSet<String> =
         (0..64).map(|n| derived_id(completed_set_id, n)).collect();
-    let done: std::collections::HashSet<&str> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .map(|c| c.proposed_set_id.as_str())
-        .collect();
+    let done = done_set_ids(&workout_ref.completed_sets);
     let pending: Vec<&ProposedSet> = workout_ref
         .proposed_sets
         .iter()
@@ -510,12 +466,7 @@ pub fn rung_question(workout_ref: &WorkoutRecord) -> Option<String> {
     if workout_ref.workout.end_time > 0 {
         return None;
     }
-    let done: std::collections::HashSet<&str> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .map(|c| c.proposed_set_id.as_str())
-        .collect();
+    let done = done_set_ids(&workout_ref.completed_sets);
     let lifting = workout_ref.proposed_sets.iter().any(|s| {
         s.id == workout_ref.workout.lifting_set_id && !s.cancelled && !done.contains(s.id.as_str())
     });
@@ -555,7 +506,7 @@ pub fn apply_answer_rung_to_active(
     at: i64,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     let ranged = req.reps_left != RepsLeft::Unspecified as i32;
     let jumped = req.jump_lb != 0.0;
@@ -625,6 +576,17 @@ fn rung_of(workout_ref: &WorkoutRecord, completed_set_id: &str) -> Option<Propos
         .cloned()
 }
 
+/// What a finished rung leads to: another rung at a weight, or the ramp
+/// settled from a set's weight, reps and reserve.
+enum Next {
+    Rung(f32),
+    Settle {
+        weight: f32,
+        reps: i32,
+        reserve: f32,
+    },
+}
+
 /// The ramp rule, pure: what a done `rung` appends. Too heavy (fewer
 /// than `TOO_HEAVY_REPS` reps), with fewer than six rungs → the next rung
 /// a fifth lighter (`planning::stepped_down_calibration_weight`), though
@@ -675,66 +637,72 @@ pub fn would_append(
     let workout_id = &rung.workout_id;
     let more = rungs < planning::MAX_CALIBRATION_RUNGS;
     let too_heavy = done.actual_reps < planning::TOO_HEAVY_REPS;
-    let best_full = if too_heavy && more {
-        heaviest_full_rung(
+    let stepped = if too_heavy && more {
+        let best_full = heaviest_full_rung(
             proposed_sets,
             completed_sets,
             rung.exercise,
             completed_set_id,
-        )
+        );
+        match planning::stepped_down_calibration_weight(
+            rung.exercise,
+            lifted,
+            best_full.map(|(w, _, _)| w),
+            unit,
+        ) {
+            Some(weight) => Some(Next::Rung(weight)),
+            // Too heavy, and nothing loads between it and the heaviest
+            // rung done in full: the ramp ends at that rung, as if it had
+            // settled there.
+            None => best_full.map(|(weight, reps, reps_left)| Next::Settle {
+                weight,
+                reps,
+                reserve: crate::plan::answered_reserve(reps_left).unwrap_or(1.0),
+            }),
+        }
     } else {
         None
     };
-    let step_down = (too_heavy && more)
-        .then(|| {
-            planning::stepped_down_calibration_weight(
+    let next = stepped.unwrap_or_else(|| {
+        if full && !settled_by_answer && more {
+            Next::Rung(match answer {
+                Some(reserve) => {
+                    planning::answered_calibration_weight(rung.exercise, lifted, reserve, unit)
+                }
+                None if done.jump_lb > 0.0 => {
+                    planning::jumped_calibration_weight(rung.exercise, lifted, done.jump_lb, unit)
+                }
+                None => planning::next_calibration_weight(rung.exercise, rung.target_weight, unit),
+            })
+        } else {
+            // A too-heavy rung settles only when the ramp can go no further
+            // (the sixth rung, or nothing lighter loads): read as best it
+            // can be, with at least one rep.
+            Next::Settle {
+                weight: lifted,
+                reps: done.actual_reps.max(1),
+                reserve: match (full, answer) {
+                    (false, _) => 0.0,
+                    (true, Some(reserve)) => reserve,
+                    (true, None) => 1.0,
+                },
+            }
+        }
+    });
+    let mut appended = match next {
+        Next::Rung(weight) => vec![planning::calibration_set(workout_id, rung.exercise, weight)],
+        Next::Settle {
+            weight,
+            reps,
+            reserve,
+        } => {
+            let max = crate::plan::shown_max(weight, reps, reserve, 1, false).min(failure_cap(
+                proposed_sets,
+                completed_sets,
                 rung.exercise,
-                lifted,
-                best_full.as_ref().map(|(w, _, _)| *w),
-                unit,
-            )
-        })
-        .flatten();
-    let mut appended = if let Some(weight) = step_down {
-        vec![planning::calibration_set(workout_id, rung.exercise, weight)]
-    } else if let (true, Some((weight, reps, reps_left))) = (too_heavy && more, best_full) {
-        // Too heavy, and nothing loads between it and the heaviest rung
-        // done in full: the ramp ends at that rung, as if it had settled
-        // there.
-        let reserve = crate::plan::answered_reserve(reps_left).unwrap_or(1.0);
-        let max = crate::plan::shown_max(weight, reps, reserve, 1, false).min(failure_cap(
-            proposed_sets,
-            completed_sets,
-            rung.exercise,
-        ));
-        planning::working_sets_after_calibration(workout_id, decision, max, unit)
-    } else if full && !settled_by_answer && more {
-        let weight = match answer {
-            Some(reserve) => {
-                planning::answered_calibration_weight(rung.exercise, lifted, reserve, unit)
-            }
-            None if done.jump_lb > 0.0 => {
-                planning::jumped_calibration_weight(rung.exercise, lifted, done.jump_lb, unit)
-            }
-            None => planning::next_calibration_weight(rung.exercise, rung.target_weight, unit),
-        };
-        vec![planning::calibration_set(workout_id, rung.exercise, weight)]
-    } else {
-        let reserve = match (full, answer) {
-            (false, _) => 0.0,
-            (true, Some(reserve)) => reserve,
-            (true, None) => 1.0,
-        };
-        // A too-heavy rung settles only when the ramp can go no further
-        // (the sixth rung, or nothing lighter loads): read as best it can
-        // be, with at least one rep.
-        let reps = done.actual_reps.max(1);
-        let max = crate::plan::shown_max(lifted, reps, reserve, 1, false).min(failure_cap(
-            proposed_sets,
-            completed_sets,
-            rung.exercise,
-        ));
-        planning::working_sets_after_calibration(workout_id, decision, max, unit)
+            ));
+            planning::working_sets_after_calibration(workout_id, decision, max, unit)
+        }
     };
     for (n, set) in appended.iter_mut().enumerate() {
         set.id = derived_id(completed_set_id, n);
@@ -802,7 +770,7 @@ pub fn apply_delete_completed_set_to_active(
     req: &DeleteCompletedSetRequest,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     let rung = rung_of(workout_ref, &req.completed_set_id);
     workout_ref
@@ -1281,23 +1249,6 @@ mod tests {
             snap.state, STATE_ALL_DONE,
             "a cancelled warmup must not keep the workout in READY"
         );
-    }
-
-    // ── Plan change stats ───────────────────────────────────────────────────
-
-    #[test]
-    fn plan_change_stats_count_cancellations_by_kind() {
-        let mut sets = vec![
-            proposed("w-1", 0, true),
-            proposed("w-2", 1, true),
-            proposed("s-1", 2, false),
-        ];
-        sets[0].cancelled = true;
-        sets[2].cancelled = true;
-        let stats = workout_plan_change_stats_from_sets(&sets);
-        assert_eq!(stats.cancelled_total, 2);
-        assert_eq!(stats.cancelled_warmups, 1);
-        assert_eq!(stats.cancelled_working, 1);
     }
 
     // ── Exceptions: edit a done set ──────────────────────────────────────

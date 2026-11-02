@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Register a new Swift file in the committed Xcode project.
 
-app/ios/Runner.xcodeproj is committed and CI builds from it as-is (it is not
-regenerated from project.yml), so a .swift file that exists on disk but not in
-project.pbxproj is silently left out of the build. This adds the four entries a
-source file needs, by copying the ones of a sibling that is already in the same
-folder and target:
+app/ios/Runner.xcodeproj is committed and CI builds from it as-is, so a .swift
+file that exists on disk but not in project.pbxproj is silently left out of the
+build. This adds the four entries a source file needs, by copying the ones of a
+sibling that is already in the same folder and target:
 
     scripts/xcode_add_swift.py app/ios/SchliftWatch/PhoneConnector.swift \\
         app/ios/SchliftWatch/PhoneConnector+Messages.swift

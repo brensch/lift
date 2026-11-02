@@ -14,30 +14,6 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-class ExerciseCategory extends $pb.ProtobufEnum {
-  static const ExerciseCategory EXERCISE_CATEGORY_UNSPECIFIED =
-      ExerciseCategory._(
-          0, _omitEnumNames ? '' : 'EXERCISE_CATEGORY_UNSPECIFIED');
-  static const ExerciseCategory EXERCISE_CATEGORY_COMPOUND =
-      ExerciseCategory._(1, _omitEnumNames ? '' : 'EXERCISE_CATEGORY_COMPOUND');
-  static const ExerciseCategory EXERCISE_CATEGORY_AUXILIARY =
-      ExerciseCategory._(
-          2, _omitEnumNames ? '' : 'EXERCISE_CATEGORY_AUXILIARY');
-
-  static const $core.List<ExerciseCategory> values = <ExerciseCategory>[
-    EXERCISE_CATEGORY_UNSPECIFIED,
-    EXERCISE_CATEGORY_COMPOUND,
-    EXERCISE_CATEGORY_AUXILIARY,
-  ];
-
-  static final $core.List<ExerciseCategory?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 2);
-  static ExerciseCategory? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ExerciseCategory._(super.value, super.name);
-}
-
 /// How an exercise is loaded. Drives the equipment filter in the picker
 /// and the size of a progression step.
 class EquipmentKind extends $pb.ProtobufEnum {

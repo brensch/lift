@@ -53,10 +53,6 @@ class AppTheme {
     ),
   );
 
-  /// Translucent card fill used on the ground (text colour @ ~4%).
-  static Color cardFill(BuildContext context) =>
-      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04);
-
   /// Canonical elevated surface for a bottom sheet / dialog body (panel).
   static Color sheetColor(BuildContext context) =>
       Theme.of(context).bottomSheetTheme.backgroundColor ??
@@ -64,9 +60,7 @@ class AppTheme {
 
   static ThemeData build(ThemeSpec s) {
     final controlShape = RoundedRectangleBorder(borderRadius: s.brSm);
-    final buttonShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(s.buttonRadius),
-    );
+    final buttonShape = RoundedRectangleBorder(borderRadius: s.brMd);
     TextStyle buttonText(double size, FontWeight weight) => GoogleFonts.getFont(
       s.buttonFont,
       fontSize: size,
@@ -83,18 +77,16 @@ class AppTheme {
     final flatPanel = RoundedRectangleBorder(
       side: BorderSide(color: s.outline),
     );
-    final typography = s.isDark
-        ? Typography.material2021().white
-        : Typography.material2021().black;
+    final typography = Typography.material2021().black;
 
     return ThemeData(
       useMaterial3: true,
-      brightness: s.brightness,
+      brightness: Brightness.light,
       extensions: [s],
       scaffoldBackgroundColor: s.background,
       textTheme: _textTheme(typography, s),
       colorScheme: ColorScheme(
-        brightness: s.brightness,
+        brightness: Brightness.light,
         surface: s.background,
         onSurface: s.text,
         primary: s.primary,
@@ -251,15 +243,14 @@ class AppTheme {
 
     TextStyle? heading(
       TextStyle? style, {
-      required int weight,
+      required FontWeight weight,
       double? letterSpacing,
     }) {
       if (style == null) return null;
-      final w = (weight + s.headingWeightBoost).clamp(1, 9);
       return GoogleFonts.getFont(
         s.headingFont,
         textStyle: style,
-        fontWeight: FontWeight.values[w - 1],
+        fontWeight: weight,
         letterSpacing: letterSpacing ?? style.letterSpacing,
       );
     }
@@ -267,47 +258,47 @@ class AppTheme {
     return bodyText.copyWith(
       displayLarge: heading(
         scaled(bodyText.displayLarge),
-        weight: 9,
+        weight: FontWeight.w800,
         letterSpacing: -0.8,
       ),
       displayMedium: heading(
         scaled(bodyText.displayMedium),
-        weight: 9,
+        weight: FontWeight.w800,
         letterSpacing: -0.6,
       ),
       displaySmall: heading(
         scaled(bodyText.displaySmall),
-        weight: 9,
+        weight: FontWeight.w800,
         letterSpacing: -0.4,
       ),
       headlineLarge: heading(
         scaled(bodyText.headlineLarge),
-        weight: 8,
+        weight: FontWeight.w700,
         letterSpacing: -0.4,
       ),
       headlineMedium: heading(
         scaled(bodyText.headlineMedium),
-        weight: 8,
+        weight: FontWeight.w700,
         letterSpacing: -0.3,
       ),
       headlineSmall: heading(
         scaled(bodyText.headlineSmall),
-        weight: 8,
+        weight: FontWeight.w700,
         letterSpacing: -0.2,
       ),
       titleLarge: heading(
         scaled(bodyText.titleLarge),
-        weight: 8,
+        weight: FontWeight.w700,
         letterSpacing: -0.2,
       ),
       titleMedium: heading(
         scaled(bodyText.titleMedium),
-        weight: 6,
+        weight: FontWeight.w500,
         letterSpacing: -0.1,
       ),
       titleSmall: heading(
         scaled(bodyText.titleSmall),
-        weight: 6,
+        weight: FontWeight.w500,
         letterSpacing: -0.05,
       ),
       bodyLarge: scaled(bodyText.bodyLarge),

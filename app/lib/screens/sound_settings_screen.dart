@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
-import '../logic/audio.dart';
+import '../gen/copy.dart';
 import '../providers/sound_provider.dart';
 import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
@@ -13,7 +13,7 @@ class SoundSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final soundProvider = context.watch<SoundProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final presets = getPresets();
+    final presets = copy.sounds;
 
     return Scaffold(
       appBar: AppBar(title: PageTitle('Pick sound')),
@@ -23,7 +23,7 @@ class SoundSettingsScreen extends StatelessWidget {
             Divider(height: 1, color: colorScheme.outline),
         itemBuilder: (context, index) {
           final entry = presets[index];
-          final isSelected = entry.key == soundProvider.currentPreset;
+          final isSelected = entry.id == soundProvider.currentPreset;
 
           return ListTile(
             leading: Icon(
@@ -31,7 +31,7 @@ class SoundSettingsScreen extends StatelessWidget {
               color: isSelected ? colorScheme.primary : colorScheme.tertiary,
             ),
             title: Text(
-              entry.value.name,
+              entry.name,
               style: TextStyle(
                 fontWeight: isSelected
                     ? context.tokens.weight.bold
@@ -39,8 +39,8 @@ class SoundSettingsScreen extends StatelessWidget {
               ),
             ),
             onTap: () {
-              soundProvider.setPreset(entry.key);
-              soundProvider.playPreview(entry.key);
+              soundProvider.setPreset(entry.id);
+              soundProvider.playPreview(entry.id);
             },
           );
         },

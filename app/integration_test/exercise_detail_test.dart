@@ -1,5 +1,6 @@
-// Seeds progressive workouts, opens Progress, taps an exercise to open the new
-// per-lift detail view, and toggles Top-weight -> Est. 1RM.
+// Seeds progressive workouts, opens Progress, taps an exercise to open the
+// per-lift detail view: the estimated max now, the trend (the max after each
+// session with the heaviest set under it), the totals and every session.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -28,6 +29,7 @@ void main() {
       ]);
     }
     s.note('Seeded 5 progressive workouts', kind: 'api');
+    await s.waitForAppToCatchUp(api);
 
     await s.tap(find.byIcon(AppIcons.menu));
     await s.tapText('Progress');
@@ -37,21 +39,26 @@ void main() {
     // Open the Squat detail.
     await s.tapText('Squat');
     expect(
-      await s.waitForText('best est. 1RM', seconds: 6),
+      await s.waitForText('estimated max', seconds: 6),
       isTrue,
       reason: 'the exercise detail view should open',
     );
     expect(
-      s.isVisible('EVERY SESSION'),
+      s.isVisible('heaviest set last time'),
       isTrue,
-      reason: 'the per-session breakdown should render',
+      reason: 'the headline should show the last session beside the max',
     );
-    await s.shot('Exercise detail — top weight trend');
+    await s.shot('Exercise detail — the max and its trend');
 
-    // Toggle to the estimated-1RM trend.
-    await s.tapText('Est. 1RM');
-    await s.settle(seconds: 2);
-    await s.shot('Exercise detail — est. 1RM trend');
+    // The per-session breakdown: one row per seeded session.
+    await tester.ensureVisible(find.text('EVERY SESSION'));
+    await s.settle(seconds: 1);
+    expect(
+      find.textContaining(RegExp(r'^\d+ sets · ')),
+      findsNWidgets(5),
+      reason: 'every seeded session should have its row',
+    );
+    await s.shot('Exercise detail — every session');
 
     s.note('Exercise detail drill-down verified', kind: 'assert');
     await s.report();

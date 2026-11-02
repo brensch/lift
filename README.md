@@ -19,7 +19,7 @@ A strength-training app for phone and watch, with live group sessions.
   events, serves the template library (`templates/library.yaml`), runs
   multiplayer sessions. Every handler authenticates itself.
 - **Contract** (`proto/workout/v1/`): the only interface between all of the
-  above. Generated code is committed.
+  above. Generated code is committed, except Swift, which CI generates.
 - **Web** (`web/`, React): landing page, privacy, account deletion.
 
 Run: `make dev` (local backend + app with hot reload). Check: `make fmt`,

@@ -7,33 +7,17 @@ import 'package:path_provider/path_provider.dart';
 import '../gen/copy.dart';
 import '../gen/sounds.dart';
 
-/// One rest-over sound: a bundled WAV, named in app/copy.yaml.
-class SoundDef {
-  final String name;
-  const SoundDef({required this.name});
-
-  /// Flutter asset path, for previews.
-  String assetFor(String id) => 'assets/sounds/sound_$id.wav';
-}
-
-/// The presets, in picker order, from app/copy.yaml. The files themselves
-/// live in assets/sounds and are mirrored to Android and iOS by
-/// `make sounds`.
-final Map<String, SoundDef> soundPresets = {
-  for (final s in copy.sounds) s.id: SoundDef(name: s.name),
-};
+/// A rest-over sound's bundled WAV, as a Flutter asset path. The presets
+/// are copy.sounds, in picker order, from app/copy.yaml; the files live in
+/// assets/sounds and are mirrored to Android and iOS by `make sounds`.
+String soundAsset(String id) => 'assets/sounds/sound_$id.wav';
 
 /// The first listed preset; also what an unknown stored id falls back to.
 final String defaultSoundPreset = copy.sounds.first.id;
 
-/// [id] if it is a preset, otherwise the default. Old installs may have a
-/// preset that no longer exists stored in prefs.
+/// [id] if it is a preset, otherwise the default.
 String knownSoundPreset(String? id) =>
-    id != null && soundPresets.containsKey(id) ? id : defaultSoundPreset;
-
-List<MapEntry<String, SoundDef>> getPresets() {
-  return soundPresets.entries.toList();
-}
+    id != null && copy.sounds.any((s) => s.id == id) ? id : defaultSoundPreset;
 
 class SoundPlayer {
   final _players = <String, AudioPlayer>{};
@@ -84,7 +68,7 @@ class SoundPlayer {
     final file = File('${dir.path}/sound_$id.wav');
     if (!file.existsSync()) {
       await dir.create(recursive: true);
-      final data = await rootBundle.load(soundPresets[id]!.assetFor(id));
+      final data = await rootBundle.load(soundAsset(id));
       await file.writeAsBytes(
         data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
         flush: true,

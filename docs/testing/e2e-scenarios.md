@@ -61,7 +61,9 @@ so it's a single self-contained file).
 The live workout is sets as circles
 ([workout-lifecycle.md](../architecture/workout-lifecycle.md)): tap the
 up-next circle to start a set, tap it when done, once more per missed rep;
-all done is End workout. Every workout is planned when it starts. A
+all done is End workout. A calibration rung done in full asks "How many
+more could you have done?" in a dialog over the list; that dialog holds the
+rung's own circle, so a rep missed on a full rung is tapped off there. Every workout is planned when it starts. A
 brand-new user's first session of a loaded lift is a calibration ramp
 (5-rep rungs until a rep is missed, then the working sets from the max it
 found), not warmups + working sets, so scenarios that need the warmup
@@ -73,7 +75,7 @@ ladder seed a session through the API first.
 | `login_tabs_test.dart` | The NEW USER and SIGN IN tabs render their copy. |
 | `solo_onboarding_test.dart` | A new user dev-logs in and is routed to onboarding. |
 | `solo_onboarding_full_test.dart` | The whole onboarding flow (marker → unit → strength → bodyweight → templates) → home with START. |
-| `solo_workout_test.dart` | START opens the live workout on a calibration rung; a full rung climbs to the next, a rep tapped off settles the working weight. |
+| `solo_workout_test.dart` | START opens the live workout on a calibration rung; a full rung climbs to the next and asks how many more, a rep tapped off on the dialog's circle settles the working weight. |
 | `solo_workout_finish_test.dart` | Done, then End workout through the confirm dialog → the summary with Duration / Volume / Sets / Rest. |
 | `solo_workout_full_test.dart` | Plays an entire workout on its circles (bounded by actions, as the ramp grows the plan) to "All sets complete"; the backend holds exactly one completion per set; ends on the summary. |
 | `skip_warmups_test.dart` | With API-seeded history the next session opens with warmups; "Skip" on the warmup row marks them skipped (none removed), up next moves to the first working set, and a skipped warmup can still be done. |
@@ -81,13 +83,13 @@ ladder seed a session through the API first.
 | `workout_backend_sync_test.dart` | A set logged with Done is in the backend's active workout. |
 | `workout_home_after_finish_test.dart` | A first session calibrated and finished in the app, ended from the UI: the summary shows the calibrated weight and the next plan builds on it. |
 | `multiplayer_peer_test.dart` | An API peer joins; the app shows the 2-person session. |
-| `multiplayer_leave_test.dart` | The app tracks a peer joining *and* leaving in real time. |
+| `multiplayer_leave_test.dart` | The app tracks a peer joining, then the app user leaving, in real time. |
 | `multiplayer_workout_progress_test.dart` | A peer joining mid-workout shows on the workout screen; the app user's own workout stays intact. |
 | `join_request_test.dart` | A train-together request must be approved from the app's banner. |
 | `training_partners_test.dart` | Training-together history is durable (backend + the FRIENDS list in the multiplayer sheet). |
-| `history_with_partner_test.dart` | A group workout shows "with <name>" in History. |
+| `history_with_partner_test.dart` | A workout trained in the app while in a session records it, and History shows "with <name>". |
 | `history_graphs_test.dart` | Progress and History render over API-seeded sessions. |
-| `exercise_detail_test.dart` | The per-lift detail view and its Top weight / Est. 1RM toggle. |
+| `exercise_detail_test.dart` | The per-lift detail view: the estimated max, its trend and a row per session. |
 | `settings_shot_test.dart` | Captures the Settings screen. |
 | `store_shots_test.dart` | The store slides (home, progress, detail, history, a working set ready, resting, the Heart tab, the completed screen). The capture half of `make store-capture`; on the unseeded e2e backend it onboards `demo` / `demo-live` and seeds a thin history over the API so the same script runs. |
 
@@ -134,11 +136,14 @@ Key `Scenario` methods:
 | `completeOnboarding()` | Walk onboarding with the defaults, skip the tutorial, land on home. No-op for a returning user. |
 | `skipTutorial()` | Dismiss the first-run walkthrough if it is showing. |
 | `startWorkoutFromHome()` | Tap START and wait for the bar's Done. |
-| `liftSet(missed:)` | Start the up-next set on its circle, finish it, tap off missed reps. |
+| `liftSet(missed:, rungAnswer:)` | Start the up-next set on its circle, finish it, tap off missed reps. A full calibration rung's question is answered `rungAnswer` (0–1 by default: the ramp ends); missed reps on a rung are tapped on the dialog's circle, then OK. |
+| `startWorkoutInApp` / `finishWorkoutInApp` / `doWorkoutInApp` | A workout through the app's own account (overrides set, every working set done, ended). |
 | `endWorkoutAndWaitForSummary()` | End workout → confirm dialog → "Session snapshot". |
 | `tap(finder)` / `tapText(label)` | Scroll into view, then tap. |
 | `typeInto(field, text)` | Focus and enter text. |
 | `waitForText(text)` / `mustSee(text)` | Poll until text appears (backend round-trips are async); `mustSee` throws with what *was* on screen. |
+| `waitForSessionOf(n)` / `waitForSolo()` | Poll the header's multiplayer badge: `n` people, or no count at all. |
+| `waitForAppToCatchUp(peer)` | After a peer signed in as the app's own user seeded history, wait until the app has pulled all of it. |
 | `expectVisible` / `isVisible` | Assert / query on-screen text. |
 | `scroll(dy)` | Drag the nearest scrollable. |
 | `shot(title, note:)` | Screenshot + record a report step. |
@@ -164,6 +169,15 @@ One phone records an account, so a peer logged in as the app's own user only
 reads: once it adopts the app's workout (`adoptActiveWorkout`) a write
 throws. Reads pull the account's log into the peer's core and answer from it,
 exactly as a reinstalled phone would.
+
+The one exception is seeding history before the app does anything: a peer
+as the app's user can `doWorkout` while the app sits idle on a screen. The
+app pulls those events when its stream next reports the server's head (its
+heartbeat, every 5 s), and until then it can show the account mid-seed — a
+seeded workout half done, live. Follow a seed with
+`s.waitForAppToCatchUp(peer)`. A workout that must carry the app's session
+(trained with someone) has to be done in the app (`doWorkoutInApp`): the
+phone records the session on its workout, a peer's write does not.
 
 See `integration_test/support/api.dart` for `Peer` (invite/join, start workout,
 complete sets, end workout, leave session, add library templates, training

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
     expires_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at);
 
 CREATE TABLE IF NOT EXISTS passkey_credentials (
     credential_id TEXT PRIMARY KEY,
@@ -49,7 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id
 -- synced. Everything about a person's training is the fold of their log;
 -- the workout tables (schlift_core::projection::WORKOUT_SCHEMA) are
 -- projections of it, rewritten whenever a workout's events arrive, for SQL
--- analytics and multiplayer history.
+-- analytics.
 CREATE TABLE IF NOT EXISTS account_events (
     user_id TEXT NOT NULL,
     seq INTEGER NOT NULL,
@@ -59,11 +60,8 @@ CREATE TABLE IF NOT EXISTS account_events (
 
 CREATE TABLE IF NOT EXISTS user_current_session (
     user_id TEXT PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    joined_at INTEGER NOT NULL
+    session_id TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_user_current_session_session
-    ON user_current_session(session_id);
 
 CREATE TABLE IF NOT EXISTS session_participants_current (
     session_id TEXT NOT NULL,
@@ -83,17 +81,15 @@ CREATE TABLE IF NOT EXISTS session_members (
     session_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     first_joined_at INTEGER NOT NULL,
-    last_seen_at INTEGER NOT NULL,
     left_at INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY(session_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_session_members_user
     ON session_members(user_id, first_joined_at DESC);
-CREATE INDEX IF NOT EXISTS idx_session_members_session
-    ON session_members(session_id);
 
 -- Pending "train together" requests: from_user asks to_user; to_user approves or
--- declines. Rows are deleted once answered (or when they expire on read).
+-- declines. Rows are deleted once answered; older than the TTL they are no
+-- longer shown or answerable.
 CREATE TABLE IF NOT EXISTS join_requests (
     request_id TEXT PRIMARY KEY,
     from_user_id TEXT NOT NULL,
@@ -170,13 +166,81 @@ pub struct ServerDb {
 
 /// Columns of the projected tables added after the table already existed
 /// in production: `CREATE TABLE IF NOT EXISTS` leaves an old table as it
-/// was, so each is added at startup when it is missing. Columns the
-/// projections no longer write stay, with their defaults.
+/// was, so each is added at startup when it is missing, before
+/// `rekey_workout_tables` copies the schema's columns into the rekeyed table.
 const ADDED_COLUMNS: &[(&str, &str, &str)] = &[(
     "proposed_sets",
     "rest_seconds",
     "INTEGER NOT NULL DEFAULT 0",
 )];
+
+/// Columns no longer in the schema, dropped at startup from a table that
+/// still has them: each is `NOT NULL` without a default, so an insert that
+/// leaves it out would fail.
+const DROPPED_COLUMNS: &[(&str, &str)] = &[
+    ("user_current_session", "joined_at"),
+    ("session_members", "last_seen_at"),
+];
+
+/// Indexes no longer in either schema, dropped at startup so writes stop
+/// maintaining them.
+const DROPPED_INDEXES: &[&str] = &[
+    "idx_session_members_session",
+    "idx_workouts_session",
+    "idx_completed_sets_proposed",
+    "idx_user_current_session_session",
+];
+
+/// Rebuild each workout table still keyed by `id` alone with the schema's
+/// `(user_id, id)` key, copying its rows, so one account's ids can never
+/// collide with another's.
+async fn rekey_workout_tables(pool: &Pool<Sqlite>) -> DbResult<()> {
+    let schema = schlift_core::projection::WORKOUT_SCHEMA;
+    let mut rebuilt = false;
+    for statement in schema.split(';') {
+        // A statement may start with its comment.
+        let Some(start) = statement.find("CREATE TABLE IF NOT EXISTS ") else {
+            continue;
+        };
+        let create = &statement[start..];
+        let rest = &create["CREATE TABLE IF NOT EXISTS ".len()..];
+        let table = rest.split_whitespace().next().unwrap_or_default();
+        let wanted = create.contains("PRIMARY KEY (user_id, id)");
+        let keys: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM pragma_table_info(?) WHERE pk > 0")
+                .bind(table)
+                .fetch_one(pool)
+                .await?;
+        if !wanted || keys != 1 {
+            continue;
+        }
+        let new = format!("{table}_rekeyed");
+        let mut tx = pool.begin().await?;
+        sqlx::query(&create.replacen(table, &new, 1))
+            .execute(&mut *tx)
+            .await?;
+        let columns: Vec<String> = sqlx::query_scalar("SELECT name FROM pragma_table_info(?)")
+            .bind(&new)
+            .fetch_all(&mut *tx)
+            .await?;
+        let columns = columns.join(", ");
+        for sql in [
+            format!("INSERT INTO {new} ({columns}) SELECT {columns} FROM {table}"),
+            format!("DROP TABLE {table}"),
+            format!("ALTER TABLE {new} RENAME TO {table}"),
+        ] {
+            sqlx::query(&sql).execute(&mut *tx).await?;
+        }
+        tx.commit().await?;
+        tracing::info!(table, "rekeyed by (user_id, id)");
+        rebuilt = true;
+    }
+    if rebuilt {
+        // Dropping a table drops its indexes; the schema makes them again.
+        sqlx::query(schema).execute(pool).await?;
+    }
+    Ok(())
+}
 
 impl ServerDb {
     pub async fn new_in_dir(data_dir: impl AsRef<Path>) -> DbResult<Self> {
@@ -216,6 +280,25 @@ impl ServerDb {
                 .await?;
             }
         }
+        for (table, column) in DROPPED_COLUMNS {
+            let has: bool =
+                sqlx::query_scalar("SELECT COUNT(*) > 0 FROM pragma_table_info(?) WHERE name = ?")
+                    .bind(table)
+                    .bind(column)
+                    .fetch_one(&write_pool)
+                    .await?;
+            if has {
+                sqlx::query(&format!("ALTER TABLE {table} DROP COLUMN {column}"))
+                    .execute(&write_pool)
+                    .await?;
+            }
+        }
+        for index in DROPPED_INDEXES {
+            sqlx::query(&format!("DROP INDEX IF EXISTS {index}"))
+                .execute(&write_pool)
+                .await?;
+        }
+        rekey_workout_tables(&write_pool).await?;
         Ok(Self {
             read_pool,
             write_pool,
@@ -232,5 +315,38 @@ impl ServerDb {
     fn notify(&self, change: Change) {
         // No receivers is fine: nobody is watching.
         let _ = self.changes.send(change);
+    }
+}
+
+#[cfg(test)]
+mod schema_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn dropped_columns_are_dropped_from_an_existing_table() {
+        let dir = std::env::temp_dir().join(format!("lift-schema-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        for (table, column) in DROPPED_COLUMNS {
+            sqlx::query(&format!(
+                "ALTER TABLE {table} ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0"
+            ))
+            .execute(&db.write_pool)
+            .await
+            .unwrap();
+        }
+        drop(db);
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        for (table, column) in DROPPED_COLUMNS {
+            let has: bool =
+                sqlx::query_scalar("SELECT COUNT(*) > 0 FROM pragma_table_info(?) WHERE name = ?")
+                    .bind(table)
+                    .bind(column)
+                    .fetch_one(&db.read_pool)
+                    .await
+                    .unwrap();
+            assert!(!has, "{table}.{column} is still there");
+        }
+        db.set_user_current_session("u", "s").await.unwrap();
+        db.upsert_session_member("s", "u").await.unwrap();
     }
 }

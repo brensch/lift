@@ -201,7 +201,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                       style: TextStyle(
                         fontSize: context.tokens.size.small,
                         fontStyle: FontStyle.italic,
-                        color: Colors.grey,
+                        color: context.tokens.muted,
                       ),
                     ),
                   ),
@@ -269,7 +269,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
         Container(
           decoration: BoxDecoration(
             color: colorScheme.surface,
-            borderRadius: context.tokens.br(8),
+            borderRadius: context.tokens.brSm,
             border: Border.all(
               color: colorScheme.outline.withValues(alpha: 0.3),
             ),

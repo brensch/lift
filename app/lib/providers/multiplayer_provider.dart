@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 import '../gen/workout/v1/group.pb.dart';
-import '../logic/utils.dart';
+import '../services/grpc_client.dart';
 import '../services/account_sync.dart';
 import '../services/app_logger.dart';
 import '../services/error_modal_service.dart';
@@ -123,12 +123,6 @@ class MultiplayerProvider extends ChangeNotifier {
     _heard();
   }
 
-  void stopSync({bool clearSession = true, bool clearInviteToken = false}) {
-    _syncEnabled = false;
-    if (clearSession) _apply(GetCurrentSessionResponse());
-    if (clearInviteToken) _myInviteToken = null;
-  }
-
   /// Ask for the session now, rather than waiting for the stream (straight
   /// after joining).
   Future<void> checkForSession() async {
@@ -172,8 +166,6 @@ class MultiplayerProvider extends ChangeNotifier {
       }
     });
   }
-
-  Future<String?> refreshInviteToken() => _ensureInviteToken();
 
   /// Accepts either a raw invite token or a share URL containing `?join=<token>`.
   Future<String?> joinViaInvite(String tokenOrUrl) async {
@@ -232,7 +224,9 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   void clear() {
-    stopSync(clearSession: true, clearInviteToken: true);
+    _syncEnabled = false;
+    _apply(GetCurrentSessionResponse());
+    _myInviteToken = null;
   }
 
   @override

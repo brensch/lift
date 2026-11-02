@@ -25,7 +25,6 @@ Configuration comes from environment variables, read once at construction:
 | `WEBAUTHN_RP_ID` | Relying party id (the domain) | `localhost` |
 | `WEBAUTHN_RP_ORIGIN` | Expected origin | `http://localhost:5173` |
 | `WEBAUTHN_ANDROID_ORIGINS` | Comma-separated `android:apk-key-hash:…` origins | — |
-| `WEBAUTHN_ANDROID_ORIGIN` | Single-origin fallback | — |
 
 Android apps present an APK-signing-key-hash origin rather than a URL, so every
 signing key that ships (debug, upload, Play signing) needs its hash listed or
@@ -158,7 +157,9 @@ Pending challenges live in process memory with a 300-second TTL
 (`CHALLENGE_TTL_SECS`). Expired entries are swept lazily on the next
 `start_registration` / `start_authentication`, not by a background task — so a
 quiet server holds expired challenges until the next login attempt. Bounded by
-traffic, not by time.
+traffic, not by time: a start is refused once its client (the address, or an
+IPv6 /64) holds `MAX_PENDING_PER_CLIENT` unexpired ceremonies of that kind, or
+everyone together holds `MAX_PENDING_CHALLENGES`.
 
 **This makes the backend single-instance.** A challenge issued by one process
 cannot be completed by another, so the service cannot be horizontally scaled or
@@ -175,7 +176,7 @@ needs challenges in shared storage.
 
 A friendly name is stored by injecting a `cred_name` key into the serialised
 credential JSON rather than as its own column
-(`src/auth.rs:123`). It travels with the credential, but it is not queryable.
+(`stored_passkey_json` in `src/auth.rs`). It travels with the credential, but it is not queryable.
 
 > Deleting your last passkey locks you out permanently — there is no recovery
 > channel. The client warns about this in `PasskeysScreen`.

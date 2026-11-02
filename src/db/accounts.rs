@@ -9,23 +9,33 @@ use std::time::Instant;
 use schlift::workout::v1::{event, workout_mutation::Mutation, Event, WorkoutMutation};
 use schlift_core::account::{event_workout_ids, Account};
 use schlift_core::history::WorkoutRecord;
-use schlift_core::projection::{workout_statements, Value};
+use schlift_core::projection::{heart_rate_statements, workout_statements, Statement, Value};
 use tokio::sync::Mutex;
 
 use super::*;
 
 /// Accounts folded in memory, by user, with when each was last used. One
 /// lock per account: pushes to one account are serialised, different
-/// accounts don't wait on each other. Bounded: past `CACHED_ACCOUNTS` the
-/// least recently used is dropped, and refolded from its log if it's needed
-/// again — the people training right now stay, everyone else costs nothing.
+/// accounts don't wait on each other, nor on one being read in from its log.
+/// Bounded: past `CACHED_ACCOUNTS` the least recently used is dropped, and
+/// refolded from its log if it's needed again — the people training right
+/// now stay, everyone else costs nothing.
 #[derive(Default)]
 pub(super) struct AccountCache(Mutex<HashMap<String, Cached>>);
 
-/// One folded account and when it was last used.
-type Cached = (Arc<Mutex<Account>>, Instant);
+/// One account, `None` if reading it in from its log failed, and when it
+/// was last used.
+type Cached = (Slot, Instant);
+type Slot = Arc<Mutex<Option<Account>>>;
 
 const CACHED_ACCOUNTS: usize = 256;
+
+/// The account's log could not be read in (the request that tried was told
+/// why); this request is refused too, and the next one tries again.
+const NOT_LOADED: &str = "account did not load";
+
+/// The account was deleted (or never existed): nothing is stored for it.
+const NO_ACCOUNT: &str = "no such account";
 
 /// A device pushed a log that disagrees with the one the server holds: two
 /// devices recorded the same account. Nothing is merged.
@@ -44,8 +54,9 @@ impl std::error::Error for Diverged {}
 pub struct Pushed {
     /// The last seq the server now holds.
     pub head: i64,
-    /// Some event was new.
-    pub changed: bool,
+    /// Some new event was more than heart rate: what session partners see
+    /// may have moved on.
+    pub progressed: bool,
     /// The workout that ended in this push, if one did.
     pub ended_workout: Option<String>,
 }
@@ -66,14 +77,17 @@ fn undecided(event: &Event) -> bool {
 }
 
 impl ServerDb {
-    async fn account_lock(&self, user_id: &str) -> DbResult<Arc<Mutex<Account>>> {
+    /// The user's account slot. On a miss the slot is cached first and
+    /// filled after, under its own lock, so the read and fold of one log
+    /// holds up only that account.
+    async fn account_lock(&self, user_id: &str) -> DbResult<Slot> {
         let mut cache = self.accounts.0.lock().await;
         if let Some((account, used)) = cache.get_mut(user_id) {
             *used = Instant::now();
             return Ok(account.clone());
         }
-        let events = self.events_after(user_id, 0).await?;
-        let account = Arc::new(Mutex::new(Account::fold(&events)));
+        let slot: Slot = Arc::default();
+        let mut loading = slot.clone().lock_owned().await;
         if cache.len() >= CACHED_ACCOUNTS {
             let oldest = cache
                 .iter()
@@ -83,8 +97,31 @@ impl ServerDb {
                 cache.remove(&oldest);
             }
         }
-        cache.insert(user_id.to_string(), (account.clone(), Instant::now()));
-        Ok(account)
+        cache.insert(user_id.to_string(), (slot.clone(), Instant::now()));
+        drop(cache);
+        match self.events_after(user_id, 0).await {
+            Ok(events) => {
+                *loading = Some(Account::fold(&events));
+                Ok(slot)
+            }
+            Err(error) => {
+                // Left empty, so anyone already waiting on it is refused, and
+                // dropped, so the next request reads the log again.
+                self.forget_slot(user_id, &slot).await;
+                Err(error)
+            }
+        }
+    }
+
+    /// Drop the user's cached account, if it is still this one.
+    async fn forget_slot(&self, user_id: &str, slot: &Slot) {
+        let mut cache = self.accounts.0.lock().await;
+        if cache
+            .get(user_id)
+            .is_some_and(|(cached, _)| Arc::ptr_eq(cached, slot))
+        {
+            cache.remove(user_id);
+        }
     }
 
     /// Look at a user's account.
@@ -95,7 +132,20 @@ impl ServerDb {
     ) -> DbResult<R> {
         let lock = self.account_lock(user_id).await?;
         let account = lock.lock().await;
-        Ok(read(&account))
+        let account = account.as_ref().ok_or(NOT_LOADED)?;
+        Ok(read(account))
+    }
+
+    /// The last seq the server holds for the user. Read from the log, not
+    /// the account cache, so asking keeps no account folded in memory.
+    pub async fn head(&self, user_id: &str) -> DbResult<i64> {
+        let head: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(MAX(seq), 0) FROM account_events WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .fetch_one(&self.read_pool)
+        .await?;
+        Ok(head)
     }
 
     /// The user's events after `after_seq`, in order.
@@ -119,7 +169,8 @@ impl ServerDb {
     /// it did on the phone — and the workouts they touch are projected.
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let lock = self.account_lock(user_id).await?;
-        let mut account = lock.lock().await;
+        let mut guard = lock.lock().await;
+        let account = guard.as_mut().ok_or(NOT_LOADED)?;
         let mut new = Vec::new();
         let mut head = account.seq;
         if let Some(first) = events.first().filter(|e| e.seq <= head) {
@@ -149,7 +200,7 @@ impl ServerDb {
         if new.is_empty() {
             return Ok(Pushed {
                 head,
-                changed: false,
+                progressed: false,
                 ended_workout: None,
             });
         }
@@ -161,10 +212,12 @@ impl ServerDb {
                 if undecided(event) {
                     // A log from before plans were recorded: this account's
                     // log was rewritten since, so the phone's disagrees.
-                    // Nothing is stored, and the fold is refolded from what
-                    // is.
-                    drop(account);
-                    self.accounts.0.lock().await.remove(user_id);
+                    // Nothing is stored: the slot is emptied, so anyone
+                    // waiting on it is refused, and the next request refolds
+                    // from what is.
+                    *guard = None;
+                    drop(guard);
+                    self.forget_slot(user_id, &lock).await;
                     return Err(Box::new(Diverged));
                 }
                 tracing::warn!(%user_id, seq = event.seq, %error, "event did not apply");
@@ -183,30 +236,46 @@ impl ServerDb {
             .iter()
             .filter_map(|id| account.workout(id))
             .collect();
-        if let Err(error) = self.store_events(user_id, &new, &records).await {
-            // The fold ran ahead of the store: forget it, and the next read
-            // refolds from what was actually written.
-            drop(account);
-            self.accounts.0.lock().await.remove(user_id);
+        let heart_rate = heart_rate_statements(user_id, account, &new);
+        if let Err(error) = self.store_events(user_id, &new, &records, heart_rate).await {
+            // The fold ran ahead of the store: the slot is emptied, so anyone
+            // waiting on it is refused, and the next request refolds from what
+            // was actually written.
+            *guard = None;
+            drop(guard);
+            self.forget_slot(user_id, &lock).await;
             return Err(error);
         }
         Ok(Pushed {
             head,
-            changed: true,
+            progressed: new
+                .iter()
+                .any(|event| !matches!(event.kind, Some(event::Kind::HeartRate(_)))),
             ended_workout,
         })
     }
 
-    /// Store new events and rewrite the projections of the workouts they
-    /// touched, in one transaction.
+    /// Store new events, rewrite the projections of the workouts they
+    /// touched and add the heart-rate rows they bring, in one transaction.
     async fn store_events(
         &self,
         user_id: &str,
         events: &[Event],
         workouts: &[&WorkoutRecord],
+        heart_rate: Vec<Statement>,
     ) -> DbResult<()> {
         let session_id = self.get_user_current_session(user_id).await?;
         let mut tx = self.write_pool.begin().await?;
+        // Checked in the write itself, so a push that races the account's
+        // deletion either lands before it (and is deleted with it) or not at all.
+        let exists: Option<i64> =
+            sqlx::query_scalar("SELECT 1 FROM users_current WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&mut *tx)
+                .await?;
+        if exists.is_none() {
+            return Err(NO_ACCOUNT.into());
+        }
         for event in events {
             sqlx::query("INSERT INTO account_events (user_id, seq, event_blob) VALUES (?, ?, ?)")
                 .bind(user_id)
@@ -218,8 +287,7 @@ impl ServerDb {
         for record in workouts {
             let workout = &record.workout;
             // The phone records the session once it hears of it; until then
-            // a workout keeps the one it was first seen in (or was joined to
-            // since).
+            // a workout keeps the one it was first seen in.
             let existing: Option<String> =
                 sqlx::query_scalar("SELECT session_id FROM workouts WHERE id = ? AND user_id = ?")
                     .bind(&workout.id)
@@ -238,17 +306,11 @@ impl ServerDb {
                 workout.session_id.clone()
             };
             for statement in workout_statements(user_id, record, &session) {
-                let mut query = sqlx::query(statement.sql);
-                for value in statement.params {
-                    query = match value {
-                        Value::Int(v) => query.bind(v),
-                        Value::Real(v) => query.bind(v),
-                        Value::Text(v) => query.bind(v),
-                        Value::Blob(v) => query.bind(v),
-                    };
-                }
-                query.execute(&mut *tx).await?;
+                execute(statement, &mut tx).await?;
             }
+        }
+        for statement in heart_rate {
+            execute(statement, &mut tx).await?;
         }
         tx.commit().await?;
         Ok(())
@@ -258,4 +320,22 @@ impl ServerDb {
     pub(super) async fn forget_account(&self, user_id: &str) {
         self.accounts.0.lock().await.remove(user_id);
     }
+}
+
+/// Run one projection statement in `tx`.
+async fn execute(
+    statement: Statement,
+    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+) -> DbResult<()> {
+    let mut query = sqlx::query(statement.sql);
+    for value in statement.params {
+        query = match value {
+            Value::Int(v) => query.bind(v),
+            Value::Real(v) => query.bind(v),
+            Value::Text(v) => query.bind(v),
+            Value::Blob(v) => query.bind(v),
+        };
+    }
+    query.execute(&mut **tx).await?;
+    Ok(())
 }

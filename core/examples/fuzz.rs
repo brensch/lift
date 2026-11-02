@@ -84,6 +84,16 @@ impl Sim {
             log: &mut self.log,
         }
     }
+
+    /// One change to a workout, as the app sends it; one that can't apply
+    /// changes nothing.
+    fn mutate(&mut self, now: i64, m: Mutation) {
+        let _ = self
+            .call(now)
+            .append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![mutation(m)],
+            });
+    }
 }
 
 /// A call whose events land in the log when it's done.
@@ -132,7 +142,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
 
     // Onboard as the app does: the default templates, and starting weights
     // from the strength slider half the time.
-    let templates = match sim
+    let onboarded = sim
         .call(now)
         .complete_onboarding(CompleteOnboardingRequest {
             unit: if rng.gen_bool(0.3) {
@@ -144,8 +154,9 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 .gen_bool(0.5)
                 .then(|| rng.gen_range(0..=100) as f32 / 100.0),
             ..Default::default()
-        }) {
-        Ok(r) => r.home.map(|h| h.templates).unwrap_or_default(),
+        });
+    let templates = match onboarded {
+        Ok(_) => sim.view(now).home(0).templates,
         Err(e) => {
             violations.push(Violation {
                 user: username.clone(),
@@ -158,28 +169,29 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
         }
     };
 
-    // A third of users then pick a ready-made plan: it is the main plan
+    // A third of users then pick a ready-made plan: it is the rotation
     // afterwards, in its order.
     let plans = schlift_core::template_library::plans();
     let templates = if !plans.is_empty() && rng.gen_bool(0.3) {
         let plan = &plans[rng.gen_range(0..plans.len())];
-        match sim.call(now).apply_library_plan(ApplyLibraryPlanRequest {
+        let applied = sim.call(now).apply_library_plan(ApplyLibraryPlanRequest {
             plan_id: plan.id.clone(),
-        }) {
-            Ok(r) => {
-                let after = r.home.map(|h| h.templates).unwrap_or_default();
-                let main: Vec<&str> = after
+        });
+        match applied {
+            Ok(_) => {
+                let after = sim.view(now).home(0).templates;
+                let rotation: Vec<&str> = after
                     .iter()
                     .filter(|t| t.in_rotation)
                     .map(|t| t.origin_library_id.as_str())
                     .collect();
-                if main != plan.library_ids {
+                if rotation != plan.library_ids {
                     violations.push(Violation {
                         user: username.clone(),
                         workout_id: String::new(),
                         step: "apply_library_plan".into(),
-                        invariant: "a ready-made plan is not the main plan after applying it",
-                        detail: format!("{} gave {main:?}", plan.id),
+                        invariant: "a ready-made plan is not the rotation after applying it",
+                        detail: format!("{} gave {rotation:?}", plan.id),
                     });
                 }
                 after
@@ -362,14 +374,11 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     let _ = sim
                         .call(now)
                         .append_workout_mutations(AppendWorkoutMutationsRequest {
-                            mutations: vec![mutation_at(
-                                Mutation::StartSet(StartSetRequest {
-                                    workout_id: workout_id.clone(),
-                                    proposed_set_id: set.id.clone(),
-                                    started_at: now,
-                                }),
-                                now,
-                            )],
+                            mutations: vec![mutation(Mutation::StartSet(StartSetRequest {
+                                workout_id: workout_id.clone(),
+                                proposed_set_id: set.id.clone(),
+                                started_at: now,
+                            }))],
                         });
                 }
                 if started && rng.gen_bool(0.2) {
@@ -379,13 +388,16 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     now += 45;
                     let reps = rng.gen_range(0..12);
                     let first_time = !done.iter().any(|c| c.proposed_set_id == set.id);
-                    let _ = sim.call(now).complete_set(CompleteSetRequest {
-                        workout_id: workout_id.clone(),
-                        proposed_set_id: set.id.clone(),
-                        actual_reps: reps,
-                        actual_weight: set.target_weight,
-                        completed_at: now,
-                    });
+                    sim.mutate(
+                        now,
+                        Mutation::CompleteSet(CompleteSetRequest {
+                            workout_id: workout_id.clone(),
+                            proposed_set_id: set.id.clone(),
+                            actual_reps: reps,
+                            actual_weight: set.target_weight,
+                            completed_at: now,
+                        }),
+                    );
                     // A rung too heavy (under three reps) steps the ramp
                     // down, or settles it: never a heavier rung.
                     if first_time && reps < TOO_HEAVY_REPS {
@@ -448,15 +460,14 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                             };
                             let _ = sim.call(now).append_workout_mutations(
                                 AppendWorkoutMutationsRequest {
-                                    mutations: vec![mutation_at(
-                                        Mutation::AnswerRung(AnswerRungRequest {
+                                    mutations: vec![mutation(Mutation::AnswerRung(
+                                        AnswerRungRequest {
                                             workout_id: workout_id.clone(),
                                             proposed_set_id: target.clone(),
                                             reps_left,
                                             jump_lb,
-                                        }),
-                                        now,
-                                    )],
+                                        },
+                                    ))],
                                 },
                             );
                             expect = Some(if target == open && valid {
@@ -482,67 +493,75 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 let _ = sim
                     .call(now)
                     .append_workout_mutations(AppendWorkoutMutationsRequest {
-                        mutations: vec![mutation_at(
-                            Mutation::SkipWarmups(SkipWarmupsRequest {
-                                workout_id: workout_id.clone(),
-                                exercise,
-                            }),
-                            now,
-                        )],
+                        mutations: vec![mutation(Mutation::SkipWarmups(SkipWarmupsRequest {
+                            workout_id: workout_id.clone(),
+                            exercise,
+                        }))],
                     });
             } else if action < 46 && !pending.is_empty() {
                 // Any set, in any order: warmups are never removed, a
                 // working set just moves past them.
                 let set = &pending[rng.gen_range(0..pending.len())];
                 step_name = format!("complete_set_out_of_order({})", set.id);
-                let _ = sim.call(now).complete_set(CompleteSetRequest {
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: set.target_reps,
-                    actual_weight: set.target_weight,
-                    completed_at: now,
-                });
+                sim.mutate(
+                    now,
+                    Mutation::CompleteSet(CompleteSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        actual_reps: set.target_reps,
+                        actual_weight: set.target_weight,
+                        completed_at: now,
+                    }),
+                );
                 now += 90;
             } else if action < 54 && !state.completed_sets.is_empty() {
                 // Undo a completed set.
                 let c = &state.completed_sets[rng.gen_range(0..state.completed_sets.len())];
                 step_name = format!("delete_completed_set({})", c.id);
-                let _ = sim
-                    .call(now)
-                    .delete_completed_set(DeleteCompletedSetRequest {
+                sim.mutate(
+                    now,
+                    Mutation::DeleteCompletedSet(DeleteCompletedSetRequest {
                         workout_id: workout_id.clone(),
                         completed_set_id: c.id.clone(),
-                    });
+                    }),
+                );
             } else if action < 62 && !state.proposed_sets.is_empty() {
                 // Adjust a weight mid-workout, as the app does.
                 let s = &state.proposed_sets[rng.gen_range(0..state.proposed_sets.len())];
                 let weight = (rng.gen_range(9..60) * 5) as f32;
                 step_name = format!("adjust_weight({})", s.exercise);
-                let _ = sim
-                    .call(now)
-                    .adjust_exercise_weight(AdjustExerciseWeightRequest {
+                sim.mutate(
+                    now,
+                    Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                         workout_id: workout_id.clone(),
                         exercise: s.exercise,
                         working_weight: weight,
                         target_reps: 0,
-                    });
+                    }),
+                );
             } else if action < 70 {
                 // Add or remove an exercise mid-workout.
                 if rng.gen_bool(0.5) || state.proposed_sets.is_empty() {
                     let exercise = random_exercise(&mut rng) as i32;
                     step_name = format!("add_exercises({exercise})");
-                    let _ = sim.call(now).add_exercises(AddExercisesRequest {
-                        workout_id: workout_id.clone(),
-                        exercises: vec![exercise],
-                        ..Default::default()
-                    });
+                    sim.mutate(
+                        now,
+                        Mutation::AddExercises(AddExercisesRequest {
+                            workout_id: workout_id.clone(),
+                            exercises: vec![exercise],
+                            ..Default::default()
+                        }),
+                    );
                 } else {
                     let s = &state.proposed_sets[rng.gen_range(0..state.proposed_sets.len())];
                     step_name = format!("remove_exercise({})", s.exercise);
-                    let _ = sim.call(now).remove_exercise(RemoveExerciseRequest {
-                        workout_id: workout_id.clone(),
-                        exercise: s.exercise,
-                    });
+                    sim.mutate(
+                        now,
+                        Mutation::RemoveExercise(RemoveExerciseRequest {
+                            workout_id: workout_id.clone(),
+                            exercise: s.exercise,
+                        }),
+                    );
                 }
             } else if action < 76 && !state.proposed_sets.is_empty() {
                 // Reorder the exercise blocks.
@@ -556,10 +575,13 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     exercises.swap(i, rng.gen_range(0..=i));
                 }
                 step_name = "reorder_exercises".to_string();
-                let _ = sim.call(now).reorder_exercises(ReorderExercisesRequest {
-                    workout_id: workout_id.clone(),
-                    exercises,
-                });
+                sim.mutate(
+                    now,
+                    Mutation::ReorderExercises(ReorderExercisesRequest {
+                        workout_id: workout_id.clone(),
+                        exercises,
+                    }),
+                );
             } else if action < 82 && !state.proposed_sets.is_empty() {
                 // The user sets a lift by hand: it is planned as given.
                 let s = &state.proposed_sets[rng.gen_range(0..state.proposed_sets.len())];
@@ -595,15 +617,14 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 let _ = sim
                     .call(now)
                     .append_workout_mutations(AppendWorkoutMutationsRequest {
-                        mutations: vec![mutation_at(
-                            Mutation::EditCompletedSet(EditCompletedSetRequest {
+                        mutations: vec![mutation(Mutation::EditCompletedSet(
+                            EditCompletedSetRequest {
                                 workout_id: workout_id.clone(),
                                 completed_set_id: c.id.clone(),
                                 actual_reps: reps,
                                 actual_weight: weight,
-                            }),
-                            now,
-                        )],
+                            },
+                        ))],
                     });
             } else {
                 continue;
@@ -780,10 +801,8 @@ fn check_laid_out(
     }
 }
 
-fn mutation_at(mutation: Mutation, at: i64) -> WorkoutMutation {
+fn mutation(mutation: Mutation) -> WorkoutMutation {
     WorkoutMutation {
-        event_id: uuid::Uuid::new_v4().to_string(),
-        client_created_at: at,
         mutation: Some(mutation),
     }
 }

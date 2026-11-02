@@ -1,13 +1,12 @@
-/// Boots a real WorkoutProvider against the real core, on an in-memory
-/// account, with the platform channels the provider touches (notifications,
-/// prefs) mocked. The core is the host build of app/native
+/// Boots a real sandbox WorkoutProvider (the tutorial's kind, which touches
+/// no platform) against the real core, on an in-memory account, with prefs
+/// mocked. The core is the host build of app/native
 /// (`cargo build -p schlift_native`; `make test-app` does it first).
 library;
 
 import 'dart:io';
 
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
     show ExternalLibrary;
 import 'package:flutter_test/flutter_test.dart';
@@ -41,20 +40,14 @@ class ProviderHarness {
 
   ProviderHarness._(this.core, this.service, this.provider, this.settings);
 
-  /// Call once per test, after ensureInitialized. A [sandbox] provider (the
-  /// tutorial's kind) touches no platform at all.
-  static Future<ProviderHarness> boot({bool sandbox = false}) async {
+  /// Call once per test, after ensureInitialized.
+  static Future<ProviderHarness> boot() async {
     SharedPreferences.setMockInitialValues({});
-    TestWidgetsFlutterBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-          const MethodChannel('dexterous.com/flutter/local_notifications'),
-          (call) async => null,
-        );
     await loadCore();
     final core = await LocalCore.memory('test');
     final service = WorkoutServiceWrapper(FixedCore(core));
     final settings = SettingsProvider(service);
-    final provider = WorkoutProvider(service, settings, sandbox: sandbox);
+    final provider = WorkoutProvider(service, settings, sandbox: true);
     return ProviderHarness._(core, service, provider, settings);
   }
 
@@ -127,7 +120,7 @@ class ProviderHarness {
     await provider.startWorkout('Test', exercises: exercises);
   }
 
-  List<ProposedSet> working(Exercise exercise) => provider.activeProposedSets
+  List<ProposedSet> working(Exercise exercise) => provider.proposedSets
       .where((s) => s.exercise == exercise && !s.warmup)
       .toList();
 }
