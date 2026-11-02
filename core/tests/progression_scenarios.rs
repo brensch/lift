@@ -34,11 +34,11 @@ use std::collections::HashMap;
 use schlift_core::account::{Account, CoreError};
 use schlift_core::api::{Call, View};
 use schlift_core::exercise_catalog::{
-    exercise_display_name, lift_class, snap_weight_lb, LiftClass,
+    exercise_display_name, lift_class, progression_increment_lb, snap_weight_lb, LiftClass,
 };
 use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::*;
-use schlift_core::plan::{is_bodyweight, Planner, MAX_SETS, MIN_SETS};
+use schlift_core::plan::{is_bodyweight, reps_covered, Planner, MAX_SETS, MIN_SETS};
 use schlift_core::weight_units::{pounds_to_kg, AppWeightUnit};
 
 const DAY: i64 = 24 * 3600;
@@ -1250,7 +1250,21 @@ impl<'a> Runner<'a> {
 
         // ── The audit ──
         let mut found: Vec<(Severity, &'static str, String)> = Vec::new();
-        if !d.calibration && !(d.rep_low..=d.rep_high).contains(&d.reps) && !overridden {
+        // Reps past the top are the rule only while the next weight step
+        // is out of reach at the bottom of the range (a big dumbbell jump).
+        let step_out_of_reach = d.reps > d.rep_high && {
+            let up = snap_weight_lb(
+                ex,
+                d.weight + progression_increment_lb(ex, self.unit()),
+                self.unit(),
+            );
+            reps_covered(d.max, up, d.sets, false) < d.rep_low
+        };
+        if !d.calibration
+            && !(d.rep_low..=d.rep_high).contains(&d.reps)
+            && !overridden
+            && !step_out_of_reach
+        {
             found.push((
                 Severity::Violation,
                 "reps_out_of_range",

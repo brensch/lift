@@ -113,8 +113,9 @@ pub fn reps_covered(max: f32, weight: f32, sets: i32, bodyweight: bool) -> i32 {
 ///
 /// 1. the last weight, for as many reps as the max covers there;
 /// 2. past the top of the range: one step up, for as many reps as the max
-///    covers there (capped at the top) — the last weight at the top when
-///    the step covers less than the bottom;
+///    covers there (capped at the top) — or, when the step covers less than
+///    the bottom (a big jump between dumbbells), the last weight for every
+///    rep the max covers, past the top, until the step fits;
 /// 3. short of the bottom, or 4. no last weight: the heaviest loadable
 ///    weight the max covers at the bottom, for as many reps as it covers.
 ///
@@ -144,7 +145,7 @@ pub fn choose(
             return if up_reps >= rep_low {
                 (up, up_reps.min(rep_high))
             } else {
-                (last, rep_high)
+                (last, reps)
             };
         }
         if reps >= rep_low {
@@ -175,8 +176,9 @@ pub fn time_off_factor(days: i64) -> f32 {
 pub struct Walk {
     /// None until a session (or an override) shows one.
     pub max: Option<f32>,
-    /// The weight of the last working set done; None when the max came from
-    /// a ramp alone.
+    /// The heaviest working set's weight: a weight lowered part-way is a bad
+    /// day, not where the next plan starts. None when the max came from a
+    /// ramp alone.
     pub last_weight: Option<f32>,
     /// When the max was last set: the last session's end, or the override.
     pub last_at: i64,
@@ -304,7 +306,7 @@ fn step(walk: &mut Walk, session: &SessionOutcome, bodyweight: bool) {
         ..Default::default()
     });
     walk.max = Some(after);
-    walk.last_weight = session.sets.last().map(|s| s.weight);
+    walk.last_weight = session.sets.iter().map(|s| s.weight).reduce(f32::max);
     walk.last_at = session.at;
     walk.from_override = false;
     walk.points.push((session.workout_id.clone(), after));
@@ -530,10 +532,12 @@ pub struct Lift {
     pub lead_in: bool,
 }
 
-/// The seconds one lift takes with `sets`: its sets, its lead-in, and the
-/// move to it when it is not the first.
+/// The seconds one lift takes with `sets`: its sets with a rest between
+/// each (none after the last: the move to the next lift is its own cost),
+/// its lead-in, and the move to it when it is not the first.
 pub fn lift_seconds(costs: &Costs, lift: &Lift, sets: i32, first: bool) -> f32 {
-    let mut seconds = sets as f32 * costs.per_set(lift.exercise);
+    let mut seconds = sets as f32 * costs.per_set(lift.exercise)
+        - costs.rest_seconds[class_index(lift_class(lift.exercise))];
     if lift.lead_in {
         seconds += costs.warmup_seconds;
     }
@@ -1028,18 +1032,19 @@ mod tests {
         let costs = Costs::default();
         let none = HashMap::new();
         let lifts = [lift(Exercise::LateralRaise), lift(Exercise::BarbellCurl)];
-        // 160 s a set; 2 each + the move = 760 s. 60 min fills both to 5.
+        // 160 s a set, less the rest after a lift's last: 2 each + the
+        // move = 520 s. 60 min fills both to 5.
         assert_eq!(allocate(&lifts, &costs, &none, 60), vec![5, 5]);
-        // 20 min = 1200 s: two more sets fit.
-        assert_eq!(allocate(&lifts, &costs, &none, 20), vec![3, 3]);
-        // 10 min doesn't fit 2 each: the floor stands, over the budget.
-        assert_eq!(allocate(&lifts, &costs, &none, 10), vec![2, 2]);
+        // 20 min = 1200 s: four more sets fit.
+        assert_eq!(allocate(&lifts, &costs, &none, 20), vec![4, 4]);
+        // 5 min doesn't fit 2 each: the floor stands, over the budget.
+        assert_eq!(allocate(&lifts, &costs, &none, 5), vec![2, 2]);
         let over: f32 = lifts
             .iter()
             .enumerate()
             .map(|(i, l)| lift_seconds(&costs, l, 2, i == 0))
             .sum();
-        assert!(over > 600.0, "\"needs {} min\"", (over / 60.0).ceil());
+        assert!(over > 300.0, "\"needs {} min\"", (over / 60.0).ceil());
     }
 
     #[test]
@@ -1050,12 +1055,12 @@ mod tests {
         let lifts = [lift(Exercise::LateralRaise), lift(Exercise::BarbellCurl)];
         assert_eq!(
             allocate(&lifts, &costs, &weekly, 20),
-            vec![2, 4],
+            vec![3, 5],
             "biceps are behind; shoulders nearly at ten"
         );
         // Even, the earlier lift first.
         let lifts = [lift(Exercise::BarbellCurl), lift(Exercise::LateralRaise)];
-        assert_eq!(allocate(&lifts, &costs, &HashMap::new(), 16), vec![3, 2]);
+        assert_eq!(allocate(&lifts, &costs, &HashMap::new(), 12), vec![3, 2]);
     }
 
     #[test]
