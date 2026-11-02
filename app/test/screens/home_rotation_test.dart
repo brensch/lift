@@ -201,7 +201,7 @@ void main() {
       await scrollTo(inSheet(find.text(title.toUpperCase())), 100);
       expect(inSheet(find.text(title.toUpperCase())), findsOneWidget);
     }
-    // A backup that adds nothing the main plan misses says nothing.
+    // A benched workout that adds nothing the rotation misses says nothing.
     await scrollTo(row('Arms'), 100);
     expect(tester.widget<TemplateRow>(row('Arms')).note, isEmpty);
     expect(
@@ -227,7 +227,7 @@ void main() {
     expect(inSheet(find.byType(Checkbox)), findsNothing);
     expect(inSheet(find.text(l.clone.toUpperCase())), findsNothing);
 
-    // + adds a library workout to the main plan, and its library row is
+    // + adds a library workout to the rotation, and its library row is
     // gone.
     await scrollTo(rowIcon('Big Three', l.addToPlan), 200);
     await tester.tap(rowIcon('Big Three', l.addToPlan));
@@ -238,9 +238,9 @@ void main() {
     expect(named('Big Three').inRotation, isTrue);
     expect(rowIcon('Big Three', l.addToPlan), findsNothing);
 
-    // The list is [Main plan, A, B, Big Three, Backup, Arms]. A drag
-    // (through the list's own callback) of B past the Backup heading makes
-    // it the first backup.
+    // The list is [Rotation, A, B, Big Three, Bench, Arms]. A drag
+    // (through the list's own callback) of B past the Bench heading makes
+    // it the first on the bench.
     List<String> names_(bool main) => [
       for (final t in h.provider.templates)
         if (t.inRotation == main) t.name,
@@ -254,8 +254,8 @@ void main() {
     expect(names_(true), ['StrongLifts A', 'Big Three']);
     expect(names_(false), ['StrongLifts B', 'Arms']);
 
-    // Arms up to the top of the main plan: [Main plan, Arms, A, Big Three,
-    // Backup, B].
+    // Arms up to the top of the rotation: [Rotation, Arms, A, Big Three,
+    // Bench, B].
     drag(5, 1);
     await settle(tester, () => named('Arms').inRotation);
     expect(names_(true), ['Arms', 'StrongLifts A', 'Big Three']);
@@ -270,7 +270,7 @@ void main() {
       ),
     );
 
-    // Emptying the backups leaves a line to drop on.
+    // Emptying the benched workouts leaves a line to drop on.
     drag(5, 1);
     await settle(tester, () => named('StrongLifts B').inRotation);
     expect(names_(false), isEmpty);
@@ -286,13 +286,13 @@ void main() {
     );
     expect(h.provider.templates.any((t) => t.name == 'Arms'), isFalse);
 
-    // A backup that adds a missing muscle says so. The main plan is B, A
+    // A benched workout that adds a missing muscle says so. The rotation is B, A
     // and Big Three now, none of which trains core; Core goes in as a
-    // backup.
+    // bench.
     await tester.runAsync(() => h.provider.addLibraryTemplates(['core']));
     await tester.pump();
     String note(String name) => tester.widget<TemplateRow>(row(name)).note;
-    expect(note('StrongLifts A'), isEmpty, reason: 'in the main plan');
+    expect(note('StrongLifts A'), isEmpty, reason: 'in the rotation');
     await scrollTo(row('Core'), 200);
     final core = additionLine([MuscleGroup.MUSCLE_GROUP_CORE]);
     expect(note('Core'), core);
@@ -366,7 +366,7 @@ void main() {
     expect(tester.widget<VolumeCard>(home.first).proportional, isFalse);
   });
 
-  testWidgets('the Manage sheet: a ready-made plan becomes the main plan', (
+  testWidgets('the Manage sheet: a ready-made plan becomes the rotation', (
     tester,
   ) async {
     final h = await boot(tester);
@@ -377,7 +377,7 @@ void main() {
     Finder inPlan(String id, Finder f) =>
         find.descendant(of: plan(id), matching: f);
 
-    // StrongLifts is what the main plan is; the others can be applied.
+    // StrongLifts is what the rotation is; the others can be applied.
     await scrollSheetTo(tester, plan('push_pull_legs'), 200);
     expect(inPlan('stronglifts', find.text(l.planCurrent)), findsOneWidget);
     expect(inPlan('stronglifts', find.byTooltip(l.applyPlan)), findsNothing);
@@ -398,18 +398,18 @@ void main() {
     expect(inPlan('push_pull_legs', find.text(l.planCurrent)), findsOneWidget);
     expect(inPlan('stronglifts', find.byTooltip(l.applyPlan)), findsOneWidget);
 
-    // Home's chips: the plan's three under the main plan's heading, the
-    // old main plan under the backups'.
+    // Home's chips: the plan's three under the rotation's heading, the
+    // old rotation under the benched workouts'.
     await tester.tap(find.byIcon(AppIcons.close));
     await tester.pumpAndSettle();
     double y(Finder f) => tester.getTopLeft(f).dy;
     double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
-    final backups = y(find.text(l.favouritesHeading.toUpperCase()));
+    final bench = y(find.text(l.favouritesHeading.toUpperCase()));
     for (final name in ['Push', 'Pull', 'Legs']) {
-      expect(chipY(name), lessThan(backups), reason: name);
+      expect(chipY(name), lessThan(bench), reason: name);
     }
     for (final name in ['StrongLifts A', 'StrongLifts B', 'Arms']) {
-      expect(chipY(name), greaterThan(backups), reason: name);
+      expect(chipY(name), greaterThan(bench), reason: name);
     }
   });
 }

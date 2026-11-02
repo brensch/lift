@@ -139,7 +139,7 @@ server keeps those in the fold.
 can pick from: `groups` (key + label, in display order) and `templates`
 (stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
 exercises as `Exercise` enum names without the `EXERCISE_` prefix), and
-`plans`: ready-made main plans (stable `id`, `name`, `blurb`, and
+`plans`: ready-made rotations (stable `id`, `name`, `blurb`, and
 `templates`, a list of template ids). The core embeds the file at build
 time (`core/src/template_library.rs`; `cargo test` fails on an unknown
 exercise name, or a plan naming an unknown or repeated template).
@@ -176,19 +176,19 @@ the first sync, the copy built into the app stands in.
 - Every workout keeps its own exercises and sets plus `template_id`, so a
   change to a default never rewrites a past session.
 - In the app's Manage sheet a library workout the user does not have is
-  added to the main plan with + (`AddLibraryTemplates`, `in_rotation`;
-  without it an entry is added as a backup); the user's own are dragged
-  within or between the main plan and the backups (one
+  added to the rotation with + (`AddLibraryTemplates`, `in_rotation`;
+  without it an entry is added as a benched workout); the user's own are dragged
+  within or between the rotation and the benched workouts (one
   `ReorderTemplates` with `rotation_count`: the order, and where the
   rotation ends), opened in the editor, or deleted.
 - A ready-made plan is applied with `ApplyLibraryPlan(plan_id)`, which
   records existing events, no kind of its own: an `AddLibraryTemplates`
-  (as backups) for the plan's entries the user does not have, then one
+  (as benched workouts) for the plan's entries the user does not have, then one
   `ReorderTemplates` whose first `rotation_count` ids are the user's
   template for each entry in the plan's order (one already in the main
   plan first, else the first following or made from it, so a
   personalised copy is used rather than a second one), and after them
-  every other template, the old main plan first, as backups. Nothing is
+  every other template, the old rotation first, as benched workouts. Nothing is
   deleted. Plans come from the copy built into the core, not the
   server's sync; `ListTemplateLibrary` lists those whose every entry the
   library in use has.

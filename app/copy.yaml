@@ -29,7 +29,7 @@ tutorial:
     - screen: home
       target: home_add
       title: Need more options?
-      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your main plan, or make your own.
+      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your rotation, or make your own.
     - screen: home
       target: home_plan
       title: I got your numbers
@@ -47,25 +47,28 @@ library:
   # The home chip that opens the sheet. Placeholder.
   edit_button: Manage
   sheet_title: Your workouts
-  # The groups, on Home's chips and in the sheet: the main plan (the
-  # rotation the suggestion picks from) and the backups. Placeholders.
-  rotation_heading: Main plan
-  favourites_heading: Backup
+  # The groups, on Home's chips and in the sheet: the rotation (what the
+  # suggestion picks from) and the bench (saved, never suggested).
+  rotation_heading: Rotation
+  favourites_heading: Bench
+  # Under each heading in the Manage sheet.
+  rotation_description: The workouts the app uses to work out your least trained muscles.
+  favourites_description: In case you want to sneak a cheeky butt sesh, keep it here ready to choose.
   # The sheet's last section: library workouts the user doesn't have yet.
   add_heading: Add
-  # Home, when nothing is in the main plan. Placeholder.
-  rotation_empty_home: Nothing in the main plan. Manage puts some in.
+  # Home, when nothing is in the rotation. Placeholder.
+  rotation_empty_home: Nothing in the rotation. Manage puts some in.
   # An empty section in the sheet, where a workout can be dropped.
   # Placeholder.
   drop_here: Drag a workout here
-  # The sheet's library rows: + adds it to the main plan. Placeholder.
-  add_to_plan: Add to the main plan
-  # Under Add, first: ready-made main plans, one tap each. Applying one
-  # makes its workouts the main plan and moves the rest to the backups.
+  # The sheet's library rows: + adds it to the rotation. Placeholder.
+  add_to_plan: Add to the rotation
+  # Under Add, first: ready-made rotations, one tap each. Applying one
+  # makes its workouts the rotation and moves the rest to the bench.
   # Placeholders.
   plans_heading: Ready-made plans
-  apply_plan: Make this the main plan
-  # A ready-made plan whose workouts are the main plan already.
+  apply_plan: Make this the rotation
+  # A ready-made plan whose workouts are the rotation already.
   plan_current: Current
   # Marks a workout as the user's own, on home and in the sheet.
   personal: Personalised
@@ -77,16 +80,16 @@ library:
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
-# The main plan (the rotation): the workouts the suggestion picks from.
-# The rest are backups, on Home in their own group and never suggested. {…} are
+# The rotation: the workouts the suggestion picks from. The rest are on
+# the bench, on Home in their own group and never suggested. {…} are
 # substituted by the code. All placeholder copy.
 rotation:
   # The template editor's switch, and the line under it.
-  switch_label: In the main plan
-  switch_hint: The suggestion picks from these. Off, it's a backup.
+  switch_label: In the rotation
+  switch_hint: The suggestion picks from these. Off, it's on the bench.
   # Home card menu.
-  add: Move to main plan
-  remove: Move to backup
+  add: Move to rotation
+  remove: Move to bench
   # Home, under the suggested workout's name: the (at most two) muscles
   # most behind. {muscles} is "chest 2/10" or "chest 2/10 and back 0/10".
   rested_one: "{muscles} this week, rested"
@@ -101,11 +104,11 @@ rotation:
   # whose first lift is back soonest.
   first_lift: "Every workout starts on something sore. First back: {muscle}, in {hours}h."
   # The rotation check, at the top of the sheet: this line, the bars of
-  # one lap of the main plan's sets per muscle, then any warnings.
-  check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your main plan that we cycle through to make sure you're sculpting the right bits."
+  # one lap of the rotation's sets per muscle, then any warnings.
+  check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your rotation that we cycle through to make sure you're sculpting the right bits."
   overlap: "{a} and {b} share {shared} of {of} lifts."
-  # Under a backup's or a library workout's lifts, when it trains muscles
-  # the main plan trains none of. {muscles} is "calves" or "calves and
+  # Under a benched or a library workout's lifts, when it trains muscles
+  # the rotation trains none of. {muscles} is "calves" or "calves and
   # core". Placeholder.
   adds: "Trains {muscles}, which you don't have."
 
@@ -197,7 +200,7 @@ onboarding:
     field: Bodyweight
     failed: "Setup failed: {error}. Try again."
   templates:
-    title: Pick your main plan
+    title: Pick your rotation
     body: You can add, remove, or edit them later. Pretty cool.
     none_selected: Pick at least one. Or one hundred.
     finish: START LIFTING

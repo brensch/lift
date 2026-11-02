@@ -188,17 +188,17 @@ The template editor plans the list on screen the same way
 
 ## Picking a workout: the rotation and the suggestion
 
-Every template is either **in rotation** (`WorkoutTemplate.in_rotation`;
-the app calls it the **main plan**) or a **favourite** (a **backup**).
+Every template is either in the **rotation**
+(`WorkoutTemplate.in_rotation`) or on the **bench**.
 The workouts picked at onboarding start in rotation; a library template
 added from the Manage sheet goes into the rotation (`AddLibraryTemplates`
-with `in_rotation`; without it, a favourite), and one the user makes
-starts as a favourite. The template editor's switch and the Home card's
+with `in_rotation`; without it, on the bench), and one the user makes
+starts on the bench. The template editor's switch and the Home card's
 menu move a template between the two through `SaveTemplate`; the Manage
 sheet's drag does it with the order in one `ReorderTemplates`
 (`rotation_count`: the first that many of the list are the rotation, the
-rest favourites). Either way a library template keeps following the
-library. Home shows the rotation's chips and the favourites', each in the
+rest to the bench). Either way a library template keeps following the
+library. Home shows the rotation's chips and the bench's, each in the
 user's order, under their own section labels.
 
 `GetHome` suggests one rotation template (`core/src/volume.rs`,
@@ -220,7 +220,7 @@ user's order, under their own section labels.
    template is left out, it is the one whose first lift's muscle recovers
    soonest (`first_lift_recovering`).
 
-Favourites are never suggested; with nothing in rotation there is no
+Benched workouts are never suggested; with nothing in rotation there is no
 suggestion. The answer is structured (`SuggestionReason`): the suggested
 template's rested muscles that are behind (sets this week, target), the
 muscles the rotation trains that are behind but still recovering (hours
@@ -240,12 +240,12 @@ lift, not the planner's, so the check describes the rotation and not this
 week's history or budget. It warns of a **gap** (a muscle nothing in
 rotation trains) and an **overlap** (two templates sharing over 70% of the
 smaller one's lifts). One template is a rotation too.
-Its **additions** name, for each favourite and each library entry the
+Its **additions** name, for each benched workout and each library entry the
 user does not have, the muscles its lifts train first that the lap
 trains none of (one adding nothing is not listed). The Manage sheet shows
 the lap's sets per muscle on Home's bars under a line saying what they
 are, then a line for an overlap; the gap is not worded on its
-own, each favourite's and library entry's row says what it would add
+own, each benched workout's and library entry's row says what it would add
 instead ("Trains calves and core, which you don't have.").
 
 ## Starting a workout

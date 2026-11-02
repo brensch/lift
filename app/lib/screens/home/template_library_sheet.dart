@@ -1,12 +1,12 @@
 /// The Manage sheet ("Your workouts"): the rotation check at the top (a
-/// line, the bars of one lap of the main plan as each muscle's share of
+/// line, the bars of one lap of the rotation as each muscle's share of
 /// the most-trained one, and what is wrong with it); then one draggable
-/// list of the main plan (the rotation) and the backups (the favourites),
+/// list of the rotation (the rotation) and the the bench (the favourites),
 /// each row a drag handle, the name and lifts, and delete; a drag reorders
 /// within a section or moves a workout across into the other. Below it,
 /// Add: the ready-made plans, one tap each, then the library workouts the
-/// user does not have yet, each added to the main plan with +. A backup or
-/// a library row says which muscles it would add that the main plan
+/// user does not have yet, each added to the rotation with +. A bench or
+/// a library row says which muscles it would add that the rotation
 /// trains none of. Tapping one of the user's workouts opens it in the
 /// editor.
 library;
@@ -53,7 +53,7 @@ bool hasLibraryEntry(List<WorkoutTemplate> templates, LibraryTemplate entry) =>
 
 /// Whether [main] is [plan] already: the same workouts, each one following
 /// or made from one of the plan's entries. The order is not compared (the
-/// suggestion does not go through the main plan in order).
+/// suggestion does not go through the rotation in order).
 bool isCurrentPlan(List<WorkoutTemplate> main, LibraryPlan plan) {
   if (main.length != plan.libraryIds.length) return false;
   final left = plan.libraryIds.toSet();
@@ -99,40 +99,40 @@ class _MineItem extends _Item {
   Key get key => ValueKey(template.id);
 }
 
-/// The draggable list: the main plan's heading, its workouts (or the drop
-/// line), then the backups' heading and theirs.
+/// The draggable list: the rotation's heading, its workouts (or the drop
+/// line), then the the bench' heading and theirs.
 List<_Item> _sheetItems(
   List<WorkoutTemplate> main,
-  List<WorkoutTemplate> backup,
+  List<WorkoutTemplate> bench,
 ) => [
   const _SectionItem(true),
   if (main.isEmpty) const _EmptyItem(true),
   for (final t in main) _MineItem(t),
   const _SectionItem(false),
-  if (backup.isEmpty) const _EmptyItem(false),
-  for (final t in backup) _MineItem(t),
+  if (bench.isEmpty) const _EmptyItem(false),
+  for (final t in bench) _MineItem(t),
 ];
 
-/// The list after a drag: every workout above the backups' heading is in
-/// the main plan (one dropped above the main plan's heading too), the rest
-/// are backups, each in the order shown.
-({List<WorkoutTemplate> main, List<WorkoutTemplate> backup}) _splitItems(
+/// The list after a drag: every workout above the the bench' heading is in
+/// the rotation (one dropped above the rotation's heading too), the rest
+/// are the bench, each in the order shown.
+({List<WorkoutTemplate> main, List<WorkoutTemplate> bench}) _splitItems(
   List<_Item> items,
 ) {
   final main = <WorkoutTemplate>[];
-  final backup = <WorkoutTemplate>[];
-  var inBackup = false;
+  final bench = <WorkoutTemplate>[];
+  var onBench = false;
   for (final item in items) {
     switch (item) {
       case _SectionItem(main: false):
-        inBackup = true;
+        onBench = true;
       case _MineItem(:final template):
-        (inBackup ? backup : main).add(template);
+        (onBench ? bench : main).add(template);
       default:
         break;
     }
   }
-  return (main: main, backup: backup);
+  return (main: main, bench: bench);
 }
 
 class _LibrarySheetState extends State<_LibrarySheet> {
@@ -140,7 +140,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   final Set<String> _busy = {};
 
   /// A drag's result, shown until the core's answer replaces it.
-  ({List<WorkoutTemplate> main, List<WorkoutTemplate> backup})? _dragged;
+  ({List<WorkoutTemplate> main, List<WorkoutTemplate> bench})? _dragged;
 
   @override
   void initState() {
@@ -171,7 +171,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     showTemplateEditor(context, template: template, provider: wp);
   }
 
-  /// A drag in the list: one reorder that also says where the main plan
+  /// A drag in the list: one reorder that also says where the rotation
   /// ends.
   Future<void> _reorder(List<_Item> items, int from, int to) async {
     final next = List.of(items);
@@ -184,13 +184,13 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     await _run(
       '__order__',
       () => wp.reorderTemplates([
-        for (final t in [...split.main, ...split.backup]) t.id,
+        for (final t in [...split.main, ...split.bench]) t.id,
       ], rotationCount: split.main.length),
     );
     if (mounted) setState(() => _dragged = null);
   }
 
-  /// A library workout, into the main plan.
+  /// A library workout, into the rotation.
   Future<void> _add(LibraryTemplate entry) {
     final wp = context.read<WorkoutProvider>();
     return _run(
@@ -199,7 +199,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     );
   }
 
-  /// A ready-made plan as the main plan.
+  /// A ready-made plan as the rotation.
   Future<void> _apply(LibraryPlan plan) {
     final wp = context.read<WorkoutProvider>();
     return _run('plan:${plan.id}', () => wp.applyLibraryPlan(plan.id));
@@ -233,7 +233,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   }
 
   /// One entry of the draggable list. Only a workout has a handle; a
-  /// backup says what it would add.
+  /// bench says what it would add.
   Widget _item(_Item item, int index, Map<String, List<MuscleGroup>> adds) {
     final l = copy.library;
     final cs = Theme.of(context).colorScheme;
@@ -241,6 +241,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
       _SectionItem(:final main) => _Heading(
         key: item.key,
         main ? l.rotationHeading : l.favouritesHeading,
+        description: main ? l.rotationDescription : l.favouritesDescription,
       ),
       _EmptyItem() => _EmptyLine(key: item.key, l.dropHere),
       _MineItem(:final template) => TemplateRow(
@@ -273,9 +274,9 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     };
   }
 
-  /// Below the list: the ready-made plans (the one the main plan is
+  /// Below the list: the ready-made plans (the one the rotation is
   /// already says so), then the library workouts the user does not have,
-  /// by group, each added to the main plan with +, each saying what it
+  /// by group, each added to the rotation with +, each saying what it
   /// would add.
   Widget _addSection(
     List<WorkoutTemplate> templates,
@@ -353,9 +354,9 @@ class _LibrarySheetState extends State<_LibrarySheet> {
         _dragged ??
         (
           main: templates.where((t) => t.inRotation).toList(),
-          backup: templates.where((t) => !t.inRotation).toList(),
+          bench: templates.where((t) => !t.inRotation).toList(),
         );
-    final items = _sheetItems(split.main, split.backup);
+    final items = _sheetItems(split.main, split.bench);
     final t = copy.library;
     final adds = additionsOf(wp.rotationCheck);
 
@@ -418,7 +419,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   }
 }
 
-/// One lap of the main plan: the line that says what it is, each
+/// One lap of the rotation: the line that says what it is, each
 /// muscle's share of the most-trained one's sets on Home's bars (no
 /// target, no numbers: a lap is not a week), and a plain line for each thing wrong with it (none
 /// when nothing is).
@@ -477,16 +478,34 @@ Map<String, List<LibraryTemplate>> _grouped(List<LibraryTemplate> entries) {
   return out;
 }
 
-/// A section of the sheet: the main plan, the backups, Add.
+/// A section of the sheet: the rotation, the the bench, Add.
 class _Heading extends StatelessWidget {
   final String label;
-  const _Heading(this.label, {super.key});
+
+  /// What the section is for, under its label.
+  final String? description;
+  const _Heading(this.label, {this.description, super.key});
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(2, 22, 2, 4),
-    child: SectionLabel(label),
-  );
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 22, 2, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionLabel(label),
+          if (description case final text?) ...[
+            const SizedBox(height: 2),
+            Text(
+              text,
+              style: TextStyle(fontSize: t.size.small, color: t.muted),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 /// A library group under Add: programs, splits, body parts.
@@ -512,7 +531,7 @@ class _GroupHeading extends StatelessWidget {
 }
 
 /// A ready-made plan under Add: its name, its blurb and workouts, and
-/// the button that makes it the main plan, or "Current" when it is.
+/// the button that makes it the rotation, or "Current" when it is.
 class _PlanRow extends StatelessWidget {
   final LibraryPlan plan;
   final List<String> workouts;
