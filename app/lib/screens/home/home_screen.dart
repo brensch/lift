@@ -280,27 +280,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 onStart: () => _start(),
               )
             else if (selected != null)
-              TutorialTarget(
-                id: 'home_plan',
-                child: SelectedTemplateCard(
-                  template: selected,
-                  plan: wp.templatePlanFor(selected.id),
-                  budgetMinutes: wp.budgetMinutes,
-                  onBudgetStep: wp.stepBudget,
-                  unit: unit,
-                  recommended: selected.id == suggestedId,
-                  reason:
-                      selected.id == suggestedId && home.hasSuggestionReason()
-                      ? suggestionLine(home.suggestionReason)
-                      : '',
-                  isStarting: _isStarting,
-                  onStart: () => _start(templateId: selected!.id),
-                  onEdit: () => _editTemplate(selected),
-                  onClone: () => _cloneTemplate(selected!),
-                  onDelete: () => _confirmDeleteTemplate(selected!),
-                  onToggleRotation: () =>
-                      wp.setInRotation(selected!, !selected.inRotation),
-                ),
+              SelectedTemplateCard(
+                template: selected,
+                plan: wp.templatePlanFor(selected.id),
+                budgetMinutes: wp.budgetMinutes,
+                onBudgetStep: wp.stepBudget,
+                unit: unit,
+                recommended: selected.id == suggestedId,
+                reason: selected.id == suggestedId && home.hasSuggestionReason()
+                    ? suggestionLine(home.suggestionReason)
+                    : '',
+                isStarting: _isStarting,
+                onStart: () => _start(templateId: selected!.id),
+                onEdit: () => _editTemplate(selected),
+                onClone: () => _cloneTemplate(selected!),
+                onDelete: () => _confirmDeleteTemplate(selected!),
+                onToggleRotation: () =>
+                    wp.setInRotation(selected!, !selected.inRotation),
               )
             else
               _EmptyState(onCreate: () => _editTemplate(null)),
@@ -1070,10 +1066,13 @@ class SelectedTemplateCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(bottom: 8, right: 8),
-            child: _TimeControl(
-              plan: plan ?? TemplatePlan.getDefault(),
-              budgetMinutes: budgetMinutes,
-              onStep: onBudgetStep,
+            child: TutorialTarget(
+              id: 'home_time',
+              child: _TimeControl(
+                plan: plan ?? TemplatePlan.getDefault(),
+                budgetMinutes: budgetMinutes,
+                onStep: onBudgetStep,
+              ),
             ),
           ),
           for (final exercisePlan in plans)

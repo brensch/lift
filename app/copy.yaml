@@ -31,9 +31,9 @@ tutorial:
       title: Need more options?
       body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your rotation, or make your own.
     - screen: home
-      target: home_plan
-      title: I got your numbers
-      body: The last thing I want is for you to have to worry about numbers. I track them for you - sets × reps @ weight. Just decide what you want to work on.
+      target: home_time
+      title: I got your number(s)
+      body: You're working hard in the gym. I'm working hard crunching the numbers. What a team. Tell me how long you want to work out and on which workout template, I'll figure out the rest.
     - screen: home
       target: home_start
       title: Start

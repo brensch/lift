@@ -76,6 +76,9 @@ class _TutorialScreenState extends State<TutorialScreen>
       sandbox: true,
     );
     _registry.addListener(_measure);
+    // The pulse ticks every frame: follow the target on it, so the outline
+    // and the card stay on it as the page scrolls or its content settles.
+    _throb.addListener(_follow);
     // The sandbox account, then the first step once home has laid out.
     unawaited(
       _workouts.refreshHome().then((_) async {
@@ -151,7 +154,8 @@ class _TutorialScreenState extends State<TutorialScreen>
     // Bring it on screen first; the ListView on home is tall.
     await Scrollable.ensureVisible(
       ctx,
-      alignment: 0.35,
+      // Near the top: the card has room under it, so it never flips.
+      alignment: 0.1,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
     );
@@ -168,6 +172,19 @@ class _TutorialScreenState extends State<TutorialScreen>
       _pending = null;
       _target = topLeft & box.size;
     });
+  }
+
+  /// Where the shown step's target is this frame, when it has moved.
+  void _follow() {
+    if (_pending != null || _target == null) return;
+    final ctx = _registry.contextFor(_steps[_step].target);
+    final box = ctx?.findRenderObject() as RenderBox?;
+    final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || !box.hasSize || overlay == null) {
+      return;
+    }
+    final now = box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
+    if (now != _target) setState(() => _target = now);
   }
 
   void _next() {
