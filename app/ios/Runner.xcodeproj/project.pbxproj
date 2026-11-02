@@ -30,6 +30,7 @@
 		643490A06A76A395CD39E59C /* sound_winner_bell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 457989202164E5885736975A /* sound_winner_bell.wav */; };
 		CA0157595D9456C874D7EA60 /* sound_wolf_whistle.wav in Resources */ = {isa = PBXBuildFile; fileRef = 30DAD95744B68CCC0B558E30 /* sound_wolf_whistle.wav */; };
 		7D9D1996BA5C1E3256F6A916 /* sound_you_died.wav in Resources */ = {isa = PBXBuildFile; fileRef = E74F06F10D927C906FDF066E /* sound_you_died.wav */; };
+		007F31BFDCE8A3EB5FFA7D02 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C129A9FB18F81555600E71B3 /* RunnerTests.swift */; };
 		0512486446519281E28F1B8A /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
 		2376914B5D23D1A984F29EBC /* group.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0856CC1A3E00E1DFC68F89A /* group.pb.swift */; };
 		2FB20DD8BDBDEE445CEF4921 /* SchliftWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -80,6 +81,13 @@
 			remoteGlobalIDString = 9CD2564376257B68352FF5BC;
 			remoteInfo = SchliftWatch;
 		};
+		979A20949DB7465AFE66261A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5FC4EA95F23E6A8CF0BD7276 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0CE8B55E2312A581679889BF;
+			remoteInfo = Runner;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -127,6 +135,7 @@
 		2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Manrope-Variable.ttf"; sourceTree = "<group>"; };
 		2BA101BC039C30FFF53AA926 /* workout.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = workout.pb.swift; sourceTree = "<group>"; };
 		3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SchliftWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		510043DBEC3442DBC23147B8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		610ACADC6746B84139F5257E /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		68928F5098C3575A5CFCADEC /* WorkoutSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionManager.swift; sourceTree = "<group>"; };
@@ -147,6 +156,7 @@
 		B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceGrotesk-Variable.ttf"; sourceTree = "<group>"; };
 		9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Regular.ttf"; sourceTree = "<group>"; };
 		0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Bold.ttf"; sourceTree = "<group>"; };
+		C129A9FB18F81555600E71B3 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		C791F424CC08582321BD3041 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4CA3EAF8F7424312F1D75364 /* PlateScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlateScreen.swift"; sourceTree = "<group>"; };
 		66B0DA9131814488F6E90BDC /* FaceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FaceScreen.swift"; sourceTree = "<group>"; };
@@ -184,6 +194,7 @@
 			isa = PBXGroup;
 			children = (
 				B2E448C1951CDAF54DC87758 /* Runner.app */,
+				48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */,
 				3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */,
 			);
 			name = Products;
@@ -226,6 +237,14 @@
 			path = v1;
 			sourceTree = "<group>";
 		};
+		255F1CC48DAF4C9EEF8C9938 /* RunnerTests */ = {
+			isa = PBXGroup;
+			children = (
+				C129A9FB18F81555600E71B3 /* RunnerTests.swift */,
+			);
+			path = RunnerTests;
+			sourceTree = "<group>";
+		};
 		3B63DE885A3277CAA8D6B916 /* WearBridge */ = {
 			isa = PBXGroup;
 			children = (
@@ -241,6 +260,7 @@
 			children = (
 				F107FD69CE5AF121C238B950 /* Flutter */,
 				0F581CC3412D2F2F02AF1463 /* Runner */,
+				255F1CC48DAF4C9EEF8C9938 /* RunnerTests */,
 				D0DC4A58112C5020CF38DD33 /* SchliftWatch */,
 				05D9A16B876157F93400D0B8 /* Products */,
 			);
@@ -374,6 +394,22 @@
 			productReference = 3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
+		ABAFB01E7FEA9C1DB0CE46CE /* RunnerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E4B487D78CD299B2286DE782 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
+			buildPhases = (
+				ACA1F3DE67878150D3C72EC1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1BDCC358D5033CC24618A73 /* PBXTargetDependency */,
+			);
+			name = RunnerTests;
+			productName = RunnerTests;
+			productReference = 48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -404,6 +440,9 @@
 							};
 						};
 					};
+					ABAFB01E7FEA9C1DB0CE46CE = {
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 987220A47DC5D93D17710971 /* Build configuration list for PBXProject "Runner" */;
@@ -424,6 +463,7 @@
 			projectRoot = "";
 			targets = (
 				0CE8B55E2312A581679889BF /* Runner */,
+				ABAFB01E7FEA9C1DB0CE46CE /* RunnerTests */,
 				9CD2564376257B68352FF5BC /* SchliftWatch */,
 			);
 		};
@@ -545,6 +585,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ACA1F3DE67878150D3C72EC1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				007F31BFDCE8A3EB5FFA7D02 /* RunnerTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D735B3CFE9B0688D9736E917 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -571,6 +619,11 @@
 			target = 9CD2564376257B68352FF5BC /* SchliftWatch */;
 			targetProxy = 5AC12041E357B48BFFCB4689 /* PBXContainerItemProxy */;
 		};
+		A1BDCC358D5033CC24618A73 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0CE8B55E2312A581679889BF /* Runner */;
+			targetProxy = 979A20949DB7465AFE66261A /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -593,6 +646,29 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		128D4961A4EEAA0944B16058 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = Debug;
+		};
 		29805E1DF6B7920DC260EAF9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 694BB823ADF1C3067C48A654 /* Debug.xcconfig */;
@@ -677,6 +753,48 @@
 				WATCHOS_DEPLOYMENT_TARGET = 9.0;
 			};
 			name = Release;
+		};
+		5D7A1B64955A53055FA7173A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = Release;
+		};
+		6D19B738415D34FC0679F96D /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.RunnerTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = Profile;
 		};
 		7CF6CFF957D9345E14BFCBE0 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -969,6 +1087,16 @@
 				7CF6CFF957D9345E14BFCBE0 /* Debug */,
 				99ACB5790A68BE0B2AD5F03D /* Profile */,
 				59902B3437269D7EDB4D0AFA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E4B487D78CD299B2286DE782 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				128D4961A4EEAA0944B16058 /* Debug */,
+				6D19B738415D34FC0679F96D /* Profile */,
+				5D7A1B64955A53055FA7173A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
