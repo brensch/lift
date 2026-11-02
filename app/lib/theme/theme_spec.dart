@@ -95,6 +95,12 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.lifting,
     required this.short,
     required this.heart,
+    required this.barSteel,
+    required this.sleeveSteel,
+    required this.collarSteel,
+    required this.plateEdge,
+    required this.dumbbellPlate,
+    required this.dumbbellHandle,
     required this.series,
     required this.bodyParts,
     required this.bodyFont,
@@ -166,6 +172,22 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   /// Heart-rate icons.
   final Color heart;
 
+  // ─── Hardware: the drawn bars and dumbbells ────────────────────────
+  /// The bar between the plates in the inline drawing.
+  final Color barSteel;
+
+  /// The loading sleeves outside the plates.
+  final Color sleeveSteel;
+
+  /// The collars inside the plates.
+  final Color collarSteel;
+
+  /// The outline round each plate.
+  final Color plateEdge;
+
+  final Color dumbbellPlate;
+  final Color dumbbellHandle;
+
   // ─── Categorical ───────────────────────────────────────────────────
   /// Chart lines, one per exercise (cycled), first one for single charts.
   final List<Color> series;
@@ -227,6 +249,12 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   BorderRadius get brMd => BorderRadius.circular(radiusMd);
   BorderRadius get brLg => BorderRadius.circular(radiusLg);
   BorderRadius get brXl => BorderRadius.circular(radiusXl);
+
+  /// Text that reads on [fill]: white on a dark fill, [text] on a light one.
+  Color inkOn(Color fill) =>
+      ThemeData.estimateBrightnessForColor(fill) == Brightness.dark
+      ? Colors.white
+      : text;
 
   /// [base] in the wordmark's font, weight and size.
   TextStyle wordmark([TextStyle base = const TextStyle()]) =>

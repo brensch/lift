@@ -304,7 +304,7 @@ pub fn category(ex: Exercise) -> ExerciseCategory {
 
 /// The three classes every lift falls in. The class sets the rep range,
 /// the rest and the warmups; the sets come from the workout's budget
-/// (`plan::sets_for_lifts`).
+/// (`plan::allocate`).
 ///
 /// | Class | Lifts | Reps | Rest | Warmups |
 /// |---|---|---|---|---|

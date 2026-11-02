@@ -409,7 +409,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   ) async {
     final confirmed = await showDeleteExerciseDialog(
       context,
-      exerciseNames[block.exercise] ?? '?',
+      exerciseName(block.exercise),
     );
     if (confirmed != true || !context.mounted) return;
     unawaited(wp.removeExercise(block.exercise));

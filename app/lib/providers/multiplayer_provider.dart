@@ -123,12 +123,6 @@ class MultiplayerProvider extends ChangeNotifier {
     _heard();
   }
 
-  void stopSync({bool clearSession = true, bool clearInviteToken = false}) {
-    _syncEnabled = false;
-    if (clearSession) _apply(GetCurrentSessionResponse());
-    if (clearInviteToken) _myInviteToken = null;
-  }
-
   /// Ask for the session now, rather than waiting for the stream (straight
   /// after joining).
   Future<void> checkForSession() async {
@@ -230,7 +224,9 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   void clear() {
-    stopSync(clearSession: true, clearInviteToken: true);
+    _syncEnabled = false;
+    _apply(GetCurrentSessionResponse());
+    _myInviteToken = null;
   }
 
   @override

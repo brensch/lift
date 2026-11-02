@@ -1180,7 +1180,7 @@ class _ExerciseLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = exerciseNames[decision.exercise] ?? '?';
+    final name = exerciseName(decision.exercise);
     final reason = reasonShort(decision, unit);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

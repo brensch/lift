@@ -236,10 +236,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           unawaited(_soundProvider.reset());
           _workoutProvider.clear();
           unawaited(_accountSync.signOut());
-          _multiplayerProvider.stopSync(
-            clearSession: true,
-            clearInviteToken: true,
-          );
+          _multiplayerProvider.clear();
         }
         _openUserId = userId;
         if (userId != null) {

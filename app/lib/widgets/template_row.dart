@@ -67,9 +67,7 @@ class _TemplateRowState extends State<TemplateRow> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final selected = widget.selected;
-    final names = widget.exercises
-        .map((e) => exerciseNames[e] ?? e.name)
-        .join(' · ');
+    final names = widget.exercises.map(exerciseName).join(' · ');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

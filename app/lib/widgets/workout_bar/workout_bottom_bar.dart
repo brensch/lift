@@ -198,16 +198,14 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                 (a, b) =>
                     compareParticipantsByNextWorkout(a, b, nowUnix: nowUnix),
               );
-        final nextToLift = others.isEmpty
-            ? null
-            : computeNextToLiftUserId(
-                myUserId: auth.userId,
-                others: others,
-                nowUnix: nowUnix,
-                state: stateAt(snapshot, nowUnix),
-                restUntil: snapshot?.restUntil.toInt() ?? 0,
-                nextSet: wp.nextPendingSet,
-              );
+        final nextToLift = computeNextToLiftUserId(
+          myUserId: auth.userId,
+          participants: mp.participants,
+          nowUnix: nowUnix,
+          state: stateAt(snapshot, nowUnix),
+          restUntil: snapshot?.restUntil.toInt() ?? 0,
+          nextSet: wp.nextPendingSet,
+        );
 
         Widget partnerCard(ParticipantStatus p, {Key? key}) {
           final status = describeParticipantStatus(p, tokens: t, now: now);

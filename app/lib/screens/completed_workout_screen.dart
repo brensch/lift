@@ -552,7 +552,7 @@ class ExerciseSummaryView {
   Exercise get exercise => _e.exercise;
   int get totalSets => _e.totalSets;
   int get totalReps => _e.totalReps;
-  String get name => exerciseNames[_e.exercise] ?? 'Unknown';
+  String get name => exerciseName(_e.exercise);
 
   /// The lift's estimated max after this session (lb), when it has one.
   double? get maxAfter =>

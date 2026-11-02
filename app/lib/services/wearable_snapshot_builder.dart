@@ -10,7 +10,6 @@ library;
 import 'package:fixnum/fixnum.dart';
 
 import '../gen/copy.dart';
-import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
@@ -96,7 +95,7 @@ class WearableSnapshotBuilder {
         stateLabel: stateLabel,
         timerText: timerText,
         displaySet: set,
-        exerciseName: exerciseNames[set.exercise] ?? '?',
+        exerciseName: exerciseName(set.exercise),
         setLine: setLineFor(set, proposedSets),
         setText: setTextFor(set, unit),
         yappingLabel: copy.workout.yapping,
@@ -184,14 +183,16 @@ class WearableSnapshotBuilder {
           .map((c) => c.endedAt)
           .reduce((a, b) => a > b ? a : b);
     }
-    final upNext = _upNextIsMe(
-      status: multiplayerProvider.sessionStatus,
-      myUserId: myUserId,
-      nowUnix: nowUnix,
-      state: state,
-      restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
-      nextSet: nextSet,
-    );
+    final upNext =
+        computeNextToLiftUserId(
+          myUserId: myUserId,
+          participants: multiplayerProvider.participants,
+          nowUnix: nowUnix,
+          state: state,
+          restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
+          nextSet: nextSet,
+        ) ==
+        myUserId;
     snapshot.ambientCopy = WearAmbientCopy(
       minLeft: copy.workout.watchMinLeft,
       underAMin: copy.workout.watchUnderAMin,
@@ -245,35 +246,6 @@ class WearableSnapshotBuilder {
     SetCircleState.zero => WearCircleState.WEAR_CIRCLE_STATE_ZERO,
     SetCircleState.skipped => WearCircleState.WEAR_CIRCLE_STATE_SKIPPED,
   };
-
-  /// Whether the wearer lifts next in a session. False when solo or nobody
-  /// is up.
-  static bool _upNextIsMe({
-    required SessionStatus? status,
-    required String myUserId,
-    required int nowUnix,
-    required WorkoutState state,
-    required int restUntil,
-    required ProposedSet? nextSet,
-  }) {
-    if (status == null || status.participants.isEmpty) return false;
-
-    final others = status.participants
-        .where((p) => p.user.id.isNotEmpty && p.user.id != myUserId)
-        .toList();
-    if (others.isEmpty) return false;
-
-    // The same client-side logic as the bottom bar decides who's next.
-    final nextToLiftUserId = computeNextToLiftUserId(
-      myUserId: myUserId,
-      others: others,
-      nowUnix: nowUnix,
-      state: state,
-      restUntil: restUntil,
-      nextSet: nextSet,
-    );
-    return nextToLiftUserId == myUserId;
-  }
 
   /// The core's summary of the workout, rendered for the watch, over
   /// [elapsedSeconds] (still counting until the workout is ended).

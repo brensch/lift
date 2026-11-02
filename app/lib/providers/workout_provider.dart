@@ -192,8 +192,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     final isCurrentlyResting =
-        snapshot.state == WorkoutState.WORKOUT_STATE_RESTING &&
-        snapshot.restUntil.toInt() > _nowSecs;
+        stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
     if (_wasResting && !isCurrentlyResting && !_sandbox) {
       await NotificationService.cancelRest();
       _soundProvider?.playCurrentSound();
@@ -208,7 +207,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final snapshot = _snapshot;
     if (snapshot == null || !hasActiveWorkout) return;
     if (snapshot.state != WorkoutState.WORKOUT_STATE_RESTING ||
-        snapshot.restUntil > Int64(_nowSecs)) {
+        stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING) {
       return;
     }
     unawaited(_reload());
@@ -221,8 +220,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     if (_sandbox) {
       _wasResting =
-          snapshot?.state == WorkoutState.WORKOUT_STATE_RESTING &&
-          (snapshot?.restUntil.toInt() ?? 0) > _nowSecs;
+          stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
       return;
     }
     if (snapshot == null) {
@@ -459,7 +457,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String _nextSetBody() {
     final next = nextPendingSet;
     if (next == null) return 'All sets complete!';
-    final name = exerciseNames[next.exercise] ?? '?';
+    final name = exerciseName(next.exercise);
     final prefix = next.warmup ? 'Warmup ' : '';
     final set = setTextFor(next, _settingsProvider.weightUnit);
     return 'Next up: $prefix$name, $set';

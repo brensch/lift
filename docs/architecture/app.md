@@ -262,23 +262,19 @@ spec as a `ThemeExtension`, so widgets read `context.tokens`:
 | `tokens.size.caption` … `tokens.size.giant` | Every text size (a 12-step scale; nothing under 12pt) |
 | `tokens.weight.regular/medium/bold/heavy` | Every font weight |
 | `tokens.resting`, `tokens.primary`, … | Colours beyond the colour scheme |
-| `tokens.br(n)` / `tokens.radius(n)` | Corners, scaled by `cornerScale` (pills become rectangles) |
+| `tokens.brXs` … `tokens.brXl` / `tokens.radiusXs` … `tokens.radiusXl` | Corners (a five-step scale) |
 | `tokens.mono(style)` / `tokens.wordmark(style)` | Counting numbers; the SCHLIFT wordmark |
 
 > Never hard-code a colour, font family, text size, weight or radius in a
 > widget; if a token is missing, add it to `ThemeSpec`. Code without a
 > `BuildContext` takes the colours or the spec as a parameter; native UI
 > with no widget tree (Fluttertoast) reads `schliftSpec` directly. Data
-> colours a user picks (plate and profile colours) are the exception, and so
-> is the debug-only wordmark lab, which compares fonts on purpose.
+> colours a user picks (plate and profile colours) are the exception.
 
 Fonts come from Google Fonts and are bundled in `assets/google_fonts/`
 (Space Grotesk and Space Mono, static weights with their OFL
 licences), so they work offline and in tests. A new family needs its files
 bundled the same way.
-
-Debug builds have a wordmark lab (Settings → Wordmark lab, `/wordmarks`):
-SCHLIFT banner candidates in a mock app bar.
 
 ## Component layout
 

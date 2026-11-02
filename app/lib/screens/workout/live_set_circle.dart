@@ -80,8 +80,8 @@ class LiveSetCircle extends StatelessWidget {
 
   /// A tap on a set's circle: a done set loses a rep (and after zero is
   /// undone), the set being lifted is done with every rep, anything else
-  /// starts. The watch's taps run this too; on a first-ever exercise the
-  /// phone asks for the weight first, the watch just tests.
+  /// starts. The watch's taps run this too; a first-ever exercise waits on
+  /// the phone, which asks for the weight first.
   static Future<void> tapSet(
     WorkoutProvider wp,
     SectionWorkout w,
@@ -142,7 +142,7 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final w = copy.workout;
-    final name = exerciseNames[widget.set.exercise] ?? '?';
+    final name = exerciseName(widget.set.exercise);
     final unit = context.watch<SettingsProvider>().weightUnit;
     final label = TextStyle(
       fontSize: t.size.bodyLg,

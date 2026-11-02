@@ -28,6 +28,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   List<_ExerciseProgress>? _series;
   int _workoutCount = 0;
   double _totalVolume = 0;
+  DateTime _since = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isLoading = true;
 
   // Time-scale filter for the charts. null = all time.
@@ -96,6 +97,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         _series = series;
         _workoutCount = resp.workoutCount;
         _totalVolume = resp.totalVolume;
+        _since = DateTime.fromMillisecondsSinceEpoch(resp.since.toInt() * 1000);
         _isLoading = false;
       });
     } catch (e) {
@@ -137,10 +139,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             child: _SummaryHeader(
               workoutCount: _workoutCount,
               totalVolume: _totalVolume,
-              since: _series!
-                  .expand((s) => s.points)
-                  .map((p) => p.date)
-                  .reduce((a, b) => a.isBefore(b) ? a : b),
+              since: _since,
               unit: unit,
               cs: cs,
             ),
@@ -252,7 +251,7 @@ class _ExerciseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = exerciseNames[series.exercise] ?? '?';
+    final name = exerciseName(series.exercise);
     final gain = series.gain;
     final gainColor = gain > 0 ? context.tokens.ready : cs.tertiary;
     final gainText = gain == 0

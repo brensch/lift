@@ -34,6 +34,9 @@ const CACHED_ACCOUNTS: usize = 256;
 /// why); this request is refused too, and the next one tries again.
 const NOT_LOADED: &str = "account did not load";
 
+/// The account was deleted (or never existed): nothing is stored for it.
+const NO_ACCOUNT: &str = "no such account";
+
 /// A device pushed a log that disagrees with the one the server holds: two
 /// devices recorded the same account. Nothing is merged.
 #[derive(Debug)]
@@ -251,6 +254,16 @@ impl ServerDb {
     ) -> DbResult<()> {
         let session_id = self.get_user_current_session(user_id).await?;
         let mut tx = self.write_pool.begin().await?;
+        // Checked in the write itself, so a push that races the account's
+        // deletion either lands before it (and is deleted with it) or not at all.
+        let exists: Option<i64> =
+            sqlx::query_scalar("SELECT 1 FROM users_current WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&mut *tx)
+                .await?;
+        if exists.is_none() {
+            return Err(NO_ACCOUNT.into());
+        }
         for event in events {
             sqlx::query("INSERT INTO account_events (user_id, seq, event_blob) VALUES (?, ?, ?)")
                 .bind(user_id)

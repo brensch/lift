@@ -139,10 +139,7 @@ class _MenuProfileState extends State<MenuProfile> {
     );
 
     final bannerColor = profileColorFromHex(auth.profileColorHex);
-    final onColor =
-        ThemeData.estimateBrightnessForColor(bannerColor) == Brightness.dark
-        ? Colors.white
-        : t.text;
+    final onColor = t.inkOn(bannerColor);
 
     String show(int Function(_Totals) f, String Function(int) fmt) =>
         totals == null ? '–' : fmt(f(totals));

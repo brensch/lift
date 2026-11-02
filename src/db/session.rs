@@ -213,9 +213,6 @@ impl ServerDb {
         Ok(())
     }
 
-    /// The durable roster for a session: every user_id that was ever a member,
-    /// earliest-joined first. Used for the historical "who was in this session"
-    /// view, which must survive members leaving (the live blob cache is pruned).
     /// Every session the user has been in, mapped to the others who were in
     /// it, first to join first.
     pub async fn list_session_partner_ids(

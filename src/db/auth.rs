@@ -499,12 +499,11 @@ mod account_deletion_tests {
             .unwrap()
     }
 
-    /// `delete_user_account_and_data` lists its tables by hand, and has already
-    /// missed some (workout_events, profile_exercise_groups, user_message_events
-    /// were all left behind). This seeds every user-keyed table, deletes the
-    /// account, and fails naming any table that still holds rows — so adding a
-    /// table without updating the delete path fails here rather than silently
-    /// retaining personal data after an account deletion.
+    /// `delete_user_account_and_data` lists its tables by hand. This seeds
+    /// every user-keyed table, deletes the account, and fails naming any table
+    /// that still holds rows — so adding a table without updating the delete
+    /// path fails here rather than silently retaining personal data after an
+    /// account deletion.
     #[tokio::test]
     async fn deleting_an_account_clears_every_user_keyed_table() {
         let db = temp_db().await;

@@ -275,9 +275,7 @@ class _LogRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  proposed == null
-                      ? '?'
-                      : (exerciseNames[proposed.exercise] ?? '?'),
+                  proposed == null ? '?' : exerciseName(proposed.exercise),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

@@ -99,7 +99,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final name = exerciseNames[widget.block.exercise] ?? '?';
+    final name = exerciseName(widget.block.exercise);
 
     Widget stepper(
       String label,

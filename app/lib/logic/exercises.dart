@@ -350,10 +350,12 @@ const List<ExerciseInfo> exerciseCatalog = [
 
 // ── Names by exercise, from the catalogue ──
 
-final Map<Exercise, String> exerciseNames = {
-  Exercise.EXERCISE_UNSPECIFIED: '?',
+final Map<Exercise, String> _exerciseNames = {
   for (final info in exerciseCatalog) info.exercise: info.name,
 };
+
+/// An exercise's name; '?' for one the catalogue does not have.
+String exerciseName(Exercise e) => _exerciseNames[e] ?? '?';
 
 final Map<Exercise, String> shortNames = {
   Exercise.EXERCISE_UNSPECIFIED: '?',

@@ -15,9 +15,12 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::Channel;
 
+/// A fresh database holding the account `u1`.
 async fn db() -> ServerDb {
     let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
-    ServerDb::new_in_dir(&dir).await.unwrap()
+    let db = ServerDb::new_in_dir(&dir).await.unwrap();
+    db.create_user_with_id("u1", "u1").await.unwrap();
+    db
 }
 
 /// A phone: an account and the events it has recorded.
@@ -116,6 +119,18 @@ mod store {
         });
         let pushed = db.push_events("u1", beats).await.unwrap();
         assert_eq!((pushed.head, pushed.progressed), (2, false));
+    }
+
+    #[tokio::test]
+    async fn a_push_after_the_account_is_deleted_stores_nothing() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (_, first) = phone.start_squats(1_000);
+        db.push_events("u1", first).await.unwrap();
+        db.delete_user_account_and_data("u1").await.unwrap();
+        let (_, events) = Phone::new().start_squats(1_000);
+        assert!(db.push_events("u1", events).await.is_err());
+        assert!(db.events_after("u1", 0).await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -302,6 +317,7 @@ mod store {
         old.close().await;
 
         let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        db.create_user_with_id("u1", "u1").await.unwrap();
         let (started, events) = Phone::new().start_squats(1_000);
         db.push_events("u1", events).await.unwrap();
         let rests: Vec<i64> =

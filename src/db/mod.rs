@@ -166,8 +166,8 @@ pub struct ServerDb {
 
 /// Columns of the projected tables added after the table already existed
 /// in production: `CREATE TABLE IF NOT EXISTS` leaves an old table as it
-/// was, so each is added at startup when it is missing. Columns the
-/// projections no longer write stay, with their defaults.
+/// was, so each is added at startup when it is missing, before
+/// `rekey_workout_tables` copies the schema's columns into the rekeyed table.
 const ADDED_COLUMNS: &[(&str, &str, &str)] = &[(
     "proposed_sets",
     "rest_seconds",

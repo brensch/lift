@@ -345,7 +345,7 @@ class _ExerciseRow extends StatelessWidget {
         child: Icon(AppIcons.drag, color: cs.onSurface.withValues(alpha: 0.4)),
       ),
       title: Text(
-        exerciseNames[exercise] ?? '?',
+        exerciseName(exercise),
         style: TextStyle(
           fontSize: context.tokens.size.body,
           fontWeight: context.tokens.weight.bold,
@@ -456,7 +456,7 @@ class _OverrideSheetState extends State<_OverrideSheet> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final o = copy.plan.override;
-    final name = exerciseNames[_decision.exercise] ?? '?';
+    final name = exerciseName(_decision.exercise);
     final reasons = reasonLines(_decision, widget.unit);
 
     return Container(

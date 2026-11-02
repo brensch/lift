@@ -19,14 +19,17 @@ The feature graphic is pushed to Play by store-assets.yml.
 from __future__ import annotations
 
 import base64
+from html import escape
 from pathlib import Path
 
+import yaml
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 FONTS = ROOT / "app" / "assets" / "google_fonts"
 ICON = ROOT / "marketing" / "icon.png"
 FEATURE = ROOT / "marketing" / "feature_graphic.png"
+LISTING = ROOT / "store" / "listing.yaml"
 
 # The app's palette.
 GROUND = "#DBDAD2"
@@ -89,8 +92,7 @@ def icon() -> str:
 {dots}{ring}</g>"""
 
 
-# The wordmark's wobble: one tilt and one nudge per letter, fixed, like the
-# app's WobblyText at rest.
+# The wordmark's wobble, frozen: one fixed tilt and nudge per letter.
 WOBBLE_DEG = (-3, 2, -1.5, 2.5, -2, 1.5, -1)
 WOBBLE_DY = (0, -0.035, 0.02, -0.02, 0.03, -0.012, 0.022)
 
@@ -129,8 +131,9 @@ def set_circle(kind: str, cx: float, cy: float, r: float, reps: str) -> str:
 
 
 def feature_graphic() -> str:
-    """The app's status box blown up: the name and the line over a strip of
-    set circles, then the orange LIFTING band with its clock."""
+    """The app's status box blown up: the name and the listing's tagline over
+    a strip of set circles, then the orange LIFTING band with its clock."""
+    tagline = yaml.safe_load(LISTING.read_text(encoding="utf-8"))["tagline"]
     band_h, strip_h = 118, 96
     band_y = 500 - band_h
     strip_y = band_y - strip_h
@@ -148,7 +151,7 @@ def feature_graphic() -> str:
     return f"""<rect width="1024" height="500" fill="{GROUND}"/>
 {wordmark(52, word_y, word_size, INK)}
 <text x="60" y="{word_y + 52:.1f}" style="{GROTESK};font-size:30px" fill="{MUTED}"
->Free, simple, planned lifting.</text>
+>{escape(tagline)}</text>
 <rect y="{strip_y - 1}" width="1024" height="1" fill="{HAIRLINE}"/>
 <rect y="{strip_y}" width="1024" height="{strip_h}" fill="{PANEL}"/>
 {circles}

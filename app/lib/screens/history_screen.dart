@@ -246,7 +246,7 @@ class _HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = item.date;
     final title = item.exercises.isNotEmpty
-        ? item.exercises.take(3).map((e) => exerciseNames[e] ?? '?').join(' · ')
+        ? item.exercises.take(3).map(exerciseName).join(' · ')
         : (item.workout.name.isNotEmpty ? item.workout.name : 'Workout');
     final more = item.exercises.length > 3
         ? ' +${item.exercises.length - 3}'

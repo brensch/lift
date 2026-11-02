@@ -71,7 +71,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final name = exerciseNames[widget.exercise] ?? '?';
+    final name = exerciseName(widget.exercise);
 
     Widget scaffold(Widget body) => Scaffold(
       appBar: AppBar(title: PageTitle(name)),

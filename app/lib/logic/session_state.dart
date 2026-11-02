@@ -172,15 +172,20 @@ int compareParticipantsByNextWorkout(
 
 /// Returns the userId of whoever is "next to lift" across all session members:
 /// of those waiting (not lifting, not finished), the earliest scheduled start.
-/// Tiebreak: lexicographic userId.
+/// Tiebreak: lexicographic userId. Null when nobody else is in the session.
 String? computeNextToLiftUserId({
   required String? myUserId,
-  required List<ParticipantStatus> others,
+  required List<ParticipantStatus> participants,
   required int nowUnix,
   required WorkoutState state,
   required int restUntil,
   required ProposedSet? nextSet,
 }) {
+  final others = participants.where(
+    (p) => p.user.id.isNotEmpty && p.user.id != myUserId,
+  );
+  if (others.isEmpty) return null;
+
   String? bestId;
   int? bestStart;
 

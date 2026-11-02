@@ -76,9 +76,7 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final names = widget.offer.exercises
-        .map((e) => exerciseNames[e] ?? '?')
-        .join(', ');
+    final names = widget.offer.exercises.map(exerciseName).join(', ');
 
     return AlertDialog(
       title: Text(
