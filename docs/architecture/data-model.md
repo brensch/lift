@@ -159,8 +159,11 @@ the first sync, the copy built into the app stands in.
 - `CloneTemplate` makes a coupled template the user's own **in place**
   (same id, so the workouts recorded against it stay with it): it stops
   following the library. A `SaveTemplate` that changes a coupled
-  template's name or exercises does the same; saved unchanged it stays
-  coupled. Templates made from scratch are never coupled.
+  template's name or exercises does the same, and so does one with
+  `unlink` (the app's Clone: the editor opens on the template and Save
+  records it as the user's own, changed or not; backing out records
+  nothing); saved unchanged without it, it stays coupled. Templates made
+  from scratch are never coupled.
 - Every workout keeps its own exercises and sets plus `template_id`, so a
   change to a default never rewrites a past session.
 - In the app's Edit sheet library workouts are ticked in and out

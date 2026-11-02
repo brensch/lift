@@ -135,11 +135,16 @@ Decision {
   exercise, sets, reps, weight, rest, warmups
   max                      // the estimated max this was planned from
   budget_minutes, estimated_seconds
-  reasons: [Reason]        // in the order they applied
+  reasons: [Reason]        // against last time first, then the steps in order
 }
 
 Reason {
-  kind: MAX_UP          // every rep last time: the max nudged up
+  kind: WEIGHT_UP       // against last time: heavier
+      | WEIGHT_DOWN     //   lighter
+      | REPS_UP         //   the same weight, more reps
+      | REPS_DOWN       //   the same weight, fewer reps
+      | SAME_AS_LAST    //   the same weight and reps
+      | MAX_UP          // every rep last time: the max nudged up
       | MAX_FROM_MISS   // a missed set reset the max to what it showed
       | HELD            // stopped early, or the user lowered the weight
       | TIME_OFF        // 3 or 6 weeks away: the max cut
@@ -147,8 +152,27 @@ Reason {
       | USER_SET        // the user's own weight, from <when>
       | SETS_FROM_TIME  // this many sets: the budget, and which muscles are behind
   before, after, detail (days off, the set that showed it, when)
+  // against last time: before/after are the weights, and
+  cause: HIT | MISSED | STOPPED_EARLY | SETS | TIME_OFF
+  reps_before, reps_after, sets_before, sets_after
 }
 ```
+
+**Why, in terms of the weight.** The max is the rule's number; the user
+sees a weight. So the first reason compares the plan with the lift's last
+session — its heaviest working weight, the reps that set was planned for,
+the sets the session was planned with — and says why it moved:
+
+| Cause | When |
+|---|---|
+| `TIME_OFF` | the max was cut for time away |
+| `SETS` | a different number of sets, and last time's number would have moved the plan another way (more sets making it lighter, fewer letting it step up) |
+| `HIT`, `MISSED`, `STOPPED_EARLY` | otherwise, how the last session went |
+
+A lift with no last session to compare with (never done, an override
+still the latest word, a ramp alone) has no comparison. Screens lead with
+it — "Down to 107.5 kg: 4 sets today, 3 last time." — and never show a
+`HELD` max beside a weight that moved; the max's steps stay as detail.
 
 `AddExercises` records decisions the same way; lifts already planned keep
 theirs.
@@ -187,12 +211,15 @@ score(template) = Σ over its distinct primary muscles that have recovered
                   of max(0, 10 − hard sets this week)
 ```
 
-Recovered is the recovery windows: 48 h for chest, back, quads,
-hamstrings and glutes; 36 h for shoulders, biceps and triceps; 24 h for
-calves and core. Every template within 20% of the best score is tied, and
-so is one overdue (not started in 14 days, or never) with a score above 0;
-the tie goes to the one started least recently, never started first. If
-nothing scores above 0, the rotation template started least recently.
+Recovered is the recovery windows, counted from the start of the last
+workout that trained the muscle: 48 h for chest, back, quads, hamstrings
+and glutes; 36 h for shoulders, biceps and triceps; 24 h for calves and
+core. Home's recovery chips count the same way. A template whose first
+lift's primary muscle is still recovering is left out. Of the rest, every
+template within 20% of the best score is tied; the tie goes to the one
+started least recently, never started first. If none of them scores above
+0, the one started least recently (the fallback). If every rotation
+template is left out, the one whose first lift's muscle recovers soonest.
 Favourites are never suggested.
 
 The answer is structured:
@@ -202,16 +229,22 @@ SuggestionReason {
   behind: [{muscle, sets_7d, target}]       // what won it, most behind first
   recovering: [{muscle, hours_remaining}]   // behind but not ready
   fallback                                  // nothing ready and behind
-  overdue                                   // won on being overdue
+  first_lift_recovering: {muscle, hours_remaining}
+                                            // every template left out:
+                                            // this one's first lift is back soonest
 }
 ```
 
 and Home words it under the template's name: "Chest 2/10 and back 0/10
-this week, both rested · quads recovering (20h)".
+this week, both rested · quads recovering (20h)", or "Every workout
+starts on something sore. Chest's back first (5h)."
 
-The overdue rule keeps the rotation turning: the score adds muscles up,
-so a template whose muscles another covers (StrongLifts A inside Full
-Body) never comes within 20% of it and would never be suggested.
+The score adds muscles up, so a short template whose muscles a bigger one
+also trains seldom comes within 20% of it: in the rotation run
+StrongLifts B (squat, press, deadlift, beside Lower and Full Body) is
+never suggested in three weeks. The rotation check's overlap warning
+names a pair that shares most of its lifts (StrongLifts A inside Full
+Body).
 
 **The rotation check.** One lap of the rotation, each template once at
 three working sets a lift, counted as Home counts the week (primary 1.0,
@@ -222,7 +255,6 @@ wrong:
 |---|---|
 | gap | a muscle nothing in rotation trains |
 | overlap | two templates share over 70% of the smaller one's lifts |
-| lopsided | the most-trained muscle gets 3× or more the least-trained trained one |
 | too few | fewer than 2 templates in rotation |
 
 The Edit sheet shows the lap on Home's muscle bars and the warnings as
@@ -234,7 +266,7 @@ plain lines.
 |---|---|---|
 | Home | rotation chips, then favourites; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
 | Edit sheet | the rotation check | `rotation_check` |
-| Template editor | in rotation or not; each lift's next plan; the sheet that sets an override | `plan` |
+| Template editor | in rotation or not; each lift's next plan, the list on screen planned as one workout with the budget (what Home's card shows for it once saved); the sheet that sets an override. Clone opens it on a library template and records nothing until Save, which makes it the user's own | `plan` (`GetTemplatePlan`) |
 | Live workout, watch | the set's weight and reps; the reason when the lift comes up; changes | the workout's log |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
 | Progress, exercise detail | the estimated max over time, and the heaviest weight lifted each session | the walk, history |
@@ -290,12 +322,15 @@ Workouts logged offline and not synced before the deploy are lost.
   defaults at ten samples; rounding producing an extra rep before a plate;
   a started workout unaffected by a later rule change; every weight log
   cause; Home's plan equal to a start at the same now and budget.
-- Core tests cover the suggestion (recovered muscles only, the 20% tie
-  and the least recent, overdue, the fallback, favourites left out) and
-  each rotation-check warning; the progression scenarios' rotation run
-  turns over (no template twice running while another has rested muscles
-  behind, every rotation template picked in three weeks, Full Body at
-  most 40% of days).
+- Core tests cover the comparison with last time (a miss bringing the
+  weight down, more sets bringing it down, a hit bringing a rep or a step
+  up, stopping early keeping it), the suggestion (recovered muscles only,
+  a recovering first lift leaving a template out, the one back soonest
+  when every one is, the 20% tie and the least recent, the fallback,
+  favourites left out) and each rotation-check warning; the progression
+  scenarios' rotation run turns over (no template twice running while
+  another has rested muscles behind, none opening on a recovering muscle
+  while another was ready, Full Body at most 40% of days).
 - The fuzzer, `make test-app` and the e2e suite pass.
 - The Learn pages and docs/architecture describe this design and nothing
   else; nothing in the repo mentions trackers, user messages or gender

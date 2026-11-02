@@ -40,10 +40,11 @@ Pure and fast, inline in their modules under `core/src/`:
   so a `_ =>` fallback cannot quietly misfile a new lift), the class rules,
   plate snapping.
 - `volume.rs` — the 7-day window, primary/secondary weighting, and the
-  suggestion: recovered muscles only, the 20% tie and the least recent,
-  overdue templates, the fallback, favourites left out.
-- `rotation.rs` — the rotation check: each warning (gap, overlap,
-  lopsided, too few) and the sets a lap counts.
+  suggestion: recovered muscles only, a template whose first lift is
+  recovering left out (and the one back soonest when every one is), the
+  20% tie and the least recent, the fallback, favourites left out.
+- `rotation.rs` — the rotation check: each warning (gap, overlap, too
+  few) and the sets a lap counts.
 - `workout/reducer.rs`, `workout/planning.rs` — set transitions, rest,
   calibration rungs (climb, settle, re-settle) and the weight log entries
   they make; warmup ladders.
@@ -54,9 +55,11 @@ Pure and fast, inline in their modules under `core/src/`:
 
 `core/tests/api.rs` drives the account through `Call` and `View` exactly as
 the app does: onboard → home → start-from-template → complete → end → the
-next plan follows from the session. Each reason, time away cutting the max,
+next plan follows from the session. Each reason (and the plan against last
+time first), time away cutting the max,
 an override as a new start, the budget setting the sets (and "needs N
-min"), Home's preview equal to a start at the same moment and budget, an
+min"), Home's preview equal to a start at the same moment and budget and
+to the template editor's `GetTemplatePlan`, a Clone saved unchanged, an
 added lift fitting around the planned ones, a started workout following
 its recorded decision whatever the rules say now, a lift without its
 decision refused, every weight-log cause, the ramp, and the kg path live
@@ -76,8 +79,11 @@ Home suggests, doing every set; each day's pick, reason and every
 template's score go in the snapshot, and the explorer's Rotation tab draws
 them as a calendar and a timeline beside the rotation check. The test
 fails if a template is suggested two training days running while another
-had rested muscles behind, if a rotation template is never suggested, or
-if Full Body takes over 40% of the days.
+had rested muscles behind, if one is suggested while its first lift's
+muscle is recovering and another was ready, or if Full Body takes over
+40% of the days. A rotation template never suggested is flagged as info:
+a short template whose muscles a bigger one also trains (StrongLifts B
+beside Lower and Full Body) rarely comes within a fifth of its score.
 
 ## Invariant fuzzer
 

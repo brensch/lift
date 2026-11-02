@@ -184,10 +184,11 @@ Every screen shows the core's decisions, never its own numbers:
 
 | Screen | Shows | From |
 |---|---|---|
-| Home | the rotation's chips, then the favourites after a divider; under the suggested template's name, why (its rested muscles behind, what is still recovering); the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason; the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason` |
+| Home | the rotation's chips, then the favourites after a divider; under the suggested template's name, why (its rested muscles behind, what is still recovering, or that every workout opens on something recovering); the recovery chips; the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason (the plan against last time: "Down to 107.5 kg: 4 sets today, 3 last time."); the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason`, `recovery` |
 | Edit sheet | the rotation check: one lap's sets per muscle on Home's bars, and a line for each warning | `GetHome`: `rotation_check` |
 | Template editor | the In rotation switch | `SaveTemplate` |
-| Template editor | each lift's next plan; the sheet that sets or removes an override | `plans`, `SetOverride` |
+| Template editor | each lift's next plan, the list on screen planned as one workout in Home's budget (so a saved template reads as Home's card does); the sheet that sets or removes an override | `GetTemplatePlan(exercises, budget_minutes)`, `SetOverride` |
+| Edit sheet, Home card menu | Clone: the editor on the template, recording nothing until Save, which saves it as the user's own (`unlink`) | `SaveTemplate` |
 | Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
 | Progress, exercise detail | the estimated max over time beside the heaviest set each session | `GetExerciseProgress` |

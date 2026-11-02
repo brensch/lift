@@ -129,7 +129,23 @@ be loaded (plate maths, the equipment's steps, never under the empty bar).
 
 ### The decision and its reasons
 
-Each `ExerciseDecision` carries its `reasons`, in the order they applied:
+Each `ExerciseDecision` carries its `reasons`. The first compares the plan
+with the lift's last session, in the terms the user sees — the weight and
+reps — whenever there is a last session to compare with (not after an
+override, or when the last session was a ramp alone):
+
+| Reason | When |
+|---|---|
+| `WEIGHT_UP` / `WEIGHT_DOWN` | Heavier or lighter than last time (`before`, `after`: the weights) |
+| `REPS_UP` / `REPS_DOWN` | The same weight, more or fewer reps |
+| `SAME_AS_LAST` | The same weight and reps |
+
+with its `cause`: every rep hit (`HIT`), a rep missed (`MISSED`), stopped
+early (`STOPPED_EARLY`), time off (`TIME_OFF`), or the number of sets
+(`SETS`, when last time's number of sets would have moved the plan another
+way — more sets making it lighter, say), and last time's reps and sets
+beside this plan's. The steps that set the max follow, in the order they
+applied:
 
 | Reason | When |
 |---|---|
@@ -141,10 +157,16 @@ Each `ExerciseDecision` carries its `reasons`, in the order they applied:
 | `USER_SET` | The user's own weight and reps, from when they set it |
 | `SETS_FROM_TIME` | This many sets: the budget, and which muscles are behind |
 
+Screens lead with the comparison, so the line beside a weight says why
+that weight moved; a `HELD` max is not shown beside a weight that moved
+(`app/lib/logic/plan_text.dart`).
+
 Home, the template editor and the exercise page show the same decisions:
 `GetHome` plans every lift (`plans`, each lift on its own) and every
 template (`template_plans`, with the workout's estimated length) at now in
 the chosen budget, exactly as a start at that moment would record them.
+The template editor plans the list on screen the same way
+(`GetTemplatePlan`), so a saved template reads as its Home card does.
 
 ## Picking a workout: the rotation and the suggestion
 
@@ -159,27 +181,33 @@ Home shows the rotation's chips first and the favourites after a divider.
 `GetHome` suggests one rotation template (`core/src/volume.rs`,
 `suggest_template`), fresh each time from history, never stored:
 
-1. A template's score is the sum, over its distinct primary muscles that
-   have **recovered** now (`core/src/recovery.rs`: 48 h for chest, back,
-   quads, hamstrings and glutes, 36 h for shoulders and arms, 24 h for
-   calves and core), of how far each is below 10 hard sets this week.
-2. Every template within 20% of the best score is tied, and so is an
-   **overdue** one (not started in 14 days, or never) with a score above
-   0. The tie goes to the template started least recently (never started
-   first).
-3. When nothing in rotation scores above 0, the suggestion is the
-   rotation template started least recently (the **fallback**).
+1. A muscle has **recovered** when its window has passed since the start
+   of the last workout that trained it (`core/src/recovery.rs`: 48 h for
+   chest, back, quads, hamstrings and glutes, 36 h for shoulders and arms,
+   24 h for calves and core). Home's recovery chips read the same.
+2. A template whose first lift's primary muscle is still recovering is
+   left out.
+3. A template's score is the sum, over its distinct primary muscles that
+   have recovered, of how far each is below 10 hard sets this week.
+4. Every template within 20% of the best score is tied. The tie goes to
+   the template started least recently (never started first).
+5. When no template left in scores above 0, the suggestion is the one
+   started least recently (the **fallback**). When every rotation
+   template is left out, it is the one whose first lift's muscle recovers
+   soonest (`first_lift_recovering`).
 
 Favourites are never suggested; with nothing in rotation there is no
 suggestion. The answer is structured (`SuggestionReason`): the suggested
 template's rested muscles that are behind (sets this week, target), the
 muscles the rotation trains that are behind but still recovering (hours
-left), and whether it won as overdue or the fallback. Home words it under
-the template's name (`app/lib/logic/rotation_text.dart`).
+left), whether it is the fallback, and the first lift's muscle when every
+template was left out. Home words it under the template's name
+(`app/lib/logic/rotation_text.dart`).
 
-Overdue is there because the score adds muscles up: a template whose
-muscles another covers (StrongLifts A inside Full Body) never comes
-within 20% of it, and without the overdue rule is never suggested.
+The score adds muscles up, so a short template whose muscles a bigger one
+also trains (StrongLifts A inside Full Body, StrongLifts B beside Lower)
+seldom comes within 20% of it and can go weeks unsuggested; the rotation
+check's overlap warning names a pair that shares most of its lifts.
 
 `GetHome` also checks the rotation (`core/src/rotation.rs`,
 `RotationCheck`): one lap of it, each template once at three working sets
@@ -187,9 +215,7 @@ a lift, counted as the week is (primary 1.0, secondary 0.5). Three sets a
 lift, not the planner's, so the check describes the rotation and not this
 week's history or budget. It warns of a **gap** (a muscle nothing in
 rotation trains), an **overlap** (two templates sharing over 70% of the
-smaller one's lifts), a **lopsided** lap (the most-trained muscle at 3× or
-more the least-trained trained one) and **too few** (under two templates
-in rotation). The Edit sheet shows the lap's bars and the warnings.
+smaller one's lifts) and **too few** (under two templates in rotation). The Edit sheet shows the lap's bars and the warnings.
 
 ## Starting a workout
 
