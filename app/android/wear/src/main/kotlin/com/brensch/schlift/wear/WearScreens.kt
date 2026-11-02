@@ -101,7 +101,6 @@ internal object WearPalette {
 
     // Done short of the target (the phone's effort colour).
     val Effort = Color(0xFFD99A00)
-    val FirstTime = Color(0xFF111111)
     val Ambient = Color.Black
     val AmbientText = Color(0xFFB7B6AC)
     val AmbientLine = Color(0xFF4A4A44)
@@ -126,7 +125,7 @@ internal data class WearFace(
     val label: String,
     // The phone's "up next" chip, when you lift next in a session; else empty.
     val upNext: String,
-    // Empty: no timer (ready, or a first time).
+    // Empty: no timer (ready).
     val timer: String,
     // The band is [stageColor] over [trackColor], filled to [bandFill]: rest
     // drains it.
@@ -145,6 +144,8 @@ internal data class WearFace(
     val elapsed: String,
     val clock: String,
     val hasPlates: Boolean,
+    // A first-time set: this in place of weight × reps, and no set taps.
+    val firstTimeText: String,
 )
 
 // The done screen's left column, as a fraction of the face.
@@ -233,8 +234,9 @@ private fun Rule(color: Color = WearPalette.Hairline) {
  * The face: the set circles, the band (who, the stage, its clock), the
  * exercise, the weight × reps, then heart rate | workout length | time. A tap
  * on a circle runs [onTapSet] with its set; on the rep circle, [onRep]; on the
- * weight, with plates to show, [onWeight]. Rows sit from the top down, each
- * kept inside a round face's chord.
+ * weight, with plates to show, [onWeight]. On a first-time set the weight row
+ * says to open the phone and no circle can be tapped. Rows sit from the top
+ * down, each kept inside a round face's chord.
  */
 @Composable
 internal fun FaceScreen(
@@ -280,7 +282,7 @@ private fun Face(
                 face = face,
                 d = d,
                 inset = roundInset(d, round, top + 0.03f, top + CIRCLES_ROW - 0.03f),
-                enabled = enabled,
+                enabled = enabled && face.firstTimeText.isEmpty(),
                 onTapSet = onTapSet,
             )
             Rule(c.hairline)
@@ -305,14 +307,19 @@ private fun Face(
                 )
             }
             Rule(c.hairline)
-            WeightRow(
-                face = face,
-                d = d,
-                inset = maxOf(roundInset(d, round, weightTop, weightTop + WEIGHT_ROW), side),
-                enabled = enabled,
-                onRep = onRep,
-                onWeight = onWeight,
-            )
+            val weightInset = maxOf(roundInset(d, round, weightTop, weightTop + WEIGHT_ROW), side)
+            if (face.firstTimeText.isNotEmpty()) {
+                FirstTimeRow(text = face.firstTimeText, d = d, inset = weightInset)
+            } else {
+                WeightRow(
+                    face = face,
+                    d = d,
+                    inset = weightInset,
+                    enabled = enabled,
+                    onRep = onRep,
+                    onWeight = onWeight,
+                )
+            }
             Rule(c.hairline)
             Stats(face = face, d = d, inset = roundInset(d, round, statsTop + 0.02f, statsTop + STATS_ROW - 0.02f))
             Rule(c.hairline)
@@ -385,7 +392,7 @@ private fun circleLook(
         }
     }
 
-/** The exercise's sets, every one tappable, scrolled to the one in hand. */
+/** The exercise's sets, tappable unless a first time waits, scrolled to the one in hand. */
 @Composable
 private fun SetRow(
     face: WearFace,
@@ -517,6 +524,27 @@ private fun UpNextChip(
     )
 }
 
+/** A first-time set's weight row: the answer is on the phone. Not tappable. */
+@Composable
+private fun FirstTimeRow(
+    text: String,
+    d: Dp,
+    inset: Dp,
+) {
+    val c = LocalFaceColors.current
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(d * WEIGHT_ROW)
+                .background(c.panel)
+                .padding(horizontal = inset),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        FitText(text = text, size = (d * 0.107f).asSp(), color = c.text, align = TextAlign.Start)
+    }
+}
+
 /** The weight (tap it for the plates) × the reps, in the set's circle. */
 @Composable
 private fun WeightRow(
@@ -561,7 +589,7 @@ private fun WeightRow(
                 align = TextAlign.Start,
                 modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
             )
-            if (face.weight != "?" && face.unit.isNotEmpty()) {
+            if (face.unit.isNotEmpty()) {
                 Text(
                     text = " ${face.unit}",
                     color = c.text,

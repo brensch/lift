@@ -74,7 +74,10 @@ class WearableSnapshotBuilder {
       String stateLabel = '',
       String timerText = '',
     }) {
-      final firstTime = _isFirstEver(set, proposedSets, completedSets);
+      // Until it is started: the phone asks for the weight, or tests you.
+      final firstTime =
+          set.id != workout.liftingSetId &&
+          _isFirstEver(set, proposedSets, completedSets);
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
@@ -88,20 +91,19 @@ class WearableSnapshotBuilder {
       String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
       final heaviest = standardPlates(unit).first;
       return WearStatusCard(
-        stateLabel: firstTime ? copy.workout.watchFirstTimeStatus : stateLabel,
+        stateLabel: stateLabel,
         timerText: timerText,
         displaySet: set,
         exerciseName: exerciseNames[set.exercise] ?? '?',
         setLine: setLineFor(set, proposedSets),
         setText: setTextFor(set, unit),
-        // A first-time set waits on the phone however long the rest ran.
-        yappingLabel: firstTime
-            ? copy.workout.watchFirstTimeStatus
-            : copy.workout.yapping,
-        weightText: firstTime ? '?' : formatWeight(weight, unit),
+        yappingLabel: copy.workout.yapping,
+        weightText: firstTime ? '' : formatWeight(weight, unit),
         unitText: weightUnitSuffix(unit),
-        repsText: firstTime ? '?' : '${set.targetReps}',
+        repsText: firstTime ? '' : '${set.targetReps}',
         firstTime: firstTime,
+        // In place of weight × reps: the answer is on the phone.
+        firstTimeText: firstTime ? copy.workout.watchFirstTimeStatus : '',
         plates: [
           for (final p in plates)
             WearPlate(

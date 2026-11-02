@@ -588,7 +588,7 @@ public final class Wearable {
 
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -597,7 +597,7 @@ public final class Wearable {
     java.lang.String getWeightText();
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -628,7 +628,7 @@ public final class Wearable {
 
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -637,7 +637,7 @@ public final class Wearable {
     java.lang.String getRepsText();
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -648,14 +648,37 @@ public final class Wearable {
 
     /**
      * <pre>
-     * The opening set of an exercise never done: no weight yet. A tap starts
-     * the calibration sets; giving the weight is done on the phone.
+     * The opening set of an exercise never done, not yet started: no weight
+     * yet, and the answer (your weight, or test me) is given on the phone. The
+     * band shows the state as usual; the weight row shows first_time_text in
+     * place of weight × reps, and no tap on the face does anything to the
+     * exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
      * @return The firstTime.
      */
     boolean getFirstTime();
+
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     * @return The firstTimeText.
+     */
+    java.lang.String getFirstTimeText();
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     * @return The bytes for firstTimeText.
+     */
+    com.google.protobuf.ByteString
+        getFirstTimeTextBytes();
 
     /**
      * <pre>
@@ -749,6 +772,7 @@ public final class Wearable {
       weightText_ = "";
       unitText_ = "";
       repsText_ = "";
+      firstTimeText_ = "";
       plates_ = emptyProtobufList();
       platesText_ = "";
       barText_ = "";
@@ -1230,7 +1254,7 @@ public final class Wearable {
     private java.lang.String weightText_;
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -1242,7 +1266,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -1255,7 +1279,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -1269,7 +1293,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -1280,7 +1304,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's weight in the user's unit, "225" ("?" on a first time)
+     * display_set's weight in the user's unit, "225"; empty on a first time
      * </pre>
      *
      * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -1364,7 +1388,7 @@ public final class Wearable {
     private java.lang.String repsText_;
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -1376,7 +1400,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -1389,7 +1413,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -1403,7 +1427,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -1414,7 +1438,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * display_set's target reps, "5" ("?" on a first time)
+     * display_set's target reps, "5"; empty on a first time
      * </pre>
      *
      * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -1431,8 +1455,11 @@ public final class Wearable {
     private boolean firstTime_;
     /**
      * <pre>
-     * The opening set of an exercise never done: no weight yet. A tap starts
-     * the calibration sets; giving the weight is done on the phone.
+     * The opening set of an exercise never done, not yet started: no weight
+     * yet, and the answer (your weight, or test me) is given on the phone. The
+     * band shows the state as usual; the weight row shows first_time_text in
+     * place of weight × reps, and no tap on the face does anything to the
+     * exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -1444,8 +1471,11 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The opening set of an exercise never done: no weight yet. A tap starts
-     * the calibration sets; giving the weight is done on the phone.
+     * The opening set of an exercise never done, not yet started: no weight
+     * yet, and the answer (your weight, or test me) is given on the phone. The
+     * band shows the state as usual; the weight row shows first_time_text in
+     * place of weight × reps, and no tap on the face does anything to the
+     * exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -1457,8 +1487,11 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The opening set of an exercise never done: no weight yet. A tap starts
-     * the calibration sets; giving the weight is done on the phone.
+     * The opening set of an exercise never done, not yet started: no weight
+     * yet, and the answer (your weight, or test me) is given on the phone. The
+     * band shows the state as usual; the weight row shows first_time_text in
+     * place of weight × reps, and no tap on the face does anything to the
+     * exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -1466,6 +1499,73 @@ public final class Wearable {
     private void clearFirstTime() {
       
       firstTime_ = false;
+    }
+
+    public static final int FIRST_TIME_TEXT_FIELD_NUMBER = 22;
+    private java.lang.String firstTimeText_;
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     * @return The firstTimeText.
+     */
+    @java.lang.Override
+    public java.lang.String getFirstTimeText() {
+      return firstTimeText_;
+    }
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     * @return The bytes for firstTimeText.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getFirstTimeTextBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(firstTimeText_);
+    }
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     * @param value The firstTimeText to set.
+     */
+    private void setFirstTimeText(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      firstTimeText_ = value;
+    }
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     */
+    private void clearFirstTimeText() {
+      
+      firstTimeText_ = getDefaultInstance().getFirstTimeText();
+    }
+    /**
+     * <pre>
+     * "Open phone!" when first_time, else empty
+     * </pre>
+     *
+     * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+     * @param value The bytes for firstTimeText to set.
+     */
+    private void setFirstTimeTextBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      firstTimeText_ = value.toStringUtf8();
+      
     }
 
     public static final int PLATES_FIELD_NUMBER = 19;
@@ -2343,7 +2443,7 @@ public final class Wearable {
 
       /**
        * <pre>
-       * display_set's weight in the user's unit, "225" ("?" on a first time)
+       * display_set's weight in the user's unit, "225"; empty on a first time
        * </pre>
        *
        * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -2355,7 +2455,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's weight in the user's unit, "225" ("?" on a first time)
+       * display_set's weight in the user's unit, "225"; empty on a first time
        * </pre>
        *
        * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -2368,7 +2468,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's weight in the user's unit, "225" ("?" on a first time)
+       * display_set's weight in the user's unit, "225"; empty on a first time
        * </pre>
        *
        * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -2383,7 +2483,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's weight in the user's unit, "225" ("?" on a first time)
+       * display_set's weight in the user's unit, "225"; empty on a first time
        * </pre>
        *
        * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -2396,7 +2496,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's weight in the user's unit, "225" ("?" on a first time)
+       * display_set's weight in the user's unit, "225"; empty on a first time
        * </pre>
        *
        * <code>string weight_text = 14 [json_name = "weightText"];</code>
@@ -2481,7 +2581,7 @@ public final class Wearable {
 
       /**
        * <pre>
-       * display_set's target reps, "5" ("?" on a first time)
+       * display_set's target reps, "5"; empty on a first time
        * </pre>
        *
        * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -2493,7 +2593,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's target reps, "5" ("?" on a first time)
+       * display_set's target reps, "5"; empty on a first time
        * </pre>
        *
        * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -2506,7 +2606,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's target reps, "5" ("?" on a first time)
+       * display_set's target reps, "5"; empty on a first time
        * </pre>
        *
        * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -2521,7 +2621,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's target reps, "5" ("?" on a first time)
+       * display_set's target reps, "5"; empty on a first time
        * </pre>
        *
        * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -2534,7 +2634,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * display_set's target reps, "5" ("?" on a first time)
+       * display_set's target reps, "5"; empty on a first time
        * </pre>
        *
        * <code>string reps_text = 16 [json_name = "repsText"];</code>
@@ -2550,8 +2650,11 @@ public final class Wearable {
 
       /**
        * <pre>
-       * The opening set of an exercise never done: no weight yet. A tap starts
-       * the calibration sets; giving the weight is done on the phone.
+       * The opening set of an exercise never done, not yet started: no weight
+       * yet, and the answer (your weight, or test me) is given on the phone. The
+       * band shows the state as usual; the weight row shows first_time_text in
+       * place of weight × reps, and no tap on the face does anything to the
+       * exercise's sets.
        * </pre>
        *
        * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -2563,8 +2666,11 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The opening set of an exercise never done: no weight yet. A tap starts
-       * the calibration sets; giving the weight is done on the phone.
+       * The opening set of an exercise never done, not yet started: no weight
+       * yet, and the answer (your weight, or test me) is given on the phone. The
+       * band shows the state as usual; the weight row shows first_time_text in
+       * place of weight × reps, and no tap on the face does anything to the
+       * exercise's sets.
        * </pre>
        *
        * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -2578,8 +2684,11 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The opening set of an exercise never done: no weight yet. A tap starts
-       * the calibration sets; giving the weight is done on the phone.
+       * The opening set of an exercise never done, not yet started: no weight
+       * yet, and the answer (your weight, or test me) is given on the phone. The
+       * band shows the state as usual; the weight row shows first_time_text in
+       * place of weight × reps, and no tap on the face does anything to the
+       * exercise's sets.
        * </pre>
        *
        * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -2588,6 +2697,75 @@ public final class Wearable {
       public Builder clearFirstTime() {
         copyOnWrite();
         instance.clearFirstTime();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * "Open phone!" when first_time, else empty
+       * </pre>
+       *
+       * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+       * @return The firstTimeText.
+       */
+      @java.lang.Override
+      public java.lang.String getFirstTimeText() {
+        return instance.getFirstTimeText();
+      }
+      /**
+       * <pre>
+       * "Open phone!" when first_time, else empty
+       * </pre>
+       *
+       * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+       * @return The bytes for firstTimeText.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getFirstTimeTextBytes() {
+        return instance.getFirstTimeTextBytes();
+      }
+      /**
+       * <pre>
+       * "Open phone!" when first_time, else empty
+       * </pre>
+       *
+       * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+       * @param value The firstTimeText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFirstTimeText(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setFirstTimeText(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * "Open phone!" when first_time, else empty
+       * </pre>
+       *
+       * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearFirstTimeText() {
+        copyOnWrite();
+        instance.clearFirstTimeText();
+        return this;
+      }
+      /**
+       * <pre>
+       * "Open phone!" when first_time, else empty
+       * </pre>
+       *
+       * <code>string first_time_text = 22 [json_name = "firstTimeText"];</code>
+       * @param value The bytes for firstTimeText to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFirstTimeTextBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setFirstTimeTextBytes(value);
         return this;
       }
 
@@ -2922,11 +3100,12 @@ public final class Wearable {
               workout.v1.Wearable.WearPlate.class,
               "platesText_",
               "barText_",
+              "firstTimeText_",
             };
             java.lang.String info =
-                "\u0000\u000e\u0000\u0000\u0003\u0015\u000e\u0000\u0001\u0000\u0003\u0208\u0004\u0208" +
+                "\u0000\u000f\u0000\u0000\u0003\u0016\u000f\u0000\u0001\u0000\u0003\u0208\u0004\u0208" +
                 "\u0006\t\t\u0208\n\u0208\u000b\u0208\f\u0208\u000e\u0208\u000f\u0208\u0010\u0208" +
-                "\u0012\u0007\u0013\u001b\u0014\u0208\u0015\u0208";
+                "\u0012\u0007\u0013\u001b\u0014\u0208\u0015\u0208\u0016\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

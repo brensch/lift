@@ -34,12 +34,16 @@ message WearStatusCard {
   // What the watch switches to on its own when the countdown reaches zero
   // (RESTING becoming YAPPING), before the next snapshot arrives.
   string yapping_label = 12; // "Yapping"
-  string weight_text = 14; // display_set's weight in the user's unit, "225" ("?" on a first time)
+  string weight_text = 14; // display_set's weight in the user's unit, "225"; empty on a first time
   string unit_text = 15; // "lb" / "kg"
-  string reps_text = 16; // display_set's target reps, "5" ("?" on a first time)
-  // The opening set of an exercise never done: no weight yet. A tap starts
-  // the calibration sets; giving the weight is done on the phone.
+  string reps_text = 16; // display_set's target reps, "5"; empty on a first time
+  // The opening set of an exercise never done, not yet started: no weight
+  // yet, and the answer (your weight, or test me) is given on the phone. The
+  // band shows the state as usual; the weight row shows first_time_text in
+  // place of weight × reps, and no tap on the face does anything to the
+  // exercise's sets.
   bool first_time = 18;
+  string first_time_text = 22; // "Open phone!" when first_time, else empty
   // The plates for display_set, one side, heaviest (loaded first) first;
   // empty off a barbell or on an empty bar. Shown when the weight is tapped.
   repeated WearPlate plates = 19;
