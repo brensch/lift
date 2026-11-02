@@ -1,0 +1,104 @@
+/// The ramp's "how many more could you have done?": shown by the app shell
+/// when a ramp set is done in full (the provider's onRungQuestion), its
+/// buttons answer, and it goes when the question does.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:schlift/gen/copy.dart';
+import 'package:schlift/gen/workout/v1/workout.pb.dart';
+import 'package:schlift/theme/app_theme.dart';
+import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
+
+import '../support/provider_harness.dart';
+
+void main() {
+  late ProviderHarness h;
+  final navigator = GlobalKey<NavigatorState>();
+
+  /// A deadlift never done, its first ramp set done with every rep, and
+  /// the dialog shown as the app shell shows it.
+  Future<ProposedSet> boot(WidgetTester tester) async {
+    final asked = <String>[];
+    final first = (await tester.runAsync(() async {
+      h = await ProviderHarness.boot(sandbox: true);
+      h.provider.onRungQuestion = asked.add;
+      await h.start([Exercise.EXERCISE_DEADLIFT]);
+      final first = h.provider.doneTargetSet!;
+      await h.provider.completeSet(
+        first.id,
+        first.targetReps,
+        first.targetWeight,
+      );
+      return first;
+    }))!;
+    expect(asked, [first.id]);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: h.settings,
+        child: MaterialApp(
+          navigatorKey: navigator,
+          theme: AppTheme.theme,
+          home: const Scaffold(body: SizedBox()),
+        ),
+      ),
+    );
+    showRungQuestionDialog(navigator.currentContext!, h.provider, first.id);
+    await tester.pumpAndSettle();
+    return first;
+  }
+
+  /// Let the core answer, then let the dialog go.
+  Future<void> settle(WidgetTester tester) async {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  tearDown(() => h.dispose());
+
+  testWidgets('a tap answers and closes it', (tester) async {
+    final first = await boot(tester);
+    expect(find.text(copy.workout.rungQuestion), findsOneWidget);
+    for (final text in [
+      copy.workout.rungAnswerZeroToOne,
+      copy.workout.rungAnswerTwoToThree,
+      copy.workout.rungAnswerFourPlus,
+    ]) {
+      expect(find.text(text), findsOneWidget);
+    }
+
+    await tester.tap(find.text(copy.workout.rungAnswerFourPlus));
+    await settle(tester);
+    expect(find.byType(RungQuestionDialog), findsNothing);
+    expect(h.provider.rungQuestionSetId, isEmpty);
+    expect(
+      h.provider.activeCompletedSets
+          .firstWhere((c) => c.proposedSetId == first.id)
+          .repsLeft,
+      RepsLeft.REPS_LEFT_FOUR_PLUS,
+    );
+  });
+
+  testWidgets('dismissed, it stays unanswered', (tester) async {
+    final first = await boot(tester);
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.byType(RungQuestionDialog), findsNothing);
+    expect(h.provider.rungQuestionSetId, first.id);
+  });
+
+  testWidgets('answered elsewhere (the watch), it goes on its own', (
+    tester,
+  ) async {
+    final first = await boot(tester);
+    await tester.runAsync(
+      () => h.provider.answerRung(first.id, RepsLeft.REPS_LEFT_TWO_TO_THREE),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(RungQuestionDialog), findsNothing);
+    expect(find.byType(Scaffold), findsOneWidget, reason: 'and nothing else');
+  });
+}

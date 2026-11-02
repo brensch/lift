@@ -136,10 +136,14 @@ class ScienceScreen extends StatelessWidget {
             body:
                 'A lift you\'ve never done starts from the weight your '
                 'emoji picked. Sets of 5 from 60% of it, 10% heavier each '
-                'set, until you miss a rep. Six sets at most. The set you '
-                'missed tells me your max, and the rest of the workout '
-                'comes from that. Bodyweight lifts start at the bottom of '
-                'the range.',
+                'set, until you miss a rep. Six sets at most. Get all 5 and '
+                'I ask how many more you had in you. 0–1 and we\'re done '
+                'there. 2–3, the next set goes up as usual. 4+, it goes up '
+                'to about one rep short of what you showed, never less than '
+                'usual. Don\'t answer and it goes up as usual. The set you '
+                'missed, or the one you said 0–1 on, tells me your max, and '
+                'the rest of the workout comes from that. Bodyweight lifts '
+                'start at the bottom of the range.',
             citations: [],
           ),
           const _Section(

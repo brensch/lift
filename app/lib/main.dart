@@ -13,6 +13,7 @@ import 'services/permissions_service.dart';
 import 'services/page_tracker.dart';
 import 'services/grpc_client.dart';
 import 'widgets/dialogs/template_update_dialog.dart';
+import 'widgets/dialogs/rung_question_dialog.dart';
 import 'services/auth_service.dart';
 import 'services/account_sync.dart';
 import 'services/workout_service.dart';
@@ -200,6 +201,15 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       myUserId: () => _authProvider.userId ?? '',
     );
     unawaited(_wearableSyncCoordinator.init());
+    // A ramp set done in full, on the phone or the watch: ask how many more.
+    _workoutProvider.onRungQuestion = (proposedSetId) {
+      final dialogContext =
+          ErrorModalService.rootNavigatorKey.currentState?.context;
+      if (dialogContext == null) return;
+      unawaited(
+        showRungQuestionDialog(dialogContext, _workoutProvider, proposedSetId),
+      );
+    };
     _workoutProvider.onWorkoutEnded = (workoutId) {
       final navigator = ErrorModalService.rootNavigatorKey.currentState;
       navigator?.push(

@@ -63,6 +63,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// (e.g. the watch).
   void Function(String workoutId)? onWorkoutEnded;
 
+  /// Called once for each ramp set whose "how many more could you have
+  /// done?" opens: done with every rep, on the phone or the watch. The app
+  /// shell shows the question; dismissed, it stays unanswered.
+  void Function(String proposedSetId)? onRungQuestion;
+
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
   bool _isLoading = false;
@@ -74,6 +79,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<CompletedSet> _completed = [];
   Set<String> _passedWarmups = {};
   List<ExerciseLog> _logs = [];
+  String _rungQuestion = '';
+  final Set<String> _askedRungs = {};
   ProposedSet? _nextUp;
   WorkoutStateSnapshot? _snapshot;
   GetHomeResponse? _home;
@@ -134,6 +141,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _completed = List.of(response.completedSets);
     _passedWarmups = response.passedWarmupIds.toSet();
     _logs = List.of(response.exerciseLogs);
+    _rungQuestion = response.rungQuestionSetId;
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -161,6 +169,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _applyWorkoutResponse(response.workoutState);
       }
       notifyListeners();
+      // A change just opened a ramp set's question: ask it, once.
+      final asking = _rungQuestion;
+      if (asking.isNotEmpty && _askedRungs.add(asking)) {
+        onRungQuestion?.call(asking);
+      }
     } catch (e) {
       _handleError(e);
     }
@@ -331,6 +344,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// the weight changes since, in workout order.
   List<ExerciseLog> get exerciseLogs => _logs;
 
+  /// The ramp set whose "how many more could you have done?" is open, or
+  /// '' when none: the core decides (done in full, unanswered, the latest
+  /// set, nothing lifted since).
+  String get rungQuestionSetId => _rungQuestion;
+
   ExerciseLog? logFor(Exercise exercise) {
     for (final log in _logs) {
       if (log.decision.exercise == exercise) return log;
@@ -449,6 +467,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final active = await _service.getActiveWorkout();
       if (active != null) {
         _applyWorkoutResponse(await _service.getWorkout(active.id));
+        // A question open before this load was asked then.
+        if (_rungQuestion.isNotEmpty) _askedRungs.add(_rungQuestion);
         _mergeHeartRate(await _service.getWorkoutHeartRate(active.id));
         _startTimer();
       } else {
@@ -471,6 +491,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _completed = [];
     _passedWarmups = {};
     _logs = [];
+    _rungQuestion = '';
+    _askedRungs.clear();
     _nextUp = null;
     _blocksCache.clear();
     _applyStateSnapshot(null);
@@ -675,6 +697,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (proposedSetById(done.proposedSetId)?.calibration ?? true) return;
     await deleteCompletedSet(completedSetId);
+  }
+
+  /// Answer a ramp set's "how many more could you have done?": 0–1 ends
+  /// the ramp there, more climbs the next rung for it. The core ignores an
+  /// answer to a question no longer open.
+  Future<void> answerRung(String proposedSetId, RepsLeft repsLeft) async {
+    if (_workout == null) return;
+    await _mutate(
+      _mutation()
+        ..answerRung = (AnswerRungRequest()
+          ..workoutId = _workoutId
+          ..proposedSetId = proposedSetId
+          ..repsLeft = repsLeft),
+    );
   }
 
   /// Skip [exercise]'s warmups (the warmup row's "Skip"): they're marked

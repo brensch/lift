@@ -1,7 +1,8 @@
 /// The watch's whole world, built from the phone's state. Both watch apps
 /// render this snapshot and nothing else, so what goes in here is the
 /// contract: READY / LIFTING / RESTING / YAPPING / ALL_DONE, one status
-/// card (the set's weight, reps and plates, and what a tap does), the
+/// card (the set's weight, reps and plates, and what a tap does; or, while
+/// the phone asks something, "Open phone!"), the
 /// actions each state offers (Start, then Done), and the set just done for
 /// the watch's few seconds of taking reps off it.
 library;
@@ -75,9 +76,12 @@ class WearableSnapshotBuilder {
       String timerText = '',
     }) {
       // Until it is started: the phone asks for the weight, or tests you.
+      // Or a ramp set just done in full: the phone asks how many more you
+      // could have done (only ever open with nothing being lifted).
       final firstTime =
-          set.id != workout.liftingSetId &&
-          _isFirstEver(set, proposedSets, completedSets);
+          (set.id != workout.liftingSetId &&
+              _isFirstEver(set, proposedSets, completedSets)) ||
+          workoutProvider.rungQuestionSetId.isNotEmpty;
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;

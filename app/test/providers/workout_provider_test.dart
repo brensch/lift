@@ -164,4 +164,65 @@ void main() {
     expect(h.provider.workout, isNull);
     expect(h.provider.home, isNotNull, reason: 'home has something to show');
   });
+
+  test('a ramp set done in full asks once; the answer is sent', () async {
+    // Never done: a ramp. Squat and the raise have history, so no ramp.
+    const deadlift = Exercise.EXERCISE_DEADLIFT;
+    final asked = <String>[];
+    h.provider.onRungQuestion = asked.add;
+    await h.start([raise, deadlift]);
+    final p = h.provider;
+
+    // A working set never asks.
+    final working = h.working(raise).first;
+    await p.completeSet(working.id, 10, 20);
+    expect(asked, isEmpty);
+    expect(p.rungQuestionSetId, isEmpty);
+
+    // A ramp set short of its reps is a miss: no question.
+    ProposedSet rung() => p.activeProposedSets.firstWhere(
+      (s) => s.calibration && !p.isSetDone(s.id),
+    );
+    final first = rung();
+    await p.completeSet(first.id, first.targetReps, first.targetWeight);
+    expect(asked, [first.id], reason: 'every rep: asked');
+    expect(p.rungQuestionSetId, first.id);
+
+    // A change that leaves it open does not ask again.
+    await p.skipWarmups(deadlift);
+    expect(asked, [first.id]);
+
+    // 0–1: the ramp ends there and the question is gone.
+    await p.answerRung(first.id, RepsLeft.REPS_LEFT_ZERO_TO_ONE);
+    expect(p.rungQuestionSetId, isEmpty);
+    expect(
+      p.activeCompletedSets
+          .firstWhere((c) => c.proposedSetId == first.id)
+          .repsLeft,
+      RepsLeft.REPS_LEFT_ZERO_TO_ONE,
+    );
+    expect(
+      p.activeProposedSets.where(
+        (s) => s.exercise == deadlift && s.calibration,
+      ),
+      hasLength(1),
+      reason: 'no rung after it',
+    );
+    expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
+  });
+
+  test('a missed ramp set never asks', () async {
+    final asked = <String>[];
+    h.provider.onRungQuestion = asked.add;
+    await h.start([Exercise.EXERCISE_DEADLIFT]);
+    final first = h.provider.doneTargetSet!;
+    expect(first.calibration, isTrue);
+    await h.provider.completeSet(
+      first.id,
+      first.targetReps - 1,
+      first.targetWeight,
+    );
+    expect(asked, isEmpty);
+    expect(h.provider.rungQuestionSetId, isEmpty);
+  });
 }
