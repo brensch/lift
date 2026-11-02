@@ -37,7 +37,7 @@ void main() {
 
   setUp(() async {
     h = await ProviderHarness.boot(sandbox: true);
-    await h.seedTrackers({Exercise.EXERCISE_SQUAT: 185});
+    await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
     bridge = _FakeBridge();
     coordinator = WearableSyncCoordinator(
       workoutProvider: h.provider,
