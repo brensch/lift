@@ -168,6 +168,9 @@ tr.flagged.violation td { background: var(--signal-soft); }
 .chip.FIRST_TIME { border-color: var(--resting); background: var(--resting-soft); }
 .chip.USER_SET { border-color: var(--ink); border-width: 2px; }
 .chip.SETS_FROM_TIME { color: var(--muted); }
+.chip.WEIGHT_UP, .chip.REPS_UP { border-color: var(--signal); background: var(--signal-soft); }
+.chip.WEIGHT_DOWN, .chip.REPS_DOWN { border-color: var(--yapping); background: var(--yapping-soft); }
+.chip.SAME_AS_LAST { border-color: var(--muted); background: var(--ground); }
 .detail { display: block; color: var(--muted); font: 11px/1.3 var(--sans); margin-top: 2px; white-space: normal; max-width: 34ch; }
 .changes { font: 11px/1.4 var(--mono); color: var(--muted); min-width: 120px; }
 .note { color: var(--muted); font-size: 12px; }
@@ -194,7 +197,7 @@ footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
 .cell b { display: block; font-size: 13px; }
 .cell .note { display: block; }
 .cell.fallback { border-color: var(--effort); background: var(--effort-soft); }
-.cell.overdue { border-color: var(--resting); background: var(--resting-soft); }
+.cell.waiting { border-color: var(--resting); background: var(--resting-soft); }
 .bars { display: grid; grid-template-columns: 96px 1fr 44px; gap: 4px 8px; align-items: center; font-size: 13px; margin-top: 8px; max-width: 520px; }
 .bar { height: 6px; background: var(--ground); border-radius: 6px; position: relative; overflow: hidden; }
 .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--resting); border-radius: 6px; }
@@ -220,6 +223,7 @@ td.won { font-weight: 700; }
       <li><b>Override</b> (USER_SET): a weight × reps (optionally sets) from the template editor becomes the max that prescribes it; the progression carries on from there.</li>
       <li><b>Classes.</b> Heavy barbell compounds 5–8 reps, 3:00 rest, a warmup ladder. Other loaded lifts 8–12 reps, 2:00. Bodyweight and core 5–15 reps, 1:30.</li>
       <li><b>Sets from the time budget</b> (SETS_FROM_TIME, default 60 min): every lift gets 2 sets, then one at a time up to 5 to the lift whose muscles are furthest below 10 hard sets this week, until the next set would pass the budget. A set costs 40 s plus the class's rest, warmups 4 min, moving between lifts 2 min, until ten of the lifter's own timings of a kind replace the default. If two sets each do not fit, the card says how long the workout needs.</li>
+      <li><b>Against last time</b> (the first reason): heavier (WEIGHT_UP), lighter (WEIGHT_DOWN), more reps (REPS_UP), fewer (REPS_DOWN) or the same (SAME_AS_LAST) than the lift's last session, and why: every rep hit, a rep missed, stopped early, time off, or the number of sets (when last time's sets would have moved it another way).</li>
       <li><b>Weight and reps from the max.</b> Stay at the last weight for as many reps as the max covers across the planned sets (one rep in reserve, half a rep more per extra set); past the top of the range, one weight step up; short of the bottom, down to the heaviest weight it covers at the bottom.</li>
     </ul>
   </details>
@@ -269,10 +273,12 @@ td.won { font-weight: 700; }
   function flagsFor(sc, n, ex) {
     return sc.flags.filter(function (f) { return f.session === n && f.exercise === ex; });
   }
+  var VERSUS = ['WEIGHT_UP', 'WEIGHT_DOWN', 'REPS_UP', 'REPS_DOWN', 'SAME_AS_LAST'];
   function reasonChip(lift, r, unit) {
     var arrow;
     if (r.kind === 'SETS_FROM_TIME') arrow = r.before + '→' + r.after + ' sets';
     else if (r.kind === 'FIRST_TIME') arrow = lift.bodyweight ? '' : 'ramp ' + r.after + ' ' + unit;
+    else if (VERSUS.indexOf(r.kind) >= 0) arrow = maxText(lift, r.before, unit) + ' → ' + maxText(lift, r.after, unit);
     else arrow = (r.before ? maxText(lift, r.before, unit) : '—') + ' → ' + maxText(lift, r.after, unit);
     return '<span class="chip ' + esc(r.kind) + '" title="' + esc(r.detail) + '"><b>' + esc(r.kind) + '</b> ' + esc(arrow) +
       (r.detail ? '<span class="detail">' + esc(r.detail) + '</span>' : '') + '</span>';
@@ -476,8 +482,8 @@ td.won { font-weight: 700; }
 
   function rotationWhy(d) {
     if (d.fallback) return 'nothing recovered and behind: the one done least recently';
-    var why = d.behind.map(function (b) { return b.muscle + ' ' + b.sets + '/' + b.target; }).join(', ');
-    return (d.overdue ? 'overdue · ' : '') + why;
+    if (d.first_lift_recovering) return 'every first lift recovering: ' + d.first_lift_recovering.muscle + ' back soonest (' + d.first_lift_recovering.hours + 'h)';
+    return d.behind.map(function (b) { return b.muscle + ' ' + b.sets + '/' + b.target; }).join(', ');
   }
   function rotationOut(d) {
     return d.recovering.map(function (r) { return r.muscle + ' ' + r.hours + 'h'; }).join(', ');
@@ -499,14 +505,14 @@ td.won { font-weight: 700; }
     head.innerHTML = '<h2>' + esc(r.title) + '</h2><p>' + esc(r.description) + '</p>' +
       '<div class="meta">' + Object.keys(counts).map(function (k) { return '<span>' + esc(k) + ' ×' + counts[k] + '</span>'; }).join('') + '</div>' +
       '<h3 style="margin-top:14px">Audit flags</h3>' +
-      (shown.length ? '<ul class="flags">' + shown.map(item).join('') + '</ul>' : '<p class="ok">No violations or warnings: no repeats while another template had work, every template picked, Full Body at most 40%.</p>') +
+      (shown.length ? '<ul class="flags">' + shown.map(item).join('') + '</ul>' : '<p class="ok">No violations or warnings: no repeats while another template had work, no template opening on a muscle still recovering while another was ready, Full Body at most 40%.</p>') +
       (info.length ? '<details><summary class="note" style="cursor:pointer;margin-top:8px">' + info.length + ' info</summary><ul class="flags">' + info.map(item).join('') + '</ul></details>' : '');
     view.appendChild(head);
 
     // Calendar: one row per week, Monday first.
     var cal = el('div', { class: 'panel' });
     var names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    var html = '<h3>Calendar</h3><p class="note">Each training day: the template Home suggested and started, the muscles that won it (sets this week / target), and what was ruled out as still recovering. Blue: won on being overdue. Amber: the fallback.</p>';
+    var html = '<h3>Calendar</h3><p class="note">Each training day: the template Home suggested and started, the muscles that won it (sets this week / target), and what was ruled out as still recovering. A template whose first lift\\'s muscle is recovering is left out. Blue: every first lift recovering, the one back soonest. Amber: the fallback.</p>';
     var weeks = {};
     r.days.forEach(function (d) {
       var t = Date.parse(d.date + 'T00:00:00Z') / 86400000;
@@ -519,7 +525,7 @@ td.won { font-weight: 700; }
         var d = weeks[w][i];
         if (!d) { html += '<div class="cell rest">rest</div>'; continue; }
         var out = rotationOut(d);
-        html += '<div class="cell' + (d.fallback ? ' fallback' : d.overdue ? ' overdue' : '') + '"><span class="note">' + esc(d.date.slice(5)) + ' · #' + d.n + '</span><b>' + esc(d.template) + '</b>' +
+        html += '<div class="cell' + (d.fallback ? ' fallback' : d.first_lift_recovering ? ' waiting' : '') + '"><span class="note">' + esc(d.date.slice(5)) + ' · #' + d.n + '</span><b>' + esc(d.template) + '</b>' +
           esc(rotationWhy(d)) + (out ? '<span class="note">recovering: ' + esc(out) + '</span>' : '') + '</div>';
       }
       html += '</div>';
@@ -533,11 +539,12 @@ td.won { font-weight: 700; }
       return '<tr><td class="num">' + d.n + '</td><td class="mono date">' + esc(d.weekday + ' ' + d.date.slice(5)) + '</td><td><b>' + esc(d.template) + '</b><span class="detail">' + esc(rotationWhy(d)) + '</span></td>' +
         d.candidates.map(function (c) {
           var last = c.last_days == null ? 'never' : c.last_days + 'd ago';
-          return '<td class="num' + (c.template === d.template ? ' won' : '') + '" title="' + esc(c.behind.join(', ')) + '">' + c.score + '<span class="detail">' + esc(last) + '</span></td>';
+          var wait = c.first_recovering ? ' ⏸ ' + c.first_recovering.muscle + ' ' + c.first_recovering.hours + 'h' : '';
+          return '<td class="num' + (c.template === d.template ? ' won' : '') + '" title="' + esc(c.behind.join(', ')) + '">' + c.score + '<span class="detail">' + esc(last + wait) + '</span></td>';
         }).join('') +
         '<td class="note">' + esc(rotationOut(d) || '—') + '</td><td class="num">' + d.working_sets + '</td><td class="num">' + d.minutes + '</td></tr>';
     }).join('');
-    view.insertAdjacentHTML('beforeend', '<div class="panel"><h3>Timeline</h3><p class="note">Each rotation template\\'s score that day (the sets its recovered primary muscles are below 10, summed; hover for which) and when it was last started. Ties: within 20% of the best, or overdue (14 days, or never) with a score above 0; the least recent wins.</p><div class="scroll"><table><thead><tr><th class="num">#</th><th>Day</th><th>Picked · why</th>' +
+    view.insertAdjacentHTML('beforeend', '<div class="panel"><h3>Timeline</h3><p class="note">Each rotation template\\'s score that day (the sets its recovered primary muscles are below 10, summed; hover for which) and when it was last started. A template whose first lift\\'s muscle is recovering is left out (marked ⏸). Ties: within 20% of the best; the least recent wins.</p><div class="scroll"><table><thead><tr><th class="num">#</th><th>Day</th><th>Picked · why</th>' +
       templates.map(function (t) { return '<th class="num">' + esc(t) + '</th>'; }).join('') +
       '<th>Ruled out</th><th class="num">Sets</th><th class="num">Min</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>');
 
@@ -549,7 +556,6 @@ td.won { font-weight: 700; }
     var warnings = r.check.warnings.map(function (w) {
       var text = w.kind === 'GAP' ? 'nothing trains ' + w.muscles.join(', ')
         : w.kind === 'OVERLAP' ? w.templates.join(' and ') + ' share ' + w.shared + ' of ' + w.of + ' lifts'
-        : w.kind === 'LOPSIDED' ? w.muscles[0] + ' gets 3× or more ' + w.muscles[1]
         : 'fewer than two templates in rotation';
       return '<li class="warning"><span class="k">' + esc(w.kind) + '</span>' + esc(text) + '</li>';
     }).join('');
