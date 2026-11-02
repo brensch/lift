@@ -314,7 +314,7 @@ plan:
   # Home's time control: "− 60 min +".
   budget: "{min} min"
   # In place of the time control when a lift in the workout is new.
-  calibration: "Calibration session due to new weight. Go in and try your darndest."
+  calibration: "Calibration session due to new exercise. Go in and try your darndest."
   # The workout's estimated length beside the time control.
   estimate: "~{min} min"
   # The same, when the budget is at or past what the workout can use
