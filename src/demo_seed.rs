@@ -133,6 +133,7 @@ fn session(
                 started_at: clock,
                 ended_at: clock + 35,
                 rest_until: clock + 35 + rest as i64,
+                ..Default::default()
             });
             clock += 35 + rest as i64;
         }
