@@ -1019,6 +1019,7 @@ class SelectedTemplateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
     final cs = Theme.of(context).colorScheme;
     final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.5);
     final plans = plan?.plans ?? const <ExercisePlan>[];
@@ -1115,12 +1116,19 @@ class SelectedTemplateCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(bottom: 8, right: 8),
-            child: _TimeControl(
-              budgetMinutes: budgetMinutes,
-              estimatedSeconds: plan?.estimatedSeconds ?? 0,
-              maxSeconds: plan?.maxSeconds ?? 0,
-              onStep: onBudgetStep,
-            ),
+            // A lift never done ramps until a set falls short, so there is
+            // no length to give: the time control steps aside.
+            child: plans.any((p) => p.decision.calibration)
+                ? Text(
+                    copy.plan.calibration,
+                    style: TextStyle(fontSize: t.size.body, color: t.muted),
+                  )
+                : _TimeControl(
+                    budgetMinutes: budgetMinutes,
+                    estimatedSeconds: plan?.estimatedSeconds ?? 0,
+                    maxSeconds: plan?.maxSeconds ?? 0,
+                    onStep: onBudgetStep,
+                  ),
           ),
           for (final exercisePlan in plans)
             Padding(
