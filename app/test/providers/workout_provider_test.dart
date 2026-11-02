@@ -103,7 +103,11 @@ void main() {
       PlanReasonKind.PLAN_REASON_KIND_MAX_UP,
     );
     expect(plan.decision.max, greaterThan(maxBefore), reason: 'every rep hit');
-    expect(plan.decision.reps, 12, reason: 'past the top: capped there');
+    expect(
+      plan.decision.reps,
+      16,
+      reason: 'past the top, while the next dumbbell is out of reach',
+    );
   });
 
   test('the budget moves in 5-minute steps and plans the home', () async {
