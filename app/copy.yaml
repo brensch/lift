@@ -289,6 +289,8 @@ workout:
   first_time_test: Not sure how huge I am, test me
   # In your status box while that first set waits for the answer.
   first_time_status: First time!
+  # The watch's status while that first set waits: the answer is on the phone.
+  watch_first_time_status: Open phone!
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
   # The dimmed (always-on) watch face counts rest in whole minutes, since it

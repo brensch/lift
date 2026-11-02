@@ -88,7 +88,7 @@ class WearableSnapshotBuilder {
       String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
       final heaviest = standardPlates(unit).first;
       return WearStatusCard(
-        stateLabel: firstTime ? copy.workout.firstTimeStatus : stateLabel,
+        stateLabel: firstTime ? copy.workout.watchFirstTimeStatus : stateLabel,
         timerText: timerText,
         displaySet: set,
         exerciseName: exerciseNames[set.exercise] ?? '?',
