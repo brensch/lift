@@ -25,7 +25,6 @@ Configuration comes from environment variables, read once at construction:
 | `WEBAUTHN_RP_ID` | Relying party id (the domain) | `localhost` |
 | `WEBAUTHN_RP_ORIGIN` | Expected origin | `http://localhost:5173` |
 | `WEBAUTHN_ANDROID_ORIGINS` | Comma-separated `android:apk-key-hash:…` origins | — |
-| `WEBAUTHN_ANDROID_ORIGIN` | Single-origin fallback | — |
 
 Android apps present an APK-signing-key-hash origin rather than a URL, so every
 signing key that ships (debug, upload, Play signing) needs its hash listed or

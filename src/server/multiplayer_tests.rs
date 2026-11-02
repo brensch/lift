@@ -400,6 +400,68 @@ mod session_history_tests {
             .is_none());
     }
 
+    /// A request past its TTL can no longer be accepted, so it pulls no one
+    /// into a session.
+    #[tokio::test]
+    async fn expired_request_cannot_be_accepted() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+        svc.leave_current_session(authed(&bob_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+        svc.leave_current_session(authed(&alice_tok, LeaveCurrentSessionRequest {}))
+            .await
+            .unwrap();
+
+        let request_id = svc
+            .request_join_partner(authed(
+                &alice_tok,
+                RequestJoinPartnerRequest {
+                    partner_user_id: bob_id.clone(),
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .request_id;
+        svc.db
+            .age_join_request(
+                &request_id,
+                super::multiplayer::JOIN_REQUEST_TTL_SECONDS + 1,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            svc.respond_join_request(authed(
+                &bob_tok,
+                RespondJoinRequestRequest {
+                    request_id,
+                    accept: true,
+                },
+            ))
+            .await
+            .unwrap_err()
+            .code(),
+            tonic::Code::NotFound
+        );
+        assert!(svc
+            .db
+            .get_user_current_session(&alice_id)
+            .await
+            .unwrap()
+            .is_none());
+    }
+
     /// Two people joining the same inviter's link at the same time must both land
     /// in the one session — not race into separate sessions that leave the inviter
     /// with only one of them.

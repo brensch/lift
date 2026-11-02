@@ -204,13 +204,13 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       );
       // If the session diverged from its template (or started empty),
       // offer to fold it back — layered over the summary screen.
-      final suggestion = _workoutProvider.takePendingTemplateUpdate();
+      final offer = _workoutProvider.takePendingTemplateOffer();
       final dialogContext = navigator?.context;
-      if (suggestion != null && dialogContext != null) {
+      if (offer != null && dialogContext != null) {
         unawaited(
           showTemplateUpdateDialog(
             dialogContext,
-            suggestion: suggestion,
+            offer: offer,
             provider: _workoutProvider,
           ),
         );
@@ -272,7 +272,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       observers: [PageTrackObserver()],
       refreshListenable: Listenable.merge([
         _authProvider,
-        _settingsProvider,
         _workoutProvider.onboarded,
         PermissionsService.instance,
       ]),

@@ -313,19 +313,38 @@ impl ServerDb {
             .collect())
     }
 
-    /// Look up a request's (from_user_id, to_user_id) for authorization/routing.
-    pub async fn get_join_request(&self, request_id: &str) -> DbResult<Option<(String, String)>> {
-        let row =
-            sqlx::query("SELECT from_user_id, to_user_id FROM join_requests WHERE request_id = ?")
-                .bind(request_id)
-                .fetch_optional(&self.read_pool)
-                .await?;
+    /// A request's (from_user_id, to_user_id), if it was made at or after
+    /// `since` (unix seconds).
+    pub async fn get_join_request(
+        &self,
+        request_id: &str,
+        since: i64,
+    ) -> DbResult<Option<(String, String)>> {
+        let row = sqlx::query(
+            "SELECT from_user_id, to_user_id FROM join_requests
+             WHERE request_id = ? AND created_at >= ?",
+        )
+        .bind(request_id)
+        .bind(since)
+        .fetch_optional(&self.read_pool)
+        .await?;
         Ok(row.map(|r| {
             (
                 r.get::<String, _>("from_user_id"),
                 r.get::<String, _>("to_user_id"),
             )
         }))
+    }
+
+    /// Push a join request's creation [seconds] into the past: expiry tests.
+    #[cfg(test)]
+    pub async fn age_join_request(&self, request_id: &str, seconds: i64) -> DbResult<()> {
+        sqlx::query("UPDATE join_requests SET created_at = created_at - ? WHERE request_id = ?")
+            .bind(seconds)
+            .bind(request_id)
+            .execute(&self.write_pool)
+            .await?;
+        Ok(())
     }
 
     pub async fn delete_join_request(&self, request_id: &str) -> DbResult<()> {

@@ -273,7 +273,8 @@ impl Account {
     }
 
     /// One change to a workout, through the reducer. The workout is changed
-    /// on a copy and put back only if the whole change applied.
+    /// on a copy (without its heart rate) and put back, heart rate moved
+    /// over, only if the whole change applied.
     fn mutate_workout(
         &mut self,
         mutation: &WorkoutMutation,
@@ -290,7 +291,7 @@ impl Account {
             .iter()
             .position(|r| r.workout.id == mutation_workout_id(payload))
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))?;
-        let mut record = self.workouts[index].clone();
+        let mut record = self.workouts[index].without_heart_rate();
         match payload {
             Mutation::CompleteSet(req) => {
                 let mut req = req.clone();
@@ -348,6 +349,7 @@ impl Account {
             }
             Mutation::SetSession(req) => record.workout.session_id = req.session_id.clone(),
         }
+        record.heart_rate = std::mem::take(&mut self.workouts[index].heart_rate);
         self.workouts[index] = record;
         Ok(())
     }

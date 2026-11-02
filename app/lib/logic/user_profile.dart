@@ -36,8 +36,17 @@ String normalizedProfileColorHex(String value) {
   return isValid ? '#${hex.toUpperCase()}' : defaultProfileColorHex;
 }
 
-Color profileColorFromHex(String? hex) {
-  final normalized = normalizedProfileColorHex(hex ?? defaultProfileColorHex);
-  final value = int.parse(normalized.substring(1), radix: 16);
-  return Color(0xFF000000 | value);
+Color profileColorFromHex(String? hex) =>
+    colorFromHex(normalizedProfileColorHex(hex ?? defaultProfileColorHex))!;
+
+/// The opaque colour "#RRGGBB" (or "RRGGBB") names; null when it names none.
+Color? colorFromHex(String hex) {
+  final digits = hex.startsWith('#') ? hex.substring(1) : hex;
+  if (digits.length != 6) return null;
+  final value = int.tryParse(digits, radix: 16);
+  return value == null ? null : Color(0xFF000000 | value);
 }
+
+/// "#RRGGBB" for [color], its alpha dropped.
+String colorHex(Color color) =>
+    '#${(color.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';

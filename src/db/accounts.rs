@@ -197,8 +197,10 @@ impl ServerDb {
                 if undecided(event) {
                     // A log from before plans were recorded: this account's
                     // log was rewritten since, so the phone's disagrees.
-                    // Nothing is stored, and the fold is refolded from what
-                    // is.
+                    // Nothing is stored: the slot is emptied, so anyone
+                    // waiting on it is refused, and the next request refolds
+                    // from what is.
+                    *guard = None;
                     drop(guard);
                     self.forget_slot(user_id, &lock).await;
                     return Err(Box::new(Diverged));
@@ -221,8 +223,10 @@ impl ServerDb {
             .collect();
         let heart_rate = heart_rate_statements(user_id, account, &new);
         if let Err(error) = self.store_events(user_id, &new, &records, heart_rate).await {
-            // The fold ran ahead of the store: forget it, and the next read
-            // refolds from what was actually written.
+            // The fold ran ahead of the store: the slot is emptied, so anyone
+            // waiting on it is refused, and the next request refolds from what
+            // was actually written.
+            *guard = None;
             drop(guard);
             self.forget_slot(user_id, &lock).await;
             return Err(error);

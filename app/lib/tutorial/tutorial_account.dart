@@ -12,14 +12,17 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../services/local_core.dart';
+import '../services/workout_service.dart';
 
 class TutorialAccount {
   final LocalCore core;
+  final WorkoutServiceWrapper _service;
 
   /// The template the home suggests, and the session runs.
   final String suggestedTemplateId;
 
-  TutorialAccount._(this.core, this.suggestedTemplateId);
+  TutorialAccount._(this.core, this.suggestedTemplateId)
+    : _service = WorkoutServiceWrapper(FixedCore(core));
 
   static const _day = 86400;
 
@@ -60,20 +63,16 @@ class TutorialAccount {
   /// The account in the user's [unit], so its weights load on their plates.
   static Future<TutorialAccount> create(WeightUnit unit) async {
     final core = await LocalCore.memory('tutorial');
+    final service = WorkoutServiceWrapper(FixedCore(core));
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    await core.call(
-      'UpdateSetting',
-      UpdateSettingRequest(
-        setting: UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
-      ),
-      UpdateSettingResponse.fromBuffer,
+    await service.updateSetting(
+      UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
     );
 
     // The last fortnight's sessions, every lift done (so each has a max
     // and nothing ramps): legs and push lately, pull before this week — so
     // pull is what's behind, and suggested.
-    await core.call(
-      'ImportHistory',
+    await service.importHistory(
       ImportHistory(
         workouts: [
           _pastSession('legs', _legs, now - 2 * _day),
@@ -81,7 +80,6 @@ class TutorialAccount {
           _pastSession('pull', _pull, now - 10 * _day),
         ],
       ),
-      ImportHistoryResponse.fromBuffer,
     );
     final ids = <String>[];
     for (final (name, exercises) in [
@@ -89,24 +87,12 @@ class TutorialAccount {
       ('Legs', _legs),
       ('Push', _push),
     ]) {
-      final saved = await core.call(
-        'SaveTemplate',
-        SaveTemplateRequest(
-          template: WorkoutTemplate(
-            name: name,
-            exercises: exercises,
-            inRotation: true,
-          ),
-        ),
-        SaveTemplateResponse.fromBuffer,
+      final saved = await service.saveTemplate(
+        WorkoutTemplate(name: name, exercises: exercises, inRotation: true),
       );
-      ids.add(saved.template.id);
+      ids.add(saved.id);
     }
-    final home = await core.call(
-      'GetHome',
-      GetHomeRequest(),
-      GetHomeResponse.fromBuffer,
-    );
+    final home = await service.getHome();
     final suggested = home.suggestedTemplateId.isEmpty
         ? ids.first
         : home.suggestedTemplateId;
@@ -169,10 +155,9 @@ class TutorialAccount {
   /// still running.
   Future<String> startSession() async {
     final now = DateTime.now();
-    final started = await core.call(
-      'StartWorkout',
-      StartWorkoutRequest(templateId: suggestedTemplateId),
-      StartWorkoutResponse.fromBuffer,
+    final started = await _service.startWorkout(
+      '',
+      templateId: suggestedTemplateId,
       at: now.subtract(sessionAge),
     );
     final firstTwo = <Exercise>[];
@@ -187,24 +172,17 @@ class TutorialAccount {
     final last = now.subtract(const Duration(seconds: 15));
     for (var i = 0; i < done.length; i++) {
       final at = last.subtract(Duration(seconds: 130 * (done.length - 1 - i)));
-      await core.call(
-        'AppendWorkoutMutations',
-        AppendWorkoutMutationsRequest(
-          mutations: [
-            WorkoutMutation(
-              completeSet: CompleteSetRequest(
-                workoutId: started.id,
-                proposedSetId: done[i].id,
-                actualReps: done[i].targetReps,
-                actualWeight: done[i].targetWeight,
-                completedAt: Int64(at.millisecondsSinceEpoch ~/ 1000),
-              ),
-            ),
-          ],
+      await _service.appendWorkoutMutations([
+        WorkoutMutation(
+          completeSet: CompleteSetRequest(
+            workoutId: started.id,
+            proposedSetId: done[i].id,
+            actualReps: done[i].targetReps,
+            actualWeight: done[i].targetWeight,
+            completedAt: Int64(at.millisecondsSinceEpoch ~/ 1000),
+          ),
         ),
-        AppendWorkoutMutationsResponse.fromBuffer,
-        at: at,
-      );
+      ], at: at);
     }
     return started.id;
   }

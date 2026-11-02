@@ -21,8 +21,8 @@ use super::*;
 //     seeing them, and stamp left_at on the durable session_members roster.
 //
 // Durable history: session_members(session_id, user_id, first_joined_at, left_at) is
-// never deleted — it records who trained together and backs GetTrainingPartners /
-// GetSharedSessions / JoinPartnerSession.
+// never deleted — it records who trained together and backs GetTrainingPartners
+// and the prior-pairing check in RequestJoinPartner.
 
 /// Serialises the JoinViaInvite read-decide-write so two people joining the same
 /// inviter at once can't each read "no session yet", mint separate sessions, and
@@ -317,7 +317,7 @@ impl MultiplayerService for ServerMultiplayerService {
         }
         let (from_id, to_id) = self
             .db
-            .get_join_request(&req.request_id)
+            .get_join_request(&req.request_id, now_unix() - JOIN_REQUEST_TTL_SECONDS)
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("request not found or already handled"))?;

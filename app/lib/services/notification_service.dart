@@ -10,7 +10,6 @@ import 'app_logger.dart';
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _restNotificationId = 1;
-  static const _nextWorkoutNotificationId = 2;
 
   /// Sets up timezones and the plugin. Asks for nothing: the prompts are
   /// [requestPermissions] and [requestExactAlarms], which only
@@ -210,13 +209,6 @@ class NotificationService {
           }
         }
       });
-
-  /// Schedules a next-workout reminder notification.
-  /// Cancels any pending next-workout notification.
-  static Future<void> cancelNextWorkout() => _bestEffort(
-    'cancelNextWorkout',
-    () => _plugin.cancel(id: _nextWorkoutNotificationId),
-  );
 
   /// Comprehensive cleanup of all notifications.
   static Future<void> cancelAll() =>

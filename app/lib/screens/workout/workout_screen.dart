@@ -120,10 +120,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     // Completed blocks stay pinned (green) at the top of the list; only the
     // unfinished ones below them can be dragged/reordered.
     final completedBlocks = blocks
-        .where((block) => _isBlockCompleted(block, wp.completedSets))
+        .where((block) => _isBlockCompleted(block, wp))
         .toList(growable: false);
     final unfinishedBlocks = blocks
-        .where((block) => !_isBlockCompleted(block, wp.completedSets))
+        .where((block) => !_isBlockCompleted(block, wp))
         .toList(growable: false);
     final sessionLedgerProposed = <ProposedSet>[...wp.proposedSets];
     final sessionLedgerCompleted = <CompletedSet>[...wp.completedSets];
@@ -167,13 +167,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           sets.any((s) => s.calibration) &&
           !sets.any((s) => !s.warmup && !s.calibration);
       if (calibrating) totalSets += wp.logFor(g.exercise)?.decision.sets ?? 0;
-      doneSets += sets
-          .where(
-            (s) => wp.completedSets.any(
-              (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-            ),
-          )
-          .length;
+      doneSets += sets.where((s) => wp.isSetDone(s.id)).length;
     }
     final overallProgress = totalSets == 0 ? 0.0 : doneSets / totalSets;
 
@@ -395,29 +389,17 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
   }
 
-  static bool _isBlockCompleted(
-    ExerciseBlock block,
-    List<CompletedSet> completedSets,
-  ) {
-    final workingSets = block.workingSets.toList();
-    if (workingSets.isEmpty) return false;
-    final completedCount = workingSets
-        .where(
-          (s) => completedSets.any(
-            (c) => c.proposedSetId == s.id && c.endedAt != Int64.ZERO,
-          ),
-        )
-        .length;
-    return completedCount == workingSets.length;
+  static bool _isBlockCompleted(ExerciseBlock block, WorkoutProvider wp) {
+    final workingSets = block.workingSets;
+    return workingSets.isNotEmpty &&
+        workingSets.every((s) => wp.isSetDone(s.id));
   }
 
   static ExerciseBlock? _focusedBlock(
     WorkoutProvider wp,
     List<ExerciseBlock> blocks,
   ) {
-    final focusedSet = wp.stateSnapshot?.hasDisplaySet() == true
-        ? wp.stateSnapshot!.displaySet
-        : wp.nextPendingSet;
+    final focusedSet = wp.doneTargetSet;
     if (focusedSet == null) return null;
     // The would-be set a rung is waiting on is not in the plan yet; its
     // exercise's block is still the one in focus.

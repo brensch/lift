@@ -27,6 +27,10 @@ String formatWeight(
   return '$rounded ${weightUnitSuffix(unit)}';
 }
 
+/// A plate or bar as its weight is printed on it: "20", "2.5".
+String plateLabel(double weight) =>
+    weight % 1 == 0 ? '${weight.toInt()}' : '$weight';
+
 double standardBarWeight(WeightUnit unit) => isMetricUnit(unit) ? 20 : 45;
 
 List<double> standardPlates(WeightUnit unit) => isMetricUnit(unit)

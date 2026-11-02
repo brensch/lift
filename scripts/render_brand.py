@@ -12,7 +12,7 @@ Outputs:
     marketing/icon.png              1024 x 1024, full bleed
     marketing/feature_graphic.png   1024 x 500
 
-The icon goes onto every platform with `make icons ICON_SOURCE=marketing/icon.png`.
+The icon goes onto every platform with `make icons`.
 The feature graphic is pushed to Play by store-assets.yml.
 """
 

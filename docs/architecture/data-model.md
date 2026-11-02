@@ -111,10 +111,11 @@ erDiagram
     }
 ```
 
-`WORKOUT_SCHEMA` (above) is on both the phone and the server; the server's
-analytics and multiplayer history ("trained with") read it.
-`ACCOUNT_SCHEMA` — `workout_templates` — is on the phone only, so an exported file reads as everything the app knows; the
-server keeps those in the fold.
+`WORKOUT_SCHEMA` (above) is on the server, where the owner's analytics read
+it, and in a phone's export. `ACCOUNT_SCHEMA` (`workout_templates`) is in the
+export only, so an exported file reads as everything the app knows; the
+server keeps those in the fold. The phone's live file holds only `meta`,
+`events` and `library`.
 
 - **`end_time = 0` means in progress.** There is no status column;
   zero-as-null is the convention.
@@ -229,7 +230,6 @@ erDiagram
     user_current_session {
         TEXT user_id PK "source of truth"
         TEXT session_id
-        INTEGER joined_at
     }
     session_participants_current {
         TEXT session_id PK
@@ -245,7 +245,7 @@ erDiagram
 | `auth_sessions`, `passkey_credentials` | See [auth.md](auth.md) |
 | `user_current_session` | Which session a user is in now; `user_id` PK, so at most one. See [multiplayer.md](multiplayer.md) |
 | `session_participants_current` | Each member's live status, rebuilt from their fold after every push |
-| `session_members` | Durable roster: every `(session, user)` that ever joined, never deleted. Backs training partners and shared sessions |
+| `session_members` | Durable roster: every `(session, user)` that ever joined, never deleted. Backs training partners and the prior-pairing check on a join request |
 | `join_requests` | Pending "train together" asks, deleted once answered |
 | `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. See [analytics.md](analytics.md) |
 | `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username |

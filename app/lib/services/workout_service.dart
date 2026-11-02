@@ -1,6 +1,6 @@
-import 'package:fixnum/fixnum.dart';
 import 'package:protobuf/protobuf.dart' show GeneratedMessage;
 
+import '../gen/workout/v1/account.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import 'local_core.dart';
@@ -28,17 +28,20 @@ class WorkoutServiceWrapper {
 
   WorkoutServiceWrapper(this._source);
 
+  /// [method] answered by the core, as of [at] (default: now).
   Future<T> _call<T extends GeneratedMessage>(
     String method,
     GeneratedMessage request,
-    T Function(List<int>) parse,
-  ) async => (await _source.ready).call(method, request, parse);
+    T Function(List<int>) parse, {
+    DateTime? at,
+  }) async => (await _source.ready).call(method, request, parse, at: at);
 
   Future<StartWorkoutResponse> startWorkout(
     String name, {
     String templateId = '',
     List<Exercise> exercises = const [],
     int budgetMinutes = 0,
+    DateTime? at,
   }) => _call(
     'StartWorkout',
     StartWorkoutRequest()
@@ -47,6 +50,7 @@ class WorkoutServiceWrapper {
       ..templateId = templateId
       ..budgetMinutes = budgetMinutes,
     StartWorkoutResponse.fromBuffer,
+    at: at,
   );
 
   Future<GetWorkoutResponse> getWorkout(String workoutId) => _call(
@@ -98,21 +102,21 @@ class WorkoutServiceWrapper {
   /// Changes to a workout, applied in order; one that can't apply is
   /// skipped. Answers with the workout after them.
   Future<AppendWorkoutMutationsResponse> appendWorkoutMutations(
-    List<WorkoutMutation> mutations,
-  ) => _call(
+    List<WorkoutMutation> mutations, {
+    DateTime? at,
+  }) => _call(
     'AppendWorkoutMutations',
     AppendWorkoutMutationsRequest()..mutations.addAll(mutations),
     AppendWorkoutMutationsResponse.fromBuffer,
+    at: at,
   );
 
-  Future<EndWorkoutResponse> endWorkout(String workoutId, {int? endedAt}) =>
-      _call(
-        'EndWorkout',
-        EndWorkoutRequest()
-          ..workoutId = workoutId
-          ..endedAt = Int64(endedAt ?? 0),
-        EndWorkoutResponse.fromBuffer,
-      );
+  /// Ends the workout at the event's time.
+  Future<EndWorkoutResponse> endWorkout(String workoutId) => _call(
+    'EndWorkout',
+    EndWorkoutRequest()..workoutId = workoutId,
+    EndWorkoutResponse.fromBuffer,
+  );
 
   /// Everything the home screen needs in one call, every lift planned in
   /// [budgetMinutes] (0 = the core's default).
@@ -191,7 +195,7 @@ class WorkoutServiceWrapper {
   /// [strength] picks (chick 0 .. gorilla 1; unset keeps the catalog's
   /// openers), and copies the chosen library templates (the library's
   /// defaults when none are named).
-  Future<GetHomeResponse> completeOnboarding({
+  Future<void> completeOnboarding({
     required WeightUnit unit,
     List<String> libraryIds = const [],
     double? strength,
@@ -200,11 +204,11 @@ class WorkoutServiceWrapper {
       ..unit = unit
       ..libraryIds.addAll(libraryIds);
     if (strength != null) request.strength = strength;
-    return (await _call(
+    await _call(
       'CompleteOnboarding',
       request,
       CompleteOnboardingResponse.fromBuffer,
-    )).home;
+    );
   }
 
   /// The starting weights the setup slider shows, one step per 1% of
@@ -228,24 +232,28 @@ class WorkoutServiceWrapper {
   );
 
   /// Makes a ready-made plan the rotation: entries the user lacks are
-  /// added, the rest become reserves. Returns the refreshed home.
-  Future<GetHomeResponse> applyLibraryPlan(String planId) async => (await _call(
+  /// added, the rest become reserves.
+  Future<void> applyLibraryPlan(String planId) => _call(
     'ApplyLibraryPlan',
     ApplyLibraryPlanRequest(planId: planId),
     ApplyLibraryPlanResponse.fromBuffer,
-  )).home;
+  );
 
   /// Adds library entries to the user's templates, following the library,
   /// into the rotation or (by default) as reserves; ones the user already
-  /// has are skipped. Returns the refreshed home.
-  Future<GetHomeResponse> addLibraryTemplates(
+  /// has are skipped.
+  Future<void> addLibraryTemplates(
     List<String> libraryIds, {
     bool inRotation = false,
-  }) async => (await _call(
+  }) => _call(
     'AddLibraryTemplates',
     AddLibraryTemplatesRequest(libraryIds: libraryIds, inRotation: inRotation),
     AddLibraryTemplatesResponse.fromBuffer,
-  )).home;
+  );
+
+  /// Brings in [history] as it was (an account moving here).
+  Future<void> importHistory(ImportHistory history) =>
+      _call('ImportHistory', history, ImportHistoryResponse.fromBuffer);
 
   Future<List<UserSetting>> getSettings() async => (await _call(
     'GetSettings',

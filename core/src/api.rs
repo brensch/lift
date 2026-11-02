@@ -133,8 +133,11 @@ impl<'a> Call<'a> {
     pub fn end_workout(&mut self, req: EndWorkoutRequest) -> Result<EndWorkoutResponse, CoreError> {
         let id = req.workout_id.clone();
         self.mutate(workout_mutation::Mutation::EndWorkout(req))?;
+        let view = self.view();
+        let record = view.workout(&id)?;
         Ok(EndWorkoutResponse {
-            workout: Some(self.view().workout(&id)?.workout.clone()),
+            workout: Some(record.workout.clone()),
+            template_offer: view.template_offer(record),
         })
     }
 
@@ -293,9 +296,7 @@ impl<'a> Call<'a> {
             .map(|strength| exercise_weights(strength, unit))
             .unwrap_or_default();
         self.record(event::Kind::CompleteOnboarding(req))?;
-        Ok(CompleteOnboardingResponse {
-            home: Some(self.view().home(0)),
-        })
+        Ok(CompleteOnboardingResponse {})
     }
 
     pub fn add_library_templates(
@@ -310,15 +311,13 @@ impl<'a> Call<'a> {
         if !req.entries.is_empty() {
             self.record(event::Kind::AddLibraryTemplates(req))?;
         }
-        Ok(AddLibraryTemplatesResponse {
-            home: Some(self.view().home(0)),
-        })
+        Ok(AddLibraryTemplatesResponse {})
     }
 
-    /// A ready-made plan as the main plan: its entries the user lacks are
+    /// A ready-made plan as the rotation: its entries the user lacks are
     /// added, then one reorder puts the user's template for each entry
-    /// first, in the plan's order, as the main plan, and every other
-    /// template after it (the old main plan first) as a backup.
+    /// first, in the plan's order, as the rotation, and every other
+    /// template after it (the old rotation first) as a reserve.
     pub fn apply_library_plan(
         &mut self,
         req: ApplyLibraryPlanRequest,
@@ -344,37 +343,35 @@ impl<'a> Call<'a> {
             ))?;
         }
         let templates = &self.account.templates;
-        let mut main: Vec<String> = Vec::with_capacity(plan.library_ids.len());
+        let mut rotation: Vec<String> = Vec::with_capacity(plan.library_ids.len());
         for id in &plan.library_ids {
-            // One already in the main plan before any other made from it.
+            // One already in the rotation before any other made from it.
             let from = |t: &&WorkoutTemplate| &t.library_id == id || &t.origin_library_id == id;
             let mine = templates
                 .iter()
                 .filter(from)
-                .find(|t| t.in_rotation && !main.contains(&t.id))
+                .find(|t| t.in_rotation && !rotation.contains(&t.id))
                 .or_else(|| {
                     templates
                         .iter()
                         .filter(from)
-                        .find(|t| !main.contains(&t.id))
+                        .find(|t| !rotation.contains(&t.id))
                 })
                 .ok_or_else(|| CoreError::NotFound(format!("no template for {id:?}")))?;
-            main.push(mine.id.clone());
+            rotation.push(mine.id.clone());
         }
         let rest = templates
             .iter()
             .filter(|t| t.in_rotation)
             .chain(templates.iter().filter(|t| !t.in_rotation))
-            .filter(|t| !main.contains(&t.id))
+            .filter(|t| !rotation.contains(&t.id))
             .map(|t| t.id.clone());
-        let template_ids: Vec<String> = main.iter().cloned().chain(rest).collect();
+        let template_ids: Vec<String> = rotation.iter().cloned().chain(rest).collect();
         self.record(event::Kind::ReorderTemplates(ReorderTemplatesRequest {
             template_ids,
-            rotation_count: Some(main.len() as i32),
+            rotation_count: Some(rotation.len() as i32),
         }))?;
-        Ok(ApplyLibraryPlanResponse {
-            home: Some(self.view().home(0)),
-        })
+        Ok(ApplyLibraryPlanResponse {})
     }
 
     /// Bring in history from elsewhere as it was (an account moving here).
@@ -436,13 +433,49 @@ impl<'a> View<'a> {
         out
     }
 
+    /// "Save these lifts as a template?" for a workout: the lifts with a
+    /// done working set, in workout order, unless they are the ones of the
+    /// template it started from. None when nothing was done, or the
+    /// template it started from is gone.
+    fn template_offer(&self, record: &WorkoutRecord) -> Option<TemplateOffer> {
+        let mut exercises: Vec<i32> = Vec::new();
+        for set in &record.proposed_sets {
+            let done = record
+                .completed_sets
+                .iter()
+                .any(|c| c.proposed_set_id == set.id);
+            if done && !set.warmup && !set.cancelled && !exercises.contains(&set.exercise) {
+                exercises.push(set.exercise);
+            }
+        }
+        if exercises.is_empty() {
+            return None;
+        }
+        let template_id = &record.workout.template_id;
+        if template_id.is_empty() {
+            return Some(TemplateOffer {
+                exercises,
+                ..Default::default()
+            });
+        }
+        let template = self.resolved(self.account.template(template_id)?);
+        let same = template.exercises.len() == exercises.len()
+            && exercises.iter().all(|e| template.exercises.contains(e));
+        (!same).then_some(TemplateOffer {
+            template_id: template.id,
+            template_name: template.name,
+            exercises,
+        })
+    }
+
     fn workout(&self, id: &str) -> Result<&'a WorkoutRecord, CoreError> {
         self.account
             .workout(id)
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))
     }
 
-    /// A workout as the app shows it: visible sets, each lift's log.
+    /// A workout as the app shows it: visible sets, each lift's log and
+    /// estimated max after it.
     pub fn workout_response(&self, id: &str) -> Result<GetWorkoutResponse, CoreError> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
@@ -450,6 +483,20 @@ impl<'a> View<'a> {
         // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
         response.proposed_sets.retain(|s| !s.cancelled);
+        if let Some(summary) = &mut response.summary {
+            let planner = Planner::new(self.account, self.now);
+            for lift in &mut summary.exercises {
+                let Ok(exercise) = Exercise::try_from(lift.exercise) else {
+                    continue;
+                };
+                lift.estimated_max_after = planner
+                    .walk(exercise)
+                    .points
+                    .into_iter()
+                    .find(|(workout_id, _)| *workout_id == record.workout.id)
+                    .map_or(0.0, |(_, max)| max);
+            }
+        }
         Ok(response)
     }
 
@@ -468,7 +515,7 @@ impl<'a> View<'a> {
         [RepsLeft::ZeroToOne, RepsLeft::TwoToFour, RepsLeft::FivePlus]
             .into_iter()
             .filter_map(|reps_left| {
-                let mut answered = record.clone();
+                let mut answered = record.without_heart_rate();
                 let req = AnswerRungRequest {
                     workout_id: record.workout.id.clone(),
                     proposed_set_id: set_id.to_string(),

@@ -933,6 +933,7 @@ impl<'a> Planner<'a> {
             overridden: self.account.overrides.contains_key(&decision.exercise),
             primary_muscle: primary_muscle(ex) as i32,
             equipment: load_style(ex).to_proto() as i32,
+            step: progression_increment_lb(ex, self.account.unit()),
             last_performed_at: self
                 .sessions
                 .get(&decision.exercise)

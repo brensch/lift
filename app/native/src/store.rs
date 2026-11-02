@@ -315,7 +315,7 @@ fn run(tx: &rusqlite::Transaction, statement: Statement) -> StoreResult<()> {
 mod tests {
     use super::*;
     use schlift_core::pb::{
-        AppendWorkoutHeartRateRequest, CompleteOnboardingRequest, GetHomeResponse,
+        AppendWorkoutHeartRateRequest, CompleteOnboardingRequest, GetHomeRequest, GetHomeResponse,
         StartWorkoutRequest, StartWorkoutResponse, WeightUnit, WorkoutHeartRatePoint,
     };
 
@@ -348,7 +348,7 @@ mod tests {
     }
 
     fn onboard(store: &mut Store) -> GetHomeResponse {
-        let bytes = store
+        store
             .call(
                 "CompleteOnboarding",
                 &CompleteOnboardingRequest {
@@ -359,10 +359,10 @@ mod tests {
                 1_000,
             )
             .unwrap();
-        schlift_core::pb::CompleteOnboardingResponse::decode(bytes.as_slice())
-            .unwrap()
-            .home
-            .unwrap()
+        let bytes = store
+            .call("GetHome", &GetHomeRequest::default().encode_to_vec(), 1_000)
+            .unwrap();
+        GetHomeResponse::decode(bytes.as_slice()).unwrap()
     }
 
     #[test]

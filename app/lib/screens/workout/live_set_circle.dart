@@ -183,6 +183,7 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
             // Where the ramp starts: as planned, or moved.
             WeightSelector(
               weightLb: _weightLb,
+              stepLb: widget.wp.weightStepOf(widget.set.exercise),
               barbell: _barbell,
               onChanged: (lb) => setState(() => _weightLb = lb),
             ),

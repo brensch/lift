@@ -522,8 +522,8 @@ def main() -> int:
         inspect(asc, app_id, args.version)
         return 0
     if args.action == "pull":
-        # Read-only: look the version up in whatever state it is in. (This
-        # used to go through pick_version, which creates a missing version.)
+        # Read-only: look the version up in whatever state it is in, and
+        # never create it.
         versions = list_versions(asc, app_id, args.version)
         version = versions[0] if versions else None
         if version is None:

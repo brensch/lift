@@ -4,8 +4,6 @@ import 'package:health/health.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import 'app_logger.dart';
 
-enum HealthWriteResult { success, permissionDenied, error }
-
 class HeartRateZoneProfile {
   final DateTime? birthDate;
   final int? ageYears;
@@ -193,7 +191,8 @@ class HealthService {
     return (durationMinutes * _fallbackKcalPerMin).round();
   }
 
-  static Future<HealthWriteResult> writeCompletedWorkout({
+  /// Whether the platform stored the workout.
+  static Future<bool> writeCompletedWorkout({
     required DateTime startTime,
     required DateTime endTime,
     required String title,
@@ -236,7 +235,7 @@ class HealthService {
     // the record was stored; readability was verified out-of-band via the Health
     // Connect UI. Sync status is surfaced to the user in Settings instead.
     debugPrint('Health: writeWorkoutData result=$success');
-    return success ? HealthWriteResult.success : HealthWriteResult.error;
+    return success;
   }
 
   static Future<void> writeHeartRateSamples({

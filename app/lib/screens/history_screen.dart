@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
+import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/session_state.dart';
 import '../logic/weight_units.dart';
@@ -49,10 +50,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _HistoryItem(
             workout: ws.workout,
             volume: ws.summary.totalVolume,
-            workingSets: ws.summary.exercises.fold(
-              0,
-              (a, e) => a + e.totalSets,
-            ),
+            workingSets: ws.summary.workingSets,
             exercises: ws.summary.exercises.map((e) => e.exercise).toList(),
           ),
       ];

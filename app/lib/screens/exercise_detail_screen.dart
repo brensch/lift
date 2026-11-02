@@ -10,7 +10,6 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import '../theme/theme_spec.dart';
 
 /// One lift, in depth: tap a card on Progress to see its full history — a
@@ -74,11 +73,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final name = exerciseNames[widget.exercise] ?? '?';
 
-    Widget scaffold(Widget body) => TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(title: PageTitle(name)),
-        body: body,
-      ),
+    Widget scaffold(Widget body) => Scaffold(
+      appBar: AppBar(title: PageTitle(name)),
+      body: body,
     );
 
     if (_isLoading) {
@@ -128,7 +125,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 _headStat(
                   bodyweight
                       ? '${sessions.last.topReps} reps'
-                      : '${formatWeight(current, unit)} $suffix',
+                      : formatWeight(current, unit, includeUnit: true),
                   'heaviest set last time',
                   cs,
                   color: context.tokens.series[1],
@@ -163,7 +160,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               children: [
                 _footStat(
                   'Best set',
-                  '${formatWeight(best, unit)} $suffix',
+                  formatWeight(best, unit, includeUnit: true),
                   cs,
                 ),
                 const SizedBox(width: 18),
@@ -424,7 +421,7 @@ class _SessionRow extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${formatWeight(session.topWeight, unit)} $suffix × ${session.topReps}',
+              '${formatWeight(session.topWeight, unit, includeUnit: true)} × ${session.topReps}',
               style: TextStyle(
                 fontWeight: context.tokens.weight.heavy,
                 fontSize: context.tokens.size.body,

@@ -127,15 +127,7 @@ impl AuthState {
             .await
             .map_err(|e| format!("Failed to create user: {}", e))?;
 
-        let mut cred_val =
-            serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
-        if let Some(n) = name {
-            if let Some(obj) = cred_val.as_object_mut() {
-                obj.insert("cred_name".to_string(), serde_json::Value::String(n));
-            }
-        }
-        let cred_json =
-            serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
+        let cred_json = stored_passkey_json(&passkey, name)?;
 
         self.db
             .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
@@ -213,15 +205,7 @@ impl AuthState {
         let cred_id = format!("{:?}", passkey.cred_id());
         self.refuse_registered(&cred_id).await?;
 
-        let mut cred_val =
-            serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
-        if let Some(n) = name {
-            if let Some(obj) = cred_val.as_object_mut() {
-                obj.insert("cred_name".to_string(), serde_json::Value::String(n));
-            }
-        }
-        let cred_json =
-            serde_json::to_string(&cred_val).map_err(|e| format!("Serialization error: {}", e))?;
+        let cred_json = stored_passkey_json(&passkey, name)?;
 
         self.db
             .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
@@ -449,16 +433,21 @@ impl AuthState {
         };
 
         for json in &cred_jsons {
-            let mut pk: Passkey = match serde_json::from_str(json) {
-                Ok(pk) => pk,
-                Err(_) => continue,
+            let Ok(stored) = serde_json::from_str::<serde_json::Value>(json) else {
+                continue;
+            };
+            let Ok(mut pk) = serde_json::from_value::<Passkey>(stored.clone()) else {
+                continue;
             };
 
             if let Some(true) = pk.update_credential(auth_result) {
                 let cred_id = format!("{:?}", pk.cred_id());
-                let new_json = match serde_json::to_string(&pk) {
-                    Ok(j) => j,
-                    Err(_) => continue,
+                let name = stored
+                    .get("cred_name")
+                    .and_then(|n| n.as_str())
+                    .map(str::to_string);
+                let Ok(new_json) = stored_passkey_json(&pk, name) else {
+                    continue;
                 };
                 let _ = self.db.update_credential_json(&cred_id, &new_json).await;
             }
@@ -481,6 +470,17 @@ impl AuthState {
             now.duration_since(pending.created_at).as_secs() < CHALLENGE_TTL_SECS
         });
     }
+}
+
+/// A passkey as stored: the webauthn-rs `Passkey` with the name the user
+/// gave it, if any, beside it under "cred_name".
+fn stored_passkey_json(passkey: &Passkey, name: Option<String>) -> Result<String, String> {
+    let mut value =
+        serde_json::to_value(passkey).map_err(|e| format!("Serialization error: {}", e))?;
+    if let (Some(name), Some(obj)) = (name, value.as_object_mut()) {
+        obj.insert("cred_name".to_string(), serde_json::Value::String(name));
+    }
+    serde_json::to_string(&value).map_err(|e| format!("Serialization error: {}", e))
 }
 
 fn extract_client_response_challenge(credential_json: &str) -> Option<String> {

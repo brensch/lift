@@ -222,9 +222,8 @@ check-android-java:
 		"$$JAVAC_HOME_REAL/bin/javac" -version; \
 	'
 
-# icons: regenerate every platform icon. With ICON_SOURCE=<1024 png> the
-# rendered master (see `make brand`) becomes the icon everywhere; without it
-# the old procedural barbell is drawn.
+# icons: put the rendered icon master (marketing/icon.png, see `make brand`)
+# on every platform. ICON_SOURCE=<1024 png> uses another master.
 icons:
 	@echo "=== Regenerating app icons ==="
 	python3 scripts/replace_app_icons.py $(if $(ICON_SOURCE),--source $(ICON_SOURCE))
@@ -243,7 +242,7 @@ sounds:
 # brand: render the icon master and the Play feature graphic from
 # scripts/render_brand.py into marketing/icon.png and
 # marketing/feature_graphic.png. Then put the icon on every platform with
-#   make icons ICON_SOURCE=marketing/icon.png
+#   make icons
 STORE_VENV ?= .tmp/store-venv
 brand:
 	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }

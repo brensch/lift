@@ -510,7 +510,6 @@ private fun WearApp(
     ambientUpdates: Int,
 ) {
     val snapshot by WearDataRepository.snapshot.collectAsState()
-    val latestBpm by WearDataRepository.latestBpm.collectAsState()
     // Every second; dimmed, once a minute, on the minute rest turns over.
     val nowTick by produceState(
         initialValue = System.currentTimeMillis() / 1000,
@@ -523,6 +522,14 @@ private fun WearApp(
             delay(if (isAmbientMode) ambientDelayMs(snapshot) else 1000L)
         }
     }
+    // Live when lit; dimmed, read on the tick, so a reading does not redraw
+    // the always-on face between its ticks.
+    val latestBpm =
+        if (isAmbientMode) {
+            remember(nowTick) { WearDataRepository.latestBpm.value }
+        } else {
+            WearDataRepository.latestBpm.collectAsState().value
+        }
     LaunchedEffect(snapshot) {
         Log.d(
             SCHLIFT_WEAR_TAG,
@@ -676,6 +683,7 @@ private fun WorkoutScreens(
     val restUntilMs = data.restUntil.toLong() * 1000L
     val draining = resting && !yapping && restStartMs in 1 until restUntilMs
     val bandFill = remember(data.workoutId) { Animatable(1f) }
+    val drainingFill = remember(bandFill) { { bandFill.value } }
     // Dimmed, the band is never drawn draining: no animation to pay for.
     LaunchedEffect(draining, restStartMs, restUntilMs, isAmbientMode) {
         if (isAmbientMode) return@LaunchedEffect
@@ -729,7 +737,7 @@ private fun WorkoutScreens(
                     lifting -> WearPalette.Text
                     else -> WearPalette.OnDark
                 },
-            bandFill = if (draining && !dim) bandFill.value else 1f,
+            bandFill = if (draining && !dim) drainingFill else FULL_BAND,
             exercise = card.exerciseName,
             position = card.setLine,
             weight = card.weightText.ifEmpty { card.setText },
@@ -760,6 +768,8 @@ private fun WorkoutScreens(
         onWeight = { showPlates = true },
     )
 }
+
+private val FULL_BAND: () -> Float = { 1f }
 
 /** Keys that would press a focused clickable. */
 private val ACTIVATING_KEYS =

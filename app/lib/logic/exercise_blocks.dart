@@ -24,8 +24,13 @@ class ExerciseBlock {
 }
 
 /// A working set: neither a warmup nor a calibration rung. Rungs count as
-/// warmups for volume and summaries, like the server's `session_outcomes`.
+/// warmups for volume and summaries, like the core's `session_outcomes`.
 bool isWorkingSet(ProposedSet set) => !set.warmup && !set.calibration;
+
+extension WorkoutSummarySets on WorkoutSummary {
+  /// The working sets done in the workout, every lift together.
+  int get workingSets => exercises.fold(0, (n, e) => n + e.totalSets);
+}
 
 /// Group visible sets by exercise, ordered by first appearance; a
 /// re-added exercise merges into one block.

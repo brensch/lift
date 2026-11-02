@@ -120,7 +120,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.buttonFont,
     required this.monoFont,
     this.wordmarkFont,
-    this.displayWeight = FontWeight.w900,
     this.wordmarkWeight = FontWeight.w900,
     this.wordmarkScale = 1,
     this.wordmarkTracking = 0,
@@ -129,7 +128,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     this.fontScale = 1.06,
     this.radiusSm = 10,
     this.radiusMd = 16,
-    this.radiusLg = 24,
     this.buttonRadius = 10,
     this.size = const TypeScale(),
     this.weight = const FontWeights(),
@@ -207,10 +205,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   /// Timers and other numbers that must not jiggle as they count.
   final String monoFont;
 
-  /// The big live numbers in the workout bar: the set (weight × reps) and
-  /// the rest timer.
-  final FontWeight displayWeight;
-
   /// The SCHLIFT wordmark; null uses [headingFont].
   final String? wordmarkFont;
   final FontWeight wordmarkWeight;
@@ -241,9 +235,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   /// Cards and primary call-to-action panels.
   final double radiusMd;
-
-  /// Sheets and dialogs.
-  final double radiusLg;
 
   /// Every Material button; large values make pills.
   final double buttonRadius;

@@ -103,7 +103,6 @@ fn parse(text: &str) -> Result<(Vec<LibraryTemplate>, Vec<LibraryPlan>), String>
             id: id.to_string(),
             name: entry.name.trim().to_string(),
             blurb: entry.blurb.trim().to_string(),
-            group_key: group.key.clone(),
             group_label: group.label.clone(),
             exercises,
             is_default: entry.default,

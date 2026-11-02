@@ -352,6 +352,9 @@ message ExercisePlan {
   EquipmentKind equipment = 4;
   // When it was last done (the session's end), 0 = never.
   int64 last_performed_at = 5;
+  // One step of its weight (lb): what it goes up by. 0 for bodyweight,
+  // which goes up in reps.
+  float step = 7;
   reserved 6;
   reserved "secondary_muscles";
 }
@@ -401,6 +404,9 @@ message ExerciseSummary {
   reserved 5;
   reserved "best_one_rep_max";
   float heaviest_set_weight = 6; // lb
+  // The lift's estimated max after this session (lb); 0 = none. Filled
+  // in a GetWorkoutResponse.
+  float estimated_max_after = 7;
 }
 
 // The rollup for a whole workout. The client renders this directly
@@ -627,9 +633,22 @@ message EndWorkoutRequest {
 
 message EndWorkoutResponse {
   Workout workout = 1;
+  // Unset when nothing was done, or the lifts done are the template's.
+  TemplateOffer template_offer = 3;
 
   reserved 2;
   reserved "user_messages";
+}
+
+// "Save these lifts as a template?", offered when a workout ends: the
+// lifts done (each with a done working set, in workout order) when they
+// are not the ones of the template it started from, or it started from
+// none.
+message TemplateOffer {
+  // The template it started from; "" = none, so saving makes a new one.
+  string template_id = 1;
+  string template_name = 2;
+  repeated Exercise exercises = 3;
 }
 
 // ── Templates, plans, and the home screen ──
@@ -668,10 +687,11 @@ message LibraryTemplate {
   string id = 1;
   string name = 2;
   string blurb = 3;
-  string group_key = 4;
   string group_label = 5;
   repeated Exercise exercises = 6;
   bool is_default = 7; // ticked by default during onboarding
+  reserved 4;
+  reserved "group_key";
 }
 
 // Public: the library is the same for everyone.
@@ -697,18 +717,18 @@ message LibraryPlan {
 // have are added (an AddLibraryTemplates event), then one
 // ReorderTemplates puts the user's template for each entry (one following
 // it or made from it) first, in the plan's order, as the rotation and
-// everything else after it as reserves. Nothing is deleted. Returns the
-// refreshed home.
+// everything else after it as reserves. Nothing is deleted.
 message ApplyLibraryPlanRequest {
   string plan_id = 1;
 }
 message ApplyLibraryPlanResponse {
-  GetHomeResponse home = 1;
+  reserved 1;
+  reserved "home";
 }
 
 // Adds library entries to the caller's templates, coupled, skipping any
 // the caller already has (a template following it, or one of their own
-// made from it). Returns the refreshed home.
+// made from it).
 message AddLibraryTemplatesRequest {
   repeated string library_ids = 1;
   // The entries as the library had them, filled in by the core when the
@@ -728,7 +748,8 @@ message CloneTemplateRequest {
   repeated Exercise exercises = 3;
 }
 message AddLibraryTemplatesResponse {
-  GetHomeResponse home = 1;
+  reserved 1;
+  reserved "home";
 }
 
 // Weighted hard sets for one muscle over the rolling last 7 days.
@@ -961,7 +982,8 @@ message GetStartingWeightsResponse {
 }
 
 message CompleteOnboardingResponse {
-  GetHomeResponse home = 1;
+  reserved 1;
+  reserved "home";
 }
 
 message GetActiveWorkoutRequest {}

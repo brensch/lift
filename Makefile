@@ -1,6 +1,5 @@
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
-BUN = $(HOME)/.bun/bin/bun
 
 ANDROID_SDK ?= $(HOME)/android-sdk
 ANDROID_HOME ?= $(ANDROID_SDK)

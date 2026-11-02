@@ -8,7 +8,7 @@ breaks.
 
 ## The invariant
 
-`user_current_session(user_id PRIMARY KEY, session_id, joined_at)` is the single
+`user_current_session(user_id PRIMARY KEY, session_id)` is the single
 source of truth for "is this user in a group right now?". Because `user_id` is
 the primary key, a user is structurally incapable of being in two sessions.
 

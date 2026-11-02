@@ -70,7 +70,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Future<void> _loadData() async {
     final service = context.read<WorkoutServiceWrapper>();
     try {
-      // One call: the server returns the per-exercise series (most-improved
+      // One call: the core returns the per-exercise series (most-improved
       // first) plus the header totals, all precomputed.
       final resp = await service.getExerciseProgress();
       final series = <_ExerciseProgress>[];
@@ -522,7 +522,7 @@ class _Chart extends StatelessWidget {
             getTooltipItems: (spots) => spots.map((s) {
               final p = pts[s.x.round()];
               return LineTooltipItem(
-                '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${shortDate(p.date)}',
+                '${formatWeight(p.weight, unit, includeUnit: true)}\n${shortDate(p.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
                   fontWeight: context.tokens.weight.bold,

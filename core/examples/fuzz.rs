@@ -142,7 +142,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
 
     // Onboard as the app does: the default templates, and starting weights
     // from the strength slider half the time.
-    let templates = match sim
+    let onboarded = sim
         .call(now)
         .complete_onboarding(CompleteOnboardingRequest {
             unit: if rng.gen_bool(0.3) {
@@ -154,8 +154,9 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 .gen_bool(0.5)
                 .then(|| rng.gen_range(0..=100) as f32 / 100.0),
             ..Default::default()
-        }) {
-        Ok(r) => r.home.map(|h| h.templates).unwrap_or_default(),
+        });
+    let templates = match onboarded {
+        Ok(_) => sim.view(now).home(0).templates,
         Err(e) => {
             violations.push(Violation {
                 user: username.clone(),
@@ -168,28 +169,29 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
         }
     };
 
-    // A third of users then pick a ready-made plan: it is the main plan
+    // A third of users then pick a ready-made plan: it is the rotation
     // afterwards, in its order.
     let plans = schlift_core::template_library::plans();
     let templates = if !plans.is_empty() && rng.gen_bool(0.3) {
         let plan = &plans[rng.gen_range(0..plans.len())];
-        match sim.call(now).apply_library_plan(ApplyLibraryPlanRequest {
+        let applied = sim.call(now).apply_library_plan(ApplyLibraryPlanRequest {
             plan_id: plan.id.clone(),
-        }) {
-            Ok(r) => {
-                let after = r.home.map(|h| h.templates).unwrap_or_default();
-                let main: Vec<&str> = after
+        });
+        match applied {
+            Ok(_) => {
+                let after = sim.view(now).home(0).templates;
+                let rotation: Vec<&str> = after
                     .iter()
                     .filter(|t| t.in_rotation)
                     .map(|t| t.origin_library_id.as_str())
                     .collect();
-                if main != plan.library_ids {
+                if rotation != plan.library_ids {
                     violations.push(Violation {
                         user: username.clone(),
                         workout_id: String::new(),
                         step: "apply_library_plan".into(),
-                        invariant: "a ready-made plan is not the main plan after applying it",
-                        detail: format!("{} gave {main:?}", plan.id),
+                        invariant: "a ready-made plan is not the rotation after applying it",
+                        detail: format!("{} gave {rotation:?}", plan.id),
                     });
                 }
                 after

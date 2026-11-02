@@ -207,7 +207,7 @@ otherwise taps land on the keyboard.
 
 ## Backend
 
-The backend is the Rust binary `schlift`, listening on `0.0.0.0:50051`:
+The backend is the Rust binary `schlift`, listening on `127.0.0.1:50051` (a device reaches it through `adb reverse`):
 
 ```bash
 curl http://127.0.0.1:50051/api/health

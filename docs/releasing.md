@@ -136,7 +136,7 @@ cd app/android
 ```
 
 Output:
-- `app/android/wear/build/outputs/bundle/release/wear-release.aab`
+- `app/build/wear/outputs/bundle/release/wear-release.aab`
 
 ## 6) Upload and Rollout
 
@@ -344,7 +344,7 @@ To put the icon on every platform (iOS, watchOS, macOS, Android legacy +
 adaptive, Wear OS, web, Windows, and the Play store icon):
 
 ```bash
-make icons ICON_SOURCE=marketing/icon.png
+make icons
 ```
 
 The master is full bleed: the Android adaptive foreground fills the 72dp a

@@ -90,7 +90,8 @@ CREATE INDEX IF NOT EXISTS idx_session_members_user
     ON session_members(user_id, first_joined_at DESC);
 
 -- Pending "train together" requests: from_user asks to_user; to_user approves or
--- declines. Rows are deleted once answered (or when they expire on read).
+-- declines. Rows are deleted once answered; older than the TTL they are no
+-- longer shown or answerable.
 CREATE TABLE IF NOT EXISTS join_requests (
     request_id TEXT PRIMARY KEY,
     from_user_id TEXT NOT NULL,

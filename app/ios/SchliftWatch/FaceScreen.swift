@@ -37,21 +37,11 @@ struct FaceScreen: View {
     }
 
     var body: some View {
-        Group {
-            // Every frame while the rest drains the band, so it moves smoothly;
-            // otherwise the screen's own tick is enough.
-            if restSpan != nil, !colors.dim {
-                TimelineView(.animation) { _ in
-                    face(nowMs: connector.synchronizedNowMs())
-                }
-            } else {
-                face(nowMs: connector.synchronizedNowMs())
+        face
+            // The system sheet: slides over the face, closes with its own button.
+            .sheet(isPresented: $showPlates) {
+                PlateScreen(card: card)
             }
-        }
-        // The system sheet: slides over the face, closes with its own button.
-        .sheet(isPresented: $showPlates) {
-            PlateScreen(card: card)
-        }
     }
 
     // MARK: - The stage
@@ -99,15 +89,14 @@ struct FaceScreen: View {
 
     // MARK: - Layout
 
-    private func face(nowMs: Int64) -> some View {
+    private var face: some View {
         let stage = stage
-        let fill = bandFill(nowMs: nowMs)
         return GeometryReader { geo in
             let height = geo.size.height
             VStack(spacing: 0) {
                 setRow(stage: stage, height: height * 0.19)
                 line(colors.hairline)
-                band(stage: stage, fill: fill, height: height * 0.20)
+                band(stage: stage, height: height * 0.20)
                 line(colors.rule)
                 exerciseRow(height: height * 0.11)
                 line(colors.hairline)
@@ -167,7 +156,7 @@ struct FaceScreen: View {
 
     /// The phone's status band: the stage, up next when it's you, its clock. While
     /// resting the stage colour drains off it, leaving it washed toward the panel.
-    private func band(stage: WatchStage, fill: Double, height: CGFloat) -> some View {
+    private func band(stage: WatchStage, height: CGFloat) -> some View {
         HStack(spacing: 0) {
             Text(stage.label.uppercased())
                 .font(monoFontName(size: height * 0.32))
@@ -191,13 +180,26 @@ struct FaceScreen: View {
         .frame(height: height)
         .background(
             GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle().fill(colors.panel)
-                    Rectangle().fill(stage.color.opacity(fill < 1 ? 0.4 : 1))
-                    Rectangle().fill(stage.color).frame(width: geo.size.width * fill)
+                // Every frame while the rest drains the band, so it moves smoothly;
+                // otherwise the screen's own tick is enough. Only the fill is redrawn.
+                if restSpan != nil, !colors.dim {
+                    TimelineView(.animation) { _ in
+                        bandLayers(stage: stage, width: geo.size.width)
+                    }
+                } else {
+                    bandLayers(stage: stage, width: geo.size.width)
                 }
             }
         )
+    }
+
+    private func bandLayers(stage: WatchStage, width: CGFloat) -> some View {
+        let fill = bandFill(nowMs: connector.synchronizedNowMs())
+        return ZStack(alignment: .leading) {
+            Rectangle().fill(colors.panel)
+            Rectangle().fill(stage.color.opacity(fill < 1 ? 0.4 : 1))
+            Rectangle().fill(stage.color).frame(width: width * fill)
+        }
     }
 
     private var exerciseLine: String {

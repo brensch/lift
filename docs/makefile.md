@@ -15,7 +15,6 @@ Variables worth knowing (all overridable, `make VAR=value target`):
 | Variable | Default | |
 |---|---|---|
 | `FLUTTER`, `DART` | `~/flutter-sdk/bin/…` | Not on `PATH` |
-| `BUN` | `~/.bun/bin/bun` | Not on `PATH` |
 | `ANDROID_SDK` | `~/android-sdk` | |
 | `ADB` | `$(ANDROID_SDK)/platform-tools/adb` | Not on `PATH`. A phone on wireless debugging shows up as `192.168.x.x:port` |
 | `PHONE_SERIAL`, `WEAR_SERIAL` | auto-detected | Pick the phone or watch when several are attached. Otherwise the first non-watch / watch device on adb |

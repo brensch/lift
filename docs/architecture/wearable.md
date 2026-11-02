@@ -213,7 +213,7 @@ user finished on their phone.
 ## Building and running
 
 ```bash
-make watch-setup        # one-time: generate Xcode project bits
+make watch-setup        # one-time: install swift-protobuf, generate the Swift protos
 make watch-build        # build the watchOS app
 make watch-sim          # run in the watch simulator
 make run-wear           # Wear OS on a connected device/emulator

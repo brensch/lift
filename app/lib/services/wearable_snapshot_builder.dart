@@ -15,10 +15,12 @@ import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/plate_calculator.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
+import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/multiplayer_provider.dart';
 import '../providers/workout_provider.dart';
@@ -91,7 +93,6 @@ class WearableSnapshotBuilder {
               unit,
             ).plates
           : const <double>[];
-      String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
       final heaviest = standardPlates(unit).first;
       return WearStatusCard(
         stateLabel: stateLabel,
@@ -110,8 +111,8 @@ class WearableSnapshotBuilder {
         plates: [
           for (final p in plates)
             WearPlate(
-              label: num(p),
-              colorHex: _hex(workoutProvider.plateColor(p).toARGB32()),
+              label: plateLabel(p),
+              colorHex: colorHex(workoutProvider.plateColor(p)),
               size: (p / heaviest).clamp(0.0, 1.0),
             ),
         ],
@@ -119,10 +120,10 @@ class WearableSnapshotBuilder {
             ? ''
             : plates.isEmpty
             ? copy.workout.emptyBar
-            : '${plates.map(num).join(' · ')} ${copy.workout.watchEachSide}',
+            : '${plates.map(plateLabel).join(' · ')} ${copy.workout.watchEachSide}',
         barText: !barbell || firstTime
             ? ''
-            : '${num(standardBarWeight(unit))} ${weightUnitSuffix(unit)}',
+            : '${plateLabel(standardBarWeight(unit))} ${weightUnitSuffix(unit)}',
       );
     }
 
@@ -306,19 +307,12 @@ class WearableSnapshotBuilder {
     // The watch prints volume_text as sent; it never formats a weight.
     return WearCompletionSummary(
       durationText: formatDurationShort(elapsedSeconds),
-      completedWorkingSets: summary.exercises.fold<int>(
-        0,
-        (n, e) => n + e.totalSets,
-      ),
+      completedWorkingSets: summary.workingSets,
       totalVolumeLb: volume.round(),
       volumeText: formatWeight(volume, unit, includeUnit: true),
     );
   }
 }
-
-/// "#RRGGBB" for an ARGB colour.
-String _hex(int argb) =>
-    '#${(argb & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
 
 int _elapsedSeconds(Workout workout, int nowUnix) {
   final start = workout.startTime.toInt();

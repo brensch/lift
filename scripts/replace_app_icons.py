@@ -1,168 +1,25 @@
 #!/usr/bin/env python3
-"""Generate and replace app icons plus marketing branding assets.
+"""Put the rendered icon master on every platform.
 
-Two modes:
-  python3 scripts/replace_app_icons.py
-      the original procedural barbell (kept for reference)
-  python3 scripts/replace_app_icons.py --source marketing/icons/candidates/plate.png
-      a rendered 1024x1024 master (see scripts/render_brand.py) becomes the icon on
-      every platform: iOS, macOS, watchOS, Android legacy + adaptive, Wear OS, web,
-      Windows, and the Play store icon in marketing/.
+  python3 scripts/replace_app_icons.py [--source marketing/icon.png]
 
-With --source the Android adaptive foreground becomes a raster layer: the
-master fills the 72dp a launcher shows of the 108dp canvas, and its edges are
-stretched over the rest. The master is a full-bleed design (scripts/render_brand.py),
-so a round launcher mask crops it exactly as the circle preview does.
+The 1024x1024 master (scripts/render_brand.py) becomes the icon on iOS, macOS,
+watchOS, Android legacy + adaptive, Wear OS, web, Windows, and the store icon
+in marketing/.
+
+The Android adaptive foreground is a raster layer: the master fills the 72dp a
+launcher shows of the 108dp canvas, and its edges are stretched over the rest.
+The master is a full-bleed design, so a round launcher mask crops it exactly
+as the circle preview does.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
-import random
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
-
-BLACK = (10, 10, 10, 255)  # #0A0A0A
-WHITE = (250, 250, 250, 255)  # #FAFAFA
-GRAY_BG = (212, 212, 212, 255)
-DARK_GRAY_BG = (74, 74, 74, 255)
-
-
-def draw_barbell(draw: ImageDraw.ImageDraw, size: int, color: tuple[int, int, int, int]) -> None:
-    def s(unit: float) -> float:
-        return unit * size / 108.0
-
-    bar_radius = s(1.2)
-
-    # Three equal-height plates per side for a barbell silhouette.
-    plate_top = s(33)
-    plate_bottom = s(75)
-
-    # Left plates
-    draw.rounded_rectangle((s(14), plate_top, s(20), plate_bottom), radius=bar_radius, fill=color)
-    draw.rounded_rectangle((s(21), plate_top, s(27), plate_bottom), radius=bar_radius, fill=color)
-    draw.rounded_rectangle((s(28), plate_top, s(34), plate_bottom), radius=bar_radius, fill=color)
-    # Longer center bar (square ends)
-    draw.rectangle((s(34), s(50), s(74), s(58)), fill=color)
-    # Right plates
-    draw.rounded_rectangle((s(74), plate_top, s(80), plate_bottom), radius=bar_radius, fill=color)
-    draw.rounded_rectangle((s(81), plate_top, s(87), plate_bottom), radius=bar_radius, fill=color)
-    draw.rounded_rectangle((s(88), plate_top, s(94), plate_bottom), radius=bar_radius, fill=color)
-
-
-def draw_master_icon(size: int) -> Image.Image:
-    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-
-    # Background circle - larger to fill the space
-    cx = cy = size / 2
-    radius = size * 0.48
-    draw.ellipse(
-        (cx - radius, cy - radius, cx + radius, cy + radius),
-        fill=BLACK,
-    )
-
-    # Barbell - scaled down to fit in safe zone
-    scale = 0.75
-    inner = int(size * scale)
-    barbell = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
-    draw_barbell(ImageDraw.Draw(barbell), inner, WHITE)
-    offset = ((size - inner) // 2, (size - inner) // 2)
-    image.alpha_composite(barbell, offset)
-
-    return image
-
-
-def draw_marketing_icon(size: int) -> Image.Image:
-    image = Image.new("RGBA", (size, size), BLACK)
-
-    # Scale the barbell down even for marketing icons to account for Play Store masking
-    scale = 0.75
-    inner = int(size * scale)
-    barbell = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
-    draw_barbell(ImageDraw.Draw(barbell), inner, WHITE)
-    offset = ((size - inner) // 2, (size - inner) // 2)
-    image.alpha_composite(barbell, offset)
-
-    return image
-
-
-def draw_rounded_square_logo(size: int) -> Image.Image:
-    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-    radius = int(size * 0.22)
-    draw.rounded_rectangle((0, 0, size - 1, size - 1), radius=radius, fill=BLACK)
-
-    inner = int(size * 0.88)
-    barbell = Image.new("RGBA", (inner, inner), (0, 0, 0, 0))
-    draw_barbell(ImageDraw.Draw(barbell), inner, WHITE)
-    offset = ((size - inner) // 2, (size - inner) // 2)
-    image.alpha_composite(barbell, offset)
-    return image
-
-
-def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
-    ]
-    for path in candidates:
-        font_path = Path(path)
-        if font_path.exists():
-            return ImageFont.truetype(str(font_path), size=size)
-    return ImageFont.load_default()
-
-
-def draw_wobbly_text(
-    canvas: Image.Image,
-    text: str,
-    origin_x: int,
-    origin_y: int,
-    font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
-    color: tuple[int, int, int, int],
-    seed: int,
-    max_offset: float,
-    max_rotate_radians: float,
-) -> None:
-    rng = random.Random(seed)
-    cursor_x = float(origin_x)
-
-    for ch in text:
-        # Same RNG usage pattern as mobile: x, y, angle per character.
-        dx = (rng.random() * 2 - 1) * max_offset
-        dy = (rng.random() * 2 - 1) * max_offset
-        angle = (rng.random() * 2 - 1) * max_rotate_radians
-
-        advance = float(font.getlength(ch if ch != "" else " "))
-        if ch == " ":
-            cursor_x += advance
-            continue
-
-        bbox = font.getbbox(ch)
-        if bbox is None:
-            cursor_x += advance
-            continue
-        width = max(1, math.ceil(bbox[2] - bbox[0]))
-        height = max(1, math.ceil(bbox[3] - bbox[1]))
-        pad = max(10, round(height * 0.35))
-
-        glyph = Image.new("RGBA", (width + pad * 2, height + pad * 2), (0, 0, 0, 0))
-        glyph_draw = ImageDraw.Draw(glyph)
-        glyph_draw.text((pad - bbox[0], pad - bbox[1]), ch, font=font, fill=color)
-
-        rotated = glyph.rotate(
-            math.degrees(angle),
-            resample=Image.Resampling.BICUBIC,
-            expand=True,
-        )
-        canvas.alpha_composite(
-            rotated,
-            (round(cursor_x + dx), round(origin_y + dy)),
-        )
-        cursor_x += advance
+from PIL import Image
 
 
 def write_png_to_existing_size(master: Image.Image, path: Path, *, opaque: bool = False) -> None:
@@ -255,59 +112,34 @@ def main() -> None:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    repo_root = Path(__file__).resolve().parent.parent
     ap.add_argument(
         "--source",
         type=Path,
-        default=None,
-        help="1024x1024 PNG master to use instead of the drawn barbell",
+        default=repo_root / "marketing" / "icon.png",
+        help="1024x1024 PNG master (default: marketing/icon.png)",
     )
     args = ap.parse_args()
-    repo_root = Path(__file__).resolve().parent.parent
-    if args.source:
-        source = Image.open(args.source).convert("RGBA")
-        if source.size != (1024, 1024):
-            raise SystemExit(f"{args.source} is {source.size[0]}x{source.size[1]}; need 1024x1024")
-        icon_master = source
-        apple_icon_master = source
-    else:
-        icon_master = draw_master_icon(1024)
-        apple_icon_master = draw_marketing_icon(1024)
+    master = Image.open(args.source).convert("RGBA")
+    if master.size != (1024, 1024):
+        raise SystemExit(f"{args.source} is {master.size[0]}x{master.size[1]}; need 1024x1024")
 
     png_targets = collect_png_targets(repo_root)
     updated_files: set[Path] = set()
 
     for target in png_targets:
         is_ios_icon = target.parts[:2] == ("app", "ios")
-        source = apple_icon_master if is_ios_icon else icon_master
-        write_png_to_existing_size(source, repo_root / target, opaque=is_ios_icon)
+        write_png_to_existing_size(master, repo_root / target, opaque=is_ios_icon)
         updated_files.add(target)
 
     ico_path = repo_root / "app/windows/runner/resources/app_icon.ico"
-    write_ico(icon_master, ico_path)
+    write_ico(master, ico_path)
     updated_files.add(ico_path.relative_to(repo_root))
 
-    # Square output icon set (store/export assets): opaque, full-bleed background.
-    marketing_dir = repo_root / "marketing"
-    marketing_dir.mkdir(parents=True, exist_ok=True)
-
-    generic_output_specs = {
-        "schlift-square-192.png": 192,
-        "schlift-square-512.png": 512,
-        "schlift-square-1024.png": 1024,
-    }
-    for filename, px in generic_output_specs.items():
-        out_path = marketing_dir / filename
-        marketing_icon = (
-            apple_icon_master.resize((px, px), Image.Resampling.LANCZOS)
-            if args.source
-            else draw_marketing_icon(px)
-        )
-        marketing_icon.convert("RGB").save(
-            out_path,
-            format="PNG",
-            optimize=True,
-        )
-        updated_files.add(out_path.relative_to(repo_root))
+    # The store icon (Play listing, website favicon): opaque, full bleed.
+    store_icon = repo_root / "marketing" / "schlift-square-512.png"
+    write_png_at_size(master, store_icon, 512)
+    updated_files.add(store_icon.relative_to(repo_root))
 
     watch_icon_dir = repo_root / "app/ios/SchliftWatch/Assets.xcassets/AppIcon.appiconset"
     watch_icon_specs = [
@@ -437,7 +269,7 @@ def main() -> None:
         role = spec.get("role", "marketing")
         subtype = f"-{spec['subtype']}" if "subtype" in spec else ""
         filename = f"Icon-Watch-{role}{subtype}-{pixels}.png"
-        write_png_at_size(apple_icon_master, watch_icon_dir / filename, pixels)
+        write_png_at_size(master, watch_icon_dir / filename, pixels)
         watch_images.append(dict(spec.items()) | {"filename": filename})
         updated_files.add((watch_icon_dir / filename).relative_to(repo_root))
 
@@ -452,67 +284,29 @@ def main() -> None:
     overwrite_text(watch_contents, json.dumps(contents, indent=2) + "\n")
     updated_files.add(watch_contents.relative_to(repo_root))
 
-    background_xml = """<?xml version="1.0" encoding="utf-8"?>
+    # Raster adaptive foreground per density, solid background in the
+    # master's ground colour, and any vector foreground removed so the
+    # density drawables are what Android resolves.
+    background_xml = f"""<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#00000000</color>
+    <color name="ic_launcher_background">{ground_colour(master)}</color>
 </resources>
 """
-
-    barbell_path = (
-        "M24,38.25h4.5v31.5h-4.5zM29.25,38.25h4.5v31.5h-4.5zM34.5,38.25h4.5v31.5h-4.5z"
-        "M39,51h30v6h-30z"
-        "M69,38.25h4.5v31.5h-4.5zM74.25,38.25h4.5v31.5h-4.5zM79.5,38.25h4.5v31.5h-4.5z"
-    )
-    foreground_xml = f"""<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#0A0A0A"
-        android:pathData="M54,4A50,50 0 1,1 54,104A50,50 0 1,1 54,4Z" />
-    <path
-        android:fillColor="#FAFAFA"
-        android:pathData="{barbell_path}" />
-</vector>
-"""
-
-    if args.source:
-        # Raster adaptive foreground per density, solid background in the
-        # master's ground colour, and the old vector foreground removed so
-        # the density drawables are what Android resolves.
-        colour = ground_colour(icon_master)
-        background_xml = f"""<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="ic_launcher_background">{colour}</color>
-</resources>
-"""
-        text_updates = {
-            Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
-            Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
-        }
-        for module in ("app", "wear"):
-            res = repo_root / "app" / "android" / module / "src" / "main" / "res"
-            vector = res / "drawable" / "ic_launcher_foreground.xml"
-            if vector.exists():
-                vector.unlink()
-                updated_files.add(vector.relative_to(repo_root))
-            for density, px in ADAPTIVE_DENSITIES.items():
-                out = res / f"drawable-{density}" / "ic_launcher_foreground.png"
-                out.parent.mkdir(parents=True, exist_ok=True)
-                adaptive_foreground(icon_master, px).save(out, format="PNG", optimize=True)
-                updated_files.add(out.relative_to(repo_root))
-    else:
-        text_updates = {
-            Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
-            Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
-            Path(
-                "app/android/app/src/main/res/drawable/ic_launcher_foreground.xml"
-            ): foreground_xml,
-            Path(
-                "app/android/wear/src/main/res/drawable/ic_launcher_foreground.xml"
-            ): foreground_xml,
-        }
+    text_updates = {
+        Path("app/android/app/src/main/res/values/colors.xml"): background_xml,
+        Path("app/android/wear/src/main/res/values/colors.xml"): background_xml,
+    }
+    for module in ("app", "wear"):
+        res = repo_root / "app" / "android" / module / "src" / "main" / "res"
+        vector = res / "drawable" / "ic_launcher_foreground.xml"
+        if vector.exists():
+            vector.unlink()
+            updated_files.add(vector.relative_to(repo_root))
+        for density, px in ADAPTIVE_DENSITIES.items():
+            out = res / f"drawable-{density}" / "ic_launcher_foreground.png"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            adaptive_foreground(master, px).save(out, format="PNG", optimize=True)
+            updated_files.add(out.relative_to(repo_root))
 
     for rel_path, content in text_updates.items():
         overwrite_text(repo_root / rel_path, content)

@@ -285,20 +285,18 @@ SCHLIFT banner candidates in a mock app bar.
 Screens with real surface area are folders, one component per file, all public:
 
 ```
-screens/home/          home_screen, home_selection (model), readiness_banner,
-                       group_grid, exercise_config_details
+screens/home/          home_screen, template_editor, template_library_sheet
 screens/onboarding/    onboarding_screen + steps/ (one file per step)
-                       + widgets/ (form fields, cards, profile marker)
-screens/workout/       workout_screen, current_exercise_card,
-                       exercise_list_card, exschplanation_page, workout_panels
-widgets/workout_bar/   workout_bottom_bar, bar_controls, session_cards
+                       + widgets/ (selection cards, profile marker)
+screens/workout/       workout_screen, section_workout, exercise_section,
+                       set_circle, live_set_circle, workout_panels
+widgets/workout_bar/   workout_bottom_bar, workout_focus
 widgets/heart_rate/    heart_rate_chart, models (zones/viewport — pure),
-                       zone_summary, trend_painter, legend
-widgets/exercise_editor/  add/edit dialogs, chip selector, per-exercise
-                       config, group settings
-widgets/dialogs/       end-workout, participant viewer, health dialogs
-widgets/common/        section_header, weight_picker, rainbow_shimmer_text,
-                       horizontal_shaker — generic, screen-agnostic
+                       zone_summary, legend
+widgets/dialogs/       end-workout, participant workout, rung question,
+                       template update, weight adjust, workout sheet
+widgets/common/        flat, horizontal_shaker, primary_button,
+                       weight_selector — generic, screen-agnostic
 ```
 
 The rule of thumb: a widget goes in `widgets/common/` only when nothing about
@@ -341,14 +339,13 @@ the YAML and the files disagree. To add a sound: drop the WAV in
 
 ## Copy in YAML
 
-User-facing text is moving out of the Dart files and into `app/copy.yaml`,
-one key per string, grouped by screen. `make copy` runs
-`scripts/gen_copy.py`, which generates `app/lib/gen/copy.dart`: one
+User-facing text goes in `app/copy.yaml`, one key per string, grouped by
+screen. `make copy` runs `scripts/gen_copy.py`, which generates `app/lib/gen/copy.dart`: one
 `const copy = Copy(...)` tree of classes with a field per key, so a string
 the code uses but the YAML lost is a compile error, and a stale generated
 file fails CI (`gen_copy.py --check` in the tests workflow). Lists of maps
 (the tutorial's `pages`) become a list of a generated item class.
 
-Migrated so far: the tutorial (`tutorial:`), whose pages are driven entirely
-by the YAML list. Rename nothing in the YAML; reword anything.
+The tutorial's pages are driven entirely by its YAML list. Rename nothing in
+the YAML; reword anything.
 

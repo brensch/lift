@@ -33,6 +33,18 @@ impl WorkoutRecord {
         }
     }
 
+    /// A copy for changing the sets on: everything but the heart rate, which
+    /// no change to the sets reads and which grows through the workout.
+    pub fn without_heart_rate(&self) -> Self {
+        Self {
+            workout: self.workout.clone(),
+            proposed_sets: self.proposed_sets.clone(),
+            completed_sets: self.completed_sets.clone(),
+            heart_rate: Vec::new(),
+            exercise_logs: self.exercise_logs.clone(),
+        }
+    }
+
     /// Reassign workout_order to match the vec's current order. Plan-shaping
     /// operations arrange the vec, then call this to make the order canonical.
     pub fn renumber_sets(&mut self) {

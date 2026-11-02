@@ -38,7 +38,6 @@ class _PlateSheet extends StatelessWidget {
     final weight = displayWeightFromPounds(weightLb, unit);
     final plates = calcPlatesPerSide(weight, unit).plates;
     final colorOf = settings.plateColor;
-    String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
 
     // Each plate size once, heaviest (loaded first) first, with its count.
     final counts = <double, int>{};
@@ -52,10 +51,10 @@ class _PlateSheet extends StatelessWidget {
         ? '—'
         : plates.isEmpty
         ? 'None'
-        : '${num(perSide)} $suffix';
+        : '${plateLabel(perSide)} $suffix';
     final barText = weight < barWeight
         ? 'Dumbbells'
-        : '${num(barWeight)} $suffix';
+        : '${plateLabel(barWeight)} $suffix';
 
     Widget column(
       String label,
@@ -117,7 +116,7 @@ class _PlateSheet extends StatelessWidget {
                 column('Bar', barText, null),
                 column(
                   'Total',
-                  '${formatWeight(weightLb, unit)} $suffix',
+                  formatWeight(weightLb, unit, includeUnit: true),
                   null,
                   last: true,
                 ),
@@ -169,7 +168,7 @@ class _PlateSheet extends StatelessWidget {
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
-                        '${num(size)} $suffix',
+                        '${plateLabel(size)} $suffix',
                         style: t.mono(
                           TextStyle(
                             fontSize: t.size.title,
