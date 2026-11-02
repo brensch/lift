@@ -331,9 +331,13 @@ class _TemplateChips extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         wrap(rotation),
-        Divider(
+        // Edge to edge, past the page's side padding.
+        SizedBox(
           height: 17,
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+          child: OverflowBox(
+            maxWidth: MediaQuery.sizeOf(context).width,
+            child: Divider(height: 17, color: context.tokens.hairline),
+          ),
         ),
         wrap(favourites),
       ],
