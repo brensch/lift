@@ -11,6 +11,7 @@ import 'package:schlift/gen/workout/v1/settings.pb.dart' show WeightUnit;
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/logic/weight_units.dart';
 import 'package:schlift/theme/app_theme.dart';
+import 'package:schlift/screens/workout/set_circle.dart';
 import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
 
 import '../support/provider_harness.dart';
@@ -126,6 +127,8 @@ void main() {
     final first = await boot(tester);
     await tester.enterText(find.byKey(RungQuestionDialog.jumpFieldKey), '50');
     await tester.pump();
+    await tester.ensureVisible(find.byKey(RungQuestionDialog.jumpApplyKey));
+    await tester.pump();
     await tester.tap(find.byKey(RungQuestionDialog.jumpApplyKey));
     await settle(tester);
     expect(find.byType(RungQuestionDialog), findsNothing);
@@ -151,12 +154,39 @@ void main() {
     expect(find.text('kg'), findsOneWidget);
     await tester.enterText(find.byKey(RungQuestionDialog.jumpFieldKey), '10');
     await tester.pump();
+    await tester.ensureVisible(find.byKey(RungQuestionDialog.jumpApplyKey));
+    await tester.pump();
     await tester.tap(find.byKey(RungQuestionDialog.jumpApplyKey));
     await settle(tester);
     final done = h.provider.activeCompletedSets.firstWhere(
       (c) => c.proposedSetId == first.id,
     );
     expect(done.jumpLb, closeTo(kilogramsToPounds(10), 0.01));
+  });
+
+  testWidgets('the set\'s circle takes reps off and says what that did', (
+    tester,
+  ) async {
+    await boot(tester);
+    expect(find.text(copy.workout.rungCircleHint), findsOneWidget);
+    await tester.tap(find.byType(SetCircle));
+    await settle(tester);
+    // A miss: the question is gone, the dialog stays with the outcome.
+    expect(find.byType(RungQuestionDialog), findsOneWidget);
+    expect(find.text(copy.workout.rungQuestion), findsNothing);
+    expect(
+      find.textContaining(
+        copy.workout.rungMissedSettled
+            .replaceAll('{n}', '1')
+            .split('{weight}')
+            .first,
+      ),
+      findsOneWidget,
+    );
+    expect(h.provider.rungQuestionSetId, isEmpty);
+    await tester.tap(find.text(copy.workout.rungOk));
+    await tester.pumpAndSettle();
+    expect(find.byType(RungQuestionDialog), findsNothing);
   });
 
   testWidgets('dismissed, it stays unanswered', (tester) async {

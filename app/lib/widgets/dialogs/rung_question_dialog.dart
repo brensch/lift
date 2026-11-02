@@ -15,6 +15,7 @@ import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
+import '../../screens/workout/set_circle.dart';
 import '../../theme/theme_spec.dart';
 
 /// Ask about the ramp set [proposedSetId], over whatever is on screen.
@@ -58,6 +59,30 @@ class RungQuestionDialog extends StatefulWidget {
 class _RungQuestionDialogState extends State<RungQuestionDialog> {
   final _jump = TextEditingController();
 
+  /// Reps taken off here: the question closes with the first, but the
+  /// dialog stays to say what that did.
+  bool _tapped = false;
+
+  /// The done set this asks about.
+  CompletedSet? _done(WorkoutProvider wp) {
+    for (final c in wp.activeCompletedSets.reversed) {
+      if (c.proposedSetId == widget.proposedSetId) return c;
+    }
+    return null;
+  }
+
+  /// What a miss did: the next set of the lift still to do — a lighter
+  /// rung after a too-heavy one, else the working sets the ramp settled on.
+  ProposedSet? _next(WorkoutProvider wp) {
+    final exercise = wp.proposedSetById(widget.proposedSetId)?.exercise;
+    final done = {for (final c in wp.activeCompletedSets) c.proposedSetId};
+    return wp.activeProposedSets
+        .where(
+          (s) => s.exercise == exercise && !s.warmup && !done.contains(s.id),
+        )
+        .firstOrNull;
+  }
+
   @override
   void dispose() {
     _jump.dispose();
@@ -91,7 +116,7 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final proposedSetId = widget.proposedSetId;
     // Answered on the watch, or the next set started: nothing left to ask.
-    if (wp.rungQuestionSetId != proposedSetId) {
+    if (wp.rungQuestionSetId != proposedSetId && !_tapped) {
       // This dialog's own route, never whatever is under it.
       final route = ModalRoute.of(context);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -128,6 +153,18 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
         color: t.muted,
       ),
     );
+    final done = _done(wp);
+    final target = wp.proposedSetById(proposedSetId)?.targetReps ?? 5;
+    final reps = done?.actualReps ?? target;
+    final missed = reps < target;
+    final next = missed ? _next(wp) : null;
+    final outcome = next == null
+        ? ''
+        : next.calibration
+        ? w.rungMissedTooHeavy.replaceAll('{weight}', weight(next.targetWeight))
+        : w.rungMissedSettled
+              .replaceAll('{n}', '${target - reps}')
+              .replaceAll('{weight}', weight(next.targetWeight));
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
       child: SingleChildScrollView(
@@ -136,170 +173,224 @@ class _RungQuestionDialogState extends State<RungQuestionDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // The set's own circle: a tap takes a rep off, as on every set.
+            Center(
+              child: SetCircle(
+                number: reps,
+                state: !missed
+                    ? SetCircleState.full
+                    : reps == 0
+                    ? SetCircleState.zero
+                    : SetCircleState.short,
+                onTap: done == null || reps == 0
+                    ? null
+                    : () {
+                        setState(() => _tapped = true);
+                        wp.tapDoneSet(done.id);
+                      },
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    w.rungQuestion,
-                    style: TextStyle(
-                      fontSize: t.size.titleLg,
-                      fontWeight: t.weight.heavy,
-                      color: t.text,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Text(
+                w.rungCircleHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: t.size.small, color: t.muted),
+              ),
+            ),
+            if (missed) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  outcome,
+                  style: TextStyle(
+                    fontSize: t.size.bodyLg,
+                    fontWeight: t.weight.bold,
+                    color: t.text,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(w.rungOk, style: label),
+                  ),
+                ),
+              ),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      w.rungQuestion,
+                      style: TextStyle(
+                        fontSize: t.size.titleLg,
+                        fontWeight: t.weight.heavy,
+                        color: t.text,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    w.rungQuestionHint,
-                    style: TextStyle(fontSize: t.size.body, color: t.muted),
-                  ),
-                  const SizedBox(height: 16),
-                  for (final (repsLeft, text)
-                      in RungQuestionDialog.answers) ...[
-                    SizedBox(
-                      height: 64,
-                      child: FilledButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          wp.answerRung(proposedSetId, repsLeft);
-                        },
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(text, style: label),
-                            if (outcomeText(repsLeft) case final line?)
-                              Text(
-                                line,
-                                style: TextStyle(fontSize: t.size.small),
-                              ),
-                          ],
+                    const SizedBox(height: 4),
+                    Text(
+                      w.rungQuestionHint,
+                      style: TextStyle(fontSize: t.size.body, color: t.muted),
+                    ),
+                    const SizedBox(height: 16),
+                    for (final (repsLeft, text)
+                        in RungQuestionDialog.answers) ...[
+                      SizedBox(
+                        height: 64,
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            wp.answerRung(proposedSetId, repsLeft);
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(text, style: label),
+                              if (outcomeText(repsLeft) case final line?)
+                                Text(
+                                  line,
+                                  style: TextStyle(fontSize: t.size.small),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Edge to edge, "or" sitting on it.
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Divider(height: 1, thickness: 1, color: t.hairline),
+                  ColoredBox(
+                    color: t.panel,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        w.rungOr,
+                        style: TextStyle(
+                          fontSize: t.size.small,
+                          color: t.muted,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 8),
-            // Edge to edge, "or" sitting on it.
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Divider(height: 1, thickness: 1, color: t.hairline),
-                ColoredBox(
-                  color: t.panel,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      w.rungOr,
-                      style: TextStyle(fontSize: t.size.small, color: t.muted),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      w.rungJumpLabel,
+                      style: TextStyle(
+                        fontSize: t.size.small,
+                        fontWeight: t.weight.bold,
+                        color: t.muted,
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    w.rungJumpLabel,
-                    style: TextStyle(
-                      fontSize: t.size.small,
-                      fontWeight: t.weight.bold,
-                      color: t.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // The field and its button, one height, as the dialog's
-                  // other buttons.
-                  SizedBox(
-                    height: 56,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            key: RungQuestionDialog.jumpFieldKey,
-                            controller: _jump,
-                            expands: true,
-                            maxLines: null,
-                            textAlignVertical: TextAlignVertical.center,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9.]'),
+                    const SizedBox(height: 6),
+                    // The field and its button, one height, as the dialog's
+                    // other buttons.
+                    SizedBox(
+                      height: 56,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              key: RungQuestionDialog.jumpFieldKey,
+                              controller: _jump,
+                              expands: true,
+                              maxLines: null,
+                              textAlignVertical: TextAlignVertical.center,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9.]'),
+                                ),
+                              ],
+                              onChanged: (_) => setState(() {}),
+                              style: t.mono(
+                                TextStyle(
+                                  fontSize: t.size.bodyLg,
+                                  fontWeight: t.weight.bold,
+                                  color: t.text,
+                                ),
                               ),
-                            ],
-                            onChanged: (_) => setState(() {}),
-                            style: t.mono(
-                              TextStyle(
+                              // "+ 15 kg": the sign and unit always shown, in
+                              // the field's own font.
+                              decoration: InputDecoration(
+                                prefixIcon: Center(
+                                  widthFactor: 1,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 12,
+                                      right: 6,
+                                    ),
+                                    child: Text('+', style: affix),
+                                  ),
+                                ),
+                                prefixIconConstraints: const BoxConstraints(),
+                                suffixIcon: Center(
+                                  widthFactor: 1,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 12),
+                                    child: Text(
+                                      weightUnitSuffix(unit),
+                                      style: affix,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            key: RungQuestionDialog.jumpApplyKey,
+                            // The field's border, so the pair reads as one.
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: t.outline),
+                            ),
+                            onPressed: jumpLb == null
+                                ? null
+                                : () {
+                                    Navigator.of(context).pop();
+                                    wp.answerRungJump(proposedSetId, jumpLb);
+                                  },
+                            child: Text(
+                              w.rungJumpApply,
+                              style: TextStyle(
                                 fontSize: t.size.bodyLg,
-                                fontWeight: t.weight.bold,
-                                color: t.text,
-                              ),
-                            ),
-                            // "+ 15 kg": the sign and unit always shown, in
-                            // the field's own font.
-                            decoration: InputDecoration(
-                              prefixIcon: Center(
-                                widthFactor: 1,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 12,
-                                    right: 6,
-                                  ),
-                                  child: Text('+', style: affix),
-                                ),
-                              ),
-                              prefixIconConstraints: const BoxConstraints(),
-                              suffixIcon: Center(
-                                widthFactor: 1,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: Text(
-                                    weightUnitSuffix(unit),
-                                    style: affix,
-                                  ),
-                                ),
+                                fontWeight: t.weight.heavy,
+                                color: jumpLb == null ? t.muted : t.text,
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          key: RungQuestionDialog.jumpApplyKey,
-                          // The field's border, so the pair reads as one.
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: t.outline),
-                          ),
-                          onPressed: jumpLb == null
-                              ? null
-                              : () {
-                                  Navigator.of(context).pop();
-                                  wp.answerRungJump(proposedSetId, jumpLb);
-                                },
-                          child: Text(
-                            w.rungJumpApply,
-                            style: TextStyle(
-                              fontSize: t.size.bodyLg,
-                              fontWeight: t.weight.heavy,
-                              color: jumpLb == null ? t.muted : t.text,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

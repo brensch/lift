@@ -298,6 +298,13 @@ workout:
   # ramp. The answers are the buttons, on the phone and the watch.
   # Placeholders.
   rung_question: How many more could you have done?
+  # Under the set's circle at the top of the ramp question.
+  rung_circle_hint: Missed some? Tap the circle once for each rep you didn't get. Works the same on every set.
+  # After reps are taken off there: what that did. {n} reps missed,
+  # {weight} the next set's.
+  rung_missed_settled: "Missed {n}. Ramp done: working sets at {weight}."
+  rung_missed_too_heavy: "Too heavy. Next set {weight}."
+  rung_ok: OK
   rung_question_hint: Be honest. The next set and your integrity depends on it.
   rung_answer_zero_to_one: "0–1"
   rung_answer_two_to_four: "2–4"
