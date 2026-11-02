@@ -92,7 +92,8 @@ An **override** (the template editor's sheet: a weight and reps, and
 optionally sets; `SetOverride`) is converted to the max that prescribes it
 and takes its place in the walk by time: a new starting point the sessions
 after it build on. Until a session follows it, the lift is planned exactly
-as set (the max from its sets, or from 3 when it names none). Reps of 0
+as set (the max from its sets, or from 5 when it names none, so it holds
+for however many sets the plan gives). Reps of 0
 removes it. A bodyweight lift can carry weight through an override.
 
 A lift **never done** starts from its starting weight (the strength slider

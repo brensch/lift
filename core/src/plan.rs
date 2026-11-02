@@ -61,8 +61,9 @@ pub const MAX_SETS: i32 = 5;
 const DAY: i64 = 24 * 3600;
 /// A ramp opens at this fraction of the lift's starting weight.
 const RAMP_START_FRACTION: f32 = 0.6;
-/// The sets an override names none of is converted to a max with.
-const OVERRIDE_SETS: i32 = 3;
+/// An override that names no sets means its weight and reps for as many
+/// sets as the plan gives: its max is the one that covers them at the most.
+const OVERRIDE_SETS: i32 = MAX_SETS;
 /// Timings are learned from this far back, once there are this many of a
 /// kind.
 const LEARN_WINDOW: i64 = 28 * DAY;
@@ -1077,10 +1078,10 @@ mod tests {
 
     /// The phone's case, in kg: an override of 110 × 5, a session of four
     /// sets at it whose fourth missed two reps before the third's rest was
-    /// up, then five sets today. The max holds; the weight comes down for
-    /// the extra set, and says so.
+    /// up, then five sets today. The max holds, and an override naming no
+    /// sets covers five: the same 110 × 5 again, and why.
     #[test]
-    fn a_rushed_miss_then_an_extra_set_blames_the_set() {
+    fn a_rushed_miss_holds_the_override_for_more_sets() {
         use crate::pb::Workout;
         use crate::weight_units::kg_to_pounds;
         const KG: AppWeightUnit = AppWeightUnit::Kg;
@@ -1136,14 +1137,12 @@ mod tests {
 
         let d = plan_lift(ex, &w, None, Some(&over), 5, 3 * DAY, KG);
         assert_eq!((d.sets, d.reps), (5, 5));
-        assert!(close(d.weight, kg_to_pounds(105.0)), "{}", d.weight);
+        // 110 × 5 with no sets named holds for as many as the plan gives.
+        assert!(close(d.weight, lb), "{}", d.weight);
         assert_eq!(
             versus(&d),
-            (PlanReasonKind::WeightDown, PlanChangeCause::Sets)
+            (PlanReasonKind::SameAsLast, PlanChangeCause::Rushed)
         );
-        let r = &d.reasons[0];
-        assert_eq!((r.sets_before, r.sets_after), (4, 5));
-        assert!(close(r.before, lb) && close(r.after, d.weight));
         assert_eq!(kinds(&d)[1], PlanReasonKind::Held);
     }
 

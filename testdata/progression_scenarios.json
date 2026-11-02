@@ -9919,10 +9919,10 @@
                 "rest_seconds": 180,
                 "warmups": true,
                 "calibration": false,
-                "max": 180,
+                "max": 184.5,
                 "estimated_seconds": 1230,
                 "reasons": [
-                  {"kind": "USER_SET", "before": 116.2, "after": 180, "detail": "set 2026-01-19"},
+                  {"kind": "USER_SET", "before": 116.2, "after": 184.5, "detail": "set 2026-01-19"},
                   {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Chest at 5 hard sets this week"}
                 ]
               },
@@ -10197,7 +10197,7 @@
                 "estimated_seconds": 1230,
                 "reasons": [
                   {"kind": "WEIGHT_UP", "before": 135, "after": 140, "detail": "HIT; 5×8 last time, 5×7 now"},
-                  {"kind": "MAX_UP", "before": 180, "after": 189, "detail": "from session 7"},
+                  {"kind": "MAX_UP", "before": 184.5, "after": 189, "detail": "from session 7"},
                   {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Chest at 5 hard sets this week"}
                 ]
               },

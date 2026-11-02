@@ -57,7 +57,8 @@ An override from the template editor (a weight and reps, and optionally
 sets) is converted to the max that prescribes it and is the new starting
 point: it takes its place among the sessions by time and the walk carries
 on from it. Until a session follows it, the lift is planned exactly as
-set; its max is computed from its sets, or from 3 when it names none.
+set; its max is computed from its sets, or, when it names none, from the
+most sets a lift gets (5), so it holds for however many the plan gives.
 Reps of 0 removes it. A bodyweight lift can carry weight through an
 override.
 
