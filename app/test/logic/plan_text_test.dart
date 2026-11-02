@@ -155,6 +155,31 @@ void main() {
     expect(maxText(230.6, lb, bodyweight: false), '231 lb');
   });
 
+  test('a ramp step reads up, or down when the rung was too heavy', () {
+    final c = copy.plan.changes;
+    final up = WeightChange(
+      cause: WeightChangeCause.WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP,
+      before: 135,
+      after: 150,
+    );
+    expect(
+      changeText(up, lb),
+      c.calibrationStep
+          .replaceAll('{before}', '135 lb')
+          .replaceAll('{after}', '150 lb'),
+    );
+    final down = WeightChange(
+      cause: WeightChangeCause.WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP,
+      before: 200,
+      after: 160,
+    );
+    expect(
+      changeText(down, lb),
+      c.calibrationStepDown.replaceAll('{after}', '160 lb'),
+    );
+    expect(changeText(down, lb), isNot(contains('{')));
+  });
+
   test('minutes round up', () {
     expect(planMinutes(3001), 51);
     expect(planMinutes(3000), 50);

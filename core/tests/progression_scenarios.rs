@@ -40,6 +40,7 @@ use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::*;
 use schlift_core::plan::{is_bodyweight, reps_covered, Planner, MAX_SETS, MIN_SETS};
 use schlift_core::weight_units::{kg_to_pounds, pounds_to_kg, AppWeightUnit};
+use schlift_core::workout::TOO_HEAVY_REPS;
 
 const DAY: i64 = 24 * 3600;
 /// Monday 5 January 2026, 07:00 UTC: the first session of every scenario.
@@ -147,6 +148,10 @@ struct Session {
     end_after: Option<(Exercise, usize)>,
     /// Overrides set in the template editor before the session.
     overrides: Vec<SetOverrideRequest>,
+    /// Before a lift's first rung, the lifter types a weight to start the
+    /// ramp from ("Test me from …"): this multiple of their true 5-rep max,
+    /// snapped loadable.
+    open_at: Vec<(Exercise, f32)>,
 }
 
 struct Scenario {
@@ -442,6 +447,32 @@ fn scenarios() -> Vec<Scenario> {
             rest_factor: 1.0,
             answers: Answers::Jumps,
             sessions: alternating(3, |_, _| {}),
+            preview_budgets: vec![],
+            preview_library: vec![],
+        },
+        Scenario {
+            id: "first_time_overshoot",
+            title: "First time: overshot",
+            description: "Slider at 50%, fresh account, answering truthfully. Before the \
+                          first rung the lifter types a weight far too heavy: squat at \
+                          130% of their true 5-rep max, bench at 115%, OHP at 145%. A rung \
+                          under three reps steps the ramp down a fifth and gives no max; \
+                          the ramp settles from the rung that ends it.",
+            unit: WeightUnit::Lb,
+            strength: 0.5,
+            strength_factor: even,
+            rest_factor: 1.0,
+            answers: Answers::Ranges,
+            sessions: alternating(4, |i, s| {
+                if i == 0 {
+                    s.open_at = vec![(Exercise::Squat, 1.3), (Exercise::BenchPress, 1.15)];
+                    s.note = "ramp started too heavy: squat 130%, bench 115%".into();
+                }
+                if i == 1 {
+                    s.open_at = vec![(Exercise::OverheadPress, 1.45)];
+                    s.note = "ramp started too heavy: OHP 145%".into();
+                }
+            }),
             preview_budgets: vec![],
             preview_library: vec![],
         },
@@ -785,9 +816,10 @@ impl<'a> Runner<'a> {
     }
 
     /// The reps the lifter manages on a calibration rung: what its true max
-    /// allows at the weight (Epley), at most the rung's five, at least one.
+    /// allows at the weight (Epley), at most the rung's five, none at all
+    /// when it is past the max.
     fn rung_reps(&self, ex: Exercise, weight: f32, target: i32) -> i32 {
-        self.reps_possible(ex, weight).clamp(1, target)
+        self.reps_possible(ex, weight).clamp(0, target)
     }
 
     /// The lifter's true one-rep max for `ex`, in pounds.
@@ -933,6 +965,7 @@ impl<'a> Runner<'a> {
             });
         }
         let mut lowered: Option<Exercise> = None;
+        let mut opened: Vec<Exercise> = Vec::new();
         let mut ended = false;
         loop {
             let state = self.app.workout(t, &id);
@@ -956,6 +989,23 @@ impl<'a> Runner<'a> {
                 .count();
             let set_no = done_working + 1;
             let of = decision.map_or(0, |d| d.sets as usize);
+            if next.calibration && !opened.contains(&ex) {
+                opened.push(ex);
+                if let Some((_, of_five)) = script.open_at.iter().find(|(e, _)| *e == ex) {
+                    let five = self.true_max(ex) / (1.0 + 5.0 / 30.0);
+                    let to = snap_weight_lb(ex, five * of_five, self.unit());
+                    let workout_id = id.clone();
+                    self.app.call(t, |c| {
+                        c.adjust_exercise_weight(AdjustExerciseWeightRequest {
+                            workout_id,
+                            exercise: ex as i32,
+                            working_weight: to,
+                            target_reps: 0,
+                        })
+                    });
+                    continue;
+                }
+            }
             if working {
                 if let Some((lex, from, fraction)) = script.lower {
                     if lex == ex && set_no == from && lowered != Some(ex) {
@@ -1357,6 +1407,9 @@ impl<'a> Runner<'a> {
                 ("weight", self.w(c.actual_weight)),
                 ("hit", J::Bool(hit)),
             ];
+            if kind == "rung" && c.actual_reps < TOO_HEAVY_REPS {
+                fields.push(("too_heavy", J::Bool(true)));
+            }
             if kind == "rung" && c.reps_left != RepsLeft::Unspecified as i32 {
                 fields.push(("reps_left", s(reps_left_name(c.reps_left))));
             }

@@ -143,10 +143,12 @@ class ScienceScreen extends StatelessWidget {
                 'about a fifth, to roughly one rep short of what you '
                 'showed. Or type exactly how much to add and the next set '
                 'goes up by that. Don\'t answer and it goes up as usual. '
-                'The set you '
-                'missed, or the one you said 0–1 on, tells me your max, and '
-                'the rest of the workout comes from that. Bodyweight lifts '
-                'start at the bottom of the range.',
+                'Under 3 reps and it was too heavy, which tells me nothing, '
+                'so the next set is a fifth lighter (never back down to one '
+                'you already did all 5 of). 3 or 4 reps and we\'re done. '
+                'The set you got 3 or 4 on, or the one you said 0–1 on, '
+                'tells me your max, and the rest of the workout comes from '
+                'that. Bodyweight lifts start at the bottom of the range.',
             citations: [],
           ),
           const _Section(

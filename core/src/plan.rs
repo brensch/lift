@@ -297,19 +297,32 @@ fn most_shown(sets: &[SetDone], extra: i32, bodyweight: bool) -> Option<(f32, &s
         })
 }
 
-/// What a calibration ramp found: the missed rung (a set to failure), or
-/// the last rung when every one was full, counting the reserve its answer
-/// gave (one rep when unanswered).
+/// What a calibration ramp found, from the rung that ended it (the
+/// reducer's `would_append`): the first rung missed with at least
+/// `TOO_HEAVY_REPS` reps (a set to failure, no reserve), or else the last
+/// rung that was not too heavy, counting the reserve its answer gave (one
+/// rep when unanswered). A too-heavy rung (fewer than `TOO_HEAVY_REPS`
+/// reps) only stepped the ramp down and gives nothing — except when it
+/// is the last rung and the ramp could go no further (the sixth rung) or
+/// left nothing else: then it is read as best it can be, a set to failure
+/// with at least one rep.
 fn ramp_max(rungs: &[SetDone], bodyweight: bool) -> Option<(f32, &str)> {
-    let (rung, reserve) = match rungs.iter().find(|r| !r.hit) {
-        Some(missed) => (missed, 0.0),
-        None => {
-            let last = rungs.last()?;
-            (last, answered_reserve(last.reps_left).unwrap_or(1.0))
-        }
+    use crate::workout::{MAX_CALIBRATION_RUNGS, TOO_HEAVY_REPS};
+    let too_heavy = |r: &SetDone| !r.hit && r.reps < TOO_HEAVY_REPS;
+    let missed = rungs.iter().find(|r| !r.hit && !too_heavy(r));
+    let last = rungs.last()?;
+    let last_fair = rungs.iter().rev().find(|r| !too_heavy(r));
+    let (rung, reps, reserve) = match (missed, last_fair) {
+        (Some(missed), _) => (missed, missed.reps, 0.0),
+        (None, Some(fair)) if rungs.len() < MAX_CALIBRATION_RUNGS || !too_heavy(last) => (
+            fair,
+            fair.reps,
+            answered_reserve(fair.reps_left).unwrap_or(1.0),
+        ),
+        _ => (last, last.reps.max(1), 0.0),
     };
     Some((
-        shown_max(rung.weight, rung.reps, reserve, 1, bodyweight),
+        shown_max(rung.weight, reps, reserve, 1, bodyweight),
         rung.set_id.as_str(),
     ))
 }
@@ -1375,6 +1388,41 @@ mod tests {
         ramp.rungs = vec![answered(RepsLeft::FivePlus), set(65.0, 3, false)];
         let w = walk(Exercise::Squat, &[ramp], None);
         assert!(close(w.max.unwrap(), shown_max(65.0, 3, 0.0, 1, false)));
+    }
+
+    /// A too-heavy rung (under three reps) only stepped the ramp down: the
+    /// max is the rung that ended it — a 3–4 miss after it, or the last
+    /// fair rung — never the heavy one. At the sixth rung, too heavy, it
+    /// is read as a set to failure of at least one rep.
+    #[test]
+    fn the_walk_ignores_too_heavy_rungs() {
+        let max_of = |rungs: Vec<SetDone>| {
+            let mut ramp = session("w1", 1, Vec::new());
+            ramp.rungs = rungs;
+            walk(Exercise::Squat, &[ramp], None).max.unwrap()
+        };
+        let m = max_of(vec![set(200.0, 0, false), set(160.0, 4, false)]);
+        assert!(close(m, shown_max(160.0, 4, 0.0, 1, false)), "{m}");
+        let m = max_of(vec![
+            set(200.0, 2, false),
+            set(160.0, 5, true),
+            set(175.0, 1, false),
+        ]);
+        assert!(close(m, shown_max(160.0, 5, 1.0, 1, false)), "{m}");
+        let m = max_of(vec![set(200.0, 1, false), set(160.0, 5, true)]);
+        assert!(close(m, shown_max(160.0, 5, 1.0, 1, false)), "{m}");
+        let m = max_of(vec![set(45.0, 0, false)]);
+        assert!(
+            close(m, shown_max(45.0, 1, 0.0, 1, false)),
+            "nothing else: {m}"
+        );
+        let six: Vec<SetDone> = [100.0, 110.0, 120.0, 130.0, 140.0]
+            .iter()
+            .map(|w| set(*w, 5, true))
+            .chain([set(150.0, 0, false)])
+            .collect();
+        let m = max_of(six);
+        assert!(close(m, shown_max(150.0, 1, 0.0, 1, false)), "the cap: {m}");
     }
 
     /// An override converts to the max that prescribes it, is planned as

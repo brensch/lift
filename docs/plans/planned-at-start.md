@@ -49,8 +49,24 @@ it.
 A lift never done starts from the starting weight the strength emoji gave
 it at onboarding (or that imported history brings) and runs the
 calibration ramp: sets of 5 from 60% of it, +10% a set until a rep is
-missed (six sets at most). The missed rung, a set to failure, gives the
-max; the remaining working sets are planned from it. A bodyweight lift
+missed (six sets at most). A rung missed with 3–4 reps, a set to failure,
+gives the max; the remaining working sets are planned from it.
+
+A rung done with fewer than 3 reps (`TOO_HEAVY_REPS`) was too heavy (a
+"Test me from X" too far up, a generous 5+, a big jump): 0 reps would
+make the max the weight itself and 1–2 is a guess, so it ends nothing and
+gives no max. The next rung is 20% lighter (`× CALIBRATION_STEP_DOWN`,
+0.8, snapped down to what loads, at least one step lighter, never under
+the empty bar or one step) and never back at or under a rung already done
+in full this ramp: at least a step over it, so 95 × 5 then 105 × 2 goes
+to 100. From there the ramp carries on as usual (5 reps → the question;
+3–4 → settled; under 3 → down again), no question after the too-heavy
+rung, and it counts toward the six. Logged `CALIBRATION_STEP` with the
+weight going down ("Too heavy: ramp down to {after}"). With nothing
+loadable between it and the full rung under it, the ramp settles from
+that full rung; a too-heavy sixth rung (or empty bar with nothing done in
+full) settles from itself as best it can, a set to failure of at least one
+rep. A bodyweight lift
 never done starts at the bottom of its range.
 
 A rung done with every rep asks, on the phone, "How many more could you
@@ -72,8 +88,10 @@ A jumped rung counts the usual one rep in reserve.
 With 5 reps, 2–4 shows 1.27× the rung and a rep in reserve on five is
 1.06× it, so 2–4 takes the usual rung; 5+ shows 1.43× and gives about
 1.19×, a fifth heavier. A later miss still settles the ramp as a miss.
-In the walk, the ramp's max is the missed rung's, or else the last
-rung's with its answer's reserve (one rep unanswered or jumped).
+In the walk, the ramp's max is the rung that ended it, never a too-heavy
+one: the first 3–4 miss, or else the last rung that was not too heavy
+with its answer's reserve (one rep unanswered or jumped); a too-heavy
+rung only when it is the sixth and last, or nothing else was fair.
 
 An override from the template editor (a weight and reps, and optionally
 sets) is converted to the max that prescribes it and is the new starting
@@ -231,7 +249,7 @@ Each lift in a workout keeps a weight log: its decision, then every change.
 WeightChange {
   at, from_set_id, before, after
   cause: USER_ADJUST          // the user changed it, phone or watch
-       | CALIBRATION_STEP     // the ramp's next rung (an answer re-plans it)
+       | CALIBRATION_STEP     // the ramp's next rung (an answer re-plans it; lighter after a too-heavy rung)
        | CALIBRATION_SETTLED  // the ramp done: the working weight set (a miss, 0–1, the sixth rung)
        | CORRECTION           // a logged set fixed
 }

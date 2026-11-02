@@ -355,7 +355,7 @@ Each lift's log records every change to its weight, with its cause:
 | Cause | Made by |
 |---|---|
 | `USER_ADJUST` | The user changed it, on the phone or the watch (`AdjustExerciseWeight`, or a weight typed during the ramp) |
-| `CALIBRATION_STEP` | The ramp's next rung |
+| `CALIBRATION_STEP` | The ramp's next rung (lighter after a rung too heavy) |
 | `CALIBRATION_SETTLED` | The ramp done: the working weight set |
 | `CORRECTION` | A logged set fixed (`EditCompletedSet` with a different weight) |
 
@@ -388,9 +388,22 @@ straight after it (`would_append`):
 
 - every rep → the next rung, about 10% heavier (at least one step),
   logged `CALIBRATION_STEP`;
-- a missed rep, or the sixth rung → the decision's working sets, at the
+- too heavy, fewer than `TOO_HEAVY_REPS` (3) reps → not a max (0 reps
+  would make the max the weight, 1–2 is a guess): the next rung
+  `CALIBRATION_STEP_DOWN` (0.8) of the weight lifted, snapped down to what
+  loads and at least one step lighter, never under the lightest load (the
+  empty bar, or one step) and never back at or under the heaviest rung
+  this ramp did in full (at least a step over it, so after a full rung it
+  splits the gap; `planning::stepped_down_calibration_weight`). Logged
+  `CALIBRATION_STEP` with `after < before`; no question. With nothing
+  loadable left between, the ramp settles: from that full rung (its
+  answer's reserve, or one), or with no full rung (a too-heavy empty bar)
+  from the too-heavy rung itself as below;
+- 3–4 reps, or the sixth rung → the decision's working sets, at the
   weight and reps the max that rung shows gives (a missed rung is a set to
-  failure), logged `CALIBRATION_SETTLED`.
+  failure), logged `CALIBRATION_SETTLED`. A sixth rung too heavy is read
+  as best it can be: a set to failure of at least one rep,
+  `shown_max(weight, max(reps, 1), 0)`.
 
 A rung done with every rep (not the sixth) asks "How many more could you
 have done?": `GetWorkoutResponse.rung_question_set_id` names it while the
@@ -421,11 +434,15 @@ no-op, and the phone's button is off for those.
 
 An answer to any other set, or once the question is closed, is a no-op. A
 rung corrected to a miss drops its answer, jump included. The walk's ramp
-max is the missed rung's (no reserve) or else the last rung's, with its
-answer's reserve (one rep unanswered or jumped).
+max (`plan::ramp_max`) is the rung that ended it, never a too-heavy one:
+the first 3–4 miss (no reserve), or else the last rung that was not too
+heavy, with its answer's reserve (one rep unanswered or jumped); only
+when the last rung is too heavy and is the sixth, or no other rung was
+fair, does the too-heavy rung give it (at least one rep, no reserve).
 
 Tapping a rep off a rung settles it again while what it appended is still
-untouched (`resettle_rung`); undoing a rung takes back what it appended
+untouched (`resettle_rung`), by the same rules: a too-heavy rung corrected
+to 3 or more settles or climbs, a 3–4 rung corrected under 3 steps down; undoing a rung takes back what it appended
 the same way. Six rungs is the most a lift gets, however they were done. Typing a weight while a rung is pending (the
 first-time dialog's "Test me from X", or the weight sheet) moves that rung
 to it: the ramp goes on from there, and the reps decide where it stops. Rungs count as warmups for volume and summaries; the walk reads the

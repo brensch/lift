@@ -155,6 +155,7 @@ tr.flagged.violation td { background: var(--signal-soft); }
 }
 .set.rung { border-style: dashed; color: var(--muted); }
 .set.miss { border-color: var(--yapping); background: var(--yapping-soft); color: var(--ink); }
+.set.heavy { border-style: dotted; text-decoration: line-through; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; min-width: 180px; }
 .chip {
   font: 11px/1.2 var(--mono); padding: 3px 6px; border-radius: 4px;
@@ -219,7 +220,7 @@ td.won { font-weight: 700; }
       <li><b>One number per lift.</b> Each lift has an estimated max: the most it could be lifted once (for bodyweight lifts, the most reps in a set). A set shows <code>weight × (1 + (reps + reserve + ½ × (set − 1)) / 30)</code>; reserve is 1 rep when the set hit its target, 0 when it fell short.</li>
       <li><b>After a session.</b> Every rep hit: the max goes up to what the sets show with one more rep each (MAX_UP), or stays (HELD) when that is no higher — as when the lifter lowered the weight. A rep missed: the max drops to the best any set showed, never higher than before (MAX_FROM_MISS). Stopped early, or the lift removed: unchanged (HELD).</li>
       <li><b>Time off</b>, per lift, when a workout is planned: 21+ days away cuts the max to 90%, 42+ days to 80% (TIME_OFF).</li>
-      <li><b>First time</b> (FIRST_TIME): a calibration ramp of 5-rep sets from 60% of the starting weight the strength slider gave, about +10% a rung, up to six rungs. After a rung done in full the lifter can answer how many more they could have done: 0–1 ends the ramp there, 2–4 and 5+ climb to where the max they imply leaves a rep in reserve on five (never less than +10%; 5+, counted as 8 in reserve, jumps about a fifth). The missed rung, a rung answered 0–1, or the sixth gives the max and the working sets follow from it.</li>
+      <li><b>First time</b> (FIRST_TIME): a calibration ramp of 5-rep sets from 60% of the starting weight the strength slider gave, about +10% a rung, up to six rungs. After a rung done in full the lifter can answer how many more they could have done: 0–1 ends the ramp there, 2–4 and 5+ climb to where the max they imply leaves a rep in reserve on five (never less than +10%; 5+, counted as 8 in reserve, jumps about a fifth). A rung under three reps was too heavy (marked ↓): it steps the ramp down a fifth, never back to a rung already done in full, and gives no max. A rung missed with 3–4 reps, a rung answered 0–1, or the sixth gives the max and the working sets follow from it.</li>
       <li><b>Override</b> (USER_SET): a weight × reps (optionally sets) from the template editor becomes the max that prescribes it; the progression carries on from there.</li>
       <li><b>Classes.</b> Heavy barbell compounds 5–8 reps, 3:00 rest, a warmup ladder. Other loaded lifts 8–12 reps, 2:00. Bodyweight and core 5–15 reps, 1:30.</li>
       <li><b>Sets from the time budget</b> (SETS_FROM_TIME, default 60 min): every lift gets 2 sets, then one at a time up to 5 to the lift whose muscles are furthest below 10 hard sets this week, until the next set would pass the budget. A set costs 40 s plus the class's rest, warmups 4 min, moving between lifts 2 min, until ten of the lifter's own timings of a kind replace the default. If two sets each do not fit, the card says how long the workout needs.</li>
@@ -393,6 +394,7 @@ td.won { font-weight: 700; }
       '<span><i class="sw-off"></i>time off</span>' +
       '<span><i class="sw-user"></i>override</span>' +
       '<span><i class="sw-ramp"></i>calibration ramp</span>' +
+      '<span>r0@200 ↓ a rung too heavy (under 3 reps): the ramp stepped down</span>' +
       '<span>⌄ weight lowered by the lifter</span>' +
       '</div>';
   }
@@ -441,13 +443,15 @@ td.won { font-weight: 700; }
         '<br><span class="note">' + Math.round(d.estimated_seconds / 6) / 10 + ' min · rest ' + d.rest_seconds + 's' +
         (d.max ? ' · from ' + maxText(lift, d.max, unit) : '') + '</span>';
       var done = l.done.map(function (x) {
-        var c = 'set' + (x.kind === 'rung' ? ' rung' : '') + (x.hit ? '' : ' miss');
+        var c = 'set' + (x.kind === 'rung' ? ' rung' : '') + (x.hit ? '' : ' miss') + (x.too_heavy ? ' heavy' : '');
         var label = (x.kind === 'rung' ? 'r' : '') + x.reps + (lift.bodyweight ? '' : '@' + x.weight) +
+          (x.too_heavy ? ' ↓' : '') +
           (x.reps_left ? ' (' + x.reps_left + ')' : '') +
           (x.jump ? ' (' + x.jump + ')' : '');
         var tip = (x.kind === 'rung' ? 'rung ' : 'set ') + x.n + ': ' + x.reps + '/' + x.target_reps + ' reps' + (lift.bodyweight ? '' : ' at ' + x.weight + ' ' + unit) +
           (x.reps_left ? ', ' + x.reps_left + ' more left in it' : '') +
-          (x.jump ? ', next set ' + x.jump : '');
+          (x.jump ? ', next set ' + x.jump : '') +
+          (x.too_heavy ? ', too heavy: the ramp stepped down, no max from it' : '');
         return '<span class="' + c + '" title="' + esc(tip) + '">' + esc(label) + '</span>';
       }).join('');
       if (l.removed) done += '<span class="note">skipped</span>';

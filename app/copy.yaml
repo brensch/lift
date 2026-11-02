@@ -384,6 +384,8 @@ plan:
   changes:
     user_adjust: "You changed it: {before} → {after}"
     calibration_step: "Ramp: {before} → {after}"
+    # A ramp set under three reps was too heavy: the next one is lighter.
+    calibration_step_down: "Too heavy: ramp down to {after}"
     calibration_settled: "Ramp done: {after}"
     correction: "Fixed a set: {before} → {after}"
   # The sheet in the template editor: the user's own numbers for a lift.

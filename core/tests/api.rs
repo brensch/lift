@@ -1506,6 +1506,88 @@ mod calibration {
         );
     }
 
+    /// Started far too heavy ("test me from X" past the lifter's max): a
+    /// rung of 0 reps steps the ramp down a fifth with no question, a 3-rep
+    /// rung there settles it, and the walk's max is that rung's, never the
+    /// too-heavy one's. The log says it stepped down. The replay (App's
+    /// drop) rebuilds it.
+    #[test]
+    fn an_overshot_ramp_steps_down_and_the_walk_ignores_the_heavy_rung() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let batch = |app: &mut App, m: Mutation, at: i64| {
+            app.call()
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![mutation_at(m, at)],
+                })
+                .unwrap()
+                .workout_state
+                .unwrap()
+        };
+        let done = |set: &ProposedSet, reps: i32| {
+            Mutation::CompleteSet(CompleteSetRequest {
+                workout_id: set.workout_id.clone(),
+                proposed_set_id: set.id.clone(),
+                actual_reps: reps,
+                actual_weight: set.target_weight,
+                completed_at: 0,
+            })
+        };
+        let state = batch(
+            &mut app,
+            Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
+                workout_id: started.id.clone(),
+                exercise: Exercise::Squat as i32,
+                working_weight: 200.0,
+                ..Default::default()
+            }),
+            NOW + 50,
+        );
+        let rung1 = state.proposed_sets[0].clone();
+        assert_eq!(rung1.target_weight, 200.0);
+        let state = batch(&mut app, done(&rung1, 0), NOW + 100);
+        assert!(state.rung_question_set_id.is_empty(), "a miss: no question");
+        let rung2 = state.proposed_sets[1].clone();
+        assert!(rung2.calibration, "the ramp goes on");
+        assert_eq!(rung2.target_weight, 160.0, "a fifth lighter");
+        let state = batch(&mut app, done(&rung2, 3), NOW + 300);
+        let squat = working(&state.proposed_sets, Exercise::Squat);
+        assert_eq!(
+            squat.len(),
+            decision(&started, Exercise::Squat).sets as usize
+        );
+        let changes: Vec<(i32, f32, f32)> = state
+            .exercise_logs
+            .iter()
+            .flat_map(|l| l.changes.iter())
+            .filter(|c| c.cause != WeightChangeCause::UserAdjust as i32)
+            .map(|c| (c.cause, c.before, c.after))
+            .collect();
+        assert_eq!(
+            changes[0],
+            (WeightChangeCause::CalibrationStep as i32, 200.0, 160.0),
+            "a step down: after under before"
+        );
+        batch(
+            &mut app,
+            Mutation::EndWorkout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: NOW + 400,
+            }),
+            NOW + 400,
+        );
+        let ramp_max = 160.0 * (1.0 + 3.0 / 30.0);
+        app.now = NOW + DAY;
+        let next = plan(&app, Exercise::Squat);
+        assert!(!next.calibration);
+        assert!(
+            (next.max - ramp_max).abs() < 1e-3,
+            "{} vs {ramp_max}",
+            next.max
+        );
+    }
+
     /// A specific jump through the batch: the next rung is the rung plus
     /// it, the ramp goes on, a second answer is ignored, and the walk
     /// counts the jumped rung's max with the usual rep in reserve. The

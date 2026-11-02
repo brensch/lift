@@ -21,6 +21,13 @@ pub const CALIBRATION_REST_SECONDS: i32 = 90;
 pub const MAX_CALIBRATION_RUNGS: usize = 6;
 /// Each rung climbs by at least this fraction of the current weight.
 const CALIBRATION_RUNG_FRACTION: f32 = 1.10;
+/// A rung done with fewer reps than this was too heavy to say anything:
+/// 0 reps would make the max the weight itself, 1–2 is a guess. It does
+/// not end the ramp; the next rung steps down (`CALIBRATION_STEP_DOWN`).
+/// A rung with this many reps or more, short of five, settles the ramp.
+pub const TOO_HEAVY_REPS: i32 = 3;
+/// A too-heavy rung's next rung is this fraction of it: a fifth lighter.
+const CALIBRATION_STEP_DOWN: f32 = 0.8;
 
 /// Stored weights are pounds; warmup snapping happens in the caller's display
 /// unit so the numbers are actually loadable there. These convert at the edges.
@@ -152,6 +159,33 @@ pub fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeightUnit) 
         (weight + step).max(weight * CALIBRATION_RUNG_FRACTION),
         unit,
     )
+}
+
+/// The rung after one too heavy at `weight` (fewer than `TOO_HEAVY_REPS`
+/// reps): a fifth lighter (`CALIBRATION_STEP_DOWN`), snapped down to what
+/// the exercise can load, and at least one step under the rung. Never
+/// under the lightest load (the empty bar, or one step), and never back
+/// at or under `above`, the heaviest rung this ramp already did in full —
+/// that weight is known; the next to try is at least a step over it. None
+/// when nothing loadable is left between: there is nothing lighter to try.
+pub fn stepped_down_calibration_weight(
+    exercise: i32,
+    weight: f32,
+    above: Option<f32>,
+    unit: AppWeightUnit,
+) -> Option<f32> {
+    let ex = Exercise::try_from(exercise).ok()?;
+    let step = progression_increment_lb(ex, unit);
+    let lighter = snap_down_weight_lb(ex, weight * CALIBRATION_STEP_DOWN, unit);
+    let mut down = if lighter < weight - 1e-3 {
+        lighter
+    } else {
+        snap_down_weight_lb(ex, weight - step, unit)
+    };
+    if let Some(full) = above {
+        down = down.max(snap_weight_lb(ex, full + step, unit));
+    }
+    (down < weight - 1e-3).then_some(down)
 }
 
 /// The rung after one done in full at `weight` whose answer counted

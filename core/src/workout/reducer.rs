@@ -625,15 +625,22 @@ fn rung_of(workout_ref: &WorkoutRecord, completed_set_id: &str) -> Option<Propos
         .cloned()
 }
 
-/// The ramp rule, pure: what a done `rung` appends. Every rep, with fewer
-/// than six rungs → the next rung up: the larger of one step and 10%, or with
+/// The ramp rule, pure: what a done `rung` appends. Too heavy (fewer
+/// than `TOO_HEAVY_REPS` reps), with fewer than six rungs → the next rung
+/// a fifth lighter (`planning::stepped_down_calibration_weight`), though
+/// never back at or under the heaviest rung already done in full; with
+/// nothing loadable left between the two, the ramp settles from that full
+/// rung. A too-heavy rung never gives the max itself. Every rep, with fewer than six rungs → the next rung up:
+/// the larger of one step and 10%, or with
 /// an answer of 2–4 or 5+ the weight the max it implies leaves one rep in
 /// reserve on (`planning::answered_calibration_weight`), never less, or
 /// with a specific jump the rung plus it (`planning::jumped_calibration_weight`). A
-/// miss — a set to failure —, an answer of 0–1, or the sixth rung → the
-/// decision's working sets, planned from the max the rung shows
+/// miss of 3–4 reps — a set to failure —, an answer of 0–1, or the sixth
+/// rung → the decision's working sets, planned from the max the rung shows
 /// (`plan::shown_max`: no reserve on a miss, the answer's on an answered
-/// rung, one on a full rung otherwise). Ids are
+/// rung, one on a full rung otherwise). A too-heavy sixth rung, or one
+/// already at the lightest load, settles as a miss of at least one rep.
+/// Ids are
 /// `uuid5(NAMESPACE_OID, "{completed_set_id}:{n}")`, whatever was appended.
 pub fn would_append(
     proposed_sets: &[ProposedSet],
@@ -666,7 +673,38 @@ pub fn would_append(
         rung.target_weight
     };
     let workout_id = &rung.workout_id;
-    let mut appended = if full && !settled_by_answer && rungs < planning::MAX_CALIBRATION_RUNGS {
+    let more = rungs < planning::MAX_CALIBRATION_RUNGS;
+    let too_heavy = done.actual_reps < planning::TOO_HEAVY_REPS;
+    let best_full = if too_heavy && more {
+        heaviest_full_rung(
+            proposed_sets,
+            completed_sets,
+            rung.exercise,
+            completed_set_id,
+        )
+    } else {
+        None
+    };
+    let step_down = (too_heavy && more)
+        .then(|| {
+            planning::stepped_down_calibration_weight(
+                rung.exercise,
+                lifted,
+                best_full.as_ref().map(|(w, _, _)| *w),
+                unit,
+            )
+        })
+        .flatten();
+    let mut appended = if let Some(weight) = step_down {
+        vec![planning::calibration_set(workout_id, rung.exercise, weight)]
+    } else if let (true, Some((weight, reps, reps_left))) = (too_heavy && more, best_full) {
+        // Too heavy, and nothing loads between it and the heaviest rung
+        // done in full: the ramp ends at that rung, as if it had settled
+        // there.
+        let reserve = crate::plan::answered_reserve(reps_left).unwrap_or(1.0);
+        let max = crate::plan::shown_max(weight, reps, reserve, 1, false);
+        planning::working_sets_after_calibration(workout_id, decision, max, unit)
+    } else if full && !settled_by_answer && more {
         let weight = match answer {
             Some(reserve) => {
                 planning::answered_calibration_weight(rung.exercise, lifted, reserve, unit)
@@ -683,13 +721,45 @@ pub fn would_append(
             (true, Some(reserve)) => reserve,
             (true, None) => 1.0,
         };
-        let max = crate::plan::shown_max(lifted, done.actual_reps, reserve, 1, false);
+        // A too-heavy rung settles only when the ramp can go no further
+        // (the sixth rung, or nothing lighter loads): read as best it can
+        // be, with at least one rep.
+        let reps = done.actual_reps.max(1);
+        let max = crate::plan::shown_max(lifted, reps, reserve, 1, false);
         planning::working_sets_after_calibration(workout_id, decision, max, unit)
     };
     for (n, set) in appended.iter_mut().enumerate() {
         set.id = derived_id(completed_set_id, n);
     }
     appended
+}
+
+/// The heaviest calibration rung of `exercise` done in full, other than
+/// the done set `except`: its weight lifted, reps and answer (`RepsLeft`).
+fn heaviest_full_rung(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+    exercise: i32,
+    except: &str,
+) -> Option<(f32, i32, i32)> {
+    completed_sets
+        .iter()
+        .filter(|c| c.id != except && c.ended_at != 0)
+        .filter_map(|c| {
+            let rung = proposed_sets.iter().find(|s| {
+                s.id == c.proposed_set_id && s.exercise == exercise && s.calibration && !s.cancelled
+            })?;
+            let weight = if c.actual_weight > 0.0 {
+                c.actual_weight
+            } else {
+                rung.target_weight
+            };
+            (c.actual_reps >= rung.target_reps).then_some((weight, c.actual_reps, c.reps_left))
+        })
+        .fold(None, |best: Option<(f32, i32, i32)>, next| match best {
+            Some(b) if b.0 >= next.0 => Some(b),
+            _ => Some(next),
+        })
 }
 
 pub fn apply_delete_completed_set_to_active(
@@ -1461,6 +1531,252 @@ mod tests {
             .map(|s| (s.target_weight, s.target_reps))
             .collect();
         assert_eq!(working, vec![(weight, reps); 3]);
+    }
+
+    // ── Too heavy: a rung under TOO_HEAVY_REPS steps the ramp down ──────
+
+    /// The calibration rung pending for the squat, if any.
+    fn pending_rung(active: &WorkoutRecord) -> Option<ProposedSet> {
+        squat_sets(active)
+            .into_iter()
+            .find(|s| {
+                s.calibration
+                    && !active
+                        .completed_sets
+                        .iter()
+                        .any(|c| c.proposed_set_id == s.id)
+            })
+            .cloned()
+    }
+
+    /// 0, 1 or 2 reps: not a max, the next rung a fifth lighter (snapped
+    /// down to what loads), no question, a CALIBRATION_STEP down.
+    #[test]
+    fn too_few_reps_step_the_ramp_down_a_fifth() {
+        for reps in 0..planning::TOO_HEAVY_REPS {
+            let mut active = ramp_workout(200.0);
+            complete(&mut active, "c1", reps, 2_000);
+            assert_eq!(squat_plan(&active), vec![(160.0, true)], "{reps} reps");
+            assert_eq!(rung_question(&active), None, "{reps} reps: no question");
+            assert_eq!(
+                causes(&active),
+                vec![(WeightChangeCause::CalibrationStep, 200.0, 160.0)]
+            );
+            assert_eq!(active.proposed_sets[2].id, "b1", "ahead of bench");
+        }
+        // 0.8 × 135 = 108 snaps down to 105.
+        let mut active = ramp_workout(135.0);
+        complete(&mut active, "c1", 1, 2_000);
+        assert_eq!(squat_plan(&active), vec![(105.0, true)]);
+    }
+
+    /// Where a fifth lighter snaps back to the same weight, one step under
+    /// it; never under the empty bar.
+    #[test]
+    fn a_step_down_is_always_lighter_and_never_under_the_bar() {
+        let step =
+            |w: f32| planning::stepped_down_calibration_weight(1, w, None, AppWeightUnit::Lb);
+        assert_eq!(step(50.0), Some(45.0), "0.8 × 50 is under the bar");
+        assert_eq!(step(45.0), None, "nothing under the empty bar");
+        // A stack in steps of 5: 0.8 × 5 = 4 snaps to 5, the same weight.
+        let press = crate::pb::Exercise::LegPress as i32;
+        let machine =
+            |w: f32| planning::stepped_down_calibration_weight(press, w, None, AppWeightUnit::Lb);
+        assert_eq!(machine(10.0), Some(5.0));
+        assert_eq!(machine(5.0), None);
+        for w in [50.0, 95.0, 135.0, 225.0, 315.0] {
+            let down = step(w).unwrap();
+            assert!(down < w && down >= 45.0, "{w} → {down}");
+        }
+        // Kilograms: 0.8 × 100 kg = 80 kg.
+        let kg = crate::weight_units::kg_to_pounds;
+        let down = planning::stepped_down_calibration_weight(1, kg(100.0), None, AppWeightUnit::Kg)
+            .unwrap();
+        assert!((crate::weight_units::pounds_to_kg(down) - 80.0).abs() < 0.01);
+    }
+
+    /// A too-heavy rung on the empty bar has nothing lighter to try: the
+    /// ramp settles from it as a set to failure of at least one rep.
+    #[test]
+    fn too_heavy_on_the_bar_settles() {
+        let mut active = ramp_workout(45.0);
+        complete(&mut active, "c1", 0, 2_000);
+        assert!(squat_plan(&active).iter().all(|(_, rung)| !rung));
+        assert_eq!(squat_plan(&active).len(), 3);
+    }
+
+    /// 3 or 4 reps settle the ramp, as a miss always did.
+    #[test]
+    fn three_or_four_reps_settle() {
+        for reps in [3, 4] {
+            let mut active = ramp_workout(200.0);
+            complete(&mut active, "c1", reps, 2_000);
+            let plan = squat_plan(&active);
+            assert_eq!(plan.len(), 3, "{reps} reps");
+            assert!(plan.iter().all(|(_, rung)| !rung), "{reps} reps");
+        }
+    }
+
+    /// A step down then a full rung: the question is asked, as on any full
+    /// rung, and the ramp climbs from there.
+    #[test]
+    fn a_full_rung_after_a_step_down_asks() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 0, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        complete(&mut active, &rung2.id, 5, 2_200);
+        assert_eq!(rung_question(&active).as_deref(), Some(rung2.id.as_str()));
+        assert_eq!(
+            pending_rung(&active).unwrap().target_weight,
+            175.0,
+            "160 + 10%, loadable"
+        );
+    }
+
+    /// A step down then a 3–4 miss: the working sets come from that rung,
+    /// not the too-heavy one.
+    #[test]
+    fn a_miss_after_a_step_down_settles_from_it() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 1, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        complete(&mut active, &rung2.id, 4, 2_200);
+        let decision = ramp_decision(200.0);
+        let want = planning::working_sets_after_calibration(
+            "w1",
+            &decision,
+            crate::plan::shown_max(160.0, 4, 0.0, 1, false),
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        let want: Vec<(f32, i32)> = want
+            .iter()
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working, want);
+        assert_eq!(
+            causes(&active),
+            vec![
+                (WeightChangeCause::CalibrationStep, 200.0, 160.0),
+                (WeightChangeCause::CalibrationSettled, 160.0, want[0].0),
+            ]
+        );
+    }
+
+    /// Too heavy after a rung done in full: the step down never goes back
+    /// to or under that rung, it splits the gap; with nothing loadable
+    /// between, the ramp settles from the full rung.
+    #[test]
+    fn a_step_down_stays_over_a_full_rung() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        assert_eq!(rung2.target_weight, 110.0);
+        complete(&mut active, &rung2.id, 2, 2_200);
+        assert_eq!(
+            pending_rung(&active).unwrap().target_weight,
+            105.0,
+            "not 0.8 × 110 = 85: over the 100 done in full"
+        );
+
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        adjust(&mut active, 1, 105.0);
+        let rung2 = squat_sets(&active)
+            .into_iter()
+            .find(|s| s.id == rung2.id)
+            .unwrap()
+            .clone();
+        assert_eq!(rung2.target_weight, 105.0);
+        complete(&mut active, &rung2.id, 0, 2_200);
+        let max = crate::plan::shown_max(100.0, 5, 1.0, 1, false);
+        let want = planning::working_sets_after_calibration(
+            "w1",
+            &ramp_decision(100.0),
+            max,
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working.len(), 3, "settled from the 100 done in full");
+        assert_eq!(working[0], (want[0].target_weight, want[0].target_reps));
+    }
+
+    /// The sixth rung too heavy: the ramp can go no further, so it settles
+    /// from that rung as best it can — a set to failure, at least one rep.
+    #[test]
+    fn a_too_heavy_sixth_rung_settles() {
+        let mut active = ramp_workout(300.0);
+        let mut at = 2_000;
+        for n in 0..planning::MAX_CALIBRATION_RUNGS {
+            let rung = pending_rung(&active).unwrap();
+            complete(&mut active, &rung.id, 0, at);
+            at += 200;
+            let rungs = squat_sets(&active).iter().filter(|s| s.calibration).count();
+            if n + 1 < planning::MAX_CALIBRATION_RUNGS {
+                assert_eq!(rungs, n + 2, "rung {} steps down", n + 1);
+            }
+        }
+        let rungs: Vec<f32> = squat_sets(&active)
+            .iter()
+            .filter(|s| s.calibration)
+            .map(|s| s.target_weight)
+            .collect();
+        assert_eq!(rungs.len(), planning::MAX_CALIBRATION_RUNGS);
+        assert!(rungs.windows(2).all(|w| w[1] < w[0]), "{rungs:?}");
+        let last = *rungs.last().unwrap();
+        let want = planning::working_sets_after_calibration(
+            "w1",
+            &ramp_decision(300.0),
+            crate::plan::shown_max(last, 1, 0.0, 1, false),
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working.len(), 3);
+        assert_eq!(working[0], (want[0].target_weight, want[0].target_reps));
+    }
+
+    /// Corrections either way re-settle by the same rules: a too-heavy rung
+    /// corrected to 3 settles, and back to 2 steps down again; a 3-rep rung
+    /// corrected to 2 steps down.
+    #[test]
+    fn correcting_a_too_heavy_rung_resettles_it() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 2, 2_000);
+        let done = done_id(&active, "c1");
+        assert_eq!(squat_plan(&active), vec![(160.0, true)]);
+        edit(&mut active, &done, 3, 200.0);
+        let plan = squat_plan(&active);
+        assert_eq!(plan.len(), 3);
+        assert!(plan.iter().all(|(_, rung)| !rung), "settled at 3");
+        assert_eq!(
+            causes(&active)
+                .iter()
+                .filter(|c| c.0 == WeightChangeCause::CalibrationStep)
+                .count(),
+            0,
+            "the step down it took back is gone from the log"
+        );
+        edit(&mut active, &done, 2, 200.0);
+        assert_eq!(squat_plan(&active), vec![(160.0, true)], "and back");
+
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 4, 2_000);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 1, 200.0);
+        assert_eq!(squat_plan(&active), vec![(160.0, true)]);
     }
 
     /// Tapping a rep off a rung after Done (the way a miss is recorded)

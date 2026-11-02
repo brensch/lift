@@ -34,6 +34,7 @@ use schlift_core::pb::{
     StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutState,
 };
 use schlift_core::plan::Planner;
+use schlift_core::workout::TOO_HEAVY_REPS;
 
 #[derive(Parser, Debug)]
 #[command(about = "Randomised API sequence fuzzer with invariant checks")]
@@ -112,11 +113,14 @@ impl Drop for Recording<'_> {
 
 /// One simulated user: a series of workouts, with invariants checked after every
 /// mutation. Returns the violations it found and how many mutations it made.
-fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usize) {
+fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usize, usize) {
     // Decorrelate each user's stream so they do not all make the same choices.
     let mut rng = StdRng::seed_from_u64(seed ^ ((user_idx as u64 + 1) << 32));
     let mut violations: Vec<Violation> = Vec::new();
     let mut steps = 0usize;
+    // Rungs done too heavy (fewer than three reps), so a run can show the
+    // step down was exercised.
+    let mut too_heavy = 0usize;
     let username = format!("fuzz-user-{seed}-{user_idx}");
     let mut sim = Sim {
         account: Account::default(),
@@ -373,13 +377,31 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 } else {
                     step_name = format!("complete_set({})", set.id);
                     now += 45;
+                    let reps = rng.gen_range(0..12);
+                    let first_time = !done.iter().any(|c| c.proposed_set_id == set.id);
                     let _ = sim.call(now).complete_set(CompleteSetRequest {
                         workout_id: workout_id.clone(),
                         proposed_set_id: set.id.clone(),
-                        actual_reps: rng.gen_range(0..12),
+                        actual_reps: reps,
                         actual_weight: set.target_weight,
                         completed_at: now,
                     });
+                    // A rung too heavy (under three reps) steps the ramp
+                    // down, or settles it: never a heavier rung.
+                    if first_time && reps < TOO_HEAVY_REPS {
+                        if let Ok(after) = sim.view(now).get_workout(GetWorkoutRequest {
+                            workout_id: workout_id.clone(),
+                        }) {
+                            check_too_heavy(
+                                &after,
+                                &set.id,
+                                &mut too_heavy,
+                                &username,
+                                &workout_id,
+                                &mut violations,
+                            );
+                        }
+                    }
                     now += 90;
                     // A ramp set done in full asks how many more: usually
                     // answered (the phone's sheet, the watch's row), and now
@@ -664,7 +686,54 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
         });
     }
 
-    (violations, steps)
+    (violations, steps, too_heavy)
+}
+
+/// After a calibration rung `rung_id` was done too heavy: the set the
+/// ramp put after it is a lighter rung or the working sets it settled on,
+/// never a rung as heavy or heavier.
+fn check_too_heavy(
+    state: &GetWorkoutResponse,
+    rung_id: &str,
+    count: &mut usize,
+    user: &str,
+    workout_id: &str,
+    out: &mut Vec<Violation>,
+) {
+    let Some(at) = state.proposed_sets.iter().position(|s| s.id == rung_id) else {
+        return;
+    };
+    let rung = &state.proposed_sets[at];
+    let Some(done) = state
+        .completed_sets
+        .iter()
+        .find(|c| c.proposed_set_id == rung_id && c.ended_at != 0)
+    else {
+        return;
+    };
+    if !rung.calibration || done.actual_reps >= TOO_HEAVY_REPS {
+        return;
+    }
+    *count += 1;
+    let lifted = if done.actual_weight > 0.0 {
+        done.actual_weight
+    } else {
+        rung.target_weight
+    };
+    if let Some(next) = state.proposed_sets.get(at + 1) {
+        if next.exercise == rung.exercise && next.calibration && next.target_weight >= lifted {
+            out.push(Violation {
+                user: user.to_string(),
+                workout_id: workout_id.to_string(),
+                step: format!("complete_set({rung_id})"),
+                invariant: "a rung too heavy was followed by a rung as heavy or heavier",
+                detail: format!(
+                    "{} reps at {lifted}, next rung {}",
+                    done.actual_reps, next.target_weight
+                ),
+            });
+        }
+    }
 }
 
 /// Every lift's plan on Home.
@@ -1040,16 +1109,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut violations: Vec<Violation> = Vec::new();
     let mut steps = 0usize;
+    let mut too_heavy = 0usize;
     for user_idx in 0..args.users {
-        let (v, s) = run_user(args.seed, user_idx, args.sessions);
+        let (v, s, h) = run_user(args.seed, user_idx, args.sessions);
         violations.extend(v);
         steps += s;
+        too_heavy += h;
     }
 
     println!(
-        "\n{} users x {} sessions, {} mutations checked",
-        args.users, args.sessions, steps
+        "\n{} users x {} sessions, {} mutations checked, {} rungs too heavy",
+        args.users, args.sessions, steps, too_heavy
     );
+    if too_heavy == 0 && steps > 0 {
+        violations.push(Violation {
+            user: String::new(),
+            workout_id: String::new(),
+            step: "the whole run".into(),
+            invariant: "no rung was done too heavy: the step down went unexercised",
+            detail: format!("{steps} mutations"),
+        });
+    }
 
     if violations.is_empty() {
         println!("no invariant violations");

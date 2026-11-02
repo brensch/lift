@@ -171,6 +171,10 @@ String changeText(WeightChange change, WeightUnit unit) {
   final c = copy.plan.changes;
   final template = switch (change.cause) {
     WeightChangeCause.WEIGHT_CHANGE_CAUSE_USER_ADJUST => c.userAdjust,
+    // A rung too heavy steps the ramp down: the next rung is lighter.
+    WeightChangeCause.WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP
+        when change.after < change.before =>
+      c.calibrationStepDown,
     WeightChangeCause.WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP => c.calibrationStep,
     WeightChangeCause.WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED =>
       c.calibrationSettled,
