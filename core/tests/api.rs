@@ -1009,6 +1009,57 @@ mod recorded {
         assert_eq!(sets, vec![(123.0, 7, 100); 2]);
         assert_eq!(state.exercise_logs[0].decision, Some(recorded));
     }
+
+    /// A start or an add that names lifts without their decisions (the
+    /// shape of a log from before plans were recorded) is refused, not
+    /// folded into an empty workout.
+    #[test]
+    fn a_lift_without_its_decision_is_refused() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let event = |kind| Event {
+            seq: 1,
+            id: Uuid::new_v4().to_string(),
+            at: NOW,
+            kind: Some(kind),
+        };
+        let start = event(event::Kind::StartWorkout(StartWorkoutRequest {
+            exercises: vec![Exercise::Squat as i32],
+            ..Default::default()
+        }));
+        assert!(matches!(
+            app.account.clone().apply(&start),
+            Err(CoreError::InvalidArgument(_))
+        ));
+
+        let started = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                exercises: vec![Exercise::Squat as i32],
+                ..Default::default()
+            })
+            .unwrap();
+        let add = |exercises: Vec<Exercise>| {
+            event(event::Kind::Workout(WorkoutMutation {
+                mutation: Some(Mutation::AddExercises(AddExercisesRequest {
+                    workout_id: started.id.clone(),
+                    exercises: exercises.into_iter().map(|e| e as i32).collect(),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }))
+        };
+        assert!(matches!(
+            app.account.clone().apply(&add(vec![Exercise::BenchPress])),
+            Err(CoreError::InvalidArgument(_))
+        ));
+        // A lift already in the workout keeps its decision: nothing to add.
+        assert!(app
+            .account
+            .clone()
+            .apply(&add(vec![Exercise::Squat]))
+            .is_ok());
+    }
 }
 
 mod weight_log {

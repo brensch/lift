@@ -108,6 +108,38 @@ mod store {
     }
 
     #[tokio::test]
+    async fn a_start_without_its_decisions_is_refused() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (_, first) = phone.write(1_000, |call| {
+            call.update_setting(UpdateSettingRequest {
+                setting: Some(UserSetting {
+                    setting: Some(user_setting::Setting::WeightUnit(WeightUnitConfig {
+                        unit: WeightUnit::Kg as i32,
+                    })),
+                }),
+            })
+            .unwrap()
+        });
+        db.push_events("u1", first).await.unwrap();
+        // The old shape: the lifts named, nothing decided for them.
+        let old = Event {
+            seq: 2,
+            id: Uuid::new_v4().to_string(),
+            at: 1_100,
+            kind: Some(event::Kind::StartWorkout(StartWorkoutRequest {
+                exercises: vec![Exercise::Squat as i32],
+                ..Default::default()
+            })),
+        };
+        let error = db.push_events("u1", vec![old]).await.err().unwrap();
+        assert!(error.downcast_ref::<crate::db::Diverged>().is_some());
+        assert_eq!(db.events_after("u1", 0).await.unwrap(), phone.log);
+        let server = db.read_account("u1", Clone::clone).await.unwrap();
+        assert_eq!(server, phone.account, "nothing of it was kept");
+    }
+
+    #[tokio::test]
     async fn workouts_are_projected_for_analytics() {
         let db = db().await;
         let mut phone = Phone::new();
