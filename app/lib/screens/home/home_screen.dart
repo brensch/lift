@@ -3,8 +3,10 @@
 /// A template is an ordered list of exercises and nothing else — the core
 /// plans sets, reps, rest and weight in the time the user has, so every
 /// card here shows the numbers the workout will actually start with, and
-/// why. The suggestion is the template whose muscles are furthest below
-/// the 10–20 weekly-set band; it is one tap, never a gate.
+/// why. The rotation's chips come first, the favourites after a divider.
+/// The suggestion is the rotation template whose rested muscles are
+/// furthest below the 10–20 weekly-set band, and the card says which; it
+/// is one tap, never a gate.
 library;
 
 import 'dart:async';
@@ -20,6 +22,7 @@ import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../logic/plan_text.dart';
+import '../../logic/rotation_text.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
@@ -208,6 +211,12 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+    Widget chip(WorkoutTemplate template) => TemplateChip(
+      template: template,
+      selected: template.id == selected?.id,
+      recommended: template.id == suggestedId,
+      onTap: () => setState(() => _selectedTemplateId = template.id),
+    );
     final highlight = selected == null
         ? const <MuscleGroup>{}
         : templateMuscles(selected, wp.plans).toSet();
@@ -233,18 +242,14 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 14),
             TutorialTarget(
               id: 'home_templates',
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
+              child: _TemplateChips(
+                rotation: [
                   for (final template in templates)
-                    TemplateChip(
-                      template: template,
-                      selected: template.id == selected?.id,
-                      recommended: template.id == suggestedId,
-                      onTap: () =>
-                          setState(() => _selectedTemplateId = template.id),
-                    ),
+                    if (template.inRotation) chip(template),
+                ],
+                favourites: [
+                  for (final template in templates)
+                    if (!template.inRotation) chip(template),
                   _ActionChip(
                     icon: AppIcons.lightning,
                     label: 'Empty',
@@ -287,14 +292,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   onBudgetStep: wp.stepBudget,
                   unit: unit,
                   recommended: selected.id == suggestedId,
-                  suggestionReason: selected.id == suggestedId
-                      ? home.suggestionReason
+                  reason:
+                      selected.id == suggestedId && home.hasSuggestionReason()
+                      ? suggestionLine(home.suggestionReason)
                       : '',
                   isStarting: _isStarting,
                   onStart: () => _start(templateId: selected!.id),
                   onEdit: () => _editTemplate(selected),
                   onClone: () => _cloneTemplate(selected!),
                   onDelete: () => _confirmDeleteTemplate(selected!),
+                  onToggleRotation: () =>
+                      wp.setInRotation(selected!, !selected.inRotation),
                 ),
               )
             else
@@ -302,6 +310,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The template chips: the rotation first, then after a divider the
+/// favourites and the action chips. With nothing in one group, no divider.
+class _TemplateChips extends StatelessWidget {
+  final List<Widget> rotation;
+  final List<Widget> favourites;
+
+  const _TemplateChips({required this.rotation, required this.favourites});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget wrap(List<Widget> children) =>
+        Wrap(spacing: 6, runSpacing: 6, children: children);
+    if (rotation.isEmpty) return wrap(favourites);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        wrap(rotation),
+        Divider(
+          height: 17,
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+        ),
+        wrap(favourites),
+      ],
     );
   }
 }
@@ -826,12 +861,15 @@ class SelectedTemplateCard extends StatelessWidget {
   final ValueChanged<int> onBudgetStep;
   final WeightUnit unit;
   final bool recommended;
-  final String suggestionReason;
+
+  /// Why it is suggested, from the core's reason; empty when it is not.
+  final String reason;
   final bool isStarting;
   final VoidCallback onStart;
   final VoidCallback onEdit;
   final VoidCallback onClone;
   final VoidCallback onDelete;
+  final VoidCallback onToggleRotation;
 
   const SelectedTemplateCard({
     super.key,
@@ -841,12 +879,13 @@ class SelectedTemplateCard extends StatelessWidget {
     required this.onBudgetStep,
     required this.unit,
     required this.recommended,
-    required this.suggestionReason,
+    required this.reason,
     required this.isStarting,
     required this.onStart,
     required this.onEdit,
     required this.onClone,
     required this.onDelete,
+    required this.onToggleRotation,
   });
 
   @override
@@ -888,17 +927,14 @@ class SelectedTemplateCard extends StatelessWidget {
                       ],
                     ),
                     if (!template.coupled) const PersonalTag(),
-                    if (recommended)
+                    if (recommended && reason.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          suggestionReason.isEmpty
-                              ? 'Recommended next'
-                              : 'Recommended: $suggestionReason',
+                          reason,
                           style: TextStyle(
                             fontSize: context.tokens.size.body,
-                            fontWeight: context.tokens.weight.bold,
-                            color: cs.primary,
+                            color: cs.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ),
@@ -914,27 +950,37 @@ class SelectedTemplateCard extends StatelessWidget {
                   if (value == 'edit') onEdit();
                   if (value == 'clone') onClone();
                   if (value == 'delete') onDelete();
+                  if (value == 'rotation') onToggleRotation();
                 },
                 // A library workout follows the library: clone it to make
-                // it yours. Your own you edit.
-                itemBuilder: (_) => template.coupled
-                    ? [
-                        PopupMenuItem(
-                          value: 'clone',
-                          child: Text(copy.library.clone),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(copy.library.remove),
-                        ),
-                      ]
-                    : [
-                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(copy.library.delete),
-                        ),
-                      ],
+                // it yours. Your own you edit. Either goes in or out of
+                // the rotation.
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'rotation',
+                    child: Text(
+                      template.inRotation
+                          ? copy.rotation.remove
+                          : copy.rotation.add,
+                    ),
+                  ),
+                  if (template.coupled) ...[
+                    PopupMenuItem(
+                      value: 'clone',
+                      child: Text(copy.library.clone),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(copy.library.remove),
+                    ),
+                  ] else ...[
+                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(copy.library.delete),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

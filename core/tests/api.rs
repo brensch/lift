@@ -712,8 +712,8 @@ mod the_walk {
         assert_eq!(maxes[1], plan(&app, Exercise::Squat).max);
     }
 
-    /// The suggestion points at the template covering the most-behind
-    /// muscles, and names them.
+    /// The suggestion turns from the template just trained to the other in
+    /// rotation, and says what is still recovering.
     #[test]
     fn the_suggestion_chases_the_deficit() {
         let mut app = App::new();
@@ -744,7 +744,15 @@ mod the_walk {
             .find(|t| t.id == after.suggested_template_id)
             .unwrap();
         assert_ne!(suggested.name, "StrongLifts A", "it was just trained");
-        assert!(!after.suggestion_reason.is_empty());
+        // The squat an hour ago rules quads out, and the reason says so.
+        let reason = after.suggestion_reason.clone().expect("a reason");
+        assert!(
+            reason
+                .recovering
+                .iter()
+                .any(|r| r.muscle == MuscleGroup::Quads as i32 && r.hours_remaining > 0),
+            "{reason:?}"
+        );
         let quads = after
             .volume
             .iter()
@@ -1763,5 +1771,112 @@ mod library_coupling {
             .unwrap();
         assert_eq!(shown.name, template.name);
         assert_eq!(shown.exercises, template.exercises);
+    }
+}
+
+mod rotation {
+    use super::*;
+
+    fn by_library(home: &GetHomeResponse, id: &str) -> WorkoutTemplate {
+        home.templates
+            .iter()
+            .find(|t| t.library_id == id)
+            .cloned()
+            .unwrap()
+    }
+
+    /// The workouts picked at onboarding are the rotation; a library
+    /// template added later and one the user makes are favourites unless
+    /// saved otherwise.
+    #[test]
+    fn onboarding_fills_the_rotation_and_later_ones_are_favourites() {
+        let mut app = App::new();
+        let onboarded = onboard(&mut app, WeightUnit::Lb);
+        assert!(onboarded.templates.iter().all(|t| t.in_rotation));
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["full_body".into()],
+                entries: vec![],
+            })
+            .unwrap();
+        let mine = app
+            .call()
+            .save_template(SaveTemplateRequest {
+                template: Some(WorkoutTemplate {
+                    name: "Mine".into(),
+                    exercises: vec![Exercise::BarbellCurl as i32],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        let after = home(&mut app);
+        assert!(!by_library(&after, "full_body").in_rotation);
+        assert!(!mine.in_rotation);
+        assert!(by_library(&after, "stronglifts_a").in_rotation);
+        assert!(after.rotation_check.is_some());
+    }
+
+    /// Putting a library template in rotation (or out) keeps it following
+    /// the library, even after the library has changed it.
+    #[test]
+    fn rotation_is_saved_without_unlinking() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["full_body".into()],
+                entries: vec![],
+            })
+            .unwrap();
+        app.library
+            .iter_mut()
+            .find(|e| e.id == "full_body")
+            .unwrap()
+            .name = "Full Body+".into();
+        let mut shown = by_library(&home(&mut app), "full_body");
+        assert_eq!(shown.name, "Full Body+");
+        shown.in_rotation = true;
+        let saved = app
+            .call()
+            .save_template(SaveTemplateRequest {
+                template: Some(shown.clone()),
+                ..Default::default()
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        assert!(saved.coupled && saved.in_rotation, "{saved:?}");
+        let after = by_library(&home(&mut app), "full_body");
+        assert_eq!(after.name, "Full Body+", "still follows the library");
+        assert!(after.in_rotation);
+
+        // Saving it unchanged again records nothing.
+        let events = app.log.len();
+        app.call()
+            .save_template(SaveTemplateRequest {
+                template: Some(after),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(app.log.len(), events);
+    }
+
+    /// A favourite is never suggested, however far behind its muscles are.
+    #[test]
+    fn the_suggestion_comes_from_the_rotation() {
+        let mut app = App::new();
+        let onboarded = onboard(&mut app, WeightUnit::Lb);
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["arms".into()],
+                entries: vec![],
+            })
+            .unwrap();
+        let after = home(&mut app);
+        let rotation: Vec<&str> = onboarded.templates.iter().map(|t| t.id.as_str()).collect();
+        assert!(rotation.contains(&after.suggested_template_id.as_str()));
     }
 }

@@ -279,6 +279,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   GetHomeResponse? get home => _home;
   List<WorkoutTemplate> get templates => _home?.templates ?? const [];
 
+  /// One lap of the rotation: sets per muscle and what is wrong with it.
+  RotationCheck? get rotationCheck => _home?.rotationCheck;
+
   /// Every exercise in the catalog, planned at the home's now on its own.
   List<ExercisePlan> get plans => _home?.plans ?? const [];
 
@@ -492,6 +495,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await _service.saveTemplate(template);
     await refreshHome();
   }
+
+  /// Put [template] in the rotation the suggestion picks from, or make it
+  /// a favourite. A library template keeps following the library.
+  Future<void> setInRotation(WorkoutTemplate template, bool inRotation) =>
+      saveTemplate(template.deepCopy()..inRotation = inRotation);
 
   Future<void> deleteTemplate(String templateId) async {
     await _service.deleteTemplate(templateId);

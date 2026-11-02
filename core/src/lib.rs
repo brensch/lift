@@ -17,6 +17,7 @@ pub mod plan;
 pub mod progress;
 pub mod projection;
 pub mod recovery;
+pub mod rotation;
 pub mod sync;
 pub mod template_library;
 pub mod time;

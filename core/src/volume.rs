@@ -6,15 +6,21 @@
 //! the exercise's primary muscle and 0.5 for each secondary; warmups and
 //! cancelled sets count 0.
 //!
-//! The suggestion is a pure sort over the user's own templates by muscle
-//! deficit — computed fresh every request, never stored. If it ever needs
-//! to remember something between sessions, it has gone wrong.
+//! The suggestion is a pure sort over the user's rotation by the deficit
+//! of the muscles that have recovered, computed fresh every request from
+//! history and never stored. If it ever needs to remember something
+//! between sessions, it has gone wrong.
 
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use crate::exercise_catalog::{muscle_label, muscles, primary_muscle, ALL_MUSCLES};
+use crate::exercise_catalog::{muscles, primary_muscle, ALL_MUSCLES};
 use crate::history::WorkoutRecord;
-use crate::pb::{Exercise, MuscleGroup, MuscleVolume, WorkoutTemplate};
+use crate::pb::{
+    Exercise, MuscleGroup, MuscleVolume, RecoveringMuscle, SuggestionMuscle, SuggestionReason,
+    WorkoutTemplate,
+};
+use crate::recovery::MuscleRecovery;
 
 pub const VOLUME_WINDOW_SECONDS: i64 = 7 * 24 * 3600;
 pub const VOLUME_TARGET_LOW: i32 = 10;
@@ -66,95 +72,152 @@ pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume
         .collect()
 }
 
-/// Pick the template whose primary muscles are furthest below the band.
+/// A template within this fraction of the best score is tied with it.
+pub const TIE_FRACTION: f32 = 0.8;
+/// A rotation template not started for this long (or never) is overdue:
+/// with anything recovered and behind, it is tied with the best. Without
+/// it a template whose muscles the others cover (StrongLifts A inside Full
+/// Body) never comes within a fifth of the best and is never suggested.
+pub const OVERDUE_SECONDS: i64 = 14 * 24 * 3600;
+
+/// The suggestion: a rotation template and why.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Suggestion {
+    pub template_id: String,
+    pub reason: SuggestionReason,
+}
+
+/// A template's distinct primary muscles, in exercise order.
+pub fn primary_muscles(exercises: &[i32]) -> Vec<MuscleGroup> {
+    let mut out = Vec::new();
+    for ex in exercises.iter().filter_map(|e| Exercise::try_from(*e).ok()) {
+        let muscle = primary_muscle(ex);
+        if muscle != MuscleGroup::Unspecified && !out.contains(&muscle) {
+            out.push(muscle);
+        }
+    }
+    out
+}
+
+/// Pick the rotation template whose recovered primary muscles are
+/// furthest below the band.
 ///
-/// score = Σ over the template's distinct primary muscles of
-///         max(0, target_low − sets_7d)
+/// score = Σ over the template's distinct primary muscles that have
+///         recovered now of max(0, target_low − sets_7d)
 ///
-/// Ties break toward the template least recently started (never started
-/// sorts first). Returns the winner's id and a human reason naming the
-/// two most-behind muscles. None when there are no templates or nothing
-/// is behind (then nothing is marked — there is no debt to pay down).
+/// Every template within [TIE_FRACTION] of the best score is tied, and so
+/// is an overdue one ([OVERDUE_SECONDS]) with a score above 0; the tie goes
+/// to the one started least recently (never started first), so the
+/// rotation turns over instead of one broad template winning every day.
+/// When nothing in rotation is both recovered and behind, the rotation
+/// template started least recently. Favourites (templates out of
+/// rotation) are never picked; None when nothing is in rotation.
 pub fn suggest_template(
     templates: &[WorkoutTemplate],
     volume: &[MuscleVolume],
+    recovery: &[MuscleRecovery],
+    now: i64,
     last_started: &HashMap<String, i64>,
-) -> Option<(String, String)> {
-    let deficit: HashMap<i32, f32> = volume
-        .iter()
-        .map(|v| {
-            (
-                v.muscle,
-                (v.target_low as f32 - v.completed_sets_7d).max(0.0),
-            )
-        })
-        .collect();
-
-    struct Candidate<'a> {
-        score: f32,
-        started: i64,
-        template: &'a WorkoutTemplate,
-        hit: Vec<(i32, f32)>,
-    }
-    let mut best: Option<Candidate> = None;
-    for template in templates {
-        // Distinct primary muscles, counted once each.
-        let mut seen = Vec::new();
-        let mut hit: Vec<(i32, f32)> = Vec::new();
-        for exercise in &template.exercises {
-            let Ok(ex) = Exercise::try_from(*exercise) else {
-                continue;
-            };
-            let muscle = primary_muscle(ex) as i32;
-            if seen.contains(&muscle) {
-                continue;
-            }
-            seen.push(muscle);
-            let d = deficit.get(&muscle).copied().unwrap_or(0.0);
-            if d > 0.0 {
-                hit.push((muscle, d));
-            }
-        }
-        let score: f32 = hit.iter().map(|(_, d)| d).sum();
-        let started = last_started.get(&template.id).copied().unwrap_or(0);
-        let better = match &best {
-            None => true,
-            Some(candidate) => {
-                score > candidate.score || (score == candidate.score && started < candidate.started)
-            }
-        };
-        if better {
-            best = Some(Candidate {
-                score,
-                started,
-                template,
-                hit,
-            });
-        }
-    }
-
-    let Candidate {
-        score,
-        template,
-        mut hit,
-        ..
-    } = best?;
-    if score <= 0.0 {
-        return None;
-    }
-    hit.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-    let names: Vec<&str> = hit
-        .iter()
-        .take(2)
-        .filter_map(|(muscle, _)| MuscleGroup::try_from(*muscle).ok().map(muscle_label))
-        .collect();
-    let behind: f32 = hit.iter().take(2).map(|(_, d)| d).sum();
-    let reason = match names.as_slice() {
-        [a] => format!("{a} is {behind:.0} sets behind this week"),
-        [a, b] => format!("{a} and {b} are {behind:.0} sets behind this week"),
-        _ => String::new(),
+) -> Option<Suggestion> {
+    let sets = |muscle: MuscleGroup| {
+        volume
+            .iter()
+            .find(|v| v.muscle == muscle as i32)
+            .map_or((0.0, VOLUME_TARGET_LOW), |v| {
+                (v.completed_sets_7d, v.target_low)
+            })
     };
-    Some((template.id.clone(), reason))
+    let deficit = |muscle: MuscleGroup| {
+        let (done, target) = sets(muscle);
+        (target as f32 - done).max(0.0)
+    };
+    let recovering = |muscle: MuscleGroup| {
+        recovery
+            .iter()
+            .find(|r| r.muscle == muscle)
+            .filter(|r| !r.is_recovered(now))
+    };
+
+    struct Scored<'a> {
+        template: &'a WorkoutTemplate,
+        index: usize,
+        started: i64,
+        score: f32,
+        behind: Vec<MuscleGroup>,
+    }
+    let by_deficit = |a: &MuscleGroup, b: &MuscleGroup| {
+        deficit(*b)
+            .partial_cmp(&deficit(*a))
+            .unwrap_or(Ordering::Equal)
+            .then((*a as i32).cmp(&(*b as i32)))
+    };
+    let mut scored = Vec::new();
+    let mut ruled_out: Vec<MuscleGroup> = Vec::new();
+    for (index, template) in templates.iter().filter(|t| t.in_rotation).enumerate() {
+        let mut behind = Vec::new();
+        for muscle in primary_muscles(&template.exercises) {
+            if deficit(muscle) <= 0.0 {
+                continue;
+            }
+            if recovering(muscle).is_some() {
+                if !ruled_out.contains(&muscle) {
+                    ruled_out.push(muscle);
+                }
+            } else {
+                behind.push(muscle);
+            }
+        }
+        behind.sort_by(by_deficit);
+        scored.push(Scored {
+            template,
+            index,
+            started: last_started.get(&template.id).copied().unwrap_or(0),
+            score: behind.iter().map(|m| deficit(*m)).sum(),
+            behind,
+        });
+    }
+    let best = scored.iter().map(|s| s.score).fold(0.0f32, f32::max);
+    let fallback = best <= 0.0;
+    let close = |s: &Scored| s.score >= best * TIE_FRACTION;
+    let overdue = |s: &Scored| s.score > 0.0 && now - s.started >= OVERDUE_SECONDS;
+    let winner = scored
+        .iter()
+        .filter(|s| fallback || close(s) || overdue(s))
+        .min_by(|a, b| {
+            a.started
+                .cmp(&b.started)
+                .then(b.score.partial_cmp(&a.score).unwrap_or(Ordering::Equal))
+                .then(a.index.cmp(&b.index))
+        })?;
+
+    ruled_out.sort_by(by_deficit);
+    Some(Suggestion {
+        template_id: winner.template.id.clone(),
+        reason: SuggestionReason {
+            behind: winner
+                .behind
+                .iter()
+                .map(|m| {
+                    let (done, target) = sets(*m);
+                    SuggestionMuscle {
+                        muscle: *m as i32,
+                        sets_7d: done,
+                        target,
+                    }
+                })
+                .collect(),
+            recovering: ruled_out
+                .iter()
+                .filter_map(|m| recovering(*m))
+                .map(|r| RecoveringMuscle {
+                    muscle: r.muscle as i32,
+                    hours_remaining: r.hours_remaining(now) as i32,
+                })
+                .collect(),
+            fallback,
+            overdue: !fallback && !close(winner),
+        },
+    })
 }
 
 #[cfg(test)]
@@ -247,54 +310,216 @@ mod tests {
             id: id.to_string(),
             name: id.to_string(),
             exercises: exercises.iter().map(|e| *e as i32).collect(),
+            in_rotation: true,
             ..Default::default()
         }
     }
 
+    fn suggest(
+        templates: &[WorkoutTemplate],
+        history: &[WorkoutRecord],
+        now: i64,
+        last: &HashMap<String, i64>,
+    ) -> Option<Suggestion> {
+        suggest_template(
+            templates,
+            &muscle_volume_7d(history, now),
+            &per_muscle_recovery(history, now),
+            now,
+            last,
+        )
+    }
+
+    use crate::recovery::per_muscle_recovery;
+
     /// The template covering the most-behind muscles wins, and the reason
-    /// names them.
+    /// names them with their sets and the target.
     #[test]
     fn suggestion_picks_the_biggest_deficit() {
         let now = 1_000_000;
-        // Ten quad sets this week, nothing else: legs are covered, pull is not.
+        // Ten leg extensions three days ago: quads covered and rested.
         let history = vec![record_with_sets(
-            now - 3600,
+            now - 3 * 86_400,
             &[(Exercise::LegExtension, false); 10],
         )];
-        let volume = muscle_volume_7d(&history, now);
         let templates = vec![
             template("legs", &[Exercise::Squat, Exercise::LegExtension]),
             template("pull", &[Exercise::BarbellRow, Exercise::BarbellCurl]),
         ];
-        let (id, reason) =
-            suggest_template(&templates, &volume, &HashMap::new()).expect("a suggestion");
-        assert_eq!(id, "pull");
-        assert!(reason.contains("Back"), "{reason}");
+        let got = suggest(&templates, &history, now, &HashMap::new()).expect("a suggestion");
+        assert_eq!(got.template_id, "pull");
+        let behind: Vec<i32> = got.reason.behind.iter().map(|m| m.muscle).collect();
+        assert_eq!(
+            behind,
+            vec![MuscleGroup::Back as i32, MuscleGroup::Biceps as i32]
+        );
+        assert_eq!(got.reason.behind[0].sets_7d, 0.0);
+        assert_eq!(got.reason.behind[0].target, VOLUME_TARGET_LOW);
+        assert!(got.reason.recovering.is_empty());
+        assert!(!got.reason.fallback);
     }
 
-    /// Equal scores: the least recently started template wins.
+    /// A muscle still recovering scores nothing, however far behind: a
+    /// squat yesterday rules legs out and the reason says for how long.
     #[test]
-    fn ties_break_toward_least_recent() {
-        let volume = muscle_volume_7d(&[], 1_000_000);
+    fn recovering_muscles_score_nothing() {
+        let now = 1_000_000;
+        let history = vec![record_with_sets(
+            now - 20 * 3600,
+            &[(Exercise::Squat, false)],
+        )];
         let templates = vec![
-            template("a", &[Exercise::Squat]),
-            template("b", &[Exercise::Squat]),
+            template(
+                "legs",
+                &[
+                    Exercise::Squat,
+                    Exercise::RomanianDeadlift,
+                    Exercise::HipThrust,
+                ],
+            ),
+            template("arms", &[Exercise::BarbellCurl]),
         ];
-        let mut last = HashMap::new();
-        last.insert("a".to_string(), 500i64);
-        let (id, _) = suggest_template(&templates, &volume, &last).expect("a suggestion");
-        assert_eq!(id, "b", "never-started beats recently-started");
+        let got = suggest(&templates, &history, now, &HashMap::new()).expect("a suggestion");
+        // Legs: glutes (9.5 behind) and quads (9) recovering, so only
+        // hamstrings (10) count;
+        // arms: biceps (10). Tied, and neither started: the higher score,
+        // then the earlier template.
+        assert_eq!(got.template_id, "legs");
+        let recovering: Vec<(i32, i32)> = got
+            .reason
+            .recovering
+            .iter()
+            .map(|r| (r.muscle, r.hours_remaining))
+            .collect();
+        assert_eq!(
+            recovering,
+            vec![
+                (MuscleGroup::Glutes as i32, 28),
+                (MuscleGroup::Quads as i32, 28)
+            ]
+        );
+        let behind: Vec<i32> = got.reason.behind.iter().map(|m| m.muscle).collect();
+        assert_eq!(behind, vec![MuscleGroup::Hamstrings as i32]);
     }
 
+    /// Within 20% of the best score is a tie, and the tie goes to the
+    /// template started least recently. Past 20% the higher score wins
+    /// whoever was started last.
     #[test]
-    fn no_deficit_means_no_suggestion() {
+    fn ties_within_a_fifth_go_to_the_least_recent() {
+        let now = 1_000_000;
+        // Nothing done: chest, back and biceps 10 behind each.
+        let big = template(
+            "big",
+            &[
+                Exercise::BenchPress,
+                Exercise::BarbellRow,
+                Exercise::BarbellCurl,
+            ],
+        );
+        let pull = template("pull", &[Exercise::BarbellRow, Exercise::BarbellCurl]);
+        let mut last = HashMap::new();
+        last.insert("big".to_string(), now - 86_400);
+        last.insert("pull".to_string(), now - 2 * 86_400);
+        // 20 is under 80% of 30: big wins though started since.
+        let got = suggest(&[big.clone(), pull], &[], now, &last).unwrap();
+        assert_eq!(got.template_id, "big");
+        assert!(!got.reason.overdue);
+
+        // Core 5 behind as well: 25 against 30 is a tie, and the template
+        // started earlier wins it.
+        let pull_core = template(
+            "pull_core",
+            &[
+                Exercise::BarbellRow,
+                Exercise::BarbellCurl,
+                Exercise::Crunch,
+            ],
+        );
+        last.insert("pull_core".to_string(), now - 2 * 86_400);
+        let history = vec![record_with_sets(
+            now - 3 * 86_400,
+            &[(Exercise::Crunch, false); 5],
+        )];
+        let got = suggest(&[big.clone(), pull_core.clone()], &history, now, &last).unwrap();
+        assert_eq!(got.template_id, "pull_core");
+        assert!(!got.reason.overdue, "it won the tie on its score");
+
+        // Started more recently than big: big wins the tie.
+        last.insert("pull_core".to_string(), now - 2 * 3600);
+        let got = suggest(&[big, pull_core], &history, now, &last).unwrap();
+        assert_eq!(got.template_id, "big");
+    }
+
+    /// A template never started, or not started in 14 days, joins the tie
+    /// with anything recovered and behind, however far below the best.
+    #[test]
+    fn an_overdue_template_joins_the_tie() {
+        let now = 100 * 86_400;
+        let big = template(
+            "big",
+            &[
+                Exercise::BenchPress,
+                Exercise::BarbellRow,
+                Exercise::BarbellCurl,
+            ],
+        );
+        let small = template("small", &[Exercise::BenchPress]);
+        let mut last = HashMap::new();
+        last.insert("big".to_string(), now - 86_400);
+        let got = suggest(&[big.clone(), small.clone()], &[], now, &last).unwrap();
+        assert_eq!(got.template_id, "small", "never started");
+        assert!(got.reason.overdue);
+
+        last.insert("small".to_string(), now - 13 * 86_400);
+        let got = suggest(&[big.clone(), small.clone()], &[], now, &last).unwrap();
+        assert_eq!(got.template_id, "big", "13 days is not overdue");
+
+        last.insert("small".to_string(), now - 14 * 86_400);
+        let got = suggest(&[big.clone(), small.clone()], &[], now, &last).unwrap();
+        assert_eq!(got.template_id, "small");
+
+        // Overdue with nothing behind is not enough.
+        let history = vec![record_with_sets(
+            now - 3 * 86_400,
+            &[(Exercise::BenchPress, false); 10],
+        )];
+        let got = suggest(&[big, small], &history, now, &last).unwrap();
+        assert_eq!(got.template_id, "big");
+    }
+
+    /// Nothing recovered and behind: the rotation template started least
+    /// recently, flagged as the fallback.
+    #[test]
+    fn nothing_behind_falls_back_to_the_least_recent() {
         let now = 1_000_000;
         let history = vec![record_with_sets(
             now - 3600,
             &[(Exercise::Squat, false); 12],
         )];
-        let volume = muscle_volume_7d(&history, now);
-        let templates = vec![template("legs", &[Exercise::Squat])];
-        assert!(suggest_template(&templates, &volume, &HashMap::new()).is_none());
+        let templates = vec![
+            template("a", &[Exercise::Squat]),
+            template("b", &[Exercise::LegPress]),
+        ];
+        let mut last = HashMap::new();
+        last.insert("a".to_string(), now - 2 * 86_400);
+        last.insert("b".to_string(), now - 5 * 86_400);
+        let got = suggest(&templates, &history, now, &last).expect("a suggestion");
+        assert_eq!(got.template_id, "b");
+        assert!(got.reason.fallback);
+        assert!(got.reason.behind.is_empty());
+    }
+
+    /// Favourites are never suggested, however far behind; with nothing in
+    /// rotation there is no suggestion.
+    #[test]
+    fn favourites_are_never_suggested() {
+        let now = 1_000_000;
+        let mut legs = template("legs", &[Exercise::Squat, Exercise::RomanianDeadlift]);
+        legs.in_rotation = false;
+        let arms = template("arms", &[Exercise::BarbellCurl]);
+        let got = suggest(&[legs.clone(), arms], &[], now, &HashMap::new()).unwrap();
+        assert_eq!(got.template_id, "arms");
+        assert!(suggest(&[legs], &[], now, &HashMap::new()).is_none());
     }
 }

@@ -159,7 +159,8 @@ impl Account {
                     if self.templates.iter().any(|t| t.library_id == entry.id) {
                         continue; // already in the user's list
                     }
-                    self.save_template(library_copy(&entry), at, &mut ids)?;
+                    // Added later, a library template is a favourite.
+                    self.save_template(library_copy(&entry, false), at, &mut ids)?;
                 }
             }
             event::Kind::SetOverride(req) => self.set_override(req, at)?,
@@ -431,8 +432,9 @@ impl Account {
         for w in &req.starting_weights {
             self.starting_weights.insert(w.exercise, w.weight_lb);
         }
+        // The workouts picked at onboarding are the rotation.
         for entry in entries {
-            self.save_template(library_copy(&entry), at, ids)?;
+            self.save_template(library_copy(&entry, true), at, ids)?;
         }
         Ok(())
     }
@@ -554,9 +556,10 @@ fn library_entries(
 }
 
 /// A library entry in the user's list: a new template (empty id, given one
-/// and an order on save), coupled to the entry.
-fn library_copy(entry: &LibraryTemplate) -> WorkoutTemplate {
+/// and an order on save), coupled to the entry, in rotation or a favourite.
+fn library_copy(entry: &LibraryTemplate, in_rotation: bool) -> WorkoutTemplate {
     WorkoutTemplate {
+        in_rotation,
         name: entry.name.clone(),
         exercises: entry.exercises.clone(),
         library_id: entry.id.clone(),

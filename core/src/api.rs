@@ -15,6 +15,7 @@ use crate::pb::*;
 use crate::plan::Planner;
 use crate::progress::{compute_exercise_progress, compute_next_up_set, compute_workout_summary};
 use crate::recovery::per_muscle_recovery;
+use crate::rotation::rotation_check;
 use crate::volume::{muscle_volume_7d, suggest_template};
 use crate::workout::{
     active_proposed_sets, get_workout_response_from_active, start_workout_response_from_active,
@@ -274,17 +275,25 @@ impl<'a> Call<'a> {
             .as_ref()
             .map(|t| t.id.clone())
             .unwrap_or_default();
-        // Saving a coupled template as the library has it changes nothing.
-        if let (Some(existing), Some(saved)) = (self.account.template(&given), &req.template) {
+        if let (Some(existing), Some(saved)) = (self.account.template(&given), &mut req.template) {
             let shown = self.view().resolved(existing);
             if existing.coupled && shown.name == saved.name && shown.exercises == saved.exercises {
-                return Ok(SaveTemplateResponse {
-                    template: Some(shown),
-                });
+                // Saving a coupled template as the library has it changes
+                // nothing but, maybe, whether it is in rotation: that is
+                // saved on the stored copy, so it stays coupled.
+                if existing.in_rotation == saved.in_rotation {
+                    return Ok(SaveTemplateResponse {
+                        template: Some(shown),
+                    });
+                }
+                saved.name = existing.name.clone();
+                saved.exercises = existing.exercises.clone();
+            } else {
+                // Anything else is a real change to what the user sees, even
+                // if it happens to match the copy stored when the template
+                // was added.
+                req.unlink = existing.coupled;
             }
-            // Anything else is a real change to what the user sees, even if it
-            // happens to match the copy stored when the template was added.
-            req.unlink = existing.coupled;
         }
         let event_id = self.record(event::Kind::SaveTemplate(req))?;
         // A new template takes the event's first derived id.
@@ -608,8 +617,9 @@ impl<'a> View<'a> {
             .map(|decision| planner.view(decision))
             .collect();
         let volume = muscle_volume_7d(&recent, self.now);
-        let recovery = per_muscle_recovery(&recent, self.now)
-            .into_iter()
+        let muscle_recovery = per_muscle_recovery(&recent, self.now);
+        let recovery = muscle_recovery
+            .iter()
             .map(|entry| MuscleRecoveryStatus {
                 muscle_key: muscle_key(entry.muscle).to_string(),
                 label: muscle_label(entry.muscle).to_string(),
@@ -636,8 +646,13 @@ impl<'a> View<'a> {
             .iter()
             .map(|t| self.resolved(t))
             .collect();
-        let (suggested_template_id, suggestion_reason) =
-            suggest_template(&templates, &volume, &last_started).unwrap_or_default();
+        let suggestion = suggest_template(
+            &templates,
+            &volume,
+            &muscle_recovery,
+            self.now,
+            &last_started,
+        );
         let template_plans = templates
             .iter()
             .map(|t| {
@@ -652,15 +667,19 @@ impl<'a> View<'a> {
 
         GetHomeResponse {
             onboarded: !templates.is_empty() || !self.account.workouts.is_empty(),
-            templates,
             plans,
             template_plans,
             budget_minutes: budget,
             active_workout_id: self.account.active_workout_id.clone(),
             volume,
             recovery,
-            suggested_template_id,
-            suggestion_reason,
+            rotation_check: Some(rotation_check(&templates)),
+            suggested_template_id: suggestion
+                .as_ref()
+                .map(|s| s.template_id.clone())
+                .unwrap_or_default(),
+            suggestion_reason: suggestion.map(|s| s.reason),
+            templates,
         }
     }
 

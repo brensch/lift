@@ -613,6 +613,10 @@ message WorkoutTemplate {
   // the library's current ones (the stored ones are kept for when the entry
   // is gone). False for the user's own templates.
   bool coupled = 8;
+  // In the rotation the suggestion picks from; out of it, a favourite (on
+  // Home, never suggested). The library defaults added at onboarding start
+  // in rotation; every other template starts as a favourite.
+  bool in_rotation = 9;
 }
 
 // One entry of the template library (templates/library.yaml): a workout
@@ -689,11 +693,12 @@ message GetHomeResponse {
   string active_workout_id = 3;
   repeated MuscleVolume volume = 5;
   repeated MuscleRecoveryStatus recovery = 6;
-  // A stateless suggestion: the template whose muscles are furthest
-  // below the volume band, ties broken toward the least recently
-  // started. Never a gate — any template can be started.
+  // A stateless suggestion from the rotation: the template whose
+  // recovered muscles are furthest below the volume band, ties (within
+  // 20% of the best, or overdue) to the least recently started. Never a
+  // gate: any template can be started. Empty when nothing is in rotation.
   string suggested_template_id = 7;
-  string suggestion_reason = 8; // "Back and biceps are 6 sets behind"
+  SuggestionReason suggestion_reason = 13;
   bool onboarded = 9; // templates or workouts exist
   // Every exercise in the catalog, planned at the home's now on its own (a
   // workout of that one lift, in the budget).
@@ -702,8 +707,72 @@ message GetHomeResponse {
   // what starting it then records.
   repeated TemplatePlan template_plans = 11;
   int32 budget_minutes = 12;
-  reserved 2, 4;
+  // The rotation's shape, one pass through it: sets per muscle and what
+  // is wrong with it.
+  RotationCheck rotation_check = 14;
+  reserved 2, 4, 8;
   reserved "trackers", "user_messages";
+}
+
+// Why the suggestion is the template it is.
+message SuggestionReason {
+  // The suggested template's primary muscles that are recovered and below
+  // the weekly band: what it scored on, most behind first.
+  repeated SuggestionMuscle behind = 1;
+  // Muscles the rotation trains that are below the band but still
+  // recovering, so they scored nothing: most behind first.
+  repeated RecoveringMuscle recovering = 2;
+  // Nothing in rotation was both recovered and behind: the suggestion is
+  // the rotation template started least recently.
+  bool fallback = 3;
+  // It won on being overdue (not started in 14 days, or never), not on
+  // coming within a fifth of the best score.
+  bool overdue = 4;
+}
+
+message SuggestionMuscle {
+  MuscleGroup muscle = 1;
+  float sets_7d = 2; // weighted hard sets in the last 7 days
+  int32 target = 3; // the band's floor (10)
+}
+
+message RecoveringMuscle {
+  MuscleGroup muscle = 1;
+  int32 hours_remaining = 2; // rounded up
+}
+
+// One pass through the rotation, each template once with three working
+// sets a lift, counted the way Home counts the week (primary 1.0,
+// secondary 0.5).
+message RotationCheck {
+  // One entry per muscle; completed_sets_7d holds the pass's sets.
+  repeated MuscleVolume volume = 1;
+  // Empty when nothing is wrong.
+  repeated RotationWarning warnings = 2;
+}
+
+message RotationWarning {
+  RotationWarningKind kind = 1;
+  // GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+  // least-trained trained muscle.
+  repeated MuscleGroup muscles = 2;
+  // OVERLAP: the two templates.
+  repeated string template_ids = 3;
+  // OVERLAP: lifts the two share, and the smaller template's count.
+  int32 shared = 4;
+  int32 of = 5;
+}
+
+enum RotationWarningKind {
+  ROTATION_WARNING_KIND_UNSPECIFIED = 0;
+  // A muscle nothing in rotation trains.
+  ROTATION_WARNING_KIND_GAP = 1;
+  // Two templates sharing over 70% of the smaller one's lifts.
+  ROTATION_WARNING_KIND_OVERLAP = 2;
+  // The most-trained muscle gets 3x or more the least-trained one.
+  ROTATION_WARNING_KIND_LOPSIDED = 3;
+  // Fewer than two templates in rotation.
+  ROTATION_WARNING_KIND_TOO_FEW = 4;
 }
 
 message TemplatePlan {

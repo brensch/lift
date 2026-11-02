@@ -60,6 +60,36 @@ library:
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
+# The rotation: the workouts the suggestion picks from. The rest are
+# favourites, on Home after a divider and never suggested. {…} are
+# substituted by the code. All placeholder copy.
+rotation:
+  # The template editor's switch, and the line under it.
+  switch_label: In rotation
+  switch_hint: The suggestion picks from these. Off, it's a favourite.
+  # Home card menu.
+  add: Put in rotation
+  remove: Make it a favourite
+  # Home, under the suggested workout's name: the (at most two) muscles
+  # most behind. {muscles} is "chest 2/10" or "chest 2/10 and back 0/10".
+  rested_one: "{muscles} this week, rested"
+  rested_two: "{muscles} this week, both rested"
+  # Joins the last two of a list.
+  and: and
+  # A muscle that would have counted but isn't ready.
+  recovering: "{muscle} recovering ({hours}h)"
+  # Picked for not having been done in two weeks (or ever).
+  overdue: "Not done in a while"
+  # Nothing is both rested and behind: the one waiting longest.
+  fallback: "Everything's recovering or done. This one's waited longest."
+  # The rotation check, at the top of the Edit sheet.
+  check_title: One lap of the rotation
+  check_body: Sets per muscle, each workout once at three sets a lift.
+  gap: "Nothing trains {muscles}."
+  overlap: "{a} and {b} share {shared} of {of} lifts."
+  lopsided: "{most} gets three times what {least} gets."
+  too_few: "Put two or more workouts in rotation."
+
 # Sign-in screen.
 login:
   new_user_tab: NEW USER

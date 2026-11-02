@@ -1718,6 +1718,154 @@ public final class WorkoutOuterClass {
     // @@protoc_insertion_point(enum_scope:workout.v1.WorkoutState)
   }
 
+  /**
+   * Protobuf enum {@code workout.v1.RotationWarningKind}
+   */
+  public enum RotationWarningKind
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>ROTATION_WARNING_KIND_UNSPECIFIED = 0;</code>
+     */
+    ROTATION_WARNING_KIND_UNSPECIFIED(0),
+    /**
+     * <pre>
+     * A muscle nothing in rotation trains.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_GAP = 1;</code>
+     */
+    ROTATION_WARNING_KIND_GAP(1),
+    /**
+     * <pre>
+     * Two templates sharing over 70% of the smaller one's lifts.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_OVERLAP = 2;</code>
+     */
+    ROTATION_WARNING_KIND_OVERLAP(2),
+    /**
+     * <pre>
+     * The most-trained muscle gets 3x or more the least-trained one.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_LOPSIDED = 3;</code>
+     */
+    ROTATION_WARNING_KIND_LOPSIDED(3),
+    /**
+     * <pre>
+     * Fewer than two templates in rotation.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_TOO_FEW = 4;</code>
+     */
+    ROTATION_WARNING_KIND_TOO_FEW(4),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>ROTATION_WARNING_KIND_UNSPECIFIED = 0;</code>
+     */
+    public static final int ROTATION_WARNING_KIND_UNSPECIFIED_VALUE = 0;
+    /**
+     * <pre>
+     * A muscle nothing in rotation trains.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_GAP = 1;</code>
+     */
+    public static final int ROTATION_WARNING_KIND_GAP_VALUE = 1;
+    /**
+     * <pre>
+     * Two templates sharing over 70% of the smaller one's lifts.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_OVERLAP = 2;</code>
+     */
+    public static final int ROTATION_WARNING_KIND_OVERLAP_VALUE = 2;
+    /**
+     * <pre>
+     * The most-trained muscle gets 3x or more the least-trained one.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_LOPSIDED = 3;</code>
+     */
+    public static final int ROTATION_WARNING_KIND_LOPSIDED_VALUE = 3;
+    /**
+     * <pre>
+     * Fewer than two templates in rotation.
+     * </pre>
+     *
+     * <code>ROTATION_WARNING_KIND_TOO_FEW = 4;</code>
+     */
+    public static final int ROTATION_WARNING_KIND_TOO_FEW_VALUE = 4;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static RotationWarningKind valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static RotationWarningKind forNumber(int value) {
+      switch (value) {
+        case 0: return ROTATION_WARNING_KIND_UNSPECIFIED;
+        case 1: return ROTATION_WARNING_KIND_GAP;
+        case 2: return ROTATION_WARNING_KIND_OVERLAP;
+        case 3: return ROTATION_WARNING_KIND_LOPSIDED;
+        case 4: return ROTATION_WARNING_KIND_TOO_FEW;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<RotationWarningKind>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        RotationWarningKind> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<RotationWarningKind>() {
+            @java.lang.Override
+            public RotationWarningKind findValueByNumber(int number) {
+              return RotationWarningKind.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return RotationWarningKindVerifier.INSTANCE;
+    }
+
+    private static final class RotationWarningKindVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new RotationWarningKindVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return RotationWarningKind.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private RotationWarningKind(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.RotationWarningKind)
+  }
+
   public interface UserOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.User)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -28418,6 +28566,18 @@ public final class WorkoutOuterClass {
      * @return The coupled.
      */
     boolean getCoupled();
+
+    /**
+     * <pre>
+     * In the rotation the suggestion picks from; out of it, a favourite (on
+     * Home, never suggested). The library defaults added at onboarding start
+     * in rotation; every other template starts as a favourite.
+     * </pre>
+     *
+     * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+     * @return The inRotation.
+     */
+    boolean getInRotation();
   }
   /**
    * <pre>
@@ -28856,6 +29016,50 @@ public final class WorkoutOuterClass {
     private void clearCoupled() {
       
       coupled_ = false;
+    }
+
+    public static final int IN_ROTATION_FIELD_NUMBER = 9;
+    private boolean inRotation_;
+    /**
+     * <pre>
+     * In the rotation the suggestion picks from; out of it, a favourite (on
+     * Home, never suggested). The library defaults added at onboarding start
+     * in rotation; every other template starts as a favourite.
+     * </pre>
+     *
+     * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+     * @return The inRotation.
+     */
+    @java.lang.Override
+    public boolean getInRotation() {
+      return inRotation_;
+    }
+    /**
+     * <pre>
+     * In the rotation the suggestion picks from; out of it, a favourite (on
+     * Home, never suggested). The library defaults added at onboarding start
+     * in rotation; every other template starts as a favourite.
+     * </pre>
+     *
+     * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+     * @param value The inRotation to set.
+     */
+    private void setInRotation(boolean value) {
+      
+      inRotation_ = value;
+    }
+    /**
+     * <pre>
+     * In the rotation the suggestion picks from; out of it, a favourite (on
+     * Home, never suggested). The library defaults added at onboarding start
+     * in rotation; every other template starts as a favourite.
+     * </pre>
+     *
+     * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+     */
+    private void clearInRotation() {
+      
+      inRotation_ = false;
     }
 
     public static workout.v1.WorkoutOuterClass.WorkoutTemplate parseFrom(
@@ -29379,6 +29583,52 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * In the rotation the suggestion picks from; out of it, a favourite (on
+       * Home, never suggested). The library defaults added at onboarding start
+       * in rotation; every other template starts as a favourite.
+       * </pre>
+       *
+       * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+       * @return The inRotation.
+       */
+      @java.lang.Override
+      public boolean getInRotation() {
+        return instance.getInRotation();
+      }
+      /**
+       * <pre>
+       * In the rotation the suggestion picks from; out of it, a favourite (on
+       * Home, never suggested). The library defaults added at onboarding start
+       * in rotation; every other template starts as a favourite.
+       * </pre>
+       *
+       * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+       * @param value The inRotation to set.
+       * @return This builder for chaining.
+       */
+      public Builder setInRotation(boolean value) {
+        copyOnWrite();
+        instance.setInRotation(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * In the rotation the suggestion picks from; out of it, a favourite (on
+       * Home, never suggested). The library defaults added at onboarding start
+       * in rotation; every other template starts as a favourite.
+       * </pre>
+       *
+       * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearInRotation() {
+        copyOnWrite();
+        instance.clearInRotation();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WorkoutTemplate)
     }
     @java.lang.Override
@@ -29403,10 +29653,11 @@ public final class WorkoutOuterClass {
               "updatedAt_",
               "libraryId_",
               "coupled_",
+              "inRotation_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0001\u0000\u0001\u0208\u0002\u0208\u0003\u0004" +
-                "\u0004,\u0005\u0002\u0006\u0002\u0007\u0208\b\u0007";
+                "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0001\u0000\u0001\u0208\u0002\u0208\u0003\u0004" +
+                "\u0004,\u0005\u0002\u0006\u0002\u0007\u0208\b\u0007\t\u0007";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -34966,9 +35217,10 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -34977,9 +35229,10 @@ public final class WorkoutOuterClass {
     java.lang.String getSuggestedTemplateId();
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -34989,24 +35242,15 @@ public final class WorkoutOuterClass {
         getSuggestedTemplateIdBytes();
 
     /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
+     * @return Whether the suggestionReason field is set.
+     */
+    boolean hasSuggestionReason();
+    /**
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
      * @return The suggestionReason.
      */
-    java.lang.String getSuggestionReason();
-    /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-     * @return The bytes for suggestionReason.
-     */
-    com.google.protobuf.ByteString
-        getSuggestionReasonBytes();
+    workout.v1.WorkoutOuterClass.SuggestionReason getSuggestionReason();
 
     /**
      * <pre>
@@ -35081,6 +35325,27 @@ public final class WorkoutOuterClass {
      * @return The budgetMinutes.
      */
     int getBudgetMinutes();
+
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     * @return Whether the rotationCheck field is set.
+     */
+    boolean hasRotationCheck();
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     * @return The rotationCheck.
+     */
+    workout.v1.WorkoutOuterClass.RotationCheck getRotationCheck();
   }
   /**
    * Protobuf type {@code workout.v1.GetHomeResponse}
@@ -35096,7 +35361,6 @@ public final class WorkoutOuterClass {
       volume_ = emptyProtobufList();
       recovery_ = emptyProtobufList();
       suggestedTemplateId_ = "";
-      suggestionReason_ = "";
       plans_ = emptyProtobufList();
       templatePlans_ = emptyProtobufList();
     }
@@ -35477,9 +35741,10 @@ public final class WorkoutOuterClass {
     private java.lang.String suggestedTemplateId_;
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -35491,9 +35756,10 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -35506,9 +35772,10 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -35522,9 +35789,10 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -35535,9 +35803,10 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * A stateless suggestion: the template whose muscles are furthest
-     * below the volume band, ties broken toward the least recently
-     * started. Never a gate — any template can be started.
+     * A stateless suggestion from the rotation: the template whose
+     * recovered muscles are furthest below the volume band, ties (within
+     * 20% of the best, or overdue) to the least recently started. Never a
+     * gate: any template can be started. Empty when nothing is in rotation.
      * </pre>
      *
      * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -35550,70 +35819,49 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int SUGGESTION_REASON_FIELD_NUMBER = 8;
-    private java.lang.String suggestionReason_;
+    public static final int SUGGESTION_REASON_FIELD_NUMBER = 13;
+    private workout.v1.WorkoutOuterClass.SuggestionReason suggestionReason_;
     /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-     * @return The suggestionReason.
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
      */
     @java.lang.Override
-    public java.lang.String getSuggestionReason() {
-      return suggestionReason_;
+    public boolean hasSuggestionReason() {
+      return suggestionReason_ != null;
     }
     /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-     * @return The bytes for suggestionReason.
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
      */
     @java.lang.Override
-    public com.google.protobuf.ByteString
-        getSuggestionReasonBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(suggestionReason_);
+    public workout.v1.WorkoutOuterClass.SuggestionReason getSuggestionReason() {
+      return suggestionReason_ == null ? workout.v1.WorkoutOuterClass.SuggestionReason.getDefaultInstance() : suggestionReason_;
     }
     /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-     * @param value The suggestionReason to set.
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
      */
-    private void setSuggestionReason(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      suggestionReason_ = value;
-    }
-    /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-     */
-    private void clearSuggestionReason() {
+    private void setSuggestionReason(workout.v1.WorkoutOuterClass.SuggestionReason value) {
+      value.getClass();
+  suggestionReason_ = value;
       
-      suggestionReason_ = getDefaultInstance().getSuggestionReason();
+      }
+    /**
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeSuggestionReason(workout.v1.WorkoutOuterClass.SuggestionReason value) {
+      value.getClass();
+  if (suggestionReason_ != null &&
+          suggestionReason_ != workout.v1.WorkoutOuterClass.SuggestionReason.getDefaultInstance()) {
+        suggestionReason_ =
+          workout.v1.WorkoutOuterClass.SuggestionReason.newBuilder(suggestionReason_).mergeFrom(value).buildPartial();
+      } else {
+        suggestionReason_ = value;
+      }
+      
     }
     /**
-     * <pre>
-     * "Back and biceps are 6 sets behind"
-     * </pre>
-     *
-     * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-     * @param value The bytes for suggestionReason to set.
+     * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
      */
-    private void setSuggestionReasonBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      suggestionReason_ = value.toStringUtf8();
+    private void clearSuggestionReason() {  suggestionReason_ = null;
       
     }
 
@@ -35977,6 +36225,77 @@ public final class WorkoutOuterClass {
     private void clearBudgetMinutes() {
       
       budgetMinutes_ = 0;
+    }
+
+    public static final int ROTATION_CHECK_FIELD_NUMBER = 14;
+    private workout.v1.WorkoutOuterClass.RotationCheck rotationCheck_;
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     */
+    @java.lang.Override
+    public boolean hasRotationCheck() {
+      return rotationCheck_ != null;
+    }
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RotationCheck getRotationCheck() {
+      return rotationCheck_ == null ? workout.v1.WorkoutOuterClass.RotationCheck.getDefaultInstance() : rotationCheck_;
+    }
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     */
+    private void setRotationCheck(workout.v1.WorkoutOuterClass.RotationCheck value) {
+      value.getClass();
+  rotationCheck_ = value;
+      
+      }
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeRotationCheck(workout.v1.WorkoutOuterClass.RotationCheck value) {
+      value.getClass();
+  if (rotationCheck_ != null &&
+          rotationCheck_ != workout.v1.WorkoutOuterClass.RotationCheck.getDefaultInstance()) {
+        rotationCheck_ =
+          workout.v1.WorkoutOuterClass.RotationCheck.newBuilder(rotationCheck_).mergeFrom(value).buildPartial();
+      } else {
+        rotationCheck_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * The rotation's shape, one pass through it: sets per muscle and what
+     * is wrong with it.
+     * </pre>
+     *
+     * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+     */
+    private void clearRotationCheck() {  rotationCheck_ = null;
+      
     }
 
     public static workout.v1.WorkoutOuterClass.GetHomeResponse parseFrom(
@@ -36479,9 +36798,10 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * A stateless suggestion: the template whose muscles are furthest
-       * below the volume band, ties broken toward the least recently
-       * started. Never a gate — any template can be started.
+       * A stateless suggestion from the rotation: the template whose
+       * recovered muscles are furthest below the volume band, ties (within
+       * 20% of the best, or overdue) to the least recently started. Never a
+       * gate: any template can be started. Empty when nothing is in rotation.
        * </pre>
        *
        * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -36493,9 +36813,10 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * A stateless suggestion: the template whose muscles are furthest
-       * below the volume band, ties broken toward the least recently
-       * started. Never a gate — any template can be started.
+       * A stateless suggestion from the rotation: the template whose
+       * recovered muscles are furthest below the volume band, ties (within
+       * 20% of the best, or overdue) to the least recently started. Never a
+       * gate: any template can be started. Empty when nothing is in rotation.
        * </pre>
        *
        * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -36508,9 +36829,10 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * A stateless suggestion: the template whose muscles are furthest
-       * below the volume band, ties broken toward the least recently
-       * started. Never a gate — any template can be started.
+       * A stateless suggestion from the rotation: the template whose
+       * recovered muscles are furthest below the volume band, ties (within
+       * 20% of the best, or overdue) to the least recently started. Never a
+       * gate: any template can be started. Empty when nothing is in rotation.
        * </pre>
        *
        * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -36525,9 +36847,10 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * A stateless suggestion: the template whose muscles are furthest
-       * below the volume band, ties broken toward the least recently
-       * started. Never a gate — any template can be started.
+       * A stateless suggestion from the rotation: the template whose
+       * recovered muscles are furthest below the volume band, ties (within
+       * 20% of the best, or overdue) to the least recently started. Never a
+       * gate: any template can be started. Empty when nothing is in rotation.
        * </pre>
        *
        * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -36540,9 +36863,10 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * A stateless suggestion: the template whose muscles are furthest
-       * below the volume band, ties broken toward the least recently
-       * started. Never a gate — any template can be started.
+       * A stateless suggestion from the rotation: the template whose
+       * recovered muscles are furthest below the volume band, ties (within
+       * 20% of the best, or overdue) to the least recently started. Never a
+       * gate: any template can be started. Empty when nothing is in rotation.
        * </pre>
        *
        * <code>string suggested_template_id = 7 [json_name = "suggestedTemplateId"];</code>
@@ -36557,71 +36881,49 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <pre>
-       * "Back and biceps are 6 sets behind"
-       * </pre>
-       *
-       * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-       * @return The suggestionReason.
+       * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
        */
       @java.lang.Override
-      public java.lang.String getSuggestionReason() {
+      public boolean hasSuggestionReason() {
+        return instance.hasSuggestionReason();
+      }
+      /**
+       * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.SuggestionReason getSuggestionReason() {
         return instance.getSuggestionReason();
       }
       /**
-       * <pre>
-       * "Back and biceps are 6 sets behind"
-       * </pre>
-       *
-       * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-       * @return The bytes for suggestionReason.
+       * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
        */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getSuggestionReasonBytes() {
-        return instance.getSuggestionReasonBytes();
-      }
-      /**
-       * <pre>
-       * "Back and biceps are 6 sets behind"
-       * </pre>
-       *
-       * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-       * @param value The suggestionReason to set.
-       * @return This builder for chaining.
-       */
-      public Builder setSuggestionReason(
-          java.lang.String value) {
+      public Builder setSuggestionReason(workout.v1.WorkoutOuterClass.SuggestionReason value) {
         copyOnWrite();
         instance.setSuggestionReason(value);
         return this;
-      }
+        }
       /**
-       * <pre>
-       * "Back and biceps are 6 sets behind"
-       * </pre>
-       *
-       * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-       * @return This builder for chaining.
+       * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
        */
-      public Builder clearSuggestionReason() {
+      public Builder setSuggestionReason(
+          workout.v1.WorkoutOuterClass.SuggestionReason.Builder builderForValue) {
         copyOnWrite();
-        instance.clearSuggestionReason();
+        instance.setSuggestionReason(builderForValue.build());
         return this;
       }
       /**
-       * <pre>
-       * "Back and biceps are 6 sets behind"
-       * </pre>
-       *
-       * <code>string suggestion_reason = 8 [json_name = "suggestionReason"];</code>
-       * @param value The bytes for suggestionReason to set.
-       * @return This builder for chaining.
+       * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
        */
-      public Builder setSuggestionReasonBytes(
-          com.google.protobuf.ByteString value) {
+      public Builder mergeSuggestionReason(workout.v1.WorkoutOuterClass.SuggestionReason value) {
         copyOnWrite();
-        instance.setSuggestionReasonBytes(value);
+        instance.mergeSuggestionReason(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.SuggestionReason suggestion_reason = 13 [json_name = "suggestionReason"];</code>
+       */
+      public Builder clearSuggestionReason() {  copyOnWrite();
+        instance.clearSuggestionReason();
         return this;
       }
 
@@ -37017,6 +37319,83 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The rotation's shape, one pass through it: sets per muscle and what
+       * is wrong with it.
+       * </pre>
+       *
+       * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+       */
+      @java.lang.Override
+      public boolean hasRotationCheck() {
+        return instance.hasRotationCheck();
+      }
+      /**
+       * <pre>
+       * The rotation's shape, one pass through it: sets per muscle and what
+       * is wrong with it.
+       * </pre>
+       *
+       * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RotationCheck getRotationCheck() {
+        return instance.getRotationCheck();
+      }
+      /**
+       * <pre>
+       * The rotation's shape, one pass through it: sets per muscle and what
+       * is wrong with it.
+       * </pre>
+       *
+       * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+       */
+      public Builder setRotationCheck(workout.v1.WorkoutOuterClass.RotationCheck value) {
+        copyOnWrite();
+        instance.setRotationCheck(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * The rotation's shape, one pass through it: sets per muscle and what
+       * is wrong with it.
+       * </pre>
+       *
+       * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+       */
+      public Builder setRotationCheck(
+          workout.v1.WorkoutOuterClass.RotationCheck.Builder builderForValue) {
+        copyOnWrite();
+        instance.setRotationCheck(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The rotation's shape, one pass through it: sets per muscle and what
+       * is wrong with it.
+       * </pre>
+       *
+       * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+       */
+      public Builder mergeRotationCheck(workout.v1.WorkoutOuterClass.RotationCheck value) {
+        copyOnWrite();
+        instance.mergeRotationCheck(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The rotation's shape, one pass through it: sets per muscle and what
+       * is wrong with it.
+       * </pre>
+       *
+       * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
+       */
+      public Builder clearRotationCheck() {  copyOnWrite();
+        instance.clearRotationCheck();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.GetHomeResponse)
     }
     @java.lang.Override
@@ -37041,17 +37420,19 @@ public final class WorkoutOuterClass {
               "recovery_",
               workout.v1.WorkoutOuterClass.MuscleRecoveryStatus.class,
               "suggestedTemplateId_",
-              "suggestionReason_",
               "onboarded_",
               "plans_",
               workout.v1.WorkoutOuterClass.ExercisePlan.class,
               "templatePlans_",
               workout.v1.WorkoutOuterClass.TemplatePlan.class,
               "budgetMinutes_",
+              "suggestionReason_",
+              "rotationCheck_",
             };
             java.lang.String info =
-                "\u0000\n\u0000\u0000\u0001\f\n\u0000\u0005\u0000\u0001\u001b\u0003\u0208\u0005\u001b" +
-                "\u0006\u001b\u0007\u0208\b\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004";
+                "\u0000\u000b\u0000\u0000\u0001\u000e\u000b\u0000\u0005\u0000\u0001\u001b\u0003\u0208" +
+                "\u0005\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e" +
+                "\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -37102,6 +37483,3895 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<GetHomeResponse> PARSER;
 
     public static com.google.protobuf.Parser<GetHomeResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SuggestionReasonOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SuggestionReason)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.SuggestionMuscle> 
+        getBehindList();
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    workout.v1.WorkoutOuterClass.SuggestionMuscle getBehind(int index);
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    int getBehindCount();
+
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.RecoveringMuscle> 
+        getRecoveringList();
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    workout.v1.WorkoutOuterClass.RecoveringMuscle getRecovering(int index);
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    int getRecoveringCount();
+
+    /**
+     * <pre>
+     * Nothing in rotation was both recovered and behind: the suggestion is
+     * the rotation template started least recently.
+     * </pre>
+     *
+     * <code>bool fallback = 3 [json_name = "fallback"];</code>
+     * @return The fallback.
+     */
+    boolean getFallback();
+
+    /**
+     * <pre>
+     * It won on being overdue (not started in 14 days, or never), not on
+     * coming within a fifth of the best score.
+     * </pre>
+     *
+     * <code>bool overdue = 4 [json_name = "overdue"];</code>
+     * @return The overdue.
+     */
+    boolean getOverdue();
+  }
+  /**
+   * <pre>
+   * Why the suggestion is the template it is.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.SuggestionReason}
+   */
+  public  static final class SuggestionReason extends
+      com.google.protobuf.GeneratedMessageLite<
+          SuggestionReason, SuggestionReason.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SuggestionReason)
+      SuggestionReasonOrBuilder {
+    private SuggestionReason() {
+      behind_ = emptyProtobufList();
+      recovering_ = emptyProtobufList();
+    }
+    public static final int BEHIND_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SuggestionMuscle> behind_;
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.SuggestionMuscle> getBehindList() {
+      return behind_;
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.SuggestionMuscleOrBuilder> 
+        getBehindOrBuilderList() {
+      return behind_;
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    @java.lang.Override
+    public int getBehindCount() {
+      return behind_.size();
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.SuggestionMuscle getBehind(int index) {
+      return behind_.get(index);
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.SuggestionMuscleOrBuilder getBehindOrBuilder(
+        int index) {
+      return behind_.get(index);
+    }
+    private void ensureBehindIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SuggestionMuscle> tmp = behind_;
+      if (!tmp.isModifiable()) {
+        behind_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    private void setBehind(
+        int index, workout.v1.WorkoutOuterClass.SuggestionMuscle value) {
+      value.getClass();
+  ensureBehindIsMutable();
+      behind_.set(index, value);
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    private void addBehind(workout.v1.WorkoutOuterClass.SuggestionMuscle value) {
+      value.getClass();
+  ensureBehindIsMutable();
+      behind_.add(value);
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    private void addBehind(
+        int index, workout.v1.WorkoutOuterClass.SuggestionMuscle value) {
+      value.getClass();
+  ensureBehindIsMutable();
+      behind_.add(index, value);
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    private void addAllBehind(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SuggestionMuscle> values) {
+      ensureBehindIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, behind_);
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    private void clearBehind() {
+      behind_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * The suggested template's primary muscles that are recovered and below
+     * the weekly band: what it scored on, most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+     */
+    private void removeBehind(int index) {
+      ensureBehindIsMutable();
+      behind_.remove(index);
+    }
+
+    public static final int RECOVERING_FIELD_NUMBER = 2;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.RecoveringMuscle> recovering_;
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.RecoveringMuscle> getRecoveringList() {
+      return recovering_;
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.RecoveringMuscleOrBuilder> 
+        getRecoveringOrBuilderList() {
+      return recovering_;
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    @java.lang.Override
+    public int getRecoveringCount() {
+      return recovering_.size();
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RecoveringMuscle getRecovering(int index) {
+      return recovering_.get(index);
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.RecoveringMuscleOrBuilder getRecoveringOrBuilder(
+        int index) {
+      return recovering_.get(index);
+    }
+    private void ensureRecoveringIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.RecoveringMuscle> tmp = recovering_;
+      if (!tmp.isModifiable()) {
+        recovering_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    private void setRecovering(
+        int index, workout.v1.WorkoutOuterClass.RecoveringMuscle value) {
+      value.getClass();
+  ensureRecoveringIsMutable();
+      recovering_.set(index, value);
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    private void addRecovering(workout.v1.WorkoutOuterClass.RecoveringMuscle value) {
+      value.getClass();
+  ensureRecoveringIsMutable();
+      recovering_.add(value);
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    private void addRecovering(
+        int index, workout.v1.WorkoutOuterClass.RecoveringMuscle value) {
+      value.getClass();
+  ensureRecoveringIsMutable();
+      recovering_.add(index, value);
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    private void addAllRecovering(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.RecoveringMuscle> values) {
+      ensureRecoveringIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, recovering_);
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    private void clearRecovering() {
+      recovering_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * Muscles the rotation trains that are below the band but still
+     * recovering, so they scored nothing: most behind first.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+     */
+    private void removeRecovering(int index) {
+      ensureRecoveringIsMutable();
+      recovering_.remove(index);
+    }
+
+    public static final int FALLBACK_FIELD_NUMBER = 3;
+    private boolean fallback_;
+    /**
+     * <pre>
+     * Nothing in rotation was both recovered and behind: the suggestion is
+     * the rotation template started least recently.
+     * </pre>
+     *
+     * <code>bool fallback = 3 [json_name = "fallback"];</code>
+     * @return The fallback.
+     */
+    @java.lang.Override
+    public boolean getFallback() {
+      return fallback_;
+    }
+    /**
+     * <pre>
+     * Nothing in rotation was both recovered and behind: the suggestion is
+     * the rotation template started least recently.
+     * </pre>
+     *
+     * <code>bool fallback = 3 [json_name = "fallback"];</code>
+     * @param value The fallback to set.
+     */
+    private void setFallback(boolean value) {
+      
+      fallback_ = value;
+    }
+    /**
+     * <pre>
+     * Nothing in rotation was both recovered and behind: the suggestion is
+     * the rotation template started least recently.
+     * </pre>
+     *
+     * <code>bool fallback = 3 [json_name = "fallback"];</code>
+     */
+    private void clearFallback() {
+      
+      fallback_ = false;
+    }
+
+    public static final int OVERDUE_FIELD_NUMBER = 4;
+    private boolean overdue_;
+    /**
+     * <pre>
+     * It won on being overdue (not started in 14 days, or never), not on
+     * coming within a fifth of the best score.
+     * </pre>
+     *
+     * <code>bool overdue = 4 [json_name = "overdue"];</code>
+     * @return The overdue.
+     */
+    @java.lang.Override
+    public boolean getOverdue() {
+      return overdue_;
+    }
+    /**
+     * <pre>
+     * It won on being overdue (not started in 14 days, or never), not on
+     * coming within a fifth of the best score.
+     * </pre>
+     *
+     * <code>bool overdue = 4 [json_name = "overdue"];</code>
+     * @param value The overdue to set.
+     */
+    private void setOverdue(boolean value) {
+      
+      overdue_ = value;
+    }
+    /**
+     * <pre>
+     * It won on being overdue (not started in 14 days, or never), not on
+     * coming within a fifth of the best score.
+     * </pre>
+     *
+     * <code>bool overdue = 4 [json_name = "overdue"];</code>
+     */
+    private void clearOverdue() {
+      
+      overdue_ = false;
+    }
+
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SuggestionReason prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Why the suggestion is the template it is.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.SuggestionReason}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SuggestionReason, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SuggestionReason)
+        workout.v1.WorkoutOuterClass.SuggestionReasonOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SuggestionReason.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.SuggestionMuscle> getBehindList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getBehindList());
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      @java.lang.Override
+      public int getBehindCount() {
+        return instance.getBehindCount();
+      }/**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.SuggestionMuscle getBehind(int index) {
+        return instance.getBehind(index);
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder setBehind(
+          int index, workout.v1.WorkoutOuterClass.SuggestionMuscle value) {
+        copyOnWrite();
+        instance.setBehind(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder setBehind(
+          int index, workout.v1.WorkoutOuterClass.SuggestionMuscle.Builder builderForValue) {
+        copyOnWrite();
+        instance.setBehind(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder addBehind(workout.v1.WorkoutOuterClass.SuggestionMuscle value) {
+        copyOnWrite();
+        instance.addBehind(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder addBehind(
+          int index, workout.v1.WorkoutOuterClass.SuggestionMuscle value) {
+        copyOnWrite();
+        instance.addBehind(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder addBehind(
+          workout.v1.WorkoutOuterClass.SuggestionMuscle.Builder builderForValue) {
+        copyOnWrite();
+        instance.addBehind(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder addBehind(
+          int index, workout.v1.WorkoutOuterClass.SuggestionMuscle.Builder builderForValue) {
+        copyOnWrite();
+        instance.addBehind(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder addAllBehind(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SuggestionMuscle> values) {
+        copyOnWrite();
+        instance.addAllBehind(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder clearBehind() {
+        copyOnWrite();
+        instance.clearBehind();
+        return this;
+      }
+      /**
+       * <pre>
+       * The suggested template's primary muscles that are recovered and below
+       * the weekly band: what it scored on, most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SuggestionMuscle behind = 1 [json_name = "behind"];</code>
+       */
+      public Builder removeBehind(int index) {
+        copyOnWrite();
+        instance.removeBehind(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.RecoveringMuscle> getRecoveringList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getRecoveringList());
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      @java.lang.Override
+      public int getRecoveringCount() {
+        return instance.getRecoveringCount();
+      }/**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RecoveringMuscle getRecovering(int index) {
+        return instance.getRecovering(index);
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder setRecovering(
+          int index, workout.v1.WorkoutOuterClass.RecoveringMuscle value) {
+        copyOnWrite();
+        instance.setRecovering(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder setRecovering(
+          int index, workout.v1.WorkoutOuterClass.RecoveringMuscle.Builder builderForValue) {
+        copyOnWrite();
+        instance.setRecovering(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder addRecovering(workout.v1.WorkoutOuterClass.RecoveringMuscle value) {
+        copyOnWrite();
+        instance.addRecovering(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder addRecovering(
+          int index, workout.v1.WorkoutOuterClass.RecoveringMuscle value) {
+        copyOnWrite();
+        instance.addRecovering(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder addRecovering(
+          workout.v1.WorkoutOuterClass.RecoveringMuscle.Builder builderForValue) {
+        copyOnWrite();
+        instance.addRecovering(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder addRecovering(
+          int index, workout.v1.WorkoutOuterClass.RecoveringMuscle.Builder builderForValue) {
+        copyOnWrite();
+        instance.addRecovering(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder addAllRecovering(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.RecoveringMuscle> values) {
+        copyOnWrite();
+        instance.addAllRecovering(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder clearRecovering() {
+        copyOnWrite();
+        instance.clearRecovering();
+        return this;
+      }
+      /**
+       * <pre>
+       * Muscles the rotation trains that are below the band but still
+       * recovering, so they scored nothing: most behind first.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RecoveringMuscle recovering = 2 [json_name = "recovering"];</code>
+       */
+      public Builder removeRecovering(int index) {
+        copyOnWrite();
+        instance.removeRecovering(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Nothing in rotation was both recovered and behind: the suggestion is
+       * the rotation template started least recently.
+       * </pre>
+       *
+       * <code>bool fallback = 3 [json_name = "fallback"];</code>
+       * @return The fallback.
+       */
+      @java.lang.Override
+      public boolean getFallback() {
+        return instance.getFallback();
+      }
+      /**
+       * <pre>
+       * Nothing in rotation was both recovered and behind: the suggestion is
+       * the rotation template started least recently.
+       * </pre>
+       *
+       * <code>bool fallback = 3 [json_name = "fallback"];</code>
+       * @param value The fallback to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFallback(boolean value) {
+        copyOnWrite();
+        instance.setFallback(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Nothing in rotation was both recovered and behind: the suggestion is
+       * the rotation template started least recently.
+       * </pre>
+       *
+       * <code>bool fallback = 3 [json_name = "fallback"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearFallback() {
+        copyOnWrite();
+        instance.clearFallback();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * It won on being overdue (not started in 14 days, or never), not on
+       * coming within a fifth of the best score.
+       * </pre>
+       *
+       * <code>bool overdue = 4 [json_name = "overdue"];</code>
+       * @return The overdue.
+       */
+      @java.lang.Override
+      public boolean getOverdue() {
+        return instance.getOverdue();
+      }
+      /**
+       * <pre>
+       * It won on being overdue (not started in 14 days, or never), not on
+       * coming within a fifth of the best score.
+       * </pre>
+       *
+       * <code>bool overdue = 4 [json_name = "overdue"];</code>
+       * @param value The overdue to set.
+       * @return This builder for chaining.
+       */
+      public Builder setOverdue(boolean value) {
+        copyOnWrite();
+        instance.setOverdue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * It won on being overdue (not started in 14 days, or never), not on
+       * coming within a fifth of the best score.
+       * </pre>
+       *
+       * <code>bool overdue = 4 [json_name = "overdue"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearOverdue() {
+        copyOnWrite();
+        instance.clearOverdue();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SuggestionReason)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SuggestionReason();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "behind_",
+              workout.v1.WorkoutOuterClass.SuggestionMuscle.class,
+              "recovering_",
+              workout.v1.WorkoutOuterClass.RecoveringMuscle.class,
+              "fallback_",
+              "overdue_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0002\u0000\u0001\u001b\u0002\u001b" +
+                "\u0003\u0007\u0004\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SuggestionReason> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SuggestionReason.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SuggestionReason>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SuggestionReason)
+    private static final workout.v1.WorkoutOuterClass.SuggestionReason DEFAULT_INSTANCE;
+    static {
+      SuggestionReason defaultInstance = new SuggestionReason();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SuggestionReason.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SuggestionReason getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SuggestionReason> PARSER;
+
+    public static com.google.protobuf.Parser<SuggestionReason> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SuggestionMuscleOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SuggestionMuscle)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The enum numeric value on the wire for muscle.
+     */
+    int getMuscleValue();
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The muscle.
+     */
+    workout.v1.WorkoutOuterClass.MuscleGroup getMuscle();
+
+    /**
+     * <pre>
+     * weighted hard sets in the last 7 days
+     * </pre>
+     *
+     * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+     * @return The sets7d.
+     */
+    float getSets7D();
+
+    /**
+     * <pre>
+     * the band's floor (10)
+     * </pre>
+     *
+     * <code>int32 target = 3 [json_name = "target"];</code>
+     * @return The target.
+     */
+    int getTarget();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SuggestionMuscle}
+   */
+  public  static final class SuggestionMuscle extends
+      com.google.protobuf.GeneratedMessageLite<
+          SuggestionMuscle, SuggestionMuscle.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SuggestionMuscle)
+      SuggestionMuscleOrBuilder {
+    private SuggestionMuscle() {
+    }
+    public static final int MUSCLE_FIELD_NUMBER = 1;
+    private int muscle_;
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The enum numeric value on the wire for muscle.
+     */
+    @java.lang.Override
+    public int getMuscleValue() {
+      return muscle_;
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The muscle.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.MuscleGroup getMuscle() {
+      workout.v1.WorkoutOuterClass.MuscleGroup result = workout.v1.WorkoutOuterClass.MuscleGroup.forNumber(muscle_);
+      return result == null ? workout.v1.WorkoutOuterClass.MuscleGroup.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @param value The enum numeric value on the wire for muscle to set.
+     */
+    private void setMuscleValue(int value) {
+        muscle_ = value;
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @param value The muscle to set.
+     */
+    private void setMuscle(workout.v1.WorkoutOuterClass.MuscleGroup value) {
+      muscle_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     */
+    private void clearMuscle() {
+      
+      muscle_ = 0;
+    }
+
+    public static final int SETS_7D_FIELD_NUMBER = 2;
+    private float sets7D_;
+    /**
+     * <pre>
+     * weighted hard sets in the last 7 days
+     * </pre>
+     *
+     * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+     * @return The sets7d.
+     */
+    @java.lang.Override
+    public float getSets7D() {
+      return sets7D_;
+    }
+    /**
+     * <pre>
+     * weighted hard sets in the last 7 days
+     * </pre>
+     *
+     * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+     * @param value The sets7d to set.
+     */
+    private void setSets7D(float value) {
+      
+      sets7D_ = value;
+    }
+    /**
+     * <pre>
+     * weighted hard sets in the last 7 days
+     * </pre>
+     *
+     * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+     */
+    private void clearSets7D() {
+      
+      sets7D_ = 0F;
+    }
+
+    public static final int TARGET_FIELD_NUMBER = 3;
+    private int target_;
+    /**
+     * <pre>
+     * the band's floor (10)
+     * </pre>
+     *
+     * <code>int32 target = 3 [json_name = "target"];</code>
+     * @return The target.
+     */
+    @java.lang.Override
+    public int getTarget() {
+      return target_;
+    }
+    /**
+     * <pre>
+     * the band's floor (10)
+     * </pre>
+     *
+     * <code>int32 target = 3 [json_name = "target"];</code>
+     * @param value The target to set.
+     */
+    private void setTarget(int value) {
+      
+      target_ = value;
+    }
+    /**
+     * <pre>
+     * the band's floor (10)
+     * </pre>
+     *
+     * <code>int32 target = 3 [json_name = "target"];</code>
+     */
+    private void clearTarget() {
+      
+      target_ = 0;
+    }
+
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SuggestionMuscle prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SuggestionMuscle}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SuggestionMuscle, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SuggestionMuscle)
+        workout.v1.WorkoutOuterClass.SuggestionMuscleOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SuggestionMuscle.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @return The enum numeric value on the wire for muscle.
+       */
+      @java.lang.Override
+      public int getMuscleValue() {
+        return instance.getMuscleValue();
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @param value The muscle to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscleValue(int value) {
+        copyOnWrite();
+        instance.setMuscleValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @return The muscle.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.MuscleGroup getMuscle() {
+        return instance.getMuscle();
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @param value The enum numeric value on the wire for muscle to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscle(workout.v1.WorkoutOuterClass.MuscleGroup value) {
+        copyOnWrite();
+        instance.setMuscle(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMuscle() {
+        copyOnWrite();
+        instance.clearMuscle();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * weighted hard sets in the last 7 days
+       * </pre>
+       *
+       * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+       * @return The sets7d.
+       */
+      @java.lang.Override
+      public float getSets7D() {
+        return instance.getSets7D();
+      }
+      /**
+       * <pre>
+       * weighted hard sets in the last 7 days
+       * </pre>
+       *
+       * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+       * @param value The sets7d to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSets7D(float value) {
+        copyOnWrite();
+        instance.setSets7D(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * weighted hard sets in the last 7 days
+       * </pre>
+       *
+       * <code>float sets_7d = 2 [json_name = "sets7d"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSets7D() {
+        copyOnWrite();
+        instance.clearSets7D();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * the band's floor (10)
+       * </pre>
+       *
+       * <code>int32 target = 3 [json_name = "target"];</code>
+       * @return The target.
+       */
+      @java.lang.Override
+      public int getTarget() {
+        return instance.getTarget();
+      }
+      /**
+       * <pre>
+       * the band's floor (10)
+       * </pre>
+       *
+       * <code>int32 target = 3 [json_name = "target"];</code>
+       * @param value The target to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTarget(int value) {
+        copyOnWrite();
+        instance.setTarget(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * the band's floor (10)
+       * </pre>
+       *
+       * <code>int32 target = 3 [json_name = "target"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTarget() {
+        copyOnWrite();
+        instance.clearTarget();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SuggestionMuscle)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SuggestionMuscle();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "muscle_",
+              "sets7D_",
+              "target_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\f\u0002\u0001" +
+                "\u0003\u0004";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SuggestionMuscle> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SuggestionMuscle.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SuggestionMuscle>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SuggestionMuscle)
+    private static final workout.v1.WorkoutOuterClass.SuggestionMuscle DEFAULT_INSTANCE;
+    static {
+      SuggestionMuscle defaultInstance = new SuggestionMuscle();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SuggestionMuscle.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SuggestionMuscle getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SuggestionMuscle> PARSER;
+
+    public static com.google.protobuf.Parser<SuggestionMuscle> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RecoveringMuscleOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RecoveringMuscle)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The enum numeric value on the wire for muscle.
+     */
+    int getMuscleValue();
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The muscle.
+     */
+    workout.v1.WorkoutOuterClass.MuscleGroup getMuscle();
+
+    /**
+     * <pre>
+     * rounded up
+     * </pre>
+     *
+     * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+     * @return The hoursRemaining.
+     */
+    int getHoursRemaining();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RecoveringMuscle}
+   */
+  public  static final class RecoveringMuscle extends
+      com.google.protobuf.GeneratedMessageLite<
+          RecoveringMuscle, RecoveringMuscle.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RecoveringMuscle)
+      RecoveringMuscleOrBuilder {
+    private RecoveringMuscle() {
+    }
+    public static final int MUSCLE_FIELD_NUMBER = 1;
+    private int muscle_;
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The enum numeric value on the wire for muscle.
+     */
+    @java.lang.Override
+    public int getMuscleValue() {
+      return muscle_;
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @return The muscle.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.MuscleGroup getMuscle() {
+      workout.v1.WorkoutOuterClass.MuscleGroup result = workout.v1.WorkoutOuterClass.MuscleGroup.forNumber(muscle_);
+      return result == null ? workout.v1.WorkoutOuterClass.MuscleGroup.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @param value The enum numeric value on the wire for muscle to set.
+     */
+    private void setMuscleValue(int value) {
+        muscle_ = value;
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     * @param value The muscle to set.
+     */
+    private void setMuscle(workout.v1.WorkoutOuterClass.MuscleGroup value) {
+      muscle_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+     */
+    private void clearMuscle() {
+      
+      muscle_ = 0;
+    }
+
+    public static final int HOURS_REMAINING_FIELD_NUMBER = 2;
+    private int hoursRemaining_;
+    /**
+     * <pre>
+     * rounded up
+     * </pre>
+     *
+     * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+     * @return The hoursRemaining.
+     */
+    @java.lang.Override
+    public int getHoursRemaining() {
+      return hoursRemaining_;
+    }
+    /**
+     * <pre>
+     * rounded up
+     * </pre>
+     *
+     * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+     * @param value The hoursRemaining to set.
+     */
+    private void setHoursRemaining(int value) {
+      
+      hoursRemaining_ = value;
+    }
+    /**
+     * <pre>
+     * rounded up
+     * </pre>
+     *
+     * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+     */
+    private void clearHoursRemaining() {
+      
+      hoursRemaining_ = 0;
+    }
+
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.RecoveringMuscle prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RecoveringMuscle}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.RecoveringMuscle, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RecoveringMuscle)
+        workout.v1.WorkoutOuterClass.RecoveringMuscleOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.RecoveringMuscle.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @return The enum numeric value on the wire for muscle.
+       */
+      @java.lang.Override
+      public int getMuscleValue() {
+        return instance.getMuscleValue();
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @param value The muscle to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscleValue(int value) {
+        copyOnWrite();
+        instance.setMuscleValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @return The muscle.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.MuscleGroup getMuscle() {
+        return instance.getMuscle();
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @param value The enum numeric value on the wire for muscle to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscle(workout.v1.WorkoutOuterClass.MuscleGroup value) {
+        copyOnWrite();
+        instance.setMuscle(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.MuscleGroup muscle = 1 [json_name = "muscle"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMuscle() {
+        copyOnWrite();
+        instance.clearMuscle();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * rounded up
+       * </pre>
+       *
+       * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+       * @return The hoursRemaining.
+       */
+      @java.lang.Override
+      public int getHoursRemaining() {
+        return instance.getHoursRemaining();
+      }
+      /**
+       * <pre>
+       * rounded up
+       * </pre>
+       *
+       * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+       * @param value The hoursRemaining to set.
+       * @return This builder for chaining.
+       */
+      public Builder setHoursRemaining(int value) {
+        copyOnWrite();
+        instance.setHoursRemaining(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * rounded up
+       * </pre>
+       *
+       * <code>int32 hours_remaining = 2 [json_name = "hoursRemaining"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearHoursRemaining() {
+        copyOnWrite();
+        instance.clearHoursRemaining();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RecoveringMuscle)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.RecoveringMuscle();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "muscle_",
+              "hoursRemaining_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\f\u0002\u0004" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.RecoveringMuscle> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.RecoveringMuscle.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.RecoveringMuscle>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RecoveringMuscle)
+    private static final workout.v1.WorkoutOuterClass.RecoveringMuscle DEFAULT_INSTANCE;
+    static {
+      RecoveringMuscle defaultInstance = new RecoveringMuscle();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RecoveringMuscle.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.RecoveringMuscle getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RecoveringMuscle> PARSER;
+
+    public static com.google.protobuf.Parser<RecoveringMuscle> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RotationCheckOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RotationCheck)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.MuscleVolume> 
+        getVolumeList();
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    workout.v1.WorkoutOuterClass.MuscleVolume getVolume(int index);
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    int getVolumeCount();
+
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.RotationWarning> 
+        getWarningsList();
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    workout.v1.WorkoutOuterClass.RotationWarning getWarnings(int index);
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    int getWarningsCount();
+  }
+  /**
+   * <pre>
+   * One pass through the rotation, each template once with three working
+   * sets a lift, counted the way Home counts the week (primary 1.0,
+   * secondary 0.5).
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.RotationCheck}
+   */
+  public  static final class RotationCheck extends
+      com.google.protobuf.GeneratedMessageLite<
+          RotationCheck, RotationCheck.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RotationCheck)
+      RotationCheckOrBuilder {
+    private RotationCheck() {
+      volume_ = emptyProtobufList();
+      warnings_ = emptyProtobufList();
+    }
+    public static final int VOLUME_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.MuscleVolume> volume_;
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.MuscleVolume> getVolumeList() {
+      return volume_;
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.MuscleVolumeOrBuilder> 
+        getVolumeOrBuilderList() {
+      return volume_;
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    @java.lang.Override
+    public int getVolumeCount() {
+      return volume_.size();
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.MuscleVolume getVolume(int index) {
+      return volume_.get(index);
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.MuscleVolumeOrBuilder getVolumeOrBuilder(
+        int index) {
+      return volume_.get(index);
+    }
+    private void ensureVolumeIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.MuscleVolume> tmp = volume_;
+      if (!tmp.isModifiable()) {
+        volume_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    private void setVolume(
+        int index, workout.v1.WorkoutOuterClass.MuscleVolume value) {
+      value.getClass();
+  ensureVolumeIsMutable();
+      volume_.set(index, value);
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    private void addVolume(workout.v1.WorkoutOuterClass.MuscleVolume value) {
+      value.getClass();
+  ensureVolumeIsMutable();
+      volume_.add(value);
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    private void addVolume(
+        int index, workout.v1.WorkoutOuterClass.MuscleVolume value) {
+      value.getClass();
+  ensureVolumeIsMutable();
+      volume_.add(index, value);
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    private void addAllVolume(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.MuscleVolume> values) {
+      ensureVolumeIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, volume_);
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    private void clearVolume() {
+      volume_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * One entry per muscle; completed_sets_7d holds the pass's sets.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+     */
+    private void removeVolume(int index) {
+      ensureVolumeIsMutable();
+      volume_.remove(index);
+    }
+
+    public static final int WARNINGS_FIELD_NUMBER = 2;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.RotationWarning> warnings_;
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.RotationWarning> getWarningsList() {
+      return warnings_;
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.RotationWarningOrBuilder> 
+        getWarningsOrBuilderList() {
+      return warnings_;
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    @java.lang.Override
+    public int getWarningsCount() {
+      return warnings_.size();
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RotationWarning getWarnings(int index) {
+      return warnings_.get(index);
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.RotationWarningOrBuilder getWarningsOrBuilder(
+        int index) {
+      return warnings_.get(index);
+    }
+    private void ensureWarningsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.RotationWarning> tmp = warnings_;
+      if (!tmp.isModifiable()) {
+        warnings_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    private void setWarnings(
+        int index, workout.v1.WorkoutOuterClass.RotationWarning value) {
+      value.getClass();
+  ensureWarningsIsMutable();
+      warnings_.set(index, value);
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    private void addWarnings(workout.v1.WorkoutOuterClass.RotationWarning value) {
+      value.getClass();
+  ensureWarningsIsMutable();
+      warnings_.add(value);
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    private void addWarnings(
+        int index, workout.v1.WorkoutOuterClass.RotationWarning value) {
+      value.getClass();
+  ensureWarningsIsMutable();
+      warnings_.add(index, value);
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    private void addAllWarnings(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.RotationWarning> values) {
+      ensureWarningsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, warnings_);
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    private void clearWarnings() {
+      warnings_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * Empty when nothing is wrong.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+     */
+    private void removeWarnings(int index) {
+      ensureWarningsIsMutable();
+      warnings_.remove(index);
+    }
+
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationCheck parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.RotationCheck prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * One pass through the rotation, each template once with three working
+     * sets a lift, counted the way Home counts the week (primary 1.0,
+     * secondary 0.5).
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.RotationCheck}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.RotationCheck, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RotationCheck)
+        workout.v1.WorkoutOuterClass.RotationCheckOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.RotationCheck.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.MuscleVolume> getVolumeList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getVolumeList());
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      @java.lang.Override
+      public int getVolumeCount() {
+        return instance.getVolumeCount();
+      }/**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.MuscleVolume getVolume(int index) {
+        return instance.getVolume(index);
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder setVolume(
+          int index, workout.v1.WorkoutOuterClass.MuscleVolume value) {
+        copyOnWrite();
+        instance.setVolume(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder setVolume(
+          int index, workout.v1.WorkoutOuterClass.MuscleVolume.Builder builderForValue) {
+        copyOnWrite();
+        instance.setVolume(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder addVolume(workout.v1.WorkoutOuterClass.MuscleVolume value) {
+        copyOnWrite();
+        instance.addVolume(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder addVolume(
+          int index, workout.v1.WorkoutOuterClass.MuscleVolume value) {
+        copyOnWrite();
+        instance.addVolume(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder addVolume(
+          workout.v1.WorkoutOuterClass.MuscleVolume.Builder builderForValue) {
+        copyOnWrite();
+        instance.addVolume(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder addVolume(
+          int index, workout.v1.WorkoutOuterClass.MuscleVolume.Builder builderForValue) {
+        copyOnWrite();
+        instance.addVolume(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder addAllVolume(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.MuscleVolume> values) {
+        copyOnWrite();
+        instance.addAllVolume(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder clearVolume() {
+        copyOnWrite();
+        instance.clearVolume();
+        return this;
+      }
+      /**
+       * <pre>
+       * One entry per muscle; completed_sets_7d holds the pass's sets.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleVolume volume = 1 [json_name = "volume"];</code>
+       */
+      public Builder removeVolume(int index) {
+        copyOnWrite();
+        instance.removeVolume(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.RotationWarning> getWarningsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getWarningsList());
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      @java.lang.Override
+      public int getWarningsCount() {
+        return instance.getWarningsCount();
+      }/**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RotationWarning getWarnings(int index) {
+        return instance.getWarnings(index);
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder setWarnings(
+          int index, workout.v1.WorkoutOuterClass.RotationWarning value) {
+        copyOnWrite();
+        instance.setWarnings(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder setWarnings(
+          int index, workout.v1.WorkoutOuterClass.RotationWarning.Builder builderForValue) {
+        copyOnWrite();
+        instance.setWarnings(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder addWarnings(workout.v1.WorkoutOuterClass.RotationWarning value) {
+        copyOnWrite();
+        instance.addWarnings(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder addWarnings(
+          int index, workout.v1.WorkoutOuterClass.RotationWarning value) {
+        copyOnWrite();
+        instance.addWarnings(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder addWarnings(
+          workout.v1.WorkoutOuterClass.RotationWarning.Builder builderForValue) {
+        copyOnWrite();
+        instance.addWarnings(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder addWarnings(
+          int index, workout.v1.WorkoutOuterClass.RotationWarning.Builder builderForValue) {
+        copyOnWrite();
+        instance.addWarnings(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder addAllWarnings(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.RotationWarning> values) {
+        copyOnWrite();
+        instance.addAllWarnings(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder clearWarnings() {
+        copyOnWrite();
+        instance.clearWarnings();
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty when nothing is wrong.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.RotationWarning warnings = 2 [json_name = "warnings"];</code>
+       */
+      public Builder removeWarnings(int index) {
+        copyOnWrite();
+        instance.removeWarnings(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RotationCheck)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.RotationCheck();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "volume_",
+              workout.v1.WorkoutOuterClass.MuscleVolume.class,
+              "warnings_",
+              workout.v1.WorkoutOuterClass.RotationWarning.class,
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0002\u0000\u0001\u001b\u0002\u001b" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.RotationCheck> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.RotationCheck.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.RotationCheck>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RotationCheck)
+    private static final workout.v1.WorkoutOuterClass.RotationCheck DEFAULT_INSTANCE;
+    static {
+      RotationCheck defaultInstance = new RotationCheck();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RotationCheck.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.RotationCheck getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RotationCheck> PARSER;
+
+    public static com.google.protobuf.Parser<RotationCheck> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RotationWarningOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.RotationWarning)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     * @return The enum numeric value on the wire for kind.
+     */
+    int getKindValue();
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     * @return The kind.
+     */
+    workout.v1.WorkoutOuterClass.RotationWarningKind getKind();
+
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.MuscleGroup> getMusclesList();
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    int getMusclesCount();
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    workout.v1.WorkoutOuterClass.MuscleGroup getMuscles(int index);
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    java.util.List<java.lang.Integer>
+    getMusclesValueList();
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    int getMusclesValue(int index);
+
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @return A list containing the templateIds.
+     */
+    java.util.List<java.lang.String>
+        getTemplateIdsList();
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @return The count of templateIds.
+     */
+    int getTemplateIdsCount();
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param index The index of the element to return.
+     * @return The templateIds at the given index.
+     */
+    java.lang.String getTemplateIds(int index);
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param index The index of the element to return.
+     * @return The templateIds at the given index.
+     */
+    com.google.protobuf.ByteString
+        getTemplateIdsBytes(int index);
+
+    /**
+     * <pre>
+     * OVERLAP: lifts the two share, and the smaller template's count.
+     * </pre>
+     *
+     * <code>int32 shared = 4 [json_name = "shared"];</code>
+     * @return The shared.
+     */
+    int getShared();
+
+    /**
+     * <code>int32 of = 5 [json_name = "of"];</code>
+     * @return The of.
+     */
+    int getOf();
+  }
+  /**
+   * Protobuf type {@code workout.v1.RotationWarning}
+   */
+  public  static final class RotationWarning extends
+      com.google.protobuf.GeneratedMessageLite<
+          RotationWarning, RotationWarning.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.RotationWarning)
+      RotationWarningOrBuilder {
+    private RotationWarning() {
+      muscles_ = emptyIntList();
+      templateIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+    }
+    public static final int KIND_FIELD_NUMBER = 1;
+    private int kind_;
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     * @return The enum numeric value on the wire for kind.
+     */
+    @java.lang.Override
+    public int getKindValue() {
+      return kind_;
+    }
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     * @return The kind.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RotationWarningKind getKind() {
+      workout.v1.WorkoutOuterClass.RotationWarningKind result = workout.v1.WorkoutOuterClass.RotationWarningKind.forNumber(kind_);
+      return result == null ? workout.v1.WorkoutOuterClass.RotationWarningKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     * @param value The enum numeric value on the wire for kind to set.
+     */
+    private void setKindValue(int value) {
+        kind_ = value;
+    }
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     * @param value The kind to set.
+     */
+    private void setKind(workout.v1.WorkoutOuterClass.RotationWarningKind value) {
+      kind_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+     */
+    private void clearKind() {
+      
+      kind_ = 0;
+    }
+
+    public static final int MUSCLES_FIELD_NUMBER = 2;
+    private com.google.protobuf.Internal.IntList muscles_;
+    private static final com.google.protobuf.Internal.ListAdapter.Converter<
+        java.lang.Integer, workout.v1.WorkoutOuterClass.MuscleGroup> muscles_converter_ =
+            new com.google.protobuf.Internal.ListAdapter.Converter<
+                java.lang.Integer, workout.v1.WorkoutOuterClass.MuscleGroup>() {
+              @java.lang.Override
+              public workout.v1.WorkoutOuterClass.MuscleGroup convert(java.lang.Integer from) {
+                workout.v1.WorkoutOuterClass.MuscleGroup result = workout.v1.WorkoutOuterClass.MuscleGroup.forNumber(from);
+                return result == null ? workout.v1.WorkoutOuterClass.MuscleGroup.UNRECOGNIZED : result;
+              }
+            };
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.MuscleGroup> getMusclesList() {
+      return new com.google.protobuf.Internal.ListAdapter<
+          java.lang.Integer, workout.v1.WorkoutOuterClass.MuscleGroup>(muscles_, muscles_converter_);
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    @java.lang.Override
+    public int getMusclesCount() {
+      return muscles_.size();
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.MuscleGroup getMuscles(int index) {
+      workout.v1.WorkoutOuterClass.MuscleGroup result = workout.v1.WorkoutOuterClass.MuscleGroup.forNumber(muscles_.getInt(index));
+      return result == null ? workout.v1.WorkoutOuterClass.MuscleGroup.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.Integer>
+    getMusclesValueList() {
+      return muscles_;
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    @java.lang.Override
+    public int getMusclesValue(int index) {
+      return muscles_.getInt(index);
+    }
+    private int musclesMemoizedSerializedSize;
+    private void ensureMusclesIsMutable() {
+      com.google.protobuf.Internal.IntList tmp = muscles_;
+      if (!tmp.isModifiable()) {
+        muscles_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+      }
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param index The index to set the value at.
+     * @param value The muscles to set.
+     */
+    private void setMuscles(
+        int index, workout.v1.WorkoutOuterClass.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.setInt(index, value.getNumber());
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param value The muscles to add.
+     */
+    private void addMuscles(workout.v1.WorkoutOuterClass.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.addInt(value.getNumber());
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param values The muscles to add.
+     */
+    private void addAllMuscles(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.MuscleGroup> values) {
+      ensureMusclesIsMutable();
+      for (workout.v1.WorkoutOuterClass.MuscleGroup value : values) {
+        muscles_.addInt(value.getNumber());
+      }
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     */
+    private void clearMuscles() {
+      muscles_ = emptyIntList();
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to set.
+     */
+    private void setMusclesValue(
+        int index, int value) {
+      ensureMusclesIsMutable();
+      muscles_.setInt(index, value);
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to add.
+     */
+    private void addMusclesValue(int value) {
+      ensureMusclesIsMutable();
+      muscles_.addInt(value);
+    }
+    /**
+     * <pre>
+     * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+     * least-trained trained muscle.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+     * @param values The enum numeric values on the wire for muscles to add.
+     */
+    private void addAllMusclesValue(
+        java.lang.Iterable<java.lang.Integer> values) {
+      ensureMusclesIsMutable();
+      for (int value : values) {
+        muscles_.addInt(value);
+      }
+    }
+
+    public static final int TEMPLATE_IDS_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> templateIds_;
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @return A list containing the templateIds.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.String> getTemplateIdsList() {
+      return templateIds_;
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @return The count of templateIds.
+     */
+    @java.lang.Override
+    public int getTemplateIdsCount() {
+      return templateIds_.size();
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param index The index of the element to return.
+     * @return The templateIds at the given index.
+     */
+    @java.lang.Override
+    public java.lang.String getTemplateIds(int index) {
+      return templateIds_.get(index);
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the templateIds at the given index.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTemplateIdsBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          templateIds_.get(index));
+    }
+    private void ensureTemplateIdsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          templateIds_;  if (!tmp.isModifiable()) {
+        templateIds_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The templateIds to set.
+     */
+    private void setTemplateIds(
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureTemplateIdsIsMutable();
+      templateIds_.set(index, value);
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param value The templateIds to add.
+     */
+    private void addTemplateIds(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureTemplateIdsIsMutable();
+      templateIds_.add(value);
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param values The templateIds to add.
+     */
+    private void addAllTemplateIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureTemplateIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, templateIds_);
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     */
+    private void clearTemplateIds() {
+      templateIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * OVERLAP: the two templates.
+     * </pre>
+     *
+     * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+     * @param value The bytes of the templateIds to add.
+     */
+    private void addTemplateIdsBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      ensureTemplateIdsIsMutable();
+      templateIds_.add(value.toStringUtf8());
+    }
+
+    public static final int SHARED_FIELD_NUMBER = 4;
+    private int shared_;
+    /**
+     * <pre>
+     * OVERLAP: lifts the two share, and the smaller template's count.
+     * </pre>
+     *
+     * <code>int32 shared = 4 [json_name = "shared"];</code>
+     * @return The shared.
+     */
+    @java.lang.Override
+    public int getShared() {
+      return shared_;
+    }
+    /**
+     * <pre>
+     * OVERLAP: lifts the two share, and the smaller template's count.
+     * </pre>
+     *
+     * <code>int32 shared = 4 [json_name = "shared"];</code>
+     * @param value The shared to set.
+     */
+    private void setShared(int value) {
+      
+      shared_ = value;
+    }
+    /**
+     * <pre>
+     * OVERLAP: lifts the two share, and the smaller template's count.
+     * </pre>
+     *
+     * <code>int32 shared = 4 [json_name = "shared"];</code>
+     */
+    private void clearShared() {
+      
+      shared_ = 0;
+    }
+
+    public static final int OF_FIELD_NUMBER = 5;
+    private int of_;
+    /**
+     * <code>int32 of = 5 [json_name = "of"];</code>
+     * @return The of.
+     */
+    @java.lang.Override
+    public int getOf() {
+      return of_;
+    }
+    /**
+     * <code>int32 of = 5 [json_name = "of"];</code>
+     * @param value The of to set.
+     */
+    private void setOf(int value) {
+      
+      of_ = value;
+    }
+    /**
+     * <code>int32 of = 5 [json_name = "of"];</code>
+     */
+    private void clearOf() {
+      
+      of_ = 0;
+    }
+
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.RotationWarning parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.RotationWarning prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.RotationWarning}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.RotationWarning, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.RotationWarning)
+        workout.v1.WorkoutOuterClass.RotationWarningOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.RotationWarning.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+       * @return The enum numeric value on the wire for kind.
+       */
+      @java.lang.Override
+      public int getKindValue() {
+        return instance.getKindValue();
+      }
+      /**
+       * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+       * @param value The kind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setKindValue(int value) {
+        copyOnWrite();
+        instance.setKindValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+       * @return The kind.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RotationWarningKind getKind() {
+        return instance.getKind();
+      }
+      /**
+       * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+       * @param value The enum numeric value on the wire for kind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setKind(workout.v1.WorkoutOuterClass.RotationWarningKind value) {
+        copyOnWrite();
+        instance.setKind(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RotationWarningKind kind = 1 [json_name = "kind"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearKind() {
+        copyOnWrite();
+        instance.clearKind();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @return A list containing the muscles.
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.MuscleGroup> getMusclesList() {
+        return instance.getMusclesList();
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @return The count of muscles.
+       */
+      @java.lang.Override
+      public int getMusclesCount() {
+        return instance.getMusclesCount();
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param index The index of the element to return.
+       * @return The muscles at the given index.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.MuscleGroup getMuscles(int index) {
+        return instance.getMuscles(index);
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscles(
+          int index, workout.v1.WorkoutOuterClass.MuscleGroup value) {
+        copyOnWrite();
+        instance.setMuscles(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param value The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMuscles(workout.v1.WorkoutOuterClass.MuscleGroup value) {
+        copyOnWrite();
+        instance.addMuscles(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param values The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMuscles(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.MuscleGroup> values) {
+        copyOnWrite();
+        instance.addAllMuscles(values);  return this;
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMuscles() {
+        copyOnWrite();
+        instance.clearMuscles();
+        return this;
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @return A list containing the enum numeric values on the wire for muscles.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Integer>
+      getMusclesValueList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getMusclesValueList());
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param index The index of the value to return.
+       * @return The enum numeric value on the wire of muscles at the given index.
+       */
+      @java.lang.Override
+      public int getMusclesValue(int index) {
+        return instance.getMusclesValue(index);
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The enum numeric value on the wire for muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMusclesValue(
+          int index, int value) {
+        copyOnWrite();
+        instance.setMusclesValue(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param value The enum numeric value on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMusclesValue(int value) {
+        instance.addMusclesValue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+       * least-trained trained muscle.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 2 [json_name = "muscles"];</code>
+       * @param values The enum numeric values on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMusclesValue(
+          java.lang.Iterable<java.lang.Integer> values) {
+        copyOnWrite();
+        instance.addAllMusclesValue(values);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @return A list containing the templateIds.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.String>
+          getTemplateIdsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getTemplateIdsList());
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @return The count of templateIds.
+       */
+      @java.lang.Override
+      public int getTemplateIdsCount() {
+        return instance.getTemplateIdsCount();
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @param index The index of the element to return.
+       * @return The templateIds at the given index.
+       */
+      @java.lang.Override
+      public java.lang.String getTemplateIds(int index) {
+        return instance.getTemplateIds(index);
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the templateIds at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTemplateIdsBytes(int index) {
+        return instance.getTemplateIdsBytes(index);
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @param index The index to set the value at.
+       * @param value The templateIds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateIds(
+          int index, java.lang.String value) {
+        copyOnWrite();
+        instance.setTemplateIds(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @param value The templateIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addTemplateIds(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.addTemplateIds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @param values The templateIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllTemplateIds(
+          java.lang.Iterable<java.lang.String> values) {
+        copyOnWrite();
+        instance.addAllTemplateIds(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTemplateIds() {
+        copyOnWrite();
+        instance.clearTemplateIds();
+        return this;
+      }
+      /**
+       * <pre>
+       * OVERLAP: the two templates.
+       * </pre>
+       *
+       * <code>repeated string template_ids = 3 [json_name = "templateIds"];</code>
+       * @param value The bytes of the templateIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addTemplateIdsBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.addTemplateIdsBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * OVERLAP: lifts the two share, and the smaller template's count.
+       * </pre>
+       *
+       * <code>int32 shared = 4 [json_name = "shared"];</code>
+       * @return The shared.
+       */
+      @java.lang.Override
+      public int getShared() {
+        return instance.getShared();
+      }
+      /**
+       * <pre>
+       * OVERLAP: lifts the two share, and the smaller template's count.
+       * </pre>
+       *
+       * <code>int32 shared = 4 [json_name = "shared"];</code>
+       * @param value The shared to set.
+       * @return This builder for chaining.
+       */
+      public Builder setShared(int value) {
+        copyOnWrite();
+        instance.setShared(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * OVERLAP: lifts the two share, and the smaller template's count.
+       * </pre>
+       *
+       * <code>int32 shared = 4 [json_name = "shared"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearShared() {
+        copyOnWrite();
+        instance.clearShared();
+        return this;
+      }
+
+      /**
+       * <code>int32 of = 5 [json_name = "of"];</code>
+       * @return The of.
+       */
+      @java.lang.Override
+      public int getOf() {
+        return instance.getOf();
+      }
+      /**
+       * <code>int32 of = 5 [json_name = "of"];</code>
+       * @param value The of to set.
+       * @return This builder for chaining.
+       */
+      public Builder setOf(int value) {
+        copyOnWrite();
+        instance.setOf(value);
+        return this;
+      }
+      /**
+       * <code>int32 of = 5 [json_name = "of"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearOf() {
+        copyOnWrite();
+        instance.clearOf();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.RotationWarning)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.RotationWarning();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "kind_",
+              "muscles_",
+              "templateIds_",
+              "shared_",
+              "of_",
+            };
+            java.lang.String info =
+                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0002\u0000\u0001\f\u0002,\u0003" +
+                "\u021a\u0004\u0004\u0005\u0004";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.RotationWarning> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.RotationWarning.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.RotationWarning>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.RotationWarning)
+    private static final workout.v1.WorkoutOuterClass.RotationWarning DEFAULT_INSTANCE;
+    static {
+      RotationWarning defaultInstance = new RotationWarning();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RotationWarning.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.RotationWarning getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RotationWarning> PARSER;
+
+    public static com.google.protobuf.Parser<RotationWarning> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

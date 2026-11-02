@@ -3761,6 +3761,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     $fixnum.Int64? updatedAt,
     $core.String? libraryId,
     $core.bool? coupled,
+    $core.bool? inRotation,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -3771,6 +3772,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     if (updatedAt != null) result.updatedAt = updatedAt;
     if (libraryId != null) result.libraryId = libraryId;
     if (coupled != null) result.coupled = coupled;
+    if (inRotation != null) result.inRotation = inRotation;
     return result;
   }
 
@@ -3798,6 +3800,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     ..aInt64(6, _omitFieldNames ? '' : 'updatedAt')
     ..aOS(7, _omitFieldNames ? '' : 'libraryId')
     ..aOB(8, _omitFieldNames ? '' : 'coupled')
+    ..aOB(9, _omitFieldNames ? '' : 'inRotation')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3889,6 +3892,18 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
   $core.bool hasCoupled() => $_has(7);
   @$pb.TagNumber(8)
   void clearCoupled() => $_clearField(8);
+
+  /// In the rotation the suggestion picks from; out of it, a favourite (on
+  /// Home, never suggested). The library defaults added at onboarding start
+  /// in rotation; every other template starts as a favourite.
+  @$pb.TagNumber(9)
+  $core.bool get inRotation => $_getBF(8);
+  @$pb.TagNumber(9)
+  set inRotation($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasInRotation() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearInRotation() => $_clearField(9);
 }
 
 /// One entry of the template library (templates/library.yaml): a workout
@@ -4649,11 +4664,12 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     $core.Iterable<MuscleVolume>? volume,
     $core.Iterable<MuscleRecoveryStatus>? recovery,
     $core.String? suggestedTemplateId,
-    $core.String? suggestionReason,
     $core.bool? onboarded,
     $core.Iterable<ExercisePlan>? plans,
     $core.Iterable<TemplatePlan>? templatePlans,
     $core.int? budgetMinutes,
+    SuggestionReason? suggestionReason,
+    RotationCheck? rotationCheck,
   }) {
     final result = create();
     if (templates != null) result.templates.addAll(templates);
@@ -4662,11 +4678,12 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     if (recovery != null) result.recovery.addAll(recovery);
     if (suggestedTemplateId != null)
       result.suggestedTemplateId = suggestedTemplateId;
-    if (suggestionReason != null) result.suggestionReason = suggestionReason;
     if (onboarded != null) result.onboarded = onboarded;
     if (plans != null) result.plans.addAll(plans);
     if (templatePlans != null) result.templatePlans.addAll(templatePlans);
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
+    if (suggestionReason != null) result.suggestionReason = suggestionReason;
+    if (rotationCheck != null) result.rotationCheck = rotationCheck;
     return result;
   }
 
@@ -4691,13 +4708,16 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     ..pPM<MuscleRecoveryStatus>(6, _omitFieldNames ? '' : 'recovery',
         subBuilder: MuscleRecoveryStatus.create)
     ..aOS(7, _omitFieldNames ? '' : 'suggestedTemplateId')
-    ..aOS(8, _omitFieldNames ? '' : 'suggestionReason')
     ..aOB(9, _omitFieldNames ? '' : 'onboarded')
     ..pPM<ExercisePlan>(10, _omitFieldNames ? '' : 'plans',
         subBuilder: ExercisePlan.create)
     ..pPM<TemplatePlan>(11, _omitFieldNames ? '' : 'templatePlans',
         subBuilder: TemplatePlan.create)
     ..aI(12, _omitFieldNames ? '' : 'budgetMinutes')
+    ..aOM<SuggestionReason>(13, _omitFieldNames ? '' : 'suggestionReason',
+        subBuilder: SuggestionReason.create)
+    ..aOM<RotationCheck>(14, _omitFieldNames ? '' : 'rotationCheck',
+        subBuilder: RotationCheck.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4737,9 +4757,10 @@ class GetHomeResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(6)
   $pb.PbList<MuscleRecoveryStatus> get recovery => $_getList(3);
 
-  /// A stateless suggestion: the template whose muscles are furthest
-  /// below the volume band, ties broken toward the least recently
-  /// started. Never a gate — any template can be started.
+  /// A stateless suggestion from the rotation: the template whose
+  /// recovered muscles are furthest below the volume band, ties (within
+  /// 20% of the best, or overdue) to the least recently started. Never a
+  /// gate: any template can be started. Empty when nothing is in rotation.
   @$pb.TagNumber(7)
   $core.String get suggestedTemplateId => $_getSZ(4);
   @$pb.TagNumber(7)
@@ -4749,42 +4770,452 @@ class GetHomeResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   void clearSuggestedTemplateId() => $_clearField(7);
 
-  @$pb.TagNumber(8)
-  $core.String get suggestionReason => $_getSZ(5);
-  @$pb.TagNumber(8)
-  set suggestionReason($core.String value) => $_setString(5, value);
-  @$pb.TagNumber(8)
-  $core.bool hasSuggestionReason() => $_has(5);
-  @$pb.TagNumber(8)
-  void clearSuggestionReason() => $_clearField(8);
-
   @$pb.TagNumber(9)
-  $core.bool get onboarded => $_getBF(6);
+  $core.bool get onboarded => $_getBF(5);
   @$pb.TagNumber(9)
-  set onboarded($core.bool value) => $_setBool(6, value);
+  set onboarded($core.bool value) => $_setBool(5, value);
   @$pb.TagNumber(9)
-  $core.bool hasOnboarded() => $_has(6);
+  $core.bool hasOnboarded() => $_has(5);
   @$pb.TagNumber(9)
   void clearOnboarded() => $_clearField(9);
 
   /// Every exercise in the catalog, planned at the home's now on its own (a
   /// workout of that one lift, in the budget).
   @$pb.TagNumber(10)
-  $pb.PbList<ExercisePlan> get plans => $_getList(7);
+  $pb.PbList<ExercisePlan> get plans => $_getList(6);
 
   /// Each template's lifts, planned at the home's now in the budget: exactly
   /// what starting it then records.
   @$pb.TagNumber(11)
-  $pb.PbList<TemplatePlan> get templatePlans => $_getList(8);
+  $pb.PbList<TemplatePlan> get templatePlans => $_getList(7);
 
   @$pb.TagNumber(12)
-  $core.int get budgetMinutes => $_getIZ(9);
+  $core.int get budgetMinutes => $_getIZ(8);
   @$pb.TagNumber(12)
-  set budgetMinutes($core.int value) => $_setSignedInt32(9, value);
+  set budgetMinutes($core.int value) => $_setSignedInt32(8, value);
   @$pb.TagNumber(12)
-  $core.bool hasBudgetMinutes() => $_has(9);
+  $core.bool hasBudgetMinutes() => $_has(8);
   @$pb.TagNumber(12)
   void clearBudgetMinutes() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  SuggestionReason get suggestionReason => $_getN(9);
+  @$pb.TagNumber(13)
+  set suggestionReason(SuggestionReason value) => $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasSuggestionReason() => $_has(9);
+  @$pb.TagNumber(13)
+  void clearSuggestionReason() => $_clearField(13);
+  @$pb.TagNumber(13)
+  SuggestionReason ensureSuggestionReason() => $_ensure(9);
+
+  /// The rotation's shape, one pass through it: sets per muscle and what
+  /// is wrong with it.
+  @$pb.TagNumber(14)
+  RotationCheck get rotationCheck => $_getN(10);
+  @$pb.TagNumber(14)
+  set rotationCheck(RotationCheck value) => $_setField(14, value);
+  @$pb.TagNumber(14)
+  $core.bool hasRotationCheck() => $_has(10);
+  @$pb.TagNumber(14)
+  void clearRotationCheck() => $_clearField(14);
+  @$pb.TagNumber(14)
+  RotationCheck ensureRotationCheck() => $_ensure(10);
+}
+
+/// Why the suggestion is the template it is.
+class SuggestionReason extends $pb.GeneratedMessage {
+  factory SuggestionReason({
+    $core.Iterable<SuggestionMuscle>? behind,
+    $core.Iterable<RecoveringMuscle>? recovering,
+    $core.bool? fallback,
+    $core.bool? overdue,
+  }) {
+    final result = create();
+    if (behind != null) result.behind.addAll(behind);
+    if (recovering != null) result.recovering.addAll(recovering);
+    if (fallback != null) result.fallback = fallback;
+    if (overdue != null) result.overdue = overdue;
+    return result;
+  }
+
+  SuggestionReason._();
+
+  factory SuggestionReason.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SuggestionReason.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SuggestionReason',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<SuggestionMuscle>(1, _omitFieldNames ? '' : 'behind',
+        subBuilder: SuggestionMuscle.create)
+    ..pPM<RecoveringMuscle>(2, _omitFieldNames ? '' : 'recovering',
+        subBuilder: RecoveringMuscle.create)
+    ..aOB(3, _omitFieldNames ? '' : 'fallback')
+    ..aOB(4, _omitFieldNames ? '' : 'overdue')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestionReason clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestionReason copyWith(void Function(SuggestionReason) updates) =>
+      super.copyWith((message) => updates(message as SuggestionReason))
+          as SuggestionReason;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SuggestionReason create() => SuggestionReason._();
+  @$core.override
+  SuggestionReason createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SuggestionReason getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SuggestionReason>(create);
+  static SuggestionReason? _defaultInstance;
+
+  /// The suggested template's primary muscles that are recovered and below
+  /// the weekly band: what it scored on, most behind first.
+  @$pb.TagNumber(1)
+  $pb.PbList<SuggestionMuscle> get behind => $_getList(0);
+
+  /// Muscles the rotation trains that are below the band but still
+  /// recovering, so they scored nothing: most behind first.
+  @$pb.TagNumber(2)
+  $pb.PbList<RecoveringMuscle> get recovering => $_getList(1);
+
+  /// Nothing in rotation was both recovered and behind: the suggestion is
+  /// the rotation template started least recently.
+  @$pb.TagNumber(3)
+  $core.bool get fallback => $_getBF(2);
+  @$pb.TagNumber(3)
+  set fallback($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFallback() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFallback() => $_clearField(3);
+
+  /// It won on being overdue (not started in 14 days, or never), not on
+  /// coming within a fifth of the best score.
+  @$pb.TagNumber(4)
+  $core.bool get overdue => $_getBF(3);
+  @$pb.TagNumber(4)
+  set overdue($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasOverdue() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearOverdue() => $_clearField(4);
+}
+
+class SuggestionMuscle extends $pb.GeneratedMessage {
+  factory SuggestionMuscle({
+    MuscleGroup? muscle,
+    $core.double? sets7d,
+    $core.int? target,
+  }) {
+    final result = create();
+    if (muscle != null) result.muscle = muscle;
+    if (sets7d != null) result.sets7d = sets7d;
+    if (target != null) result.target = target;
+    return result;
+  }
+
+  SuggestionMuscle._();
+
+  factory SuggestionMuscle.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SuggestionMuscle.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SuggestionMuscle',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
+        enumValues: MuscleGroup.values)
+    ..aD(2, _omitFieldNames ? '' : 'sets7d',
+        protoName: 'sets_7d', fieldType: $pb.PbFieldType.OF)
+    ..aI(3, _omitFieldNames ? '' : 'target')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestionMuscle clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestionMuscle copyWith(void Function(SuggestionMuscle) updates) =>
+      super.copyWith((message) => updates(message as SuggestionMuscle))
+          as SuggestionMuscle;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SuggestionMuscle create() => SuggestionMuscle._();
+  @$core.override
+  SuggestionMuscle createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SuggestionMuscle getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SuggestionMuscle>(create);
+  static SuggestionMuscle? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  MuscleGroup get muscle => $_getN(0);
+  @$pb.TagNumber(1)
+  set muscle(MuscleGroup value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMuscle() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMuscle() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get sets7d => $_getN(1);
+  @$pb.TagNumber(2)
+  set sets7d($core.double value) => $_setFloat(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSets7d() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSets7d() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get target => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set target($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasTarget() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearTarget() => $_clearField(3);
+}
+
+class RecoveringMuscle extends $pb.GeneratedMessage {
+  factory RecoveringMuscle({
+    MuscleGroup? muscle,
+    $core.int? hoursRemaining,
+  }) {
+    final result = create();
+    if (muscle != null) result.muscle = muscle;
+    if (hoursRemaining != null) result.hoursRemaining = hoursRemaining;
+    return result;
+  }
+
+  RecoveringMuscle._();
+
+  factory RecoveringMuscle.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveringMuscle.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveringMuscle',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
+        enumValues: MuscleGroup.values)
+    ..aI(2, _omitFieldNames ? '' : 'hoursRemaining')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveringMuscle clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveringMuscle copyWith(void Function(RecoveringMuscle) updates) =>
+      super.copyWith((message) => updates(message as RecoveringMuscle))
+          as RecoveringMuscle;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveringMuscle create() => RecoveringMuscle._();
+  @$core.override
+  RecoveringMuscle createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveringMuscle getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveringMuscle>(create);
+  static RecoveringMuscle? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  MuscleGroup get muscle => $_getN(0);
+  @$pb.TagNumber(1)
+  set muscle(MuscleGroup value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMuscle() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMuscle() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get hoursRemaining => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set hoursRemaining($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHoursRemaining() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHoursRemaining() => $_clearField(2);
+}
+
+/// One pass through the rotation, each template once with three working
+/// sets a lift, counted the way Home counts the week (primary 1.0,
+/// secondary 0.5).
+class RotationCheck extends $pb.GeneratedMessage {
+  factory RotationCheck({
+    $core.Iterable<MuscleVolume>? volume,
+    $core.Iterable<RotationWarning>? warnings,
+  }) {
+    final result = create();
+    if (volume != null) result.volume.addAll(volume);
+    if (warnings != null) result.warnings.addAll(warnings);
+    return result;
+  }
+
+  RotationCheck._();
+
+  factory RotationCheck.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RotationCheck.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RotationCheck',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<MuscleVolume>(1, _omitFieldNames ? '' : 'volume',
+        subBuilder: MuscleVolume.create)
+    ..pPM<RotationWarning>(2, _omitFieldNames ? '' : 'warnings',
+        subBuilder: RotationWarning.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RotationCheck clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RotationCheck copyWith(void Function(RotationCheck) updates) =>
+      super.copyWith((message) => updates(message as RotationCheck))
+          as RotationCheck;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RotationCheck create() => RotationCheck._();
+  @$core.override
+  RotationCheck createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RotationCheck getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RotationCheck>(create);
+  static RotationCheck? _defaultInstance;
+
+  /// One entry per muscle; completed_sets_7d holds the pass's sets.
+  @$pb.TagNumber(1)
+  $pb.PbList<MuscleVolume> get volume => $_getList(0);
+
+  /// Empty when nothing is wrong.
+  @$pb.TagNumber(2)
+  $pb.PbList<RotationWarning> get warnings => $_getList(1);
+}
+
+class RotationWarning extends $pb.GeneratedMessage {
+  factory RotationWarning({
+    RotationWarningKind? kind,
+    $core.Iterable<MuscleGroup>? muscles,
+    $core.Iterable<$core.String>? templateIds,
+    $core.int? shared,
+    $core.int? of,
+  }) {
+    final result = create();
+    if (kind != null) result.kind = kind;
+    if (muscles != null) result.muscles.addAll(muscles);
+    if (templateIds != null) result.templateIds.addAll(templateIds);
+    if (shared != null) result.shared = shared;
+    if (of != null) result.of = of;
+    return result;
+  }
+
+  RotationWarning._();
+
+  factory RotationWarning.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RotationWarning.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RotationWarning',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<RotationWarningKind>(1, _omitFieldNames ? '' : 'kind',
+        enumValues: RotationWarningKind.values)
+    ..pc<MuscleGroup>(2, _omitFieldNames ? '' : 'muscles', $pb.PbFieldType.KE,
+        valueOf: MuscleGroup.valueOf,
+        enumValues: MuscleGroup.values,
+        defaultEnumValue: MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
+    ..pPS(3, _omitFieldNames ? '' : 'templateIds')
+    ..aI(4, _omitFieldNames ? '' : 'shared')
+    ..aI(5, _omitFieldNames ? '' : 'of')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RotationWarning clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RotationWarning copyWith(void Function(RotationWarning) updates) =>
+      super.copyWith((message) => updates(message as RotationWarning))
+          as RotationWarning;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RotationWarning create() => RotationWarning._();
+  @$core.override
+  RotationWarning createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RotationWarning getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RotationWarning>(create);
+  static RotationWarning? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RotationWarningKind get kind => $_getN(0);
+  @$pb.TagNumber(1)
+  set kind(RotationWarningKind value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasKind() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearKind() => $_clearField(1);
+
+  /// GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
+  /// least-trained trained muscle.
+  @$pb.TagNumber(2)
+  $pb.PbList<MuscleGroup> get muscles => $_getList(1);
+
+  /// OVERLAP: the two templates.
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get templateIds => $_getList(2);
+
+  /// OVERLAP: lifts the two share, and the smaller template's count.
+  @$pb.TagNumber(4)
+  $core.int get shared => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set shared($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasShared() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearShared() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get of => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set of($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasOf() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearOf() => $_clearField(5);
 }
 
 class TemplatePlan extends $pb.GeneratedMessage {

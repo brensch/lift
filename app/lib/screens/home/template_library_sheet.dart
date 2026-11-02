@@ -1,5 +1,6 @@
-/// The Edit sheet: the user's workouts, in the same compact rows as
-/// onboarding's pick. Their own (cloned or made with New on home) come
+/// The Edit sheet: the rotation check at the top (what one lap of the
+/// rotation trains, and what is wrong with it), then the user's workouts,
+/// in the same compact rows as onboarding's pick. Their own (cloned or made with New on home) come
 /// first, to edit or delete; then the library (templates/library.yaml on
 /// the server), ticked in and out — ticked ones follow the library, and
 /// Clone makes one their own to edit.
@@ -10,9 +11,11 @@ import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../logic/rotation_text.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_spec.dart';
+import 'home_screen.dart' show VolumeCard;
 import 'template_editor.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
@@ -176,6 +179,11 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                       bottom: MediaQuery.paddingOf(context).bottom + 24,
                     ),
                     children: [
+                      if (wp.rotationCheck case final check?)
+                        RotationCheckSection(
+                          check: check,
+                          names: {for (final t in wp.templates) t.id: t.name},
+                        ),
                       if (own.isNotEmpty) ...[
                         _GroupHeading(t.yoursHeading),
                         for (final template in own)
@@ -242,6 +250,55 @@ class _LibrarySheetState extends State<_LibrarySheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// One lap of the rotation: sets per muscle on Home's bars, and a plain
+/// line for each thing wrong with it (none when nothing is).
+class RotationCheckSection extends StatelessWidget {
+  final RotationCheck check;
+
+  /// Template id → name, for the overlap warning.
+  final Map<String, String> names;
+
+  const RotationCheckSection({
+    super.key,
+    required this.check,
+    required this.names,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final r = copy.rotation;
+    final warnings = rotationWarningLines(check, names);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _GroupHeading(r.checkTitle),
+        Text(
+          r.checkBody,
+          style: TextStyle(
+            fontSize: context.tokens.size.small,
+            color: cs.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 8),
+        VolumeCard(volume: check.volume, recovery: const []),
+        for (final line in warnings)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              line,
+              style: TextStyle(
+                fontSize: context.tokens.size.body,
+                fontWeight: context.tokens.weight.bold,
+                color: cs.error,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

@@ -1,5 +1,6 @@
-/// The template editor, a page of its own: a name and an ordered exercise
-/// list. That is the whole thing — sets, reps and weight are planned, each
+/// The template editor, a page of its own: a name, whether it is in the
+/// rotation the suggestion picks from, and an ordered exercise list. That
+/// is the whole thing — sets, reps and weight are planned, each
 /// row shows its next plan, and tapping one sets your own numbers for the
 /// exercise (an override), which apply in every template that contains it.
 library;
@@ -48,6 +49,8 @@ class _TemplateEditorSheet extends StatefulWidget {
 class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   late final TextEditingController _nameController;
   late List<Exercise> _exercises;
+  // A new workout starts as a favourite.
+  late bool _inRotation;
   bool _isSaving = false;
 
   bool get _isNew => widget.template == null;
@@ -57,6 +60,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     super.initState();
     _nameController = TextEditingController(text: widget.template?.name ?? '');
     _exercises = List.of(widget.template?.exercises ?? const <Exercise>[]);
+    _inRotation = widget.template?.inRotation ?? false;
   }
 
   @override
@@ -73,6 +77,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
       final template = WorkoutTemplate()
         ..id = widget.template?.id ?? ''
         ..name = name
+        ..inRotation = _inRotation
         ..exercises.addAll(_exercises);
       await context.read<WorkoutProvider>().saveTemplate(template);
       if (mounted) Navigator.pop(context);
@@ -139,7 +144,26 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 14),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  copy.rotation.switchLabel,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.body,
+                    fontWeight: context.tokens.weight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  copy.rotation.switchHint,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.small,
+                    color: cs.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                value: _inRotation,
+                onChanged: (v) => setState(() => _inRotation = v),
+              ),
+              const SizedBox(height: 6),
               Expanded(
                 child: _exercises.isEmpty
                     ? Padding(

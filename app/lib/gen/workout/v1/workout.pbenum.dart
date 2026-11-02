@@ -511,5 +511,46 @@ class WorkoutState extends $pb.ProtobufEnum {
   const WorkoutState._(super.value, super.name);
 }
 
+class RotationWarningKind extends $pb.ProtobufEnum {
+  static const RotationWarningKind ROTATION_WARNING_KIND_UNSPECIFIED =
+      RotationWarningKind._(
+          0, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_UNSPECIFIED');
+
+  /// A muscle nothing in rotation trains.
+  static const RotationWarningKind ROTATION_WARNING_KIND_GAP =
+      RotationWarningKind._(
+          1, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_GAP');
+
+  /// Two templates sharing over 70% of the smaller one's lifts.
+  static const RotationWarningKind ROTATION_WARNING_KIND_OVERLAP =
+      RotationWarningKind._(
+          2, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_OVERLAP');
+
+  /// The most-trained muscle gets 3x or more the least-trained one.
+  static const RotationWarningKind ROTATION_WARNING_KIND_LOPSIDED =
+      RotationWarningKind._(
+          3, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_LOPSIDED');
+
+  /// Fewer than two templates in rotation.
+  static const RotationWarningKind ROTATION_WARNING_KIND_TOO_FEW =
+      RotationWarningKind._(
+          4, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_TOO_FEW');
+
+  static const $core.List<RotationWarningKind> values = <RotationWarningKind>[
+    ROTATION_WARNING_KIND_UNSPECIFIED,
+    ROTATION_WARNING_KIND_GAP,
+    ROTATION_WARNING_KIND_OVERLAP,
+    ROTATION_WARNING_KIND_LOPSIDED,
+    ROTATION_WARNING_KIND_TOO_FEW,
+  ];
+
+  static final $core.List<RotationWarningKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static RotationWarningKind? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const RotationWarningKind._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

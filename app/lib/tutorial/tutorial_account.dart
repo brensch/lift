@@ -92,7 +92,11 @@ class TutorialAccount {
       final saved = await core.call(
         'SaveTemplate',
         SaveTemplateRequest(
-          template: WorkoutTemplate(name: name, exercises: exercises),
+          template: WorkoutTemplate(
+            name: name,
+            exercises: exercises,
+            inRotation: true,
+          ),
         ),
         SaveTemplateResponse.fromBuffer,
       );
