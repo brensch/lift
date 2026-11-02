@@ -106,8 +106,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// and nothing real in front. It never schedules or cancels OS
   /// notifications, plays no sound, writes nothing to the health platform
   /// and leaves the notification tap handler to the real provider.
-  WorkoutProvider(this._service, this._settingsProvider, {bool sandbox = false})
-    : _sandbox = sandbox {
+  WorkoutProvider(
+    this._service,
+    this._settingsProvider, {
+    bool sandbox = false,
+    int budgetMinutes = defaultBudgetMinutes,
+  }) : _sandbox = sandbox,
+       _budgetMinutes = budgetMinutes {
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -324,7 +329,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The time the user has for a workout, in minutes. Home plans every lift
   /// in it, and a start records it.
   int get budgetMinutes => _budgetMinutes;
-  int _budgetMinutes = defaultBudgetMinutes;
+  int _budgetMinutes;
   static const defaultBudgetMinutes = 60;
   static const budgetStepMinutes = 5;
   static const minBudgetMinutes = 10;

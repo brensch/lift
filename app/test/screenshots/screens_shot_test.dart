@@ -108,6 +108,10 @@ void main() {
                     .text(copy.tutorial.steps[step - 1].title)
                     .evaluate()
                     .isNotEmpty)) {
+          // The outline glides onto its target a frame at a time.
+          for (var frame = 0; frame < 40; frame++) {
+            await tester.pump(const Duration(milliseconds: 16));
+          }
           return;
         }
       }

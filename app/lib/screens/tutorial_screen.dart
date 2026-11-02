@@ -51,7 +51,12 @@ class _TutorialScreenState extends State<TutorialScreen>
 
   final GlobalKey _stageKey = GlobalKey();
   int _step = 0;
+
+  /// The step's target, where it is this frame.
   Rect? _target;
+
+  /// Where the outline and the card are drawn: easing to [_target].
+  Rect? _shown;
 
   /// Moving between steps, or (at first) the sample account still being
   /// built: taps wait.
@@ -74,6 +79,9 @@ class _TutorialScreenState extends State<TutorialScreen>
       WorkoutServiceWrapper(_SandboxCore(_account.future)),
       context.read<SettingsProvider>(),
       sandbox: true,
+      // Short enough that every sample workout fills it: the time control
+      // shows an estimate, never its cap.
+      budgetMinutes: 45,
     );
     _registry.addListener(_measure);
     // The pulse ticks every frame: follow the target on it, so the outline
@@ -143,48 +151,54 @@ class _TutorialScreenState extends State<TutorialScreen>
     if (!mounted) return;
     final index = _pending ?? _step;
     final ctx = _registry.contextFor(_steps[index].target);
-    if (ctx == null) {
-      setState(() {
-        _step = index;
-        _pending = null;
-        _target = null;
-      });
-      return;
-    }
-    // Bring it on screen first; the ListView on home is tall.
-    await Scrollable.ensureVisible(
-      ctx,
-      // Near the top: the card has room under it, so it never flips.
-      alignment: 0.1,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
-    if (!mounted || !ctx.mounted) return;
-    await WidgetsBinding.instance.endOfFrame;
-    if (!mounted || !ctx.mounted) return;
-    final box = ctx.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return;
-    final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
+    // The new step at once: the outline glides to its target (`_follow`)
+    // while the page scrolls it into view, one motion rather than two.
     setState(() {
       _step = index;
       _pending = null;
-      _target = topLeft & box.size;
+      _target = ctx == null ? null : _rectOf(ctx) ?? _target;
+      if (_target == null) _shown = null;
     });
+    if (ctx == null) return;
+    // Near the top: the card has room under it, so it never flips.
+    await Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.1,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
-  /// Where the shown step's target is this frame, when it has moved.
+  /// Where [ctx]'s box is on the stage, or null before it is laid out.
+  Rect? _rectOf(BuildContext ctx) {
+    final box = ctx.findRenderObject() as RenderBox?;
+    final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.attached || !box.hasSize || overlay == null) {
+      return null;
+    }
+    return box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
+  }
+
+  /// Each frame: where the shown step's target is now, and the outline a
+  /// step closer to it — so it stays on the target as the page scrolls or
+  /// settles, and moves between targets smoothly.
   void _follow() {
     if (_pending != null || _target == null) return;
     final ctx = _registry.contextFor(_steps[_step].target);
-    final box = ctx?.findRenderObject() as RenderBox?;
-    final overlay = _stageKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.attached || !box.hasSize || overlay == null) {
-      return;
+    final target = (ctx == null ? null : _rectOf(ctx)) ?? _target!;
+    final shown = _shown;
+    final next = shown == null ? target : Rect.lerp(shown, target, 0.25)!;
+    final settled =
+        shown != null &&
+        (next.topLeft - target.topLeft).distance < 0.5 &&
+        (next.size - target.size as Offset).distance < 0.5;
+    final drawn = settled ? target : next;
+    if (target != _target || drawn != _shown) {
+      setState(() {
+        _target = target;
+        _shown = drawn;
+      });
     }
-    final now = box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
-    if (now != _target) setState(() => _target = now);
   }
 
   void _next() {
@@ -245,7 +259,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                           painter: _SpotlightPainter(
                             outline: context.tokens.primary,
                             radius: context.tokens.radius(18),
-                            target: _target,
+                            target: _shown,
                             throb: Curves.easeInOut.transform(_throb.value),
                           ),
                         ),
@@ -255,7 +269,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                       step: step,
                       index: _step,
                       count: _steps.length,
-                      target: _target,
+                      target: _shown,
                       bounds: Offset.zero & constraints.biggest,
                       onPrevious: _step > 0 ? _previous : null,
                       onNext: _next,
