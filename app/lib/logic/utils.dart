@@ -86,3 +86,22 @@ String _passkeyError(String code, String? message, [Object? details]) {
       : message.trim();
   return 'Passkey error ($code): $messageText$detailText';
 }
+
+/// "Oct 3": a day as the charts and plan reasons show it.
+String shortDate(DateTime d) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[d.month - 1]} ${d.day}';
+}

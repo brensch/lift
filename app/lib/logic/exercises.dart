@@ -367,3 +367,18 @@ final Map<Exercise, String> shortNames = {
 final Map<Exercise, List<BodyPart>> exerciseBodyParts = {
   for (final info in exerciseCatalog) info.exercise: info.bodyParts,
 };
+
+/// Short display names for the ten muscles, shared by the volume rows, the
+/// template chips and the plan reasons.
+const muscleShortLabels = {
+  MuscleGroup.MUSCLE_GROUP_CHEST: 'Chest',
+  MuscleGroup.MUSCLE_GROUP_BACK: 'Back',
+  MuscleGroup.MUSCLE_GROUP_SHOULDERS: 'Delts',
+  MuscleGroup.MUSCLE_GROUP_BICEPS: 'Biceps',
+  MuscleGroup.MUSCLE_GROUP_TRICEPS: 'Triceps',
+  MuscleGroup.MUSCLE_GROUP_QUADS: 'Quads',
+  MuscleGroup.MUSCLE_GROUP_HAMSTRINGS: 'Hams',
+  MuscleGroup.MUSCLE_GROUP_GLUTES: 'Glutes',
+  MuscleGroup.MUSCLE_GROUP_CALVES: 'Calves',
+  MuscleGroup.MUSCLE_GROUP_CORE: 'Core',
+};

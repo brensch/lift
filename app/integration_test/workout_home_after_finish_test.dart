@@ -1,11 +1,10 @@
-// Bug hunt: after finishing a workout, do the summary and the tracker agree?
-// A fresh user's first session calibrates each lift: the onboarding seed is
-// only a guess, the rung answered "Right" is the working weight, and that is
-// what EndWorkout must write to the tracker (docs/plans/one-tap-sets.md §7).
-// Starts in the UI, fast-forwards every set through the app's own account
-// (rung answered Right, then the appended working sets), ends from the UI,
-// and checks the summary shows the calibrated weight and the backend tracker
-// now holds it, performed.
+// Bug hunt: after finishing a workout, do the summary and the next plan
+// agree? A fresh user's first session calibrates each lift: the starting
+// weight is only a guess, the ramp finds the max, and the working sets are
+// planned from it. The next plan walks from that session
+// (docs/plans/planned-at-start.md). Starts in the UI, fast-forwards every
+// set through the app's own account, ends from the UI, and checks the
+// summary shows the calibrated weight and the next plan builds on it.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -17,7 +16,7 @@ import 'support/scenario.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('workout — summary and tracker agree after finishing', (
+  testWidgets('workout — summary and next plan agree after finishing', (
     tester,
   ) async {
     final s = Scenario(binding, tester, 'workout_home_after_finish');
@@ -29,10 +28,10 @@ void main() {
       await s.completeOnboarding();
 
       final api = await s.api.login(username);
-      final before = (await api.trackerFor(Exercise.EXERCISE_SQUAT))!;
+      final before = (await api.planFor(Exercise.EXERCISE_SQUAT))!;
       s.note(
         'Backend squat before',
-        detail: '${before.workingWeight} lb (never performed)',
+        detail: '${before.decision.weight} lb ramp (never performed)',
         kind: 'api',
       );
 
@@ -65,12 +64,15 @@ void main() {
         throw StateError('no working set was completed after the rung');
       }
 
-      // Backend: the tracker is now that weight, and performed.
-      final after = (await api.trackerFor(Exercise.EXERCISE_SQUAT))!;
+      // Backend: the next plan builds on that session: performed, a max,
+      // no ramp, and every rep hit means at least that weight again.
+      final after = (await api.planFor(Exercise.EXERCISE_SQUAT))!;
       s.note(
         'Backend squat after finish',
         detail:
-            '${after.workingWeight} lb, performed=${after.lastPerformedAt > Int64.ZERO}',
+            '${after.decision.weight} lb × ${after.decision.reps}, '
+            'max ${after.decision.max}, '
+            'performed=${after.lastPerformedAt > Int64.ZERO}',
         kind: 'api',
       );
       expect(
@@ -79,12 +81,15 @@ void main() {
         reason:
             'finishing should mark the lift performed (no more calibration)',
       );
+      expect(after.decision.calibration, isFalse);
+      expect(after.decision.max, greaterThan(0));
       expect(
-        after.workingWeight,
-        calibrated,
+        after.decision.weight,
+        greaterThanOrEqualTo(calibrated),
         reason:
-            'the tracker should hold the calibrated working weight, not the '
-            'onboarding seed (${before.workingWeight})',
+            'every rep hit: the next plan stays at the calibrated weight or '
+            'steps up, not back to the starting weight '
+            '(${before.decision.weight})',
       );
 
       // The summary should render that weight (e.g. "Heaviest set: 110 lb").
@@ -95,7 +100,7 @@ void main() {
         reason: 'the summary should show the calibrated weight ("$shown")',
       );
 
-      s.note('Calibration result landed on the tracker', kind: 'assert');
+      s.note('The next plan builds on the calibration', kind: 'assert');
     });
   });
 }

@@ -1,7 +1,7 @@
 /// Offered right after a workout whose exercises diverged from its
 /// template, or that started empty: fold what you actually did back into a
 /// template. Templates stay lists of exercises — this saves the movements,
-/// never the weights (those live on the trackers).
+/// never the weights (those are planned per exercise).
 library;
 
 import 'package:flutter/material.dart';

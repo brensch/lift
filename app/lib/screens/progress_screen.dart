@@ -6,6 +6,7 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
+import '../logic/utils.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
@@ -41,7 +42,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   int _windowIdx = _windows.length - 1; // default: All
 
   /// Filter each series to the selected window, dropping exercises with nothing
-  /// in range. Getters (current/best/1RM/gain) then read the windowed points.
+  /// in range. Getters (current/best/max/gain) then read the windowed points.
   List<_ExerciseProgress> _windowed(List<_ExerciseProgress> all) {
     final days = _windows[_windowIdx].days;
     if (days == null) return all;
@@ -84,7 +85,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   (p) => _Point(
                     DateTime.fromMillisecondsSinceEpoch(p.date.toInt() * 1000),
                     p.topWeight,
-                    p.bestOneRepMax,
+                    p.estimatedMax,
                   ),
                 )
                 .toList(),
@@ -204,7 +205,7 @@ class _SummaryHeader extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(
-            'since ${_shortDate(since)}',
+            'since ${shortDate(since)}',
             style: TextStyle(
               color: cs.tertiary,
               fontSize: context.tokens.size.small,
@@ -356,8 +357,10 @@ class _ExerciseCard extends StatelessWidget {
                     children: [
                       _rightStat(
                         context,
-                        '1RM',
-                        formatWeight(series.bestOneRm, unit),
+                        'MAX',
+                        series.bodyweight
+                            ? '${series.maxNow.round()}'
+                            : formatWeight(series.maxNow, unit),
                         cs,
                       ),
                       const SizedBox(height: 4),
@@ -510,7 +513,7 @@ class _Chart extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    _shortDate(pts[i].date),
+                    shortDate(pts[i].date),
                     style: TextStyle(
                       fontSize: context.tokens.size.caption,
                       color: cs.tertiary,
@@ -528,7 +531,7 @@ class _Chart extends StatelessWidget {
             getTooltipItems: (spots) => spots.map((s) {
               final p = pts[s.x.round()];
               return LineTooltipItem(
-                '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${_shortDate(p.date)}',
+                '${formatWeight(p.weight, unit)} ${weightUnitSuffix(unit)}\n${shortDate(p.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
                   fontWeight: context.tokens.weight.bold,
@@ -592,29 +595,13 @@ class _EmptyState extends StatelessWidget {
   );
 }
 
-String _shortDate(DateTime d) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[d.month - 1]} ${d.day}';
-}
-
 class _Point {
   final DateTime date;
   final double weight;
-  final double oneRm;
-  _Point(this.date, this.weight, this.oneRm);
+
+  /// The estimated max after the session (a rep max for bodyweight).
+  final double estimatedMax;
+  _Point(this.date, this.weight, this.estimatedMax);
 }
 
 class _ExerciseProgress {
@@ -636,7 +623,7 @@ class _ExerciseProgress {
   double get current => points.last.weight;
   double get best =>
       points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
-  double get bestOneRm =>
-      points.map((p) => p.oneRm).reduce((a, b) => a > b ? a : b);
+  double get maxNow => points.last.estimatedMax;
+  bool get bodyweight => points.every((p) => p.weight <= 0);
   double get gain => current - start;
 }

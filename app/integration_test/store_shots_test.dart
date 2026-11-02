@@ -92,7 +92,7 @@ void main() {
       await s.mustSee(Scenario.homeStart, seconds: 12);
       if (await seedThinHistoryIfNeeded(await s.api.login('demo'))) {
         s.note('Unseeded backend: thin history seeded for demo', kind: 'api');
-        await s.relaunch(); // home re-reads the trackers and the volume
+        await s.relaunch(); // home re-reads the plans and the volume
         await s.mustSee(Scenario.homeStart, seconds: 12);
       }
 

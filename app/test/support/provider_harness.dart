@@ -63,20 +63,58 @@ class ProviderHarness {
     core.close();
   }
 
-  /// Trackers at [weights] (lb), performed yesterday — so a start
-  /// prescribes the ordinary block: no calibration ramp, no layoff deload.
-  Future<void> seedTrackers(Map<Exercise, double> weights) async {
-    final yesterday = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 86400;
+  /// A finished session yesterday of each lift in [lifts]: three sets at
+  /// its (weight lb, reps), every rep made — so a start plans from that
+  /// history: no calibration ramp, no time off.
+  Future<void> seedHistory(Map<Exercise, (double, int)> lifts) async {
+    final start = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 86400;
+    const id = 'seed';
+    final proposed = <ProposedSet>[];
+    final completed = <CompletedSet>[];
+    var t = start;
+    for (final MapEntry(key: exercise, value: (weight, reps))
+        in lifts.entries) {
+      for (var i = 0; i < 3; i++) {
+        final setId = '$id-${proposed.length}';
+        proposed.add(
+          ProposedSet(
+            id: setId,
+            workoutId: id,
+            workoutOrder: proposed.length,
+            exercise: exercise,
+            targetReps: reps,
+            targetWeight: weight,
+            restSeconds: 120,
+          ),
+        );
+        t += 160;
+        completed.add(
+          CompletedSet(
+            id: '$setId-done',
+            workoutId: id,
+            proposedSetId: setId,
+            actualReps: reps,
+            actualWeight: weight,
+            endedAt: Int64(t),
+            restUntil: Int64(t + 120),
+          ),
+        );
+      }
+    }
     await core.call(
       'ImportHistory',
       ImportHistory(
-        trackers: [
-          for (final e in weights.entries)
-            TrackerRecord(
-              exercise: e.key,
-              workingWeight: e.value,
-              lastPerformedAt: Int64(yesterday),
+        workouts: [
+          ImportedWorkout(
+            workout: Workout(
+              id: id,
+              name: 'Seed',
+              startTime: Int64(start),
+              endTime: Int64(t + 60),
             ),
+            proposedSets: proposed,
+            completedSets: completed,
+          ),
         ],
       ),
       ImportHistoryResponse.fromBuffer,

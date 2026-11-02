@@ -1,6 +1,7 @@
-/// The edit sheet for an exercise mid-workout: its weight and reps (for the
-/// rest of this workout and on your account from now on), or remove it.
-/// Warmups regenerate for the new weight automatically.
+/// The edit sheet for an exercise mid-workout: its weight and reps for the
+/// rest of this workout, or remove it. Warmups regenerate for the new
+/// weight automatically. The change is recorded in the workout's weight
+/// log; the next plan reads what was lifted.
 library;
 
 import 'package:flutter/material.dart';
@@ -64,29 +65,25 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     final sets = _workingSets;
     _weight = sets.isEmpty ? 0 : sets.last.targetWeight.toDouble();
     final working = widget.block.workingSets.toList();
-    final tracker = context.read<WorkoutProvider>().trackerFor(
-      widget.block.exercise,
-    );
+    final decision = context
+        .read<WorkoutProvider>()
+        .logFor(widget.block.exercise)
+        ?.decision;
     _reps = working.isNotEmpty
         ? working.last.targetReps
-        : (tracker != null && tracker.targetReps > 0 ? tracker.targetReps : 5);
+        : (decision != null && decision.reps > 0 ? decision.reps : 5);
     _startWeight = _weight;
     _startReps = _reps;
   }
 
   bool get _barbell =>
-      context
-          .read<WorkoutProvider>()
-          .trackerFor(widget.block.exercise)
-          ?.equipment ==
+      context.read<WorkoutProvider>().equipmentOf(widget.block.exercise) ==
       EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
   bool get _dirty =>
       (_startWeight - _weight).abs() > 0.01 || _startReps != _reps;
 
-  /// This workout's remaining sets take the new numbers, and so does your
-  /// account: the exercise's weight and rep target from now on. Any sets
-  /// or rep range you set by hand stay as they were.
+  /// This workout's remaining sets take the new numbers.
   Future<void> _apply() async {
     if (!_dirty || _isSaving) {
       if (mounted && !_isSaving) Navigator.pop(context);
@@ -95,18 +92,8 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     setState(() => _isSaving = true);
     final wp = context.read<WorkoutProvider>();
     final exercise = widget.block.exercise;
-    final tracker = wp.trackerFor(exercise);
-    final overridden = tracker?.overridden ?? false;
     try {
       await wp.adjustExerciseWeight(exercise, _weight, targetReps: _reps);
-      await wp.setExerciseTracker(
-        exercise: exercise,
-        workingWeightLb: _weight,
-        overrideSets: overridden ? tracker!.sets : 0,
-        overrideRepLow: overridden ? tracker!.repRangeLow : 0,
-        overrideRepHigh: overridden ? tracker!.repRangeHigh : 0,
-        targetReps: _reps,
-      );
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);

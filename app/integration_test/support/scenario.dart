@@ -475,12 +475,11 @@ class Scenario {
   }) async {
     await tester.runAsync(() async {
       for (final lift in lifts) {
-        await workout.setExerciseTracker(
+        await workout.setOverride(
           exercise: lift.key,
-          workingWeightLb: lift.value,
-          overrideSets: sets,
-          overrideRepLow: reps,
-          overrideRepHigh: reps,
+          weightLb: lift.value,
+          reps: reps,
+          sets: sets,
         );
       }
       await workout.startWorkout(

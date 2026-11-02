@@ -131,13 +131,24 @@ class _FirstTimeDialog extends StatefulWidget {
 }
 
 class _FirstTimeDialogState extends State<_FirstTimeDialog> {
-  /// What their strength answer at sign-up put this lift at, in lb.
-  late double _weightLb =
-      widget.wp.trackerFor(widget.set.exercise)?.workingWeight ??
-      widget.set.targetWeight;
+  /// What their strength answer at sign-up put this lift at, in lb: the
+  /// starting weight the decision's first-time step began from, else the
+  /// ramp's first rung.
+  late double _weightLb = _startingWeight();
+
+  double _startingWeight() {
+    final reasons = widget.wp.logFor(widget.set.exercise)?.decision.reasons;
+    for (final reason in reasons ?? const <PlanReason>[]) {
+      if (reason.kind == PlanReasonKind.PLAN_REASON_KIND_FIRST_TIME &&
+          reason.before > 0) {
+        return reason.before;
+      }
+    }
+    return widget.set.targetWeight;
+  }
 
   bool get _barbell =>
-      widget.wp.trackerFor(widget.set.exercise)?.equipment ==
+      widget.wp.equipmentOf(widget.set.exercise) ==
       EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
   void _lift() {

@@ -1,9 +1,9 @@
 /// Home: your templates, your weekly volume, and one suggestion.
 ///
-/// A template is an ordered list of exercises and nothing else — the
-/// server prescribes sets, reps, rest and weight from the trackers, so
-/// every card here shows the numbers the workout will actually start
-/// with. The suggestion is the template whose muscles are furthest below
+/// A template is an ordered list of exercises and nothing else — the core
+/// plans sets, reps, rest and weight in the time the user has, so every
+/// card here shows the numbers the workout will actually start with, and
+/// why. The suggestion is the template whose muscles are furthest below
 /// the 10–20 weekly-set band; it is one tap, never a gate.
 library;
 
@@ -19,8 +19,7 @@ import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
-import '../../logic/session_estimate.dart';
-import '../../logic/weight_units.dart';
+import '../../logic/plan_text.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
@@ -211,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final highlight = selected == null
         ? const <MuscleGroup>{}
-        : templateMuscles(selected, wp.trackers).toSet();
+        : templateMuscles(selected, wp.plans).toSet();
 
     // Scrolls (and pulls to refresh) only when the content is taller than the
     // screen; when it fits, the page stays put. No stretch at the edges.
@@ -283,7 +282,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 id: 'home_plan',
                 child: SelectedTemplateCard(
                   template: selected,
-                  trackers: wp.trackers,
+                  plan: wp.templatePlanFor(selected.id),
+                  budgetMinutes: wp.budgetMinutes,
+                  onBudgetStep: wp.stepBudget,
                   unit: unit,
                   recommended: selected.id == suggestedId,
                   suggestionReason: selected.id == suggestedId
@@ -424,27 +425,14 @@ class _ActionChip extends StatelessWidget {
   }
 }
 
-/// Short display names for the ten muscles, shared by the volume rows and
-/// the template chips.
-const muscleShortLabels = {
-  MuscleGroup.MUSCLE_GROUP_CHEST: 'Chest',
-  MuscleGroup.MUSCLE_GROUP_BACK: 'Back',
-  MuscleGroup.MUSCLE_GROUP_SHOULDERS: 'Delts',
-  MuscleGroup.MUSCLE_GROUP_BICEPS: 'Biceps',
-  MuscleGroup.MUSCLE_GROUP_TRICEPS: 'Triceps',
-  MuscleGroup.MUSCLE_GROUP_QUADS: 'Quads',
-  MuscleGroup.MUSCLE_GROUP_HAMSTRINGS: 'Hams',
-  MuscleGroup.MUSCLE_GROUP_GLUTES: 'Glutes',
-  MuscleGroup.MUSCLE_GROUP_CALVES: 'Calves',
-  MuscleGroup.MUSCLE_GROUP_CORE: 'Core',
-};
-
 /// The distinct primary muscles a template trains, in exercise order.
 List<MuscleGroup> templateMuscles(
   WorkoutTemplate template,
-  List<ExerciseTracker> trackers,
+  List<ExercisePlan> plans,
 ) {
-  final byExercise = {for (final t in trackers) t.exercise: t.primaryMuscle};
+  final byExercise = {
+    for (final p in plans) p.decision.exercise: p.primaryMuscle,
+  };
   final out = <MuscleGroup>[];
   for (final exercise in template.exercises) {
     final muscle = byExercise[exercise];
@@ -826,11 +814,16 @@ class TemplateChip extends StatelessWidget {
   }
 }
 
-/// The one expanded card: every exercise with the exact numbers the workout
-/// will start with, the muscles it hits, the time it should take, and START.
+/// The one expanded card: the time the user has, every exercise with the
+/// exact numbers the workout will start with and why, the time it should
+/// take, and START.
 class SelectedTemplateCard extends StatelessWidget {
   final WorkoutTemplate template;
-  final List<ExerciseTracker> trackers;
+
+  /// The template planned in the budget; null before the first load.
+  final TemplatePlan? plan;
+  final int budgetMinutes;
+  final ValueChanged<int> onBudgetStep;
   final WeightUnit unit;
   final bool recommended;
   final String suggestionReason;
@@ -843,7 +836,9 @@ class SelectedTemplateCard extends StatelessWidget {
   const SelectedTemplateCard({
     super.key,
     required this.template,
-    required this.trackers,
+    required this.plan,
+    required this.budgetMinutes,
+    required this.onBudgetStep,
     required this.unit,
     required this.recommended,
     required this.suggestionReason,
@@ -854,18 +849,11 @@ class SelectedTemplateCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  ExerciseTracker? _trackerFor(Exercise exercise) {
-    for (final tracker in trackers) {
-      if (tracker.exercise == exercise) return tracker;
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.5);
-    final time = estimatedSessionLabel(template, trackers);
+    final plans = plan?.plans ?? const <ExercisePlan>[];
 
     return Container(
       decoration: BoxDecoration(
@@ -897,18 +885,6 @@ class SelectedTemplateCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (time.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Text(
-                              time,
-                              style: TextStyle(
-                                fontSize: context.tokens.size.bodyLg,
-                                fontWeight: context.tokens.weight.bold,
-                                color: cs.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ),
                       ],
                     ),
                     if (!template.coupled) const PersonalTag(),
@@ -962,14 +938,18 @@ class SelectedTemplateCard extends StatelessWidget {
               ),
             ],
           ),
-          for (final exercise in template.exercises)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, right: 8),
+            child: _TimeControl(
+              budgetMinutes: budgetMinutes,
+              estimatedSeconds: plan?.estimatedSeconds ?? 0,
+              onStep: onBudgetStep,
+            ),
+          ),
+          for (final exercisePlan in plans)
             Padding(
-              padding: const EdgeInsets.only(bottom: 5, right: 8),
-              child: _ExerciseLine(
-                exercise: exercise,
-                tracker: _trackerFor(exercise),
-                unit: unit,
-              ),
+              padding: const EdgeInsets.only(bottom: 6, right: 8),
+              child: _ExerciseLine(decision: exercisePlan.decision, unit: unit),
             ),
           const SizedBox(height: 10),
           Padding(
@@ -1004,51 +984,112 @@ class SelectedTemplateCard extends StatelessWidget {
   }
 }
 
-/// One line of a template card: "Squat   3×8 @ 185 lb".
-class _ExerciseLine extends StatelessWidget {
-  final Exercise exercise;
-  final ExerciseTracker? tracker;
-  final WeightUnit unit;
+/// "− 60 min +" and what the plan takes: "~52 min", or "Needs 70 min"
+/// when two sets a lift don't fit.
+class _TimeControl extends StatelessWidget {
+  final int budgetMinutes;
+  final int estimatedSeconds;
+  final ValueChanged<int> onStep;
 
-  const _ExerciseLine({
-    required this.exercise,
-    required this.tracker,
-    required this.unit,
+  const _TimeControl({
+    required this.budgetMinutes,
+    required this.estimatedSeconds,
+    required this.onStep,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = exerciseNames[exercise] ?? '?';
-    final resolved = tracker;
-    final prescription = resolved == null
+    final t = context.tokens;
+    final minutes = planMinutes(estimatedSeconds);
+    final over = estimatedSeconds > budgetMinutes * 60;
+    final estimate = estimatedSeconds <= 0
         ? ''
-        : resolved.workingWeight > 0
-        ? '${resolved.sets}×${resolved.targetReps} @ '
-              '${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
-        : '${resolved.sets}×${resolved.targetReps}';
+        : (over ? copy.plan.needs : copy.plan.estimate).replaceAll(
+            '{min}',
+            '$minutes',
+          );
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            name,
-            style: TextStyle(
-              fontSize: context.tokens.size.bodyLg,
-              fontWeight: context.tokens.weight.bold,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: () => onStep(-1),
+          icon: const Icon(AppIcons.removeCircle),
         ),
-        const SizedBox(width: 8),
         Text(
-          prescription,
+          copy.plan.budget.replaceAll('{min}', '$budgetMinutes'),
           style: TextStyle(
-            fontSize: context.tokens.size.bodyLg,
-            fontWeight: context.tokens.weight.bold,
+            fontSize: t.size.bodyLg,
+            fontWeight: t.weight.heavy,
             fontFeatures: const [FontFeature.tabularFigures()],
-            color: cs.onSurface.withValues(alpha: 0.7),
           ),
         ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: () => onStep(1),
+          icon: const Icon(AppIcons.addCircle),
+        ),
+        const Spacer(),
+        Text(
+          estimate,
+          style: TextStyle(
+            fontSize: t.size.body,
+            fontWeight: t.weight.bold,
+            color: over ? cs.error : cs.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One lift of a template card: "Squat   3×8 @ 185 lb", and under it why.
+class _ExerciseLine extends StatelessWidget {
+  final ExerciseDecision decision;
+  final WeightUnit unit;
+
+  const _ExerciseLine({required this.decision, required this.unit});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final name = exerciseNames[decision.exercise] ?? '?';
+    final reason = reasonShort(decision, unit);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: context.tokens.size.bodyLg,
+                  fontWeight: context.tokens.weight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              planLine(decision, unit),
+              style: TextStyle(
+                fontSize: context.tokens.size.bodyLg,
+                fontWeight: context.tokens.weight.bold,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: cs.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
+        if (reason.isNotEmpty)
+          Text(
+            reason,
+            style: TextStyle(
+              fontSize: context.tokens.size.small,
+              color: cs.onSurface.withValues(alpha: 0.55),
+            ),
+          ),
       ],
     );
   }

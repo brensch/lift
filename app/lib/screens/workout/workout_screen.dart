@@ -166,7 +166,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       final calibrating =
           sets.any((s) => s.calibration) &&
           !sets.any((s) => !s.warmup && !s.calibration);
-      if (calibrating) totalSets += wp.trackerFor(g.exercise)?.sets ?? 0;
+      if (calibrating) totalSets += wp.logFor(g.exercise)?.decision.sets ?? 0;
       doneSets += sets
           .where(
             (s) => wp.completedSets.any(
@@ -443,12 +443,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {
-    // Pick movements only — the app prescribes weight, sets, reps, rest
-    // and warmups from each exercise's tracker, same as a template start.
+    // Pick movements only — the core plans weight, sets, reps, rest and
+    // warmups for each one in the workout's budget, same as a start.
     // Nothing lands until SAVE; adjusting numbers is a separate flow.
     showExercisePicker(
       context: context,
-      trackers: wp.trackers,
+      plans: wp.plans,
       initialSelected: const {},
       // An exercise already in the workout can't be added again.
       excluded: {for (final b in wp.exerciseBlocks) b.exercise},

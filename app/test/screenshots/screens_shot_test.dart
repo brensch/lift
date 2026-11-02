@@ -318,7 +318,7 @@ void main() {
     // The core answers on real time, outside the test's fake clock.
     final h = (await tester.runAsync(() async {
       final h = await ProviderHarness.boot(sandbox: true);
-      await h.seedTrackers({Exercise.EXERCISE_SQUAT: 185});
+      await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
       await h.start([Exercise.EXERCISE_SQUAT]);
       return h;
     }))!;
@@ -359,7 +359,7 @@ void main() {
     await shoot(tester, 'weight_sheet');
 
     // Weight + twice (185 → 195), then SAVE applies it to the pending
-    // sets (and the account's tracker). A 5×5 keeps its 5.
+    // sets, reps as planned.
     await tester.tap(find.text('+5'));
     await tester.tap(find.text('+5'));
     await tester.pump();
@@ -370,23 +370,23 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );
       await tester.pump();
-      if (h.provider.trackerFor(Exercise.EXERCISE_SQUAT)!.workingWeight ==
-          195) {
+      if (h.provider.logFor(Exercise.EXERCISE_SQUAT)!.changes.isNotEmpty) {
         break;
       }
     }
+    final reps = h.provider.logFor(Exercise.EXERCISE_SQUAT)!.decision.reps;
     expect(
       h
           .working(Exercise.EXERCISE_SQUAT)
-          .every((s) => s.targetWeight == 195 && s.targetReps == 5),
+          .every((s) => s.targetWeight == 195 && s.targetReps == reps),
       isTrue,
-      reason: 'the pending working sets moved to 195 × 5',
+      reason: 'the pending working sets moved to 195 × $reps',
     );
-    final tracker = h.provider.trackerFor(Exercise.EXERCISE_SQUAT)!;
+    final change = h.provider.logFor(Exercise.EXERCISE_SQUAT)!.changes.last;
     expect(
-      (tracker.workingWeight, tracker.targetReps),
-      (195.0, 5),
-      reason: 'the account takes the new numbers too',
+      (change.cause, change.before, change.after),
+      (WeightChangeCause.WEIGHT_CHANGE_CAUSE_USER_ADJUST, 185.0, 195.0),
+      reason: 'the weight log says who changed it',
     );
 
     // Tear down inside the test body: the provider's periodic ticker must

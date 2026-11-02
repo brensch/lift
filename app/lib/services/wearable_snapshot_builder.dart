@@ -76,7 +76,7 @@ class WearableSnapshotBuilder {
     }) {
       final firstTime = _isFirstEver(set, proposedSets, completedSets);
       final barbell =
-          workoutProvider.trackerFor(set.exercise)?.equipment ==
+          workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
       final weight = set.targetWeight.toDouble();
       final plates = barbell && !firstTime

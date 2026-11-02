@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../gen/workout/v1/workout.pb.dart' show ExerciseTracker;
+import '../gen/workout/v1/workout.pb.dart' show ExercisePlan;
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
@@ -23,7 +23,7 @@ Future<void> showExercisePicker({
   required BuildContext context,
   required Set<Exercise> initialSelected,
   required void Function(Set<Exercise> selected) onSave,
-  List<ExerciseTracker> trackers = const [],
+  List<ExercisePlan> plans = const [],
   Set<Exercise> excluded = const {},
 }) {
   return showModalBottomSheet(
@@ -38,7 +38,7 @@ Future<void> showExercisePicker({
     builder: (ctx) => _ExercisePickerSheet(
       initialSelected: initialSelected,
       onSave: onSave,
-      trackers: trackers,
+      plans: plans,
       excluded: excluded,
     ),
   );
@@ -47,7 +47,7 @@ Future<void> showExercisePicker({
 class _ExercisePickerSheet extends StatefulWidget {
   final Set<Exercise> initialSelected;
   final void Function(Set<Exercise> selected) onSave;
-  final List<ExerciseTracker> trackers;
+  final List<ExercisePlan> plans;
 
   /// Not offered at all: in a workout, the exercises already in it (one
   /// exercise appears once).
@@ -56,7 +56,7 @@ class _ExercisePickerSheet extends StatefulWidget {
   const _ExercisePickerSheet({
     required this.initialSelected,
     required this.onSave,
-    required this.trackers,
+    required this.plans,
     required this.excluded,
   });
 
@@ -80,10 +80,10 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
   @override
   void initState() {
     super.initState();
-    if (widget.trackers.isNotEmpty) {
+    if (widget.plans.isNotEmpty) {
       _equipment = {
-        for (final tracker in widget.trackers)
-          tracker.exercise.value: tracker.equipment,
+        for (final plan in widget.plans)
+          plan.decision.exercise.value: plan.equipment,
       };
     }
     unawaited(_loadMachinesPref());

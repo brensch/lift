@@ -38,12 +38,14 @@ class WorkoutServiceWrapper {
     String name, {
     String templateId = '',
     List<Exercise> exercises = const [],
+    int budgetMinutes = 0,
   }) => _call(
     'StartWorkout',
     StartWorkoutRequest()
       ..name = name
       ..exercises.addAll(exercises)
-      ..templateId = templateId,
+      ..templateId = templateId
+      ..budgetMinutes = budgetMinutes,
     StartWorkoutResponse.fromBuffer,
   );
 
@@ -118,9 +120,13 @@ class WorkoutServiceWrapper {
         EndWorkoutResponse.fromBuffer,
       );
 
-  /// Everything the home screen needs in one call.
-  Future<GetHomeResponse> getHome() =>
-      _call('GetHome', GetHomeRequest(), GetHomeResponse.fromBuffer);
+  /// Everything the home screen needs in one call, every lift planned in
+  /// [budgetMinutes] (0 = the core's default).
+  Future<GetHomeResponse> getHome({int budgetMinutes = 0}) => _call(
+    'GetHome',
+    GetHomeRequest(budgetMinutes: budgetMinutes),
+    GetHomeResponse.fromBuffer,
+  );
 
   Future<WorkoutTemplate> saveTemplate(WorkoutTemplate template) async =>
       (await _call(
@@ -141,41 +147,37 @@ class WorkoutServiceWrapper {
     ReorderTemplatesResponse.fromBuffer,
   );
 
-  /// Manual correction/override for one exercise. Overrides of 0 = derived.
-  Future<ExerciseTracker> setExerciseTracker({
+  /// The user's own weight and reps (and optionally sets) for one lift:
+  /// the plan carries on from it. Reps of 0 removes it.
+  Future<ExercisePlan> setOverride({
     required Exercise exercise,
-    required double workingWeight,
-    int overrideSets = 0,
-    int overrideRepLow = 0,
-    int overrideRepHigh = 0,
-    int targetReps = 0,
-  }) async => (await _call(
-    'SetExerciseTracker',
-    SetExerciseTrackerRequest()
+    required double weight,
+    required int reps,
+    int? sets,
+  }) async {
+    final request = SetOverrideRequest()
       ..exercise = exercise
-      ..workingWeight = workingWeight
-      ..overrideSets = overrideSets
-      ..overrideRepLow = overrideRepLow
-      ..overrideRepHigh = overrideRepHigh
-      ..targetReps = targetReps,
-    SetExerciseTrackerResponse.fromBuffer,
-  )).tracker;
+      ..weight = weight
+      ..reps = reps;
+    if (sets != null) request.sets = sets;
+    return (await _call(
+      'SetOverride',
+      request,
+      SetOverrideResponse.fromBuffer,
+    )).plan;
+  }
 
-  /// Finishes setup: saves the unit, seeds trackers, and copies the chosen
-  /// library templates (the library's defaults when none are named).
+  /// Finishes setup: saves the unit, records the starting weights
+  /// [strength] picks (chick 0 .. gorilla 1; unset keeps the catalog's
+  /// openers), and copies the chosen library templates (the library's
+  /// defaults when none are named).
   Future<GetHomeResponse> completeOnboarding({
-    required double bodyWeightKg,
-    required ExperienceLevel experience,
     required WeightUnit unit,
-    Gender gender = Gender.GENDER_UNSPECIFIED,
     List<String> libraryIds = const [],
-    double? strength, // chick 0 .. gorilla 1; replaces experience/gender
+    double? strength,
   }) async {
     final request = CompleteOnboardingRequest()
-      ..bodyWeightKg = bodyWeightKg
-      ..experience = experience
       ..unit = unit
-      ..gender = gender
       ..libraryIds.addAll(libraryIds);
     if (strength != null) request.strength = strength;
     return (await _call(
@@ -185,7 +187,7 @@ class WorkoutServiceWrapper {
     )).home;
   }
 
-  /// The first working weights the setup slider shows, one step per 1% of
+  /// The starting weights the setup slider shows, one step per 1% of
   /// the slider, in [unit].
   Future<List<StartingWeightsStep>> getStartingWeights(WeightUnit unit) async =>
       (await _call(
@@ -230,11 +232,4 @@ class WorkoutServiceWrapper {
     UpdateSettingRequest(setting: setting),
     UpdateSettingResponse.fromBuffer,
   );
-
-  Future<List<String>> dismissUserMessages(List<String> keys) async =>
-      (await _call(
-        'DismissUserMessages',
-        DismissUserMessagesRequest()..messageKeys.addAll(keys),
-        DismissUserMessagesResponse.fromBuffer,
-      )).dismissedMessageKeys;
 }

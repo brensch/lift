@@ -1,5 +1,5 @@
 /// The tutorial's sandbox: a real account, in memory, run by the same core as
-/// the user's — three templates, trackers a few months in, last week's
+/// the user's — three templates, lifts a few months in, last week's
 /// training behind it (so volume and recovery have something to say), and
 /// on cue a session two exercises in with its rest still running. Nothing
 /// touches the network or the user's own account.
@@ -42,7 +42,7 @@ class TutorialAccount {
     Exercise.EXERCISE_LATERAL_RAISE,
   ];
 
-  /// Working weights (lb), as someone a few months in would have them.
+  /// Weights (lb) as someone a few months in lifts them.
   static const _weights = {
     Exercise.EXERCISE_BARBELL_ROW: 115.0,
     Exercise.EXERCISE_PULL_UP: 0.0,
@@ -60,20 +60,12 @@ class TutorialAccount {
     final core = await LocalCore.memory('tutorial');
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    // The trackers, as performed recently (so nothing asks to find a
-    // weight), and the last fortnight's sessions: legs and push lately,
-    // pull before this week — so pull is what's behind, and suggested.
+    // The last fortnight's sessions, every lift done (so each has a max
+    // and nothing ramps): legs and push lately, pull before this week — so
+    // pull is what's behind, and suggested.
     await core.call(
       'ImportHistory',
       ImportHistory(
-        trackers: [
-          for (final e in _weights.entries)
-            TrackerRecord(
-              exercise: e.key,
-              workingWeight: e.value,
-              lastPerformedAt: Int64(now - 2 * _day),
-            ),
-        ],
         workouts: [
           _pastSession('legs', _legs, now - 2 * _day),
           _pastSession('push', _push, now - 1 * _day),
@@ -108,8 +100,8 @@ class TutorialAccount {
     return TutorialAccount._(core, suggested);
   }
 
-  /// A finished session of [exercises] at [at]: three sets each at the
-  /// tracker weight, every rep made.
+  /// A finished session of [exercises] at [at]: three sets each at its
+  /// weight, every rep made.
   static ImportedWorkout _pastSession(
     String id,
     List<Exercise> exercises,
@@ -130,7 +122,7 @@ class TutorialAccount {
             exercise: exercise,
             targetReps: 8,
             targetWeight: _weights[exercise],
-            restAfterSuccess: 120,
+            restSeconds: 120,
           ),
         );
         t += 160;

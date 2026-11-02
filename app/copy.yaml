@@ -123,8 +123,9 @@ onboarding:
     pounds_body: Best for making you think you lift more because the number is larger.
     kilograms: Kilograms
     kilograms_body: Best for science and everywhere except America
-  # The chick-to-gorilla slider. The lifts underneath show the first
-  # working weights that setting gives (the server seeds the same numbers).
+  # The chick-to-gorilla slider. The lifts underneath show the starting
+  # weights that setting gives (the core records the same numbers; a lift's
+  # first workout ramps up from 60% of its own).
   strength:
     title: How huge are you
     body: This does not reflect on who you are as a person, just helps me get your starting weight right.
@@ -256,3 +257,51 @@ workout:
     resting: Missed reps? Tap that circle once for each.
     yapping: Rest is over. Tap the next circle to start.
     all_done: That's everything. End the workout when you're ready.
+
+# The plan: what each lift is given when a workout starts, and why. Home's
+# workout card, the template editor, the live workout when a lift comes up,
+# and the summary. {…} are substituted by the code. All placeholder copy.
+plan:
+  # Home's time control: "− 60 min +".
+  budget: "{min} min"
+  # The workout's estimated length beside the time control.
+  estimate: "~{min} min"
+  # When two sets a lift don't fit the time.
+  needs: "Needs {min} min"
+  # A lift never done, loaded: its first set, where the ramp starts.
+  ramp: "Ramp from {weight}"
+  # Why the numbers are what they are. {max} is the estimated max (a rep
+  # max for bodyweight lifts).
+  reasons:
+    max_up: "Hit every rep. Max up to {max}."
+    max_from_miss: "Missed a rep. Max back to {max}."
+    held: "Max held at {max}."
+    time_off: "{days} days off. Max cut to {max}."
+    first_time: "First time. The ramp finds your max."
+    first_time_bodyweight: "First time. Bottom of the range."
+    user_set: "Your numbers, from {date}."
+    # SETS_FROM_TIME: more than the two every lift gets.
+    sets_extra: "{sets} sets. {muscle} is behind this week."
+    sets_floor: "{sets} sets. That's what the time fits."
+  # Changes to a weight during a workout.
+  changes:
+    user_adjust: "You changed it: {before} → {after}"
+    calibration_step: "Ramp: {before} → {after}"
+    calibration_settled: "Ramp done: {after}"
+    correction: "Fixed a set: {before} → {after}"
+  # The sheet in the template editor: the user's own numbers for a lift.
+  override:
+    body: Your weight and reps. I carry on from here.
+    weight: Weight
+    reps: Reps
+    sets: Sets
+    # The sets toggle off: the time budget decides.
+    sets_auto: From the time
+    save: SAVE
+    remove: Let the plan decide
+    # On a row with an override.
+    custom: yours
+  # The completed workout screen, per lift.
+  summary:
+    planned: "Planned: {plan}"
+    max_after: "Max after: {max}"
