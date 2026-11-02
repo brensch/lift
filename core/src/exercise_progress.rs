@@ -24,6 +24,9 @@ pub struct SetDone {
     pub target: i32,
     /// Every target rep done.
     pub hit: bool,
+    /// A calibration rung's answer to "how many more could you have
+    /// done?" (`RepsLeft`); unspecified when unanswered or not a rung.
+    pub reps_left: i32,
 }
 
 /// One session of one lift.
@@ -93,6 +96,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
             reps: completed.actual_reps,
             target: proposed.target_reps,
             hit: proposed.target_reps > 0 && completed.actual_reps >= proposed.target_reps,
+            reps_left: completed.reps_left,
         };
         let outcome = out
             .entry(proposed.exercise)

@@ -176,8 +176,21 @@ message CompletedSet {
   // When the set was started (its StartSet), 0 if it was done without
   // one. Lifting is started_at → ended_at.
   int64 started_at = 11;
+  // A calibration rung done in full: the user's answer to "how many more
+  // could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+  RepsLeft reps_left = 12;
   reserved 6, 9, 10;
   reserved "rest_skipped", "effort";
+}
+
+// How many more reps a calibration rung done in full had left in it. Each
+// answer counts as a reserve in the rung's shown max (core/src/plan.rs):
+// 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+enum RepsLeft {
+  REPS_LEFT_UNSPECIFIED = 0; // not answered
+  REPS_LEFT_ZERO_TO_ONE = 1;
+  REPS_LEFT_TWO_TO_THREE = 2;
+  REPS_LEFT_FOUR_PLUS = 3;
 }
 
 // ── Plans: what each lift is given, and why ──
@@ -420,6 +433,11 @@ message GetWorkoutResponse {
   WorkoutPlanChangeStats plan_change_stats = 6;
   WorkoutStateSnapshot state_snapshot = 7;
   WorkoutSummary summary = 9;
+  // The calibration rung (a proposed set id) whose "how many more could you
+  // have done?" is open: done in full, unanswered, the latest rung of its
+  // lift, the rung it appended still to lift and nothing being lifted.
+  // Empty when none. An AnswerRungRequest applies only to this set.
+  string rung_question_set_id = 12;
   // Undone warmups that are behind you (skipped, or a working set of their
   // exercise is done): shown out of the way, nothing waits on them.
   repeated string passed_warmup_ids = 10;
@@ -551,6 +569,18 @@ message ReorderExercisesRequest {
 message SkipWarmupsRequest {
   string workout_id = 1;
   Exercise exercise = 2;
+}
+
+// The answer to "how many more could you have done?" on a calibration rung
+// done in full. 0–1 ends the ramp there: the working sets are laid out from
+// the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+// rung: the weight the max they imply leaves about one rep in reserve on a
+// 5-rep set, never less than the usual +10% rung. Applies only to the open
+// question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+message AnswerRungRequest {
+  string workout_id = 1;
+  string proposed_set_id = 2;
+  RepsLeft reps_left = 3;
 }
 
 message StartSetRequest {
@@ -1018,6 +1048,7 @@ message WorkoutMutation {
     StartSetRequest start_set = 24;
     SkipWarmupsRequest skip_warmups = 25;
     SetWorkoutSessionRequest set_session = 26;
+    AnswerRungRequest answer_rung = 27;
   }
   reserved 10, 12, 15, 16, 21, 22;
   reserved "skip_rest", "cancel_proposed_set", "rate_exercise";

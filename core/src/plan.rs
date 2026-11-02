@@ -20,7 +20,8 @@
 //!
 //! Time away cuts it when a workout is planned (21 days ×0.9, 42 ×0.8). A
 //! lift never done runs the calibration ramp, whose missed rung gives the
-//! max. An override (weight and reps, maybe sets) is converted to the max
+//! max (or its last rung, with the reserve its answer to "how many more
+//! could you have done?" counts: `answered_reserve`). An override (weight and reps, maybe sets) is converted to the max
 //! that prescribes it and is a new starting point.
 //!
 //! **Sets** come from the time budget: 2 a lift, then one at a time (up to
@@ -49,7 +50,7 @@ use crate::exercise_progress::{session_outcomes, SessionOutcome, SetDone};
 use crate::history::{workout_time, WorkoutRecord};
 use crate::pb::{
     CompletedSet, Exercise, ExerciseDecision, ExercisePlan, PlanChangeCause, PlanReason,
-    PlanReasonKind, ProposedSet,
+    PlanReasonKind, ProposedSet, RepsLeft,
 };
 use crate::volume::{muscle_volume_7d, VOLUME_TARGET_LOW};
 use crate::weight_units::AppWeightUnit;
@@ -90,9 +91,10 @@ pub fn is_bodyweight(ex: Exercise) -> bool {
 // ── The max ──
 
 /// What one set shows (see the module docs): an estimated max, or for a
-/// bodyweight lift a rep max. `reserve` is 1 for a set that hit its target.
-pub fn shown_max(weight: f32, reps: i32, reserve: i32, set_number: usize, bodyweight: bool) -> f32 {
-    let reps = reps as f32 + reserve as f32 + 0.5 * set_number.saturating_sub(1) as f32;
+/// bodyweight lift a rep max. `reserve` is 1 for a set that hit its target
+/// (a ramp rung's answer can say otherwise: `answered_reserve`).
+pub fn shown_max(weight: f32, reps: i32, reserve: f32, set_number: usize, bodyweight: bool) -> f32 {
+    let reps = reps as f32 + reserve + 0.5 * set_number.saturating_sub(1) as f32;
     if bodyweight {
         reps
     } else {
@@ -103,7 +105,20 @@ pub fn shown_max(weight: f32, reps: i32, reserve: i32, set_number: usize, bodywe
 /// The max that `sets` × `reps` @ `weight` takes: the last set's, with one
 /// rep in reserve.
 pub fn max_needed(weight: f32, reps: i32, sets: i32, bodyweight: bool) -> f32 {
-    shown_max(weight, reps, 1, sets.max(1) as usize, bodyweight)
+    shown_max(weight, reps, 1.0, sets.max(1) as usize, bodyweight)
+}
+
+/// The reps in reserve a ramp rung's answer to "how many more could you
+/// have done?" counts (`RepsLeft`): each range's middle, 0–1 as 0.5 and
+/// 2–3 as 2.5, and 4+ as 5. None when unanswered: a full rung then counts
+/// the usual 1.
+pub fn answered_reserve(reps_left: i32) -> Option<f32> {
+    match RepsLeft::try_from(reps_left).ok()? {
+        RepsLeft::ZeroToOne => Some(0.5),
+        RepsLeft::TwoToThree => Some(2.5),
+        RepsLeft::FourPlus => Some(5.0),
+        RepsLeft::Unspecified => None,
+    }
 }
 
 /// The most reps the max covers at `weight` across `sets` (may be below
@@ -268,7 +283,7 @@ fn most_shown(sets: &[SetDone], extra: i32, bodyweight: bool) -> Option<(f32, &s
                 shown_max(
                     set.weight,
                     set.reps + extra,
-                    set.hit as i32,
+                    if set.hit { 1.0 } else { 0.0 },
                     i + 1,
                     bodyweight,
                 ),
@@ -282,11 +297,15 @@ fn most_shown(sets: &[SetDone], extra: i32, bodyweight: bool) -> Option<(f32, &s
 }
 
 /// What a calibration ramp found: the missed rung (a set to failure), or
-/// the last rung when every one was full.
+/// the last rung when every one was full, counting the reserve its answer
+/// gave (one rep when unanswered).
 fn ramp_max(rungs: &[SetDone], bodyweight: bool) -> Option<(f32, &str)> {
     let (rung, reserve) = match rungs.iter().find(|r| !r.hit) {
-        Some(missed) => (missed, 0),
-        None => (rungs.last()?, 1),
+        Some(missed) => (missed, 0.0),
+        None => {
+            let last = rungs.last()?;
+            (last, answered_reserve(last.reps_left).unwrap_or(1.0))
+        }
     };
     Some((
         shown_max(rung.weight, rung.reps, reserve, 1, bodyweight),
@@ -908,6 +927,7 @@ mod tests {
             reps,
             target: if hit { reps } else { reps + 1 },
             hit,
+            reps_left: 0,
         }
     }
 
@@ -944,14 +964,14 @@ mod tests {
     fn a_set_shows_epley_with_reserve_and_fatigue() {
         // 100 × (1 + (5 + 1 + 0.5 × 2) / 30)
         assert!(close(
-            shown_max(100.0, 5, 1, 3, false),
+            shown_max(100.0, 5, 1.0, 3, false),
             100.0 * (1.0 + 7.0 / 30.0)
         ));
         assert!(close(
-            shown_max(100.0, 5, 0, 1, false),
+            shown_max(100.0, 5, 0.0, 1, false),
             100.0 * (1.0 + 5.0 / 30.0)
         ));
-        assert!(close(shown_max(0.0, 10, 1, 2, true), 11.5));
+        assert!(close(shown_max(0.0, 10, 1.0, 2, true), 11.5));
         // What a plan needs is what covers it, exactly.
         let max = max_needed(200.0, 6, 3, false);
         assert_eq!(reps_covered(max, 200.0, 3, false), 6);
@@ -965,7 +985,7 @@ mod tests {
         let reason = w.reason.clone().unwrap();
         assert_eq!(reason.kind, PlanReasonKind::MaxUp as i32);
         assert_eq!(reason.workout_id, "w1");
-        assert!(close(w.max.unwrap(), shown_max(200.0, 7, 1, 3, false)));
+        assert!(close(w.max.unwrap(), shown_max(200.0, 7, 1.0, 3, false)));
         let d = plan_lift(Exercise::Squat, &w, None, None, 3, 2 * DAY, LB);
         assert_eq!((d.weight, d.reps), (200.0, 7), "rule 1: a rep more");
         assert_eq!(
@@ -1002,7 +1022,7 @@ mod tests {
         let reason = w.reason.clone().unwrap();
         assert_eq!(reason.kind, PlanReasonKind::MaxFromMiss as i32);
         assert_eq!(reason.set_id, "205x6", "the set that showed it");
-        assert!(close(w.max.unwrap(), shown_max(205.0, 6, 1, 1, false)));
+        assert!(close(w.max.unwrap(), shown_max(205.0, 6, 1.0, 1, false)));
         assert!(w.max.unwrap() <= reason.before);
         let d = plan_lift(Exercise::Squat, &w, None, None, 3, 4 * DAY, LB);
         assert!(d.max < reason.before);
@@ -1014,7 +1034,7 @@ mod tests {
             session("w2", 2, vec![set(150.0, 8, true), set(150.0, 4, false)]),
         ];
         let w = walk(Exercise::Squat, &sessions, None);
-        assert!(close(w.max.unwrap(), shown_max(100.0, 6, 1, 3, false)));
+        assert!(close(w.max.unwrap(), shown_max(100.0, 6, 1.0, 3, false)));
     }
 
     /// The user lowered the weight and hit everything: the max stays.
@@ -1324,8 +1344,36 @@ mod tests {
             w.reason.clone().unwrap().kind,
             PlanReasonKind::FirstTime as i32
         );
-        assert!(close(w.max.unwrap(), shown_max(55.0, 3, 0, 1, false)));
+        assert!(close(w.max.unwrap(), shown_max(55.0, 3, 0.0, 1, false)));
         assert_eq!(w.last_weight, None);
+    }
+
+    /// A ramp whose last rung was answered: its max counts the answer's
+    /// reserve; unanswered, one rep; a later miss still wins.
+    #[test]
+    fn an_answered_rung_gives_the_max_with_its_reserve() {
+        let answered = |reps_left: RepsLeft| SetDone {
+            reps_left: reps_left as i32,
+            ..set(55.0, 5, true)
+        };
+        for (reps_left, reserve) in [
+            (RepsLeft::Unspecified, 1.0),
+            (RepsLeft::ZeroToOne, 0.5),
+            (RepsLeft::TwoToThree, 2.5),
+            (RepsLeft::FourPlus, 5.0),
+        ] {
+            let mut ramp = session("w1", 1, Vec::new());
+            ramp.rungs = vec![set(45.0, 5, true), answered(reps_left)];
+            let w = walk(Exercise::Squat, &[ramp], None);
+            assert!(
+                close(w.max.unwrap(), shown_max(55.0, 5, reserve, 1, false)),
+                "{reps_left:?}"
+            );
+        }
+        let mut ramp = session("w1", 1, Vec::new());
+        ramp.rungs = vec![answered(RepsLeft::FourPlus), set(65.0, 3, false)];
+        let w = walk(Exercise::Squat, &[ramp], None);
+        assert!(close(w.max.unwrap(), shown_max(65.0, 3, 0.0, 1, false)));
     }
 
     /// An override converts to the max that prescribes it, is planned as
@@ -1353,7 +1401,7 @@ mod tests {
         ];
         let w = walk(press, &after, Some(&over));
         assert!(!w.from_override);
-        assert!(close(w.max.unwrap(), shown_max(100.0, 11, 1, 3, false)));
+        assert!(close(w.max.unwrap(), shown_max(100.0, 11, 1.0, 3, false)));
         let d = plan_lift(press, &w, None, Some(&over), 3, 5 * DAY, LB);
         assert_eq!((d.weight, d.reps), (100.0, 11), "progressing from it");
     }

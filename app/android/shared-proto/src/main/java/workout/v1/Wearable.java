@@ -648,11 +648,12 @@ public final class Wearable {
 
     /**
      * <pre>
-     * The opening set of an exercise never done, not yet started: no weight
-     * yet, and the answer (your weight, or test me) is given on the phone. The
-     * band shows the state as usual; the weight row shows first_time_text in
-     * place of weight × reps, and no tap on the face does anything to the
-     * exercise's sets.
+     * A question is waiting on the phone: the opening set of an exercise never
+     * done, not yet started (your weight, or test me), or a ramp set just done
+     * in full asking how many more you could have done
+     * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+     * usual; the weight row shows first_time_text in place of weight × reps,
+     * and no tap on the face does anything to the exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -1455,11 +1456,12 @@ public final class Wearable {
     private boolean firstTime_;
     /**
      * <pre>
-     * The opening set of an exercise never done, not yet started: no weight
-     * yet, and the answer (your weight, or test me) is given on the phone. The
-     * band shows the state as usual; the weight row shows first_time_text in
-     * place of weight × reps, and no tap on the face does anything to the
-     * exercise's sets.
+     * A question is waiting on the phone: the opening set of an exercise never
+     * done, not yet started (your weight, or test me), or a ramp set just done
+     * in full asking how many more you could have done
+     * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+     * usual; the weight row shows first_time_text in place of weight × reps,
+     * and no tap on the face does anything to the exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -1471,11 +1473,12 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The opening set of an exercise never done, not yet started: no weight
-     * yet, and the answer (your weight, or test me) is given on the phone. The
-     * band shows the state as usual; the weight row shows first_time_text in
-     * place of weight × reps, and no tap on the face does anything to the
-     * exercise's sets.
+     * A question is waiting on the phone: the opening set of an exercise never
+     * done, not yet started (your weight, or test me), or a ramp set just done
+     * in full asking how many more you could have done
+     * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+     * usual; the weight row shows first_time_text in place of weight × reps,
+     * and no tap on the face does anything to the exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -1487,11 +1490,12 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The opening set of an exercise never done, not yet started: no weight
-     * yet, and the answer (your weight, or test me) is given on the phone. The
-     * band shows the state as usual; the weight row shows first_time_text in
-     * place of weight × reps, and no tap on the face does anything to the
-     * exercise's sets.
+     * A question is waiting on the phone: the opening set of an exercise never
+     * done, not yet started (your weight, or test me), or a ramp set just done
+     * in full asking how many more you could have done
+     * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+     * usual; the weight row shows first_time_text in place of weight × reps,
+     * and no tap on the face does anything to the exercise's sets.
      * </pre>
      *
      * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -2650,11 +2654,12 @@ public final class Wearable {
 
       /**
        * <pre>
-       * The opening set of an exercise never done, not yet started: no weight
-       * yet, and the answer (your weight, or test me) is given on the phone. The
-       * band shows the state as usual; the weight row shows first_time_text in
-       * place of weight × reps, and no tap on the face does anything to the
-       * exercise's sets.
+       * A question is waiting on the phone: the opening set of an exercise never
+       * done, not yet started (your weight, or test me), or a ramp set just done
+       * in full asking how many more you could have done
+       * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+       * usual; the weight row shows first_time_text in place of weight × reps,
+       * and no tap on the face does anything to the exercise's sets.
        * </pre>
        *
        * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -2666,11 +2671,12 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The opening set of an exercise never done, not yet started: no weight
-       * yet, and the answer (your weight, or test me) is given on the phone. The
-       * band shows the state as usual; the weight row shows first_time_text in
-       * place of weight × reps, and no tap on the face does anything to the
-       * exercise's sets.
+       * A question is waiting on the phone: the opening set of an exercise never
+       * done, not yet started (your weight, or test me), or a ramp set just done
+       * in full asking how many more you could have done
+       * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+       * usual; the weight row shows first_time_text in place of weight × reps,
+       * and no tap on the face does anything to the exercise's sets.
        * </pre>
        *
        * <code>bool first_time = 18 [json_name = "firstTime"];</code>
@@ -2684,11 +2690,12 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The opening set of an exercise never done, not yet started: no weight
-       * yet, and the answer (your weight, or test me) is given on the phone. The
-       * band shows the state as usual; the weight row shows first_time_text in
-       * place of weight × reps, and no tap on the face does anything to the
-       * exercise's sets.
+       * A question is waiting on the phone: the opening set of an exercise never
+       * done, not yet started (your weight, or test me), or a ramp set just done
+       * in full asking how many more you could have done
+       * (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+       * usual; the weight row shows first_time_text in place of weight × reps,
+       * and no tap on the face does anything to the exercise's sets.
        * </pre>
        *
        * <code>bool first_time = 18 [json_name = "firstTime"];</code>

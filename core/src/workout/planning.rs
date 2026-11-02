@@ -6,7 +6,7 @@
 //! the calibration ramp's appends, which the reducer drives.
 
 use super::*;
-use crate::exercise_catalog::{progression_increment_lb, snap_weight_lb};
+use crate::exercise_catalog::{progression_increment_lb, snap_down_weight_lb, snap_weight_lb};
 use crate::ids::{derived_id, Ids};
 use crate::pb::{Exercise, ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
 use crate::weight_units::{
@@ -152,6 +152,26 @@ pub fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeightUnit) 
         (weight + step).max(weight * CALIBRATION_RUNG_FRACTION),
         unit,
     )
+}
+
+/// The rung after one done in full at `weight` whose answer counted
+/// `reserve` reps left: the max that shows (`plan::shown_max`), and from
+/// it the heaviest loadable weight leaving about one rep in reserve on a
+/// 5-rep rung, `w × (1 + (5 + 1) / 30) ≤ max` — never lighter than the
+/// usual rung (`next_calibration_weight`).
+pub fn answered_calibration_weight(
+    exercise: i32,
+    weight: f32,
+    reserve: f32,
+    unit: AppWeightUnit,
+) -> f32 {
+    let usual = next_calibration_weight(exercise, weight, unit);
+    let Ok(ex) = Exercise::try_from(exercise) else {
+        return usual;
+    };
+    let max = crate::plan::shown_max(weight, CALIBRATION_REPS, reserve, 1, false);
+    let one_left = max / (1.0 + (CALIBRATION_REPS + 1) as f32 / 30.0);
+    snap_down_weight_lb(ex, one_left, unit).max(usual)
 }
 
 /// The working sets a ramp settles on: the decision's sets, the weight and

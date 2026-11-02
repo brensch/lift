@@ -314,6 +314,9 @@ impl Account {
             }
             Mutation::StartSet(req) => reducer::apply_start_set_to_active(&mut record, req, at)?,
             Mutation::SkipWarmups(req) => reducer::apply_skip_warmups_to_active(&mut record, req)?,
+            Mutation::AnswerRung(req) => {
+                reducer::apply_answer_rung_to_active(&mut record, req, unit, at)?
+            }
             Mutation::DeleteCompletedSet(req) => {
                 reducer::apply_delete_completed_set_to_active(&mut record, req)?
             }
@@ -538,6 +541,7 @@ pub fn mutation_workout_id(mutation: &Mutation) -> &str {
         Mutation::EditCompletedSet(m) => &m.workout_id,
         Mutation::StartSet(m) => &m.workout_id,
         Mutation::SkipWarmups(m) => &m.workout_id,
+        Mutation::AnswerRung(m) => &m.workout_id,
         Mutation::SetSession(m) => &m.workout_id,
     }
 }

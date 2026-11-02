@@ -1411,6 +1411,87 @@ mod calibration {
         let shown = app.view().exercise_plan(Exercise::Squat, 0);
         assert_eq!(shown.last_performed_at, NOW + 2_500);
     }
+
+    /// The ramp's question through the batch, as the phone and the watch
+    /// send it: answered 0–1 the ramp ends there, the working sets follow
+    /// from the max with the answer's reserve, an answer to it again is
+    /// ignored, and the walk afterwards reads the same max. The replay
+    /// (App's drop) rebuilds it all.
+    #[test]
+    fn an_answer_settles_the_ramp_and_the_walk_reads_it() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let rung1 = started.proposed_sets[0].clone();
+        let batch = |app: &mut App, m: Mutation, at: i64| {
+            app.call()
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![mutation_at(m, at)],
+                })
+                .unwrap()
+                .workout_state
+                .unwrap()
+        };
+        let done = |set: &ProposedSet, reps: i32| {
+            Mutation::CompleteSet(CompleteSetRequest {
+                workout_id: set.workout_id.clone(),
+                proposed_set_id: set.id.clone(),
+                actual_reps: reps,
+                actual_weight: set.target_weight,
+                completed_at: 0,
+            })
+        };
+        let answer = |set: &ProposedSet, reps_left: RepsLeft| {
+            Mutation::AnswerRung(AnswerRungRequest {
+                workout_id: set.workout_id.clone(),
+                proposed_set_id: set.id.clone(),
+                reps_left: reps_left as i32,
+            })
+        };
+        let state = batch(&mut app, done(&rung1, 5), NOW + 100);
+        assert_eq!(state.rung_question_set_id, rung1.id);
+        let rung2 = state.proposed_sets[1].clone();
+        let state = batch(&mut app, answer(&rung1, RepsLeft::FourPlus), NOW + 110);
+        assert!(state.rung_question_set_id.is_empty());
+        assert_eq!(
+            state.proposed_sets[1].id, rung2.id,
+            "the next rung keeps its id"
+        );
+        let state = batch(&mut app, done(&rung2, 5), NOW + 300);
+        assert_eq!(state.rung_question_set_id, rung2.id);
+        let state = batch(&mut app, answer(&rung2, RepsLeft::ZeroToOne), NOW + 310);
+        let squat = working(&state.proposed_sets, Exercise::Squat);
+        assert_eq!(
+            squat.len(),
+            decision(&started, Exercise::Squat).sets as usize
+        );
+        let stale = batch(&mut app, answer(&rung2, RepsLeft::FourPlus), NOW + 320);
+        assert_eq!(
+            working(&stale.proposed_sets, Exercise::Squat),
+            squat,
+            "answered: ignored"
+        );
+        batch(
+            &mut app,
+            Mutation::EndWorkout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: NOW + 400,
+            }),
+            NOW + 400,
+        );
+
+        // Ended before the working sets: the max holds at what the ramp
+        // found, rung 2 with half a rep in reserve.
+        let ramp_max = rung2.target_weight * (1.0 + 5.5 / 30.0);
+        app.now = NOW + DAY;
+        let next = plan(&app, Exercise::Squat);
+        assert!(!next.calibration);
+        assert!(
+            (next.max - ramp_max).abs() < 1e-3,
+            "{} vs {ramp_max}",
+            next.max
+        );
+    }
 }
 
 mod batches {

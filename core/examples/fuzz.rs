@@ -26,11 +26,11 @@ use schlift_core::account::Account;
 use schlift_core::api::{Call, View};
 use schlift_core::pb::{
     workout_mutation::Mutation, AddExercisesRequest, AdjustExerciseWeightRequest,
-    AppendWorkoutMutationsRequest, ApplyLibraryPlanRequest, CompleteOnboardingRequest,
-    CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest, EditCompletedSetRequest,
-    EndWorkoutRequest, Event, Exercise, ExerciseDecision, ExercisePlan, GetHomeRequest,
-    GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
-    ReorderExercisesRequest, SetOverrideRequest, SkipWarmupsRequest, StartSetRequest,
+    AnswerRungRequest, AppendWorkoutMutationsRequest, ApplyLibraryPlanRequest,
+    CompleteOnboardingRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
+    EditCompletedSetRequest, EndWorkoutRequest, Event, Exercise, ExerciseDecision, ExercisePlan,
+    GetHomeRequest, GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
+    ReorderExercisesRequest, RepsLeft, SetOverrideRequest, SkipWarmupsRequest, StartSetRequest,
     StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutState,
 };
 use schlift_core::plan::Planner;
@@ -381,6 +381,53 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                         completed_at: now,
                     });
                     now += 90;
+                    // A ramp set done in full asks how many more: usually
+                    // answered (the phone's sheet, the watch's row), and now
+                    // and then an answer arrives for a set it no longer
+                    // applies to (a stale watch tap).
+                    if let Ok(after) = sim.view(now).get_workout(GetWorkoutRequest {
+                        workout_id: workout_id.clone(),
+                    }) {
+                        let open = after.rung_question_set_id.clone();
+                        let target = if !open.is_empty() && rng.gen_bool(0.6) {
+                            Some(open.clone())
+                        } else if !after.completed_sets.is_empty() && rng.gen_bool(0.15) {
+                            let c =
+                                &after.completed_sets[rng.gen_range(0..after.completed_sets.len())];
+                            Some(c.proposed_set_id.clone())
+                        } else {
+                            None
+                        };
+                        if let Some(target) = target {
+                            let reps_left = [
+                                RepsLeft::ZeroToOne,
+                                RepsLeft::TwoToThree,
+                                RepsLeft::FourPlus,
+                            ][rng.gen_range(0..3)];
+                            let _ = sim.call(now).append_workout_mutations(
+                                AppendWorkoutMutationsRequest {
+                                    mutations: vec![mutation_at(
+                                        Mutation::AnswerRung(AnswerRungRequest {
+                                            workout_id: workout_id.clone(),
+                                            proposed_set_id: target.clone(),
+                                            reps_left: reps_left as i32,
+                                        }),
+                                        now,
+                                    )],
+                                },
+                            );
+                            expect = Some(if target == open {
+                                Expectation::Answered {
+                                    proposed_set_id: target,
+                                    reps_left: reps_left as i32,
+                                }
+                            } else {
+                                Expectation::Unchanged {
+                                    before: Box::new(after),
+                                }
+                            });
+                        }
+                    }
                 }
             } else if action < 43 && pending.iter().any(|p| p.warmup) {
                 // Skip all of an exercise's warmups: they're marked, never
@@ -663,6 +710,13 @@ enum Expectation {
         reps: i32,
         weight: f32,
     },
+    /// The open rung question answered: recorded, and closed.
+    Answered {
+        proposed_set_id: String,
+        reps_left: i32,
+    },
+    /// An answer to a set with no open question: a no-op.
+    Unchanged { before: Box<GetWorkoutResponse> },
 }
 
 fn check_expectation(
@@ -733,6 +787,35 @@ fn check_expectation(
                         ),
                     );
                 }
+            }
+        }
+        Expectation::Answered {
+            proposed_set_id,
+            reps_left,
+        } => {
+            let recorded = state
+                .completed_sets
+                .iter()
+                .any(|c| c.proposed_set_id == *proposed_set_id && c.reps_left == *reps_left);
+            if !recorded || state.rung_question_set_id == *proposed_set_id {
+                push(
+                    "an answer to the open rung question did not land",
+                    format!(
+                        "set {proposed_set_id}: recorded {recorded}, still asking {}",
+                        state.rung_question_set_id
+                    ),
+                );
+            }
+        }
+        Expectation::Unchanged { before } => {
+            if state.proposed_sets != before.proposed_sets
+                || state.completed_sets != before.completed_sets
+                || state.exercise_logs != before.exercise_logs
+            {
+                push(
+                    "an answer with no open question changed the workout",
+                    String::new(),
+                );
             }
         }
     }

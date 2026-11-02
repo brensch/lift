@@ -20252,6 +20252,627 @@
       "previews": []
     },
     {
+      "id": "first_time_answers",
+      "title": "First time: the ramp, answered",
+      "description": "As the first time, and after every rung done in full the lifter answers how many more they could have done, truthfully: 4+ climbs to a rep in reserve (never less than the usual +10%), 2–3 climbs the usual rung, 0–1 ends the ramp there.",
+      "unit": "lb",
+      "strength": 50,
+      "rest_factor": 1,
+      "lifts": [
+        {"exercise": "SQUAT", "name": "Squat", "class": "heavy", "rep_low": 5, "rep_high": 8, "bodyweight": false, "starting_weight": 180},
+        {"exercise": "BARBELL_ROW", "name": "Barbell Row", "class": "heavy", "rep_low": 5, "rep_high": 8, "bodyweight": false, "starting_weight": 145},
+        {"exercise": "BENCH_PRESS", "name": "Bench Press", "class": "heavy", "rep_low": 5, "rep_high": 8, "bodyweight": false, "starting_weight": 130},
+        {"exercise": "LATERAL_RAISE", "name": "Lateral Raise", "class": "standard", "rep_low": 8, "rep_high": 12, "bodyweight": false, "starting_weight": null},
+        {"exercise": "OVERHEAD_PRESS", "name": "OHP", "class": "heavy", "rep_low": 5, "rep_high": 8, "bodyweight": false, "starting_weight": 105},
+        {"exercise": "DEADLIFT", "name": "Deadlift", "class": "heavy", "rep_low": 5, "rep_high": 8, "bodyweight": false, "starting_weight": 215},
+        {"exercise": "PULL_UP", "name": "Pull Up", "class": "bodyweight", "rep_low": 5, "rep_high": 15, "bodyweight": true, "starting_weight": null}
+      ],
+      "flags": [
+        {"severity": "info", "kind": "estimate_off", "session": 3, "exercise": null, "detail": "estimated 60.0 min, took 67.3 min with the lifter resting as recorded"},
+        {"severity": "info", "kind": "estimate_off", "session": 4, "exercise": null, "detail": "estimated 59.5 min, took 66.8 min with the lifter resting as recorded"}
+      ],
+      "sessions": [
+        {
+          "n": 1,
+          "date": "2026-01-05",
+          "day": 0,
+          "template": "A",
+          "note": "",
+          "budget_minutes": 60,
+          "estimated_minutes": 56.7,
+          "needs_minutes": null,
+          "actual_minutes": 72.2,
+          "sets": [4, 4, 3, 2],
+          "costs": {"set_seconds": 40, "rest_heavy": 180, "rest_standard": 120, "rest_bodyweight": 90, "warmup_seconds": 240, "between_seconds": 120},
+          "lifts": [
+            {
+              "exercise": "SQUAT",
+              "decision": {
+                "sets": 4,
+                "reps": 5,
+                "weight": 110,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": true,
+                "max": 0,
+                "estimated_seconds": 940,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 180, "after": 110, "detail": "ramp from 110 lb (starting weight 180 lb)"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 4, "detail": "60 min; Quads at 0 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "rung", "n": 1, "target_reps": 5, "target_weight": 110, "reps": 5, "weight": 110, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 2, "target_reps": 5, "target_weight": 120, "reps": 5, "weight": 120, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 3, "target_reps": 5, "target_weight": 130, "reps": 5, "weight": 130, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 4, "target_reps": 5, "target_weight": 145, "reps": 5, "weight": 145, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 5, "target_reps": 5, "target_weight": 160, "reps": 5, "weight": 160, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 6, "target_reps": 5, "target_weight": 175, "reps": 5, "weight": 175, "hit": true},
+                {"kind": "work", "n": 1, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true}
+              ],
+              "changes": [
+                {"cause": "CALIBRATION_STEP", "before": 110, "after": 120, "minute": 1},
+                {"cause": "CALIBRATION_STEP", "before": 120, "after": 130, "minute": 3},
+                {"cause": "CALIBRATION_STEP", "before": 130, "after": 145, "minute": 6},
+                {"cause": "CALIBRATION_STEP", "before": 145, "after": 160, "minute": 8},
+                {"cause": "CALIBRATION_STEP", "before": 160, "after": 175, "minute": 10},
+                {"cause": "CALIBRATION_SETTLED", "before": 175, "after": 165, "minute": 12}
+              ],
+              "outcome": null,
+              "max_after": 211.8,
+              "top_weight": 165
+            },
+            {
+              "exercise": "BARBELL_ROW",
+              "decision": {
+                "sets": 4,
+                "reps": 5,
+                "weight": 85,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": true,
+                "max": 0,
+                "estimated_seconds": 1060,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 145, "after": 85, "detail": "ramp from 85 lb (starting weight 145 lb)"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 4, "detail": "60 min; Back at 0 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "rung", "n": 1, "target_reps": 5, "target_weight": 85, "reps": 5, "weight": 85, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 2, "target_reps": 5, "target_weight": 95, "reps": 5, "weight": 95, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 3, "target_reps": 5, "target_weight": 105, "reps": 5, "weight": 105, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 4, "target_reps": 5, "target_weight": 115, "reps": 5, "weight": 115, "hit": true, "reps_left": "2–3"},
+                {"kind": "rung", "n": 5, "target_reps": 5, "target_weight": 125, "reps": 4, "weight": 125, "hit": false},
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 110, "reps": 6, "weight": 110, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 110, "reps": 6, "weight": 110, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 110, "reps": 6, "weight": 110, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 6, "target_weight": 110, "reps": 6, "weight": 110, "hit": true}
+              ],
+              "changes": [
+                {"cause": "CALIBRATION_STEP", "before": 85, "after": 95, "minute": 27},
+                {"cause": "CALIBRATION_STEP", "before": 95, "after": 105, "minute": 29},
+                {"cause": "CALIBRATION_STEP", "before": 105, "after": 115, "minute": 31},
+                {"cause": "CALIBRATION_STEP", "before": 115, "after": 125, "minute": 33},
+                {"cause": "CALIBRATION_SETTLED", "before": 125, "after": 110, "minute": 36}
+              ],
+              "outcome": null,
+              "max_after": 144.8,
+              "top_weight": 110
+            },
+            {
+              "exercise": "BENCH_PRESS",
+              "decision": {
+                "sets": 3,
+                "reps": 5,
+                "weight": 80,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": true,
+                "max": 0,
+                "estimated_seconds": 840,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 130, "after": 80, "detail": "ramp from 80 lb (starting weight 130 lb)"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 3, "detail": "60 min; Chest at 0 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "rung", "n": 1, "target_reps": 5, "target_weight": 80, "reps": 5, "weight": 80, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 2, "target_reps": 5, "target_weight": 90, "reps": 4, "weight": 90, "hit": false},
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true}
+              ],
+              "changes": [
+                {"cause": "CALIBRATION_STEP", "before": 80, "after": 90, "minute": 50},
+                {"cause": "CALIBRATION_SETTLED", "before": 90, "after": 80, "minute": 53}
+              ],
+              "outcome": null,
+              "max_after": 104,
+              "top_weight": 80
+            },
+            {
+              "exercise": "LATERAL_RAISE",
+              "decision": {
+                "sets": 2,
+                "reps": 8,
+                "weight": 20,
+                "rest_seconds": 120,
+                "warmups": false,
+                "calibration": true,
+                "max": 0,
+                "estimated_seconds": 560,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 0, "after": 20, "detail": "ramp from 20 lb (starting weight none)"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 2, "detail": "60 min; Shoulders at 0 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "rung", "n": 1, "target_reps": 5, "target_weight": 20, "reps": 5, "weight": 20, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 2, "target_reps": 5, "target_weight": 25, "reps": 5, "weight": 25, "hit": true, "reps_left": "0–1"},
+                {"kind": "work", "n": 1, "target_reps": 12, "target_weight": 20, "reps": 12, "weight": 20, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 12, "target_weight": 20, "reps": 12, "weight": 20, "hit": true}
+              ],
+              "changes": [
+                {"cause": "CALIBRATION_STEP", "before": 20, "after": 25, "minute": 64},
+                {"cause": "CALIBRATION_SETTLED", "before": 25, "after": 20, "minute": 66}
+              ],
+              "outcome": null,
+              "max_after": 29.7,
+              "top_weight": 20
+            }
+          ]
+        },
+        {
+          "n": 2,
+          "date": "2026-01-07",
+          "day": 2,
+          "template": "B",
+          "note": "",
+          "budget_minutes": 60,
+          "estimated_minutes": 59.5,
+          "needs_minutes": null,
+          "actual_minutes": 73.2,
+          "sets": [5, 5, 3, 2],
+          "costs": {"set_seconds": 40, "rest_heavy": 180, "rest_standard": 120, "rest_bodyweight": 90, "warmup_seconds": 240, "between_seconds": 120},
+          "lifts": [
+            {
+              "exercise": "SQUAT",
+              "decision": {
+                "sets": 5,
+                "reps": 5,
+                "weight": 165,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 211.8,
+                "estimated_seconds": 1160,
+                "reasons": [
+                  {"kind": "SAME_AS_LAST", "before": 165, "after": 165, "detail": "SETS; 4×5 last time, 5×5 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 211.8, "detail": "from session 1"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Quads at 4 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 4,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 5, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 214.5,
+              "top_weight": 165
+            },
+            {
+              "exercise": "OVERHEAD_PRESS",
+              "decision": {
+                "sets": 5,
+                "reps": 5,
+                "weight": 65,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": true,
+                "max": 0,
+                "estimated_seconds": 1280,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 105, "after": 65, "detail": "ramp from 65 lb (starting weight 105 lb)"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Shoulders at 3.5 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "rung", "n": 1, "target_reps": 5, "target_weight": 65, "reps": 5, "weight": 65, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 2, "target_reps": 5, "target_weight": 70, "reps": 5, "weight": 70, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 3, "target_reps": 5, "target_weight": 75, "reps": 5, "weight": 75, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 4, "target_reps": 5, "target_weight": 85, "reps": 5, "weight": 85, "hit": true, "reps_left": "2–3"},
+                {"kind": "rung", "n": 5, "target_reps": 5, "target_weight": 95, "reps": 3, "weight": 95, "hit": false},
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 5, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true}
+              ],
+              "changes": [
+                {"cause": "CALIBRATION_STEP", "before": 65, "after": 70, "minute": 25},
+                {"cause": "CALIBRATION_STEP", "before": 70, "after": 75, "minute": 27},
+                {"cause": "CALIBRATION_STEP", "before": 75, "after": 85, "minute": 29},
+                {"cause": "CALIBRATION_STEP", "before": 85, "after": 95, "minute": 31},
+                {"cause": "CALIBRATION_SETTLED", "before": 95, "after": 80, "minute": 33}
+              ],
+              "outcome": null,
+              "max_after": 106.7,
+              "top_weight": 80
+            },
+            {
+              "exercise": "DEADLIFT",
+              "decision": {
+                "sets": 3,
+                "reps": 5,
+                "weight": 130,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": true,
+                "max": 0,
+                "estimated_seconds": 840,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 215, "after": 130, "detail": "ramp from 130 lb (starting weight 215 lb)"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 3, "detail": "60 min; Back at 4 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "rung", "n": 1, "target_reps": 5, "target_weight": 130, "reps": 5, "weight": 130, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 2, "target_reps": 5, "target_weight": 145, "reps": 5, "weight": 145, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 3, "target_reps": 5, "target_weight": 160, "reps": 5, "weight": 160, "hit": true, "reps_left": "4+"},
+                {"kind": "rung", "n": 4, "target_reps": 5, "target_weight": 175, "reps": 5, "weight": 175, "hit": true, "reps_left": "0–1"},
+                {"kind": "work", "n": 1, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 5, "target_weight": 165, "reps": 5, "weight": 165, "hit": true}
+              ],
+              "changes": [
+                {"cause": "CALIBRATION_STEP", "before": 130, "after": 145, "minute": 52},
+                {"cause": "CALIBRATION_STEP", "before": 145, "after": 160, "minute": 54},
+                {"cause": "CALIBRATION_STEP", "before": 160, "after": 175, "minute": 56},
+                {"cause": "CALIBRATION_SETTLED", "before": 175, "after": 165, "minute": 58}
+              ],
+              "outcome": null,
+              "max_after": 209,
+              "top_weight": 165
+            },
+            {
+              "exercise": "PULL_UP",
+              "decision": {
+                "sets": 2,
+                "reps": 5,
+                "weight": 0,
+                "rest_seconds": 90,
+                "warmups": false,
+                "calibration": false,
+                "max": 0,
+                "estimated_seconds": 290,
+                "reasons": [
+                  {"kind": "FIRST_TIME", "before": 0, "after": 0, "detail": "bottom of the range"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 2, "detail": "60 min; Back at 4 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 5, "target_weight": 0, "reps": 5, "weight": 0, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 5, "target_weight": 0, "reps": 5, "weight": 0, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 7.5,
+              "top_weight": 0
+            }
+          ]
+        },
+        {
+          "n": 3,
+          "date": "2026-01-09",
+          "day": 4,
+          "template": "A",
+          "note": "",
+          "budget_minutes": 60,
+          "estimated_minutes": 60,
+          "needs_minutes": null,
+          "actual_minutes": 67.3,
+          "sets": [4, 4, 5, 2],
+          "costs": {"set_seconds": 40, "rest_heavy": 180, "rest_standard": 120, "rest_bodyweight": 90, "warmup_seconds": 240, "between_seconds": 120},
+          "lifts": [
+            {
+              "exercise": "SQUAT",
+              "decision": {
+                "sets": 4,
+                "reps": 6,
+                "weight": 165,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 214.5,
+                "estimated_seconds": 940,
+                "reasons": [
+                  {"kind": "REPS_UP", "before": 165, "after": 165, "detail": "HIT; 5×5 last time, 4×6 now"},
+                  {"kind": "MAX_UP", "before": 211.8, "after": 214.5, "detail": "from session 2"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 4, "detail": "60 min; Quads at 9 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 4,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 217.2,
+              "top_weight": 165
+            },
+            {
+              "exercise": "BARBELL_ROW",
+              "decision": {
+                "sets": 4,
+                "reps": 7,
+                "weight": 110,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 144.8,
+                "estimated_seconds": 1060,
+                "reasons": [
+                  {"kind": "REPS_UP", "before": 110, "after": 110, "detail": "HIT; 4×6 last time, 4×7 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 144.8, "detail": "from session 1"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 4, "detail": "60 min; Back at 9 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 4,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 7, "target_weight": 110, "reps": 7, "weight": 110, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 7, "target_weight": 110, "reps": 7, "weight": 110, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 7, "target_weight": 110, "reps": 7, "weight": 110, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 7, "target_weight": 110, "reps": 7, "weight": 110, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 148.5,
+              "top_weight": 110
+            },
+            {
+              "exercise": "BENCH_PRESS",
+              "decision": {
+                "sets": 5,
+                "reps": 6,
+                "weight": 80,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 104,
+                "estimated_seconds": 1280,
+                "reasons": [
+                  {"kind": "SAME_AS_LAST", "before": 80, "after": 80, "detail": "SETS; 3×6 last time, 5×6 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 104, "detail": "from session 1"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Chest at 3 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 3,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true},
+                {"kind": "work", "n": 5, "target_reps": 6, "target_weight": 80, "reps": 6, "weight": 80, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 106.7,
+              "top_weight": 80
+            },
+            {
+              "exercise": "LATERAL_RAISE",
+              "decision": {
+                "sets": 2,
+                "reps": 13,
+                "weight": 20,
+                "rest_seconds": 120,
+                "warmups": false,
+                "calibration": false,
+                "max": 29.7,
+                "estimated_seconds": 320,
+                "reasons": [
+                  {"kind": "REPS_UP", "before": 20, "after": 20, "detail": "HIT; 2×12 last time, 2×13 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 29.7, "detail": "from session 1"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 2, "detail": "60 min; Shoulders at 8.5 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 13, "target_weight": 20, "reps": 13, "weight": 20, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 13, "target_weight": 20, "reps": 13, "weight": 20, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 30.3,
+              "top_weight": 20
+            }
+          ]
+        },
+        {
+          "n": 4,
+          "date": "2026-01-12",
+          "day": 7,
+          "template": "B",
+          "note": "",
+          "budget_minutes": 60,
+          "estimated_minutes": 59.5,
+          "needs_minutes": null,
+          "actual_minutes": 66.8,
+          "sets": [5, 5, 3, 2],
+          "costs": {"set_seconds": 40, "rest_heavy": 180, "rest_standard": 120, "rest_bodyweight": 90, "warmup_seconds": 240, "between_seconds": 120},
+          "lifts": [
+            {
+              "exercise": "SQUAT",
+              "decision": {
+                "sets": 5,
+                "reps": 6,
+                "weight": 165,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 217.2,
+                "estimated_seconds": 1160,
+                "reasons": [
+                  {"kind": "SAME_AS_LAST", "before": 165, "after": 165, "detail": "SETS; 4×6 last time, 5×6 now"},
+                  {"kind": "MAX_UP", "before": 214.5, "after": 217.2, "detail": "from session 3"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Quads at 13 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 4,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 5, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 220,
+              "top_weight": 165
+            },
+            {
+              "exercise": "OVERHEAD_PRESS",
+              "decision": {
+                "sets": 5,
+                "reps": 7,
+                "weight": 80,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 106.7,
+                "estimated_seconds": 1280,
+                "reasons": [
+                  {"kind": "REPS_UP", "before": 80, "after": 80, "detail": "HIT; 5×6 last time, 5×7 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 106.7, "detail": "from session 2"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 5, "detail": "60 min; Shoulders at 13 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 3,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 7, "target_weight": 80, "reps": 7, "weight": 80, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 7, "target_weight": 80, "reps": 7, "weight": 80, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 7, "target_weight": 80, "reps": 7, "weight": 80, "hit": true},
+                {"kind": "work", "n": 4, "target_reps": 7, "target_weight": 80, "reps": 7, "weight": 80, "hit": true},
+                {"kind": "work", "n": 5, "target_reps": 7, "target_weight": 80, "reps": 7, "weight": 80, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 109.3,
+              "top_weight": 80
+            },
+            {
+              "exercise": "DEADLIFT",
+              "decision": {
+                "sets": 3,
+                "reps": 6,
+                "weight": 165,
+                "rest_seconds": 180,
+                "warmups": true,
+                "calibration": false,
+                "max": 209,
+                "estimated_seconds": 840,
+                "reasons": [
+                  {"kind": "REPS_UP", "before": 165, "after": 165, "detail": "HIT; 3×5 last time, 3×6 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 209, "detail": "from session 2"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 3, "detail": "60 min; Back at 13 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 4,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true},
+                {"kind": "work", "n": 3, "target_reps": 6, "target_weight": 165, "reps": 6, "weight": 165, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 214.5,
+              "top_weight": 165
+            },
+            {
+              "exercise": "PULL_UP",
+              "decision": {
+                "sets": 2,
+                "reps": 6,
+                "weight": 0,
+                "rest_seconds": 90,
+                "warmups": false,
+                "calibration": false,
+                "max": 7.5,
+                "estimated_seconds": 290,
+                "reasons": [
+                  {"kind": "REPS_UP", "before": 5, "after": 6, "detail": "HIT; 2×5 last time, 2×6 now"},
+                  {"kind": "MAX_UP", "before": 0, "after": 7.5, "detail": "from session 2"},
+                  {"kind": "SETS_FROM_TIME", "before": 2, "after": 2, "detail": "60 min; Back at 13 hard sets this week"}
+                ]
+              },
+              "removed": false,
+              "undone": 0,
+              "warmups_done": 0,
+              "done": [
+                {"kind": "work", "n": 1, "target_reps": 6, "target_weight": 0, "reps": 6, "weight": 0, "hit": true},
+                {"kind": "work", "n": 2, "target_reps": 6, "target_weight": 0, "reps": 6, "weight": 0, "hit": true}
+              ],
+              "changes": [],
+              "outcome": null,
+              "max_after": 8.5,
+              "top_weight": 0
+            }
+          ]
+        }
+      ],
+      "previews": []
+    },
+    {
       "id": "kilograms",
       "title": "Kilograms",
       "description": "A kilogram user, slider at 35%. Every fourth session the last set of every lift is two reps short.",

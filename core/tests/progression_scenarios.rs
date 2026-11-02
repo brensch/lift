@@ -149,6 +149,9 @@ struct Scenario {
     /// The lifter's rest after a working set, as a multiple of what the
     /// app asks for.
     rest_factor: f32,
+    /// The lifter answers "how many more could you have done?" after every
+    /// full rung, truthfully from its true max; otherwise never.
+    answers_rungs: bool,
     sessions: Vec<Session>,
     /// Templates previewed at these budgets on Home after the last session.
     preview_budgets: Vec<i32>,
@@ -195,6 +198,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.25,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(18, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
@@ -208,6 +212,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.55,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(18, |i, s| {
                 if i % 3 == 2 {
                     short_all_last(s);
@@ -227,6 +232,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(18, |i, s| {
                 if i == 6 {
                     s.gap_days = 28 + 2;
@@ -263,6 +269,7 @@ fn scenarios() -> Vec<Scenario> {
                 _ => 1.0,
             },
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(8, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
@@ -278,6 +285,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(16, |i, s| {
                 if i == 6 {
                     s.overrides = vec![SetOverrideRequest {
@@ -311,6 +319,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.5,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(16, |i, s| {
                 if [4, 8, 12].contains(&i) {
                     s.lower = Some((Exercise::Squat, 3, 0.15));
@@ -330,6 +339,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(16, |i, s| match i {
                 3 => {
                     s.end_after = Some((Exercise::OverheadPress, 1));
@@ -358,6 +368,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(16, |i, s| {
                 s.budget = [30, 45, 60, 90][i % 4];
             }),
@@ -375,7 +386,29 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 2.0,
+            answers_rungs: false,
             sessions: alternating(14, |_, _| {}),
+            preview_budgets: vec![],
+            preview_library: vec![],
+        },
+        Scenario {
+            id: "first_time_answers",
+            title: "First time: the ramp, answered",
+            description: "As the first time, and after every rung done in full the lifter \
+                          answers how many more they could have done, truthfully: 4+ \
+                          climbs to a rep in reserve (never less than the usual +10%), \
+                          2–3 climbs the usual rung, 0–1 ends the ramp there.",
+            unit: WeightUnit::Lb,
+            strength: 0.5,
+            strength_factor: |ex| match ex {
+                Exercise::Squat => 1.6,
+                Exercise::BenchPress => 0.8,
+                Exercise::LateralRaise => 1.5,
+                _ => 1.0,
+            },
+            rest_factor: 1.0,
+            answers_rungs: true,
+            sessions: alternating(4, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
         },
@@ -388,6 +421,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.35,
             strength_factor: even,
             rest_factor: 1.0,
+            answers_rungs: false,
             sessions: alternating(16, |i, s| {
                 if i % 4 == 3 {
                     short_all_last(s);
@@ -525,6 +559,16 @@ fn reason_name(kind: i32) -> String {
         .strip_prefix("PLAN_REASON_KIND_")
         .unwrap_or(k.as_str_name())
         .to_string()
+}
+
+/// A rung's answer, as the explorer prints it; empty when unanswered.
+fn reps_left_name(reps_left: i32) -> &'static str {
+    match RepsLeft::try_from(reps_left).unwrap_or(RepsLeft::Unspecified) {
+        RepsLeft::ZeroToOne => "0–1",
+        RepsLeft::TwoToThree => "2–3",
+        RepsLeft::FourPlus => "4+",
+        RepsLeft::Unspecified => "",
+    }
 }
 
 fn cause_name(cause: i32) -> String {
@@ -710,13 +754,26 @@ impl<'a> Runner<'a> {
     /// The reps the lifter manages on a calibration rung: what its true max
     /// allows at the weight (Epley), at most the rung's five, at least one.
     fn rung_reps(&self, ex: Exercise, weight: f32, target: i32) -> i32 {
+        self.reps_possible(ex, weight).clamp(1, target)
+    }
+
+    /// The most reps the lifter's true max allows at `weight` (Epley).
+    fn reps_possible(&self, ex: Exercise, weight: f32) -> i32 {
         let base =
             self.starting.get(&(ex as i32)).copied().unwrap_or_else(|| {
                 schlift_core::exercise_catalog::starting_weight_lb(ex, self.unit())
             });
         let true_max = base * (self.sc.strength_factor)(ex);
-        let reps = (30.0 * (true_max / weight - 1.0) + 1e-3).floor() as i32;
-        reps.clamp(1, target)
+        (30.0 * (true_max / weight - 1.0) + 1e-3).floor() as i32
+    }
+
+    /// What the lifter answers after a full rung of `reps` at `weight`.
+    fn reps_left(&self, ex: Exercise, weight: f32, reps: i32) -> RepsLeft {
+        match self.reps_possible(ex, weight) - reps {
+            ..=1 => RepsLeft::ZeroToOne,
+            2..=3 => RepsLeft::TwoToThree,
+            _ => RepsLeft::FourPlus,
+        }
     }
 
     fn mutate(&mut self, now: i64, m: Mutation) {
@@ -898,6 +955,20 @@ impl<'a> Runner<'a> {
                 })
             });
             let rest_until = done.completed_set.map_or(t, |c| c.rest_until);
+            if next.calibration && self.sc.answers_rungs {
+                let asked = self.app.workout(t, &id).rung_question_set_id;
+                if asked == next.id {
+                    let reps_left = self.reps_left(ex, next.target_weight, reps);
+                    self.mutate(
+                        t + 5,
+                        Mutation::AnswerRung(AnswerRungRequest {
+                            workout_id: id.clone(),
+                            proposed_set_id: next.id.clone(),
+                            reps_left: reps_left as i32,
+                        }),
+                    );
+                }
+            }
             let asked = rest_until - t;
             let rest = if working {
                 (asked as f32 * self.sc.rest_factor).round() as i64
@@ -1218,7 +1289,7 @@ impl<'a> Runner<'a> {
             if kind == "warmup" {
                 continue;
             }
-            sets_json.push(J::Obj(vec![
+            let mut fields = vec![
                 ("kind", s(kind)),
                 ("n", J::Int(k)),
                 ("target_reps", J::Int(p.target_reps as i64)),
@@ -1226,7 +1297,11 @@ impl<'a> Runner<'a> {
                 ("reps", J::Int(c.actual_reps as i64)),
                 ("weight", self.w(c.actual_weight)),
                 ("hit", J::Bool(hit)),
-            ]));
+            ];
+            if kind == "rung" && c.reps_left != RepsLeft::Unspecified as i32 {
+                fields.push(("reps_left", s(reps_left_name(c.reps_left))));
+            }
+            sets_json.push(J::Obj(fields));
         }
         let removed = script.skip.contains(&ex);
         let undone = (d.sets as i64 - work).max(0);

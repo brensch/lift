@@ -1057,6 +1057,127 @@ public final class WorkoutOuterClass {
   }
 
   /**
+   * <pre>
+   * How many more reps a calibration rung done in full had left in it. Each
+   * answer counts as a reserve in the rung's shown max (core/src/plan.rs):
+   * 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.RepsLeft}
+   */
+  public enum RepsLeft
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <pre>
+     * not answered
+     * </pre>
+     *
+     * <code>REPS_LEFT_UNSPECIFIED = 0;</code>
+     */
+    REPS_LEFT_UNSPECIFIED(0),
+    /**
+     * <code>REPS_LEFT_ZERO_TO_ONE = 1;</code>
+     */
+    REPS_LEFT_ZERO_TO_ONE(1),
+    /**
+     * <code>REPS_LEFT_TWO_TO_THREE = 2;</code>
+     */
+    REPS_LEFT_TWO_TO_THREE(2),
+    /**
+     * <code>REPS_LEFT_FOUR_PLUS = 3;</code>
+     */
+    REPS_LEFT_FOUR_PLUS(3),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <pre>
+     * not answered
+     * </pre>
+     *
+     * <code>REPS_LEFT_UNSPECIFIED = 0;</code>
+     */
+    public static final int REPS_LEFT_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>REPS_LEFT_ZERO_TO_ONE = 1;</code>
+     */
+    public static final int REPS_LEFT_ZERO_TO_ONE_VALUE = 1;
+    /**
+     * <code>REPS_LEFT_TWO_TO_THREE = 2;</code>
+     */
+    public static final int REPS_LEFT_TWO_TO_THREE_VALUE = 2;
+    /**
+     * <code>REPS_LEFT_FOUR_PLUS = 3;</code>
+     */
+    public static final int REPS_LEFT_FOUR_PLUS_VALUE = 3;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static RepsLeft valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static RepsLeft forNumber(int value) {
+      switch (value) {
+        case 0: return REPS_LEFT_UNSPECIFIED;
+        case 1: return REPS_LEFT_ZERO_TO_ONE;
+        case 2: return REPS_LEFT_TWO_TO_THREE;
+        case 3: return REPS_LEFT_FOUR_PLUS;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<RepsLeft>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        RepsLeft> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<RepsLeft>() {
+            @java.lang.Override
+            public RepsLeft findValueByNumber(int number) {
+              return RepsLeft.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return RepsLeftVerifier.INSTANCE;
+    }
+
+    private static final class RepsLeftVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new RepsLeftVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return RepsLeft.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private RepsLeft(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.RepsLeft)
+  }
+
+  /**
    * Protobuf enum {@code workout.v1.PlanReasonKind}
    */
   public enum PlanReasonKind
@@ -4987,6 +5108,27 @@ public final class WorkoutOuterClass {
      * @return The startedAt.
      */
     long getStartedAt();
+
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    int getRepsLeftValue();
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft();
   }
   /**
    * Protobuf type {@code workout.v1.CompletedSet}
@@ -5285,6 +5427,73 @@ public final class WorkoutOuterClass {
     private void clearStartedAt() {
       
       startedAt_ = 0L;
+    }
+
+    public static final int REPS_LEFT_FIELD_NUMBER = 12;
+    private int repsLeft_;
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    @java.lang.Override
+    public int getRepsLeftValue() {
+      return repsLeft_;
+    }
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+      workout.v1.WorkoutOuterClass.RepsLeft result = workout.v1.WorkoutOuterClass.RepsLeft.forNumber(repsLeft_);
+      return result == null ? workout.v1.WorkoutOuterClass.RepsLeft.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     * @param value The enum numeric value on the wire for repsLeft to set.
+     */
+    private void setRepsLeftValue(int value) {
+        repsLeft_ = value;
+    }
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     * @param value The repsLeft to set.
+     */
+    private void setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+      repsLeft_ = value.getNumber();
+      
+    }
+    /**
+     * <pre>
+     * A calibration rung done in full: the user's answer to "how many more
+     * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+     * </pre>
+     *
+     * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+     */
+    private void clearRepsLeft() {
+      
+      repsLeft_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.CompletedSet parseFrom(
@@ -5684,6 +5893,77 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * A calibration rung done in full: the user's answer to "how many more
+       * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+       * </pre>
+       *
+       * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+       * @return The enum numeric value on the wire for repsLeft.
+       */
+      @java.lang.Override
+      public int getRepsLeftValue() {
+        return instance.getRepsLeftValue();
+      }
+      /**
+       * <pre>
+       * A calibration rung done in full: the user's answer to "how many more
+       * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+       * </pre>
+       *
+       * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+       * @param value The repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeftValue(int value) {
+        copyOnWrite();
+        instance.setRepsLeftValue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * A calibration rung done in full: the user's answer to "how many more
+       * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+       * </pre>
+       *
+       * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+       * @return The repsLeft.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+        return instance.getRepsLeft();
+      }
+      /**
+       * <pre>
+       * A calibration rung done in full: the user's answer to "how many more
+       * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+       * </pre>
+       *
+       * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+       * @param value The enum numeric value on the wire for repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+        copyOnWrite();
+        instance.setRepsLeft(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * A calibration rung done in full: the user's answer to "how many more
+       * could you have done?" (AnswerRungRequest). Unspecified when unanswered.
+       * </pre>
+       *
+       * <code>.workout.v1.RepsLeft reps_left = 12 [json_name = "repsLeft"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRepsLeft() {
+        copyOnWrite();
+        instance.clearRepsLeft();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.CompletedSet)
     }
     @java.lang.Override
@@ -5708,10 +5988,11 @@ public final class WorkoutOuterClass {
               "endedAt_",
               "restUntil_",
               "startedAt_",
+              "repsLeft_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\u000b\b\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003" +
-                "\u0208\u0004\u0004\u0005\u0001\u0007\u0002\b\u0002\u000b\u0002";
+                "\u0000\t\u0000\u0000\u0001\f\t\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0208" +
+                "\u0004\u0004\u0005\u0001\u0007\u0002\b\u0002\u000b\u0002\f\f";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -15161,6 +15442,32 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     * @return The rungQuestionSetId.
+     */
+    java.lang.String getRungQuestionSetId();
+    /**
+     * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     * @return The bytes for rungQuestionSetId.
+     */
+    com.google.protobuf.ByteString
+        getRungQuestionSetIdBytes();
+
+    /**
+     * <pre>
      * Undone warmups that are behind you (skipped, or a working set of their
      * exercise is done): shown out of the way, nothing waits on them.
      * </pre>
@@ -15241,6 +15548,7 @@ public final class WorkoutOuterClass {
     private GetWorkoutResponse() {
       proposedSets_ = emptyProtobufList();
       completedSets_ = emptyProtobufList();
+      rungQuestionSetId_ = "";
       passedWarmupIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
       exerciseLogs_ = emptyProtobufList();
     }
@@ -15659,6 +15967,88 @@ public final class WorkoutOuterClass {
      * <code>.workout.v1.WorkoutSummary summary = 9 [json_name = "summary"];</code>
      */
     private void clearSummary() {  summary_ = null;
+      
+    }
+
+    public static final int RUNG_QUESTION_SET_ID_FIELD_NUMBER = 12;
+    private java.lang.String rungQuestionSetId_;
+    /**
+     * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     * @return The rungQuestionSetId.
+     */
+    @java.lang.Override
+    public java.lang.String getRungQuestionSetId() {
+      return rungQuestionSetId_;
+    }
+    /**
+     * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     * @return The bytes for rungQuestionSetId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRungQuestionSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(rungQuestionSetId_);
+    }
+    /**
+     * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     * @param value The rungQuestionSetId to set.
+     */
+    private void setRungQuestionSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      rungQuestionSetId_ = value;
+    }
+    /**
+     * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     */
+    private void clearRungQuestionSetId() {
+      
+      rungQuestionSetId_ = getDefaultInstance().getRungQuestionSetId();
+    }
+    /**
+     * <pre>
+     * The calibration rung (a proposed set id) whose "how many more could you
+     * have done?" is open: done in full, unanswered, the latest rung of its
+     * lift, the rung it appended still to lift and nothing being lifted.
+     * Empty when none. An AnswerRungRequest applies only to this set.
+     * </pre>
+     *
+     * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+     * @param value The bytes for rungQuestionSetId to set.
+     */
+    private void setRungQuestionSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      rungQuestionSetId_ = value.toStringUtf8();
       
     }
 
@@ -16474,6 +16864,90 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
+       * The calibration rung (a proposed set id) whose "how many more could you
+       * have done?" is open: done in full, unanswered, the latest rung of its
+       * lift, the rung it appended still to lift and nothing being lifted.
+       * Empty when none. An AnswerRungRequest applies only to this set.
+       * </pre>
+       *
+       * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+       * @return The rungQuestionSetId.
+       */
+      @java.lang.Override
+      public java.lang.String getRungQuestionSetId() {
+        return instance.getRungQuestionSetId();
+      }
+      /**
+       * <pre>
+       * The calibration rung (a proposed set id) whose "how many more could you
+       * have done?" is open: done in full, unanswered, the latest rung of its
+       * lift, the rung it appended still to lift and nothing being lifted.
+       * Empty when none. An AnswerRungRequest applies only to this set.
+       * </pre>
+       *
+       * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+       * @return The bytes for rungQuestionSetId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRungQuestionSetIdBytes() {
+        return instance.getRungQuestionSetIdBytes();
+      }
+      /**
+       * <pre>
+       * The calibration rung (a proposed set id) whose "how many more could you
+       * have done?" is open: done in full, unanswered, the latest rung of its
+       * lift, the rung it appended still to lift and nothing being lifted.
+       * Empty when none. An AnswerRungRequest applies only to this set.
+       * </pre>
+       *
+       * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+       * @param value The rungQuestionSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRungQuestionSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRungQuestionSetId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The calibration rung (a proposed set id) whose "how many more could you
+       * have done?" is open: done in full, unanswered, the latest rung of its
+       * lift, the rung it appended still to lift and nothing being lifted.
+       * Empty when none. An AnswerRungRequest applies only to this set.
+       * </pre>
+       *
+       * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRungQuestionSetId() {
+        copyOnWrite();
+        instance.clearRungQuestionSetId();
+        return this;
+      }
+      /**
+       * <pre>
+       * The calibration rung (a proposed set id) whose "how many more could you
+       * have done?" is open: done in full, unanswered, the latest rung of its
+       * lift, the rung it appended still to lift and nothing being lifted.
+       * Empty when none. An AnswerRungRequest applies only to this set.
+       * </pre>
+       *
+       * <code>string rung_question_set_id = 12 [json_name = "rungQuestionSetId"];</code>
+       * @param value The bytes for rungQuestionSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRungQuestionSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRungQuestionSetIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
        * Undone warmups that are behind you (skipped, or a working set of their
        * exercise is done): shown out of the way, nothing waits on them.
        * </pre>
@@ -16787,10 +17261,11 @@ public final class WorkoutOuterClass {
               "passedWarmupIds_",
               "exerciseLogs_",
               workout.v1.WorkoutOuterClass.ExerciseLog.class,
+              "rungQuestionSetId_",
             };
             java.lang.String info =
-                "\u0000\t\u0000\u0000\u0001\u000b\t\u0000\u0004\u0000\u0001\t\u0003\u001b\u0004\u001b" +
-                "\u0005\t\u0006\t\u0007\t\t\t\n\u021a\u000b\u001b";
+                "\u0000\n\u0000\u0000\u0001\f\n\u0000\u0004\u0000\u0001\t\u0003\u001b\u0004\u001b" +
+                "\u0005\t\u0006\t\u0007\t\t\t\n\u021a\u000b\u001b\f\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -24773,6 +25248,527 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<SkipWarmupsRequest> PARSER;
 
     public static com.google.protobuf.Parser<SkipWarmupsRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface AnswerRungRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.AnswerRungRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    java.lang.String getWorkoutId();
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    com.google.protobuf.ByteString
+        getWorkoutIdBytes();
+
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     * @return The proposedSetId.
+     */
+    java.lang.String getProposedSetId();
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     * @return The bytes for proposedSetId.
+     */
+    com.google.protobuf.ByteString
+        getProposedSetIdBytes();
+
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    int getRepsLeftValue();
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft();
+  }
+  /**
+   * <pre>
+   * The answer to "how many more could you have done?" on a calibration rung
+   * done in full. 0–1 ends the ramp there: the working sets are laid out from
+   * the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+   * rung: the weight the max they imply leaves about one rep in reserve on a
+   * 5-rep set, never less than the usual +10% rung. Applies only to the open
+   * question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.AnswerRungRequest}
+   */
+  public  static final class AnswerRungRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          AnswerRungRequest, AnswerRungRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.AnswerRungRequest)
+      AnswerRungRequestOrBuilder {
+    private AnswerRungRequest() {
+      workoutId_ = "";
+      proposedSetId_ = "";
+    }
+    public static final int WORKOUT_ID_FIELD_NUMBER = 1;
+    private java.lang.String workoutId_;
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    @java.lang.Override
+    public java.lang.String getWorkoutId() {
+      return workoutId_;
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getWorkoutIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(workoutId_);
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @param value The workoutId to set.
+     */
+    private void setWorkoutId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      workoutId_ = value;
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     */
+    private void clearWorkoutId() {
+      
+      workoutId_ = getDefaultInstance().getWorkoutId();
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @param value The bytes for workoutId to set.
+     */
+    private void setWorkoutIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      workoutId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PROPOSED_SET_ID_FIELD_NUMBER = 2;
+    private java.lang.String proposedSetId_;
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     * @return The proposedSetId.
+     */
+    @java.lang.Override
+    public java.lang.String getProposedSetId() {
+      return proposedSetId_;
+    }
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     * @return The bytes for proposedSetId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProposedSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(proposedSetId_);
+    }
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     * @param value The proposedSetId to set.
+     */
+    private void setProposedSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      proposedSetId_ = value;
+    }
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     */
+    private void clearProposedSetId() {
+      
+      proposedSetId_ = getDefaultInstance().getProposedSetId();
+    }
+    /**
+     * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+     * @param value The bytes for proposedSetId to set.
+     */
+    private void setProposedSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      proposedSetId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int REPS_LEFT_FIELD_NUMBER = 3;
+    private int repsLeft_;
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    @java.lang.Override
+    public int getRepsLeftValue() {
+      return repsLeft_;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+      workout.v1.WorkoutOuterClass.RepsLeft result = workout.v1.WorkoutOuterClass.RepsLeft.forNumber(repsLeft_);
+      return result == null ? workout.v1.WorkoutOuterClass.RepsLeft.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @param value The enum numeric value on the wire for repsLeft to set.
+     */
+    private void setRepsLeftValue(int value) {
+        repsLeft_ = value;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @param value The repsLeft to set.
+     */
+    private void setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+      repsLeft_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     */
+    private void clearRepsLeft() {
+      
+      repsLeft_ = 0;
+    }
+
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.AnswerRungRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * The answer to "how many more could you have done?" on a calibration rung
+     * done in full. 0–1 ends the ramp there: the working sets are laid out from
+     * the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+     * rung: the weight the max they imply leaves about one rep in reserve on a
+     * 5-rep set, never less than the usual +10% rung. Applies only to the open
+     * question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.AnswerRungRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.AnswerRungRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.AnswerRungRequest)
+        workout.v1.WorkoutOuterClass.AnswerRungRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.AnswerRungRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return The workoutId.
+       */
+      @java.lang.Override
+      public java.lang.String getWorkoutId() {
+        return instance.getWorkoutId();
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return The bytes for workoutId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getWorkoutIdBytes() {
+        return instance.getWorkoutIdBytes();
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @param value The workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setWorkoutId(value);
+        return this;
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWorkoutId() {
+        copyOnWrite();
+        instance.clearWorkoutId();
+        return this;
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @param value The bytes for workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setWorkoutIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+       * @return The proposedSetId.
+       */
+      @java.lang.Override
+      public java.lang.String getProposedSetId() {
+        return instance.getProposedSetId();
+      }
+      /**
+       * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+       * @return The bytes for proposedSetId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProposedSetIdBytes() {
+        return instance.getProposedSetIdBytes();
+      }
+      /**
+       * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+       * @param value The proposedSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProposedSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProposedSetId(value);
+        return this;
+      }
+      /**
+       * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProposedSetId() {
+        copyOnWrite();
+        instance.clearProposedSetId();
+        return this;
+      }
+      /**
+       * <code>string proposed_set_id = 2 [json_name = "proposedSetId"];</code>
+       * @param value The bytes for proposedSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProposedSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProposedSetIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @return The enum numeric value on the wire for repsLeft.
+       */
+      @java.lang.Override
+      public int getRepsLeftValue() {
+        return instance.getRepsLeftValue();
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @param value The repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeftValue(int value) {
+        copyOnWrite();
+        instance.setRepsLeftValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @return The repsLeft.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+        return instance.getRepsLeft();
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @param value The enum numeric value on the wire for repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+        copyOnWrite();
+        instance.setRepsLeft(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRepsLeft() {
+        copyOnWrite();
+        instance.clearRepsLeft();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.AnswerRungRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.AnswerRungRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "workoutId_",
+              "proposedSetId_",
+              "repsLeft_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\f";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.AnswerRungRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.AnswerRungRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.AnswerRungRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.AnswerRungRequest)
+    private static final workout.v1.WorkoutOuterClass.AnswerRungRequest DEFAULT_INSTANCE;
+    static {
+      AnswerRungRequest defaultInstance = new AnswerRungRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        AnswerRungRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.AnswerRungRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<AnswerRungRequest> PARSER;
+
+    public static com.google.protobuf.Parser<AnswerRungRequest> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -55645,6 +56641,17 @@ public final class WorkoutOuterClass {
      */
     workout.v1.WorkoutOuterClass.SetWorkoutSessionRequest getSetSession();
 
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     * @return Whether the answerRung field is set.
+     */
+    boolean hasAnswerRung();
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     * @return The answerRung.
+     */
+    workout.v1.WorkoutOuterClass.AnswerRungRequest getAnswerRung();
+
     public workout.v1.WorkoutOuterClass.WorkoutMutation.MutationCase getMutationCase();
   }
   /**
@@ -55672,6 +56679,7 @@ public final class WorkoutOuterClass {
       START_SET(24),
       SKIP_WARMUPS(25),
       SET_SESSION(26),
+      ANSWER_RUNG(27),
       MUTATION_NOT_SET(0);
       private final int value;
       private MutationCase(int value) {
@@ -55698,6 +56706,7 @@ public final class WorkoutOuterClass {
           case 24: return START_SET;
           case 25: return SKIP_WARMUPS;
           case 26: return SET_SESSION;
+          case 27: return ANSWER_RUNG;
           case 0: return MUTATION_NOT_SET;
           default: return null;
         }
@@ -56349,6 +57358,56 @@ public final class WorkoutOuterClass {
      */
     private void clearSetSession() {
       if (mutationCase_ == 26) {
+        mutationCase_ = 0;
+        mutation_ = null;
+      }
+    }
+
+    public static final int ANSWER_RUNG_FIELD_NUMBER = 27;
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     */
+    @java.lang.Override
+    public boolean hasAnswerRung() {
+      return mutationCase_ == 27;
+    }
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.AnswerRungRequest getAnswerRung() {
+      if (mutationCase_ == 27) {
+         return (workout.v1.WorkoutOuterClass.AnswerRungRequest) mutation_;
+      }
+      return workout.v1.WorkoutOuterClass.AnswerRungRequest.getDefaultInstance();
+    }
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     */
+    private void setAnswerRung(workout.v1.WorkoutOuterClass.AnswerRungRequest value) {
+      value.getClass();
+  mutation_ = value;
+      mutationCase_ = 27;
+    }
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     */
+    private void mergeAnswerRung(workout.v1.WorkoutOuterClass.AnswerRungRequest value) {
+      value.getClass();
+  if (mutationCase_ == 27 &&
+          mutation_ != workout.v1.WorkoutOuterClass.AnswerRungRequest.getDefaultInstance()) {
+        mutation_ = workout.v1.WorkoutOuterClass.AnswerRungRequest.newBuilder((workout.v1.WorkoutOuterClass.AnswerRungRequest) mutation_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        mutation_ = value;
+      }
+      mutationCase_ = 27;
+    }
+    /**
+     * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+     */
+    private void clearAnswerRung() {
+      if (mutationCase_ == 27) {
         mutationCase_ = 0;
         mutation_ = null;
       }
@@ -57078,6 +58137,54 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+       */
+      @java.lang.Override
+      public boolean hasAnswerRung() {
+        return instance.hasAnswerRung();
+      }
+      /**
+       * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.AnswerRungRequest getAnswerRung() {
+        return instance.getAnswerRung();
+      }
+      /**
+       * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+       */
+      public Builder setAnswerRung(workout.v1.WorkoutOuterClass.AnswerRungRequest value) {
+        copyOnWrite();
+        instance.setAnswerRung(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+       */
+      public Builder setAnswerRung(
+          workout.v1.WorkoutOuterClass.AnswerRungRequest.Builder builderForValue) {
+        copyOnWrite();
+        instance.setAnswerRung(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+       */
+      public Builder mergeAnswerRung(workout.v1.WorkoutOuterClass.AnswerRungRequest value) {
+        copyOnWrite();
+        instance.mergeAnswerRung(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AnswerRungRequest answer_rung = 27 [json_name = "answerRung"];</code>
+       */
+      public Builder clearAnswerRung() {
+        copyOnWrite();
+        instance.clearAnswerRung();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WorkoutMutation)
     }
     @java.lang.Override
@@ -57109,11 +58216,12 @@ public final class WorkoutOuterClass {
               workout.v1.WorkoutOuterClass.StartSetRequest.class,
               workout.v1.WorkoutOuterClass.SkipWarmupsRequest.class,
               workout.v1.WorkoutOuterClass.SetWorkoutSessionRequest.class,
+              workout.v1.WorkoutOuterClass.AnswerRungRequest.class,
             };
             java.lang.String info =
-                "\u0000\r\u0001\u0000\u0001\u001a\r\u0000\u0000\u0000\u0001\u0208\u0002\u0002\u000b" +
-                "<\u0000\r<\u0000\u000e<\u0000\u0011<\u0000\u0012<\u0000\u0013<\u0000\u0014<\u0000" +
-                "\u0017<\u0000\u0018<\u0000\u0019<\u0000\u001a<\u0000";
+                "\u0000\u000e\u0001\u0000\u0001\u001b\u000e\u0000\u0000\u0000\u0001\u0208\u0002\u0002" +
+                "\u000b<\u0000\r<\u0000\u000e<\u0000\u0011<\u0000\u0012<\u0000\u0013<\u0000\u0014" +
+                "<\u0000\u0017<\u0000\u0018<\u0000\u0019<\u0000\u001a<\u0000\u001b<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

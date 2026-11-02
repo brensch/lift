@@ -13,11 +13,11 @@ pub use planning::{
     apply_reorder_exercises,
 };
 pub use reducer::{
-    active_from_get_workout_response, active_proposed_sets, apply_complete_set_to_active,
-    apply_delete_completed_set_to_active, apply_edit_completed_set_to_active,
-    apply_skip_warmups_to_active, apply_start_set_to_active, get_workout_response_from_active,
-    start_workout_response_from_active, workout_plan_change_stats_from_sets,
-    workout_state_snapshot,
+    active_from_get_workout_response, active_proposed_sets, apply_answer_rung_to_active,
+    apply_complete_set_to_active, apply_delete_completed_set_to_active,
+    apply_edit_completed_set_to_active, apply_skip_warmups_to_active, apply_start_set_to_active,
+    get_workout_response_from_active, rung_question, start_workout_response_from_active,
+    workout_plan_change_stats_from_sets, workout_state_snapshot,
 };
 
 #[derive(Clone, Copy, Debug)]

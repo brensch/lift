@@ -329,6 +329,34 @@ class Exercise extends $pb.ProtobufEnum {
   const Exercise._(super.value, super.name);
 }
 
+/// How many more reps a calibration rung done in full had left in it. Each
+/// answer counts as a reserve in the rung's shown max (core/src/plan.rs):
+/// 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+class RepsLeft extends $pb.ProtobufEnum {
+  static const RepsLeft REPS_LEFT_UNSPECIFIED =
+      RepsLeft._(0, _omitEnumNames ? '' : 'REPS_LEFT_UNSPECIFIED');
+  static const RepsLeft REPS_LEFT_ZERO_TO_ONE =
+      RepsLeft._(1, _omitEnumNames ? '' : 'REPS_LEFT_ZERO_TO_ONE');
+  static const RepsLeft REPS_LEFT_TWO_TO_THREE =
+      RepsLeft._(2, _omitEnumNames ? '' : 'REPS_LEFT_TWO_TO_THREE');
+  static const RepsLeft REPS_LEFT_FOUR_PLUS =
+      RepsLeft._(3, _omitEnumNames ? '' : 'REPS_LEFT_FOUR_PLUS');
+
+  static const $core.List<RepsLeft> values = <RepsLeft>[
+    REPS_LEFT_UNSPECIFIED,
+    REPS_LEFT_ZERO_TO_ONE,
+    REPS_LEFT_TWO_TO_THREE,
+    REPS_LEFT_FOUR_PLUS,
+  ];
+
+  static final $core.List<RepsLeft?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static RepsLeft? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const RepsLeft._(super.value, super.name);
+}
+
 class PlanReasonKind extends $pb.ProtobufEnum {
   static const PlanReasonKind PLAN_REASON_KIND_UNSPECIFIED =
       PlanReasonKind._(0, _omitEnumNames ? '' : 'PLAN_REASON_KIND_UNSPECIFIED');
