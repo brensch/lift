@@ -392,8 +392,31 @@ straight after it (`would_append`):
   weight and reps the max that rung shows gives (a missed rung is a set to
   failure), logged `CALIBRATION_SETTLED`.
 
+A rung done with every rep (not the sixth) asks "How many more could you
+have done?": `GetWorkoutResponse.rung_question_set_id` names it while the
+question is open (it is the latest done set, unanswered, nothing pending
+for its lift but the rung it appended, nothing being lifted). The phone
+shows a dialog with three answers (`RungQuestionDialog`, opened once per
+rung by `WorkoutProvider.onRungQuestion`, whether the set was done on the
+phone or the watch); the watch's weight row says "Open phone!" meanwhile.
+A tap records `AnswerRung` (kept on the done set as `reps_left`), which
+counts as reps in reserve: 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+
+- 0–1 → the ramp ends there: the working sets from
+  `shown_max(weight, 5, 0.5)`, as a miss's, `CALIBRATION_SETTLED`;
+- 2–3 or 4+ → the pending rung is re-planned: the heaviest loadable weight
+  `w` with `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in
+  reserve on five), never under the usual rung, `CALIBRATION_STEP`;
+- no answer (dismissed) → the usual rung stands.
+
+An answer to any other set, or once the question is closed, is a no-op. A
+rung corrected to a miss drops its answer. The walk's ramp max is the
+missed rung's (no reserve) or else the last rung's, with its answer's
+reserve (one rep unanswered).
+
 Tapping a rep off a rung settles it again while what it appended is still
-untouched (`resettle_rung`). Typing a weight while a rung is pending ("I
+untouched (`resettle_rung`); undoing a rung takes back what it appended
+the same way. Six rungs is the most a lift gets, however they were done. Typing a weight while a rung is pending ("I
 know my weight") replaces the pending rungs with the working sets at that
 weight. Rungs count as warmups for volume and summaries; the walk reads the
 ramp to give the lift its first max.
@@ -431,6 +454,7 @@ graph LR
     m --> t3["EditCompletedSet → apply_edit_completed_set_to_active"]
     m --> t4["DeleteCompletedSet → apply_delete_completed_set_to_active"]
     m --> t6["SkipWarmups → apply_skip_warmups_to_active"]
+    m --> t13["AnswerRung → apply_answer_rung_to_active<br/>(the rung settles again)"]
     m --> t7["AddExercises → apply_add_exercises<br/>(recorded decisions)"]
     m --> t8["AdjustExerciseWeight → apply_adjust_exercise_weight"]
     m --> t9["RemoveExercise → apply_remove_exercise"]
