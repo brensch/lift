@@ -55,9 +55,6 @@ class _TutorialScreenState extends State<TutorialScreen>
   /// The step's target, where it is this frame.
   Rect? _target;
 
-  /// Where the outline and the card are drawn: easing to [_target].
-  Rect? _shown;
-
   /// Moving between steps, or (at first) the sample account still being
   /// built: taps wait.
   bool _busy = true;
@@ -151,13 +148,12 @@ class _TutorialScreenState extends State<TutorialScreen>
     if (!mounted) return;
     final index = _pending ?? _step;
     final ctx = _registry.contextFor(_steps[index].target);
-    // The new step at once: the outline glides to its target (`_follow`)
-    // while the page scrolls it into view, one motion rather than two.
+    // The new step at once: the outline rides its target (`_follow`) while
+    // the page scrolls it into view, one motion rather than two.
     setState(() {
       _step = index;
       _pending = null;
       _target = ctx == null ? null : _rectOf(ctx) ?? _target;
-      if (_target == null) _shown = null;
     });
     if (ctx == null) return;
     // Near the top: the card has room under it, so it never flips.
@@ -179,26 +175,13 @@ class _TutorialScreenState extends State<TutorialScreen>
     return box.localToGlobal(Offset.zero, ancestor: overlay) & box.size;
   }
 
-  /// Each frame: where the shown step's target is now, and the outline a
-  /// step closer to it — so it stays on the target as the page scrolls or
-  /// settles, and moves between targets smoothly.
+  /// Each frame: where the shown step's target is now, so the outline sits
+  /// exactly on it as the page scrolls to it or its content settles.
   void _follow() {
     if (_pending != null || _target == null) return;
     final ctx = _registry.contextFor(_steps[_step].target);
-    final target = (ctx == null ? null : _rectOf(ctx)) ?? _target!;
-    final shown = _shown;
-    final next = shown == null ? target : Rect.lerp(shown, target, 0.25)!;
-    final settled =
-        shown != null &&
-        (next.topLeft - target.topLeft).distance < 0.5 &&
-        (next.size - target.size as Offset).distance < 0.5;
-    final drawn = settled ? target : next;
-    if (target != _target || drawn != _shown) {
-      setState(() {
-        _target = target;
-        _shown = drawn;
-      });
-    }
+    final now = ctx == null ? null : _rectOf(ctx);
+    if (now != null && now != _target) setState(() => _target = now);
   }
 
   void _next() {
@@ -259,7 +242,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                           painter: _SpotlightPainter(
                             outline: context.tokens.primary,
                             radius: context.tokens.radius(18),
-                            target: _shown,
+                            target: _target,
                             throb: Curves.easeInOut.transform(_throb.value),
                           ),
                         ),
@@ -269,7 +252,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                       step: step,
                       index: _step,
                       count: _steps.length,
-                      target: _shown,
+                      target: _target,
                       bounds: Offset.zero & constraints.biggest,
                       onPrevious: _step > 0 ? _previous : null,
                       onNext: _next,
