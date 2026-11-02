@@ -94,7 +94,10 @@ class WearableSnapshotBuilder {
         exerciseName: exerciseNames[set.exercise] ?? '?',
         setLine: setLineFor(set, proposedSets),
         setText: setTextFor(set, unit),
-        yappingLabel: copy.workout.yapping,
+        // A first-time set waits on the phone however long the rest ran.
+        yappingLabel: firstTime
+            ? copy.workout.watchFirstTimeStatus
+            : copy.workout.yapping,
         weightText: firstTime ? '?' : formatWeight(weight, unit),
         unitText: weightUnitSuffix(unit),
         repsText: firstTime ? '?' : '${set.targetReps}',
