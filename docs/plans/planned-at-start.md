@@ -106,6 +106,12 @@ past it buys nothing more, so Home's card says so beside the estimate
 shared by every template and never moves on its own; switching templates
 only shows the selected one's cap.
 
+A workout with a lift never done (a calibration ramp) has no length to
+give, since the ramp runs until a set falls short: Home's card shows the
+calibration line ("Calibration session due to new weight. …") in place of
+the time control. The core still costs the ramp as a lead-in, so the other
+lifts' sets fit around it.
+
 Each lift's `estimated_seconds` is its own share of the workout: its sets,
 its warmups or ramp, and the move to it from the lift before. A workout
 has each lift once.

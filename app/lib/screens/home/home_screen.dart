@@ -980,7 +980,6 @@ class SelectedTemplateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
     final cs = Theme.of(context).colorScheme;
     final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.5);
     final plans = plan?.plans ?? const <ExercisePlan>[];
@@ -1002,20 +1001,14 @@ class SelectedTemplateCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            template.name,
-                            style: TextStyle(
-                              fontSize: context.tokens.size.titleLg,
-                              fontWeight: context.tokens.weight.heavy,
-                              letterSpacing: -0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      template.name,
+                      style: TextStyle(
+                        fontSize: context.tokens.size.titleLg,
+                        fontWeight: context.tokens.weight.heavy,
+                        letterSpacing: -0.3,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     if (!template.coupled) const PersonalTag(),
                     if (recommended && reason.isNotEmpty)
@@ -1077,19 +1070,11 @@ class SelectedTemplateCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(bottom: 8, right: 8),
-            // A lift never done ramps until a set falls short, so there is
-            // no length to give: the time control steps aside.
-            child: plans.any((p) => p.decision.calibration)
-                ? Text(
-                    copy.plan.calibration,
-                    style: TextStyle(fontSize: t.size.body, color: t.muted),
-                  )
-                : _TimeControl(
-                    budgetMinutes: budgetMinutes,
-                    estimatedSeconds: plan?.estimatedSeconds ?? 0,
-                    maxSeconds: plan?.maxSeconds ?? 0,
-                    onStep: onBudgetStep,
-                  ),
+            child: _TimeControl(
+              plan: plan ?? TemplatePlan.getDefault(),
+              budgetMinutes: budgetMinutes,
+              onStep: onBudgetStep,
+            ),
           ),
           for (final exercisePlan in plans)
             Padding(
@@ -1131,19 +1116,19 @@ class SelectedTemplateCard extends StatelessWidget {
 
 /// "− 60 min +" and what the plan takes: "~52 min", "Needs 70 min" when
 /// two sets a lift don't fit, or "~62 min · the longest it gets" when the
-/// budget is at or past what the workout can use ([maxSeconds]): then +
-/// buys nothing and is off. The budget is shared by every template, so it
-/// is never moved here; only this template's cap is shown.
+/// budget is at or past what the workout can use (its `max_seconds`): then
+/// + buys nothing and is off. The budget is shared by every template, so
+/// it is never moved here; only this template's cap is shown. A lift never
+/// done ramps until a set falls short, so a workout with one has no length
+/// to give: the calibration line stands in its place.
 class _TimeControl extends StatelessWidget {
+  final TemplatePlan plan;
   final int budgetMinutes;
-  final int estimatedSeconds;
-  final int maxSeconds;
   final ValueChanged<int> onStep;
 
   const _TimeControl({
+    required this.plan,
     required this.budgetMinutes,
-    required this.estimatedSeconds,
-    required this.maxSeconds,
     required this.onStep,
   });
 
@@ -1151,15 +1136,22 @@ class _TimeControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final t = context.tokens;
-    final minutes = planMinutes(estimatedSeconds);
-    final over = estimatedSeconds > budgetMinutes * 60;
-    final capped = maxSeconds > 0 && budgetMinutes * 60 >= maxSeconds;
+    if (plan.plans.any((p) => p.decision.calibration)) {
+      return Text(
+        copy.plan.calibration,
+        style: TextStyle(fontSize: t.size.body, color: t.muted),
+      );
+    }
+    final seconds = plan.estimatedSeconds;
+    final budget = budgetMinutes * 60;
+    final over = seconds > budget;
+    final capped = plan.maxSeconds > 0 && budget >= plan.maxSeconds;
     final template = over
         ? copy.plan.needs
         : (capped ? copy.plan.longest : copy.plan.estimate);
-    final estimate = estimatedSeconds <= 0
+    final estimate = seconds <= 0
         ? ''
-        : template.replaceAll('{min}', '$minutes');
+        : template.replaceAll('{min}', '${planMinutes(seconds)}');
     return Row(
       children: [
         IconButton(

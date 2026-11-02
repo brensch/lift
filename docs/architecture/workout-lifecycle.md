@@ -124,6 +124,10 @@ fixed sets as they are (`Planner::max_seconds`). When the budget is at or
 past it, more time buys nothing: Home's card says so beside the estimate
 and turns + off. The budget is shared by every template and is not moved
 when the selection changes; the card shows the selected template's cap.
+When a lift in the workout is never done, its ramp has no set length, so
+the card shows the calibration line (`copy.plan.calibration`) instead of
+the time control; the ramp is still costed as a lead-in for the other
+lifts' sets.
 
 What things cost (`Costs`): a working set 40 s plus its class's rest, a
 heavy lift's warmups 4 minutes, moving between lifts 2 minutes — or the

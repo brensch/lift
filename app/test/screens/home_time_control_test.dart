@@ -13,91 +13,76 @@ import '../support/provider_harness.dart';
 /// longest, + is off and the estimate says so; under it, + moves the
 /// budget.
 void main() {
+  Future<void> pump(
+    WidgetTester tester, {
+    required int budget,
+    required TemplatePlan plan,
+    ValueChanged<int>? onStep,
+  }) => tester.pumpWidget(
+    MaterialApp(
+      theme: AppTheme.theme,
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: SelectedTemplateCard(
+            template: WorkoutTemplate(name: 'StrongLifts B', coupled: true),
+            plan: plan,
+            budgetMinutes: budget,
+            onBudgetStep: onStep ?? (_) {},
+            unit: WeightUnit.WEIGHT_UNIT_KG,
+            recommended: false,
+            reason: '',
+            isStarting: false,
+            onStart: () {},
+            onEdit: () {},
+            onClone: () {},
+            onDelete: () {},
+            onToggleRotation: () {},
+          ),
+        ),
+      ),
+    ),
+  );
+
+  final plus = find.widgetWithIcon(IconButton, AppIcons.addCircle);
+
+  /// Pumps the card and taps +; how far the budget was stepped.
   Future<int> pumpCard(
     WidgetTester tester, {
     required int budget,
     required TemplatePlan plan,
   }) async {
     var stepped = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.theme,
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SelectedTemplateCard(
-              template: WorkoutTemplate(name: 'StrongLifts B', coupled: true),
-              plan: plan,
-              budgetMinutes: budget,
-              onBudgetStep: (n) => stepped += n,
-              unit: WeightUnit.WEIGHT_UNIT_KG,
-              recommended: false,
-              reason: '',
-              isStarting: false,
-              onStart: () {},
-              onEdit: () {},
-              onClone: () {},
-              onDelete: () {},
-              onToggleRotation: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-    final plus = find.widgetWithIcon(IconButton, AppIcons.addCircle);
+    await pump(tester, budget: budget, plan: plan, onStep: (n) => stepped += n);
     await tester.tap(plus);
     await tester.pump();
     return stepped;
   }
 
   bool plusEnabled(WidgetTester tester) =>
-      tester
-          .widget<IconButton>(
-            find.widgetWithIcon(IconButton, AppIcons.addCircle),
-          )
-          .onPressed !=
-      null;
+      tester.widget<IconButton>(plus).onPressed != null;
 
   testWidgets('a lift never done: no time control, the calibration line', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.theme,
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SelectedTemplateCard(
-              template: WorkoutTemplate(name: 'StrongLifts B', coupled: true),
-              plan: TemplatePlan(
-                plans: [
-                  ExercisePlan(
-                    decision: ExerciseDecision(
-                      exercise: Exercise.EXERCISE_DEADLIFT,
-                      calibration: true,
-                      weight: 135,
-                    ),
-                  ),
-                ],
-                estimatedSeconds: 1800,
-                maxSeconds: 2400,
-              ),
-              budgetMinutes: 60,
-              onBudgetStep: (_) {},
-              unit: WeightUnit.WEIGHT_UNIT_KG,
-              recommended: false,
-              reason: '',
-              isStarting: false,
-              onStart: () {},
-              onEdit: () {},
-              onClone: () {},
-              onDelete: () {},
-              onToggleRotation: () {},
+    await pump(
+      tester,
+      budget: 60,
+      plan: TemplatePlan(
+        plans: [
+          ExercisePlan(
+            decision: ExerciseDecision(
+              exercise: Exercise.EXERCISE_DEADLIFT,
+              calibration: true,
+              weight: 135,
             ),
           ),
-        ),
+        ],
+        estimatedSeconds: 1800,
+        maxSeconds: 2400,
       ),
     );
     expect(find.text(copy.plan.calibration), findsOneWidget);
-    expect(find.widgetWithIcon(IconButton, AppIcons.addCircle), findsNothing);
+    expect(plus, findsNothing);
     expect(find.textContaining(copy.plan.longest), findsNothing);
   });
 
