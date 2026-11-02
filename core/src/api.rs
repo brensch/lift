@@ -3,7 +3,7 @@
 //! only looks. The phone calls these through [`call`] with the request's
 //! proto bytes, so the app keeps its generated request and response types.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use prost::Message;
 
@@ -458,8 +458,9 @@ impl<'a> View<'a> {
             });
         }
         let template = self.resolved(self.account.template(template_id)?);
-        let same = template.exercises.len() == exercises.len()
-            && exercises.iter().all(|e| template.exercises.contains(e));
+        let planned: BTreeSet<i32> = template.exercises.iter().copied().collect();
+        let same =
+            planned.len() == exercises.len() && exercises.iter().all(|e| planned.contains(e));
         (!same).then_some(TemplateOffer {
             template_id: template.id,
             template_name: template.name,

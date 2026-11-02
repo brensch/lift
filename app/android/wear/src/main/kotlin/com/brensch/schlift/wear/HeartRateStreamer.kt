@@ -76,7 +76,7 @@ class HeartRateStreamer(
         val sample =
             Wearable.HeartRateSample
                 .newBuilder()
-                .setSampledAt(System.currentTimeMillis() - ageMs.coerceAtLeast(0))
+                .setSampledAt(System.currentTimeMillis() - ageMs.coerceIn(0L, MAX_SAMPLE_AGE_MS))
                 .setBpm(bpm)
                 .setAvailability(Wearable.HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE)
                 .build()
@@ -136,5 +136,10 @@ class HeartRateStreamer(
     private companion object {
         const val FLUSH_INTERVAL_MS = 5_000L
         const val REPORT_LATENCY_US = 2_500_000
+
+        // A reading is never held longer than the report latency; an age past
+        // a few of those means the sensor clock isn't elapsedRealtime, so it
+        // is ignored rather than trusted.
+        const val MAX_SAMPLE_AGE_MS = 4 * REPORT_LATENCY_US / 1_000L
     }
 }
