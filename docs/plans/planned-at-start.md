@@ -27,14 +27,20 @@ and 0 for a set short of it (it ran to failure).
 |---|---|
 | every working rep hit | the higher of the max before and what the session shows with one more rep on every set: one rep's worth up at the weight lifted; a lighter weight the user chose leaves it where it was |
 | a rep missed | the most any working set shows, never more than the max before |
-| stopped early (ended, or the lift removed) | unchanged |
+| stopped early | unchanged |
+
+A session stopped early when the lift was removed, the workout ended with
+working sets undone, or a miss was done before the previous set's rest had
+run out (rushed, not a real miss).
 
 Bodyweight lifts track a rep max the same way: a hit is one more rep, a
 miss sets it to what the sets show.
 
-Time off, per lift, applies when a workout is planned: 21 days or more
-since the lift was done, the max × 0.9; 42 days or more, × 0.8. It is
-recorded in the decision, so the session that follows builds on it.
+Time off, per lift: 21 days or more since the lift was done, the max ×
+0.9; 42 days or more, × 0.8. Inside the walk it comes from the gap between
+one session and the next; when a workout is planned, from the gap to now,
+and it is recorded in the decision, so the session that follows builds on
+it.
 
 A lift never done starts from the starting weight the strength emoji gave
 it at onboarding (or that imported history brings) and runs the
@@ -45,7 +51,11 @@ never done starts at the bottom of its range.
 
 An override from the template editor (a weight and reps, and optionally
 sets) is converted to the max that prescribes it and is the new starting
-point: the walk carries on from it.
+point: it takes its place among the sessions by time and the walk carries
+on from it. Until a session follows it, the lift is planned exactly as
+set; its max is computed from its sets, or from 3 when it names none.
+Reps of 0 removes it. A bodyweight lift can carry weight through an
+override.
 
 ## Classes
 
@@ -76,11 +86,16 @@ each, defaults until then:
 | moving between lifts | 2 min | a lift's last set end → the next lift's first set start |
 
 Allocation: every lift gets 2 sets; then one set at a time, up to 5 per
-lift, to the lift whose muscles are furthest below 10 hard sets this week
-(the weekly count Home shows), ties to the earlier lift, until the next
-set would pass the budget. If two sets each do not fit, the card says how
+lift, to the lift whose primary muscle is furthest below 10 hard sets this
+week (the weekly count Home shows) counting the sets planned so far, ties
+to the earlier lift. It stops when the lift that should get the next set
+does not fit the budget. If two sets each do not fit, the card says how
 long the workout needs instead of starting short. Sets an override names
 are kept as they are.
+
+Each lift's `estimated_seconds` is its own share of the workout: its sets,
+its warmups or ramp, and the move to it from the lift before. A workout
+has each lift once.
 
 ## Reps and weight: from the max
 
@@ -159,7 +174,7 @@ rests and tries again; someone who is cooked lowers the weight.
 
 | Page | Shows | From |
 |---|---|---|
-| Home | the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget |
+| Home | the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`) |
 | Template editor | each lift's next plan; the sheet that sets an override | `plan` |
 | Live workout, watch | the set's weight and reps; the reason when the lift comes up; changes | the workout's log |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
@@ -196,7 +211,9 @@ No compatibility code; the new log is the only shape the core reads.
    user had customised. An open workout is ended first. The database is
    backed up (`VACUUM INTO`) before.
 2. `MIN_APP_VERSION` sends old installs to the store; the server rejects
-   the old log shape.
+   the old log shape: a start or an add naming lifts without their
+   decisions does not fold, and a push carrying one is refused as
+   `account_diverged` with nothing stored.
 3. On the phone: install fresh and sign in; it pulls the converted log.
    Android Auto Backup excludes the account files so a reinstall cannot
    bring the old log back.
