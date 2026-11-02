@@ -234,13 +234,13 @@ check's overlap warning names a pair that shares most of its lifts.
 a lift, counted as the week is (primary 1.0, secondary 0.5). Three sets a
 lift, not the planner's, so the check describes the rotation and not this
 week's history or budget. It warns of a **gap** (a muscle nothing in
-rotation trains), an **overlap** (two templates sharing over 70% of the
-smaller one's lifts) and **too few** (under two templates in rotation).
+rotation trains) and an **overlap** (two templates sharing over 70% of the
+smaller one's lifts). One template is a rotation too.
 Its **additions** name, for each favourite and each library entry the
 user does not have, the muscles its lifts train first that the lap
 trains none of (one adding nothing is not listed). The Manage sheet shows
 the lap's sets per muscle on Home's bars under a line saying what they
-are, then a line for an overlap or too few; the gap is not worded on its
+are, then a line for an overlap; the gap is not worded on its
 own, each favourite's and library entry's row says what it would add
 instead ("Trains calves and core, which you don't have.").
 

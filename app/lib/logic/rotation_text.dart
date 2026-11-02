@@ -80,7 +80,6 @@ List<String> rotationWarningLines(
               .replaceAll('{b}', name(w.templateIds.last))
               .replaceAll('{shared}', '${w.shared}')
               .replaceAll('{of}', '${w.of}'),
-        RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW => r.tooFew,
         _ => '',
       },
   ].where((line) => line.isNotEmpty).toList();

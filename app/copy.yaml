@@ -104,7 +104,6 @@ rotation:
   # one lap of the main plan's sets per muscle, then any warnings.
   check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your main plan that we cycle through to make sure you're sculpting the right bits."
   overlap: "{a} and {b} share {shared} of {of} lifts."
-  too_few: "Put two or more workouts in the main plan."
   # Under a backup's or a library workout's lifts, when it trains muscles
   # the main plan trains none of. {muscles} is "calves" or "calves and
   # core". Placeholder.

@@ -20,8 +20,6 @@ pub const SETS_PER_LIFT: f32 = 3.0;
 /// Two templates sharing more than this fraction of the smaller one's
 /// lifts overlap.
 pub const OVERLAP_FRACTION: f32 = 0.7;
-/// Fewer templates than this in rotation is too few to rotate.
-pub const MIN_ROTATION: usize = 2;
 
 const SECONDARY_WEIGHT: f32 = 0.5;
 
@@ -98,12 +96,6 @@ pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]
         .collect();
 
     let mut warnings = Vec::new();
-    if rotation.len() < MIN_ROTATION {
-        warnings.push(RotationWarning {
-            kind: RotationWarningKind::TooFew as i32,
-            ..Default::default()
-        });
-    }
     if rotation.is_empty() {
         return RotationCheck {
             volume,
@@ -212,18 +204,6 @@ mod tests {
         // Bench (primary) 3; row's secondary 1.5 + curl 3.
         assert_eq!(sets(&check, MuscleGroup::Chest), 3.0);
         assert_eq!(sets(&check, MuscleGroup::Biceps), 4.5);
-    }
-
-    #[test]
-    fn too_few_templates() {
-        let one = template("legs", &[Exercise::Squat]);
-        assert!(kinds(&pass(std::slice::from_ref(&one))).contains(&RotationWarningKind::TooFew));
-        let none = pass(&[]);
-        assert_eq!(kinds(&none), vec![RotationWarningKind::TooFew]);
-        // Favourites do not count.
-        let mut favourite = template("arms", &[Exercise::BarbellCurl]);
-        favourite.in_rotation = false;
-        assert!(kinds(&pass(&[one, favourite])).contains(&RotationWarningKind::TooFew));
     }
 
     /// Nothing trains calves or core: one gap naming both.

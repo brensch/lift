@@ -849,10 +849,8 @@ enum RotationWarningKind {
   ROTATION_WARNING_KIND_GAP = 1;
   // Two templates sharing over 70% of the smaller one's lifts.
   ROTATION_WARNING_KIND_OVERLAP = 2;
-  // Fewer than two templates in rotation.
-  ROTATION_WARNING_KIND_TOO_FEW = 4;
-  reserved 3;
-  reserved "ROTATION_WARNING_KIND_LOPSIDED";
+  reserved 3, 4;
+  reserved "ROTATION_WARNING_KIND_LOPSIDED", "ROTATION_WARNING_KIND_TOO_FEW";
 }
 
 message TemplatePlan {

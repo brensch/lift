@@ -560,20 +560,14 @@ class RotationWarningKind extends $pb.ProtobufEnum {
       RotationWarningKind._(
           2, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_OVERLAP');
 
-  /// Fewer than two templates in rotation.
-  static const RotationWarningKind ROTATION_WARNING_KIND_TOO_FEW =
-      RotationWarningKind._(
-          4, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_TOO_FEW');
-
   static const $core.List<RotationWarningKind> values = <RotationWarningKind>[
     ROTATION_WARNING_KIND_UNSPECIFIED,
     ROTATION_WARNING_KIND_GAP,
     ROTATION_WARNING_KIND_OVERLAP,
-    ROTATION_WARNING_KIND_TOO_FEW,
   ];
 
   static final $core.List<RotationWarningKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
   static RotationWarningKind? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

@@ -1855,14 +1855,6 @@ public final class WorkoutOuterClass {
      * <code>ROTATION_WARNING_KIND_OVERLAP = 2;</code>
      */
     ROTATION_WARNING_KIND_OVERLAP(2),
-    /**
-     * <pre>
-     * Fewer than two templates in rotation.
-     * </pre>
-     *
-     * <code>ROTATION_WARNING_KIND_TOO_FEW = 4;</code>
-     */
-    ROTATION_WARNING_KIND_TOO_FEW(4),
     UNRECOGNIZED(-1),
     ;
 
@@ -1886,14 +1878,6 @@ public final class WorkoutOuterClass {
      * <code>ROTATION_WARNING_KIND_OVERLAP = 2;</code>
      */
     public static final int ROTATION_WARNING_KIND_OVERLAP_VALUE = 2;
-    /**
-     * <pre>
-     * Fewer than two templates in rotation.
-     * </pre>
-     *
-     * <code>ROTATION_WARNING_KIND_TOO_FEW = 4;</code>
-     */
-    public static final int ROTATION_WARNING_KIND_TOO_FEW_VALUE = 4;
 
 
     @java.lang.Override
@@ -1920,7 +1904,6 @@ public final class WorkoutOuterClass {
         case 0: return ROTATION_WARNING_KIND_UNSPECIFIED;
         case 1: return ROTATION_WARNING_KIND_GAP;
         case 2: return ROTATION_WARNING_KIND_OVERLAP;
-        case 4: return ROTATION_WARNING_KIND_TOO_FEW;
         default: return null;
       }
     }

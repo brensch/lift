@@ -285,7 +285,6 @@ wrong:
 |---|---|
 | gap | a muscle nothing in rotation trains |
 | overlap | two templates share over 70% of the smaller one's lifts |
-| too few | fewer than 2 templates in rotation |
 
 It also names what each workout outside the rotation would add: for each
 backup and each library entry the user does not have, the muscles its
@@ -294,7 +293,7 @@ nothing is not listed).
 
 The Manage sheet opens on it: "Here's what an average rotation would
 work. Got enough butt in it? Legs? Biceps? …" above the lap's bars, then a
-plain line for an overlap or too few. The bars are Home's rows drawn as
+plain line for an overlap. The bars are Home's rows drawn as
 shares: each muscle's sets against the most-trained muscle's, with no
 target band, no tick and no numbers, since a lap is not a week and the
 suggestion does not go through the main plan in order. Tapping a muscle

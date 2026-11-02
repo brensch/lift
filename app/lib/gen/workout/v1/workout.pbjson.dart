@@ -279,20 +279,20 @@ const RotationWarningKind$json = {
     {'1': 'ROTATION_WARNING_KIND_UNSPECIFIED', '2': 0},
     {'1': 'ROTATION_WARNING_KIND_GAP', '2': 1},
     {'1': 'ROTATION_WARNING_KIND_OVERLAP', '2': 2},
-    {'1': 'ROTATION_WARNING_KIND_TOO_FEW', '2': 4},
   ],
   '4': [
     {'1': 3, '2': 3},
+    {'1': 4, '2': 4},
   ],
-  '5': ['ROTATION_WARNING_KIND_LOPSIDED'],
+  '5': ['ROTATION_WARNING_KIND_LOPSIDED', 'ROTATION_WARNING_KIND_TOO_FEW'],
 };
 
 /// Descriptor for `RotationWarningKind`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List rotationWarningKindDescriptor = $convert.base64Decode(
     'ChNSb3RhdGlvbldhcm5pbmdLaW5kEiUKIVJPVEFUSU9OX1dBUk5JTkdfS0lORF9VTlNQRUNJRk'
     'lFRBAAEh0KGVJPVEFUSU9OX1dBUk5JTkdfS0lORF9HQVAQARIhCh1ST1RBVElPTl9XQVJOSU5H'
-    'X0tJTkRfT1ZFUkxBUBACEiEKHVJPVEFUSU9OX1dBUk5JTkdfS0lORF9UT09fRkVXEAQiBAgDEA'
-    'MqHlJPVEFUSU9OX1dBUk5JTkdfS0lORF9MT1BTSURFRA==');
+    'X0tJTkRfT1ZFUkxBUBACIgQIAxADIgQIBBAEKh5ST1RBVElPTl9XQVJOSU5HX0tJTkRfTE9QU0'
+    'lERUQqHVJPVEFUSU9OX1dBUk5JTkdfS0lORF9UT09fRkVX');
 
 @$core.Deprecated('Use userDescriptor instead')
 const User$json = {

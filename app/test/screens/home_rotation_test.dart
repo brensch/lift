@@ -194,7 +194,6 @@ void main() {
     for (final w in rotationWarningLines(check, names)) {
       expect(inSheet(find.text(w)), findsOneWidget);
     }
-    expect(inSheet(find.text(r.tooFew)), findsNothing, reason: 'two in it');
     expect(inSheet(find.textContaining('Trains everything')), findsNothing);
 
     // The sections, and no library row for what the user has.

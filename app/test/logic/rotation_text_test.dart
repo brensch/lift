@@ -82,9 +82,6 @@ void main() {
             shared: 3,
             of: 3,
           ),
-          RotationWarning(
-            kind: RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW,
-          ),
         ],
       );
       expect(
@@ -95,7 +92,6 @@ void main() {
               .replaceAll('{b}', 'StrongLifts A')
               .replaceAll('{shared}', '3')
               .replaceAll('{of}', '3'),
-          r.tooFew,
         ],
       );
       expect(rotationWarningLines(RotationCheck(), {}), isEmpty);
