@@ -220,6 +220,7 @@ impl ServerDb {
                         Value::Int(v) => query.bind(v),
                         Value::Real(v) => query.bind(v),
                         Value::Text(v) => query.bind(v),
+                        Value::Blob(v) => query.bind(v),
                     };
                 }
                 query.execute(&mut *tx).await?;

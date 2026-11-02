@@ -164,18 +164,19 @@ message ProposedSet {
   int32 target_reps = 5;
   float target_weight = 6;
   bool warmup = 7;
-  int32 rest_after_success = 9;
-  int32 rest_after_failure = 10;
+  // The rest after this set, in seconds (an exercise's last set rests the
+  // short between-exercise rest instead).
+  int32 rest_seconds = 9;
   bool cancelled = 11;
   // A calibration rung: a 5-rep set on the first session of a loaded
-  // exercise, answered with an Effort that decides the next rung or the
-  // working weight. Counts as a warmup for volume and summaries.
+  // exercise. Its reps decide the next rung or the working weight. Counts
+  // as a warmup for volume and summaries.
   bool calibration = 15;
   // A warmup the person chose not to do ("skip all warmups"). It stays in
   // the plan and on screen, nothing waits on it, and it can still be done.
   bool skipped = 16;
-  reserved 8, 12, 13, 14;
-  reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint";
+  reserved 8, 10, 12, 13, 14;
+  reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint", "rest_after_success", "rest_after_failure";
 }
 
 message CompletedSet {
@@ -186,104 +187,131 @@ message CompletedSet {
   float actual_weight = 5;
   int64 ended_at = 7;
   int64 rest_until = 8;
-  // "How was that": recorded on the final working set of an exercise
-  // on every working set and calibration rung. UNSPECIFIED until answered;
-  // recorded as RIGHT at the next Done or at EndWorkout.
-  Effort effort = 9;
   // When the set was started (its StartSet), 0 if it was done without
   // one. Lifting is started_at → ended_at.
   int64 started_at = 11;
-  reserved 6, 10;
-  reserved "rest_skipped";
+  reserved 6, 9, 10;
+  reserved "rest_skipped", "effort";
 }
 
-// The one opinion the app asks for: after the final working set of an
-// exercise, and after every calibration set.
-enum Effort {
-  EFFORT_UNSPECIFIED = 0;
-  EFFORT_EASY = 1;
-  EFFORT_RIGHT = 2;
-  EFFORT_HARD = 3;
+// ── Plans: what each lift is given, and why ──
+//
+// One rule decides every lift's sets, reps and weight (core/src/plan.rs),
+// when a workout starts, from the lift's estimated max and the time the
+// user has. Its answer is an ExerciseDecision, recorded in the StartWorkout
+// (or AddExercises) event and laid out from there; changes during the
+// workout are recorded beside it as WeightChanges.
+
+enum PlanReasonKind {
+  PLAN_REASON_KIND_UNSPECIFIED = 0;
+  // Every working rep hit last time: the max nudged up.
+  PLAN_REASON_KIND_MAX_UP = 1;
+  // A rep missed last time: the max reset to the most a set showed.
+  PLAN_REASON_KIND_MAX_FROM_MISS = 2;
+  // Stopped early, or the user lowered the weight: the max unchanged.
+  PLAN_REASON_KIND_HELD = 3;
+  // Three weeks or more away (six or more): the max cut to 90% (80%).
+  PLAN_REASON_KIND_TIME_OFF = 4;
+  // Never done: a calibration ramp finds the max (a bodyweight lift
+  // starts at the bottom of its range).
+  PLAN_REASON_KIND_FIRST_TIME = 5;
+  // The user's own weight and reps, set at `at`.
+  PLAN_REASON_KIND_USER_SET = 6;
+  // This many sets: what the time budget fits, given to the lifts whose
+  // muscles are furthest behind this week.
+  PLAN_REASON_KIND_SETS_FROM_TIME = 7;
 }
 
-enum UserMessageKind {
-  USER_MESSAGE_KIND_UNSPECIFIED = 0;
-  USER_MESSAGE_KIND_COACHING_NOTE = 1;
-  USER_MESSAGE_KIND_GROUP_RATIONALE = 2;
-  USER_MESSAGE_KIND_LOAD_INCREASE = 3;
-  USER_MESSAGE_KIND_LOAD_HOLD = 4;
-  USER_MESSAGE_KIND_STALL_DELOAD = 5;
-  USER_MESSAGE_KIND_TEMPORAL_DELOAD = 6;
-  USER_MESSAGE_KIND_SESSION_UPDATE = 7;
-  USER_MESSAGE_KIND_CYCLE_ADVANCE = 8;
+// One step of a decision, in the order the steps applied.
+message PlanReason {
+  PlanReasonKind kind = 1;
+  // The estimated max (rep max for bodyweight) before and after the step.
+  // FIRST_TIME: the starting weight and the ramp's first rung.
+  // SETS_FROM_TIME: the sets every lift starts with, and this lift's.
+  float before = 2;
+  float after = 3;
+  // TIME_OFF: whole days since the lift was done.
+  int32 days_off = 4;
+  // MAX_UP, MAX_FROM_MISS, HELD: the session it follows; MAX_FROM_MISS
+  // the set that showed the max.
+  string workout_id = 5;
+  string set_id = 6;
+  // When the step's source happened (Unix seconds): the session's end, or
+  // the override.
+  int64 at = 7;
+  // SETS_FROM_TIME: the budget, this lift's primary muscle and its hard
+  // sets this week before the workout.
+  int32 budget_minutes = 8;
+  MuscleGroup muscle = 9;
+  float weekly_sets = 10;
 }
 
-enum UserMessageSurface {
-  USER_MESSAGE_SURFACE_UNSPECIFIED = 0;
-  USER_MESSAGE_SURFACE_SCHEDULE = 1;
-  USER_MESSAGE_SURFACE_WORKOUT_BRIEFING = 2;
-  USER_MESSAGE_SURFACE_WORKOUT_FEED = 3;
+// What one lift is given in a workout: everything its sets are laid out
+// from.
+message ExerciseDecision {
+  Exercise exercise = 1;
+  int32 sets = 2;
+  int32 reps = 3;
+  // lb; 0 for bodyweight. A calibration ramp's first rung.
+  float weight = 4;
+  int32 rest_seconds = 5;
+  // A warmup ladder before the working sets.
+  bool warmups = 6;
+  // The class's rep range.
+  int32 rep_low = 7;
+  int32 rep_high = 8;
+  // The estimated max (rep max for bodyweight) this was planned from; 0
+  // when not known yet (never done).
+  float max = 9;
+  // Never done, loaded: the sets start with a calibration ramp of rungs
+  // from `weight`, and the working sets follow from the max it finds.
+  bool calibration = 10;
+  int32 budget_minutes = 11;
+  // This lift's share of the workout's estimated length: its sets, its
+  // warmups, and the move to it from the lift before.
+  int32 estimated_seconds = 12;
+  repeated PlanReason reasons = 13;
 }
 
-enum ProgressionChangeKind {
-  PROGRESSION_CHANGE_KIND_UNSPECIFIED = 0;
-  PROGRESSION_CHANGE_KIND_INCREASE = 1;
-  PROGRESSION_CHANGE_KIND_HOLD = 2;
-  PROGRESSION_CHANGE_KIND_DELOAD = 3;
-  PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE = 4;
+enum WeightChangeCause {
+  WEIGHT_CHANGE_CAUSE_UNSPECIFIED = 0;
+  // AdjustExerciseWeight, from the phone or the watch.
+  WEIGHT_CHANGE_CAUSE_USER_ADJUST = 1;
+  // The calibration ramp's next rung.
+  WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP = 2;
+  // The ramp done: the working weight set.
+  WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED = 3;
+  // EditCompletedSet: the weight recorded on a done set fixed.
+  WEIGHT_CHANGE_CAUSE_CORRECTION = 4;
 }
 
-enum ProgressionMetricKind {
-  PROGRESSION_METRIC_KIND_UNSPECIFIED = 0;
-  PROGRESSION_METRIC_KIND_WORKING_WEIGHT = 1;
-  PROGRESSION_METRIC_KIND_TRAINING_MAX = 2;
+// A weight changed during a workout, and why.
+message WeightChange {
+  int64 at = 1; // Unix seconds
+  // The first set the new weight applies to (CORRECTION: the set fixed).
+  string from_set_id = 2;
+  float before = 3; // lb
+  float after = 4; // lb
+  WeightChangeCause cause = 5;
 }
 
-enum ProgressionReasonKind {
-  PROGRESSION_REASON_KIND_UNSPECIFIED = 0;
-  PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS = 1;
-  PROGRESSION_REASON_KIND_MISSED_TARGET_REPS = 2;
-  PROGRESSION_REASON_KIND_REPEATED_MISSES = 3;
-  PROGRESSION_REASON_KIND_STAGE_ADVANCE = 4;
-  PROGRESSION_REASON_KIND_CYCLE_COMPLETED = 5;
-  PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK = 6;
+// One exercise in a workout: the decision it started from, then every
+// change to its weight, in order.
+message ExerciseLog {
+  ExerciseDecision decision = 1;
+  repeated WeightChange changes = 2;
 }
 
-message ProgressionDetails {
-  ProgressionChangeKind change_kind = 1;
-  ProgressionMetricKind metric_kind = 2;
-  float previous_weight = 3;
-  float next_weight = 4;
-  string previous_stage = 5;
-  string next_stage = 6;
-  string source_workout_id = 7;
-  string context_label = 8;
-  ProgressionReasonKind reason_kind = 9;
-  string reason_text = 10;
-}
-
-message UserMessageDetails {
-  oneof detail {
-    ProgressionDetails progression = 1;
-  }
-}
-
-message UserMessage {
-  string message_key = 1;
-  UserMessageKind kind = 2;
-  UserMessageSurface surface = 3;
-  string title = 4;
-  string body = 5;
-  bool dismissible = 6;
-  int64 created_at = 7;
-  int64 updated_at = 8;
-  string workout_id = 9;
-  Exercise exercise = 11;
-  string slot_key = 12;
-  reserved 10, 13;
-  reserved "exercise_group_id", "metadata_json";
-  UserMessageDetails details = 14;
-  string source_workout_id = 15;
+// The decision an exercise would get if a workout started now, as every
+// screen shows it.
+message ExercisePlan {
+  ExerciseDecision decision = 1;
+  // The user has set it by hand (an override is the latest word on it).
+  bool overridden = 2;
+  MuscleGroup primary_muscle = 3;
+  EquipmentKind equipment = 4;
+  // When it was last done (the session's end), 0 = never.
+  int64 last_performed_at = 5;
 }
 
 // --- RPC Requests/Responses ---
@@ -292,14 +320,17 @@ message StartWorkoutRequest {
   string name = 1;
   reserved 2;
   reserved "exercise_groups";
-  int64 started_at = 3; // Unix seconds; if 0, server uses current time
-  // When set, the server builds the plan itself: one block of sets per
-  // template exercise — weights from the trackers, sets/reps/rest from
-  // the prescription, warmups where prescribed.
+  int64 started_at = 3; // Unix seconds; 0 = the event's time
+  // The template it starts from ("" = none); names the workout.
   string template_id = 4;
-  // Explicit exercise list (server still prescribes everything). Used
-  // when template_id is empty; both empty = an empty workout.
+  // The exercises, in order: the template's when it names one (the
+  // library's of now for a coupled template), filled in by the core.
   repeated Exercise exercises = 5;
+  // The time the user has; 0 = the default (60).
+  int32 budget_minutes = 7;
+  // What each exercise is given, decided by the core (plan) when the event
+  // is recorded. The workout's sets are laid out from these alone.
+  repeated ExerciseDecision decisions = 6;
 }
 message StartWorkoutResponse {
   string id = 1;
@@ -310,7 +341,9 @@ message StartWorkoutResponse {
   repeated CompletedSet completed_sets = 5;
   ProposedSet next_up_set = 6;
   WorkoutStateSnapshot state_snapshot = 7;
-  repeated UserMessage user_messages = 8;
+  repeated ExerciseLog exercise_logs = 9;
+  reserved 8;
+  reserved "user_messages";
 }
 
 message GetWorkoutRequest {
@@ -354,11 +387,14 @@ message GetWorkoutResponse {
   ProposedSet next_up_set = 5;
   WorkoutPlanChangeStats plan_change_stats = 6;
   WorkoutStateSnapshot state_snapshot = 7;
-  repeated UserMessage user_messages = 8;
   WorkoutSummary summary = 9;
   // Undone warmups that are behind you (skipped, or a working set of their
   // exercise is done): shown out of the way, nothing waits on them.
   repeated string passed_warmup_ids = 10;
+  // Per exercise: the decision it started from and the changes since.
+  repeated ExerciseLog exercise_logs = 11;
+  reserved 8;
+  reserved "user_messages";
 }
 
 message WorkoutPlanChangeStats {
@@ -423,26 +459,12 @@ message ExerciseProgressPoint {
   float best_one_rep_max = 5; // lb, Epley
   float volume = 6; // lb
   int32 sets = 7;
+  // The estimated max after this session (rep max for bodyweight).
+  float estimated_max = 8;
 }
 message ExerciseProgress {
   Exercise exercise = 1;
   repeated ExerciseProgressPoint points = 2; // oldest first
-}
-
-// Used only to scale the seeded starting weights at onboarding.
-enum Gender {
-  GENDER_UNSPECIFIED = 0; // skipped — neutral defaults
-  GENDER_FEMALE = 1;
-  GENDER_MALE = 2;
-}
-
-// Lifting experience, used to scale recommended starting weights.
-enum ExperienceLevel {
-  EXPERIENCE_LEVEL_UNSPECIFIED = 0;
-  EXPERIENCE_LEVEL_CUTE = 1; // brand new
-  EXPERIENCE_LEVEL_BEGINNER = 2;
-  EXPERIENCE_LEVEL_INTERMEDIATE = 3;
-  EXPERIENCE_LEVEL_EXPERT = 4;
 }
 
 message GetExerciseProgressRequest {}
@@ -461,13 +483,14 @@ message WorkoutPlanResponse {
   WorkoutStateSnapshot state_snapshot = 3;
 }
 
-// Append one block of prescribed sets per exercise (tracker weight,
-// prescription sets/reps/rest, warmups where prescribed).
+// Append one block of sets per exercise, laid out from its decision.
 message AddExercisesRequest {
   string workout_id = 1;
   repeated Exercise exercises = 2;
-  // 3 was client_working_set_ids: there are no optimistic copies to
-  // reconcile now that the plan is made on the phone.
+  // What each added exercise is given, decided by the core (plan) when the
+  // event is recorded, in the workout's budget; the lifts already planned
+  // keep theirs.
+  repeated ExerciseDecision decisions = 4;
   reserved 3;
   reserved "client_working_set_ids";
 }
@@ -520,9 +543,8 @@ message CompleteSetRequest {
 
   int64 completed_at = 5; // Unix seconds; if 0, server uses current time
 
-  // How it went, given with the Done itself (Easy / Good / Hard). Applied as
-  // the answer to "how was that" for this set; ignored on a warmup.
-  Effort effort = 6;
+  reserved 6;
+  reserved "effort";
 }
 
 message CompleteSetResponse {
@@ -532,7 +554,8 @@ message CompleteSetResponse {
 
   WorkoutStateSnapshot state_snapshot = 3;
 
-  repeated UserMessage user_messages = 4;
+  reserved 4;
+  reserved "user_messages";
 }
 
 message DeleteCompletedSetRequest {
@@ -544,15 +567,8 @@ message DeleteCompletedSetRequest {
 message DeleteCompletedSetResponse {
   ProposedSet next_up_set = 1;
   WorkoutStateSnapshot state_snapshot = 2;
-  repeated UserMessage user_messages = 3;
-}
-
-// Answer "how was that" for an exercise. Lands on the done set the
-// effort prompt names (the final working set, or the calibration rung).
-message RateExerciseRequest {
-  string workout_id = 1;
-  string completed_set_id = 2;
-  Effort effort = 3;
+  reserved 3;
+  reserved "user_messages";
 }
 
 // Correct a done set after the fact (fewer reps, a different weight).
@@ -572,14 +588,15 @@ message EndWorkoutRequest {
 message EndWorkoutResponse {
   Workout workout = 1;
 
-  repeated UserMessage user_messages = 2;
+  reserved 2;
+  reserved "user_messages";
 }
 
-// ── Templates, trackers, and the home screen ──
+// ── Templates, plans, and the home screen ──
 
 // A named, ordered list of exercises. Nothing else: sets, reps, rest and
-// weight all derive from the prescription and the tracker, so every
-// template that contains an exercise shows the same current weight.
+// weight all come from the exercise's plan, so every template that contains
+// an exercise shows the same next weight.
 message WorkoutTemplate {
   string id = 1;
   string name = 2;
@@ -638,30 +655,6 @@ message AddLibraryTemplatesResponse {
   GetHomeResponse home = 1;
 }
 
-// The resolved state of one exercise for one user: the weight and the
-// prescription the next workout will use. GetHome returns one for every
-// exercise in the catalog, so the client never needs a fallback table.
-message ExerciseTracker {
-  Exercise exercise = 1;
-  float working_weight = 2; // lb, snapped for the user's unit
-  int32 sets = 3; // resolved (override or derived)
-  int32 target_reps = 4; // current position in the rep range
-  int32 rep_range_low = 5;
-  int32 rep_range_high = 6;
-  int32 rest_seconds = 7;
-  int32 rest_seconds_failure = 8;
-  bool include_warmup = 9;
-  int64 last_performed_at = 10;
-  repeated float weight_history = 11; // top working weight per session, oldest first
-  bool overridden = 12; // the user has set sets or the rep range by hand
-  MuscleGroup primary_muscle = 13;
-  ExerciseCategory category = 14;
-  EquipmentKind equipment = 15;
-  // 16 was consecutive_hard: progression reads only whether the reps were hit.
-  reserved 16;
-  reserved "consecutive_hard";
-}
-
 // Weighted hard sets for one muscle over the rolling last 7 days.
 // A completed working set counts 1.0 for the exercise's primary muscle
 // and 0.5 for each secondary; warmups and cancelled sets count 0.
@@ -684,13 +677,14 @@ message MuscleRecoveryStatus {
   reserved "in_next_workout";
 }
 
-message GetHomeRequest {}
+message GetHomeRequest {
+  // The time the user has for a workout; 0 = the default (60).
+  int32 budget_minutes = 1;
+}
 
 message GetHomeResponse {
   repeated WorkoutTemplate templates = 1; // in user order
-  repeated ExerciseTracker trackers = 2; // every exercise, resolved
   string active_workout_id = 3;
-  repeated UserMessage user_messages = 4;
   repeated MuscleVolume volume = 5;
   repeated MuscleRecoveryStatus recovery = 6;
   // A stateless suggestion: the template whose muscles are furthest
@@ -699,6 +693,32 @@ message GetHomeResponse {
   string suggested_template_id = 7;
   string suggestion_reason = 8; // "Back and biceps are 6 sets behind"
   bool onboarded = 9; // templates or workouts exist
+  // Every exercise in the catalog, planned at the home's now on its own (a
+  // workout of that one lift, in the budget).
+  repeated ExercisePlan plans = 10;
+  // Each template's lifts, planned at the home's now in the budget: exactly
+  // what starting it then records.
+  repeated TemplatePlan template_plans = 11;
+  int32 budget_minutes = 12;
+  reserved 2, 4;
+  reserved "trackers", "user_messages";
+}
+
+message TemplatePlan {
+  string template_id = 1;
+  repeated ExercisePlan plans = 2; // in the template's order
+  // The workout's estimated length: more than the budget when two sets a
+  // lift do not fit ("needs N min").
+  int32 estimated_seconds = 3;
+}
+
+// One exercise's plan at now, on its own in the budget.
+message GetExercisePlanRequest {
+  Exercise exercise = 1;
+  int32 budget_minutes = 2; // 0 = the default (60)
+}
+message GetExercisePlanResponse {
+  ExercisePlan plan = 1;
 }
 
 // Create when id is empty; update when it exists.
@@ -723,45 +743,45 @@ message ReorderTemplatesRequest {
 }
 message ReorderTemplatesResponse {}
 
-// Manual correction / override for one exercise. working_weight is the
-// full new value (send the current one to keep it). Overrides of 0 mean
-// "derived". current_reps resets to the resolved range bottom.
-message SetExerciseTrackerRequest {
+// The weight and reps (and optionally sets) the user sets by hand for one
+// lift (the sheet in the template editor). It is converted to the max that
+// prescribes it and is a new starting point: the plan carries on from it.
+// Reps of 0 removes it.
+message SetOverrideRequest {
   Exercise exercise = 1;
-  float working_weight = 2; // lb
-  int32 override_sets = 3; // 0 = derived
-  int32 override_rep_low = 4; // 0 = derived
-  int32 override_rep_high = 5; // 0 = derived
-  // The current rep target; 0 restarts the climb at the range bottom.
-  int32 target_reps = 6;
+  float weight = 2; // lb
+  int32 reps = 3;
+  // Kept as they are by the time budget.
+  optional int32 sets = 4;
 }
-message SetExerciseTrackerResponse {
-  ExerciseTracker tracker = 1;
+message SetOverrideResponse {
+  ExercisePlan plan = 1;
 }
 
-// Finishes setup: saves the unit, seeds trackers for the main lifts from
-// bodyweight and experience (catalog openers when skipped), and copies
-// the default templates. Does nothing when templates already exist.
+// Finishes setup: saves the unit, records the starting weights of the main
+// lifts, and copies the chosen library templates. Only the unit changes
+// when templates already exist.
 message CompleteOnboardingRequest {
-  float body_weight_kg = 1; // 0 = skipped
-  ExperienceLevel experience = 2; // unspecified = skipped
   WeightUnit unit = 3;
-  Gender gender = 4; // unspecified = skipped
-  // The library entries to copy in. Empty means the library's defaults
-  // (also what clients from before the library send).
+  // The library entries to copy in. Empty means the library's defaults.
   repeated string library_ids = 5;
-  // Chick to gorilla, 0..1, from the setup slider. When set it alone
-  // seeds the main lifts (the bar at 0, 315 lb squat / 225 lb bench at
-  // 1); experience, gender and bodyweight are then ignored for seeding.
+  // Chick to gorilla, 0..1, from the setup slider: picks the starting
+  // weights (the bar at 0, 315 lb squat / 225 lb bench at 1). Unset keeps
+  // the catalog's openers.
   optional float strength = 6;
   // The entries as the library had them, filled in by the core when the
   // event is recorded (see AddLibraryTemplatesRequest.entries).
   repeated LibraryTemplate library_entries = 7;
+  // The starting weights `strength` picks, filled in by the core when the
+  // event is recorded. A lift never done calibrates from 60% of its own.
+  repeated ExerciseWeight starting_weights = 8;
+  reserved 1, 2, 4;
+  reserved "body_weight_kg", "experience", "gender";
 }
 
-// The first working weights the setup slider shows: one step per 1% of the
+// The starting weights the setup slider shows: one step per 1% of the
 // slider, chick (0) to gorilla (100), in the unit asked for. Onboarding
-// with `strength` = step / 100 seeds exactly these.
+// with `strength` = step / 100 records exactly these.
 message GetStartingWeightsRequest {
   WeightUnit unit = 1;
 }
@@ -828,16 +848,13 @@ message WorkoutMutation {
     AdjustExerciseWeightRequest adjust_exercise_weight = 18;
     RemoveExerciseRequest remove_exercise = 19;
     ReorderExercisesRequest reorder_exercises = 20;
-    RateExerciseRequest rate_exercise = 21;
     EditCompletedSetRequest edit_completed_set = 23;
     StartSetRequest start_set = 24;
     SkipWarmupsRequest skip_warmups = 25;
     SetWorkoutSessionRequest set_session = 26;
   }
-  // 12 was cancel_proposed_set (skipping a warmup): warmups are never
-  // removed now, doing a working set just moves past them.
-  reserved 10, 12, 15, 16, 22;
-  reserved "skip_rest", "cancel_proposed_set";
+  reserved 10, 12, 15, 16, 21, 22;
+  reserved "skip_rest", "cancel_proposed_set", "rate_exercise";
 }
 
 message AppendWorkoutMutationsRequest {
@@ -847,14 +864,6 @@ message AppendWorkoutMutationsRequest {
 message AppendWorkoutMutationsResponse {
   repeated string applied_event_ids = 1;
   GetWorkoutResponse workout_state = 2;
-}
-
-message DismissUserMessagesRequest {
-  repeated string message_keys = 1;
-}
-
-message DismissUserMessagesResponse {
-  repeated string dismissed_message_keys = 1;
 }
 
 // --- Service Definition ---

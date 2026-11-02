@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS workouts;
 DROP TABLE IF EXISTS proposed_sets;
 DROP TABLE IF EXISTS completed_sets;
 DROP TABLE IF EXISTS workout_heart_rate_samples;
-DROP TABLE IF EXISTS exercise_trackers;
+DROP TABLE IF EXISTS exercise_decisions;
 DROP TABLE IF EXISTS workout_templates;
 ";
 
@@ -323,6 +323,7 @@ fn run(tx: &rusqlite::Transaction, statement: Statement) -> StoreResult<()> {
             Value::Int(v) => rusqlite::types::Value::Integer(v),
             Value::Real(v) => rusqlite::types::Value::Real(v),
             Value::Text(v) => rusqlite::types::Value::Text(v),
+            Value::Blob(v) => rusqlite::types::Value::Blob(v),
         })
         .collect();
     tx.execute(statement.sql, rusqlite::params_from_iter(params))

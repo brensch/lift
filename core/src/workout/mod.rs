@@ -10,7 +10,7 @@ mod reducer;
 
 pub use planning::{
     apply_add_exercises, apply_adjust_exercise_weight, apply_remove_exercise,
-    apply_reorder_exercises, ExercisePlan,
+    apply_reorder_exercises,
 };
 pub use reducer::{
     active_from_get_workout_response, active_proposed_sets, apply_complete_set_to_active,

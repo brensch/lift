@@ -5,8 +5,7 @@ use crate::pb::{
 };
 use std::collections::HashMap;
 
-/// Epley estimated 1RM. The single source of truth — the app used to compute
-/// this in three places.
+/// Epley estimated 1RM of one set, as lifted.
 fn estimate_one_rep_max(weight: f32, reps: i32) -> f32 {
     if weight <= 0.0 || reps <= 0 {
         return 0.0;
@@ -211,6 +210,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
                 best_one_rep_max: a.best_1rm,
                 volume: a.volume,
                 sets: a.sets,
+                estimated_max: 0.0,
             });
         }
     }

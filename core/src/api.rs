@@ -8,13 +8,11 @@ use std::collections::HashMap;
 use prost::Message;
 
 use crate::account::{Account, CoreError};
-use crate::exercise_catalog::{
-    all_exercises, category, load_style, muscle_key, muscle_label, primary_muscle,
-};
-use crate::exercise_progress::{resolve_tracker, weight_history};
+use crate::exercise_catalog::{all_exercises, muscle_key, muscle_label};
 use crate::history::WorkoutRecord;
 use crate::ids::derived_id;
 use crate::pb::*;
+use crate::plan::Planner;
 use crate::progress::{compute_exercise_progress, compute_next_up_set, compute_workout_summary};
 use crate::recovery::per_muscle_recovery;
 use crate::volume::{muscle_volume_7d, suggest_template};
@@ -99,12 +97,13 @@ impl<'a> Call<'a> {
 
     // ── Workouts ──
 
+    /// A start: the template's exercises (a coupled one's from the library
+    /// of now) and name, and each lift's decision, planned at the start's
+    /// time in its budget — all recorded on the event.
     pub fn start_workout(
         &mut self,
         mut req: StartWorkoutRequest,
     ) -> Result<StartWorkoutResponse, CoreError> {
-        // A coupled template starts with the library's exercises and name of
-        // now, recorded on the event.
         if let Some(template) = self.account.template(&req.template_id) {
             let resolved = self.view().resolved(template);
             if req.exercises.is_empty() {
@@ -114,24 +113,28 @@ impl<'a> Call<'a> {
                 req.name = resolved.name;
             }
         }
+        let started_at = if req.started_at > 0 {
+            req.started_at
+        } else {
+            self.now
+        };
+        req.decisions = Planner::new(self.account, started_at).workout(
+            &exercises(&req.exercises),
+            &[],
+            req.budget_minutes,
+        );
         let id = self.record(event::Kind::StartWorkout(req))?;
-        let mut response = start_workout_response_from_active(self.view().workout(&id)?, self.now);
-        response.user_messages = self.account.workout_messages(&id);
-        Ok(response)
+        Ok(start_workout_response_from_active(
+            self.view().workout(&id)?,
+            self.now,
+        ))
     }
 
     pub fn end_workout(&mut self, req: EndWorkoutRequest) -> Result<EndWorkoutResponse, CoreError> {
         let id = req.workout_id.clone();
         self.mutate(workout_mutation::Mutation::EndWorkout(req))?;
-        let progression = format!("pending:{id}:");
         Ok(EndWorkoutResponse {
             workout: Some(self.view().workout(&id)?.workout.clone()),
-            user_messages: self
-                .account
-                .workout_messages(&id)
-                .into_iter()
-                .filter(|m| m.message_key.starts_with(&progression))
-                .collect(),
         })
     }
 
@@ -151,7 +154,6 @@ impl<'a> Call<'a> {
                 .cloned(),
             next_up_set: state.next_up_set,
             state_snapshot: state.state_snapshot,
-            user_messages: state.user_messages,
         })
     }
 
@@ -165,15 +167,35 @@ impl<'a> Call<'a> {
         Ok(DeleteCompletedSetResponse {
             next_up_set: state.next_up_set,
             state_snapshot: state.state_snapshot,
-            user_messages: state.user_messages,
         })
     }
 
+    /// New lifts mid-workout (one already in it is not added again),
+    /// planned now in the workout's budget around the lifts still in it,
+    /// which keep their decisions.
     pub fn add_exercises(
         &mut self,
-        req: AddExercisesRequest,
+        mut req: AddExercisesRequest,
     ) -> Result<WorkoutPlanResponse, CoreError> {
         let id = req.workout_id.clone();
+        let record = self.view().workout(&id)?;
+        let planned: Vec<ExerciseDecision> = record
+            .exercise_logs
+            .iter()
+            .filter_map(|log| log.decision.clone())
+            .filter(|d| {
+                record
+                    .proposed_sets
+                    .iter()
+                    .any(|s| s.exercise == d.exercise && !s.cancelled)
+            })
+            .collect();
+        let budget = planned.first().map(|d| d.budget_minutes).unwrap_or(0);
+        let added: Vec<Exercise> = exercises(&req.exercises)
+            .into_iter()
+            .filter(|ex| planned.iter().all(|d| d.exercise != *ex as i32))
+            .collect();
+        req.decisions = Planner::new(self.account, self.now).workout(&added, &planned, budget);
         self.mutate(workout_mutation::Mutation::AddExercises(req))?;
         self.view().plan_response(&id)
     }
@@ -241,7 +263,7 @@ impl<'a> Call<'a> {
         Ok(AppendWorkoutHeartRateResponse { stored })
     }
 
-    // ── Home, templates, trackers ──
+    // ── Home, templates, overrides ──
 
     pub fn save_template(
         &mut self,
@@ -310,14 +332,14 @@ impl<'a> Call<'a> {
         Ok(ReorderTemplatesResponse {})
     }
 
-    pub fn set_exercise_tracker(
+    pub fn set_override(
         &mut self,
-        req: SetExerciseTrackerRequest,
-    ) -> Result<SetExerciseTrackerResponse, CoreError> {
+        req: SetOverrideRequest,
+    ) -> Result<SetOverrideResponse, CoreError> {
         let exercise = req.exercise();
-        self.record(event::Kind::SetExerciseTracker(req))?;
-        Ok(SetExerciseTrackerResponse {
-            tracker: Some(self.view().tracker(exercise, Vec::new())),
+        self.record(event::Kind::SetOverride(req))?;
+        Ok(SetOverrideResponse {
+            plan: Some(self.view().exercise_plan(exercise, 0)),
         })
     }
 
@@ -334,9 +356,14 @@ impl<'a> Call<'a> {
         } else {
             self.library_entries(&req.library_ids)?
         };
+        let unit = crate::weight_units::unit_from_proto(req.unit);
+        req.starting_weights = req
+            .strength
+            .map(|strength| exercise_weights(strength, unit))
+            .unwrap_or_default();
         self.record(event::Kind::CompleteOnboarding(req))?;
         Ok(CompleteOnboardingResponse {
-            home: Some(self.view().get_home()),
+            home: Some(self.view().home(0)),
         })
     }
 
@@ -347,30 +374,7 @@ impl<'a> Call<'a> {
         req.entries = self.library_entries(&req.library_ids)?;
         self.record(event::Kind::AddLibraryTemplates(req))?;
         Ok(AddLibraryTemplatesResponse {
-            home: Some(self.view().get_home()),
-        })
-    }
-
-    pub fn dismiss_user_messages(
-        &mut self,
-        req: DismissUserMessagesRequest,
-    ) -> Result<DismissUserMessagesResponse, CoreError> {
-        let showing: Vec<String> = req
-            .message_keys
-            .iter()
-            .filter(|key| {
-                self.account
-                    .messages
-                    .iter()
-                    .any(|m| !m.dismissed && &&m.message.message_key == key)
-            })
-            .cloned()
-            .collect();
-        if !showing.is_empty() {
-            self.record(event::Kind::DismissUserMessages(req))?;
-        }
-        Ok(DismissUserMessagesResponse {
-            dismissed_message_keys: showing,
+            home: Some(self.view().home(0)),
         })
     }
 
@@ -439,14 +443,13 @@ impl<'a> View<'a> {
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))
     }
 
-    /// A workout as the app shows it: visible sets, its messages.
+    /// A workout as the app shows it: visible sets, each lift's log.
     pub fn workout_response(&self, id: &str) -> Result<GetWorkoutResponse, CoreError> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
-        // Cancelled rows mark a bailed exercise for progression; the app
+        // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
         response.proposed_sets.retain(|s| !s.cancelled);
-        response.user_messages = self.account.workout_messages(id);
         Ok(response)
     }
 
@@ -530,8 +533,23 @@ impl<'a> View<'a> {
                         .total_volume
                 })
                 .sum(),
-            exercises: compute_exercise_progress(&finished),
+            exercises: self.with_estimated_max(compute_exercise_progress(&finished)),
         }
+    }
+
+    /// Each progress point gets the max the walk had after its session.
+    fn with_estimated_max(&self, mut series: Vec<ExerciseProgress>) -> Vec<ExerciseProgress> {
+        let planner = Planner::new(self.account, self.now);
+        for progress in &mut series {
+            let Ok(exercise) = Exercise::try_from(progress.exercise) else {
+                continue;
+            };
+            let maxes: HashMap<String, f32> = planner.walk(exercise).points.into_iter().collect();
+            for point in &mut progress.points {
+                point.estimated_max = maxes.get(&point.workout_id).copied().unwrap_or(0.0);
+            }
+        }
+        series
     }
 
     pub fn get_workout_heart_rate(
@@ -543,35 +561,33 @@ impl<'a> View<'a> {
         Ok(GetWorkoutHeartRateResponse { samples })
     }
 
-    /// One exercise's tracker, resolved: what the next workout will use.
-    pub fn tracker(&self, exercise: Exercise, weight_history: Vec<f32>) -> ExerciseTracker {
-        let value = exercise as i32;
-        let resolved = resolve_tracker(
-            exercise,
-            self.account.trackers.get(&value),
-            self.account.unit(),
-        );
-        ExerciseTracker {
-            exercise: value,
-            working_weight: resolved.working_weight,
-            sets: resolved.sets,
-            target_reps: resolved.target_reps,
-            rep_range_low: resolved.rep_low,
-            rep_range_high: resolved.rep_high,
-            rest_seconds: resolved.rest_seconds,
-            rest_seconds_failure: resolved.rest_seconds_failure,
-            include_warmup: resolved.include_warmup,
-            last_performed_at: resolved.last_performed_at,
-            weight_history,
-            overridden: resolved.overridden,
-            primary_muscle: primary_muscle(exercise) as i32,
-            category: category(exercise) as i32,
-            equipment: load_style(exercise).to_proto() as i32,
-        }
+    /// One lift's plan at now, on its own in `budget_minutes` (0 = the
+    /// default).
+    pub fn exercise_plan(&self, exercise: Exercise, budget_minutes: i32) -> ExercisePlan {
+        let planner = Planner::new(self.account, self.now);
+        let decision = planner
+            .workout(&[exercise], &[], budget_minutes)
+            .pop()
+            .unwrap_or_default();
+        planner.view(decision)
     }
 
-    /// Everything the home screen needs, in one response.
-    pub fn get_home(&self) -> GetHomeResponse {
+    pub fn get_exercise_plan(
+        &self,
+        req: GetExercisePlanRequest,
+    ) -> Result<GetExercisePlanResponse, CoreError> {
+        Ok(GetExercisePlanResponse {
+            plan: Some(self.exercise_plan(req.exercise(), req.budget_minutes)),
+        })
+    }
+
+    pub fn get_home(&self, req: GetHomeRequest) -> Result<GetHomeResponse, CoreError> {
+        Ok(self.home(req.budget_minutes))
+    }
+
+    /// Everything the home screen needs, in one response, with every lift
+    /// planned at now in `budget_minutes` (0 = the default).
+    pub fn home(&self, budget_minutes: i32) -> GetHomeResponse {
         // Volume needs 7 days and recovery the latest session per muscle; a
         // fixed number of recent workouts keeps the work flat as history
         // grows.
@@ -580,16 +596,16 @@ impl<'a> View<'a> {
         recent.sort_by_key(|r| std::cmp::Reverse(r.workout.start_time));
         recent.truncate(RECENT);
 
-        let history_series = weight_history(&recent);
-        let trackers = all_exercises()
+        let budget = if budget_minutes > 0 {
+            budget_minutes
+        } else {
+            crate::plan::DEFAULT_BUDGET_MINUTES
+        };
+        let planner = Planner::new(self.account, self.now);
+        let plans = all_exercises()
             .into_iter()
-            .map(|exercise| {
-                let series = history_series
-                    .get(&(exercise as i32))
-                    .cloned()
-                    .unwrap_or_default();
-                self.tracker(exercise, series)
-            })
+            .filter_map(|exercise| planner.workout(&[exercise], &[], budget).pop())
+            .map(|decision| planner.view(decision))
             .collect();
         let volume = muscle_volume_7d(&recent, self.now);
         let recovery = per_muscle_recovery(&recent, self.now)
@@ -622,13 +638,25 @@ impl<'a> View<'a> {
             .collect();
         let (suggested_template_id, suggestion_reason) =
             suggest_template(&templates, &volume, &last_started).unwrap_or_default();
+        let template_plans = templates
+            .iter()
+            .map(|t| {
+                let decisions = planner.workout(&exercises(&t.exercises), &[], budget);
+                TemplatePlan {
+                    template_id: t.id.clone(),
+                    estimated_seconds: decisions.iter().map(|d| d.estimated_seconds).sum(),
+                    plans: decisions.into_iter().map(|d| planner.view(d)).collect(),
+                }
+            })
+            .collect();
 
         GetHomeResponse {
             onboarded: !templates.is_empty() || !self.account.workouts.is_empty(),
             templates,
-            trackers,
+            plans,
+            template_plans,
+            budget_minutes: budget,
             active_workout_id: self.account.active_workout_id.clone(),
-            user_messages: self.account.pending_briefing_messages(),
             volume,
             recovery,
             suggested_template_id,
@@ -643,16 +671,7 @@ impl<'a> View<'a> {
         let unit = crate::weight_units::unit_from_proto(req.unit);
         let steps = (0..=100)
             .map(|step| StartingWeightsStep {
-                weights: crate::onboarding::starting_tracker_weights_for_strength(
-                    step as f32 / 100.0,
-                    unit,
-                )
-                .into_iter()
-                .map(|(exercise, weight_lb)| ExerciseWeight {
-                    exercise: exercise as i32,
-                    weight_lb,
-                })
-                .collect(),
+                weights: exercise_weights(step as f32 / 100.0, unit),
             })
             .collect();
         Ok(GetStartingWeightsResponse { steps })
@@ -669,6 +688,32 @@ impl<'a> View<'a> {
             settings: self.account.settings.clone(),
         }
     }
+}
+
+/// The valid exercises of a list, in order, each once: a workout has a lift
+/// at most once.
+fn exercises(values: &[i32]) -> Vec<Exercise> {
+    let mut out: Vec<Exercise> = Vec::new();
+    for ex in values.iter().filter_map(|v| Exercise::try_from(*v).ok()) {
+        if ex != Exercise::Unspecified && !out.contains(&ex) {
+            out.push(ex);
+        }
+    }
+    out
+}
+
+/// The main lifts' starting weights at `strength` on the setup slider.
+fn exercise_weights(
+    strength: f32,
+    unit: crate::weight_units::AppWeightUnit,
+) -> Vec<ExerciseWeight> {
+    crate::onboarding::starting_weights_for_strength(strength, unit)
+        .into_iter()
+        .map(|(exercise, weight_lb)| ExerciseWeight {
+            exercise: exercise as i32,
+            weight_lb,
+        })
+        .collect()
 }
 
 /// Answer one RPC by name, request and response as proto bytes. Methods are
@@ -706,11 +751,10 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "SaveTemplate" => save_template,
             "DeleteTemplate" => delete_template,
             "ReorderTemplates" => reorder_templates,
-            "SetExerciseTracker" => set_exercise_tracker,
+            "SetOverride" => set_override,
             "CompleteOnboarding" => complete_onboarding,
             "AddLibraryTemplates" => add_library_templates,
             "CloneTemplate" => clone_template,
-            "DismissUserMessages" => dismiss_user_messages,
             "UpdateSetting" => update_setting,
             "ImportHistory" => import_history,
         }
@@ -718,13 +762,14 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetWorkout" => get_workout,
             "GetWorkoutHeartRate" => get_workout_heart_rate,
             "GetStartingWeights" => get_starting_weights,
+            "GetHome" => get_home,
+            "GetExercisePlan" => get_exercise_plan,
         }
         plain {
             "GetActiveWorkout" => get_active_workout,
             "ListWorkouts" => list_workouts,
             "ListWorkoutSummaries" => list_workout_summaries,
             "GetExerciseProgress" => get_exercise_progress,
-            "GetHome" => get_home,
             "ListTemplateLibrary" => list_template_library,
             "GetSettings" => get_settings,
         }

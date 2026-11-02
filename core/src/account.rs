@@ -4,25 +4,16 @@
 
 use std::collections::BTreeMap;
 
-use crate::exercise_catalog::snap_weight_lb;
-use crate::exercise_progress::{
-    advance_tracker, calibration_start_weight, resolve_tracker, session_outcomes, TrackerState,
-};
 use crate::history::WorkoutRecord;
 use crate::ids::Ids;
-use crate::messages::{
-    attachable_briefing_messages_for_workout, build_progression_message,
-    session_messages_for_completed_set, slot_key_for_exercise, ProgressionMessage,
-};
 use crate::pb::{
     event, user_setting, workout_mutation::Mutation, CompleteOnboardingRequest, Event, Exercise,
-    ExperienceLevel, Gender, ImportHistory, LibraryTemplate, ProgressionMetricKind,
-    ProgressionReasonKind, SetExerciseTrackerRequest, StartWorkoutRequest, TrackerRecord,
-    UserMessage, UserMessageKind, UserMessageSurface, UserSetting, WeightUnit, WeightUnitConfig,
-    Workout, WorkoutMutation, WorkoutTemplate,
+    ImportHistory, LibraryTemplate, SetOverrideRequest, StartWorkoutRequest, UserSetting,
+    WeightUnit, WeightUnitConfig, Workout, WorkoutMutation, WorkoutTemplate,
 };
+use crate::plan::Override;
 use crate::weight_units::{unit_from_proto, AppWeightUnit};
-use crate::workout::{self as reducer, ExercisePlan, WorkoutError};
+use crate::workout::{self as reducer, WorkoutError};
 
 /// Why a write can't be made. Nothing changes when one is returned.
 #[derive(Clone, Debug, PartialEq)]
@@ -56,14 +47,6 @@ fn invalid(message: impl Into<String>) -> CoreError {
     CoreError::InvalidArgument(message.into())
 }
 
-/// A coaching message and whether it's been dismissed. Writing a message
-/// with the same key replaces it and shows it again.
-#[derive(Clone, Debug, PartialEq)]
-pub struct StoredMessage {
-    pub message: UserMessage,
-    pub dismissed: bool,
-}
-
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Account {
     /// The last event folded in; the next one is `seq + 1`.
@@ -72,12 +55,15 @@ pub struct Account {
     pub settings: Vec<UserSetting>,
     /// In the user's order.
     pub templates: Vec<WorkoutTemplate>,
-    pub trackers: BTreeMap<i32, TrackerState>,
+    /// Per exercise: the weight a lift never done calibrates from (lb),
+    /// from onboarding or imported history.
+    pub starting_weights: BTreeMap<i32, f32>,
+    /// Per exercise: the user's latest override.
+    pub overrides: BTreeMap<i32, Override>,
     /// In the order they were started.
     pub workouts: Vec<WorkoutRecord>,
     /// The workout under way, or empty.
     pub active_workout_id: String,
-    pub messages: Vec<StoredMessage>,
 }
 
 impl Account {
@@ -176,7 +162,7 @@ impl Account {
                     self.save_template(library_copy(&entry), at, &mut ids)?;
                 }
             }
-            event::Kind::SetExerciseTracker(req) => self.set_tracker(req)?,
+            event::Kind::SetOverride(req) => self.set_override(req, at)?,
             event::Kind::CompleteOnboarding(req) => self.complete_onboarding(req, at, &mut ids)?,
             event::Kind::UpdateSetting(req) => {
                 let setting = req
@@ -186,13 +172,6 @@ impl Account {
                 let kind = setting_kind(&setting).ok_or_else(|| invalid("setting is empty"))?;
                 self.settings.retain(|s| setting_kind(s) != Some(kind));
                 self.settings.push(setting);
-            }
-            event::Kind::DismissUserMessages(req) => {
-                for stored in &mut self.messages {
-                    if req.message_keys.contains(&stored.message.message_key) {
-                        stored.dismissed = true;
-                    }
-                }
             }
             event::Kind::ImportHistory(req) => self.import(req),
         }
@@ -234,53 +213,10 @@ impl Account {
         self.templates.iter().find(|t| t.id == id)
     }
 
-    /// Resolve exercises into plans: weights from the trackers, sets/reps/
-    /// rest from the prescription, and the layoff deload applied here only
-    /// (never written back — it sticks only once the user trains). A loaded
-    /// exercise never performed gets a calibration plan instead: one rung
-    /// at the ramp start.
-    fn exercise_plans(&self, exercises: &[i32], now: i64) -> Vec<ExercisePlan> {
-        let unit = self.unit();
-        exercises
-            .iter()
-            .filter_map(|value| {
-                let exercise = Exercise::try_from(*value).ok()?;
-                if exercise == Exercise::Unspecified {
-                    return None;
-                }
-                let state = self.trackers.get(value);
-                let resolved = resolve_tracker(exercise, state, unit);
-                let calibration = calibration_start_weight(exercise, state, unit);
-                let weight = match calibration {
-                    Some(ramp_start) => ramp_start,
-                    None => layoff_adjusted_weight(
-                        exercise,
-                        resolved.working_weight,
-                        resolved.last_performed_at,
-                        now,
-                        unit,
-                    ),
-                };
-                Some(ExercisePlan {
-                    exercise: *value,
-                    working_weight: weight,
-                    sets: resolved.sets,
-                    reps: resolved.target_reps,
-                    rest_success: resolved.rest_seconds,
-                    rest_failure: resolved.rest_seconds_failure,
-                    include_warmup: resolved.include_warmup,
-                    calibration: calibration.is_some(),
-                })
-            })
-            .collect()
-    }
-
     // ── Writes ──
 
-    /// A start is resolved here: weights from the trackers, sets/reps/rest
-    /// from the prescription. The request names a template, an exercise
-    /// list, or nothing (an empty workout). Briefing messages about its
-    /// exercises are attached to it.
+    /// A start: the workout, named after its template (or the request), its
+    /// sets laid out from the decisions recorded on the event.
     fn start_workout(
         &mut self,
         req: &StartWorkoutRequest,
@@ -293,27 +229,16 @@ impl Account {
         } else {
             at
         };
-        let (exercises, name) = if req.template_id.is_empty() {
-            (req.exercises.clone(), "Workout".to_string())
-        } else {
-            let template = self
-                .template(&req.template_id)
-                .ok_or_else(|| CoreError::NotFound("Template not found".into()))?;
-            // A coupled template's start carries the library's exercises
-            // of the moment; the stored ones are only a fallback.
-            let exercises = if req.exercises.is_empty() {
-                template.exercises.clone()
-            } else {
-                req.exercises.clone()
-            };
-            (exercises, template.name.clone())
-        };
-        let name = if req.name.is_empty() {
-            name
-        } else {
+        let name = if !req.name.is_empty() {
             req.name.clone()
+        } else if req.template_id.is_empty() {
+            "Workout".to_string()
+        } else {
+            self.template(&req.template_id)
+                .ok_or_else(|| CoreError::NotFound("Template not found".into()))?
+                .name
+                .clone()
         };
-        let plans = self.exercise_plans(&exercises, started_at);
         let workout = Workout {
             id: workout_id.to_string(),
             name,
@@ -322,22 +247,7 @@ impl Account {
             ..Default::default()
         };
         let mut record = WorkoutRecord::new(workout, Vec::new(), Vec::new());
-        reducer::apply_add_exercises(&mut record, workout_id, &plans, self.unit(), ids)?;
-
-        let pending = self.pending_briefing_messages();
-        let planned: Vec<i32> = plans.iter().map(|p| p.exercise).collect();
-        for key in attachable_briefing_messages_for_workout(&pending, &planned) {
-            if let Some(stored) = self
-                .messages
-                .iter_mut()
-                .find(|m| m.message.message_key == key)
-            {
-                // Tied to this workout so it shows for the whole session.
-                stored.message.workout_id = workout_id.to_string();
-                stored.message.source_workout_id = workout_id.to_string();
-                stored.message.updated_at = started_at;
-            }
-        }
+        reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, self.unit(), ids)?;
         self.workouts.push(record);
         self.active_workout_id = workout_id.to_string();
         Ok(())
@@ -362,8 +272,6 @@ impl Account {
             .position(|r| r.workout.id == mutation_workout_id(payload))
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))?;
         let mut record = self.workouts[index].clone();
-        let mut new_messages = Vec::new();
-        let mut ended = false;
         match payload {
             Mutation::CompleteSet(req) => {
                 let mut req = req.clone();
@@ -382,18 +290,6 @@ impl Account {
                         "Proposed set not found".into(),
                     ));
                 }
-                if let Some(proposed) = record
-                    .proposed_sets
-                    .iter()
-                    .find(|s| s.id == req.proposed_set_id)
-                {
-                    new_messages.extend(session_messages_for_completed_set(
-                        &req.workout_id,
-                        proposed,
-                        req.actual_reps,
-                        req.completed_at,
-                    ));
-                }
             }
             Mutation::StartSet(req) => reducer::apply_start_set_to_active(&mut record, req, at)?,
             Mutation::SkipWarmups(req) => reducer::apply_skip_warmups_to_active(&mut record, req)?,
@@ -401,67 +297,34 @@ impl Account {
                 reducer::apply_delete_completed_set_to_active(&mut record, req)?
             }
             Mutation::EndWorkout(req) => {
-                // Ending twice changes nothing: progression runs once.
+                // Ending twice changes nothing.
                 if record.workout.end_time > 0 {
                     return Ok(());
                 }
                 record.workout.end_time = if req.ended_at > 0 { req.ended_at } else { at };
-                ended = true;
+                if self.active_workout_id == record.workout.id {
+                    self.active_workout_id.clear();
+                }
             }
-            Mutation::AddExercises(req) => {
-                let plans = self.exercise_plans(&req.exercises, at);
-                reducer::apply_add_exercises(&mut record, &req.workout_id, &plans, unit, ids)?
-            }
+            Mutation::AddExercises(req) => reducer::apply_add_exercises(
+                &mut record,
+                &req.workout_id,
+                &req.decisions,
+                unit,
+                ids,
+            )?,
             Mutation::AdjustExerciseWeight(req) => {
-                reducer::apply_adjust_exercise_weight(&mut record, req, unit, ids)?
+                reducer::apply_adjust_exercise_weight(&mut record, req, unit, ids, at)?
             }
             Mutation::RemoveExercise(req) => reducer::apply_remove_exercise(&mut record, req)?,
             Mutation::ReorderExercises(req) => reducer::apply_reorder_exercises(&mut record, req)?,
-            // Nothing is rated any more: a set says what it did by its reps.
-            Mutation::RateExercise(_) => {}
             Mutation::EditCompletedSet(req) => {
-                reducer::apply_edit_completed_set_to_active(&mut record, req, unit)?
+                reducer::apply_edit_completed_set_to_active(&mut record, req, unit, at)?
             }
             Mutation::SetSession(req) => record.workout.session_id = req.session_id.clone(),
         }
-        if ended {
-            new_messages.extend(self.advance_trackers(&record, at));
-            if self.active_workout_id == record.workout.id {
-                self.active_workout_id.clear();
-            }
-        }
         self.workouts[index] = record;
-        self.put_messages(new_messages);
         Ok(())
-    }
-
-    /// Advance every tracker a finished workout touched — the single seam
-    /// where performance becomes prescription. Returns the progression
-    /// messages saying what changed.
-    fn advance_trackers(&mut self, record: &WorkoutRecord, at: i64) -> Vec<UserMessage> {
-        let unit = self.unit();
-        let mut outcomes: Vec<_> = session_outcomes(record).into_iter().collect();
-        outcomes.sort_by_key(|(exercise, _)| *exercise);
-        let mut messages = Vec::new();
-        for (value, outcome) in outcomes {
-            let Ok(exercise) = Exercise::try_from(value) else {
-                continue;
-            };
-            if exercise == Exercise::Unspecified {
-                continue;
-            }
-            let before = self.trackers.get(&value).copied().unwrap_or_default();
-            let after = advance_tracker(exercise, &before, &outcome, unit);
-            self.trackers.insert(value, after);
-            messages.extend(progression_message_for_change(
-                exercise,
-                outcome.performed_weight,
-                &after,
-                &record.workout.id,
-                at,
-            ));
-        }
-        messages
     }
 
     /// Create (empty id) or update a template.
@@ -503,39 +366,38 @@ impl Account {
         self.templates.sort_by_key(|t| (t.order, t.created_at));
     }
 
-    /// A manual correction: the weight, the rep target (0 restarts the climb
-    /// at the range bottom) and the overrides. The miss and hard streaks
-    /// start again.
-    fn set_tracker(&mut self, req: &SetExerciseTrackerRequest) -> Result<(), CoreError> {
-        let exercise = Exercise::try_from(req.exercise)
+    /// The user's own weight and reps (and maybe sets) for a lift, replacing
+    /// any before; reps of 0 removes it.
+    fn set_override(&mut self, req: &SetOverrideRequest, at: i64) -> Result<(), CoreError> {
+        Exercise::try_from(req.exercise)
             .ok()
             .filter(|ex| *ex != Exercise::Unspecified)
             .ok_or_else(|| invalid("Unknown exercise"))?;
-        if req.override_rep_low > 0 && req.override_rep_high < req.override_rep_low {
-            return Err(invalid("The rep range top must be at or above the bottom"));
+        if req.reps <= 0 {
+            self.overrides.remove(&req.exercise);
+            return Ok(());
         }
-        let previous = self
-            .trackers
-            .get(&req.exercise)
-            .copied()
-            .unwrap_or_default();
-        let state = TrackerState {
-            working_weight: snap_weight_lb(exercise, req.working_weight.max(0.0), self.unit()),
-            current_reps: req.target_reps.clamp(0, 100),
-            consecutive_misses: 0,
-            last_performed_at: previous.last_performed_at,
-            override_sets: req.override_sets.max(0),
-            override_rep_low: req.override_rep_low.max(0),
-            override_rep_high: req.override_rep_high.max(0),
-        };
-        self.trackers.insert(req.exercise, state);
+        if !(0.0..=2000.0).contains(&req.weight) || req.reps > 100 {
+            return Err(invalid("Weight or reps out of range"));
+        }
+        if req.sets.is_some_and(|sets| !(1..=20).contains(&sets)) {
+            return Err(invalid("Sets out of range"));
+        }
+        self.overrides.insert(
+            req.exercise,
+            Override {
+                at,
+                weight: req.weight,
+                reps: req.reps,
+                sets: req.sets,
+            },
+        );
         Ok(())
     }
 
-    /// The unit always; then, the first time only (no templates yet):
-    /// trackers for the main lifts from the strength slider (or the older
-    /// bodyweight/experience answers), and the library entries ticked (the
-    /// defaults when none are named).
+    /// The unit always; then, the first time only (no templates yet): the
+    /// starting weights recorded on the event, and the library entries
+    /// ticked (the defaults when none are named).
     fn complete_onboarding(
         &mut self,
         req: &CompleteOnboardingRequest,
@@ -562,25 +424,8 @@ impl Account {
         if !self.templates.is_empty() {
             return Ok(());
         }
-        let unit = unit_from_proto(req.unit);
-        let seeds = match req.strength {
-            Some(strength) => {
-                crate::onboarding::starting_tracker_weights_for_strength(strength, unit)
-            }
-            None => crate::onboarding::starting_tracker_weights(
-                req.body_weight_kg,
-                ExperienceLevel::try_from(req.experience).unwrap_or(ExperienceLevel::Unspecified),
-                Gender::try_from(req.gender).unwrap_or(Gender::Unspecified),
-                unit,
-            ),
-        };
-        for (exercise, weight) in seeds {
-            self.trackers
-                .entry(exercise as i32)
-                .or_insert_with(|| TrackerState {
-                    working_weight: weight,
-                    ..Default::default()
-                });
+        for w in &req.starting_weights {
+            self.starting_weights.insert(w.exercise, w.weight_lb);
         }
         for entry in entries {
             self.save_template(library_copy(&entry), at, ids)?;
@@ -601,60 +446,13 @@ impl Account {
                 proposed_sets: imported.proposed_sets.clone(),
                 completed_sets: imported.completed_sets.clone(),
                 heart_rate: imported.heart_rate.clone(),
+                exercise_logs: imported.exercise_logs.clone(),
             });
         }
         self.workouts.sort_by_key(|r| r.workout.start_time);
-        for tracker in &req.trackers {
-            self.trackers
-                .insert(tracker.exercise, tracker_state(tracker));
+        for w in &req.starting_weights {
+            self.starting_weights.insert(w.exercise, w.weight_lb);
         }
-    }
-
-    // ── Messages ──
-
-    fn put_messages(&mut self, messages: Vec<UserMessage>) {
-        for message in messages {
-            let stored = StoredMessage {
-                message,
-                dismissed: false,
-            };
-            match self
-                .messages
-                .iter_mut()
-                .find(|m| m.message.message_key == stored.message.message_key)
-            {
-                Some(existing) => *existing = stored,
-                None => self.messages.push(stored),
-            }
-        }
-    }
-
-    /// Briefing messages not yet tied to a workout or dismissed, newest first.
-    pub fn pending_briefing_messages(&self) -> Vec<UserMessage> {
-        let mut out: Vec<UserMessage> = self
-            .messages
-            .iter()
-            .filter(|m| {
-                !m.dismissed
-                    && m.message.workout_id.is_empty()
-                    && m.message.surface == UserMessageSurface::WorkoutBriefing as i32
-            })
-            .map(|m| m.message.clone())
-            .collect();
-        out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
-        out
-    }
-
-    /// The messages about one workout that are still showing, newest first.
-    pub fn workout_messages(&self, workout_id: &str) -> Vec<UserMessage> {
-        let mut out: Vec<UserMessage> = self
-            .messages
-            .iter()
-            .filter(|m| !m.dismissed && m.message.source_workout_id == workout_id)
-            .map(|m| m.message.clone())
-            .collect();
-        out.sort_by_key(|m| std::cmp::Reverse(m.updated_at));
-        out
     }
 }
 
@@ -686,7 +484,6 @@ pub fn mutation_workout_id(mutation: &Mutation) -> &str {
         Mutation::AdjustExerciseWeight(m) => &m.workout_id,
         Mutation::RemoveExercise(m) => &m.workout_id,
         Mutation::ReorderExercises(m) => &m.workout_id,
-        Mutation::RateExercise(m) => &m.workout_id,
         Mutation::EditCompletedSet(m) => &m.workout_id,
         Mutation::StartSet(m) => &m.workout_id,
         Mutation::SkipWarmups(m) => &m.workout_id,
@@ -736,100 +533,4 @@ fn library_copy(entry: &LibraryTemplate) -> WorkoutTemplate {
         coupled: true,
         ..Default::default()
     }
-}
-
-pub fn tracker_state(record: &TrackerRecord) -> TrackerState {
-    TrackerState {
-        working_weight: record.working_weight,
-        current_reps: record.current_reps,
-        consecutive_misses: record.consecutive_misses,
-        last_performed_at: record.last_performed_at,
-        override_sets: record.override_sets,
-        override_rep_low: record.override_rep_low,
-        override_rep_high: record.override_rep_high,
-    }
-}
-
-pub fn tracker_record(exercise: i32, state: &TrackerState) -> TrackerRecord {
-    TrackerRecord {
-        exercise,
-        working_weight: state.working_weight,
-        current_reps: state.current_reps,
-        consecutive_misses: state.consecutive_misses,
-        last_performed_at: state.last_performed_at,
-        override_sets: state.override_sets,
-        override_rep_low: state.override_rep_low,
-        override_rep_high: state.override_rep_high,
-    }
-}
-
-/// The layoff deload: 90% after 3 weeks away from this exercise, 80% after
-/// 6, snapped loadable. Strength holds for about three weeks of no training
-/// and falls away after (Bosquet et al. 2013). Applied when planning only —
-/// the tracker is never written here, so the reduction sticks only when
-/// the user performs the reduced session (progression follows performed
-/// weight).
-fn layoff_adjusted_weight(
-    exercise: Exercise,
-    weight: f32,
-    last_performed_at: i64,
-    now: i64,
-    unit: AppWeightUnit,
-) -> f32 {
-    if last_performed_at <= 0 || weight <= 0.0 {
-        return weight;
-    }
-    let days = (now - last_performed_at) / (24 * 3600);
-    let factor = if days >= 42 {
-        0.8
-    } else if days >= 21 {
-        0.9
-    } else {
-        return weight;
-    };
-    snap_weight_lb(exercise, weight * factor, unit)
-}
-
-/// One progression card per exercise per workout: what you lifted and
-/// what the tracker says next time. Weight moves name the delta; a hold
-/// stays quiet (a "nothing changed" card for every exercise every session
-/// would be noise).
-fn progression_message_for_change(
-    exercise: Exercise,
-    performed_weight: f32,
-    after: &TrackerState,
-    workout_id: &str,
-    at: i64,
-) -> Option<UserMessage> {
-    if performed_weight <= 0.0 {
-        return None;
-    }
-    let next = after.working_weight;
-    let slot_key = slot_key_for_exercise(exercise);
-    let (kind, reason_kind) = if next > performed_weight + 0.1 {
-        (
-            UserMessageKind::LoadIncrease,
-            ProgressionReasonKind::CompletedAllWorkingSets,
-        )
-    } else if next < performed_weight - 0.1 {
-        (
-            UserMessageKind::StallDeload,
-            ProgressionReasonKind::RepeatedMisses,
-        )
-    } else {
-        return None;
-    };
-    Some(build_progression_message(ProgressionMessage {
-        key: format!("pending:{workout_id}:{}:{slot_key}", kind.as_str_name()),
-        kind,
-        exercise,
-        slot_key,
-        source_workout_id: workout_id,
-        previous_weight: performed_weight,
-        next_weight: next,
-        metric_kind: ProgressionMetricKind::WorkingWeight,
-        reason_kind,
-        now: at,
-        ..Default::default()
-    }))
 }

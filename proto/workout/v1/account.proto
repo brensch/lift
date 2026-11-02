@@ -29,20 +29,24 @@ message Event {
     DeleteTemplateRequest delete_template = 14;
     ReorderTemplatesRequest reorder_templates = 15;
     AddLibraryTemplatesRequest add_library_templates = 16;
-    SetExerciseTrackerRequest set_exercise_tracker = 17;
     CompleteOnboardingRequest complete_onboarding = 18;
     UpdateSettingRequest update_setting = 19;
-    DismissUserMessagesRequest dismiss_user_messages = 20;
     ImportHistory import_history = 21;
     CloneTemplateRequest clone_template = 22;
+    SetOverrideRequest set_override = 23;
   }
+  reserved 17, 20;
+  reserved "set_exercise_tracker", "dismiss_user_messages";
 }
 
-// History brought in from elsewhere, as it was: finished workouts and the
-// trackers they led to. Nothing is recomputed from it.
+// History brought in from elsewhere, as it was: finished workouts, and the
+// starting weights of lifts never done. Plans read the workouts like any
+// others; nothing else is recomputed from it.
 message ImportHistory {
   repeated ImportedWorkout workouts = 1;
-  repeated TrackerRecord trackers = 2;
+  repeated ExerciseWeight starting_weights = 3;
+  reserved 2;
+  reserved "trackers";
 }
 
 message ImportHistoryResponse {}
@@ -53,22 +57,7 @@ message ImportedWorkout {
   repeated ProposedSet proposed_sets = 2;
   repeated CompletedSet completed_sets = 3;
   repeated WorkoutHeartRatePoint heart_rate = 4;
-}
-
-// What the account knows about one exercise: the weight and reps the next
-// workout will use, and how it got there.
-message TrackerRecord {
-  Exercise exercise = 1;
-  float working_weight = 2; // lb
-  int32 current_reps = 3;
-  int32 consecutive_misses = 4;
-  int64 last_performed_at = 5;
-  int32 override_sets = 6;
-  int32 override_rep_low = 7;
-  int32 override_rep_high = 8;
-  // 9 was consecutive_hard: progression reads only whether the reps were hit.
-  reserved 9;
-  reserved "consecutive_hard";
+  repeated ExerciseLog exercise_logs = 5;
 }
 
 // ─── Sync ────────────────────────────────────────────────────────────────────

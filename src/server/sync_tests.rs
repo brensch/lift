@@ -121,7 +121,6 @@ mod store {
                 actual_reps: 8,
                 actual_weight: 0.0,
                 completed_at: 1_100,
-                effort: 0,
             })
             .unwrap()
         });
@@ -308,7 +307,6 @@ mod stream {
                 actual_reps: 8,
                 actual_weight: 0.0,
                 completed_at: now_unix(),
-                effort: 0,
             })
             .unwrap()
         });
