@@ -197,7 +197,7 @@ class _SummaryHeader extends StatelessWidget {
         const SizedBox(width: 24),
         _headStat(
           context,
-          _compactVolume(totalVolume),
+          _compactVolume(displayWeightFromPounds(totalVolume, unit)),
           '${weightUnitSuffix(unit)} lifted',
           cs,
         ),

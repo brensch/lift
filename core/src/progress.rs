@@ -5,14 +5,6 @@ use crate::pb::{
 };
 use std::collections::HashMap;
 
-/// Epley estimated 1RM of one set, as lifted.
-fn estimate_one_rep_max(weight: f32, reps: i32) -> f32 {
-    if weight <= 0.0 || reps <= 0 {
-        return 0.0;
-    }
-    weight * (1.0 + reps as f32 / 30.0)
-}
-
 /// Roll a finished (or in-progress) workout up into the render-ready summary the
 /// client displays. Volume and per-exercise stats cover **working sets only**;
 /// lifting, resting and yapping time cover every done set (you rest after
@@ -107,10 +99,6 @@ pub fn compute_workout_summary(
         if c.actual_weight > e.heaviest_set_weight {
             e.heaviest_set_weight = c.actual_weight;
         }
-        let one_rm = estimate_one_rep_max(c.actual_weight, c.actual_reps);
-        if one_rm > e.best_one_rep_max {
-            e.best_one_rep_max = one_rm;
-        }
     }
 
     let duration_seconds = if workout.end_time != 0 && workout.start_time != 0 {
@@ -143,7 +131,6 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
     struct Acc {
         top_weight: f32,
         top_reps: i32,
-        best_1rm: f32,
         volume: f32,
         sets: i32,
     }
@@ -178,7 +165,6 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
             let a = per_ex.entry(p.exercise).or_insert(Acc {
                 top_weight: 0.0,
                 top_reps: 0,
-                best_1rm: 0.0,
                 volume: 0.0,
                 sets: 0,
             });
@@ -187,10 +173,6 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
             if c.actual_weight > a.top_weight {
                 a.top_weight = c.actual_weight;
                 a.top_reps = c.actual_reps;
-            }
-            let rm = estimate_one_rep_max(c.actual_weight, c.actual_reps);
-            if rm > a.best_1rm {
-                a.best_1rm = rm;
             }
         }
 
@@ -207,7 +189,6 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
                 workout_id: workout.id.clone(),
                 top_weight: a.top_weight,
                 top_reps: a.top_reps,
-                best_one_rep_max: a.best_1rm,
                 volume: a.volume,
                 sets: a.sets,
                 estimated_max: 0.0,
@@ -321,8 +302,6 @@ mod summary_tests {
         assert_eq!(s.exercises.len(), 1);
         assert_eq!(s.exercises[0].total_sets, 2);
         assert_eq!(s.exercises[0].total_reps, 10);
-        // Epley best: 100*(1+5/30) = 116.666...
-        assert!((s.exercises[0].best_one_rep_max - 116.6667).abs() < 0.01);
         assert_eq!(s.exercises[0].heaviest_set_weight, 100.0);
         // Rest counts every set, warmup included: warmup 1030..1060 = 30; set a
         // 1090..1150 but set b was done at 1130, so 40; set b 1130..1190 = 60.

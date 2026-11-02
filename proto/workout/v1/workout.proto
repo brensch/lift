@@ -356,7 +356,8 @@ message ExerciseSummary {
   int32 total_sets = 2;
   int32 total_reps = 3;
   float total_volume = 4; // lb (reps * weight, summed)
-  float best_one_rep_max = 5; // lb, Epley estimate
+  reserved 5;
+  reserved "best_one_rep_max";
   float heaviest_set_weight = 6; // lb
 }
 
@@ -456,7 +457,8 @@ message ExerciseProgressPoint {
   string workout_id = 2;
   float top_weight = 3; // heaviest working set, lb
   int32 top_reps = 4; // reps at that heaviest set
-  float best_one_rep_max = 5; // lb, Epley
+  reserved 5;
+  reserved "best_one_rep_max";
   float volume = 6; // lb
   int32 sets = 7;
   // The estimated max after this session (rep max for bodyweight).

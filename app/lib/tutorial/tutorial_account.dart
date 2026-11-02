@@ -8,6 +8,7 @@ library;
 import 'package:fixnum/fixnum.dart';
 
 import '../gen/workout/v1/account.pb.dart';
+import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../services/local_core.dart';
@@ -56,9 +57,17 @@ class TutorialAccount {
     Exercise.EXERCISE_LATERAL_RAISE: 15.0,
   };
 
-  static Future<TutorialAccount> create() async {
+  /// The account in the user's [unit], so its weights load on their plates.
+  static Future<TutorialAccount> create(WeightUnit unit) async {
     final core = await LocalCore.memory('tutorial');
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    await core.call(
+      'UpdateSetting',
+      UpdateSettingRequest(
+        setting: UserSetting(weightUnit: WeightUnitConfig(unit: unit)),
+      ),
+      UpdateSettingResponse.fromBuffer,
+    );
 
     // The last fortnight's sessions, every lift done (so each has a max
     // and nothing ramps): legs and push lately, pull before this week — so

@@ -64,7 +64,7 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
       dateS: Number(p.date),
       topWeightLb: p.topWeight,
       topReps: p.topReps,
-      e1rmLb: p.bestOneRepMax,
+      e1rmLb: p.estimatedMax,
       volumeLb: p.volume,
       sets: p.sets,
     })),

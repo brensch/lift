@@ -1555,7 +1555,6 @@ class ExerciseSummary extends $pb.GeneratedMessage {
     $core.int? totalSets,
     $core.int? totalReps,
     $core.double? totalVolume,
-    $core.double? bestOneRepMax,
     $core.double? heaviestSetWeight,
   }) {
     final result = create();
@@ -1563,7 +1562,6 @@ class ExerciseSummary extends $pb.GeneratedMessage {
     if (totalSets != null) result.totalSets = totalSets;
     if (totalReps != null) result.totalReps = totalReps;
     if (totalVolume != null) result.totalVolume = totalVolume;
-    if (bestOneRepMax != null) result.bestOneRepMax = bestOneRepMax;
     if (heaviestSetWeight != null) result.heaviestSetWeight = heaviestSetWeight;
     return result;
   }
@@ -1586,8 +1584,6 @@ class ExerciseSummary extends $pb.GeneratedMessage {
     ..aI(2, _omitFieldNames ? '' : 'totalSets')
     ..aI(3, _omitFieldNames ? '' : 'totalReps')
     ..aD(4, _omitFieldNames ? '' : 'totalVolume', fieldType: $pb.PbFieldType.OF)
-    ..aD(5, _omitFieldNames ? '' : 'bestOneRepMax',
-        fieldType: $pb.PbFieldType.OF)
     ..aD(6, _omitFieldNames ? '' : 'heaviestSetWeight',
         fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
@@ -1647,21 +1643,12 @@ class ExerciseSummary extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearTotalVolume() => $_clearField(4);
 
-  @$pb.TagNumber(5)
-  $core.double get bestOneRepMax => $_getN(4);
-  @$pb.TagNumber(5)
-  set bestOneRepMax($core.double value) => $_setFloat(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasBestOneRepMax() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearBestOneRepMax() => $_clearField(5);
-
   @$pb.TagNumber(6)
-  $core.double get heaviestSetWeight => $_getN(5);
+  $core.double get heaviestSetWeight => $_getN(4);
   @$pb.TagNumber(6)
-  set heaviestSetWeight($core.double value) => $_setFloat(5, value);
+  set heaviestSetWeight($core.double value) => $_setFloat(4, value);
   @$pb.TagNumber(6)
-  $core.bool hasHeaviestSetWeight() => $_has(5);
+  $core.bool hasHeaviestSetWeight() => $_has(4);
   @$pb.TagNumber(6)
   void clearHeaviestSetWeight() => $_clearField(6);
 }
@@ -2365,7 +2352,6 @@ class ExerciseProgressPoint extends $pb.GeneratedMessage {
     $core.String? workoutId,
     $core.double? topWeight,
     $core.int? topReps,
-    $core.double? bestOneRepMax,
     $core.double? volume,
     $core.int? sets,
     $core.double? estimatedMax,
@@ -2375,7 +2361,6 @@ class ExerciseProgressPoint extends $pb.GeneratedMessage {
     if (workoutId != null) result.workoutId = workoutId;
     if (topWeight != null) result.topWeight = topWeight;
     if (topReps != null) result.topReps = topReps;
-    if (bestOneRepMax != null) result.bestOneRepMax = bestOneRepMax;
     if (volume != null) result.volume = volume;
     if (sets != null) result.sets = sets;
     if (estimatedMax != null) result.estimatedMax = estimatedMax;
@@ -2399,8 +2384,6 @@ class ExerciseProgressPoint extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'workoutId')
     ..aD(3, _omitFieldNames ? '' : 'topWeight', fieldType: $pb.PbFieldType.OF)
     ..aI(4, _omitFieldNames ? '' : 'topReps')
-    ..aD(5, _omitFieldNames ? '' : 'bestOneRepMax',
-        fieldType: $pb.PbFieldType.OF)
     ..aD(6, _omitFieldNames ? '' : 'volume', fieldType: $pb.PbFieldType.OF)
     ..aI(7, _omitFieldNames ? '' : 'sets')
     ..aD(8, _omitFieldNames ? '' : 'estimatedMax',
@@ -2463,40 +2446,31 @@ class ExerciseProgressPoint extends $pb.GeneratedMessage {
   @$pb.TagNumber(4)
   void clearTopReps() => $_clearField(4);
 
-  @$pb.TagNumber(5)
-  $core.double get bestOneRepMax => $_getN(4);
-  @$pb.TagNumber(5)
-  set bestOneRepMax($core.double value) => $_setFloat(4, value);
-  @$pb.TagNumber(5)
-  $core.bool hasBestOneRepMax() => $_has(4);
-  @$pb.TagNumber(5)
-  void clearBestOneRepMax() => $_clearField(5);
-
   @$pb.TagNumber(6)
-  $core.double get volume => $_getN(5);
+  $core.double get volume => $_getN(4);
   @$pb.TagNumber(6)
-  set volume($core.double value) => $_setFloat(5, value);
+  set volume($core.double value) => $_setFloat(4, value);
   @$pb.TagNumber(6)
-  $core.bool hasVolume() => $_has(5);
+  $core.bool hasVolume() => $_has(4);
   @$pb.TagNumber(6)
   void clearVolume() => $_clearField(6);
 
   @$pb.TagNumber(7)
-  $core.int get sets => $_getIZ(6);
+  $core.int get sets => $_getIZ(5);
   @$pb.TagNumber(7)
-  set sets($core.int value) => $_setSignedInt32(6, value);
+  set sets($core.int value) => $_setSignedInt32(5, value);
   @$pb.TagNumber(7)
-  $core.bool hasSets() => $_has(6);
+  $core.bool hasSets() => $_has(5);
   @$pb.TagNumber(7)
   void clearSets() => $_clearField(7);
 
   /// The estimated max after this session (rep max for bodyweight).
   @$pb.TagNumber(8)
-  $core.double get estimatedMax => $_getN(7);
+  $core.double get estimatedMax => $_getN(6);
   @$pb.TagNumber(8)
-  set estimatedMax($core.double value) => $_setFloat(7, value);
+  set estimatedMax($core.double value) => $_setFloat(6, value);
   @$pb.TagNumber(8)
-  $core.bool hasEstimatedMax() => $_has(7);
+  $core.bool hasEstimatedMax() => $_has(6);
   @$pb.TagNumber(8)
   void clearEstimatedMax() => $_clearField(8);
 }

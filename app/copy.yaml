@@ -304,4 +304,3 @@ plan:
   # The completed workout screen, per lift.
   summary:
     planned: "Planned: {plan}"
-    max_after: "Max after: {max}"

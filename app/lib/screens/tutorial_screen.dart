@@ -65,7 +65,11 @@ class _TutorialScreenState extends State<TutorialScreen>
   @override
   void initState() {
     super.initState();
-    unawaited(TutorialAccount.create().then(_account.complete));
+    unawaited(
+      TutorialAccount.create(
+        context.read<SettingsProvider>().weightUnit,
+      ).then(_account.complete),
+    );
     _workouts = WorkoutProvider(
       WorkoutServiceWrapper(_SandboxCore(_account.future)),
       context.read<SettingsProvider>(),

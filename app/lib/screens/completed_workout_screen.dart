@@ -504,15 +504,6 @@ class _ExerciseSummaryRow extends StatelessWidget {
         ...reasonLines(log.decision, unit),
         for (final change in log.changes) changeText(change, unit),
       ],
-      if (max != null)
-        s.maxAfter.replaceAll(
-          '{max}',
-          maxText(
-            max,
-            unit,
-            bodyweight: log != null && isBodyweightDecision(log.decision),
-          ),
-        ),
     ].where((line) => line.isNotEmpty);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -544,8 +535,15 @@ class _ExerciseSummaryRow extends StatelessWidget {
               ),
               _ExerciseStatColumn(label: 'Volume', value: exercise.volumeLabel),
               _ExerciseStatColumn(
-                label: 'Est. 1RM',
-                value: exercise.formattedOneRm,
+                label: 'Max',
+                value: max == null
+                    ? '-'
+                    : maxText(
+                        max,
+                        unit,
+                        bodyweight:
+                            log != null && isBodyweightDecision(log.decision),
+                      ),
               ),
             ],
           ),
@@ -644,9 +642,6 @@ class ExerciseSummaryView {
   String get name => exerciseNames[_e.exercise] ?? 'Unknown';
   String get volumeLabel =>
       '${formatWeight(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
-  String get formattedOneRm => _e.bestOneRepMax > 0
-      ? '${formatWeight(_e.bestOneRepMax, unit)} ${weightUnitSuffix(unit)}'
-      : '-';
   String get heaviestSetWeightLabel => _e.heaviestSetWeight > 0
       ? '${formatWeight(_e.heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
       : '-';

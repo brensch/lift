@@ -12962,16 +12962,6 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * lb, Epley estimate
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     * @return The bestOneRepMax.
-     */
-    float getBestOneRepMax();
-
-    /**
-     * <pre>
      * lb
      * </pre>
      *
@@ -13124,44 +13114,6 @@ public final class WorkoutOuterClass {
     private void clearTotalVolume() {
       
       totalVolume_ = 0F;
-    }
-
-    public static final int BEST_ONE_REP_MAX_FIELD_NUMBER = 5;
-    private float bestOneRepMax_;
-    /**
-     * <pre>
-     * lb, Epley estimate
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     * @return The bestOneRepMax.
-     */
-    @java.lang.Override
-    public float getBestOneRepMax() {
-      return bestOneRepMax_;
-    }
-    /**
-     * <pre>
-     * lb, Epley estimate
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     * @param value The bestOneRepMax to set.
-     */
-    private void setBestOneRepMax(float value) {
-      
-      bestOneRepMax_ = value;
-    }
-    /**
-     * <pre>
-     * lb, Epley estimate
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     */
-    private void clearBestOneRepMax() {
-      
-      bestOneRepMax_ = 0F;
     }
 
     public static final int HEAVIEST_SET_WEIGHT_FIELD_NUMBER = 6;
@@ -13445,46 +13397,6 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * lb, Epley estimate
-       * </pre>
-       *
-       * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-       * @return The bestOneRepMax.
-       */
-      @java.lang.Override
-      public float getBestOneRepMax() {
-        return instance.getBestOneRepMax();
-      }
-      /**
-       * <pre>
-       * lb, Epley estimate
-       * </pre>
-       *
-       * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-       * @param value The bestOneRepMax to set.
-       * @return This builder for chaining.
-       */
-      public Builder setBestOneRepMax(float value) {
-        copyOnWrite();
-        instance.setBestOneRepMax(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * lb, Epley estimate
-       * </pre>
-       *
-       * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearBestOneRepMax() {
-        copyOnWrite();
-        instance.clearBestOneRepMax();
-        return this;
-      }
-
-      /**
-       * <pre>
        * lb
        * </pre>
        *
@@ -13543,12 +13455,11 @@ public final class WorkoutOuterClass {
               "totalSets_",
               "totalReps_",
               "totalVolume_",
-              "bestOneRepMax_",
               "heaviestSetWeight_",
             };
             java.lang.String info =
-                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\f\u0002\u0004" +
-                "\u0003\u0004\u0004\u0001\u0005\u0001\u0006\u0001";
+                "\u0000\u0005\u0000\u0000\u0001\u0006\u0005\u0000\u0000\u0000\u0001\f\u0002\u0004" +
+                "\u0003\u0004\u0004\u0001\u0006\u0001";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -18983,16 +18894,6 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * lb, Epley
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     * @return The bestOneRepMax.
-     */
-    float getBestOneRepMax();
-
-    /**
-     * <pre>
      * lb
      * </pre>
      *
@@ -19191,44 +19092,6 @@ public final class WorkoutOuterClass {
     private void clearTopReps() {
       
       topReps_ = 0;
-    }
-
-    public static final int BEST_ONE_REP_MAX_FIELD_NUMBER = 5;
-    private float bestOneRepMax_;
-    /**
-     * <pre>
-     * lb, Epley
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     * @return The bestOneRepMax.
-     */
-    @java.lang.Override
-    public float getBestOneRepMax() {
-      return bestOneRepMax_;
-    }
-    /**
-     * <pre>
-     * lb, Epley
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     * @param value The bestOneRepMax to set.
-     */
-    private void setBestOneRepMax(float value) {
-      
-      bestOneRepMax_ = value;
-    }
-    /**
-     * <pre>
-     * lb, Epley
-     * </pre>
-     *
-     * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-     */
-    private void clearBestOneRepMax() {
-      
-      bestOneRepMax_ = 0F;
     }
 
     public static final int VOLUME_FIELD_NUMBER = 6;
@@ -19603,46 +19466,6 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * lb, Epley
-       * </pre>
-       *
-       * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-       * @return The bestOneRepMax.
-       */
-      @java.lang.Override
-      public float getBestOneRepMax() {
-        return instance.getBestOneRepMax();
-      }
-      /**
-       * <pre>
-       * lb, Epley
-       * </pre>
-       *
-       * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-       * @param value The bestOneRepMax to set.
-       * @return This builder for chaining.
-       */
-      public Builder setBestOneRepMax(float value) {
-        copyOnWrite();
-        instance.setBestOneRepMax(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * lb, Epley
-       * </pre>
-       *
-       * <code>float best_one_rep_max = 5 [json_name = "bestOneRepMax"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearBestOneRepMax() {
-        copyOnWrite();
-        instance.clearBestOneRepMax();
-        return this;
-      }
-
-      /**
-       * <pre>
        * lb
        * </pre>
        *
@@ -19769,14 +19592,13 @@ public final class WorkoutOuterClass {
               "workoutId_",
               "topWeight_",
               "topReps_",
-              "bestOneRepMax_",
               "volume_",
               "sets_",
               "estimatedMax_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u0002\u0002\u0208\u0003\u0001" +
-                "\u0004\u0004\u0005\u0001\u0006\u0001\u0007\u0004\b\u0001";
+                "\u0000\u0007\u0000\u0000\u0001\b\u0007\u0000\u0000\u0000\u0001\u0002\u0002\u0208" +
+                "\u0003\u0001\u0004\u0004\u0006\u0001\u0007\u0004\b\u0001";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
