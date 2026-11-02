@@ -4049,7 +4049,8 @@ class LibraryTemplate extends $pb.GeneratedMessage {
   void clearIsDefault() => $_clearField(7);
 }
 
-/// Public: the library is the same for everyone.
+/// The template library and the ready-made plans it can make, answered by
+/// the core.
 class ListTemplateLibraryRequest extends $pb.GeneratedMessage {
   factory ListTemplateLibraryRequest() => create();
 
@@ -6605,12 +6606,10 @@ class WorkoutHeartRatePoint extends $pb.GeneratedMessage {
   factory WorkoutHeartRatePoint({
     $fixnum.Int64? sampledAt,
     $core.double? bpm,
-    $core.int? availability,
   }) {
     final result = create();
     if (sampledAt != null) result.sampledAt = sampledAt;
     if (bpm != null) result.bpm = bpm;
-    if (availability != null) result.availability = availability;
     return result;
   }
 
@@ -6629,7 +6628,6 @@ class WorkoutHeartRatePoint extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'sampledAt')
     ..aD(2, _omitFieldNames ? '' : 'bpm', fieldType: $pb.PbFieldType.OF)
-    ..aI(3, _omitFieldNames ? '' : 'availability')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -6669,15 +6667,6 @@ class WorkoutHeartRatePoint extends $pb.GeneratedMessage {
   $core.bool hasBpm() => $_has(1);
   @$pb.TagNumber(2)
   void clearBpm() => $_clearField(2);
-
-  @$pb.TagNumber(3)
-  $core.int get availability => $_getIZ(2);
-  @$pb.TagNumber(3)
-  set availability($core.int value) => $_setSignedInt32(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasAvailability() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearAvailability() => $_clearField(3);
 }
 
 class AppendWorkoutHeartRateRequest extends $pb.GeneratedMessage {

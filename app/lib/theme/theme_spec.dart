@@ -95,12 +95,15 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.lifting,
     required this.short,
     required this.heart,
+    required this.heartZones,
     required this.barSteel,
     required this.sleeveSteel,
     required this.collarSteel,
     required this.plateEdge,
     required this.dumbbellPlate,
     required this.dumbbellHandle,
+    required this.machine,
+    required this.scrim,
     required this.series,
     required this.bodyParts,
     required this.bodyFont,
@@ -172,6 +175,9 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   /// Heart-rate icons.
   final Color heart;
 
+  /// The heart-rate zones, Z1 (recovery) to Z5 (max).
+  final List<Color> heartZones;
+
   // ─── Hardware: the drawn bars and dumbbells ────────────────────────
   /// The bar between the plates in the inline drawing.
   final Color barSteel;
@@ -187,6 +193,12 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   final Color dumbbellPlate;
   final Color dumbbellHandle;
+
+  /// The equipment in a machine exercise's drawing.
+  final Color machine;
+
+  /// The shade over the screen around the tutorial's spotlight.
+  final Color scrim;
 
   // ─── Categorical ───────────────────────────────────────────────────
   /// Chart lines, one per exercise (cycled), first one for single charts.

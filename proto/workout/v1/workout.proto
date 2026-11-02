@@ -698,7 +698,8 @@ message LibraryTemplate {
   reserved "group_key";
 }
 
-// Public: the library is the same for everyone.
+// The template library and the ready-made plans it can make, answered by
+// the core.
 message ListTemplateLibraryRequest {}
 message ListTemplateLibraryResponse {
   repeated LibraryTemplate templates = 1;
@@ -1006,7 +1007,8 @@ message GetActiveWorkoutResponse {
 message WorkoutHeartRatePoint {
   int64 sampled_at = 1; // Unix milliseconds
   float bpm = 2;
-  int32 availability = 3;
+  reserved 3;
+  reserved "availability";
 }
 
 message AppendWorkoutHeartRateRequest {

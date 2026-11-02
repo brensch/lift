@@ -1,4 +1,5 @@
 use super::*;
+use crate::history::done_set_ids;
 use crate::ids::{derived_id, Ids};
 use crate::pb::{
     AnswerRungRequest, EditCompletedSetRequest, RepsLeft, SkipWarmupsRequest, StartSetRequest,
@@ -198,17 +199,10 @@ pub fn apply_skip_warmups_to_active(
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
-    let done: std::collections::HashSet<String> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .map(|c| c.proposed_set_id.clone())
-        .collect();
-    for set in workout_ref
-        .proposed_sets
-        .iter_mut()
-        .filter(|s| s.exercise == req.exercise && s.warmup && !s.cancelled && !done.contains(&s.id))
-    {
+    let done = done_set_ids(&workout_ref.completed_sets);
+    for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
+        s.exercise == req.exercise && s.warmup && !s.cancelled && !done.contains(s.id.as_str())
+    }) {
         set.skipped = true;
     }
     Ok(())
@@ -448,12 +442,7 @@ fn resettle_rung(
     };
     let ours: std::collections::HashSet<String> =
         (0..64).map(|n| derived_id(completed_set_id, n)).collect();
-    let done: std::collections::HashSet<&str> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .map(|c| c.proposed_set_id.as_str())
-        .collect();
+    let done = done_set_ids(&workout_ref.completed_sets);
     let pending: Vec<&ProposedSet> = workout_ref
         .proposed_sets
         .iter()
@@ -477,12 +466,7 @@ pub fn rung_question(workout_ref: &WorkoutRecord) -> Option<String> {
     if workout_ref.workout.end_time > 0 {
         return None;
     }
-    let done: std::collections::HashSet<&str> = workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| c.ended_at != 0)
-        .map(|c| c.proposed_set_id.as_str())
-        .collect();
+    let done = done_set_ids(&workout_ref.completed_sets);
     let lifting = workout_ref.proposed_sets.iter().any(|s| {
         s.id == workout_ref.workout.lifting_set_id && !s.cancelled && !done.contains(s.id.as_str())
     });

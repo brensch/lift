@@ -49,7 +49,7 @@ pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume
             let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
                 continue;
             };
-            if proposed.warmup || proposed.calibration || proposed.cancelled {
+            if !proposed.is_working() || proposed.cancelled {
                 continue;
             }
             let Ok(ex) = Exercise::try_from(proposed.exercise) else {

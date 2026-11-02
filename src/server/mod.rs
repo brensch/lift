@@ -11,7 +11,6 @@ use schlift::workout::v1::workout_service_server::WorkoutService;
 use schlift::workout::v1::*;
 use schlift_core::account::CoreError;
 use schlift_core::api::View;
-use schlift_core::workout::get_workout_response_from_active;
 use std::pin::Pin;
 use tonic::{Request, Response, Status};
 use tracing::info;
@@ -40,6 +39,6 @@ pub use workout::ServerWorkoutService;
 
 use multiplayer::{current_session, join_requests};
 use support::{
-    authed_admin_id, authed_user_id, client_labels, core_status, internal_error, read_api,
-    refresh_participant_for_user, session_token, ServerResult,
+    as_seen_by_others, authed_admin_id, authed_user_id, client_labels, core_status, internal_error,
+    read_api, refresh_participant_for_user, session_token, ServerResult,
 };

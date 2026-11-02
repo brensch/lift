@@ -136,6 +136,18 @@ impl ServerDb {
         Ok(read(account))
     }
 
+    /// The last seq the server holds for the user. Read from the log, not
+    /// the account cache, so asking keeps no account folded in memory.
+    pub async fn head(&self, user_id: &str) -> DbResult<i64> {
+        let head: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(MAX(seq), 0) FROM account_events WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .fetch_one(&self.read_pool)
+        .await?;
+        Ok(head)
+    }
+
     /// The user's events after `after_seq`, in order.
     pub async fn events_after(&self, user_id: &str, after_seq: i64) -> DbResult<Vec<Event>> {
         let rows: Vec<Vec<u8>> = sqlx::query_scalar(

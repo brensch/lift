@@ -33,12 +33,21 @@ const schliftSpec = ThemeSpec(
   yapping: Color(0xFFD94F8C),
   warmup: Color(0xFF6B7280),
   heart: Color(0xFFE11D48),
+  heartZones: [
+    Color(0xFF22C55E), // Z1: green
+    Color(0xFFEAB308), // Z2: yellow
+    Color(0xFFF59E0B), // Z3: amber
+    Color(0xFFEF4444), // Z4: red
+    Color(0xFFB91C1C), // Z5: deep red
+  ],
   barSteel: Color(0xFFBDBDBD),
   sleeveSteel: Color(0xFF9E9E9E),
   collarSteel: Color(0xFF616161),
   plateEdge: Color(0x59000000),
   dumbbellPlate: Color(0xFF6B7280),
   dumbbellHandle: Color(0xFF111827),
+  machine: Color(0xFF9098A3),
+  scrim: Color(0x8C000000),
   // Chart lines: deep, saturated, each distinct on the warm grey.
   series: [
     Color(0xFF1F4FD1), // blue

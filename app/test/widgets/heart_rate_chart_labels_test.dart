@@ -29,7 +29,6 @@ void main() {
       HeartRateSample(
         sampledAt: Int64((startSec + t) * 1000),
         bpm: 95 + 45 * (0.5 + 0.5 * sin(t / 90.0)),
-        availability: HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE,
       ),
   ];
   final sets = [

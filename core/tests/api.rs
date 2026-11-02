@@ -2054,7 +2054,6 @@ mod lifting {
             .map(|i| WorkoutHeartRatePoint {
                 sampled_at: 1_000 + i,
                 bpm: 120.0,
-                availability: 0,
             })
             .collect();
         app.call()

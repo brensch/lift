@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../gen/workout/v1/workout.pbenum.dart';
+import '../theme/theme_spec.dart';
 import 'exercise_art/registry.dart';
 import 'exercise_art/toolkit.dart';
 
@@ -8,7 +9,7 @@ import 'exercise_art/toolkit.dart';
 ///
 /// Looks the drawing up in the exercise-art registry (one file per proto name)
 /// and loops its key poses back and forth so the movement animates. The figure
-/// is drawn in the theme's onSurface; machines render grey.
+/// is drawn in the theme's onSurface; machines in its machine colour.
 ///
 /// Efficiency: the animation drives the painter directly via `repaint:` (no
 /// per-frame widget rebuild), and the whole thing sits behind a
@@ -18,7 +19,11 @@ class ExerciseGraphic extends StatefulWidget {
   final Exercise exercise;
   final double size;
 
-  const ExerciseGraphic({super.key, required this.exercise, this.size = 48});
+  const ExerciseGraphic({
+    super.key,
+    required this.exercise,
+    required this.size,
+  });
 
   @override
   State<ExerciseGraphic> createState() => _ExerciseGraphicState();
@@ -71,6 +76,7 @@ class _ExerciseGraphicState extends State<ExerciseGraphic>
         painter: ExerciseArtPainter(
           art: _art,
           figureColor: figure,
+          machineColor: context.tokens.machine,
           progress: _t,
         ),
       ),

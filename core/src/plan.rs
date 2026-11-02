@@ -635,7 +635,7 @@ impl Costs {
             let mut seen: HashSet<i32> = HashSet::new();
             let mut prev: Option<(&CompletedSet, &ProposedSet)> = None;
             for (c, p) in done {
-                let working = !p.warmup && !p.calibration;
+                let working = p.is_working();
                 if p.warmup {
                     let from = if c.started_at > 0 {
                         c.started_at
@@ -653,7 +653,7 @@ impl Costs {
                 if let Some((pc, pp)) = prev {
                     let gap = c.started_at - pc.ended_at;
                     if c.started_at > 0 && gap >= 0 {
-                        if pp.exercise == p.exercise && working && !pp.warmup && !pp.calibration {
+                        if pp.exercise == p.exercise && working && pp.is_working() {
                             if let Ok(ex) = Exercise::try_from(p.exercise) {
                                 rests[class_index(lift_class(ex))].push(gap as f32);
                             }

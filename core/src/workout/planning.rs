@@ -7,6 +7,7 @@
 
 use super::*;
 use crate::exercise_catalog::{progression_increment_lb, snap_down_weight_lb, snap_weight_lb};
+use crate::history::done_set_ids;
 use crate::ids::Ids;
 use crate::pb::{Exercise, ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
 use crate::weight_units::{bar_weight, plates, simplest_loadable_near, AppWeightUnit};
@@ -322,15 +323,6 @@ fn require_open_workout(workout_ref: &WorkoutRecord, workout_id: &str) -> Result
     Ok(())
 }
 
-fn completed_proposed_ids(workout_ref: &WorkoutRecord) -> std::collections::HashSet<String> {
-    workout_ref
-        .completed_sets
-        .iter()
-        .filter(|c| !c.proposed_set_id.is_empty())
-        .map(|c| c.proposed_set_id.clone())
-        .collect()
-}
-
 /// Append one block per decision at the end of the workout, each starting
 /// its lift's weight log.
 pub fn apply_add_exercises(
@@ -379,7 +371,7 @@ pub fn apply_adjust_exercise_weight(
     // on from the weight given, and the reps decide where it stops.
     apply_target_reps(workout_ref, req);
     let exercise = req.exercise;
-    let done = completed_proposed_ids(workout_ref);
+    let done = done_set_ids(&workout_ref.completed_sets);
     let before = workout_ref.planned_weight(exercise);
 
     // Working sets move in place — same count, same reps, same rest.
@@ -482,13 +474,9 @@ fn apply_target_reps(workout_ref: &mut WorkoutRecord, req: &AdjustExerciseWeight
     if req.target_reps <= 0 {
         return;
     }
-    let done = completed_proposed_ids(workout_ref);
+    let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
-        s.exercise == req.exercise
-            && !s.warmup
-            && !s.calibration
-            && !s.cancelled
-            && !done.contains(&s.id)
+        s.exercise == req.exercise && s.is_working() && !s.cancelled && !done.contains(&s.id)
     }) {
         set.target_reps = req.target_reps;
     }
@@ -500,7 +488,7 @@ pub fn apply_remove_exercise(
     req: &RemoveExerciseRequest,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
-    let done = completed_proposed_ids(workout_ref);
+    let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref
         .proposed_sets
         .iter_mut()
@@ -686,11 +674,7 @@ mod plan_op_tests {
     }
 
     fn pending_warmup_weights(active: &WorkoutRecord, exercise: i32) -> Vec<f32> {
-        let done: std::collections::HashSet<String> = active
-            .completed_sets
-            .iter()
-            .map(|c| c.proposed_set_id.clone())
-            .collect();
+        let done = done_set_ids(&active.completed_sets);
         active
             .proposed_sets
             .iter()
@@ -847,7 +831,7 @@ mod plan_op_tests {
         for set in &sets {
             assert_eq!((set.target_weight, set.target_reps), (95.0, 5));
             assert_eq!(set.rest_seconds, 180);
-            assert!(!set.warmup && !set.calibration);
+            assert!(set.is_working());
         }
     }
 

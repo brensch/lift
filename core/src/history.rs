@@ -1,6 +1,8 @@
 //! One workout, hydrated: the record every derived computation reads
 //! (the plan's walk, volume, recovery, progress).
 
+use std::collections::HashSet;
+
 use crate::pb::{
     CompletedSet, ExerciseDecision, ExerciseLog, ProposedSet, WeightChange, WeightChangeCause,
     Workout, WorkoutHeartRatePoint,
@@ -99,6 +101,22 @@ impl WorkoutRecord {
             log.changes.push(change);
         }
     }
+}
+
+impl ProposedSet {
+    /// A set that counts as work: neither a warmup nor a calibration rung.
+    pub fn is_working(&self) -> bool {
+        !self.warmup && !self.calibration
+    }
+}
+
+/// The proposed sets with a finished completion, by id.
+pub fn done_set_ids(completed_sets: &[CompletedSet]) -> HashSet<String> {
+    completed_sets
+        .iter()
+        .filter(|c| c.ended_at > 0)
+        .map(|c| c.proposed_set_id.clone())
+        .collect()
 }
 
 /// The moment a workout "happened": its end, or its start while open.

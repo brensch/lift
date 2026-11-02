@@ -201,7 +201,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                       style: TextStyle(
                         fontSize: context.tokens.size.small,
                         fontStyle: FontStyle.italic,
-                        color: Colors.grey,
+                        color: context.tokens.muted,
                       ),
                     ),
                   ),

@@ -54,17 +54,23 @@ const HeartRateAvailability$json = {
   '2': [
     {'1': 'HEART_RATE_AVAILABILITY_UNSPECIFIED', '2': 0},
     {'1': 'HEART_RATE_AVAILABILITY_AVAILABLE', '2': 1},
-    {'1': 'HEART_RATE_AVAILABILITY_ACQUIRING', '2': 2},
-    {'1': 'HEART_RATE_AVAILABILITY_UNAVAILABLE', '2': 3},
+  ],
+  '4': [
+    {'1': 2, '2': 2},
+    {'1': 3, '2': 3},
+  ],
+  '5': [
+    'HEART_RATE_AVAILABILITY_ACQUIRING',
+    'HEART_RATE_AVAILABILITY_UNAVAILABLE'
   ],
 };
 
 /// Descriptor for `HeartRateAvailability`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List heartRateAvailabilityDescriptor = $convert.base64Decode(
     'ChVIZWFydFJhdGVBdmFpbGFiaWxpdHkSJwojSEVBUlRfUkFURV9BVkFJTEFCSUxJVFlfVU5TUE'
-    'VDSUZJRUQQABIlCiFIRUFSVF9SQVRFX0FWQUlMQUJJTElUWV9BVkFJTEFCTEUQARIlCiFIRUFS'
-    'VF9SQVRFX0FWQUlMQUJJTElUWV9BQ1FVSVJJTkcQAhInCiNIRUFSVF9SQVRFX0FWQUlMQUJJTE'
-    'lUWV9VTkFWQUlMQUJMRRAD');
+    'VDSUZJRUQQABIlCiFIRUFSVF9SQVRFX0FWQUlMQUJJTElUWV9BVkFJTEFCTEUQASIECAIQAiIE'
+    'CAMQAyohSEVBUlRfUkFURV9BVkFJTEFCSUxJVFlfQUNRVUlSSU5HKiNIRUFSVF9SQVRFX0FWQU'
+    'lMQUJJTElUWV9VTkFWQUlMQUJMRQ==');
 
 @$core.Deprecated('Use wearCircleStateDescriptor instead')
 const WearCircleState$json = {

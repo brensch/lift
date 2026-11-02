@@ -2459,14 +2459,17 @@ const WorkoutHeartRatePoint$json = {
   '2': [
     {'1': 'sampled_at', '3': 1, '4': 1, '5': 3, '10': 'sampledAt'},
     {'1': 'bpm', '3': 2, '4': 1, '5': 2, '10': 'bpm'},
-    {'1': 'availability', '3': 3, '4': 1, '5': 5, '10': 'availability'},
   ],
+  '9': [
+    {'1': 3, '2': 4},
+  ],
+  '10': ['availability'],
 };
 
 /// Descriptor for `WorkoutHeartRatePoint`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List workoutHeartRatePointDescriptor = $convert.base64Decode(
     'ChVXb3Jrb3V0SGVhcnRSYXRlUG9pbnQSHQoKc2FtcGxlZF9hdBgBIAEoA1IJc2FtcGxlZEF0Eh'
-    'AKA2JwbRgCIAEoAlIDYnBtEiIKDGF2YWlsYWJpbGl0eRgDIAEoBVIMYXZhaWxhYmlsaXR5');
+    'AKA2JwbRgCIAEoAlIDYnBtSgQIAxAEUgxhdmFpbGFiaWxpdHk=');
 
 @$core.Deprecated('Use appendWorkoutHeartRateRequestDescriptor instead')
 const AppendWorkoutHeartRateRequest$json = {

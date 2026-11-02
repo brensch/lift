@@ -581,4 +581,69 @@ mod session_history_tests {
         assert!(has_participant(status, &bob_id), "alice should see bob");
         assert!(has_participant(status, &carol_id), "alice should see carol");
     }
+
+    /// Someone's body weight is theirs alone: partners see them without it.
+    #[tokio::test]
+    async fn partners_do_not_see_body_weight() {
+        let svc = setup().await;
+        let (alice_id, _) = user(&svc, "alice").await;
+        let (_, bob_tok) = user(&svc, "bob").await;
+        svc.db
+            .update_user_profile(&alice_id, "", "", 82.5)
+            .await
+            .unwrap();
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+
+        let sess = svc
+            .get_current_session(authed(&bob_tok, GetCurrentSessionRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let status = sess.session_status.unwrap();
+        let alice = status
+            .participants
+            .iter()
+            .filter_map(|p| p.user.as_ref())
+            .find(|u| u.id == alice_id)
+            .expect("bob sees alice");
+        assert_eq!(alice.body_weight_kg, 0.0);
+
+        let partners = svc
+            .get_training_partners(authed(&bob_tok, GetTrainingPartnersRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .partners;
+        assert_eq!(partners[0].user.as_ref().unwrap().body_weight_kg, 0.0);
+
+        let rosters = svc
+            .get_session_rosters(authed(
+                &bob_tok,
+                GetSessionRostersRequest {
+                    session_ids: vec![sess.session_id],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .rosters;
+        assert_eq!(rosters[0].partners[0].body_weight_kg, 0.0);
+
+        let own = svc
+            .db
+            .get_user(&alice_id)
+            .await
+            .unwrap()
+            .unwrap()
+            .body_weight_kg;
+        assert_eq!(own, 82.5, "alice's own record keeps it");
+    }
 }

@@ -4,8 +4,8 @@
   python3 scripts/replace_app_icons.py [--source marketing/icon.png]
 
 The 1024x1024 master (scripts/render_brand.py) becomes the icon on iOS, macOS,
-watchOS, Android legacy + adaptive, Wear OS, web, Windows, and the store icon
-in marketing/.
+watchOS, Android legacy + adaptive, Wear OS, Windows, and the store icon in
+marketing/.
 
 The Android adaptive foreground is a raster layer: the master fills the 72dp a
 launcher shows of the 108dp canvas, and its edges are stretched over the rest.
@@ -56,11 +56,6 @@ def collect_png_targets(repo_root: Path) -> list[Path]:
     patterns = [
         "app/android/app/src/main/res/mipmap-*/ic_launcher.png",
         "app/android/wear/src/main/res/mipmap-*/ic_launcher.png",
-        "app/web/favicon.png",
-        "app/web/icons/Icon-192.png",
-        "app/web/icons/Icon-512.png",
-        "app/web/icons/Icon-maskable-192.png",
-        "app/web/icons/Icon-maskable-512.png",
         "app/ios/Runner/Assets.xcassets/AppIcon.appiconset/*.png",
         "app/macos/Runner/Assets.xcassets/AppIcon.appiconset/*.png",
     ]
@@ -136,7 +131,7 @@ def main() -> None:
     write_ico(master, ico_path)
     updated_files.add(ico_path.relative_to(repo_root))
 
-    # The store icon (Play listing, website favicon): opaque, full bleed.
+    # The store icon (Play listing, website apple-touch-icon): opaque, full bleed.
     store_icon = repo_root / "marketing" / "schlift-square-512.png"
     write_png_at_size(master, store_icon, 512)
     updated_files.add(store_icon.relative_to(repo_root))

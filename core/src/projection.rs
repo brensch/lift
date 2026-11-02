@@ -68,7 +68,6 @@ CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
     workout_id TEXT NOT NULL,
     sampled_at INTEGER NOT NULL,
     bpm REAL NOT NULL,
-    availability INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
@@ -305,15 +304,14 @@ fn heart_rate_rows(user_id: &str, record: &WorkoutRecord, first: usize) -> Vec<S
         .map(|(sample, n)| {
             statement(
                 "INSERT OR REPLACE INTO workout_heart_rate_samples
-                 (id, user_id, workout_id, sampled_at, bpm, availability)
-                 VALUES (?, ?, ?, ?, ?, ?)",
+                 (id, user_id, workout_id, sampled_at, bpm)
+                 VALUES (?, ?, ?, ?, ?)",
                 vec![
                     format!("{id}:{n}").into(),
                     user_id.into(),
                     id.as_str().into(),
                     sample.sampled_at.into(),
                     sample.bpm.into(),
-                    sample.availability.into(),
                 ],
             )
         })

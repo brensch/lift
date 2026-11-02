@@ -18,8 +18,8 @@ enum WearActionType {
 enum HeartRateAvailability {
   HEART_RATE_AVAILABILITY_UNSPECIFIED = 0;
   HEART_RATE_AVAILABILITY_AVAILABLE = 1;
-  HEART_RATE_AVAILABILITY_ACQUIRING = 2;
-  HEART_RATE_AVAILABILITY_UNAVAILABLE = 3;
+  reserved 2, 3;
+  reserved "HEART_RATE_AVAILABILITY_ACQUIRING", "HEART_RATE_AVAILABILITY_UNAVAILABLE";
 }
 
 // Everything the watch prints is a string the phone rendered. The watch

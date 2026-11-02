@@ -187,7 +187,7 @@ impl MultiplayerService for ServerMultiplayerService {
             for user_id in partner_ids {
                 if !users.contains_key(&user_id) {
                     let user = self.db.get_user(&user_id).await.map_err(internal_error)?;
-                    users.insert(user_id.clone(), user);
+                    users.insert(user_id.clone(), user.map(as_seen_by_others));
                 }
                 if let Some(Some(user)) = users.get(&user_id) {
                     partners.push(user.clone());
@@ -253,7 +253,7 @@ impl MultiplayerService for ServerMultiplayerService {
                 .map_err(internal_error)?
             {
                 partners.push(TrainingPartner {
-                    user: Some(user),
+                    user: Some(as_seen_by_others(user)),
                     sessions_together: sessions_together as i32,
                     last_trained_at,
                 });
@@ -383,7 +383,7 @@ pub(super) async fn join_requests(
         if let Some(user) = db.get_user(&from_id).await.map_err(internal_error)? {
             requests.push(JoinRequest {
                 request_id,
-                from_user: Some(user),
+                from_user: Some(as_seen_by_others(user)),
                 created_at,
             });
         }

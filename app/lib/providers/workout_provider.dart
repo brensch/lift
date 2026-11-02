@@ -692,8 +692,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// A tap on a done set's circle, StrongLifts style: each tap takes one
   /// rep off (one per rep missed), and the tap after zero undoes the set.
-  /// A calibration rung stops at zero instead: the plan it settled hangs
-  /// off it.
   Future<void> tapDoneSet(String completedSetId) async {
     final done = _doneById(completedSetId);
     if (done == null) return;
@@ -708,7 +706,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       return;
     }
-    if (proposedSetById(done.proposedSetId)?.calibration ?? true) return;
     await deleteCompletedSet(completedSetId);
   }
 
@@ -875,7 +872,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Title from the exercise names, in order.
       final title = exerciseBlocks
           .where((b) => b.sets.any((s) => !s.warmup))
-          .map((b) => shortNames[b.exercise] ?? b.exercise.name)
+          .map((b) => exerciseShortName(b.exercise))
           .join(', ');
 
       final stored = await HealthService.writeCompletedWorkout(
@@ -966,10 +963,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _wearHeartRateSamples.add(
         HeartRateSample()
           ..sampledAt = point.sampledAt
-          ..bpm = point.bpm
-          ..availability =
-              HeartRateAvailability.valueOf(point.availability) ??
-              HeartRateAvailability.HEART_RATE_AVAILABILITY_UNSPECIFIED,
+          ..bpm = point.bpm,
       );
     }
     _wearHeartRateSamples.sort((a, b) => a.sampledAt.compareTo(b.sampledAt));
@@ -1004,8 +998,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _unsavedHeartRate.add(
         WorkoutHeartRatePoint()
           ..sampledAt = sample.sampledAt
-          ..bpm = sample.bpm
-          ..availability = sample.availability.value,
+          ..bpm = sample.bpm,
       );
       insertedAny = true;
     }

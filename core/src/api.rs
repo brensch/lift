@@ -9,7 +9,7 @@ use prost::Message;
 
 use crate::account::{follows, Account, CoreError};
 use crate::exercise_catalog::all_exercises;
-use crate::history::WorkoutRecord;
+use crate::history::{done_set_ids, WorkoutRecord};
 use crate::ids::derived_id;
 use crate::pb::*;
 use crate::plan::Planner;
@@ -528,11 +528,7 @@ impl<'a> View<'a> {
                 };
                 apply_answer_rung_to_active(&mut answered, &req, self.account.unit(), self.now)
                     .ok()?;
-                let done: std::collections::HashSet<&str> = answered
-                    .completed_sets
-                    .iter()
-                    .map(|c| c.proposed_set_id.as_str())
-                    .collect();
+                let done = done_set_ids(&answered.completed_sets);
                 let next = answered.proposed_sets.iter().find(|s| {
                     s.exercise == exercise
                         && !s.cancelled

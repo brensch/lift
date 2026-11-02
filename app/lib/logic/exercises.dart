@@ -357,10 +357,12 @@ final Map<Exercise, String> _exerciseNames = {
 /// An exercise's name; '?' for one the catalogue does not have.
 String exerciseName(Exercise e) => _exerciseNames[e] ?? '?';
 
-final Map<Exercise, String> shortNames = {
-  Exercise.EXERCISE_UNSPECIFIED: '?',
+final Map<Exercise, String> _shortNames = {
   for (final info in exerciseCatalog) info.exercise: info.shortName,
 };
+
+/// An exercise's short name; '?' for one the catalogue does not have.
+String exerciseShortName(Exercise e) => _shortNames[e] ?? '?';
 
 /// Short display names for the ten muscles, shared by the volume rows, the
 /// template chips and the plan reasons.

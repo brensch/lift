@@ -188,19 +188,12 @@ class _HeartRateChartState extends State<HeartRateChart> {
         ? (_uiNow.isAfter(localNow) ? _uiNow : localNow)
         : _uiNow;
 
-    final available = heartRateSamples
-        .where(
-          (s) =>
-              s.availability ==
-              HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE,
-        )
-        .toList();
-    if (available.isEmpty) return const SizedBox.shrink();
+    if (heartRateSamples.isEmpty) return const SizedBox.shrink();
 
     final nowSec = (effectiveNow.millisecondsSinceEpoch - startMs) / 1000.0;
     final dataMaxX = max(
       nowSec,
-      (available.last.sampledAt.toInt() - startMs) / 1000.0,
+      (heartRateSamples.last.sampledAt.toInt() - startMs) / 1000.0,
     );
     final predictedRestEndSec = _predictedCurrentRestEndSec(startMs);
     final domainMaxX = max(dataMaxX, predictedRestEndSec ?? 0.0);
@@ -223,7 +216,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final minX = viewport.startSec;
     final maxX = viewport.endSec;
     final viewportSamples = _samplesInRange(
-      available,
+      heartRateSamples,
       startMs: startMs,
       minX: minX,
       maxX: maxX,
@@ -246,7 +239,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
 
     final currentBpm = spots.last.y;
     final currentZone = zoneFor(currentBpm, zones);
-    final zoneColor = zoneColorByName(currentZone?.name ?? 'Z1');
+    final zoneColor = zoneColorByName(
+      currentZone?.name ?? 'Z1',
+      context.tokens.heartZones,
+    );
     final restBands = _clipVerticalAnnotations(
       _buildPhaseBands(startMs, nowSec),
       minX: minX,
@@ -284,7 +280,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
         (z.high - z.low) * pxPerBpm >= zoneLabelHeight;
     // Colour the single line by HR zone with a vertical stepped gradient
     // (one series) instead of emitting a separate series per point pair.
-    final gradient = zoneGradient(zones, maxY);
+    final gradient = zoneGradient(zones, maxY, context.tokens.heartZones);
 
     final header = Row(
       children: [
@@ -618,7 +614,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
           ],
         ),
         const SizedBox(height: 18),
-        ZoneSummary(samples: available, zones: zones),
+        ZoneSummary(samples: heartRateSamples, zones: zones),
       ],
     );
   }
@@ -679,9 +675,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return filtered.isEmpty ? samples.take(2).toList() : filtered;
   }
 
-  /// Two bands per done set: resting (blue) from its completion to its rest
-  /// target, cut short by the next Done; then yapping (pink) from the rest
-  /// target to the next Done, if the next set came after the rest ran out.
   /// The workout's phases as shaded bands: lifting (a set's start to its
   /// end), resting (the end to the rest's end) and yapping (rest over, next
   /// set not started). Live, the phase in progress runs to [nowSec].

@@ -32240,7 +32240,8 @@ public final class WorkoutOuterClass {
   }
   /**
    * <pre>
-   * Public: the library is the same for everyone.
+   * The template library and the ready-made plans it can make, answered by
+   * the core.
    * </pre>
    *
    * Protobuf type {@code workout.v1.ListTemplateLibraryRequest}
@@ -32335,7 +32336,8 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * Public: the library is the same for everyone.
+     * The template library and the ready-made plans it can make, answered by
+     * the core.
      * </pre>
      *
      * Protobuf type {@code workout.v1.ListTemplateLibraryRequest}
@@ -53314,12 +53316,6 @@ public final class WorkoutOuterClass {
      * @return The bpm.
      */
     float getBpm();
-
-    /**
-     * <code>int32 availability = 3 [json_name = "availability"];</code>
-     * @return The availability.
-     */
-    int getAvailability();
   }
   /**
    * Protobuf type {@code workout.v1.WorkoutHeartRatePoint}
@@ -53393,32 +53389,6 @@ public final class WorkoutOuterClass {
     private void clearBpm() {
       
       bpm_ = 0F;
-    }
-
-    public static final int AVAILABILITY_FIELD_NUMBER = 3;
-    private int availability_;
-    /**
-     * <code>int32 availability = 3 [json_name = "availability"];</code>
-     * @return The availability.
-     */
-    @java.lang.Override
-    public int getAvailability() {
-      return availability_;
-    }
-    /**
-     * <code>int32 availability = 3 [json_name = "availability"];</code>
-     * @param value The availability to set.
-     */
-    private void setAvailability(int value) {
-      
-      availability_ = value;
-    }
-    /**
-     * <code>int32 availability = 3 [json_name = "availability"];</code>
-     */
-    private void clearAvailability() {
-      
-      availability_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.WorkoutHeartRatePoint parseFrom(
@@ -53584,34 +53554,6 @@ public final class WorkoutOuterClass {
         return this;
       }
 
-      /**
-       * <code>int32 availability = 3 [json_name = "availability"];</code>
-       * @return The availability.
-       */
-      @java.lang.Override
-      public int getAvailability() {
-        return instance.getAvailability();
-      }
-      /**
-       * <code>int32 availability = 3 [json_name = "availability"];</code>
-       * @param value The availability to set.
-       * @return This builder for chaining.
-       */
-      public Builder setAvailability(int value) {
-        copyOnWrite();
-        instance.setAvailability(value);
-        return this;
-      }
-      /**
-       * <code>int32 availability = 3 [json_name = "availability"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearAvailability() {
-        copyOnWrite();
-        instance.clearAvailability();
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.WorkoutHeartRatePoint)
     }
     @java.lang.Override
@@ -53630,11 +53572,10 @@ public final class WorkoutOuterClass {
             java.lang.Object[] objects = new java.lang.Object[] {
               "sampledAt_",
               "bpm_",
-              "availability_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0002\u0002\u0001" +
-                "\u0003\u0004";
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0002\u0002\u0001" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

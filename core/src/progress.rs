@@ -76,7 +76,7 @@ pub fn compute_workout_summary(
 
         // Volume + per-exercise rollup — working sets only (a calibration
         // rung is a warmup here).
-        if proposed.warmup || proposed.calibration {
+        if !proposed.is_working() {
             continue;
         }
         let set_volume = c.actual_reps as f32 * c.actual_weight;
@@ -159,7 +159,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
                 Some(p) => *p,
                 None => continue,
             };
-            if p.warmup || p.calibration {
+            if !p.is_working() {
                 continue;
             }
             let a = per_ex.entry(p.exercise).or_insert(Acc {

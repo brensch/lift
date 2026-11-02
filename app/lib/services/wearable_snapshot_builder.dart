@@ -85,10 +85,7 @@ class WearableSnapshotBuilder {
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
       final weight = set.targetWeight.toDouble();
       final plates = barbell && !firstTime
-          ? calcPlatesPerSide(
-              displayWeightFromPounds(weight, unit),
-              unit,
-            ).plates
+          ? calcPlatesPerSide(displayWeightFromPounds(weight, unit), unit)
           : const <double>[];
       final heaviest = standardPlates(unit).first;
       return WearStatusCard(

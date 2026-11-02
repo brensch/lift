@@ -146,11 +146,7 @@ impl Stream {
         mut inbound: Streaming<SyncRequest>,
         mut changes: broadcast::Receiver<Change>,
     ) -> ServerResult<()> {
-        let head = self
-            .db
-            .read_account(&self.user_id, |account| account.seq)
-            .await
-            .map_err(internal_error)?;
+        let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
         if self.send(sync_response::Kind::Head(head)).await.is_err() {
             return Ok(());
         }
@@ -226,11 +222,9 @@ impl Stream {
                 self.after_push(&pushed).await?;
                 pushed.head
             }
-            Some(sync_request::Kind::Heartbeat(_)) | None => self
-                .db
-                .read_account(&self.user_id, |account| account.seq)
-                .await
-                .map_err(internal_error)?,
+            Some(sync_request::Kind::Heartbeat(_)) | None => {
+                self.db.head(&self.user_id).await.map_err(internal_error)?
+            }
         };
         Ok(self.send(sync_response::Kind::Head(head)).await)
     }

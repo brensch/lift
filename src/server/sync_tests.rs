@@ -112,7 +112,6 @@ mod store {
                 samples: vec![WorkoutHeartRatePoint {
                     sampled_at: 1_005_000,
                     bpm: 120.0,
-                    availability: 0,
                 }],
             })
             .unwrap()
@@ -229,7 +228,6 @@ mod store {
                         .map(|(&bpm, n)| WorkoutHeartRatePoint {
                             sampled_at: at * 1_000 + n,
                             bpm,
-                            availability: 0,
                         })
                         .collect(),
                 })

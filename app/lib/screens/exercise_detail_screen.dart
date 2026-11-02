@@ -114,20 +114,19 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _headStat(
+                HeadStat(
                   maxText(maxNow, unit, bodyweight: bodyweight),
                   'estimated max',
-                  cs,
-                  big: true,
+                  size: context.tokens.size.headline,
                   color: context.tokens.series.first,
                 ),
                 const Spacer(),
-                _headStat(
+                HeadStat(
                   bodyweight
                       ? '${sessions.last.topReps} reps'
                       : formatWeight(current, unit, includeUnit: true),
                   'heaviest set last time',
-                  cs,
+                  size: context.tokens.size.subtitle,
                   color: context.tokens.series[1],
                 ),
               ],
@@ -191,34 +190,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       ),
     );
   }
-
-  Widget _headStat(
-    String value,
-    String label,
-    ColorScheme cs, {
-    bool big = false,
-    Color? color,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: big ? 30 : 18,
-          fontWeight: context.tokens.weight.heavy,
-          height: 1,
-          color: color,
-        ),
-      ),
-      Text(
-        label,
-        style: TextStyle(
-          color: cs.tertiary,
-          fontSize: context.tokens.size.small,
-        ),
-      ),
-    ],
-  );
 
   Widget _footStat(String label, String value, ColorScheme cs) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,

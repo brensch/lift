@@ -237,6 +237,41 @@ class FlatHeading extends StatelessWidget {
   }
 }
 
+/// A headline number over its label, at the top of a page.
+class HeadStat extends StatelessWidget {
+  final String value;
+  final String label;
+
+  /// The number's text size; the theme's titleLg when null.
+  final double? size;
+  final Color? color;
+
+  const HeadStat(this.value, this.label, {super.key, this.size, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: size ?? t.size.titleLg,
+            fontWeight: t.weight.heavy,
+            height: 1,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(color: t.muted, fontSize: t.size.small),
+        ),
+      ],
+    );
+  }
+}
+
 /// A page's (or sheet's) title: capitals, in the app bar's title style —
 /// the buttons' face, regular weight.
 class PageTitle extends StatelessWidget {

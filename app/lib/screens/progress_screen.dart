@@ -189,13 +189,11 @@ class _SummaryHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _headStat(context, '$workoutCount', 'workouts', cs),
+        HeadStat('$workoutCount', 'workouts'),
         const SizedBox(width: 24),
-        _headStat(
-          context,
+        HeadStat(
           compactVolume(totalVolume, unit),
           '${weightUnitSuffix(unit)} lifted',
-          cs,
         ),
         const Spacer(),
         Padding(
@@ -211,32 +209,6 @@ class _SummaryHeader extends StatelessWidget {
       ],
     );
   }
-
-  Widget _headStat(
-    BuildContext context,
-    String value,
-    String label,
-    ColorScheme cs,
-  ) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: context.tokens.size.titleLg,
-          fontWeight: context.tokens.weight.heavy,
-          height: 1,
-        ),
-      ),
-      Text(
-        label,
-        style: TextStyle(
-          color: cs.tertiary,
-          fontSize: context.tokens.size.small,
-        ),
-      ),
-    ],
-  );
 }
 
 class _ExerciseCard extends StatelessWidget {

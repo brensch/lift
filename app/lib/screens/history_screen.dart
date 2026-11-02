@@ -147,9 +147,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return FlatSection(
               child: Row(
                 children: [
-                  _headStat('${_items!.length}', 'workouts', cs),
+                  HeadStat('${_items!.length}', 'workouts'),
                   const SizedBox(width: 24),
-                  _headStat('$thisWeek', 'this week', cs),
+                  HeadStat('$thisWeek', 'this week'),
                 ],
               ),
             );
@@ -207,27 +207,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
     return out;
   }
-
-  Widget _headStat(String value, String label, ColorScheme cs) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: context.tokens.size.titleLg,
-          fontWeight: context.tokens.weight.heavy,
-          height: 1,
-        ),
-      ),
-      Text(
-        label,
-        style: TextStyle(
-          color: cs.tertiary,
-          fontSize: context.tokens.size.small,
-        ),
-      ),
-    ],
-  );
 }
 
 class _HistoryCard extends StatelessWidget {

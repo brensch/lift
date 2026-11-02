@@ -71,7 +71,6 @@ class _MenuProfileState extends State<MenuProfile> {
     }
   }
 
-  /// "2h 14m", or "14m" under an hour.
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;

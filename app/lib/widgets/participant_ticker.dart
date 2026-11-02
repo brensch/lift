@@ -43,9 +43,26 @@ ParticipantVisualStatus describeParticipantStatus(
   final set = stage.state == WorkoutState.WORKOUT_STATE_LIFTING
       ? shownSet(snapshot, nextSet)
       : nextSet;
-  if (ended ||
-      set == null ||
-      stage.state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
+  return workoutVisualStatus(
+    snapshot: snapshot,
+    set: ended ? null : set,
+    completedSets: participant.completedSets,
+    nowUnix: nowUnix,
+    tokens: tokens,
+  );
+}
+
+/// A workout's stage as its status bar shows it, with [set] the set in
+/// hand: all done when there is none left.
+ParticipantVisualStatus workoutVisualStatus({
+  required WorkoutStateSnapshot? snapshot,
+  required ProposedSet? set,
+  required Iterable<CompletedSet> completedSets,
+  required int nowUnix,
+  required ThemeSpec tokens,
+}) {
+  final stage = stageOf(snapshot, nowUnix);
+  if (set == null || stage.state == WorkoutState.WORKOUT_STATE_ALL_DONE) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.allDone,
       stateColor: tokens.success,
@@ -57,11 +74,7 @@ ParticipantVisualStatus describeParticipantStatus(
     proposedSet: set,
     timerText: stage.timer,
     restLeft: stage.state == WorkoutState.WORKOUT_STATE_RESTING
-        ? restLeftFraction(
-            participant.completedSets,
-            snapshot!.restUntil.toInt(),
-            nowUnix,
-          )
+        ? restLeftFraction(completedSets, snapshot!.restUntil.toInt(), nowUnix)
         : null,
   );
 }

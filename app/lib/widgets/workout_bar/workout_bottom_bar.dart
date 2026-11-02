@@ -36,47 +36,6 @@ import 'workout_focus.dart';
 const _maxPartnersInView = 3;
 const _gap = 6.0;
 
-/// Your stage, as your status bar shows it.
-class _YouState {
-  final String label;
-  final Color color;
-  final String? timerText;
-  final ProposedSet? set;
-
-  /// 0..1 of the rest still to go, while resting.
-  final double? restLeft;
-
-  const _YouState(
-    this.label,
-    this.color,
-    this.timerText,
-    this.set, {
-    this.restLeft,
-  });
-}
-
-_YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
-  final snapshot = wp.stateSnapshot;
-  final stage = stageOf(snapshot, nowUnix);
-  final set = wp.doneTargetSet;
-  if (stage.state == WorkoutState.WORKOUT_STATE_ALL_DONE || set == null) {
-    return _YouState(copy.workout.allDone, t.success, null, null);
-  }
-  return _YouState(
-    stage.label,
-    stageColor(stage.state, t),
-    stage.timer,
-    set,
-    restLeft: stage.state == WorkoutState.WORKOUT_STATE_RESTING
-        ? restLeftFraction(
-            wp.completedSets,
-            snapshot!.restUntil.toInt(),
-            nowUnix,
-          )
-        : null,
-  );
-}
-
 /// What to do next, said once: only during the first workout.
 String _hint(WorkoutProvider wp, int nowUnix) {
   final state = stateAt(wp.stateSnapshot, nowUnix);
@@ -180,12 +139,18 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         final t = context.tokens;
         final nowUnix = now.millisecondsSinceEpoch ~/ 1000;
         final snapshot = wp.stateSnapshot;
-        final you = _youState(wp, t, nowUnix);
+        final you = workoutVisualStatus(
+          snapshot: snapshot,
+          set: wp.doneTargetSet,
+          completedSets: wp.completedSets,
+          nowUnix: nowUnix,
+          tokens: t,
+        );
         final topLine = wp.isFirstWorkout
             ? _hint(wp, nowUnix)
             : _liftReason(
                 wp,
-                you.set,
+                you.proposedSet,
                 context.watch<SettingsProvider>().weightUnit,
               );
 
@@ -235,7 +200,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         }
 
         final iAmNext = nextToLift != null && nextToLift == auth.userId;
-        final allDone = you.set == null;
+        final allDone = you.proposedSet == null;
 
         return GestureDetector(
           // The banner is the way back to where you're up to: the workout
@@ -335,22 +300,22 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                       child: StatusBox(
                         emoji: normalizedProfileEmoji(auth.profileEmoji),
                         profileColor: profileColorFromHex(auth.profileColorHex),
-                        stateLabel: you.label,
-                        stateColor: you.color,
+                        stateLabel: you.stateLabel,
+                        stateColor: you.stateColor,
                         upNext: iAmNext,
                         timerText: you.timerText,
                         restLeft: you.restLeft,
-                        set: you.set,
+                        set: you.proposedSet,
                         plan: wp.proposedSets,
-                        circle: you.set == null
+                        circle: you.proposedSet == null
                             ? null
                             : LiveSetCircle(
                                 workout: SectionWorkout.mine(wp),
-                                set: you.set!,
+                                set: you.proposedSet!,
                               ),
                         firstTime:
-                            you.set != null &&
-                            wp.firstTimeSetIds.contains(you.set!.id),
+                            you.proposedSet != null &&
+                            wp.firstTimeSetIds.contains(you.proposedSet!.id),
                       ),
                     ),
                     if (allDone && wp.workout?.endTime == Int64.ZERO) ...[

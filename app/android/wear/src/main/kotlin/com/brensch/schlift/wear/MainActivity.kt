@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -677,7 +678,8 @@ private fun WorkoutScreens(
 
     // The rest drains the band from the end of the last set to restUntil,
     // updated each time the fill moves by a pixel of the screen, so it moves
-    // smoothly without a redraw every frame.
+    // smoothly without a redraw every frame. Each step waits for a frame, so
+    // the loop parks while the face is off screen.
     val restStartMs = data.lastSetEndedAt * 1000L
     val restUntilMs = data.restUntil.toLong() * 1000L
     val draining = resting && !yapping && restStartMs in 1 until restUntilMs
@@ -698,6 +700,7 @@ private fun WorkoutScreens(
             bandFill.floatValue = (leftMs.toFloat() / spanMs).coerceIn(0f, 1f)
             if (leftMs <= 0L) break
             delay(stepMs)
+            withFrameMillis { }
         }
     }
 

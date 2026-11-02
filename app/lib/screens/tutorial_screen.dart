@@ -239,6 +239,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                         builder: (context, _) => CustomPaint(
                           painter: _SpotlightPainter(
                             outline: context.tokens.primary,
+                            scrim: context.tokens.scrim,
                             radius: Radius.circular(context.tokens.radiusLg),
                             target: _target,
                             throb: Curves.easeInOut.transform(_throb.value),
@@ -273,11 +274,13 @@ class _SpotlightPainter extends CustomPainter {
   final Rect? target;
   final double throb;
   final Color outline;
+  final Color scrim;
 
   _SpotlightPainter({
     required this.target,
     required this.throb,
     required this.outline,
+    required this.scrim,
     required Radius radius,
   }) : _radius = radius;
 
@@ -286,17 +289,17 @@ class _SpotlightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final full = Path()..addRect(Offset.zero & size);
-    final scrim = Paint()..color = Colors.black.withValues(alpha: 0.55);
+    final shade = Paint()..color = scrim;
     final t = target;
     if (t == null) {
-      canvas.drawPath(full, scrim);
+      canvas.drawPath(full, shade);
       return;
     }
     final hole = t.inflate(6);
     final holePath = Path()..addRRect(RRect.fromRectAndRadius(hole, _radius));
     canvas.drawPath(
       Path.combine(PathOperation.difference, full, holePath),
-      scrim,
+      shade,
     );
     // A crisp orange outline that beats a little thicker, no glow.
     canvas.drawRRect(
@@ -310,7 +313,10 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_SpotlightPainter old) =>
-      old.target != target || old.throb != throb || old.outline != outline;
+      old.target != target ||
+      old.throb != throb ||
+      old.outline != outline ||
+      old.scrim != scrim;
 }
 
 /// The explanation with the controls: placed below the target when there

@@ -144,14 +144,6 @@ public final class Wearable {
      * <code>HEART_RATE_AVAILABILITY_AVAILABLE = 1;</code>
      */
     HEART_RATE_AVAILABILITY_AVAILABLE(1),
-    /**
-     * <code>HEART_RATE_AVAILABILITY_ACQUIRING = 2;</code>
-     */
-    HEART_RATE_AVAILABILITY_ACQUIRING(2),
-    /**
-     * <code>HEART_RATE_AVAILABILITY_UNAVAILABLE = 3;</code>
-     */
-    HEART_RATE_AVAILABILITY_UNAVAILABLE(3),
     UNRECOGNIZED(-1),
     ;
 
@@ -163,14 +155,6 @@ public final class Wearable {
      * <code>HEART_RATE_AVAILABILITY_AVAILABLE = 1;</code>
      */
     public static final int HEART_RATE_AVAILABILITY_AVAILABLE_VALUE = 1;
-    /**
-     * <code>HEART_RATE_AVAILABILITY_ACQUIRING = 2;</code>
-     */
-    public static final int HEART_RATE_AVAILABILITY_ACQUIRING_VALUE = 2;
-    /**
-     * <code>HEART_RATE_AVAILABILITY_UNAVAILABLE = 3;</code>
-     */
-    public static final int HEART_RATE_AVAILABILITY_UNAVAILABLE_VALUE = 3;
 
 
     @java.lang.Override
@@ -196,8 +180,6 @@ public final class Wearable {
       switch (value) {
         case 0: return HEART_RATE_AVAILABILITY_UNSPECIFIED;
         case 1: return HEART_RATE_AVAILABILITY_AVAILABLE;
-        case 2: return HEART_RATE_AVAILABILITY_ACQUIRING;
-        case 3: return HEART_RATE_AVAILABILITY_UNAVAILABLE;
         default: return null;
       }
     }

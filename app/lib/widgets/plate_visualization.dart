@@ -36,7 +36,7 @@ class _PlateSheet extends StatelessWidget {
     final barWeight = standardBarWeight(unit);
     // Plates are counted in the user's unit, from the stored pounds.
     final weight = displayWeightFromPounds(weightLb, unit);
-    final plates = calcPlatesPerSide(weight, unit).plates;
+    final plates = calcPlatesPerSide(weight, unit);
     final colorOf = settings.plateColor;
 
     // Each plate size once, heaviest (loaded first) first, with its count.
@@ -268,7 +268,7 @@ class PlateVisualization extends StatelessWidget {
     context.watch<SettingsProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
     final weight = displayWeightFromPounds(weightLb, unit);
-    final plates = calcPlatesPerSide(weight, unit).plates;
+    final plates = calcPlatesPerSide(weight, unit);
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: weight < standardBarWeight(unit)

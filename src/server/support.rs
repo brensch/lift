@@ -134,41 +134,6 @@ pub(super) fn client_labels<T>(request: &Request<T>) -> (String, String) {
     (platform, header("x-app-version"))
 }
 
-fn build_participant_status(
-    user: User,
-    workout_resp: Option<&GetWorkoutResponse>,
-) -> ParticipantStatus {
-    if let Some(resp) = workout_resp {
-        ParticipantStatus {
-            user: Some(user),
-            active_workout_id: resp
-                .workout
-                .as_ref()
-                .map(|w| w.id.clone())
-                .unwrap_or_default(),
-            active_workout: resp.workout.clone(),
-            proposed_sets: resp.proposed_sets.clone(),
-            completed_sets: resp.completed_sets.clone(),
-            next_up_set: resp.next_up_set.clone(),
-            state_snapshot: resp.state_snapshot.clone(),
-            passed_warmup_ids: resp.passed_warmup_ids.clone(),
-            first_time_set_ids: resp.first_time_set_ids.clone(),
-        }
-    } else {
-        ParticipantStatus {
-            user: Some(user),
-            active_workout_id: String::new(),
-            active_workout: None,
-            proposed_sets: Vec::new(),
-            completed_sets: Vec::new(),
-            next_up_set: None,
-            state_snapshot: None,
-            passed_warmup_ids: Vec::new(),
-            first_time_set_ids: Vec::new(),
-        }
-    }
-}
-
 /// Answer a read from the user's account, through the core.
 pub(super) async fn read_api<R>(
     db: &ServerDb,
@@ -188,9 +153,15 @@ pub(super) fn core_status(error: CoreError) -> Status {
     }
 }
 
+/// A user as someone else sees them: their body weight is theirs alone.
+pub(super) fn as_seen_by_others(mut user: User) -> User {
+    user.body_weight_kg = 0.0;
+    user
+}
+
 /// Where a user is up to, as their session partners see it: the workout under
 /// way (or, with `workout_id`, that one — a just-finished workout stays on
-/// show), from their synced account.
+/// show) as the user's own app shows it, from their synced account.
 async fn participant_status(
     db: &ServerDb,
     user_id: &str,
@@ -204,15 +175,34 @@ async fn participant_status(
     let now = now_unix();
     let workout = db
         .read_account(user_id, |account| {
-            let record = match workout_id {
-                Some(id) => account.workout(id),
-                None => account.active_workout(),
-            };
-            record.map(|r| get_workout_response_from_active(r, now))
+            let id =
+                workout_id.or_else(|| account.active_workout().map(|r| r.workout.id.as_str()))?;
+            View::new(account, now).workout_response(id).ok()
         })
         .await
         .map_err(internal_error)?;
-    Ok(build_participant_status(user, workout.as_ref()))
+    let user = Some(as_seen_by_others(user));
+    Ok(match workout {
+        Some(resp) => ParticipantStatus {
+            user,
+            active_workout_id: resp
+                .workout
+                .as_ref()
+                .map(|w| w.id.clone())
+                .unwrap_or_default(),
+            active_workout: resp.workout,
+            proposed_sets: resp.proposed_sets,
+            completed_sets: resp.completed_sets,
+            next_up_set: resp.next_up_set,
+            state_snapshot: resp.state_snapshot,
+            passed_warmup_ids: resp.passed_warmup_ids,
+            first_time_set_ids: resp.first_time_set_ids,
+        },
+        None => ParticipantStatus {
+            user,
+            ..Default::default()
+        },
+    })
 }
 
 /// Write an updated participant snapshot for `user_id` into session `session_id`.
