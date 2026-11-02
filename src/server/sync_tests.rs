@@ -172,6 +172,51 @@ mod store {
     }
 
     #[tokio::test]
+    async fn a_database_from_before_a_projected_column_is_brought_up_to_date() {
+        let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let old = sqlx::SqlitePool::connect(&format!(
+            "sqlite://{}/server.sqlite?mode=rwc",
+            dir.display()
+        ))
+        .await
+        .unwrap();
+        sqlx::query(
+            "CREATE TABLE proposed_sets (
+                id TEXT PRIMARY KEY, user_id TEXT NOT NULL, workout_id TEXT NOT NULL,
+                workout_order INTEGER NOT NULL, exercise INTEGER NOT NULL,
+                target_reps INTEGER NOT NULL, target_weight REAL NOT NULL,
+                warmup INTEGER NOT NULL DEFAULT 0, cancelled INTEGER NOT NULL DEFAULT 0,
+                rest_after_success INTEGER NOT NULL DEFAULT 0,
+                rest_after_failure INTEGER NOT NULL DEFAULT 0,
+                calibration INTEGER NOT NULL DEFAULT 0, skipped INTEGER NOT NULL DEFAULT 0)",
+        )
+        .execute(&old)
+        .await
+        .unwrap();
+        old.close().await;
+
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let (started, events) = Phone::new().start_squats(1_000);
+        db.push_events("u1", events).await.unwrap();
+        let rests: Vec<i64> =
+            sqlx::query_scalar("SELECT rest_seconds FROM proposed_sets WHERE workout_id = ?")
+                .bind(&started.id)
+                .fetch_all(&db.read_pool)
+                .await
+                .unwrap();
+        let planned: Vec<i64> = started
+            .proposed_sets
+            .iter()
+            .map(|s| s.rest_seconds as i64)
+            .collect();
+        assert_eq!(rests, planned);
+        // Opening it again changes nothing.
+        drop(db);
+        ServerDb::new_in_dir(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
     async fn the_pull_is_the_whole_log() {
         let db = db().await;
         let mut phone = Phone::new();
