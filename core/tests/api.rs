@@ -1451,8 +1451,25 @@ mod calibration {
         };
         let state = batch(&mut app, done(&rung1, 5), NOW + 100);
         assert_eq!(state.rung_question_set_id, rung1.id);
+        // What each answer leads to, offered with the question: 0–1 the
+        // working sets, the others a next rung; 5+ is kept to the pound.
+        let outcome = |reps_left: RepsLeft| {
+            state
+                .rung_outcomes
+                .iter()
+                .find(|o| o.reps_left == reps_left as i32)
+                .cloned()
+                .unwrap()
+        };
+        assert_eq!(state.rung_outcomes.len(), 3);
+        assert!(outcome(RepsLeft::ZeroToOne).settles);
+        assert!(!outcome(RepsLeft::TwoToFour).settles);
+        let promised = outcome(RepsLeft::FivePlus);
+        assert!(!promised.settles);
         let rung2 = state.proposed_sets[1].clone();
         let state = batch(&mut app, answer(&rung1, RepsLeft::FivePlus), NOW + 110);
+        assert!(state.rung_outcomes.is_empty(), "the question is closed");
+        assert_eq!(state.proposed_sets[1].target_weight, promised.weight);
         assert!(state.rung_question_set_id.is_empty());
         assert_eq!(
             state.proposed_sets[1].id, rung2.id,

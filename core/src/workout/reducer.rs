@@ -180,6 +180,7 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         .collect();
     GetWorkoutResponse {
         rung_question_set_id: rung_question(active).unwrap_or_default(),
+        rung_outcomes: Vec::new(),
         passed_warmup_ids,
         workout: Some(active.workout.clone()),
         proposed_sets: active.proposed_sets.clone(),

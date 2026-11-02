@@ -80,6 +80,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Set<String> _passedWarmups = {};
   List<ExerciseLog> _logs = [];
   String _rungQuestion = '';
+  List<RungOutcome> _rungOutcomes = const [];
   final Set<String> _askedRungs = {};
   ProposedSet? _nextUp;
   WorkoutStateSnapshot? _snapshot;
@@ -142,6 +143,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _passedWarmups = response.passedWarmupIds.toSet();
     _logs = List.of(response.exerciseLogs);
     _rungQuestion = response.rungQuestionSetId;
+    _rungOutcomes = List.of(response.rungOutcomes);
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -349,6 +351,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// set, nothing lifted since).
   String get rungQuestionSetId => _rungQuestion;
 
+  /// What each range answer to the open question leads to (the core
+  /// answers a copy): the next ramp set's weight, or the working sets'.
+  RungOutcome? rungOutcome(RepsLeft repsLeft) {
+    for (final o in _rungOutcomes) {
+      if (o.repsLeft == repsLeft) return o;
+    }
+    return null;
+  }
+
   ExerciseLog? logFor(Exercise exercise) {
     for (final log in _logs) {
       if (log.decision.exercise == exercise) return log;
@@ -492,6 +503,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _passedWarmups = {};
     _logs = [];
     _rungQuestion = '';
+    _rungOutcomes = const [];
     _askedRungs.clear();
     _nextUp = null;
     _blocksCache.clear();

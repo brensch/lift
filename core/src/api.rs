@@ -18,8 +18,8 @@ use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
 use crate::volume::{muscle_volume_7d, suggest_template};
 use crate::workout::{
-    active_proposed_sets, get_workout_response_from_active, start_workout_response_from_active,
-    workout_state_snapshot,
+    active_proposed_sets, apply_answer_rung_to_active, get_workout_response_from_active,
+    start_workout_response_from_active, workout_state_snapshot,
 };
 
 /// One call into the account: the time it's made, and the id the first
@@ -534,10 +534,55 @@ impl<'a> View<'a> {
     pub fn workout_response(&self, id: &str) -> Result<GetWorkoutResponse, CoreError> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
+        response.rung_outcomes = self.rung_outcomes(record, &response.rung_question_set_id);
         // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
         response.proposed_sets.retain(|s| !s.cancelled);
         Ok(response)
+    }
+
+    /// What each range answer to the open rung question leads to: the
+    /// answer applied to a copy of the workout, and the lift's next set
+    /// read off it (a ramp set, or the working sets the ramp settles on).
+    fn rung_outcomes(&self, record: &WorkoutRecord, set_id: &str) -> Vec<RungOutcome> {
+        let Some(exercise) = record
+            .proposed_sets
+            .iter()
+            .find(|s| s.id == set_id)
+            .map(|s| s.exercise)
+        else {
+            return Vec::new();
+        };
+        [RepsLeft::ZeroToOne, RepsLeft::TwoToFour, RepsLeft::FivePlus]
+            .into_iter()
+            .filter_map(|reps_left| {
+                let mut answered = record.clone();
+                let req = AnswerRungRequest {
+                    workout_id: record.workout.id.clone(),
+                    proposed_set_id: set_id.to_string(),
+                    reps_left: reps_left as i32,
+                    jump_lb: 0.0,
+                };
+                apply_answer_rung_to_active(&mut answered, &req, self.account.unit(), self.now)
+                    .ok()?;
+                let done: std::collections::HashSet<&str> = answered
+                    .completed_sets
+                    .iter()
+                    .map(|c| c.proposed_set_id.as_str())
+                    .collect();
+                let next = answered.proposed_sets.iter().find(|s| {
+                    s.exercise == exercise
+                        && !s.cancelled
+                        && !s.warmup
+                        && !done.contains(s.id.as_str())
+                })?;
+                Some(RungOutcome {
+                    reps_left: reps_left as i32,
+                    weight: next.target_weight,
+                    settles: !next.calibration,
+                })
+            })
+            .collect()
     }
 
     pub fn plan_response(&self, id: &str) -> Result<WorkoutPlanResponse, CoreError> {

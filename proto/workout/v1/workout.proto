@@ -442,6 +442,10 @@ message GetWorkoutResponse {
   // lift, the rung it appended still to lift and nothing being lifted.
   // Empty when none. An AnswerRungRequest applies only to this set.
   string rung_question_set_id = 12;
+  // What each range answer to that question leads to, worked out by
+  // answering a copy: 0–1 settles the ramp (weight = the working sets'),
+  // 2–4 and 5+ the next ramp set's weight. Empty when no question is open.
+  repeated RungOutcome rung_outcomes = 13;
   // Undone warmups that are behind you (skipped, or a working set of their
   // exercise is done): shown out of the way, nothing waits on them.
   repeated string passed_warmup_ids = 10;
@@ -586,6 +590,13 @@ message SkipWarmupsRequest {
 // and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
 // weight. Applies only to the open question
 // (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+message RungOutcome {
+  RepsLeft reps_left = 1;
+  float weight = 2; // lb
+  // The ramp ends: the weight is the working sets', not a next ramp set's.
+  bool settles = 3;
+}
+
 message AnswerRungRequest {
   string workout_id = 1;
   string proposed_set_id = 2;

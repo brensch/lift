@@ -926,6 +926,14 @@ const GetWorkoutResponse$json = {
       '10': 'rungQuestionSetId'
     },
     {
+      '1': 'rung_outcomes',
+      '3': 13,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.RungOutcome',
+      '10': 'rungOutcomes'
+    },
+    {
       '1': 'passed_warmup_ids',
       '3': 10,
       '4': 3,
@@ -959,9 +967,10 @@ final $typed_data.Uint8List getWorkoutResponseDescriptor = $convert.base64Decode
     'Cg5zdGF0ZV9zbmFwc2hvdBgHIAEoCzIgLndvcmtvdXQudjEuV29ya291dFN0YXRlU25hcHNob3'
     'RSDXN0YXRlU25hcHNob3QSNAoHc3VtbWFyeRgJIAEoCzIaLndvcmtvdXQudjEuV29ya291dFN1'
     'bW1hcnlSB3N1bW1hcnkSLwoUcnVuZ19xdWVzdGlvbl9zZXRfaWQYDCABKAlSEXJ1bmdRdWVzdG'
-    'lvblNldElkEioKEXBhc3NlZF93YXJtdXBfaWRzGAogAygJUg9wYXNzZWRXYXJtdXBJZHMSPAoN'
-    'ZXhlcmNpc2VfbG9ncxgLIAMoCzIXLndvcmtvdXQudjEuRXhlcmNpc2VMb2dSDGV4ZXJjaXNlTG'
-    '9nc0oECAIQA0oECAgQCVIPZXhlcmNpc2VfZ3JvdXBzUg11c2VyX21lc3NhZ2Vz');
+    'lvblNldElkEjwKDXJ1bmdfb3V0Y29tZXMYDSADKAsyFy53b3Jrb3V0LnYxLlJ1bmdPdXRjb21l'
+    'UgxydW5nT3V0Y29tZXMSKgoRcGFzc2VkX3dhcm11cF9pZHMYCiADKAlSD3Bhc3NlZFdhcm11cE'
+    'lkcxI8Cg1leGVyY2lzZV9sb2dzGAsgAygLMhcud29ya291dC52MS5FeGVyY2lzZUxvZ1IMZXhl'
+    'cmNpc2VMb2dzSgQIAhADSgQICBAJUg9leGVyY2lzZV9ncm91cHNSDXVzZXJfbWVzc2FnZXM=');
 
 @$core.Deprecated('Use workoutPlanChangeStatsDescriptor instead')
 const WorkoutPlanChangeStats$json = {
@@ -1344,6 +1353,29 @@ const SkipWarmupsRequest$json = {
 final $typed_data.Uint8List skipWarmupsRequestDescriptor = $convert.base64Decode(
     'ChJTa2lwV2FybXVwc1JlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEjAKCG'
     'V4ZXJjaXNlGAIgASgOMhQud29ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2U=');
+
+@$core.Deprecated('Use rungOutcomeDescriptor instead')
+const RungOutcome$json = {
+  '1': 'RungOutcome',
+  '2': [
+    {
+      '1': 'reps_left',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.RepsLeft',
+      '10': 'repsLeft'
+    },
+    {'1': 'weight', '3': 2, '4': 1, '5': 2, '10': 'weight'},
+    {'1': 'settles', '3': 3, '4': 1, '5': 8, '10': 'settles'},
+  ],
+};
+
+/// Descriptor for `RungOutcome`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List rungOutcomeDescriptor = $convert.base64Decode(
+    'CgtSdW5nT3V0Y29tZRIxCglyZXBzX2xlZnQYASABKA4yFC53b3Jrb3V0LnYxLlJlcHNMZWZ0Ug'
+    'hyZXBzTGVmdBIWCgZ3ZWlnaHQYAiABKAJSBndlaWdodBIYCgdzZXR0bGVzGAMgASgIUgdzZXR0'
+    'bGVz');
 
 @$core.Deprecated('Use answerRungRequestDescriptor instead')
 const AnswerRungRequest$json = {

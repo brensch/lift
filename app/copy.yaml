@@ -296,10 +296,14 @@ workout:
   # ramp. The answers are the buttons, on the phone and the watch.
   # Placeholders.
   rung_question: How many more could you have done?
-  rung_question_hint: Be honest. The next set is riding on it.
+  rung_question_hint: Be honest. The next set and your integrity depends on it.
   rung_answer_zero_to_one: "0–1"
   rung_answer_two_to_four: "2–4"
   rung_answer_five_plus: "5+"
+  # Under each answer: where it takes you. {weight} with its unit, {jump}
+  # the difference from the set just done.
+  rung_outcome_next: "Next set {weight} (+{jump})"
+  rung_outcome_settle: "Done. Working sets at {weight}"
   # Under the three answers, after a line with "or" on it: type how much to
   # add for the next ramp set instead, in your unit, and apply it. The ramp
   # goes on from there. Placeholders.

@@ -1875,6 +1875,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? passedWarmupIds,
     $core.Iterable<ExerciseLog>? exerciseLogs,
     $core.String? rungQuestionSetId,
+    $core.Iterable<RungOutcome>? rungOutcomes,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
@@ -1887,6 +1888,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     if (passedWarmupIds != null) result.passedWarmupIds.addAll(passedWarmupIds);
     if (exerciseLogs != null) result.exerciseLogs.addAll(exerciseLogs);
     if (rungQuestionSetId != null) result.rungQuestionSetId = rungQuestionSetId;
+    if (rungOutcomes != null) result.rungOutcomes.addAll(rungOutcomes);
     return result;
   }
 
@@ -1921,6 +1923,8 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     ..pPM<ExerciseLog>(11, _omitFieldNames ? '' : 'exerciseLogs',
         subBuilder: ExerciseLog.create)
     ..aOS(12, _omitFieldNames ? '' : 'rungQuestionSetId')
+    ..pPM<RungOutcome>(13, _omitFieldNames ? '' : 'rungOutcomes',
+        subBuilder: RungOutcome.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2024,6 +2028,12 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
   $core.bool hasRungQuestionSetId() => $_has(9);
   @$pb.TagNumber(12)
   void clearRungQuestionSetId() => $_clearField(12);
+
+  /// What each range answer to that question leads to, worked out by
+  /// answering a copy: 0–1 settles the ramp (weight = the working sets'),
+  /// 2–4 and 5+ the next ramp set's weight. Empty when no question is open.
+  @$pb.TagNumber(13)
+  $pb.PbList<RungOutcome> get rungOutcomes => $_getList(10);
 }
 
 class WorkoutPlanChangeStats extends $pb.GeneratedMessage {
@@ -3157,6 +3167,86 @@ class SkipWarmupsRequest extends $pb.GeneratedMessage {
 /// and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
 /// weight. Applies only to the open question
 /// (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+class RungOutcome extends $pb.GeneratedMessage {
+  factory RungOutcome({
+    RepsLeft? repsLeft,
+    $core.double? weight,
+    $core.bool? settles,
+  }) {
+    final result = create();
+    if (repsLeft != null) result.repsLeft = repsLeft;
+    if (weight != null) result.weight = weight;
+    if (settles != null) result.settles = settles;
+    return result;
+  }
+
+  RungOutcome._();
+
+  factory RungOutcome.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RungOutcome.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RungOutcome',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<RepsLeft>(1, _omitFieldNames ? '' : 'repsLeft',
+        enumValues: RepsLeft.values)
+    ..aD(2, _omitFieldNames ? '' : 'weight', fieldType: $pb.PbFieldType.OF)
+    ..aOB(3, _omitFieldNames ? '' : 'settles')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RungOutcome clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RungOutcome copyWith(void Function(RungOutcome) updates) =>
+      super.copyWith((message) => updates(message as RungOutcome))
+          as RungOutcome;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RungOutcome create() => RungOutcome._();
+  @$core.override
+  RungOutcome createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RungOutcome getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RungOutcome>(create);
+  static RungOutcome? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RepsLeft get repsLeft => $_getN(0);
+  @$pb.TagNumber(1)
+  set repsLeft(RepsLeft value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRepsLeft() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRepsLeft() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.double get weight => $_getN(1);
+  @$pb.TagNumber(2)
+  set weight($core.double value) => $_setFloat(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWeight() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWeight() => $_clearField(2);
+
+  /// The ramp ends: the weight is the working sets', not a next ramp set's.
+  @$pb.TagNumber(3)
+  $core.bool get settles => $_getBF(2);
+  @$pb.TagNumber(3)
+  set settles($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSettles() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSettles() => $_clearField(3);
+}
+
 class AnswerRungRequest extends $pb.GeneratedMessage {
   factory AnswerRungRequest({
     $core.String? workoutId,
