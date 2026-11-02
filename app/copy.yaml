@@ -285,8 +285,8 @@ workout:
   # done: give their weight, or find it with 5-rep sets. {exercise} is its
   # name.
   first_time_title: First time doing {exercise}.
-  first_time_lift: I know I do
-  first_time_test: Dunno. Test me
+  first_time_lift: I know I do {weight}
+  first_time_test: Not sure how huge I am, test me
   # In your status box while that first set waits for the answer.
   first_time_status: First time!
   # Under the plates on the watch's plate screen: "45 · 25 each side".

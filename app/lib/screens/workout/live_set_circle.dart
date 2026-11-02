@@ -4,13 +4,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../logic/weight_units.dart';
+import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
 import '../../logic/session_state.dart';
 import '../../providers/workout_provider.dart';
-import '../../theme/app_icons.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/common/weight_selector.dart';
 import 'section_workout.dart';
@@ -167,10 +169,10 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
     final t = context.tokens;
     final w = copy.workout;
     final name = exerciseNames[widget.set.exercise] ?? '?';
+    final unit = context.watch<SettingsProvider>().weightUnit;
     final label = TextStyle(
       fontSize: t.size.bodyLg,
       fontWeight: t.weight.heavy,
-      color: t.text,
     );
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
@@ -190,8 +192,6 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
             ),
             const SizedBox(height: 16),
             // You know your weight: set it, go.
-            Text(w.firstTimeLift, style: label),
-            const SizedBox(height: 8),
             WeightSelector(
               weightLb: _weightLb,
               barbell: _barbell,
@@ -202,14 +202,29 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
               height: 56,
               child: FilledButton(
                 onPressed: _weightLb > 0 ? _lift : null,
-                child: const Icon(AppIcons.forward),
+                child: Text(
+                  w.firstTimeLift.replaceAll(
+                    '{weight}',
+                    formatWeight(_weightLb, unit, includeUnit: true),
+                  ),
+                  style: label,
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            // Edge to edge, past the dialog's padding.
+            LayoutBuilder(
+              builder: (context, box) => SizedBox(
+                height: 33,
+                child: OverflowBox(
+                  maxWidth: box.maxWidth + 32,
+                  child: Divider(height: 33, color: t.hairline),
+                ),
+              ),
+            ),
             // You don't: the calibration sets find it.
             SizedBox(
               height: 56,
-              child: OutlinedButton(
+              child: FilledButton(
                 onPressed: _test,
                 child: Text(w.firstTimeTest, style: label),
               ),
