@@ -82,7 +82,7 @@ rotation:
   fallback: "Everything's recovering or done. This one's waited longest."
   # Every workout in rotation opens on a muscle still recovering: the one
   # whose first lift is back soonest.
-  first_lift: "Every workout starts on something sore. {muscle}'s back first ({hours}h)."
+  first_lift: "Every workout starts on something sore. First back: {muscle}, in {hours}h."
   # The rotation check, at the top of the Edit sheet.
   check_title: One lap of the rotation
   check_body: Sets per muscle, each workout once at three sets a lift.
