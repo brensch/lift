@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Builds the progression explorer: one self-contained HTML page showing what
 // the planning rules (core/src/plan.rs) told scripted lifters, session by
-// session, with the audit flags the Rust test raised.
+// session, with the audit flags the Rust test raised; and the Rotation tab,
+// a lifter who starts whatever Home suggests (core/src/volume.rs), day by
+// day, with the rotation check.
 //
 // The data is testdata/progression_scenarios.json, written by the core's own
 // test driving the real API (core/tests/progression_scenarios.rs) — there is
@@ -185,6 +187,19 @@ svg.chart text { font: 11px var(--mono); fill: var(--muted); }
 .sw-user { background: var(--ink); transform: rotate(45deg) scale(0.8); }
 .sw-ramp { width: 0 !important; height: 0 !important; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--resting); }
 footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.wday { font: 700 11px/1.2 var(--mono); text-transform: uppercase; color: var(--muted); padding: 0 2px; }
+.cell { background: var(--ground); border: 1px solid var(--hairline); border-radius: 6px; padding: 6px; min-height: 64px; font-size: 12px; }
+.cell.rest { border-style: dashed; color: var(--muted); }
+.cell b { display: block; font-size: 13px; }
+.cell .note { display: block; }
+.cell.fallback { border-color: var(--effort); background: var(--effort-soft); }
+.cell.overdue { border-color: var(--resting); background: var(--resting-soft); }
+.bars { display: grid; grid-template-columns: 96px 1fr 44px; gap: 4px 8px; align-items: center; font-size: 13px; margin-top: 8px; max-width: 520px; }
+.bar { height: 6px; background: var(--ground); border-radius: 6px; position: relative; overflow: hidden; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--resting); border-radius: 6px; }
+td.won { font-weight: 700; }
+@media (max-width: 600px) { .week { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wday { display: none; } }
 @media (max-width: 600px) {
   h1 { font-size: 22px; }
   .panel { padding: 12px; }
@@ -455,14 +470,108 @@ footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
     return panel;
   }
 
+
+  var rotation = data.rotation;
+  var ROTATION_ID = 'rotation';
+
+  function rotationWhy(d) {
+    if (d.fallback) return 'nothing recovered and behind: the one done least recently';
+    var why = d.behind.map(function (b) { return b.muscle + ' ' + b.sets + '/' + b.target; }).join(', ');
+    return (d.overdue ? 'overdue · ' : '') + why;
+  }
+  function rotationOut(d) {
+    return d.recovering.map(function (r) { return r.muscle + ' ' + r.hours + 'h'; }).join(', ');
+  }
+
+  function renderRotation() {
+    var r = rotation;
+    var head = el('div', { class: 'panel' });
+    var order = { violation: 0, warning: 1, info: 2 };
+    var flags = r.flags.slice().sort(function (a, b) { return order[a.severity] - order[b.severity] || a.session - b.session; });
+    var shown = flags.filter(function (f) { return f.severity !== 'info'; });
+    var info = flags.filter(function (f) { return f.severity === 'info'; });
+    function item(f) {
+      return '<li class="' + f.severity + '"><span class="k">' + esc(f.severity) + ' · ' + esc(f.kind) + '</span>' +
+        (f.session ? 'day ' + f.session + ': ' : '') + esc(f.detail) + '</li>';
+    }
+    var counts = {};
+    r.days.forEach(function (d) { counts[d.template] = (counts[d.template] || 0) + 1; });
+    head.innerHTML = '<h2>' + esc(r.title) + '</h2><p>' + esc(r.description) + '</p>' +
+      '<div class="meta">' + Object.keys(counts).map(function (k) { return '<span>' + esc(k) + ' ×' + counts[k] + '</span>'; }).join('') + '</div>' +
+      '<h3 style="margin-top:14px">Audit flags</h3>' +
+      (shown.length ? '<ul class="flags">' + shown.map(item).join('') + '</ul>' : '<p class="ok">No violations or warnings: no repeats while another template had work, every template picked, Full Body at most 40%.</p>') +
+      (info.length ? '<details><summary class="note" style="cursor:pointer;margin-top:8px">' + info.length + ' info</summary><ul class="flags">' + info.map(item).join('') + '</ul></details>' : '');
+    view.appendChild(head);
+
+    // Calendar: one row per week, Monday first.
+    var cal = el('div', { class: 'panel' });
+    var names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var html = '<h3>Calendar</h3><p class="note">Each training day: the template Home suggested and started, the muscles that won it (sets this week / target), and what was ruled out as still recovering. Blue: won on being overdue. Amber: the fallback.</p>';
+    var weeks = {};
+    r.days.forEach(function (d) {
+      var t = Date.parse(d.date + 'T00:00:00Z') / 86400000;
+      var monday = t - ((t + 3) % 7);
+      (weeks[monday] = weeks[monday] || {})[(t + 3) % 7] = d;
+    });
+    Object.keys(weeks).sort(function (a, b) { return a - b; }).forEach(function (w) {
+      html += '<div class="week">' + names.map(function (n) { return '<div class="wday">' + n + '</div>'; }).join('');
+      for (var i = 0; i < 7; i++) {
+        var d = weeks[w][i];
+        if (!d) { html += '<div class="cell rest">rest</div>'; continue; }
+        var out = rotationOut(d);
+        html += '<div class="cell' + (d.fallback ? ' fallback' : d.overdue ? ' overdue' : '') + '"><span class="note">' + esc(d.date.slice(5)) + ' · #' + d.n + '</span><b>' + esc(d.template) + '</b>' +
+          esc(rotationWhy(d)) + (out ? '<span class="note">recovering: ' + esc(out) + '</span>' : '') + '</div>';
+      }
+      html += '</div>';
+    });
+    cal.innerHTML = html;
+    view.appendChild(cal);
+
+    // Timeline: every rotation template's score each day.
+    var templates = r.days[0].candidates.map(function (c) { return c.template; });
+    var rows = r.days.map(function (d) {
+      return '<tr><td class="num">' + d.n + '</td><td class="mono date">' + esc(d.weekday + ' ' + d.date.slice(5)) + '</td><td><b>' + esc(d.template) + '</b><span class="detail">' + esc(rotationWhy(d)) + '</span></td>' +
+        d.candidates.map(function (c) {
+          var last = c.last_days == null ? 'never' : c.last_days + 'd ago';
+          return '<td class="num' + (c.template === d.template ? ' won' : '') + '" title="' + esc(c.behind.join(', ')) + '">' + c.score + '<span class="detail">' + esc(last) + '</span></td>';
+        }).join('') +
+        '<td class="note">' + esc(rotationOut(d) || '—') + '</td><td class="num">' + d.working_sets + '</td><td class="num">' + d.minutes + '</td></tr>';
+    }).join('');
+    view.insertAdjacentHTML('beforeend', '<div class="panel"><h3>Timeline</h3><p class="note">Each rotation template\\'s score that day (the sets its recovered primary muscles are below 10, summed; hover for which) and when it was last started. Ties: within 20% of the best, or overdue (14 days, or never) with a score above 0; the least recent wins.</p><div class="scroll"><table><thead><tr><th class="num">#</th><th>Day</th><th>Picked · why</th>' +
+      templates.map(function (t) { return '<th class="num">' + esc(t) + '</th>'; }).join('') +
+      '<th>Ruled out</th><th class="num">Sets</th><th class="num">Min</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>');
+
+    // The rotation check.
+    var max = Math.max.apply(null, r.check.volume.map(function (v) { return v.sets; }).concat([1]));
+    var bars = r.check.volume.map(function (v) {
+      return '<span>' + esc(v.muscle) + '</span><span class="bar"><i style="width:' + (100 * v.sets / max).toFixed(1) + '%"></i></span><span class="num mono">' + v.sets + '</span>';
+    }).join('');
+    var warnings = r.check.warnings.map(function (w) {
+      var text = w.kind === 'GAP' ? 'nothing trains ' + w.muscles.join(', ')
+        : w.kind === 'OVERLAP' ? w.templates.join(' and ') + ' share ' + w.shared + ' of ' + w.of + ' lifts'
+        : w.kind === 'LOPSIDED' ? w.muscles[0] + ' gets 3× or more ' + w.muscles[1]
+        : 'fewer than two templates in rotation';
+      return '<li class="warning"><span class="k">' + esc(w.kind) + '</span>' + esc(text) + '</li>';
+    }).join('');
+    view.insertAdjacentHTML('beforeend', '<div class="panel"><h3>Rotation check</h3><p class="note">One pass through the rotation, each template once at three sets a lift (primary 1, secondary ½), as the template list shows it.</p><div class="bars">' + bars + '</div>' +
+      (warnings ? '<ul class="flags">' + warnings + '</ul>' : '<p class="ok">Nothing wrong.</p>') + '</div>');
+  }
+
   function render(id) {
+    var isRotation = rotation && id === ROTATION_ID;
     var sc = scenarios.find(function (s) { return s.id === id; }) || scenarios[0];
+    var current = isRotation ? ROTATION_ID : sc.id;
     Array.prototype.forEach.call(tabs.children, function (b) {
-      var on = b.dataset.id === sc.id;
+      var on = b.dataset.id === current;
       b.setAttribute('aria-selected', on ? 'true' : 'false');
       if (on) tabs.scrollLeft = Math.max(0, b.offsetLeft - tabs.offsetLeft - 16);
     });
     view.innerHTML = '';
+    if (isRotation) {
+      renderRotation();
+      try { history.replaceState(null, '', '#' + ROTATION_ID); } catch (e) { /* a sandboxed frame may refuse */ }
+      return;
+    }
     var head = el('div', { class: 'panel' });
     var order = { violation: 0, warning: 1, info: 2 };
     var flags = sc.flags.slice().sort(function (a, b) { return order[a.severity] - order[b.severity] || a.session - b.session; });
@@ -492,7 +601,14 @@ footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
     b.addEventListener('click', function () { render(sc.id); window.scrollTo(0, 0); });
     tabs.appendChild(b);
   });
-  var total = scenarios.reduce(function (a, sc) { return a + serious(sc); }, 0);
+  if (rotation) {
+    var rn = serious(rotation);
+    var rb = el('button', { class: 'tab', role: 'tab', type: 'button', 'data-id': ROTATION_ID },
+      'Rotation' + (rn ? '<span class="count">' + rn + '</span>' : ''));
+    rb.addEventListener('click', function () { render(ROTATION_ID); window.scrollTo(0, 0); });
+    tabs.appendChild(rb);
+  }
+  var total = scenarios.reduce(function (a, sc) { return a + serious(sc); }, 0) + (rotation ? serious(rotation) : 0);
   document.getElementById('footer').textContent = 'Generated from testdata/progression_scenarios.json (' + data.generated_by + '). ' +
     total + ' warnings and violations across ' + scenarios.length + ' scenarios.';
   render((location.hash || '').slice(1));

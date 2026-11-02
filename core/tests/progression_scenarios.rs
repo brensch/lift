@@ -1543,6 +1543,7 @@ fn progression_scenarios() {
             s("core/tests/progression_scenarios.rs (UPDATE_SCENARIOS=1 cargo test -p schlift-core --test progression_scenarios)"),
         ),
         ("scenarios", J::Arr(out)),
+        ("rotation", rotation().json()),
     ]);
     let mut text = String::new();
     doc.write(&mut text, 0);
@@ -1596,4 +1597,476 @@ fn runner_run(runner: Runner, warnings: &mut Vec<String>) -> J {
         }
     }
     json
+}
+
+// ── Rotation: a lifter who does what Home suggests ──
+
+/// The rotation: what onboarding picks.
+const ROTATION: [&str; 5] = [
+    "full_body",
+    "upper",
+    "lower",
+    "stronglifts_a",
+    "stronglifts_b",
+];
+/// Training days, Monday = 0: four a week with one- and two-day gaps.
+const ROTATION_DAYS: [i64; 4] = [0, 2, 3, 5];
+const ROTATION_WEEKS: i64 = 3;
+/// 17:30 UTC: after work.
+const ROTATION_HOUR: i64 = 10 * 3600 + 1800;
+/// Full Body (every big muscle in one template) may take at most this
+/// share of the picks.
+const BROAD_SHARE: f32 = 0.4;
+
+/// One rotation template as Home saw it on a training day.
+struct Candidate {
+    id: String,
+    name: String,
+    /// Σ deficit of its recovered primary muscles below the band.
+    score: f32,
+    behind: Vec<MuscleGroup>,
+    /// Days since it was last started (None = never).
+    last_days: Option<f32>,
+}
+
+/// One training day: what Home suggested, why, and what the others had.
+struct RotationDay {
+    n: usize,
+    at: i64,
+    picked: String,
+    reason: SuggestionReason,
+    candidates: Vec<Candidate>,
+    working_sets: usize,
+    minutes: f32,
+}
+
+struct RotationRun {
+    days: Vec<RotationDay>,
+    check: RotationCheck,
+    names: HashMap<String, String>,
+    flags: Vec<Flag>,
+}
+
+fn muscle(m: i32) -> String {
+    let m = MuscleGroup::try_from(m).unwrap_or(MuscleGroup::Unspecified);
+    schlift_core::exercise_catalog::muscle_label(m).to_string()
+}
+
+/// Onboard with the five, then every training day for three weeks start
+/// the suggested template at 60 minutes and do every set as planned.
+fn rotation() -> RotationRun {
+    use schlift_core::recovery::per_muscle_recovery;
+    use schlift_core::volume::{muscle_volume_7d, suggest_template};
+
+    let mut app = App::new("rotation");
+    app.call(T0 - DAY, |c| {
+        c.complete_onboarding(CompleteOnboardingRequest {
+            unit: WeightUnit::Lb as i32,
+            library_ids: ROTATION.iter().map(|s| s.to_string()).collect(),
+            strength: Some(0.3),
+            ..Default::default()
+        })
+    });
+    let starting = app.account.starting_weights.clone();
+    let names: HashMap<String, String> = app
+        .account
+        .templates
+        .iter()
+        .map(|t| (t.id.clone(), t.name.clone()))
+        .collect();
+    let mut last_started: HashMap<String, i64> = HashMap::new();
+    let mut days = Vec::new();
+    for week in 0..ROTATION_WEEKS {
+        for day in ROTATION_DAYS {
+            let at = T0 - 7 * 3600 + (week * 7 + day) * DAY + ROTATION_HOUR;
+            let home = app.view(at).home(60);
+            let picked = home.suggested_template_id.clone();
+            assert!(!picked.is_empty(), "a suggestion every day");
+
+            // Each rotation template on its own: what it would score.
+            let history = app.account.workouts.clone();
+            let volume = muscle_volume_7d(&history, at);
+            let recovery = per_muscle_recovery(&history, at);
+            let candidates = home
+                .templates
+                .iter()
+                .filter(|t| t.in_rotation)
+                .map(|t| {
+                    let alone = suggest_template(
+                        std::slice::from_ref(t),
+                        &volume,
+                        &recovery,
+                        at,
+                        &last_started,
+                    )
+                    .expect("a template in rotation is suggested alone");
+                    let behind: Vec<MuscleGroup> = alone
+                        .reason
+                        .behind
+                        .iter()
+                        .filter_map(|m| MuscleGroup::try_from(m.muscle).ok())
+                        .collect();
+                    Candidate {
+                        id: t.id.clone(),
+                        name: t.name.clone(),
+                        score: alone
+                            .reason
+                            .behind
+                            .iter()
+                            .map(|m| m.target as f32 - m.sets_7d)
+                            .sum(),
+                        behind,
+                        last_days: last_started
+                            .get(&t.id)
+                            .map(|s| (at - s) as f32 / DAY as f32),
+                    }
+                })
+                .collect();
+
+            let started = app.call(at, |c| {
+                c.start_workout(StartWorkoutRequest {
+                    template_id: picked.clone(),
+                    budget_minutes: 60,
+                    started_at: at,
+                    ..Default::default()
+                })
+            });
+            last_started.insert(picked.clone(), at);
+            let (end, working_sets) = lift_everything(&mut app, &started.id, at, &starting);
+            days.push(RotationDay {
+                n: days.len() + 1,
+                at,
+                picked,
+                reason: home.suggestion_reason.clone().unwrap_or_default(),
+                candidates,
+                working_sets,
+                minutes: (end - at) as f32 / 60.0,
+            });
+        }
+    }
+    let end = days.last().map_or(T0, |d| d.at) + DAY;
+    let check = app
+        .view(end)
+        .home(60)
+        .rotation_check
+        .expect("home has the check");
+    assert!(
+        Account::fold(&app.log) == app.account,
+        "rotation: replaying the log rebuilds the account"
+    );
+    let mut run = RotationRun {
+        days,
+        check,
+        names,
+        flags: Vec::new(),
+    };
+    run.audit();
+    run
+}
+
+/// Every set the workout plans, at its target (a calibration rung at what
+/// a lifter as strong as the slider said manages), resting as asked.
+fn lift_everything(
+    app: &mut App,
+    id: &str,
+    start: i64,
+    starting: &std::collections::BTreeMap<i32, f32>,
+) -> (i64, usize) {
+    let unit = app.unit();
+    let mut t = start + 60;
+    let mut working = 0;
+    loop {
+        let state = app.workout(t, id);
+        let Some(next) = state.next_up_set.clone() else {
+            break;
+        };
+        let ex = Exercise::try_from(next.exercise).unwrap_or(Exercise::Unspecified);
+        let reps = if next.calibration {
+            let base = starting
+                .get(&(ex as i32))
+                .copied()
+                .unwrap_or_else(|| schlift_core::exercise_catalog::starting_weight_lb(ex, unit));
+            ((30.0 * (base / next.target_weight - 1.0) + 1e-3).floor() as i32)
+                .clamp(1, next.target_reps)
+        } else {
+            next.target_reps
+        };
+        if !next.warmup && !next.calibration {
+            working += 1;
+        }
+        app.call(t, |c| {
+            c.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    event_id: String::new(),
+                    client_created_at: t,
+                    mutation: Some(Mutation::StartSet(StartSetRequest {
+                        workout_id: id.to_string(),
+                        proposed_set_id: next.id.clone(),
+                        started_at: t,
+                    })),
+                }],
+            })
+        });
+        t += LIFT_SECONDS;
+        let done = app.call(t, |c| {
+            c.complete_set(CompleteSetRequest {
+                workout_id: id.to_string(),
+                proposed_set_id: next.id.clone(),
+                actual_reps: reps,
+                actual_weight: next.target_weight,
+                completed_at: t,
+            })
+        });
+        t = done.completed_set.map_or(t, |c| c.rest_until.max(t));
+    }
+    app.call(t, |c| {
+        c.end_workout(EndWorkoutRequest {
+            workout_id: id.to_string(),
+            ended_at: t,
+        })
+    });
+    (t, working)
+}
+
+impl RotationRun {
+    fn name(&self, id: &str) -> String {
+        self.names.get(id).cloned().unwrap_or_default()
+    }
+
+    /// Violations: the same template two training days running while
+    /// another had recovered muscles behind; a rotation template never
+    /// picked; Full Body over its share. Info: a fallback day.
+    fn audit(&mut self) {
+        let mut flags = Vec::new();
+        for pair in self.days.windows(2) {
+            let (before, day) = (&pair[0], &pair[1]);
+            if before.picked != day.picked {
+                continue;
+            }
+            let other: Vec<&Candidate> = day
+                .candidates
+                .iter()
+                .filter(|c| c.id != day.picked && c.score > 0.0)
+                .collect();
+            if !other.is_empty() {
+                flags.push(Flag {
+                    severity: Severity::Violation,
+                    kind: "repeat",
+                    session: day.n,
+                    exercise: None,
+                    detail: format!(
+                        "{} again, while {} had recovered muscles behind",
+                        self.name(&day.picked),
+                        other
+                            .iter()
+                            .map(|c| c.name.clone())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                });
+            }
+        }
+        for id in self.names.keys() {
+            if !self.days.iter().any(|d| &d.picked == id) {
+                flags.push(Flag {
+                    severity: Severity::Violation,
+                    kind: "never_picked",
+                    session: 0,
+                    exercise: None,
+                    detail: format!("{} was never suggested", self.name(id)),
+                });
+            }
+        }
+        let broad = self
+            .days
+            .iter()
+            .filter(|d| self.name(&d.picked) == "Full Body")
+            .count();
+        if broad as f32 > BROAD_SHARE * self.days.len() as f32 {
+            flags.push(Flag {
+                severity: Severity::Violation,
+                kind: "broad_dominates",
+                session: 0,
+                exercise: None,
+                detail: format!("Full Body took {broad} of {} days", self.days.len()),
+            });
+        }
+        for day in &self.days {
+            if day.reason.fallback {
+                flags.push(Flag {
+                    severity: Severity::Info,
+                    kind: "fallback",
+                    session: day.n,
+                    exercise: None,
+                    detail: "nothing recovered and behind: the least recent template".into(),
+                });
+            }
+        }
+        flags.sort_by(|a, b| a.session.cmp(&b.session).then(a.detail.cmp(&b.detail)));
+        self.flags = flags;
+    }
+
+    fn json(&self) -> J {
+        let weekday = |t: i64| {
+            ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"]
+                [t.div_euclid(DAY).rem_euclid(7) as usize]
+        };
+        let days = self
+            .days
+            .iter()
+            .map(|d| {
+                J::Obj(vec![
+                    ("n", J::Int(d.n as i64)),
+                    ("date", s(date(d.at))),
+                    ("weekday", s(weekday(d.at))),
+                    ("template", s(self.name(&d.picked))),
+                    ("fallback", J::Bool(d.reason.fallback)),
+                    ("overdue", J::Bool(d.reason.overdue)),
+                    (
+                        "behind",
+                        J::Arr(
+                            d.reason
+                                .behind
+                                .iter()
+                                .map(|m| {
+                                    J::Obj(vec![
+                                        ("muscle", s(muscle(m.muscle))),
+                                        ("sets", num(m.sets_7d)),
+                                        ("target", J::Int(m.target as i64)),
+                                    ])
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    (
+                        "recovering",
+                        J::Arr(
+                            d.reason
+                                .recovering
+                                .iter()
+                                .map(|r| {
+                                    J::Obj(vec![
+                                        ("muscle", s(muscle(r.muscle))),
+                                        ("hours", J::Int(r.hours_remaining as i64)),
+                                    ])
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    (
+                        "candidates",
+                        J::Arr(
+                            d.candidates
+                                .iter()
+                                .map(|c| {
+                                    J::Obj(vec![
+                                        ("template", s(c.name.clone())),
+                                        ("score", num(c.score)),
+                                        (
+                                            "behind",
+                                            J::Arr(
+                                                c.behind
+                                                    .iter()
+                                                    .map(|m| s(muscle(*m as i32)))
+                                                    .collect(),
+                                            ),
+                                        ),
+                                        ("last_days", c.last_days.map_or(J::Null, num)),
+                                    ])
+                                })
+                                .collect(),
+                        ),
+                    ),
+                    ("working_sets", J::Int(d.working_sets as i64)),
+                    ("minutes", num(d.minutes)),
+                ])
+            })
+            .collect();
+        let check = J::Obj(vec![
+            (
+                "volume",
+                J::Arr(
+                    self.check
+                        .volume
+                        .iter()
+                        .map(|v| {
+                            J::Obj(vec![
+                                ("muscle", s(muscle(v.muscle))),
+                                ("sets", num(v.completed_sets_7d)),
+                            ])
+                        })
+                        .collect(),
+                ),
+            ),
+            (
+                "warnings",
+                J::Arr(
+                    self.check
+                        .warnings
+                        .iter()
+                        .map(|w| {
+                            let kind = RotationWarningKind::try_from(w.kind)
+                                .unwrap_or(RotationWarningKind::Unspecified);
+                            J::Obj(vec![
+                                (
+                                    "kind",
+                                    s(kind
+                                        .as_str_name()
+                                        .strip_prefix("ROTATION_WARNING_KIND_")
+                                        .unwrap_or_default()),
+                                ),
+                                (
+                                    "muscles",
+                                    J::Arr(w.muscles.iter().map(|m| s(muscle(*m))).collect()),
+                                ),
+                                (
+                                    "templates",
+                                    J::Arr(
+                                        w.template_ids.iter().map(|t| s(self.name(t))).collect(),
+                                    ),
+                                ),
+                                ("shared", J::Int(w.shared as i64)),
+                                ("of", J::Int(w.of as i64)),
+                            ])
+                        })
+                        .collect(),
+                ),
+            ),
+        ]);
+        J::Obj(vec![
+            ("title", s("Rotation: following the suggestion")),
+            (
+                "description",
+                s(
+                    "Onboarded with Full Body, Upper, Lower and StrongLifts A and B in \
+                   rotation; trains Mon, Wed, Thu and Sat at 17:30 for three weeks, \
+                   starting whatever Home suggests at 60 minutes and doing every set.",
+                ),
+            ),
+            ("flags", J::Arr(self.flags.iter().map(Flag::json).collect())),
+            ("days", J::Arr(days)),
+            ("check", check),
+        ])
+    }
+}
+
+/// Following the suggestion turns the rotation over: no template twice
+/// running while another had recovered muscles behind, every template
+/// picked within the three weeks, and Full Body no more than 40% of days.
+#[test]
+fn the_rotation_turns_over() {
+    let run = rotation();
+    let picks: Vec<String> = run
+        .days
+        .iter()
+        .map(|d| format!("{} {}", date(d.at), run.name(&d.picked)))
+        .collect();
+    let violations: Vec<String> = run
+        .flags
+        .iter()
+        .filter(|f| f.severity == Severity::Violation)
+        .map(|f| format!("{}: {}", f.kind, f.detail))
+        .collect();
+    assert!(violations.is_empty(), "{violations:#?}\npicks: {picks:#?}");
+    assert_eq!(run.days.len(), 12);
 }

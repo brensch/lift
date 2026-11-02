@@ -21972,5 +21972,639 @@
       ],
       "previews": []
     }
-  ]
+  ],
+  "rotation": {
+    "title": "Rotation: following the suggestion",
+    "description": "Onboarded with Full Body, Upper, Lower and StrongLifts A and B in rotation; trains Mon, Wed, Thu and Sat at 17:30 for three weeks, starting whatever Home suggests at 60 minutes and doing every set.",
+    "flags": [],
+    "days": [
+      {
+        "n": 1,
+        "date": "2026-01-05",
+        "weekday": "Mon",
+        "template": "Full Body",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Quads", "sets": 0, "target": 10},
+          {"muscle": "Chest", "sets": 0, "target": 10},
+          {"muscle": "Back", "sets": 0, "target": 10},
+          {"muscle": "Shoulders", "sets": 0, "target": 10},
+          {"muscle": "Biceps", "sets": 0, "target": 10}
+        ],
+        "recovering": [],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 50,
+            "behind": ["Quads", "Chest", "Back", "Shoulders", "Biceps"],
+            "last_days": null
+          },
+          {
+            "template": "Upper",
+            "score": 40,
+            "behind": ["Chest", "Back", "Shoulders", "Triceps"],
+            "last_days": null
+          },
+          {
+            "template": "Lower",
+            "score": 50,
+            "behind": ["Quads", "Hamstrings", "Glutes", "Calves", "Core"],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 30,
+            "behind": ["Quads", "Chest", "Back"],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 30,
+            "behind": ["Quads", "Back", "Shoulders"],
+            "last_days": null
+          }
+        ],
+        "working_sets": 13,
+        "minutes": 75.7
+      },
+      {
+        "n": 2,
+        "date": "2026-01-07",
+        "weekday": "Wed",
+        "template": "Lower",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Hamstrings", "sets": 0, "target": 10},
+          {"muscle": "Calves", "sets": 0, "target": 10},
+          {"muscle": "Core", "sets": 0, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Glutes", "hours": 2},
+          {"muscle": "Quads", "hours": 2},
+          {"muscle": "Chest", "hours": 2},
+          {"muscle": "Back", "hours": 2}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 13,
+            "behind": ["Shoulders", "Biceps"],
+            "last_days": 2
+          },
+          {
+            "template": "Upper",
+            "score": 14,
+            "behind": ["Triceps", "Shoulders"],
+            "last_days": null
+          },
+          {
+            "template": "Lower",
+            "score": 30,
+            "behind": ["Hamstrings", "Calves", "Core"],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 0,
+            "behind": [],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 6.5,
+            "behind": ["Shoulders"],
+            "last_days": null
+          }
+        ],
+        "working_sets": 15,
+        "minutes": 51
+      },
+      {
+        "n": 3,
+        "date": "2026-01-08",
+        "weekday": "Thu",
+        "template": "Upper",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Triceps", "sets": 2.5, "target": 10},
+          {"muscle": "Chest", "sets": 3, "target": 10},
+          {"muscle": "Back", "sets": 3, "target": 10},
+          {"muscle": "Shoulders", "sets": 3.5, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Hamstrings", "hours": 25},
+          {"muscle": "Calves", "hours": 1},
+          {"muscle": "Core", "hours": 1},
+          {"muscle": "Quads", "hours": 25},
+          {"muscle": "Glutes", "hours": 25}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 27,
+            "behind": ["Chest", "Back", "Shoulders", "Biceps"],
+            "last_days": 3
+          },
+          {
+            "template": "Upper",
+            "score": 28,
+            "behind": ["Triceps", "Chest", "Back", "Shoulders"],
+            "last_days": null
+          },
+          {
+            "template": "Lower",
+            "score": 0,
+            "behind": [],
+            "last_days": 1
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 14,
+            "behind": ["Chest", "Back"],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 13.5,
+            "behind": ["Back", "Shoulders"],
+            "last_days": null
+          }
+        ],
+        "working_sets": 14,
+        "minutes": 63.7
+      },
+      {
+        "n": 4,
+        "date": "2026-01-10",
+        "weekday": "Sat",
+        "template": "StrongLifts B",
+        "fallback": false,
+        "overdue": true,
+        "behind": [
+          {"muscle": "Quads", "sets": 5, "target": 10},
+          {"muscle": "Shoulders", "sets": 8, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Chest", "hours": 2},
+          {"muscle": "Back", "hours": 2}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 11,
+            "behind": ["Quads", "Biceps", "Shoulders"],
+            "last_days": 5
+          },
+          {
+            "template": "Upper",
+            "score": 4,
+            "behind": ["Shoulders", "Triceps"],
+            "last_days": 2
+          },
+          {
+            "template": "Lower",
+            "score": 27,
+            "behind": ["Hamstrings", "Calves", "Core", "Quads", "Glutes"],
+            "last_days": 3
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 5,
+            "behind": ["Quads"],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 7,
+            "behind": ["Quads", "Shoulders"],
+            "last_days": null
+          }
+        ],
+        "working_sets": 15,
+        "minutes": 70.5
+      },
+      {
+        "n": 5,
+        "date": "2026-01-12",
+        "weekday": "Mon",
+        "template": "StrongLifts A",
+        "fallback": false,
+        "overdue": true,
+        "behind": [
+          {"muscle": "Chest", "sets": 8, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Hamstrings", "hours": 2}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 6,
+            "behind": ["Biceps", "Chest"],
+            "last_days": 7
+          },
+          {
+            "template": "Upper",
+            "score": 2,
+            "behind": ["Chest"],
+            "last_days": 4
+          },
+          {
+            "template": "Lower",
+            "score": 12,
+            "behind": ["Calves", "Core"],
+            "last_days": 5
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 2,
+            "behind": ["Chest"],
+            "last_days": null
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 0,
+            "behind": [],
+            "last_days": 2
+          }
+        ],
+        "working_sets": 15,
+        "minutes": 66.8
+      },
+      {
+        "n": 6,
+        "date": "2026-01-14",
+        "weekday": "Wed",
+        "template": "Lower",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Calves", "sets": 4, "target": 10},
+          {"muscle": "Core", "sets": 4, "target": 10},
+          {"muscle": "Hamstrings", "sets": 6.5, "target": 10}
+        ],
+        "recovering": [],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 5,
+            "behind": ["Biceps"],
+            "last_days": 9
+          },
+          {
+            "template": "Upper",
+            "score": 0,
+            "behind": [],
+            "last_days": 6
+          },
+          {
+            "template": "Lower",
+            "score": 15.5,
+            "behind": ["Calves", "Core", "Hamstrings"],
+            "last_days": 7
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 0,
+            "behind": [],
+            "last_days": 2
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 0,
+            "behind": [],
+            "last_days": 4
+          }
+        ],
+        "working_sets": 18,
+        "minutes": 68.5
+      },
+      {
+        "n": 7,
+        "date": "2026-01-15",
+        "weekday": "Thu",
+        "template": "Full Body",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Biceps", "sets": 5, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Calves", "hours": 2},
+          {"muscle": "Core", "hours": 2},
+          {"muscle": "Hamstrings", "hours": 26}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 5,
+            "behind": ["Biceps"],
+            "last_days": 10
+          },
+          {
+            "template": "Upper",
+            "score": 0,
+            "behind": [],
+            "last_days": 7
+          },
+          {
+            "template": "Lower",
+            "score": 0,
+            "behind": [],
+            "last_days": 1
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 0,
+            "behind": [],
+            "last_days": 3
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 0,
+            "behind": [],
+            "last_days": 5
+          }
+        ],
+        "working_sets": 18,
+        "minutes": 70
+      },
+      {
+        "n": 8,
+        "date": "2026-01-17",
+        "weekday": "Sat",
+        "template": "Lower",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Calves", "sets": 5, "target": 10},
+          {"muscle": "Core", "sets": 5, "target": 10},
+          {"muscle": "Hamstrings", "sets": 7.5, "target": 10}
+        ],
+        "recovering": [],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 1.5,
+            "behind": ["Biceps"],
+            "last_days": 2
+          },
+          {
+            "template": "Upper",
+            "score": 1.5,
+            "behind": ["Triceps"],
+            "last_days": 9
+          },
+          {
+            "template": "Lower",
+            "score": 12.5,
+            "behind": ["Calves", "Core", "Hamstrings"],
+            "last_days": 3
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 0,
+            "behind": [],
+            "last_days": 5
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 0,
+            "behind": [],
+            "last_days": 7
+          }
+        ],
+        "working_sets": 19,
+        "minutes": 72.2
+      },
+      {
+        "n": 9,
+        "date": "2026-01-19",
+        "weekday": "Mon",
+        "template": "Upper",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Triceps", "sets": 6, "target": 10},
+          {"muscle": "Back", "sets": 7, "target": 10},
+          {"muscle": "Shoulders", "sets": 7, "target": 10}
+        ],
+        "recovering": [],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 7.5,
+            "behind": ["Back", "Shoulders", "Biceps"],
+            "last_days": 4
+          },
+          {
+            "template": "Upper",
+            "score": 10,
+            "behind": ["Triceps", "Back", "Shoulders"],
+            "last_days": 11
+          },
+          {
+            "template": "Lower",
+            "score": 0,
+            "behind": [],
+            "last_days": 2
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 3,
+            "behind": ["Back"],
+            "last_days": 7
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 6,
+            "behind": ["Back", "Shoulders"],
+            "last_days": 9
+          }
+        ],
+        "working_sets": 17,
+        "minutes": 65.5
+      },
+      {
+        "n": 10,
+        "date": "2026-01-21",
+        "weekday": "Wed",
+        "template": "Full Body",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Quads", "sets": 8, "target": 10},
+          {"muscle": "Biceps", "sets": 9, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Chest", "hours": 2},
+          {"muscle": "Back", "hours": 2}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 3,
+            "behind": ["Quads", "Biceps"],
+            "last_days": 6
+          },
+          {
+            "template": "Upper",
+            "score": 0,
+            "behind": [],
+            "last_days": 2
+          },
+          {
+            "template": "Lower",
+            "score": 2,
+            "behind": ["Quads"],
+            "last_days": 4
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 2,
+            "behind": ["Quads"],
+            "last_days": 9
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 2,
+            "behind": ["Quads"],
+            "last_days": 11
+          }
+        ],
+        "working_sets": 17,
+        "minutes": 70.5
+      },
+      {
+        "n": 11,
+        "date": "2026-01-22",
+        "weekday": "Thu",
+        "template": "Lower",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Calves", "sets": 5, "target": 10},
+          {"muscle": "Core", "sets": 5, "target": 10},
+          {"muscle": "Hamstrings", "sets": 6, "target": 10}
+        ],
+        "recovering": [],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 0,
+            "behind": [],
+            "last_days": 1
+          },
+          {
+            "template": "Upper",
+            "score": 0,
+            "behind": [],
+            "last_days": 3
+          },
+          {
+            "template": "Lower",
+            "score": 14,
+            "behind": ["Calves", "Core", "Hamstrings"],
+            "last_days": 5
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 0,
+            "behind": [],
+            "last_days": 10
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 0,
+            "behind": [],
+            "last_days": 12
+          }
+        ],
+        "working_sets": 19,
+        "minutes": 72.2
+      },
+      {
+        "n": 12,
+        "date": "2026-01-24",
+        "weekday": "Sat",
+        "template": "Full Body",
+        "fallback": false,
+        "overdue": false,
+        "behind": [
+          {"muscle": "Chest", "sets": 7, "target": 10},
+          {"muscle": "Biceps", "sets": 7, "target": 10}
+        ],
+        "recovering": [
+          {"muscle": "Quads", "hours": 2}
+        ],
+        "candidates": [
+          {
+            "template": "Full Body",
+            "score": 6,
+            "behind": ["Chest", "Biceps"],
+            "last_days": 3
+          },
+          {
+            "template": "Upper",
+            "score": 3,
+            "behind": ["Chest"],
+            "last_days": 5
+          },
+          {
+            "template": "Lower",
+            "score": 0,
+            "behind": [],
+            "last_days": 2
+          },
+          {
+            "template": "StrongLifts A",
+            "score": 3,
+            "behind": ["Chest"],
+            "last_days": 12
+          },
+          {
+            "template": "StrongLifts B",
+            "score": 0,
+            "behind": [],
+            "last_days": 14
+          }
+        ],
+        "working_sets": 18,
+        "minutes": 72.2
+      }
+    ],
+    "check": {
+      "volume": [
+        {"muscle": "Chest", "sets": 9},
+        {"muscle": "Back", "sets": 15},
+        {"muscle": "Shoulders", "sets": 13.5},
+        {"muscle": "Biceps", "sets": 9},
+        {"muscle": "Triceps", "sets": 12},
+        {"muscle": "Quads", "sets": 12},
+        {"muscle": "Hamstrings", "sets": 6},
+        {"muscle": "Glutes", "sets": 12},
+        {"muscle": "Calves", "sets": 3},
+        {"muscle": "Core", "sets": 3}
+      ],
+      "warnings": [
+        {
+          "kind": "OVERLAP",
+          "muscles": [],
+          "templates": ["Full Body", "StrongLifts A"],
+          "shared": 3,
+          "of": 3
+        },
+        {
+          "kind": "LOPSIDED",
+          "muscles": ["Back", "Calves"],
+          "templates": [],
+          "shared": 0,
+          "of": 0
+        }
+      ]
+    }
+  }
 }
