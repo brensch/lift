@@ -182,8 +182,8 @@ into the account in batches (one `heart_rate` event per batch, not per
 sample); the projected `workout_heart_rate_samples` table has a row per
 sample, and the events sync to the server like any other.
 
-`HeartRateAvailability` distinguishes `AVAILABLE` / `ACQUIRING` / `UNAVAILABLE`,
-so the UI can show "finding your heart rate" rather than a misleading zero.
+Each `HeartRateSample` carries a `HeartRateAvailability`; the watches mark
+every sample `AVAILABLE`, and only the debug notifications screen reads it.
 
 ## Clock skew
 
