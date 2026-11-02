@@ -702,7 +702,11 @@ pub fn would_append(
         // done in full: the ramp ends at that rung, as if it had settled
         // there.
         let reserve = crate::plan::answered_reserve(reps_left).unwrap_or(1.0);
-        let max = crate::plan::shown_max(weight, reps, reserve, 1, false);
+        let max = crate::plan::shown_max(weight, reps, reserve, 1, false).min(failure_cap(
+            proposed_sets,
+            completed_sets,
+            rung.exercise,
+        ));
         planning::working_sets_after_calibration(workout_id, decision, max, unit)
     } else if full && !settled_by_answer && more {
         let weight = match answer {
@@ -725,13 +729,44 @@ pub fn would_append(
         // (the sixth rung, or nothing lighter loads): read as best it can
         // be, with at least one rep.
         let reps = done.actual_reps.max(1);
-        let max = crate::plan::shown_max(lifted, reps, reserve, 1, false);
+        let max = crate::plan::shown_max(lifted, reps, reserve, 1, false).min(failure_cap(
+            proposed_sets,
+            completed_sets,
+            rung.exercise,
+        ));
         planning::working_sets_after_calibration(workout_id, decision, max, unit)
     };
     for (n, set) in appended.iter_mut().enumerate() {
         set.id = derived_id(completed_set_id, n);
     }
     appended
+}
+
+/// The most any rung of `exercise` short of its reps allows: such a set ran
+/// to failure, so the max is no more than it shows (at least one rep). An
+/// answer on a rung done in full ("5+") can never outbid it, so fewer reps
+/// on a rung never plan heavier. Infinite when no rung fell short.
+fn failure_cap(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+    exercise: i32,
+) -> f32 {
+    completed_sets
+        .iter()
+        .filter(|c| c.ended_at != 0)
+        .filter_map(|c| {
+            let rung = proposed_sets.iter().find(|s| {
+                s.id == c.proposed_set_id && s.exercise == exercise && s.calibration && !s.cancelled
+            })?;
+            let weight = if c.actual_weight > 0.0 {
+                c.actual_weight
+            } else {
+                rung.target_weight
+            };
+            (c.actual_reps < rung.target_reps)
+                .then(|| crate::plan::shown_max(weight, c.actual_reps.max(1), 0.0, 1, false))
+        })
+        .fold(f32::INFINITY, f32::min)
 }
 
 /// The heaviest calibration rung of `exercise` done in full, other than
@@ -1694,7 +1729,9 @@ mod tests {
             .clone();
         assert_eq!(rung2.target_weight, 105.0);
         complete(&mut active, &rung2.id, 0, 2_200);
-        let max = crate::plan::shown_max(100.0, 5, 1.0, 1, false);
+        // Settled from the 100 done in full, capped by the 105 it failed.
+        let max = crate::plan::shown_max(100.0, 5, 1.0, 1, false)
+            .min(crate::plan::shown_max(105.0, 1, 0.0, 1, false));
         let want = planning::working_sets_after_calibration(
             "w1",
             &ramp_decision(100.0),

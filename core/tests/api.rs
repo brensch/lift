@@ -1179,6 +1179,82 @@ mod weight_log {
         })
     }
 
+    /// Fewer reps on a ramp set never plan heavier, whatever was answered
+    /// before it: a set short of its reps caps the max an answer implied.
+    #[test]
+    fn fewer_reps_on_a_rung_never_plan_heavier() {
+        let answers = [
+            (RepsLeft::Unspecified, 0.0),
+            (RepsLeft::TwoToFour, 0.0),
+            (RepsLeft::FivePlus, 0.0),
+            (RepsLeft::Unspecified, 40.0),
+        ];
+        for (reps_left, jump_lb) in answers {
+            let mut app = App::new();
+            onboard(&mut app, WeightUnit::Lb);
+            let started = start(&mut app, &[Exercise::Squat]);
+            let rung1 = started.proposed_sets[0].clone();
+            let state = apply(&mut app, complete(&rung1, 5, NOW + 100));
+            if reps_left != RepsLeft::Unspecified || jump_lb > 0.0 {
+                apply(
+                    &mut app,
+                    Mutation::AnswerRung(AnswerRungRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: rung1.id.clone(),
+                        reps_left: reps_left as i32,
+                        jump_lb,
+                    }),
+                );
+            }
+            let state = app.view().workout_response(&started.id).unwrap_or(state);
+            let rung2 = state
+                .proposed_sets
+                .iter()
+                .find(|s| s.calibration && s.id != rung1.id)
+                .unwrap()
+                .clone();
+            let state = apply(&mut app, complete(&rung2, 5, NOW + 300));
+            let done = state
+                .completed_sets
+                .iter()
+                .find(|c| c.proposed_set_id == rung2.id)
+                .unwrap()
+                .clone();
+            let mut last = f32::INFINITY;
+            for reps in (0..5).rev() {
+                let state = apply(
+                    &mut app,
+                    Mutation::EditCompletedSet(EditCompletedSetRequest {
+                        workout_id: started.id.clone(),
+                        completed_set_id: done.id.clone(),
+                        actual_reps: reps,
+                        actual_weight: done.actual_weight,
+                    }),
+                );
+                let done_ids: Vec<&str> = state
+                    .completed_sets
+                    .iter()
+                    .map(|c| c.proposed_set_id.as_str())
+                    .collect();
+                let next = state
+                    .proposed_sets
+                    .iter()
+                    .find(|s| {
+                        s.exercise == Exercise::Squat as i32
+                            && !s.warmup
+                            && !done_ids.contains(&s.id.as_str())
+                    })
+                    .unwrap()
+                    .target_weight;
+                assert!(
+                    next <= last,
+                    "{reps_left:?} +{jump_lb}: {reps} reps plans {next}, more than {last}"
+                );
+                last = next;
+            }
+        }
+    }
+
     fn causes(state: &GetWorkoutResponse) -> Vec<WeightChangeCause> {
         state.exercise_logs[0]
             .changes

@@ -321,8 +321,15 @@ fn ramp_max(rungs: &[SetDone], bodyweight: bool) -> Option<(f32, &str)> {
         ),
         _ => (last, last.reps.max(1), 0.0),
     };
+    // A rung short of its reps ran to failure: the max is no more than it
+    // shows, whatever an answer on a full rung implied.
+    let cap = rungs
+        .iter()
+        .filter(|r| !r.hit)
+        .map(|r| shown_max(r.weight, r.reps.max(1), 0.0, 1, bodyweight))
+        .fold(f32::INFINITY, f32::min);
     Some((
-        shown_max(rung.weight, reps, reserve, 1, bodyweight),
+        shown_max(rung.weight, reps, reserve, 1, bodyweight).min(cap),
         rung.set_id.as_str(),
     ))
 }
@@ -1408,7 +1415,8 @@ mod tests {
             set(160.0, 5, true),
             set(175.0, 1, false),
         ]);
-        assert!(close(m, shown_max(160.0, 5, 1.0, 1, false)), "{m}");
+        // 160 × 5 says 192, but 175 × 1 ran to failure: no more than 181.
+        assert!(close(m, shown_max(175.0, 1, 0.0, 1, false)), "{m}");
         let m = max_of(vec![set(200.0, 1, false), set(160.0, 5, true)]);
         assert!(close(m, shown_max(160.0, 5, 1.0, 1, false)), "{m}");
         let m = max_of(vec![set(45.0, 0, false)]);
