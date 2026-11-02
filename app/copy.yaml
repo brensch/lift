@@ -285,11 +285,10 @@ workout:
   up_next: "UP\nNEXT!"
   skip_warmups: Skip
   # Asked when someone starts the first set of an exercise they have never
-  # done: give their weight, or find it with 5-rep sets. {exercise} is its
-  # name.
+  # done: the ramp of 5-rep sets starts from the weight picked. {exercise}
+  # is its name, {weight} the weight picked.
   first_time_title: First time doing {exercise}.
-  first_time_lift: I know I do {weight}
-  first_time_test: Not sure how huge I am, test me
+  first_time_test: Test me from {weight}
   # In your status box while that first set waits for the answer.
   first_time_status: First time!
   # The watch's status while that first set waits: the answer is on the phone.

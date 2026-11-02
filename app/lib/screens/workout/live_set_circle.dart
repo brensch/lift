@@ -135,35 +135,22 @@ class _FirstTimeDialog extends StatefulWidget {
 }
 
 class _FirstTimeDialogState extends State<_FirstTimeDialog> {
-  /// What their strength answer at sign-up put this lift at, in lb: the
-  /// starting weight the decision's first-time step began from, else the
-  /// ramp's first rung.
-  late double _weightLb = _startingWeight();
-
-  double _startingWeight() {
-    final reasons = widget.wp.logFor(widget.set.exercise)?.decision.reasons;
-    for (final reason in reasons ?? const <PlanReason>[]) {
-      if (reason.kind == PlanReasonKind.PLAN_REASON_KIND_FIRST_TIME &&
-          reason.before > 0) {
-        return reason.before;
-      }
-    }
-    return widget.set.targetWeight;
-  }
+  /// Where the ramp starts, in lb: its first set as planned, or wherever
+  /// the user moves it.
+  late double _weightLb = widget.set.targetWeight;
 
   bool get _barbell =>
       widget.wp.equipmentOf(widget.set.exercise) ==
       EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
-  void _lift() {
-    if (_weightLb <= 0) return;
+  /// The ramp from the weight picked: its first set moved there when it
+  /// isn't the planned one, then started. Right first time, it's one set.
+  Future<void> _test() async {
     Navigator.pop(context);
-    widget.wp.adjustExerciseWeight(widget.set.exercise, _weightLb);
-  }
-
-  void _test() {
-    Navigator.pop(context);
-    widget.wp.startSet(widget.set.id);
+    if (_weightLb != widget.set.targetWeight) {
+      await widget.wp.adjustExerciseWeight(widget.set.exercise, _weightLb);
+    }
+    await widget.wp.startSet(widget.set.id);
   }
 
   @override
@@ -193,7 +180,7 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            // You know your weight: set it, go.
+            // Where the ramp starts: as planned, or moved.
             WeightSelector(
               weightLb: _weightLb,
               barbell: _barbell,
@@ -203,32 +190,14 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
             SizedBox(
               height: 56,
               child: FilledButton(
-                onPressed: _weightLb > 0 ? _lift : null,
+                onPressed: _weightLb > 0 ? _test : null,
                 child: Text(
-                  w.firstTimeLift.replaceAll(
+                  w.firstTimeTest.replaceAll(
                     '{weight}',
                     formatWeight(_weightLb, unit, includeUnit: true),
                   ),
                   style: label,
                 ),
-              ),
-            ),
-            // Edge to edge, past the dialog's padding.
-            LayoutBuilder(
-              builder: (context, box) => SizedBox(
-                height: 33,
-                child: OverflowBox(
-                  maxWidth: box.maxWidth + 32,
-                  child: Divider(height: 33, color: t.hairline),
-                ),
-              ),
-            ),
-            // You don't: the calibration sets find it.
-            SizedBox(
-              height: 56,
-              child: FilledButton(
-                onPressed: _test,
-                child: Text(w.firstTimeTest, style: label),
               ),
             ),
           ],

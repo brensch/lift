@@ -135,7 +135,8 @@ class ScienceScreen extends StatelessWidget {
             title: 'The first time',
             body:
                 'A lift you\'ve never done starts from the weight your '
-                'emoji picked. Sets of 5 from 60% of it, 10% heavier each '
+                'emoji picked, or wherever you tell me to start. Sets of 5 '
+                'from 60% of it, 10% heavier each '
                 'set, until you miss a rep. Six sets at most. Get all 5 and '
                 'I ask how many more you had in you. 0–1 and we\'re done '
                 'there. 2–4, the next set goes up as usual. 5+, it jumps '

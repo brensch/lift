@@ -1512,41 +1512,26 @@ mod tests {
             .any(|s| s.id == c.proposed_set_id)));
     }
 
+    /// A weight typed mid-ramp moves the pending rung there: it is still a
+    /// rung, with its id, and the ramp goes on from it.
     #[test]
-    fn typing_a_weight_mid_ramp_replaces_the_rung_with_the_full_working_sets() {
+    fn typing_a_weight_mid_ramp_moves_the_pending_rung() {
         let mut active = ramp_workout(45.0);
         complete(&mut active, "c1", 5, 2_000);
         let pending_rung = active.proposed_sets[1].id.clone();
         assert!(active.proposed_sets[1].calibration);
 
-        adjust(&mut active, 1, 102.0);
+        adjust(&mut active, 1, 100.0);
         let squat = squat_sets(&active);
-        assert!(
-            squat.iter().all(|s| s.id != pending_rung),
-            "the pending rung is gone"
-        );
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(working.len(), 3, "the decision's sets");
-        for (n, set) in working.iter().enumerate() {
-            assert_eq!(set.id, uuid5(&pending_rung, n), "pinned id for n = {n}");
-            assert_eq!(set.target_weight, 100.0, "102 snapped loadable");
-            assert_eq!(set.target_reps, 5);
-            assert!(!set.warmup);
-        }
-        assert_eq!(
-            active.proposed_sets[1].id, working[0].id,
-            "where the rung was"
-        );
+        assert_eq!(squat.len(), 2, "the done rung and the pending one");
+        assert_eq!(squat[1].id, pending_rung, "the same rung");
+        assert!(squat[1].calibration, "still ramping");
+        assert_eq!(squat[1].target_weight, 100.0);
         assert_eq!(
             active.proposed_sets.last().unwrap().id,
             "b1",
             "other exercises stay behind"
         );
-        assert!(active
-            .proposed_sets
-            .iter()
-            .enumerate()
-            .all(|(i, s)| s.workout_order == i as i32));
         assert_eq!(
             causes(&active).last(),
             Some(&(WeightChangeCause::UserAdjust, 50.0, 100.0))

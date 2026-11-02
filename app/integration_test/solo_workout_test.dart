@@ -48,8 +48,9 @@ void main() {
       // time); "test me" starts the set: LIFTING, the banner counting up.
       await s.tap(s.circleFor(first.id));
       await s.settle(seconds: 1);
-      await s.mustSee(copy.workout.firstTimeTest, seconds: 4);
-      await s.shot('First time — your weight, or test me');
+      await s.settle(seconds: 1);
+      expect(find.textContaining(Scenario.testMe), findsOneWidget);
+      await s.shot('First time — test me from a weight');
       await s.testMeIfAsked();
       final lifting =
           s.workout.stateSnapshot?.state ==

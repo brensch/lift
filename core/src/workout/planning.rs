@@ -7,7 +7,7 @@
 
 use super::*;
 use crate::exercise_catalog::{progression_increment_lb, snap_down_weight_lb, snap_weight_lb};
-use crate::ids::{derived_id, Ids};
+use crate::ids::Ids;
 use crate::pb::{Exercise, ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
 use crate::weight_units::{
     bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near, AppWeightUnit,
@@ -239,85 +239,6 @@ fn working_sets(
         .collect()
 }
 
-/// "I know my weight" during calibration: the user typed a weight while
-/// the exercise still has a rung to lift. The pending rungs go (never
-/// lifted, safe to hard-remove) and the decision's working sets take their
-/// place at the snapped weight. Ids are
-/// `uuid5(NAMESPACE_OID, "{first pending rung id}:{n}")`. Once a rung is
-/// done the rungs were the warmup; typed before any (the first-time
-/// "I lift X"), a lift that warms up gets its ladder first. Returns false
-/// when there is no pending rung, leaving the ordinary adjust to run.
-fn replace_pending_calibration(
-    workout_ref: &mut WorkoutRecord,
-    req: &AdjustExerciseWeightRequest,
-    unit: AppWeightUnit,
-    at: i64,
-) -> bool {
-    let exercise = req.exercise;
-    let Ok(ex) = Exercise::try_from(exercise) else {
-        return false;
-    };
-    let Some(decision) = workout_ref.decision(exercise).cloned() else {
-        return false;
-    };
-    let done = completed_proposed_ids(workout_ref);
-    let is_pending_rung = |s: &ProposedSet| {
-        s.exercise == exercise && s.calibration && !s.cancelled && !done.contains(&s.id)
-    };
-    let Some(position) = workout_ref.proposed_sets.iter().position(is_pending_rung) else {
-        return false;
-    };
-    let before = workout_ref.proposed_sets[position].target_weight;
-    let base = workout_ref.proposed_sets[position].id.clone();
-    let weight = snap_weight_lb(ex, req.working_weight, unit);
-    let rung_done = workout_ref
-        .proposed_sets
-        .iter()
-        .any(|s| s.exercise == exercise && s.calibration && done.contains(&s.id));
-    let mut sets = if decision.warmups && !rung_done {
-        warmup_sets(
-            &req.workout_id,
-            exercise,
-            weight,
-            decision.rest_seconds,
-            unit,
-        )
-    } else {
-        Vec::new()
-    };
-    sets.extend(working_sets(
-        &req.workout_id,
-        &decision,
-        weight,
-        decision.reps,
-    ));
-    for (n, set) in sets.iter_mut().enumerate() {
-        set.id = derived_id(&base, n);
-    }
-    let from_set_id = sets
-        .iter()
-        .find(|s| !s.warmup)
-        .map(|s| s.id.clone())
-        .unwrap_or_default();
-    // Pending rungs only ever sit after the done ones, so `position` is
-    // unmoved.
-    workout_ref.proposed_sets.retain(|s| !is_pending_rung(s));
-    let position = position.min(workout_ref.proposed_sets.len());
-    workout_ref.proposed_sets.splice(position..position, sets);
-    workout_ref.renumber_sets();
-    workout_ref.log_change(
-        exercise,
-        WeightChange {
-            at,
-            from_set_id,
-            before,
-            after: weight,
-            cause: WeightChangeCause::UserAdjust as i32,
-        },
-    );
-    true
-}
-
 /// Splice `sets` in straight after the set `after_id`, ahead of whatever
 /// follows it (another exercise's block included), and renumber. Falls
 /// back to the end when the anchor is missing.
@@ -437,10 +358,8 @@ pub fn apply_adjust_exercise_weight(
     if !(0..=100).contains(&req.target_reps) {
         return Err(WorkoutError::failed_precondition("Reps out of range"));
     }
-    if replace_pending_calibration(workout_ref, req, unit, at) {
-        apply_target_reps(workout_ref, req);
-        return Ok(());
-    }
+    // On a lift still ramping this moves the pending rung: the ramp goes
+    // on from the weight given, and the reps decide where it stops.
     apply_target_reps(workout_ref, req);
     let exercise = req.exercise;
     let done = completed_proposed_ids(workout_ref);

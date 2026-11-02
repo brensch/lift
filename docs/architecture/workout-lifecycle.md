@@ -426,9 +426,9 @@ answer's reserve (one rep unanswered or jumped).
 
 Tapping a rep off a rung settles it again while what it appended is still
 untouched (`resettle_rung`); undoing a rung takes back what it appended
-the same way. Six rungs is the most a lift gets, however they were done. Typing a weight while a rung is pending ("I
-know my weight") replaces the pending rungs with the working sets at that
-weight. Rungs count as warmups for volume and summaries; the walk reads the
+the same way. Six rungs is the most a lift gets, however they were done. Typing a weight while a rung is pending (the
+first-time dialog's "Test me from X", or the weight sheet) moves that rung
+to it: the ramp goes on from there, and the reps decide where it stops. Rungs count as warmups for volume and summaries; the walk reads the
 ramp to give the lift its first max.
 
 ## Every change is an event

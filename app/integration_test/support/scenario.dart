@@ -492,13 +492,18 @@ class Scenario {
     await settle(seconds: 1);
   }
 
-  /// A first-ever exercise asks for its weight: answer "test me", so the
-  /// calibration sets find it.
+  /// A first-ever exercise asks where its ramp starts: test me from the
+  /// planned weight, and the calibration sets find it.
   Future<void> testMeIfAsked() async {
-    if (!isVisible(copy.workout.firstTimeTest)) return;
-    await tapText(copy.workout.firstTimeTest);
+    final button = find.textContaining(testMe);
+    if (button.evaluate().isEmpty) return;
+    await tap(button);
     await settle(seconds: 1);
   }
+
+  /// The first-time dialog's one button, up to the weight it names.
+  static String get testMe =>
+      copy.workout.firstTimeTest.split('{weight}').first;
 
   /// Lift the next set on its circle: tap to start it, tap again when it is
   /// done, then once more per [missed] rep. On a calibration rung a

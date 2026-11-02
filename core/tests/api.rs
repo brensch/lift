@@ -1286,14 +1286,13 @@ mod calibration {
         }
     }
 
-    /// The first-time "I lift X", before any rung: the ramp gives way to
-    /// the warmup ladder and the decision's working sets at X.
+    /// A weight given before the ramp starts ("test me from X"): the
+    /// ramp's first set moves to X and the ramp goes on from there.
     #[test]
-    fn a_weight_given_up_front_skips_the_ramp() {
+    fn a_weight_given_up_front_starts_the_ramp_there() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
         let started = start(&mut app, &[Exercise::Squat]);
-        let d = decision(&started, Exercise::Squat);
         let state = app
             .call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {
@@ -1313,15 +1312,11 @@ mod calibration {
         let squat: Vec<&ProposedSet> = state
             .proposed_sets
             .iter()
-            .filter(|s| s.exercise == Exercise::Squat as i32)
+            .filter(|s| s.exercise == Exercise::Squat as i32 && !s.cancelled)
             .collect();
-        assert!(squat.iter().all(|s| !s.calibration), "no ramp left");
-        assert!(squat.iter().any(|s| s.warmup), "a ladder up to it");
-        let working: Vec<_> = squat.iter().filter(|s| !s.warmup).collect();
-        assert_eq!(working.len(), d.sets as usize);
-        assert!(working
-            .iter()
-            .all(|s| s.target_weight == 135.0 && s.target_reps == d.reps));
+        assert_eq!(squat.len(), 1, "still the one rung");
+        assert!(squat[0].calibration, "still ramping");
+        assert_eq!(squat[0].target_weight, 135.0);
     }
 
     #[test]
