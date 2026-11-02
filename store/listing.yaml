@@ -93,6 +93,8 @@ website:
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.
 # The title is drawn above the phone on every framed image; the subtitle
 # underneath it in smaller type. Keep titles to a few words.
+# `device: watch` draws the raw round Wear OS capture as a watch instead of a
+# phone, with the same caption and band.
 screenshots:
   - file: store_00.png
     title: Start a workout
@@ -109,15 +111,16 @@ screenshots:
   - file: store_07.png
     title: Heart rate
     subtitle: Straight from your watch, proof you are going hard
+  - file: wear_01_active_set.png
+    device: watch
+    title: Companion watch app
+    subtitle: It tracks heartrate and let's you record the workout. It's pretty sweet.
   - file: store_01.png
     title: Get Huge
     subtitle: Or toned, whatever. We increase the weight for you as you succeed
   - file: store_02.png
     title: Every schlift, tracked
     subtitle: The people yearn for progress charts
-  - file: store_03.png
-    title: Your whole history
-    subtitle: Brag to friends or whatever
 
 # Watch slides. Play needs square Wear OS captures; the App Store needs Apple
 # Watch captures. Both are placed on a plain dark background, no caption.

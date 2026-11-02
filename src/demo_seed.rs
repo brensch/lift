@@ -250,6 +250,8 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
         let mut call = Call::new(&mut account, now, Uuid::new_v4().to_string());
         call.add_library_templates(AddLibraryTemplatesRequest {
             library_ids: TEMPLATES.iter().map(|id| id.to_string()).collect(),
+            // The demo's workouts are its rotation, as onboarding's are.
+            in_rotation: true,
             ..Default::default()
         })
         .expect("the demo templates are in the library");

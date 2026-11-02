@@ -75,6 +75,76 @@ def png_size(path: Path) -> tuple[int, int]:
 CROP_TOP = 72
 
 
+def watch_html(target: Target, raw_png: Path, title: str, subtitle: str) -> str:
+    """A slide of the watch: the same caption and band as the phone slides,
+    a round watch in the middle (bezel and straps in the app's colours) with
+    the raw round Wear OS capture as its face."""
+    shot = base64.b64encode(raw_png.read_bytes()).decode()
+    w, h = target.width, target.height
+    u = w / 1080
+    title_px = int(76 * u)
+    sub_px = int(36 * u)
+    caption_top = int(150 * u)
+    band_h = int(h * 0.2)
+    gutter = int(48 * u)
+    subtitle_box = f"margin: {int(24 * u)}px auto 0; max-width: {int(w * 0.9)}px"
+    edge = max(1, int(2 * u))
+    face = int(w * 0.62)
+    bezel = int(face * 0.08)
+    body = face + 2 * bezel
+    strap_w = int(face * 0.58)
+    # Centred in the room under the caption, straps running off both ends.
+    top_room = caption_top + title_px * 2 + int(sub_px * 1.35 * 3) + int(60 * u)
+    body_top = top_room + (h - top_room - body) // 2
+    return f"""<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+{font_face("Space Mono", "SpaceMono-Bold.ttf", 700)}
+{font_face("Space Grotesk", "SpaceGrotesk-Medium.ttf", 500)}
+html, body {{ margin: 0; width: {w}px; height: {h}px; overflow: hidden; background: {GROUND}; }}
+body {{
+  position: relative; font-family: 'Space Grotesk', sans-serif; font-weight: 500; color: {TEXT};
+}}
+.band {{
+  position: absolute; left: 0; right: 0; bottom: 0; height: {band_h}px; background: {SIGNAL};
+  border-top: {edge}px solid {HAIRLINE};
+}}
+.caption {{
+  position: absolute; left: {gutter}px; right: {gutter}px; top: {caption_top}px; text-align: center;
+}}
+.title {{
+  font-family: 'Space Mono', monospace; font-weight: 700; font-size: {title_px}px;
+  line-height: 1.05; letter-spacing: -0.02em; margin: 0;
+}}
+.subtitle {{
+  font-size: {sub_px}px; line-height: 1.35; color: {MUTED}; {subtitle_box};
+}}
+.strap {{
+  position: absolute; left: 50%; transform: translateX(-50%); width: {strap_w}px;
+  background: {TEXT}; border: {edge}px solid {OUTLINE};
+}}
+.watch {{
+  position: absolute; left: 50%; transform: translateX(-50%); top: {body_top}px;
+  width: {body}px; height: {body}px; border-radius: 50%; background: {TEXT};
+  box-shadow: 0 {int(24 * u)}px {int(64 * u)}px rgba(17,17,17,0.25), 0 0 0 {edge}px {OUTLINE};
+}}
+.watch img {{
+  position: absolute; left: {bezel}px; top: {bezel}px; width: {face}px; height: {face}px;
+  border-radius: 50%;
+}}
+</style></head>
+<body>
+  <div class="band"></div>
+  <div class="strap" style="top: {top_room}px; height: {body_top + body // 2 - top_room}px"></div>
+  <div class="strap" style="top: {body_top + body // 2}px; bottom: 0"></div>
+  <div class="caption">
+    <h1 class="title">{title}</h1>
+    <div class="subtitle">{subtitle}</div>
+  </div>
+  <div class="watch"><img src="data:image/png;base64,{shot}"></div>
+</body></html>"""
+
+
 def page_html(target: Target, raw_png: Path, title: str, subtitle: str) -> str:
     shot = base64.b64encode(raw_png.read_bytes()).decode()
     raw_w, raw_h = png_size(raw_png)
@@ -161,7 +231,8 @@ def render_all() -> list[Path]:
                 raw = RAW / slide["file"]
                 if not raw.is_file():
                     raise SystemExit(f"missing raw screenshot {raw}")
-                page.set_content(page_html(target, raw, slide["title"], slide.get("subtitle", "")))
+                html = watch_html if slide.get("device") == "watch" else page_html
+                page.set_content(html(target, raw, slide["title"], slide.get("subtitle", "")))
                 page.wait_for_load_state("networkidle")
                 out = OUT / target.store / target.kind / f"{i:02d}.png"
                 page.screenshot(path=str(out), full_page=False)

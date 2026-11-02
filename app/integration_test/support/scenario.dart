@@ -424,14 +424,28 @@ class Scenario {
   Finder circleFor(String setId) => find.byKey(ValueKey('set-circle-$setId'));
 
   /// The set whose circle is up next, when one can be started now.
-  ProposedSet? get nextSet {
-    final set = workout.doneTargetSet;
-    if (set == null || circleFor(set.id).evaluate().isEmpty) return null;
-    return set;
-  }
+  ProposedSet? get nextSet => workout.doneTargetSet;
 
-  /// Whether a set is ready to lift: the up-next circle is on screen.
+  /// Whether a set is ready to lift: the workout has one up next. Its
+  /// circle may be further down the list (`revealNextSet`).
   bool get setOffered => nextSet != null;
+
+  /// Scroll the workout list until the next set's circle is built and on
+  /// screen: the list builds lazily, so a lift further down has no circle
+  /// to find until it scrolls in.
+  Future<void> revealNextSet() async {
+    final set = nextSet;
+    if (set == null) return;
+    final circle = circleFor(set.id);
+    if (circle.evaluate().isNotEmpty) return _reveal(circle);
+    await tester.scrollUntilVisible(
+      circle,
+      300,
+      scrollable: find.byType(Scrollable).first,
+      maxScrolls: 30,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+  }
 
   /// From home, start the expanded template's workout (the suggestion by
   /// default) and wait for its first circle: a calibration rung, a warmup
@@ -517,6 +531,7 @@ class Scenario {
     }
     final set = nextSet;
     expect(set, isNotNull, reason: 'no set to lift');
+    await revealNextSet();
     await tap(circleFor(set!.id));
     // The core answers asynchronously; give it a beat.
     await settle(seconds: 1);
