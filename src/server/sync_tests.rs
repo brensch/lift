@@ -108,6 +108,38 @@ mod store {
     }
 
     #[tokio::test]
+    async fn a_start_without_its_decisions_is_refused() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (_, first) = phone.write(1_000, |call| {
+            call.update_setting(UpdateSettingRequest {
+                setting: Some(UserSetting {
+                    setting: Some(user_setting::Setting::WeightUnit(WeightUnitConfig {
+                        unit: WeightUnit::Kg as i32,
+                    })),
+                }),
+            })
+            .unwrap()
+        });
+        db.push_events("u1", first).await.unwrap();
+        // The old shape: the lifts named, nothing decided for them.
+        let old = Event {
+            seq: 2,
+            id: Uuid::new_v4().to_string(),
+            at: 1_100,
+            kind: Some(event::Kind::StartWorkout(StartWorkoutRequest {
+                exercises: vec![Exercise::Squat as i32],
+                ..Default::default()
+            })),
+        };
+        let error = db.push_events("u1", vec![old]).await.err().unwrap();
+        assert!(error.downcast_ref::<crate::db::Diverged>().is_some());
+        assert_eq!(db.events_after("u1", 0).await.unwrap(), phone.log);
+        let server = db.read_account("u1", Clone::clone).await.unwrap();
+        assert_eq!(server, phone.account, "nothing of it was kept");
+    }
+
+    #[tokio::test]
     async fn workouts_are_projected_for_analytics() {
         let db = db().await;
         let mut phone = Phone::new();
@@ -137,6 +169,51 @@ mod store {
         .unwrap();
         assert_eq!(sets, started.proposed_sets.len() as i64);
         assert_eq!(done, 1);
+    }
+
+    #[tokio::test]
+    async fn a_database_from_before_a_projected_column_is_brought_up_to_date() {
+        let dir = std::env::temp_dir().join(format!("lift-sync-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let old = sqlx::SqlitePool::connect(&format!(
+            "sqlite://{}/server.sqlite?mode=rwc",
+            dir.display()
+        ))
+        .await
+        .unwrap();
+        sqlx::query(
+            "CREATE TABLE proposed_sets (
+                id TEXT PRIMARY KEY, user_id TEXT NOT NULL, workout_id TEXT NOT NULL,
+                workout_order INTEGER NOT NULL, exercise INTEGER NOT NULL,
+                target_reps INTEGER NOT NULL, target_weight REAL NOT NULL,
+                warmup INTEGER NOT NULL DEFAULT 0, cancelled INTEGER NOT NULL DEFAULT 0,
+                rest_after_success INTEGER NOT NULL DEFAULT 0,
+                rest_after_failure INTEGER NOT NULL DEFAULT 0,
+                calibration INTEGER NOT NULL DEFAULT 0, skipped INTEGER NOT NULL DEFAULT 0)",
+        )
+        .execute(&old)
+        .await
+        .unwrap();
+        old.close().await;
+
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let (started, events) = Phone::new().start_squats(1_000);
+        db.push_events("u1", events).await.unwrap();
+        let rests: Vec<i64> =
+            sqlx::query_scalar("SELECT rest_seconds FROM proposed_sets WHERE workout_id = ?")
+                .bind(&started.id)
+                .fetch_all(&db.read_pool)
+                .await
+                .unwrap();
+        let planned: Vec<i64> = started
+            .proposed_sets
+            .iter()
+            .map(|s| s.rest_seconds as i64)
+            .collect();
+        assert_eq!(rests, planned);
+        // Opening it again changes nothing.
+        drop(db);
+        ServerDb::new_in_dir(&dir).await.unwrap();
     }
 
     #[tokio::test]

@@ -31,9 +31,10 @@ graph TD
 
 The rules that matter:
 
-- **No domain rules in Dart.** Planning, the set state machine, progression,
-  summaries, volume and the home's suggestion are the core's. A provider
-  makes one call and shows the answer.
+- **No domain rules in Dart.** The plan (every lift's sets, reps, weight
+  and reasons), the set state machine, summaries, volume and the home's
+  suggestion are the core's. A provider makes one call and shows the
+  answer; Dart only words the reasons (`logic/plan_text.dart`).
 - **`logic/` must not import Flutter.** It is display-side helpers only —
   plate maths for the bar picture, unit formatting, grouping sets into
   exercise blocks — testable without a widget harness.
@@ -155,7 +156,7 @@ graph TD
     onb -->|no| onboarding["OnboardingScreen"]
     onb -->|yes| shell["MainLayout"]
 
-    shell --> home["HomeScreen<br/>proposal, readiness, pending updates"]
+    shell --> home["HomeScreen<br/>time budget, each template's plan,<br/>readiness"]
     shell --> workout["WorkoutTab → WorkoutScreen"]
     shell --> history["HistoryScreen"]
     shell --> progress["ProgressScreen"]
@@ -167,11 +168,29 @@ graph TD
     settings --> passkeys["PasskeysScreen"]
 ```
 
-`OnboardingScreen` is three steps (marker, unit, optional bodyweight and
-experience) ending in `CompleteOnboarding`, which the core applies on the
-phone: it seeds the trackers and the chosen library templates. An account
-counts as onboarded once it has any templates or workouts
+`OnboardingScreen` is five steps (marker, unit, the chick-to-gorilla
+strength slider, optional bodyweight for calories, templates) ending in
+`CompleteOnboarding`. The app sends the slider's strength; the core records
+the starting weights it picks on the event, with the chosen library
+templates. A lift never done calibrates from its starting weight. An
+account counts as onboarded once it has any templates or workouts
 (`GetHomeResponse.onboarded`).
+
+### Plans on screen
+
+Every screen shows the core's decisions, never its own numbers:
+
+| Screen | Shows | From |
+|---|---|---|
+| Home | the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason; the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans` |
+| Template editor | each lift's next plan; the sheet that sets or removes an override | `plans`, `SetOverride` |
+| Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
+| Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
+| Progress, exercise detail | the estimated max over time beside the heaviest set each session | `GetExerciseProgress` |
+
+The weight sheet during a workout changes this workout only
+(`AdjustExerciseWeight`); a lasting change is an override, made in the
+template editor.
 
 Settings → Export your data shares the account file whole; Settings →
 Import a file replaces this phone's copy with an export of the same
@@ -288,7 +307,7 @@ it is specific to one screen; otherwise it lives with its screen.
   in-memory account. Build it first: `make test-app` does
   `cargo build -p schlift_native` then `flutter test`.
 - `test/logic/` — the display helpers: plate calculator, weight units,
-  exercise blocks, prescriptions, starting weights.
+  exercise blocks, plan wording, starting weights.
 - `test/screenshots/` — real screens at phone size; see
   [`docs/testing/app-harness.md`](../testing/app-harness.md).
 - `test/grpc_recovery_test.dart` — channel reset/retry behaviour.

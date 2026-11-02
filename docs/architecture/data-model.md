@@ -9,7 +9,7 @@ with the same statements (`core/src/projection.rs`). See
 ```mermaid
 graph LR
     log["Event log<br/>(the truth)"] -->|"Account::fold"| acc["Account<br/>in memory"]
-    acc -->|"projection.rs"| tables["Readable tables<br/>workouts, sets, heart rate,<br/>trackers, templates"]
+    acc -->|"projection.rs"| tables["Readable tables<br/>workouts, sets, heart rate,<br/>exercise decisions, templates"]
 ```
 
 ## The event log
@@ -21,12 +21,12 @@ graph LR
 | Server | `account_events(user_id, seq, event_blob)`, PK `(user_id, seq)` | Every account's log |
 
 `event_blob` is an `Event` (`proto/workout/v1/account.proto`): `seq`, `id`,
-`at` and one `kind` — `start_workout`, `workout` (a `WorkoutMutation`:
-complete/edit/delete a set, start a set, skip warmups, add/adjust/remove/
-reorder exercises, rate, set the session, end), `heart_rate`,
-`save_template`, `delete_template`, `reorder_templates`,
-`add_library_templates`, `set_exercise_tracker`, `complete_onboarding`,
-`update_setting`, `dismiss_user_messages`, `import_history`.
+`at` and one `kind` — `start_workout` (with each lift's recorded
+decision), `workout` (a `WorkoutMutation`: complete/edit/delete a set,
+start a set, skip warmups, add/adjust/remove/reorder exercises, set the
+session, end), `heart_rate`, `save_template`, `delete_template`,
+`reorder_templates`, `add_library_templates`, `clone_template`,
+`set_override`, `complete_onboarding`, `update_setting`, `import_history`.
 
 `seq` runs 1, 2, 3… with no gaps. Ids the event creates (the workout, its
 sets, a template) derive from the event's `id` (`core/src/ids.rs`), so a
@@ -35,11 +35,15 @@ replay rebuilds them exactly.
 ## The account
 
 `Account` (`core/src/account.rs`) is what the fold produces: settings,
-templates, trackers (one per exercise), every workout (`WorkoutRecord`:
-the workout, its proposed and completed sets, heart rate), the active
-workout's id and the coaching messages. It is never stored whole; the phone
-holds it in memory while the account is open, the server caches recently
-used ones.
+templates, the starting weights (per lift, from onboarding or imported
+history), the user's overrides (per lift: weight, reps, maybe sets, and
+when), every workout (`WorkoutRecord`: the workout, its proposed and
+completed sets, heart rate, and per lift its `ExerciseLog` — the decision
+it was laid out from and every weight change since), and the active
+workout's id. Nothing else is kept: each lift's estimated max is walked
+from the workouts whenever a plan is made (`core/src/plan.rs`). The
+account is never stored whole; the phone holds it in memory while the
+account is open, the server caches recently used ones.
 
 ## Projected tables
 
@@ -51,6 +55,7 @@ erDiagram
     workouts ||--o{ proposed_sets : "plans"
     proposed_sets ||--o| completed_sets : "logged as"
     workouts ||--o{ workout_heart_rate_samples : "records"
+    workouts ||--o{ exercise_decisions : "plans each lift"
 
     workouts {
         TEXT id PK
@@ -72,6 +77,7 @@ erDiagram
         REAL target_weight
         INTEGER warmup
         INTEGER cancelled
+        INTEGER rest_seconds
         INTEGER calibration
         INTEGER skipped
     }
@@ -84,7 +90,6 @@ erDiagram
         INTEGER started_at
         INTEGER ended_at
         INTEGER rest_until
-        INTEGER effort "retired: ratings from before 0.12.2"
     }
     workout_heart_rate_samples {
         TEXT id PK
@@ -92,12 +97,23 @@ erDiagram
         INTEGER sampled_at
         REAL bpm
     }
+    exercise_decisions {
+        TEXT id PK "workout id : position"
+        TEXT workout_id
+        INTEGER position "the order planned"
+        INTEGER exercise "enum"
+        INTEGER sets
+        INTEGER reps
+        REAL weight
+        REAL estimated_max "the max it was planned from"
+        INTEGER budget_minutes
+        BLOB log "ExerciseLog: decision, reasons, weight changes"
+    }
 ```
 
 `WORKOUT_SCHEMA` (above) is on both the phone and the server; the server's
 analytics and multiplayer history ("trained with") read it.
-`ACCOUNT_SCHEMA` — `exercise_trackers` and `workout_templates` — is on the
-phone only, so an exported file reads as everything the app knows; the
+`ACCOUNT_SCHEMA` — `workout_templates` — is on the phone only, so an exported file reads as everything the app knows; the
 server keeps those in the fold.
 
 - **`end_time = 0` means in progress.** There is no status column;
@@ -106,6 +122,9 @@ server keeps those in the fold.
   workout's lifting marker (`lifting_set_id`), not a row.
 - **`proposed_sets.calibration`** marks a calibration rung; rungs count as
   warmups for volume.
+- **`exercise_decisions`** is one row per lift per workout: the decision's
+  numbers as columns for SQL, and `log`, the whole `ExerciseLog` (reasons
+  and weight changes) as a proto blob.
 - **`proposed_sets.cancelled`** is a soft delete (an exercise removed
   mid-workout), so ordering and history stay stable. `skipped` marks warmups
   skipped with "Skip".

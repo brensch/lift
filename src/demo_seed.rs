@@ -5,339 +5,167 @@
 //! exist in a production binary. Triggered by `SEED_DEMO_USER=<name>` at
 //! startup, which seeds two users:
 //!
-//! - `<name>`: ten weeks of finished sessions, nothing in progress. Home,
+//! - `<name>`: sixteen weeks of finished sessions, nothing in progress. Home,
 //!   progress and history look lived-in.
-//! - `<name>-live`: the same history plus a session that started 24 minutes
-//!   ago with the first two exercises done, so the live workout screens open
-//!   mid-session with an elapsed timer and a heart-rate axis worth looking at.
+//! - `<name>-live`: the same history plus a session under way, its first
+//!   two exercises done and the last set just finished, so the live workout
+//!   screens open mid-session with an elapsed timer and a rest running.
 //!
 //! A no-op for a user that already exists. The account is written as events,
-//! made by the core's own API (the history as one import, the live session
-//! through the real start and complete), so it stays valid as the rules and
-//! rules evolve. The phone pulls it on sign-in like any account.
+//! made by the core's own API: the history as one import of plain, rising
+//! sessions (the core's walk works out each lift's max from them, as it
+//! would for anyone's), the live session through the real start, so it is
+//! planned by the same rules as every other. The phone pulls it on sign-in
+//! like any account.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::db::{DbResult, ServerDb};
 use crate::time::now_unix;
 use schlift::workout::v1::{
     workout_mutation, AddLibraryTemplatesRequest, AppendWorkoutMutationsRequest,
-    CompleteSetRequest, CompletedSet, Event, Exercise, ImportHistory, ImportedWorkout, ProposedSet,
-    StartSetRequest, StartWorkoutRequest, Workout, WorkoutMutation,
+    CompleteSetRequest, CompletedSet, Event, Exercise, ExerciseDecision, ExerciseLog,
+    ExerciseWeight, ImportHistory, ImportedWorkout, ProposedSet, StartSetRequest,
+    StartWorkoutRequest, Workout, WorkoutMutation,
 };
 use schlift_core::account::Account;
 use schlift_core::api::Call;
-use schlift_core::exercise_catalog::{
-    load_style, progression_increment_lb, rules, snap_weight_lb, starting_weight_lb, ClassRules,
-    LoadStyle,
-};
+use schlift_core::exercise_catalog::{progression_increment_lb, rules, snap_weight_lb};
+use schlift_core::onboarding::starting_weights_for_strength;
+use schlift_core::plan::{is_bodyweight, max_needed};
 use schlift_core::weight_units::AppWeightUnit;
 use uuid::Uuid;
 
 const DAY: i64 = 86_400;
-/// How many weeks of history to write. Enough for sparklines and the volume
-/// tracker to look lived-in, cheap enough to seed on every dev boot.
+/// How many weeks of history to write. Enough for sparklines and the weekly
+/// volume to look lived-in, cheap enough to seed on every dev boot.
 const WEEKS: i64 = 16;
 /// Exercises already finished in the `-live` user's in-progress session.
 const LIVE_DONE_EXERCISES: usize = 2;
 /// Working sets per lift in the history.
 const SETS: i32 = 3;
+/// Where the demo lifter sits on the setup slider: someone a few months in.
+const STRENGTH: f32 = 0.3;
+/// The library templates the demo lifter alternates between.
+const TEMPLATES: &[&str] = &["stronglifts_a", "stronglifts_b"];
 
-/// A template from the library (templates/library.yaml), added as a new
-/// lifter adds it; `exercises` mirrors the library's so the history matches.
-struct Template {
-    library_id: &'static str,
-    name: &'static str,
-    exercises: &'static [Exercise],
-}
-
-const TEMPLATES: &[Template] = &[
-    Template {
-        library_id: "stronglifts_a",
-        name: "StrongLifts A",
-        exercises: &[Exercise::Squat, Exercise::BarbellRow, Exercise::BenchPress],
-    },
-    Template {
-        library_id: "stronglifts_b",
-        name: "StrongLifts B",
-        exercises: &[Exercise::Squat, Exercise::OverheadPress, Exercise::Deadlift],
-    },
-];
-
-/// Where the demo lifter starts relative to the catalog's beginner default,
-/// so the numbers read like someone a few months in rather than a first day.
-fn opening_weight(ex: Exercise) -> f32 {
-    let base = starting_weight_lb(ex, AppWeightUnit::Lb);
-    let step = progression_increment_lb(ex, AppWeightUnit::Lb);
-    let head_start = match ex {
-        Exercise::Squat => 12.0,
-        Exercise::Deadlift => 16.0,
-        Exercise::BenchPress => 8.0,
-        Exercise::BarbellRow => 7.0,
-        Exercise::OverheadPress => 4.0,
-        Exercise::RomanianDeadlift => 9.0,
-        Exercise::HipThrust => 10.0,
-        Exercise::LegPress => 14.0,
-        _ => 2.0,
+/// What the lifter did on their `n`th session of a lift (0-based): reps
+/// climb the class's range a rep a session and the weight steps up past the
+/// top, from `opening`. Every ninth session the last set comes up a rep
+/// short. Simple and rising; the core's walk works out the max from it.
+fn session_of(ex: Exercise, opening: f32, n: i32) -> (f32, i32, bool) {
+    let r = rules(ex);
+    let span = r.rep_high - r.rep_low + 1;
+    let reps = r.rep_low + n % span;
+    let weight = if is_bodyweight(ex) {
+        0.0
+    } else {
+        let step = progression_increment_lb(ex, AppWeightUnit::Lb);
+        snap_weight_lb(ex, opening + step * (n / span) as f32, AppWeightUnit::Lb)
     };
-    snap_weight_lb(ex, base + step * head_start, AppWeightUnit::Lb)
+    (weight, reps, n % 9 == 8)
 }
 
-/// A deterministic roll in [0, 1) from (exercise, session, salt), so the
-/// "randomness" below is the same on every seed and the screenshots are
-/// reproducible.
-fn roll(ex: Exercise, session: usize, salt: u64) -> f32 {
-    let mut x = (ex as u64)
-        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
-        .wrapping_add((session as u64).wrapping_mul(0xD1B5_4A32_D192_ED03))
-        .wrapping_add(salt.wrapping_mul(0x94D0_49BB_1331_11EB));
-    x ^= x >> 31;
-    x = x.wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    x ^= x >> 29;
-    (x >> 40) as f32 / (1u64 << 24) as f32
-}
-
-/// What a session did to a lift, chosen before the sets are written so the
-/// logged reps match.
-#[derive(Clone, Copy, PartialEq)]
-enum Outcome {
-    /// Hit every target.
-    Made,
-    /// Fell short on the last set(s); the weight holds.
-    Missed,
-}
-
-/// The progression a user would have felt: reps climb the range and the
-/// weight steps up when they top out, but not every session goes to plan.
-/// Roughly one in six sessions misses reps, a second miss in a row deloads
-/// ten percent (the app's own rule), some sessions just hold, and after a
-/// deload the lift rebuilds quickly back to where it was. Over sixteen
-/// weeks the trend is up; the dips are detours.
-#[derive(Clone, Copy)]
-struct Lift {
-    weight: f32,
-    reps: i32,
-    misses: i32,
-    /// Highest working weight reached so far; below it the lift rebuilds fast.
-    peak: f32,
-}
-
-impl Lift {
-    fn opening(ex: Exercise, p: &ClassRules) -> Self {
-        // Each lift starts somewhere different in its rep range so the weight
-        // steps land on different sessions across exercises.
-        let weight = opening_weight(ex);
-        Lift {
-            weight,
-            reps: (p.rep_low + (ex as i32) % 3).min(p.rep_high),
-            misses: 0,
-            peak: weight,
-        }
-    }
-
-    fn outcome(ex: Exercise, session: usize) -> Outcome {
-        // A bad day hits everything; otherwise each lift rolls on its own.
-        let bad_day = roll(Exercise::Unspecified, session, 1) < 0.07;
-        if bad_day || roll(ex, session, 2) < 0.16 {
-            Outcome::Missed
-        } else {
-            Outcome::Made
-        }
-    }
-
-    /// Reps actually logged on a set, given the outcome. A miss loses one to
-    /// three reps on the final set and sometimes one on the set before.
-    fn logged_reps(
-        &self,
-        ex: Exercise,
-        session: usize,
-        set_no: i32,
-        sets: i32,
-        outcome: Outcome,
-    ) -> i32 {
-        if outcome == Outcome::Made {
-            return self.reps;
-        }
-        let last = set_no == sets - 1;
-        let short = 1 + (roll(ex, session, 3) * 3.0) as i32;
-        if last {
-            (self.reps - short).max(1)
-        } else if set_no == sets - 2 && roll(ex, session, 4) < 0.4 {
-            (self.reps - 1).max(1)
-        } else {
-            self.reps
-        }
-    }
-
-    fn advance(&mut self, ex: Exercise, p: &ClassRules, session: usize, outcome: Outcome) {
-        let loadable = !matches!(load_style(ex), LoadStyle::Bodyweight);
-        match outcome {
-            Outcome::Missed => {
-                self.misses += 1;
-                if self.misses >= 2 {
-                    // Two in a row: back off ten percent and rebuild.
-                    self.misses = 0;
-                    self.reps = p.rep_low;
-                    if loadable {
-                        self.weight = snap_weight_lb(ex, self.weight * 0.9, AppWeightUnit::Lb);
-                    }
-                }
-            }
-            Outcome::Made => {
-                self.misses = 0;
-                let rebuilding = self.weight < self.peak;
-                if !rebuilding && roll(ex, session, 7) < 0.03 && loadable {
-                    // A setback that is not a miss: a week off, a tweak, a
-                    // change of gym. Drop a notch and rebuild from there.
-                    self.reps = p.rep_low;
-                    self.weight = snap_weight_lb(ex, self.weight * 0.9, AppWeightUnit::Lb);
-                    return;
-                }
-                if !rebuilding && roll(ex, session, 5) < 0.10 {
-                    return; // made it, but no more than last time: a hold
-                }
-                if self.reps >= p.rep_high {
-                    self.reps = p.rep_low;
-                    if loadable {
-                        self.weight = snap_weight_lb(
-                            ex,
-                            self.weight + progression_increment_lb(ex, AppWeightUnit::Lb),
-                            AppWeightUnit::Lb,
-                        );
-                        self.peak = self.peak.max(self.weight);
-                    }
-                } else {
-                    // Familiar ground comes back fast; new ground is slower.
-                    let step = if rebuilding {
-                        3
-                    } else if roll(ex, session, 6) < 0.5 {
-                        1
-                    } else {
-                        2
-                    };
-                    self.reps = (self.reps + step).min(p.rep_high);
-                }
-            }
-        }
-    }
-}
-
-/// Everything one session needs to be written.
-struct Session {
-    workout: Workout,
-    proposed: Vec<ProposedSet>,
-    completed: Vec<CompletedSet>,
-}
-
-/// Builds one session from the template. `done_exercises` caps how many
-/// exercises have completed sets (all of them for history; a prefix for the
-/// live session). `session` seeds the outcome rolls. Advances `lifts` for
-/// every completed exercise.
-fn build_session(
-    template: &Template,
+/// One finished session of `exercises`, starting at `start`. `done` counts
+/// each lift's sessions so far and is advanced.
+fn session(
+    name: &str,
     template_id: &str,
-    lifts: &mut HashMap<i32, Lift>,
+    exercises: &[i32],
+    openings: &BTreeMap<i32, f32>,
+    done: &mut HashMap<i32, i32>,
     start: i64,
-    done_exercises: usize,
-    session: usize,
-) -> Session {
+) -> ImportedWorkout {
     let workout_id = Uuid::new_v4().to_string();
     let mut proposed = Vec::new();
     let mut completed = Vec::new();
+    let mut logs = Vec::new();
     let mut clock = start + 120;
-    let mut order = 0;
-
-    for (index, ex) in template.exercises.iter().enumerate() {
-        let p = rules(*ex);
-        let key = *ex as i32;
-        let lift = *lifts.entry(key).or_insert_with(|| Lift::opening(*ex, &p));
-        let is_bodyweight = matches!(load_style(*ex), LoadStyle::Bodyweight);
-        let done = index < done_exercises;
-        let outcome = Lift::outcome(*ex, session);
-
-        if p.warmups && !is_bodyweight {
-            for fraction in [0.5f32, 0.75] {
-                let w = snap_weight_lb(*ex, lift.weight * fraction, AppWeightUnit::Lb);
-                let id = Uuid::new_v4().to_string();
-                proposed.push(ProposedSet {
-                    id: id.clone(),
-                    workout_id: workout_id.clone(),
-                    workout_order: order,
-                    exercise: key,
-                    target_reps: 5,
-                    target_weight: w,
-                    warmup: true,
-                    rest_seconds: 60,
-                    cancelled: false,
-                    calibration: false,
-                    skipped: false,
-                });
-                if done {
-                    completed.push(CompletedSet {
-                        id: Uuid::new_v4().to_string(),
-                        workout_id: workout_id.clone(),
-                        proposed_set_id: id,
-                        actual_reps: 5,
-                        actual_weight: w,
-                        started_at: clock,
-                        ended_at: clock + 25,
-                        rest_until: clock + 85,
-                    });
-                    clock += 90;
-                }
-                order += 1;
-            }
-        }
+    for &value in exercises {
+        let Ok(ex) = Exercise::try_from(value) else {
+            continue;
+        };
+        let r = rules(ex);
+        let n = done.entry(value).or_insert(0);
+        let opening = openings.get(&value).copied().unwrap_or(0.0);
+        let (weight, reps, missed) = session_of(ex, opening, *n);
+        *n += 1;
+        let warmups: &[f32] = if r.warmups { &[0.5, 0.75] } else { &[] };
+        let mut sets: Vec<(f32, i32, i32, bool)> = warmups
+            .iter()
+            .map(|f| {
+                (
+                    snap_weight_lb(ex, weight * f, AppWeightUnit::Lb),
+                    5,
+                    5,
+                    true,
+                )
+            })
+            .collect();
         for set_no in 0..SETS {
+            let actual = if missed && set_no == SETS - 1 {
+                reps - 1
+            } else {
+                reps
+            };
+            sets.push((weight, reps, actual, false));
+        }
+        for (w, target, actual, warmup) in sets {
+            let rest = if warmup { 60 } else { r.rest_seconds };
             let id = Uuid::new_v4().to_string();
             proposed.push(ProposedSet {
                 id: id.clone(),
                 workout_id: workout_id.clone(),
-                workout_order: order,
-                exercise: key,
-                target_reps: lift.reps,
-                target_weight: lift.weight,
-                warmup: false,
-                rest_seconds: p.rest_seconds,
-                cancelled: false,
-                calibration: false,
-                skipped: false,
+                workout_order: proposed.len() as i32,
+                exercise: value,
+                target_reps: target,
+                target_weight: w,
+                warmup,
+                rest_seconds: rest,
+                ..Default::default()
             });
-            if done {
-                let reps = lift.logged_reps(*ex, session, set_no, SETS, outcome);
-                completed.push(CompletedSet {
-                    id: Uuid::new_v4().to_string(),
-                    workout_id: workout_id.clone(),
-                    proposed_set_id: id,
-                    actual_reps: reps,
-                    actual_weight: lift.weight,
-                    started_at: clock,
-                    ended_at: clock + 35,
-                    rest_until: clock + 35 + p.rest_seconds as i64,
-                });
-                clock += 35 + p.rest_seconds as i64;
-            }
-            order += 1;
+            completed.push(CompletedSet {
+                id: Uuid::new_v4().to_string(),
+                workout_id: workout_id.clone(),
+                proposed_set_id: id,
+                actual_reps: actual,
+                actual_weight: w,
+                started_at: clock,
+                ended_at: clock + 35,
+                rest_until: clock + 35 + rest as i64,
+            });
+            clock += 35 + rest as i64;
         }
-        if done {
-            let mut next = lift;
-            next.advance(*ex, &p, session, outcome);
-            lifts.insert(key, next);
-        }
+        logs.push(ExerciseLog {
+            decision: Some(ExerciseDecision {
+                exercise: value,
+                sets: SETS,
+                reps,
+                weight,
+                rest_seconds: r.rest_seconds,
+                warmups: r.warmups,
+                rep_low: r.rep_low,
+                rep_high: r.rep_high,
+                max: max_needed(weight, reps, SETS, is_bodyweight(ex)),
+                budget_minutes: 60,
+                ..Default::default()
+            }),
+            changes: Vec::new(),
+        });
     }
-
-    Session {
-        workout: Workout {
+    ImportedWorkout {
+        workout: Some(Workout {
             id: workout_id,
-            name: template.name.to_string(),
+            name: name.to_string(),
             start_time: start,
-            end_time: 0,
-            session_id: String::new(),
+            end_time: clock + 60,
             template_id: template_id.to_string(),
             ..Default::default()
-        },
-        proposed,
-        completed,
+        }),
+        proposed_sets: proposed,
+        completed_sets: completed,
+        exercise_logs: logs,
+        ..Default::default()
     }
 }
 
@@ -417,77 +245,65 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
     let now = now_unix();
     let mut account = Account::default();
     let mut events = Vec::new();
-    let mut template_ids = Vec::new();
     {
         let mut call = Call::new(&mut account, now, Uuid::new_v4().to_string());
         call.add_library_templates(AddLibraryTemplatesRequest {
-            library_ids: TEMPLATES.iter().map(|t| t.library_id.to_string()).collect(),
+            library_ids: TEMPLATES.iter().map(|id| id.to_string()).collect(),
             ..Default::default()
         })
         .expect("the demo templates are in the library");
         events.append(&mut call.events);
     }
-    for t in TEMPLATES {
-        let saved = account
-            .templates
-            .iter()
-            .find(|saved| saved.name == t.name)
-            .expect("the library template was added");
-        template_ids.push(saved.id.clone());
-    }
+    let templates = account.templates.clone();
 
-    let mut lifts: HashMap<i32, Lift> = HashMap::new();
+    let openings: BTreeMap<i32, f32> = starting_weights_for_strength(STRENGTH, AppWeightUnit::Lb)
+        .into_iter()
+        .map(|(ex, w)| (ex as i32, w))
+        .collect();
+    let mut done = HashMap::new();
     // Sessions on a Mon/Wed/Fri rhythm, most recent one two days ago so the
     // recovery view shows a mix of recovered and recovering muscles.
-    let mut session_days: Vec<i64> = Vec::new();
-    for week in 0..WEEKS {
-        for offset in [0, 2, 4] {
-            session_days.push(2 + week * 7 + offset);
-        }
-    }
+    let mut session_days: Vec<i64> = (0..WEEKS)
+        .flat_map(|week| [0, 2, 4].map(|offset| 2 + week * 7 + offset))
+        .collect();
     session_days.sort_unstable_by(|a, b| b.cmp(a)); // oldest first
     let total = session_days.len();
-    let mut workouts = Vec::new();
-
-    for (i, days_ago) in session_days.into_iter().enumerate() {
-        let template = &TEMPLATES[i % TEMPLATES.len()];
-        let template_id = &template_ids[i % TEMPLATES.len()];
-        // 07:10 local-ish start, ~55 minutes long.
-        let start = now - days_ago * DAY - 9 * 3600 + (i as i64 % 3) * 600;
-        let mut session = build_session(
-            template,
-            template_id,
-            &mut lifts,
-            start,
-            template.exercises.len(),
-            i,
-        );
-        let end = session
-            .completed
-            .last()
-            .map(|c| c.ended_at + 60)
-            .unwrap_or(start + 3000);
-        session.workout.end_time = end;
-        workouts.push(ImportedWorkout {
-            workout: Some(session.workout),
-            proposed_sets: session.proposed,
-            completed_sets: session.completed,
-            ..Default::default()
-        });
-    }
+    let workouts: Vec<ImportedWorkout> = session_days
+        .into_iter()
+        .enumerate()
+        .map(|(i, days_ago)| {
+            let template = &templates[i % templates.len()];
+            // 07:10 local-ish start, ~55 minutes long.
+            let start = now - days_ago * DAY - 9 * 3600 + (i as i64 % 3) * 600;
+            session(
+                &template.name,
+                &template.id,
+                &template.exercises,
+                &openings,
+                &mut done,
+                start,
+            )
+        })
+        .collect();
     {
         let mut call = Call::new(&mut account, now, Uuid::new_v4().to_string());
         call.import_history(ImportHistory {
             workouts,
-            starting_weights: Vec::new(),
+            starting_weights: openings
+                .iter()
+                .map(|(&exercise, &weight_lb)| ExerciseWeight {
+                    exercise,
+                    weight_lb,
+                })
+                .collect(),
         })
         .expect("the demo history imports");
         events.append(&mut call.events);
     }
 
     if live {
-        let index = total % TEMPLATES.len();
-        events.extend(live_session(&mut account, &template_ids[index], now));
+        let template_id = &templates[total % templates.len()].id;
+        events.extend(live_session(&mut account, template_id, now));
         tracing::info!(username, workout = %account.active_workout_id, "live session in progress");
     }
 
@@ -499,4 +315,34 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
 pub async fn seed_demo_user(db: &ServerDb, username: &str) -> DbResult<()> {
     seed_one(db, username, false).await?;
     seed_one(db, &format!("{username}-live"), true).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use schlift_core::plan::Planner;
+
+    #[tokio::test]
+    async fn the_demo_history_walks_to_rising_maxes() {
+        let dir = std::env::temp_dir().join(format!("lift-demo-seed-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        seed_demo_user(&db, "demo").await.unwrap();
+        let account = db.read_account("demo-demo", Clone::clone).await.unwrap();
+        assert_eq!(account.workouts.len() as i64, WEEKS * 3);
+        assert!(account.active_workout_id.is_empty());
+        let walk = Planner::new(&account, now_unix()).walk(Exercise::Squat);
+        let (first, last) = (walk.points.first().unwrap().1, walk.max.unwrap());
+        assert!(last > first, "the squat's max rises: {first} -> {last}");
+
+        let live = db
+            .read_account("demo-demo-live", Clone::clone)
+            .await
+            .unwrap();
+        let workout = live.active_workout().expect("a session under way");
+        assert!(!workout.completed_sets.is_empty());
+        assert!(workout
+            .exercise_logs
+            .iter()
+            .all(|log| log.decision.is_some()));
+    }
 }

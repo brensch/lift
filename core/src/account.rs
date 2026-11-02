@@ -8,8 +8,8 @@ use crate::history::WorkoutRecord;
 use crate::ids::Ids;
 use crate::pb::{
     event, user_setting, workout_mutation::Mutation, CompleteOnboardingRequest, Event, Exercise,
-    ImportHistory, LibraryTemplate, SetOverrideRequest, StartWorkoutRequest, UserSetting,
-    WeightUnit, WeightUnitConfig, Workout, WorkoutMutation, WorkoutTemplate,
+    ExerciseDecision, ImportHistory, LibraryTemplate, SetOverrideRequest, StartWorkoutRequest,
+    UserSetting, WeightUnit, WeightUnitConfig, Workout, WorkoutMutation, WorkoutTemplate,
 };
 use crate::plan::Override;
 use crate::weight_units::{unit_from_proto, AppWeightUnit};
@@ -247,6 +247,7 @@ impl Account {
             ..Default::default()
         };
         let mut record = WorkoutRecord::new(workout, Vec::new(), Vec::new());
+        require_decisions(&record, &req.exercises, &req.decisions)?;
         reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, self.unit(), ids)?;
         self.workouts.push(record);
         self.active_workout_id = workout_id.to_string();
@@ -306,13 +307,16 @@ impl Account {
                     self.active_workout_id.clear();
                 }
             }
-            Mutation::AddExercises(req) => reducer::apply_add_exercises(
-                &mut record,
-                &req.workout_id,
-                &req.decisions,
-                unit,
-                ids,
-            )?,
+            Mutation::AddExercises(req) => {
+                require_decisions(&record, &req.exercises, &req.decisions)?;
+                reducer::apply_add_exercises(
+                    &mut record,
+                    &req.workout_id,
+                    &req.decisions,
+                    unit,
+                    ids,
+                )?
+            }
             Mutation::AdjustExerciseWeight(req) => {
                 reducer::apply_adjust_exercise_weight(&mut record, req, unit, ids, at)?
             }
@@ -454,6 +458,32 @@ impl Account {
             self.starting_weights.insert(w.exercise, w.weight_lb);
         }
     }
+}
+
+/// Every lift a start or an add names carries the decision recorded for
+/// it, unless the workout already has one. The sets are laid out from the
+/// decisions alone, so a lift named without one (a log from before plans
+/// were recorded) is refused rather than folded into an empty workout.
+fn require_decisions(
+    record: &WorkoutRecord,
+    exercises: &[i32],
+    decisions: &[ExerciseDecision],
+) -> Result<(), CoreError> {
+    let decided = |ex: i32| {
+        decisions.iter().any(|d| d.exercise == ex)
+            || record
+                .exercise_logs
+                .iter()
+                .any(|log| log.decision.as_ref().is_some_and(|d| d.exercise == ex))
+    };
+    let undecided = exercises
+        .iter()
+        .filter(|ex| Exercise::try_from(**ex).is_ok_and(|ex| ex != Exercise::Unspecified))
+        .any(|ex| !decided(*ex));
+    if undecided {
+        return Err(invalid("A lift has no recorded decision"));
+    }
+    Ok(())
 }
 
 /// The workouts an event touches.
