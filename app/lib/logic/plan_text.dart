@@ -40,11 +40,7 @@ bool isBodyweightDecision(ExerciseDecision d) =>
     d.weight <= 0 && !d.calibration;
 
 /// One step of a decision in words.
-String reasonText(
-  PlanReason r,
-  WeightUnit unit, {
-  required bool bodyweight,
-}) {
+String reasonText(PlanReason r, WeightUnit unit, {required bool bodyweight}) {
   final c = copy.plan.reasons;
   String max(double v) => maxText(v, unit, bodyweight: bodyweight);
   switch (r.kind) {
@@ -68,7 +64,10 @@ String reasonText(
       if (r.after > r.before) {
         return c.setsExtra
             .replaceAll('{sets}', sets)
-            .replaceAll('{muscle}', muscleShortLabels[r.muscle] ?? 'That muscle');
+            .replaceAll(
+              '{muscle}',
+              muscleShortLabels[r.muscle] ?? 'That muscle',
+            );
       }
       return c.setsFloor.replaceAll('{sets}', sets);
     default:
@@ -118,5 +117,8 @@ String changeText(WeightChange change, WeightUnit unit) {
         '{before}',
         formatWeight(change.before, unit, includeUnit: true),
       )
-      .replaceAll('{after}', formatWeight(change.after, unit, includeUnit: true));
+      .replaceAll(
+        '{after}',
+        formatWeight(change.after, unit, includeUnit: true),
+      );
 }
