@@ -16,7 +16,7 @@ const Map<BodyPart, String> bodyPartLabels = {
 };
 
 /// Single source of truth for everything we know about an exercise.
-/// The legacy lookup maps below are derived from this list.
+/// The name lookups below are derived from this list.
 class ExerciseInfo {
   final Exercise exercise;
   final String name;
@@ -348,12 +348,7 @@ const List<ExerciseInfo> exerciseCatalog = [
   ),
 ];
 
-/// Catalogue indexed by exercise for O(1) lookups.
-final Map<Exercise, ExerciseInfo> exerciseInfo = {
-  for (final info in exerciseCatalog) info.exercise: info,
-};
-
-// ── Legacy lookup maps, derived from the catalogue ──
+// ── Names by exercise, from the catalogue ──
 
 final Map<Exercise, String> exerciseNames = {
   Exercise.EXERCISE_UNSPECIFIED: '?',

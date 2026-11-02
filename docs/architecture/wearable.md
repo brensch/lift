@@ -126,7 +126,7 @@ sequenceDiagram
     participant P as WorkoutProvider
     participant K as core (on the phone)
 
-    W->>B: WearIntent{intent_id, sent_at, oneof}
+    W->>B: WearIntent{intent_id, oneof}
     B->>C: intentStream
     alt workout matches and app ready
         C->>P: _executeIntent → StartSet / CompleteSet / …

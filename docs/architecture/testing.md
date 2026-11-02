@@ -42,9 +42,9 @@ Pure and fast, inline in their modules under `core/src/`:
 - `volume.rs` — the 7-day window, primary/secondary weighting, and the
   suggestion: recovered muscles only, a template whose first lift is
   recovering left out (and the one back soonest when every one is), the
-  20% tie and the least recent, the fallback, favourites left out.
+  20% tie and the least recent, the fallback, reserves left out.
 - `rotation.rs` — the rotation check: each warning (gap, overlap, too
-  few), the sets a lap counts, and what a favourite or library entry
+  few), the sets a lap counts, and what a reserve or library entry
   would add (the primary muscles the lap misses).
 - `workout/reducer.rs`, `workout/planning.rs` — set transitions, rest,
   calibration rungs (climb, settle, re-settle) and the weight log entries

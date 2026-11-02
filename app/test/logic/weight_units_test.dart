@@ -37,47 +37,6 @@ void main() {
     });
   });
 
-  group('snapping', () {
-    test('imperial snaps to 5 lb by default', () {
-      expect(snapDisplayWeight(133, lb), 135);
-      expect(snapDisplayWeight(132, lb), 130);
-      expect(snapDisplayWeight(137.5, lb), 140);
-    });
-
-    test('metric snaps to 2.5 kg by default', () {
-      expect(snapDisplayWeight(61, kg), 60);
-      expect(snapDisplayWeight(61.5, kg), 62.5);
-    });
-
-    test('custom steps are honoured', () {
-      expect(snapDisplayWeight(133, lb, poundStep: 2.5), 132.5);
-      expect(snapDisplayWeight(61, kg, kilogramStep: 1), 61);
-    });
-
-    test('snapPoundsForUnit lands on a loadable metric weight', () {
-      // 100 lb is 45.36 kg; the nearest 2.5 kg is 45 kg, which is 99.2 lb.
-      final snapped = snapPoundsForUnit(100, kg);
-      expect(poundsToKilograms(snapped), closeTo(45, 1e-6));
-    });
-
-    test('snapPoundsForUnit is a no-op for weights already on the step', () {
-      expect(snapPoundsForUnit(135, lb), 135);
-    });
-
-    test('snapping is idempotent', () {
-      for (final unit in [lb, kg]) {
-        for (final w in [37.0, 100.0, 183.5, 271.0]) {
-          final once = snapPoundsForUnit(w, unit);
-          expect(
-            snapPoundsForUnit(once, unit),
-            closeTo(once, 1e-6),
-            reason: 'unit=$unit weight=$w',
-          );
-        }
-      }
-    });
-  });
-
   group('formatting', () {
     test('drops the decimal for whole numbers', () {
       expect(formatWeight(135, lb), '135');
@@ -92,8 +51,6 @@ void main() {
     test('suffixes match the unit', () {
       expect(weightUnitSuffix(lb), 'lb');
       expect(weightUnitSuffix(kg), 'kg');
-      expect(weightUnitSuffixPlural(lb), 'lbs');
-      expect(weightUnitSuffixPlural(kg), 'kg');
     });
   });
 

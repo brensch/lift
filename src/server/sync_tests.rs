@@ -64,7 +64,7 @@ mod store {
         let (started, events) = phone.start_squats(1_000);
         let pushed = db.push_events("u1", events).await.unwrap();
         assert_eq!(pushed.head, 1);
-        assert!(pushed.changed);
+        assert!(pushed.progressed);
 
         let server = db.read_account("u1", Clone::clone).await.unwrap();
         assert_eq!(server, phone.account, "the server folds what the phone did");
@@ -88,13 +88,34 @@ mod store {
         });
         // Out of order: the second alone is after a gap, so it waits.
         let pushed = db.push_events("u1", second.clone()).await.unwrap();
-        assert_eq!((pushed.head, pushed.changed), (0, false));
+        assert_eq!((pushed.head, pushed.progressed), (0, false));
         // The whole outbox again, twice: applied once.
         let all: Vec<Event> = first.into_iter().chain(second).collect();
         assert_eq!(db.push_events("u1", all.clone()).await.unwrap().head, 2);
         let again = db.push_events("u1", all).await.unwrap();
-        assert_eq!((again.head, again.changed), (2, false));
+        assert_eq!((again.head, again.progressed), (2, false));
         assert_eq!(db.events_after("u1", 0).await.unwrap(), phone.log);
+    }
+
+    #[tokio::test]
+    async fn heart_rate_alone_is_not_progress() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (started, events) = phone.start_squats(1_000);
+        db.push_events("u1", events).await.unwrap();
+        let (_, beats) = phone.write(1_005, |call| {
+            call.append_workout_heart_rate(AppendWorkoutHeartRateRequest {
+                workout_id: started.id.clone(),
+                samples: vec![WorkoutHeartRatePoint {
+                    sampled_at: 1_005_000,
+                    bpm: 120.0,
+                    availability: 0,
+                }],
+            })
+            .unwrap()
+        });
+        let pushed = db.push_events("u1", beats).await.unwrap();
+        assert_eq!((pushed.head, pushed.progressed), (2, false));
     }
 
     #[tokio::test]
@@ -147,12 +168,18 @@ mod store {
         db.push_events("u1", events).await.unwrap();
         let set = started.proposed_sets[0].clone();
         let (_, events) = phone.write(1_100, |call| {
-            call.complete_set(CompleteSetRequest {
-                workout_id: started.id.clone(),
-                proposed_set_id: set.id.clone(),
-                actual_reps: 8,
-                actual_weight: 0.0,
-                completed_at: 1_100,
+            call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::CompleteSet(
+                        CompleteSetRequest {
+                            workout_id: started.id.clone(),
+                            proposed_set_id: set.id.clone(),
+                            actual_reps: 8,
+                            actual_weight: 0.0,
+                            completed_at: 1_100,
+                        },
+                    )),
+                }],
             })
             .unwrap()
         });
@@ -169,6 +196,41 @@ mod store {
         .unwrap();
         assert_eq!(sets, started.proposed_sets.len() as i64);
         assert_eq!(done, 1);
+    }
+
+    #[tokio::test]
+    async fn heart_rate_is_projected_as_it_arrives() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let (started, events) = phone.start_squats(1_000);
+        db.push_events("u1", events).await.unwrap();
+        for (at, bpms) in [(1_100, [100.0, 110.0]), (1_200, [120.0, 130.0])] {
+            let (_, events) = phone.write(at, |call| {
+                call.append_workout_heart_rate(AppendWorkoutHeartRateRequest {
+                    workout_id: started.id.clone(),
+                    samples: bpms
+                        .iter()
+                        .zip(0..)
+                        .map(|(&bpm, n)| WorkoutHeartRatePoint {
+                            sampled_at: at * 1_000 + n,
+                            bpm,
+                            availability: 0,
+                        })
+                        .collect(),
+                })
+                .unwrap()
+            });
+            db.push_events("u1", events).await.unwrap();
+        }
+
+        let bpms: Vec<f64> = sqlx::query_scalar(
+            "SELECT bpm FROM workout_heart_rate_samples WHERE workout_id = ? ORDER BY sampled_at",
+        )
+        .bind(&started.id)
+        .fetch_all(&db.read_pool)
+        .await
+        .unwrap();
+        assert_eq!(bpms, [100.0, 110.0, 120.0, 130.0], "each sample once");
     }
 
     #[tokio::test]
@@ -378,12 +440,18 @@ mod stream {
 
         let set = started.proposed_sets[0].clone();
         let (_, events) = phone.write(now_unix(), |call| {
-            call.complete_set(CompleteSetRequest {
-                workout_id: started.id.clone(),
-                proposed_set_id: set.id.clone(),
-                actual_reps: 8,
-                actual_weight: 0.0,
-                completed_at: now_unix(),
+            call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::CompleteSet(
+                        CompleteSetRequest {
+                            workout_id: started.id.clone(),
+                            proposed_set_id: set.id.clone(),
+                            actual_reps: 8,
+                            actual_weight: 0.0,
+                            completed_at: now_unix(),
+                        },
+                    )),
+                }],
             })
             .unwrap()
         });

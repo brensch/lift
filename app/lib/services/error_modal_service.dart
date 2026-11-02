@@ -7,7 +7,7 @@ class ErrorModalService {
       GlobalKey<NavigatorState>();
   static bool _isShowing = false;
 
-  static void showError(String message, {String title = 'Error'}) {
+  static void showError(String message) {
     final context = rootNavigatorKey.currentContext;
     if (context == null || _isShowing) return;
 
@@ -18,7 +18,7 @@ class ErrorModalService {
         useRootNavigator: true,
         builder: (ctx) => AlertDialog(
           title: Text(
-            title,
+            'Error',
             style: TextStyle(fontWeight: context.tokens.weight.heavy),
           ),
           content: Text(message),

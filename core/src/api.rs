@@ -8,18 +8,18 @@ use std::collections::HashMap;
 use prost::Message;
 
 use crate::account::{Account, CoreError};
-use crate::exercise_catalog::{all_exercises, muscle_key, muscle_label};
+use crate::exercise_catalog::all_exercises;
 use crate::history::WorkoutRecord;
 use crate::ids::derived_id;
 use crate::pb::*;
 use crate::plan::Planner;
-use crate::progress::{compute_exercise_progress, compute_next_up_set, compute_workout_summary};
+use crate::progress::{compute_exercise_progress, compute_workout_summary};
 use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
 use crate::volume::{muscle_volume_7d, suggest_template};
 use crate::workout::{
-    active_proposed_sets, apply_answer_rung_to_active, get_workout_response_from_active,
-    start_workout_response_from_active, workout_state_snapshot,
+    apply_answer_rung_to_active, get_workout_response_from_active,
+    start_workout_response_from_active,
 };
 
 /// One call into the account: the time it's made, and the id the first
@@ -92,7 +92,6 @@ impl<'a> Call<'a> {
     fn mutate(&mut self, mutation: workout_mutation::Mutation) -> Result<String, CoreError> {
         self.record(event::Kind::Workout(WorkoutMutation {
             mutation: Some(mutation),
-            ..Default::default()
         }))
     }
 
@@ -139,47 +138,11 @@ impl<'a> Call<'a> {
         })
     }
 
-    pub fn complete_set(
-        &mut self,
-        req: CompleteSetRequest,
-    ) -> Result<CompleteSetResponse, CoreError> {
-        let (workout_id, proposed_set_id) = (req.workout_id.clone(), req.proposed_set_id.clone());
-        self.mutate(workout_mutation::Mutation::CompleteSet(req))?;
-        let state = self.view().workout_response(&workout_id)?;
-        Ok(CompleteSetResponse {
-            completed_set: state
-                .completed_sets
-                .iter()
-                .filter(|c| c.proposed_set_id == proposed_set_id)
-                .max_by_key(|c| c.ended_at)
-                .cloned(),
-            next_up_set: state.next_up_set,
-            state_snapshot: state.state_snapshot,
-        })
-    }
-
-    pub fn delete_completed_set(
-        &mut self,
-        req: DeleteCompletedSetRequest,
-    ) -> Result<DeleteCompletedSetResponse, CoreError> {
-        let workout_id = req.workout_id.clone();
-        self.mutate(workout_mutation::Mutation::DeleteCompletedSet(req))?;
-        let state = self.view().workout_response(&workout_id)?;
-        Ok(DeleteCompletedSetResponse {
-            next_up_set: state.next_up_set,
-            state_snapshot: state.state_snapshot,
-        })
-    }
-
     /// New lifts mid-workout (one already in it is not added again),
     /// planned now in the workout's budget around the lifts still in it,
     /// which keep their decisions.
-    pub fn add_exercises(
-        &mut self,
-        mut req: AddExercisesRequest,
-    ) -> Result<WorkoutPlanResponse, CoreError> {
-        let id = req.workout_id.clone();
-        let record = self.view().workout(&id)?;
+    fn add_exercises(&mut self, mut req: AddExercisesRequest) -> Result<String, CoreError> {
+        let record = self.view().workout(&req.workout_id)?;
         let planned: Vec<ExerciseDecision> = record
             .exercise_logs
             .iter()
@@ -197,47 +160,18 @@ impl<'a> Call<'a> {
             .filter(|ex| planned.iter().all(|d| d.exercise != *ex as i32))
             .collect();
         req.decisions = Planner::new(self.account, self.now).workout(&added, &planned, budget);
-        self.mutate(workout_mutation::Mutation::AddExercises(req))?;
-        self.view().plan_response(&id)
-    }
-
-    pub fn adjust_exercise_weight(
-        &mut self,
-        req: AdjustExerciseWeightRequest,
-    ) -> Result<WorkoutPlanResponse, CoreError> {
-        let id = req.workout_id.clone();
-        self.mutate(workout_mutation::Mutation::AdjustExerciseWeight(req))?;
-        self.view().plan_response(&id)
-    }
-
-    pub fn remove_exercise(
-        &mut self,
-        req: RemoveExerciseRequest,
-    ) -> Result<WorkoutPlanResponse, CoreError> {
-        let id = req.workout_id.clone();
-        self.mutate(workout_mutation::Mutation::RemoveExercise(req))?;
-        self.view().plan_response(&id)
-    }
-
-    pub fn reorder_exercises(
-        &mut self,
-        req: ReorderExercisesRequest,
-    ) -> Result<WorkoutPlanResponse, CoreError> {
-        let id = req.workout_id.clone();
-        self.mutate(workout_mutation::Mutation::ReorderExercises(req))?;
-        self.view().plan_response(&id)
+        self.mutate(workout_mutation::Mutation::AddExercises(req))
     }
 
     /// Several changes in one go (the watch's intents arrive this way). One
     /// that can't apply — a set already gone, a workout already over — is
-    /// skipped and the rest still apply. New lifts are planned here, as
-    /// `add_exercises` plans them.
+    /// skipped and the rest still apply. New lifts are planned here
+    /// (`add_exercises`).
     pub fn append_workout_mutations(
         &mut self,
         req: AppendWorkoutMutationsRequest,
     ) -> Result<AppendWorkoutMutationsResponse, CoreError> {
         let mut workout_id = None;
-        let mut applied = Vec::with_capacity(req.mutations.len());
         for mutation in req.mutations {
             let payload = mutation
                 .mutation
@@ -245,15 +179,11 @@ impl<'a> Call<'a> {
             workout_id
                 .get_or_insert_with(|| crate::account::mutation_workout_id(&payload).to_string());
             let _ = match payload {
-                workout_mutation::Mutation::AddExercises(add) => {
-                    self.add_exercises(add).map(|_| ())
-                }
-                other => self.mutate(other).map(|_| ()),
+                workout_mutation::Mutation::AddExercises(add) => self.add_exercises(add),
+                other => self.mutate(other),
             };
-            applied.push(mutation.event_id);
         }
         Ok(AppendWorkoutMutationsResponse {
-            applied_event_ids: applied,
             workout_state: match workout_id {
                 Some(id) => self.view().workout_response(&id).ok(),
                 None => None,
@@ -313,24 +243,6 @@ impl<'a> Call<'a> {
             given
         };
         Ok(SaveTemplateResponse {
-            template: self.account.template(&id).cloned(),
-        })
-    }
-
-    pub fn clone_template(
-        &mut self,
-        mut req: CloneTemplateRequest,
-    ) -> Result<CloneTemplateResponse, CoreError> {
-        let template = self
-            .account
-            .template(&req.template_id)
-            .ok_or_else(|| CoreError::NotFound("Template not found".into()))?;
-        let shown = self.view().resolved(template);
-        req.name = shown.name;
-        req.exercises = shown.exercises;
-        let id = req.template_id.clone();
-        self.record(event::Kind::CloneTemplate(req))?;
-        Ok(CloneTemplateResponse {
             template: self.account.template(&id).cloned(),
         })
     }
@@ -585,21 +497,6 @@ impl<'a> View<'a> {
             .collect()
     }
 
-    pub fn plan_response(&self, id: &str) -> Result<WorkoutPlanResponse, CoreError> {
-        let record = self.workout(id)?;
-        let visible = active_proposed_sets(&record.proposed_sets);
-        Ok(WorkoutPlanResponse {
-            next_up_set: compute_next_up_set(&visible, &record.completed_sets),
-            proposed_sets: visible,
-            state_snapshot: Some(workout_state_snapshot(
-                &record.workout,
-                &record.proposed_sets,
-                &record.completed_sets,
-                self.now,
-            )),
-        })
-    }
-
     pub fn get_workout(&self, req: GetWorkoutRequest) -> Result<GetWorkoutResponse, CoreError> {
         self.workout_response(&req.workout_id)
     }
@@ -694,15 +591,6 @@ impl<'a> View<'a> {
         planner.view(decision)
     }
 
-    pub fn get_exercise_plan(
-        &self,
-        req: GetExercisePlanRequest,
-    ) -> Result<GetExercisePlanResponse, CoreError> {
-        Ok(GetExercisePlanResponse {
-            plan: Some(self.exercise_plan(req.exercise(), req.budget_minutes)),
-        })
-    }
-
     /// `exercises` planned at now as one workout in `budget_minutes` (0 =
     /// the default): what starting a template of them would record.
     pub fn template_plan(&self, exercises: &[i32], budget_minutes: i32) -> TemplatePlan {
@@ -745,14 +633,6 @@ impl<'a> View<'a> {
     /// Everything the home screen needs, in one response, with every lift
     /// planned at now in `budget_minutes` (0 = the default).
     pub fn home(&self, budget_minutes: i32) -> GetHomeResponse {
-        // Volume needs 7 days and recovery the latest session per muscle; a
-        // fixed number of recent workouts keeps the work flat as history
-        // grows.
-        const RECENT: usize = 24;
-        let mut recent: Vec<WorkoutRecord> = self.account.workouts.clone();
-        recent.sort_by_key(|r| std::cmp::Reverse(r.workout.start_time));
-        recent.truncate(RECENT);
-
         let budget = if budget_minutes > 0 {
             budget_minutes
         } else {
@@ -764,16 +644,12 @@ impl<'a> View<'a> {
             .filter_map(|exercise| planner.workout(&[exercise], &[], budget).pop())
             .map(|decision| planner.view(decision))
             .collect();
-        let volume = muscle_volume_7d(&recent, self.now);
-        let muscle_recovery = per_muscle_recovery(&recent, self.now);
+        let volume = muscle_volume_7d(&self.account.workouts, self.now);
+        let muscle_recovery = per_muscle_recovery(&self.account.workouts);
         let recovery = muscle_recovery
             .iter()
             .map(|entry| MuscleRecoveryStatus {
-                muscle_key: muscle_key(entry.muscle).to_string(),
-                label: muscle_label(entry.muscle).to_string(),
-                last_trained_at: entry.last_trained_at,
-                recovered_at: entry.recovered_at,
-                fraction: entry.fraction,
+                muscle: entry.muscle as i32,
                 hours_remaining: entry.hours_remaining(self.now),
                 recovered: entry.is_recovered(self.now),
             })
@@ -921,12 +797,6 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
         writes {
             "StartWorkout" => start_workout,
             "EndWorkout" => end_workout,
-            "CompleteSet" => complete_set,
-            "DeleteCompletedSet" => delete_completed_set,
-            "AddExercises" => add_exercises,
-            "AdjustExerciseWeight" => adjust_exercise_weight,
-            "RemoveExercise" => remove_exercise,
-            "ReorderExercises" => reorder_exercises,
             "AppendWorkoutMutations" => append_workout_mutations,
             "AppendWorkoutHeartRate" => append_workout_heart_rate,
             "SaveTemplate" => save_template,
@@ -936,7 +806,6 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "CompleteOnboarding" => complete_onboarding,
             "AddLibraryTemplates" => add_library_templates,
             "ApplyLibraryPlan" => apply_library_plan,
-            "CloneTemplate" => clone_template,
             "UpdateSetting" => update_setting,
             "ImportHistory" => import_history,
         }
@@ -945,7 +814,6 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetWorkoutHeartRate" => get_workout_heart_rate,
             "GetStartingWeights" => get_starting_weights,
             "GetHome" => get_home,
-            "GetExercisePlan" => get_exercise_plan,
             "GetTemplatePlan" => get_template_plan,
         }
         plain {

@@ -216,8 +216,7 @@ class TutorialAccount {
     final startMs = nowMs - sessionAge.inMilliseconds;
     final batch = WearSensorBatch()
       ..batchId = 'tutorial-hr'
-      ..workoutId = workoutId
-      ..sentAt = Int64(nowMs);
+      ..workoutId = workoutId;
     for (var ms = startMs; ms <= nowMs; ms += 5000) {
       final t = (ms - startMs) / 1000;
       // Sets every ~3 minutes: up to ~150, back down to ~105 while resting.

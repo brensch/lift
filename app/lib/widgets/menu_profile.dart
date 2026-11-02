@@ -201,17 +201,17 @@ class _MenuProfileState extends State<MenuProfile> {
           cell(
             copy.workout.lifting,
             show((x) => x.lifting, _time),
-            color: t.workoutLiftingFg,
+            color: t.lifting,
           ),
           cell(
             copy.workout.resting,
             show((x) => x.resting, _time),
-            color: t.workoutRestingFg,
+            color: t.resting,
           ),
           cell(
             copy.workout.yapping,
             show((x) => x.yapping, _time),
-            color: t.workoutYappingFg,
+            color: t.yapping,
             last: true,
           ),
         ]),

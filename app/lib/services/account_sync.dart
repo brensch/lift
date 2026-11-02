@@ -65,10 +65,6 @@ class AccountSync extends ChangeNotifier
   int get unsynced => _unsynced;
   int _unsynced = 0;
 
-  /// The server turned this phone's session down: sign in again to sync.
-  bool get needsSignIn => _needsSignIn;
-  bool _needsSignIn = false;
-
   /// The server holds a different history for this account (another phone
   /// recorded it). Nothing is pushed until it's resolved.
   bool get diverged => _diverged;
@@ -321,7 +317,6 @@ class AccountSync extends ChangeNotifier
     } else if (error is GrpcError && error.code == StatusCode.unauthenticated) {
       // The session lapsed: nothing to dial until the user signs in again.
       _hangUp();
-      _needsSignIn = true;
       onSessionRejected?.call();
       notifyListeners();
       return;
@@ -344,7 +339,6 @@ class AccountSync extends ChangeNotifier
 
   /// Signed in again (or for the first time): dial now.
   void redial() {
-    _needsSignIn = false;
     _hangUp();
     _failures = 0;
     _dial();

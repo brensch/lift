@@ -43,6 +43,29 @@ impl ServerAuthService {
     }
 }
 
+/// Longest username a new account may take.
+const MAX_USERNAME_CHARS: usize = 64;
+/// Passkey names past this are cut short.
+const MAX_PASSKEY_NAME_CHARS: usize = 64;
+
+fn passkey_name(name: Option<String>) -> Option<String> {
+    name.map(|n| n.chars().take(MAX_PASSKEY_NAME_CHARS).collect())
+}
+
+/// Where the request came from: the client Caddy names in X-Forwarded-For
+/// (the last entry, the one it saw itself), else the connection's peer.
+fn client_ip<T>(request: &Request<T>) -> Option<String> {
+    request
+        .metadata()
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.rsplit(',').next())
+        .map(str::trim)
+        .filter(|ip| !ip.is_empty())
+        .map(str::to_string)
+        .or_else(|| request.remote_addr().map(|a| a.ip().to_string()))
+}
+
 #[tonic::async_trait]
 impl AuthService for ServerAuthService {
     /// Development-only login that bypasses WebAuthn entirely.
@@ -118,6 +141,9 @@ impl AuthService for ServerAuthService {
         if username.contains(' ') {
             return Err(Status::invalid_argument("username cannot contain spaces"));
         }
+        if username.chars().count() > MAX_USERNAME_CHARS || username.chars().any(char::is_control) {
+            return Err(Status::invalid_argument("username is not valid"));
+        }
         if self
             .db
             .get_user_by_name(&username)
@@ -146,14 +172,19 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<RegisterFinishRequest>,
     ) -> Result<Response<AuthResponse>, Status> {
-        let remote_addr = request.remote_addr().map(|a| a.ip().to_string());
+        let remote_addr = client_ip(&request);
         let req = request.into_inner();
         info!(rpc = "RegisterFinish", user_id = %req.user_id, "request");
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         let username = match self
             .auth_state
-            .finish_registration(&req.user_id, &credential, remote_addr, req.name)
+            .finish_registration(
+                &req.user_id,
+                &credential,
+                remote_addr,
+                passkey_name(req.name),
+            )
             .await
         {
             Ok(username) => username,
@@ -257,12 +288,12 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<AddPasskeyFinishResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "AddPasskeyFinish", %user_id, "request");
-        let remote_addr = request.remote_addr().map(|a| a.ip().to_string());
+        let remote_addr = client_ip(&request);
         let req = request.into_inner();
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         self.auth_state
-            .finish_add_passkey(&user_id, &credential, remote_addr, req.name)
+            .finish_add_passkey(&user_id, &credential, remote_addr, passkey_name(req.name))
             .await
             .map_err(Status::invalid_argument)?;
         Ok(Response::new(AddPasskeyFinishResponse {}))

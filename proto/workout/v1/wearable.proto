@@ -157,7 +157,8 @@ message StartSetIntent {
 message TapSetIntent {
   string workout_id = 1;
   string set_id = 2;
-  int64 tapped_at = 3; // Unix seconds
+  reserved 3;
+  reserved "tapped_at";
 }
 
 message EndWorkoutIntent {
@@ -166,7 +167,6 @@ message EndWorkoutIntent {
 
 message WearIntent {
   string intent_id = 1; // client-generated UUID for dedupe
-  int64 sent_at = 2; // Unix seconds
 
   oneof intent {
     CompleteSetIntent complete_set = 11;
@@ -174,8 +174,8 @@ message WearIntent {
     StartSetIntent start_set = 17;
     TapSetIntent tap_set = 19;
   }
-  reserved 10, 12, 14, 15, 16, 18;
-  reserved "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup", "edit_completed_set";
+  reserved 2, 10, 12, 14, 15, 16, 18;
+  reserved "sent_at", "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup", "edit_completed_set";
 }
 
 message HeartRateSample {
@@ -187,12 +187,14 @@ message HeartRateSample {
 message WearSensorBatch {
   string batch_id = 1; // client-generated UUID for durable dedupe
   string workout_id = 2;
-  int64 sent_at = 3; // Unix milliseconds
   repeated HeartRateSample heart_rate_samples = 4;
+  reserved 3;
+  reserved "sent_at";
 }
 
 message WearSensorBatchAck {
   string batch_id = 1;
   string workout_id = 2;
-  int64 received_at = 3; // Unix milliseconds on phone receipt
+  reserved 3;
+  reserved "received_at";
 }

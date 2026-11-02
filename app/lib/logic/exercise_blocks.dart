@@ -18,7 +18,6 @@ class ExerciseBlock {
 
   /// The sets that count: not warmups, not calibration rungs.
   Iterable<ProposedSet> get workingSets => sets.where(isWorkingSet);
-  Iterable<ProposedSet> get warmupSets => sets.where((s) => s.warmup);
 
   /// The ramp of a first-session exercise, in order.
   Iterable<ProposedSet> get calibrationSets => sets.where((s) => s.calibration);
@@ -28,8 +27,8 @@ class ExerciseBlock {
 /// warmups for volume and summaries, like the server's `session_outcomes`.
 bool isWorkingSet(ProposedSet set) => !set.warmup && !set.calibration;
 
-/// Group visible sets by exercise, ordered by first appearance. Legacy
-/// interleaved supersets collapse into one block per exercise.
+/// Group visible sets by exercise, ordered by first appearance; a
+/// re-added exercise merges into one block.
 List<ExerciseBlock> blocksFromSets(Iterable<ProposedSet> sets) {
   final order = <Exercise>[];
   final byExercise = <Exercise, List<ProposedSet>>{};

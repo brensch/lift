@@ -3,7 +3,7 @@ use crate::pb::{
     CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
     WorkoutSummary,
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// Roll a finished (or in-progress) workout up into the render-ready summary the
 /// client displays. Volume and per-exercise stats cover **working sets only**;
@@ -150,7 +150,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
         let proposed_by_id: HashMap<&str, &ProposedSet> =
             proposed.iter().map(|p| (p.id.as_str(), p)).collect();
 
-        let mut per_ex: HashMap<i32, Acc> = HashMap::new();
+        let mut per_ex: BTreeMap<i32, Acc> = BTreeMap::new();
         for c in completed {
             if c.ended_at == 0 {
                 continue;

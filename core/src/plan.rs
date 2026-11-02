@@ -108,6 +108,17 @@ pub fn max_needed(weight: f32, reps: i32, sets: i32, bodyweight: bool) -> f32 {
     shown_max(weight, reps, 1.0, sets.max(1) as usize, bodyweight)
 }
 
+/// The reps in reserve the last of `sets` sets keeps: one, and half a rep
+/// more for each set before it.
+fn reserve(sets: i32) -> f32 {
+    1.0 + 0.5 * (sets.max(1) - 1) as f32
+}
+
+/// The weight `max` takes for `sets` × `reps`: the inverse of [max_needed].
+fn weight_for(max: f32, reps: i32, sets: i32) -> f32 {
+    max / (1.0 + (reps as f32 + reserve(sets)) / 30.0)
+}
+
 /// The reps in reserve a ramp rung's answer to "how many more could you
 /// have done?" counts (`RepsLeft`): 0–1 as 0.5, 2–4 as 3, and 5+ as 8 (a
 /// lot left: it should jump, and on five reps 8 in reserve puts the next
@@ -125,7 +136,7 @@ pub fn answered_reserve(reps_left: i32) -> Option<f32> {
 /// The most reps the max covers at `weight` across `sets` (may be below
 /// zero when it covers none).
 pub fn reps_covered(max: f32, weight: f32, sets: i32, bodyweight: bool) -> i32 {
-    let reserve = 1.0 + 0.5 * (sets.max(1) - 1) as f32;
+    let reserve = reserve(sets);
     let reps = if bodyweight || weight <= 0.0 {
         max - reserve
     } else {
@@ -177,8 +188,7 @@ pub fn choose(
             return (last, reps);
         }
     }
-    let at_bottom = max / (1.0 + (rep_low as f32 + 1.0 + 0.5 * (sets.max(1) - 1) as f32) / 30.0);
-    let weight = snap_down_weight_lb(ex, at_bottom, unit);
+    let weight = snap_down_weight_lb(ex, weight_for(max, rep_low, sets), unit);
     (
         weight,
         reps_covered(max, weight, sets, false).clamp(rep_low, rep_high),

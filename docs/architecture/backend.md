@@ -165,20 +165,19 @@ graph LR
     end
     subgraph "WorkoutService (web reads)"
         w1["ListWorkoutSummaries / GetExerciseProgress"]
-        w2["GetWorkout / GetWorkoutHeartRate"]
     end
     subgraph "MultiplayerService"
         m1["JoinViaInvite / LeaveCurrentSession"]
-        m2["GetCurrentSession / GetSessionParticipants<br/>GetParticipantWorkout"]
-        m3["GetMyInviteToken / RotateInviteToken"]
+        m2["GetCurrentSession / GetSessionParticipants"]
+        m3["GetMyInviteToken"]
         m4["RequestJoinPartner / GetJoinRequests<br/>RespondJoinRequest"]
-        m5["GetTrainingPartners / GetSharedSessions"]
+        m5["GetTrainingPartners"]
     end
     subgraph "SettingsService"
         s1["GetSettings"]
     end
     subgraph "UserService"
-        u1["CreateUser / GetUser / UpdateMyProfile"]
+        u1["GetUser / UpdateMyProfile"]
     end
     subgraph "AnalyticsService / AdminService"
         x1["RecordPageViews / GetAdminStatus / GetStats"]
@@ -194,10 +193,9 @@ Every RPC except the auth handshake and `ReportAuthFailure` begins with
 each handler, so **a new handler that forgets the call is unauthenticated**.
 `Sync` authenticates on the stream's headers before reading anything.
 
-`SessionStatus` has `next_up_user_id`, `next_up_set`, `next_up_rest_until`
-and `currently_lifting_user_id`; the server leaves them empty
-(`current_session` in `src/server/multiplayer.rs`). "Who's up next" is
-derived on the client from the participants. Do not build on those fields.
+`SessionStatus` carries only the participants (`current_session` in
+`src/server/multiplayer.rs`). "Who's up next" is derived on the client from
+them.
 
 ## Error handling
 

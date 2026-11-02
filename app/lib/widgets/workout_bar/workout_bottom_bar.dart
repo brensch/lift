@@ -64,13 +64,13 @@ _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
   final restEnd = snapshot?.restUntil.toInt() ?? 0;
   final set = wp.doneTargetSet;
   if (isAllDoneState(state) || set == null) {
-    return _YouState(copy.workout.allDone, t.successFg, null, null);
+    return _YouState(copy.workout.allDone, t.success, null, null);
   }
   if (isLiftingState(state)) {
     final startedAt = snapshot!.liftingStartedAt.toInt();
     return _YouState(
       copy.workout.lifting,
-      t.workoutLiftingFg,
+      t.lifting,
       formatRestClock(max(0, nowUnix - startedAt)),
       set,
     );
@@ -78,16 +78,16 @@ _YouState _youState(WorkoutProvider wp, ThemeSpec t, int nowUnix) {
   if (isRestingState(state)) {
     return _YouState(
       copy.workout.resting,
-      t.workoutRestingFg,
+      t.resting,
       formatRestClock(max(0, restEnd - nowUnix)),
       set,
-      restLeft: restLeftFraction(wp.activeCompletedSets, restEnd, nowUnix),
+      restLeft: restLeftFraction(wp.completedSets, restEnd, nowUnix),
     );
   }
   if (isYappingState(state)) {
     return _YouState(
       copy.workout.yapping,
-      t.workoutYappingFg,
+      t.yapping,
       formatRestClock(max(0, nowUnix - restEnd)),
       set,
     );
@@ -113,7 +113,7 @@ String _hint(WorkoutProvider wp) {
 /// yet (the lift has just come up); '' otherwise.
 String _liftReason(WorkoutProvider wp, ProposedSet? set, WeightUnit unit) {
   if (set == null) return '';
-  final started = wp.activeProposedSets.any(
+  final started = wp.proposedSets.any(
     (s) => s.exercise == set.exercise && wp.isSetDone(s.id),
   );
   if (started) return '';
@@ -363,7 +363,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         timerText: you.timerText,
                         restLeft: you.restLeft,
                         set: you.set,
-                        plan: wp.activeProposedSets,
+                        plan: wp.proposedSets,
                         circle: you.set == null
                             ? null
                             : LiveSetCircle(
@@ -378,7 +378,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                             ),
                       ),
                     ),
-                    if (allDone && wp.activeWorkout?.endTime == Int64.ZERO) ...[
+                    if (allDone && wp.workout?.endTime == Int64.ZERO) ...[
                       const SizedBox(height: 10),
                       SizedBox(
                         height: 56,

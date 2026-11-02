@@ -17,7 +17,7 @@ import 'package:schlift/theme/app_theme.dart';
 import '../support/provider_harness.dart';
 
 /// Home with StrongLifts A and B in rotation (onboarding's) and Arms as a
-/// favourite (added later), at phone size.
+/// reserve (added later), at phone size.
 Future<ProviderHarness> boot(WidgetTester tester) async {
   final h = (await tester.runAsync(() async {
     final h = await ProviderHarness.boot(sandbox: true);
@@ -107,11 +107,9 @@ Future<void> openSheet(WidgetTester tester) async {
 
 /// The chips in their groups, the suggestion's reason, and the Manage
 /// sheet: the rotation check (its line and bars), the sections, what a
-/// workout would add, adding into the rotation, moving to the favourites.
+/// workout would add, adding into the rotation, moving to the reserves.
 void main() {
-  testWidgets('Home: rotation, favourites, actions, the reason', (
-    tester,
-  ) async {
+  testWidgets('Home: rotation, reserves, actions, the reason', (tester) async {
     final h = await boot(tester);
     addTearDown(h.dispose);
 
@@ -121,20 +119,20 @@ void main() {
     );
     expect(suggested.inRotation, isTrue);
 
-    // Chips in three groups: the rotation under its title, the favourites
+    // Chips in three groups: the rotation under its title, the reserves
     // (and the Empty workout) under theirs, then New and Manage on a line
     // of their own.
     final l = copy.library;
     double y(Finder f) => tester.getTopLeft(f).dy;
     double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
     final rotationTitle = y(find.text(l.rotationHeading.toUpperCase()));
-    final favouritesTitle = y(find.text(l.favouritesHeading.toUpperCase()));
+    final reservesTitle = y(find.text(l.reservesHeading.toUpperCase()));
     expect(rotationTitle, lessThan(chipY('StrongLifts A')));
-    expect(chipY('StrongLifts A'), lessThan(favouritesTitle));
-    expect(chipY('StrongLifts B'), lessThan(favouritesTitle));
-    expect(chipY('Arms'), greaterThan(favouritesTitle));
+    expect(chipY('StrongLifts A'), lessThan(reservesTitle));
+    expect(chipY('StrongLifts B'), lessThan(reservesTitle));
+    expect(chipY('Arms'), greaterThan(reservesTitle));
     final empty = y(find.text('Empty'));
-    expect(empty, greaterThan(favouritesTitle));
+    expect(empty, greaterThan(reservesTitle));
     expect(y(find.text(l.newButton)), greaterThan(empty));
     expect(y(find.text(l.editButton)), y(find.text(l.newButton)));
     expect(find.byType(Divider), findsNothing);
@@ -158,7 +156,7 @@ void main() {
     );
     expect(
       chipY('Arms'),
-      lessThan(y(find.text(l.favouritesHeading.toUpperCase()))),
+      lessThan(y(find.text(l.reservesHeading.toUpperCase()))),
     );
   });
 
@@ -197,7 +195,7 @@ void main() {
     expect(inSheet(find.textContaining('Trains everything')), findsNothing);
 
     // The sections, and no library row for what the user has.
-    for (final title in [l.rotationHeading, l.favouritesHeading]) {
+    for (final title in [l.rotationHeading, l.reservesHeading]) {
       await scrollTo(inSheet(find.text(title.toUpperCase())), 100);
       expect(inSheet(find.text(title.toUpperCase())), findsOneWidget);
     }
@@ -404,7 +402,7 @@ void main() {
     await tester.pumpAndSettle();
     double y(Finder f) => tester.getTopLeft(f).dy;
     double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
-    final reserves = y(find.text(l.favouritesHeading.toUpperCase()));
+    final reserves = y(find.text(l.reservesHeading.toUpperCase()));
     for (final name in ['Push', 'Pull', 'Legs']) {
       expect(chipY(name), lessThan(reserves), reason: name);
     }

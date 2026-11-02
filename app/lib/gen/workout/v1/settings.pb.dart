@@ -88,11 +88,9 @@ class PlateColor extends $pb.GeneratedMessage {
 class PlateColorsConfig extends $pb.GeneratedMessage {
   factory PlateColorsConfig({
     $core.Iterable<PlateColor>? plates,
-    $core.double? barWeightKg,
   }) {
     final result = create();
     if (plates != null) result.plates.addAll(plates);
-    if (barWeightKg != null) result.barWeightKg = barWeightKg;
     return result;
   }
 
@@ -111,7 +109,6 @@ class PlateColorsConfig extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..pPM<PlateColor>(1, _omitFieldNames ? '' : 'plates',
         subBuilder: PlateColor.create)
-    ..aD(2, _omitFieldNames ? '' : 'barWeightKg', fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -135,15 +132,6 @@ class PlateColorsConfig extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<PlateColor> get plates => $_getList(0);
-
-  @$pb.TagNumber(2)
-  $core.double get barWeightKg => $_getN(1);
-  @$pb.TagNumber(2)
-  set barWeightKg($core.double value) => $_setFloat(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasBarWeightKg() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearBarWeightKg() => $_clearField(2);
 }
 
 class WeightUnitConfig extends $pb.GeneratedMessage {

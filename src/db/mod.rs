@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
     expires_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expires_at ON auth_sessions(expires_at);
 
 CREATE TABLE IF NOT EXISTS passkey_credentials (
     credential_id TEXT PRIMARY KEY,
@@ -59,8 +60,7 @@ CREATE TABLE IF NOT EXISTS account_events (
 
 CREATE TABLE IF NOT EXISTS user_current_session (
     user_id TEXT PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    joined_at INTEGER NOT NULL
+    session_id TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_user_current_session_session
     ON user_current_session(session_id);
@@ -83,14 +83,11 @@ CREATE TABLE IF NOT EXISTS session_members (
     session_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     first_joined_at INTEGER NOT NULL,
-    last_seen_at INTEGER NOT NULL,
     left_at INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY(session_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_session_members_user
     ON session_members(user_id, first_joined_at DESC);
-CREATE INDEX IF NOT EXISTS idx_session_members_session
-    ON session_members(session_id);
 
 -- Pending "train together" requests: from_user asks to_user; to_user approves or
 -- declines. Rows are deleted once answered (or when they expire on read).
@@ -178,6 +175,22 @@ const ADDED_COLUMNS: &[(&str, &str, &str)] = &[(
     "INTEGER NOT NULL DEFAULT 0",
 )];
 
+/// Columns no longer in the schema, dropped at startup from a table that
+/// still has them: each is `NOT NULL` without a default, so an insert that
+/// leaves it out would fail.
+const DROPPED_COLUMNS: &[(&str, &str)] = &[
+    ("user_current_session", "joined_at"),
+    ("session_members", "last_seen_at"),
+];
+
+/// Indexes no longer in either schema, dropped at startup so writes stop
+/// maintaining them.
+const DROPPED_INDEXES: &[&str] = &[
+    "idx_session_members_session",
+    "idx_workouts_session",
+    "idx_completed_sets_proposed",
+];
+
 impl ServerDb {
     pub async fn new_in_dir(data_dir: impl AsRef<Path>) -> DbResult<Self> {
         let data_dir = data_dir.as_ref();
@@ -216,6 +229,24 @@ impl ServerDb {
                 .await?;
             }
         }
+        for (table, column) in DROPPED_COLUMNS {
+            let has: bool =
+                sqlx::query_scalar("SELECT COUNT(*) > 0 FROM pragma_table_info(?) WHERE name = ?")
+                    .bind(table)
+                    .bind(column)
+                    .fetch_one(&write_pool)
+                    .await?;
+            if has {
+                sqlx::query(&format!("ALTER TABLE {table} DROP COLUMN {column}"))
+                    .execute(&write_pool)
+                    .await?;
+            }
+        }
+        for index in DROPPED_INDEXES {
+            sqlx::query(&format!("DROP INDEX IF EXISTS {index}"))
+                .execute(&write_pool)
+                .await?;
+        }
         Ok(Self {
             read_pool,
             write_pool,
@@ -232,5 +263,38 @@ impl ServerDb {
     fn notify(&self, change: Change) {
         // No receivers is fine: nobody is watching.
         let _ = self.changes.send(change);
+    }
+}
+
+#[cfg(test)]
+mod schema_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn dropped_columns_are_dropped_from_an_existing_table() {
+        let dir = std::env::temp_dir().join(format!("lift-schema-test-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        for (table, column) in DROPPED_COLUMNS {
+            sqlx::query(&format!(
+                "ALTER TABLE {table} ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0"
+            ))
+            .execute(&db.write_pool)
+            .await
+            .unwrap();
+        }
+        drop(db);
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        for (table, column) in DROPPED_COLUMNS {
+            let has: bool =
+                sqlx::query_scalar("SELECT COUNT(*) > 0 FROM pragma_table_info(?) WHERE name = ?")
+                    .bind(table)
+                    .bind(column)
+                    .fetch_one(&db.read_pool)
+                    .await
+                    .unwrap();
+            assert!(!has, "{table}.{column} is still there");
+        }
+        db.set_user_current_session("u", "s").await.unwrap();
+        db.upsert_session_member("s", "u").await.unwrap();
     }
 }

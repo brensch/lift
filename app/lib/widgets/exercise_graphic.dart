@@ -8,7 +8,7 @@ import 'exercise_art/toolkit.dart';
 ///
 /// Looks the drawing up in the exercise-art registry (one file per proto name)
 /// and loops its key poses back and forth so the movement animates. The figure
-/// adapts to light/dark via [color]; machines render grey.
+/// is drawn in the theme's onSurface; machines render grey.
 ///
 /// Efficiency: the animation drives the painter directly via `repaint:` (no
 /// per-frame widget rebuild), and the whole thing sits behind a
@@ -18,19 +18,7 @@ class ExerciseGraphic extends StatefulWidget {
   final Exercise exercise;
   final double size;
 
-  /// Figure stroke colour. Defaults to the theme's onSurface.
-  final Color? color;
-
-  /// Loop the movement. Set false for a still (renders the end pose).
-  final bool animate;
-
-  const ExerciseGraphic({
-    super.key,
-    required this.exercise,
-    this.size = 48,
-    this.color,
-    this.animate = true,
-  });
+  const ExerciseGraphic({super.key, required this.exercise, this.size = 48});
 
   @override
   State<ExerciseGraphic> createState() => _ExerciseGraphicState();
@@ -52,11 +40,7 @@ class _ExerciseGraphicState extends State<ExerciseGraphic>
     );
     // Ease in/out so the movement reads.
     _t = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
-    if (widget.animate) {
-      _controller.repeat(reverse: true);
-    } else {
-      _controller.value = 1.0;
-    }
+    _controller.repeat(reverse: true);
   }
 
   @override
@@ -64,14 +48,6 @@ class _ExerciseGraphicState extends State<ExerciseGraphic>
     super.didUpdateWidget(old);
     if (widget.exercise != old.exercise) {
       _art = artFor(widget.exercise);
-    }
-    if (widget.animate != old.animate) {
-      if (widget.animate) {
-        _controller.repeat(reverse: true);
-      } else {
-        _controller.stop();
-        _controller.value = 1.0;
-      }
     }
   }
 
@@ -83,7 +59,7 @@ class _ExerciseGraphicState extends State<ExerciseGraphic>
 
   @override
   Widget build(BuildContext context) {
-    final figure = widget.color ?? Theme.of(context).colorScheme.onSurface;
+    final figure = Theme.of(context).colorScheme.onSurface;
     // No AnimatedBuilder: the painter listens to [_t] via `repaint:` and
     // repaints the canvas each tick without rebuilding the widget tree. The
     // RepaintBoundary keeps that repaint off the rest of the row.
@@ -91,7 +67,7 @@ class _ExerciseGraphicState extends State<ExerciseGraphic>
       child: CustomPaint(
         size: Size.square(widget.size),
         isComplex: false,
-        willChange: widget.animate,
+        willChange: true,
         painter: ExerciseArtPainter(
           art: _art,
           figureColor: figure,

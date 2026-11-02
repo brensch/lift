@@ -92,7 +92,7 @@ HeartRateZone? zoneFor(double bpm, List<HeartRateZone> zones) {
   return null;
 }
 
-/// h:mm:ss / m:ss for elapsed-time axis labels.
+/// m:ss, or h:mm from an hour, for elapsed-time axis labels.
 String formatElapsedHms(int seconds) {
   final s = max(0, seconds);
   final h = s ~/ 3600;

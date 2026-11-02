@@ -420,14 +420,17 @@ const TapSetIntent$json = {
   '2': [
     {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
     {'1': 'set_id', '3': 2, '4': 1, '5': 9, '10': 'setId'},
-    {'1': 'tapped_at', '3': 3, '4': 1, '5': 3, '10': 'tappedAt'},
   ],
+  '9': [
+    {'1': 3, '2': 4},
+  ],
+  '10': ['tapped_at'],
 };
 
 /// Descriptor for `TapSetIntent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List tapSetIntentDescriptor = $convert.base64Decode(
     'CgxUYXBTZXRJbnRlbnQSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEhUKBnNldF9pZB'
-    'gCIAEoCVIFc2V0SWQSGwoJdGFwcGVkX2F0GAMgASgDUgh0YXBwZWRBdA==');
+    'gCIAEoCVIFc2V0SWRKBAgDEARSCXRhcHBlZF9hdA==');
 
 @$core.Deprecated('Use endWorkoutIntentDescriptor instead')
 const EndWorkoutIntent$json = {
@@ -446,7 +449,6 @@ const WearIntent$json = {
   '1': 'WearIntent',
   '2': [
     {'1': 'intent_id', '3': 1, '4': 1, '5': 9, '10': 'intentId'},
-    {'1': 'sent_at', '3': 2, '4': 1, '5': 3, '10': 'sentAt'},
     {
       '1': 'complete_set',
       '3': 11,
@@ -488,6 +490,7 @@ const WearIntent$json = {
     {'1': 'intent'},
   ],
   '9': [
+    {'1': 2, '2': 3},
     {'1': 10, '2': 11},
     {'1': 12, '2': 13},
     {'1': 14, '2': 15},
@@ -496,6 +499,7 @@ const WearIntent$json = {
     {'1': 18, '2': 19},
   ],
   '10': [
+    'sent_at',
     'fewer_reps',
     'skip_rest',
     'rate_exercise',
@@ -506,14 +510,14 @@ const WearIntent$json = {
 
 /// Descriptor for `WearIntent`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List wearIntentDescriptor = $convert.base64Decode(
-    'CgpXZWFySW50ZW50EhsKCWludGVudF9pZBgBIAEoCVIIaW50ZW50SWQSFwoHc2VudF9hdBgCIA'
-    'EoA1IGc2VudEF0EkIKDGNvbXBsZXRlX3NldBgLIAEoCzIdLndvcmtvdXQudjEuQ29tcGxldGVT'
-    'ZXRJbnRlbnRIAFILY29tcGxldGVTZXQSPwoLZW5kX3dvcmtvdXQYDSABKAsyHC53b3Jrb3V0Ln'
-    'YxLkVuZFdvcmtvdXRJbnRlbnRIAFIKZW5kV29ya291dBI5CglzdGFydF9zZXQYESABKAsyGi53'
-    'b3Jrb3V0LnYxLlN0YXJ0U2V0SW50ZW50SABSCHN0YXJ0U2V0EjMKB3RhcF9zZXQYEyABKAsyGC'
-    '53b3Jrb3V0LnYxLlRhcFNldEludGVudEgAUgZ0YXBTZXRCCAoGaW50ZW50SgQIChALSgQIDBAN'
-    'SgQIDhAPSgQIDxAQSgQIEBARSgQIEhATUgpmZXdlcl9yZXBzUglza2lwX3Jlc3RSDXJhdGVfZX'
-    'hlcmNpc2VSC3NraXBfd2FybXVwUhJlZGl0X2NvbXBsZXRlZF9zZXQ=');
+    'CgpXZWFySW50ZW50EhsKCWludGVudF9pZBgBIAEoCVIIaW50ZW50SWQSQgoMY29tcGxldGVfc2'
+    'V0GAsgASgLMh0ud29ya291dC52MS5Db21wbGV0ZVNldEludGVudEgAUgtjb21wbGV0ZVNldBI/'
+    'CgtlbmRfd29ya291dBgNIAEoCzIcLndvcmtvdXQudjEuRW5kV29ya291dEludGVudEgAUgplbm'
+    'RXb3Jrb3V0EjkKCXN0YXJ0X3NldBgRIAEoCzIaLndvcmtvdXQudjEuU3RhcnRTZXRJbnRlbnRI'
+    'AFIIc3RhcnRTZXQSMwoHdGFwX3NldBgTIAEoCzIYLndvcmtvdXQudjEuVGFwU2V0SW50ZW50SA'
+    'BSBnRhcFNldEIICgZpbnRlbnRKBAgCEANKBAgKEAtKBAgMEA1KBAgOEA9KBAgPEBBKBAgQEBFK'
+    'BAgSEBNSB3NlbnRfYXRSCmZld2VyX3JlcHNSCXNraXBfcmVzdFINcmF0ZV9leGVyY2lzZVILc2'
+    'tpcF93YXJtdXBSEmVkaXRfY29tcGxldGVkX3NldA==');
 
 @$core.Deprecated('Use heartRateSampleDescriptor instead')
 const HeartRateSample$json = {
@@ -544,7 +548,6 @@ const WearSensorBatch$json = {
   '2': [
     {'1': 'batch_id', '3': 1, '4': 1, '5': 9, '10': 'batchId'},
     {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
-    {'1': 'sent_at', '3': 3, '4': 1, '5': 3, '10': 'sentAt'},
     {
       '1': 'heart_rate_samples',
       '3': 4,
@@ -554,14 +557,17 @@ const WearSensorBatch$json = {
       '10': 'heartRateSamples'
     },
   ],
+  '9': [
+    {'1': 3, '2': 4},
+  ],
+  '10': ['sent_at'],
 };
 
 /// Descriptor for `WearSensorBatch`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List wearSensorBatchDescriptor = $convert.base64Decode(
     'Cg9XZWFyU2Vuc29yQmF0Y2gSGQoIYmF0Y2hfaWQYASABKAlSB2JhdGNoSWQSHQoKd29ya291dF'
-    '9pZBgCIAEoCVIJd29ya291dElkEhcKB3NlbnRfYXQYAyABKANSBnNlbnRBdBJJChJoZWFydF9y'
-    'YXRlX3NhbXBsZXMYBCADKAsyGy53b3Jrb3V0LnYxLkhlYXJ0UmF0ZVNhbXBsZVIQaGVhcnRSYX'
-    'RlU2FtcGxlcw==');
+    '9pZBgCIAEoCVIJd29ya291dElkEkkKEmhlYXJ0X3JhdGVfc2FtcGxlcxgEIAMoCzIbLndvcmtv'
+    'dXQudjEuSGVhcnRSYXRlU2FtcGxlUhBoZWFydFJhdGVTYW1wbGVzSgQIAxAEUgdzZW50X2F0');
 
 @$core.Deprecated('Use wearSensorBatchAckDescriptor instead')
 const WearSensorBatchAck$json = {
@@ -569,11 +575,14 @@ const WearSensorBatchAck$json = {
   '2': [
     {'1': 'batch_id', '3': 1, '4': 1, '5': 9, '10': 'batchId'},
     {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
-    {'1': 'received_at', '3': 3, '4': 1, '5': 3, '10': 'receivedAt'},
   ],
+  '9': [
+    {'1': 3, '2': 4},
+  ],
+  '10': ['received_at'],
 };
 
 /// Descriptor for `WearSensorBatchAck`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List wearSensorBatchAckDescriptor = $convert.base64Decode(
     'ChJXZWFyU2Vuc29yQmF0Y2hBY2sSGQoIYmF0Y2hfaWQYASABKAlSB2JhdGNoSWQSHQoKd29ya2'
-    '91dF9pZBgCIAEoCVIJd29ya291dElkEh8KC3JlY2VpdmVkX2F0GAMgASgDUgpyZWNlaXZlZEF0');
+    '91dF9pZBgCIAEoCVIJd29ya291dElkSgQIAxAEUgtyZWNlaXZlZF9hdA==');

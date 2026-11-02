@@ -185,7 +185,7 @@ pub(super) fn core_status(error: CoreError) -> Status {
 /// Where a user is up to, as their session partners see it: the workout under
 /// way (or, with `workout_id`, that one — a just-finished workout stays on
 /// show), from their synced account.
-pub(super) async fn participant_status(
+async fn participant_status(
     db: &ServerDb,
     user_id: &str,
     workout_id: Option<&str>,

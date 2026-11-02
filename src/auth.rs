@@ -12,6 +12,11 @@ use webauthn_rs::WebauthnBuilder;
 use crate::db::ServerDb;
 
 const CHALLENGE_TTL_SECS: u64 = 300;
+/// Ceremonies in flight past this (of each kind, within the TTL) are
+/// refused rather than remembered: the maps can't be grown without bound by
+/// anyone calling the unauthenticated starts.
+const MAX_PENDING_CHALLENGES: usize = 10_000;
+const TOO_MANY_PENDING: &str = "Too many sign-ins in progress; try again shortly";
 
 enum AuthChallengeState {
     Discoverable(DiscoverableAuthentication),
@@ -59,10 +64,6 @@ impl AuthState {
                     Url::parse(origin).expect("Invalid entry in WEBAUTHN_ANDROID_ORIGINS");
                 builder = builder.append_allowed_origin(&android_origin);
             }
-        } else if let Ok(android_origin_str) = std::env::var("WEBAUTHN_ANDROID_ORIGIN") {
-            let android_origin =
-                Url::parse(&android_origin_str).expect("Invalid WEBAUTHN_ANDROID_ORIGIN URL");
-            builder = builder.append_allowed_origin(&android_origin);
         }
 
         let webauthn = builder.build().expect("Failed to build Webauthn");
@@ -90,6 +91,9 @@ impl AuthState {
 
         let mut challenges = self.reg_challenges.lock().await;
         self.cleanup_expired_reg(&mut challenges);
+        if challenges.len() >= MAX_PENDING_CHALLENGES {
+            return Err(TOO_MANY_PENDING.to_string());
+        }
         challenges.insert(
             user_id.clone(),
             (reg_state, username.to_string(), Instant::now()),
@@ -115,13 +119,14 @@ impl AuthState {
             .webauthn
             .finish_passkey_registration(reg, &reg_state)
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
+        let cred_id = format!("{:?}", passkey.cred_id());
+        self.refuse_registered(&cred_id).await?;
 
         self.db
             .create_user_with_id(user_id, &username)
             .await
             .map_err(|e| format!("Failed to create user: {}", e))?;
 
-        let cred_id = format!("{:?}", passkey.cred_id());
         let mut cred_val =
             serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
         if let Some(n) = name {
@@ -177,6 +182,9 @@ impl AuthState {
 
         let mut challenges = self.reg_challenges.lock().await;
         self.cleanup_expired_reg(&mut challenges);
+        if challenges.len() >= MAX_PENDING_CHALLENGES {
+            return Err(TOO_MANY_PENDING.to_string());
+        }
         challenges.insert(
             user_id.to_string(),
             (reg_state, username.to_string(), Instant::now()),
@@ -202,8 +210,9 @@ impl AuthState {
             .webauthn
             .finish_passkey_registration(reg, &reg_state)
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
-
         let cred_id = format!("{:?}", passkey.cred_id());
+        self.refuse_registered(&cred_id).await?;
+
         let mut cred_val =
             serde_json::to_value(&passkey).map_err(|e| format!("Serialization error: {}", e))?;
         if let Some(n) = name {
@@ -232,6 +241,9 @@ impl AuthState {
 
         let mut challenges = self.auth_challenges.lock().await;
         self.cleanup_expired_auth(&mut challenges);
+        if challenges.len() >= MAX_PENDING_CHALLENGES {
+            return Err(TOO_MANY_PENDING.to_string());
+        }
         challenges.insert(
             challenge_id.clone(),
             PendingAuthChallenge {
@@ -279,6 +291,9 @@ impl AuthState {
 
         let mut challenges = self.auth_challenges.lock().await;
         self.cleanup_expired_auth(&mut challenges);
+        if challenges.len() >= MAX_PENDING_CHALLENGES {
+            return Err(TOO_MANY_PENDING.to_string());
+        }
         challenges.insert(
             challenge_id.clone(),
             PendingAuthChallenge {
@@ -415,6 +430,16 @@ impl AuthState {
             .ok_or_else(|| "User not found".to_string())?;
 
         Ok((token, user_id, user.name))
+    }
+
+    /// A passkey already held by an account can't be registered again, to
+    /// that account or another.
+    async fn refuse_registered(&self, cred_id: &str) -> Result<(), String> {
+        match self.db.credential_registered(cred_id).await {
+            Ok(false) => Ok(()),
+            Ok(true) => Err("Passkey already registered".to_string()),
+            Err(e) => Err(format!("DB error: {}", e)),
+        }
     }
 
     async fn update_credential_counter(&self, user_id: &str, auth_result: &AuthenticationResult) {

@@ -33,9 +33,9 @@ class LiveSetCircle extends StatelessWidget {
     // The up-next circle wears the workout's state colour, like the banner.
     final stateValue = w.stateValue;
     final nextColor = isRestingState(stateValue)
-        ? t.workoutRestingFg
+        ? t.resting
         : isYappingState(stateValue)
-        ? t.workoutYappingFg
+        ? t.yapping
         : t.primary;
 
     final done = w.doneFor(set.id);

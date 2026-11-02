@@ -63,7 +63,7 @@ void main() {
 
   test('signing out mid-workout ends it on the watch', () async {
     await h.start([Exercise.EXERCISE_SQUAT]);
-    final workoutId = h.provider.activeWorkout!.id;
+    final workoutId = h.provider.workout!.id;
     expect(bridge.snapshots.last.workoutId, workoutId);
     expect(endsTheWatch(bridge.snapshots.last), isFalse);
 

@@ -24,7 +24,7 @@ const schliftSpec = ThemeSpec(
   // a touch deeper.
   ready: Color(0xFF3D8B4A),
   success: Color(0xFF3D8B4A),
-  effort: Color(0xFFD99A00),
+  short: Color(0xFFD99A00),
   overdue: Color(0xFFA85F00),
   warning: Color(0xFF8A5A00),
   resting: Color(0xFF3C5FB0),
@@ -61,7 +61,6 @@ const schliftSpec = ThemeSpec(
   // regular and its bold (it has nothing in between).
   wordmarkFont: 'Space Mono',
   wordmarkWeight: FontWeight.w400,
-  wordmarkEmbolden: 0,
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
   displayWeight: FontWeight.w500,

@@ -26,21 +26,17 @@ import 'home_screen.dart' show VolumeCard;
 import 'template_editor.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
+import '../../widgets/dialogs/workout_sheet.dart';
 
 Future<void> showTemplateLibrary(
   BuildContext context, {
   required WorkoutProvider provider,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    routeSettings: const RouteSettings(name: 'sheet/template-library'),
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ChangeNotifierProvider.value(
-      value: provider,
-      child: const _LibrarySheet(),
-    ),
+  return showWorkoutSheet(
+    context,
+    provider: provider,
+    name: 'sheet/template-library',
+    child: const _LibrarySheet(),
   );
 }
 
@@ -51,13 +47,13 @@ bool hasLibraryEntry(List<WorkoutTemplate> templates, LibraryTemplate entry) =>
       (t) => t.libraryId == entry.id || t.originLibraryId == entry.id,
     );
 
-/// Whether [main] is [plan] already: the same workouts, each one following
+/// Whether [rotation] is [plan] already: the same workouts, each one following
 /// or made from one of the plan's entries. The order is not compared (the
 /// suggestion does not go through the rotation in order).
-bool isCurrentPlan(List<WorkoutTemplate> main, LibraryPlan plan) {
-  if (main.length != plan.libraryIds.length) return false;
+bool isCurrentPlan(List<WorkoutTemplate> rotation, LibraryPlan plan) {
+  if (rotation.length != plan.libraryIds.length) return false;
   final left = plan.libraryIds.toSet();
-  for (final t in main) {
+  for (final t in rotation) {
     final id = left.contains(t.libraryId) ? t.libraryId : t.originLibraryId;
     if (!left.remove(id)) return false;
   }
@@ -79,17 +75,17 @@ sealed class _Item {
 }
 
 class _SectionItem extends _Item {
-  final bool main;
-  const _SectionItem(this.main);
+  final bool rotation;
+  const _SectionItem(this.rotation);
   @override
-  Key get key => ValueKey('section-$main');
+  Key get key => ValueKey('section-$rotation');
 }
 
 class _EmptyItem extends _Item {
-  final bool main;
-  const _EmptyItem(this.main);
+  final bool rotation;
+  const _EmptyItem(this.rotation);
   @override
-  Key get key => ValueKey('empty-$main');
+  Key get key => ValueKey('empty-$rotation');
 }
 
 class _MineItem extends _Item {
@@ -102,12 +98,12 @@ class _MineItem extends _Item {
 /// The draggable list: the rotation's heading, its workouts (or the drop
 /// line), then the reserves' heading and theirs.
 List<_Item> _sheetItems(
-  List<WorkoutTemplate> main,
+  List<WorkoutTemplate> rotation,
   List<WorkoutTemplate> reserves,
 ) => [
   const _SectionItem(true),
-  if (main.isEmpty) const _EmptyItem(true),
-  for (final t in main) _MineItem(t),
+  if (rotation.isEmpty) const _EmptyItem(true),
+  for (final t in rotation) _MineItem(t),
   const _SectionItem(false),
   if (reserves.isEmpty) const _EmptyItem(false),
   for (final t in reserves) _MineItem(t),
@@ -116,23 +112,23 @@ List<_Item> _sheetItems(
 /// The list after a drag: every workout above the reserves' heading is in
 /// the rotation (one dropped above the rotation's heading too), the rest
 /// are reserves, each in the order shown.
-({List<WorkoutTemplate> main, List<WorkoutTemplate> reserves}) _splitItems(
+({List<WorkoutTemplate> rotation, List<WorkoutTemplate> reserves}) _splitItems(
   List<_Item> items,
 ) {
-  final main = <WorkoutTemplate>[];
+  final rotation = <WorkoutTemplate>[];
   final reserves = <WorkoutTemplate>[];
   var inReserves = false;
   for (final item in items) {
     switch (item) {
-      case _SectionItem(main: false):
+      case _SectionItem(rotation: false):
         inReserves = true;
       case _MineItem(:final template):
-        (inReserves ? reserves : main).add(template);
+        (inReserves ? reserves : rotation).add(template);
       default:
         break;
     }
   }
-  return (main: main, reserves: reserves);
+  return (rotation: rotation, reserves: reserves);
 }
 
 class _LibrarySheetState extends State<_LibrarySheet> {
@@ -140,7 +136,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   final Set<String> _busy = {};
 
   /// A drag's result, shown until the core's answer replaces it.
-  ({List<WorkoutTemplate> main, List<WorkoutTemplate> reserves})? _dragged;
+  ({List<WorkoutTemplate> rotation, List<WorkoutTemplate> reserves})? _dragged;
 
   @override
   void initState() {
@@ -184,8 +180,8 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     await _run(
       '__order__',
       () => wp.reorderTemplates([
-        for (final t in [...split.main, ...split.reserves]) t.id,
-      ], rotationCount: split.main.length),
+        for (final t in [...split.rotation, ...split.reserves]) t.id,
+      ], rotationCount: split.rotation.length),
     );
     if (mounted) setState(() => _dragged = null);
   }
@@ -238,10 +234,10 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     final l = copy.library;
     final cs = Theme.of(context).colorScheme;
     return switch (item) {
-      _SectionItem(:final main) => _Heading(
+      _SectionItem(:final rotation) => _Heading(
         key: item.key,
-        main ? l.rotationHeading : l.favouritesHeading,
-        description: main ? l.rotationDescription : l.favouritesDescription,
+        rotation ? l.rotationHeading : l.reservesHeading,
+        description: rotation ? l.rotationDescription : l.reservesDescription,
       ),
       _EmptyItem() => _EmptyLine(key: item.key, l.dropHere),
       _MineItem(:final template) => TemplateRow(
@@ -280,7 +276,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   /// would add.
   Widget _addSection(
     List<WorkoutTemplate> templates,
-    List<WorkoutTemplate> main,
+    List<WorkoutTemplate> rotation,
     Map<String, List<MuscleGroup>> adds,
   ) {
     final l = copy.library;
@@ -314,7 +310,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                 key: ValueKey('plan-${plan.id}'),
                 plan: plan,
                 workouts: [for (final id in plan.libraryIds) names[id] ?? id],
-                current: isCurrentPlan(main, plan),
+                current: isCurrentPlan(rotation, plan),
                 onApply: _busy.contains('plan:${plan.id}')
                     ? null
                     : () => _apply(plan),
@@ -353,10 +349,10 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     final split =
         _dragged ??
         (
-          main: templates.where((t) => t.inRotation).toList(),
+          rotation: templates.where((t) => t.inRotation).toList(),
           reserves: templates.where((t) => !t.inRotation).toList(),
         );
-    final items = _sheetItems(split.main, split.reserves);
+    final items = _sheetItems(split.rotation, split.reserves);
     final t = copy.library;
     final adds = additionsOf(wp.rotationCheck);
 
@@ -404,7 +400,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                   ),
                   null => null,
                 },
-                footer: _addSection(templates, split.main, adds.library),
+                footer: _addSection(templates, split.rotation, adds.library),
                 itemCount: items.length,
                 // newIndex is already adjusted for the removed item.
                 onReorderItem: (from, to) => _reorder(items, from, to),

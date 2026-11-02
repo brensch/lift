@@ -6,6 +6,24 @@ pub enum AppWeightUnit {
     Kg,
 }
 
+impl AppWeightUnit {
+    /// A stored pound weight in this unit.
+    pub fn from_lb(self, weight_lb: f32) -> f32 {
+        match self {
+            Self::Lb => weight_lb,
+            Self::Kg => pounds_to_kg(weight_lb),
+        }
+    }
+
+    /// A weight in this unit, in pounds (storage).
+    pub fn to_lb(self, weight: f32) -> f32 {
+        match self {
+            Self::Lb => weight,
+            Self::Kg => kg_to_pounds(weight),
+        }
+    }
+}
+
 /// The unit the user chose in settings (`WeightUnitConfig`). Unset or
 /// unknown means pounds.
 pub fn unit_from_proto(unit: i32) -> AppWeightUnit {
@@ -29,10 +47,11 @@ pub fn round_to_unit_increment(
     lb_step: f32,
     kg_step: f32,
 ) -> f32 {
-    match unit {
-        AppWeightUnit::Lb => (weight_lb / lb_step).round() * lb_step,
-        AppWeightUnit::Kg => kg_to_pounds((pounds_to_kg(weight_lb) / kg_step).round() * kg_step),
-    }
+    let step = match unit {
+        AppWeightUnit::Lb => lb_step,
+        AppWeightUnit::Kg => kg_step,
+    };
+    unit.to_lb((unit.from_lb(weight_lb) / step).round() * step)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,7 +60,7 @@ pub fn round_to_unit_increment(
 // Everything below is generic over a bar + plate *profile* expressed in a unit's
 // own scale. Adding a third unit tomorrow is a single new arm in `bar_weight`
 // and `plates` — no algorithm changes. Weights are stored canonically in pounds;
-// callers convert to the display unit (`pounds_to_kg`) before snapping so the
+// callers convert to the display unit (`AppWeightUnit::from_lb`) before snapping so the
 // result is a weight you can actually load in that unit, then convert back.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -158,15 +177,11 @@ pub fn simplest_loadable_near(target: f32, bar: f32, plates: &[f32], min: f32, m
 /// the user's display unit, returned in pounds. This is the "snap to real
 /// values" primitive: display(this) is always a clean, loadable number.
 pub fn snap_loadable_lb(weight_lb: f32, unit: AppWeightUnit) -> f32 {
-    let display = match unit {
-        AppWeightUnit::Lb => weight_lb,
-        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
-    };
-    let snapped = snap_loadable(display, bar_weight(unit), plates(unit));
-    match unit {
-        AppWeightUnit::Lb => snapped,
-        AppWeightUnit::Kg => kg_to_pounds(snapped),
-    }
+    unit.to_lb(snap_loadable(
+        unit.from_lb(weight_lb),
+        bar_weight(unit),
+        plates(unit),
+    ))
 }
 
 #[cfg(test)]
@@ -240,10 +255,7 @@ mod plate_math_tests {
             for &lb in &[37.0, 100.0, 133.0, 183.5, 218.0, 271.0, 315.0] {
                 let once = snap_loadable_lb(lb, unit);
                 // Displaying the snapped pound value gives a clean loadable number.
-                let display = match unit {
-                    AppWeightUnit::Lb => once,
-                    AppWeightUnit::Kg => pounds_to_kg(once),
-                };
+                let display = unit.from_lb(once);
                 assert!(
                     plate_count_per_side(display, bar_weight(unit), plates(unit)).is_finite(),
                     "unit={unit:?} lb={lb} -> {once} lb displays as un-loadable {display}"

@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
-import '../gen/workout/v1/workout.pb.dart';
+import '../gen/workout/v1/wearable.pb.dart';
 import 'app_logger.dart';
 
 enum HealthWriteResult { success, permissionDenied, error }
@@ -197,8 +197,6 @@ class HealthService {
     required DateTime startTime,
     required DateTime endTime,
     required String title,
-    required double totalVolumeKg,
-    required int workingSets,
     required double bodyWeightKg,
   }) async {
     debugPrint('Health: writeCompletedWorkout called');
@@ -243,7 +241,7 @@ class HealthService {
 
   static Future<void> writeHeartRateSamples({
     required String workoutId,
-    required List<WorkoutHeartRatePoint> samples,
+    required List<HeartRateSample> samples,
   }) async {
     if (samples.isEmpty) return;
 
@@ -265,14 +263,8 @@ class HealthService {
     }
   }
 
-  static Future<HeartRateZoneProfile?> readHeartRateZoneProfile({
-    bool useCache = true,
-  }) {
-    if (!useCache || _cachedZoneProfileFuture == null) {
-      _cachedZoneProfileFuture = _readHeartRateZoneProfileImpl();
-    }
-    return _cachedZoneProfileFuture!;
-  }
+  static Future<HeartRateZoneProfile?> readHeartRateZoneProfile() =>
+      _cachedZoneProfileFuture ??= _readHeartRateZoneProfileImpl();
 
   /// Never prompts: without the resting HR / birth date reads it returns null.
   static Future<HeartRateZoneProfile?> _readHeartRateZoneProfileImpl() async {

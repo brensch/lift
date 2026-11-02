@@ -50,10 +50,10 @@ library:
   # The groups, on Home's chips and in the sheet: the rotation (what the
   # suggestion picks from) and the reserves (saved, never suggested).
   rotation_heading: Rotation
-  favourites_heading: Reserves
+  reserves_heading: Reserves
   # Under each heading in the Manage sheet.
   rotation_description: The workouts the app picks from when suggesting the best workout to do next.
-  favourites_description: In case you want to sneak a cheeky butt sesh, keep it here ready to choose.
+  reserves_description: In case you want to sneak a cheeky butt sesh, keep it here ready to choose.
   # The sheet's last section: library workouts the user doesn't have yet.
   add_heading: Add
   # Home, when nothing is in the rotation. Placeholder.

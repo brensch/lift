@@ -386,7 +386,6 @@ class MainActivity : ComponentActivity() {
                         .newBuilder()
                         .setWorkoutId(workoutId)
                         .setSetId(setId)
-                        .setTappedAt(System.currentTimeMillis() / 1000)
                         .build(),
                 ).build(),
         )
@@ -443,7 +442,7 @@ class MainActivity : ComponentActivity() {
         send(intent)
     }
 
-    /** Stamp [unsent] with an id and the time, and send it to the phone. */
+    /** Stamp [unsent] with an id, and send it to the phone. */
     private fun send(unsent: Wearable.WearIntent) {
         val intent =
             unsent
@@ -452,8 +451,7 @@ class MainActivity : ComponentActivity() {
                     java.util.UUID
                         .randomUUID()
                         .toString(),
-                ).setSentAt(System.currentTimeMillis() / 1000)
-                .build()
+                ).build()
 
         scope.launch {
             runCatching {

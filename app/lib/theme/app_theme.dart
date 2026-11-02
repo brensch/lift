@@ -53,10 +53,6 @@ class AppTheme {
     ),
   );
 
-  /// Translucent card fill used on the ground (text colour @ ~4%).
-  static Color cardFill(BuildContext context) =>
-      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04);
-
   /// Canonical elevated surface for a bottom sheet / dialog body (panel).
   static Color sheetColor(BuildContext context) =>
       Theme.of(context).bottomSheetTheme.backgroundColor ??

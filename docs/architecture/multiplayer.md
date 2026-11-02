@@ -73,7 +73,7 @@ sequenceDiagram
 ```
 
 The invite token lives on the user, not the session — a stable personal
-handle, rotatable via `RotateInviteToken`. Everyone gathers into the
+handle. Everyone gathers into the
 *anchor's* session (the inviter, or whoever sent a join request), creating
 one if they have none, so one host pulling in several people forms one
 group. The joiner leaves any other session first.
@@ -118,9 +118,7 @@ renders itself from its own account and partners from this list.
 the online-only calls (join, leave, ask). Right after a join it asks once
 with `GetCurrentSession` rather than waiting for the stream.
 
-`SessionStatus.next_up_user_id`, `next_up_set`, `next_up_rest_until` and
-`currently_lifting_user_id` are always empty; "who's up next" is computed
-client-side from the participants. Treat them as dead.
+"Who's up next" is computed client-side from the participants.
 
 ## Join requests
 
@@ -133,7 +131,7 @@ minutes (`JOIN_REQUEST_TTL_SECONDS`) and is deleted once answered.
 
 `session_members` is never deleted: it records who trained together and backs
 `GetTrainingPartners` (the FRIENDS list, for one-tap re-pairing) and
-`GetSharedSessions`.
+`have_trained_together`.
 
 ## Failure modes to know
 

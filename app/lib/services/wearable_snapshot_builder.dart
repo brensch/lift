@@ -15,7 +15,6 @@ import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/plate_calculator.dart';
 import '../logic/session_state.dart';
@@ -33,7 +32,7 @@ class WearableSnapshotBuilder {
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
   }) {
-    final workout = workoutProvider.activeWorkout;
+    final workout = workoutProvider.workout;
     if (workout == null) return null;
     final isEnded = workout.endTime != Int64.ZERO;
     final hasActive = workoutProvider.hasActiveWorkout;
@@ -48,9 +47,10 @@ class WearableSnapshotBuilder {
     final nowMs = now.millisecondsSinceEpoch;
     final nowUnix = nowMs ~/ 1000;
     final nextSet = workoutProvider.nextPendingSet;
-    final proposedSets = workoutProvider.activeProposedSets;
-    final completedSets = workoutProvider.activeCompletedSets;
+    final proposedSets = workoutProvider.proposedSets;
+    final completedSets = workoutProvider.completedSets;
     final unit = workoutProvider.weightUnit;
+    final w = SectionWorkout.mine(workoutProvider);
 
     final elapsedSeconds = _elapsedSeconds(workout, nowUnix);
 
@@ -79,8 +79,7 @@ class WearableSnapshotBuilder {
       // Or a ramp set just done in full: the phone asks how many more you
       // could have done (only ever open with nothing being lifted).
       final firstTime =
-          (set.id != workout.liftingSetId &&
-              _isFirstEver(set, proposedSets, completedSets)) ||
+          LiveSetCircle.isFirstEver(w, set) ||
           workoutProvider.rungQuestionSetId.isNotEmpty;
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
@@ -180,11 +179,9 @@ class WearableSnapshotBuilder {
       }
     } else if (isAllDoneState(stateValue)) {
       snapshot.completionSummary = _buildCompletionSummary(
-        workout: workout,
-        nowUnix: nowUnix,
-        proposedSets: proposedSets,
-        completedSets: completedSets,
-        unit: unit,
+        workoutProvider.summary ?? WorkoutSummary(),
+        elapsedSeconds,
+        unit,
       );
       if (!isEnded) {
         actions.add(
@@ -200,7 +197,7 @@ class WearableSnapshotBuilder {
 
     snapshot.actions.addAll(actions);
     if (target != null) {
-      snapshot.circles.addAll(_circles(workoutProvider, target));
+      snapshot.circles.addAll(_circles(workoutProvider, w, target));
     }
     if (completedSets.isNotEmpty && !isEnded) {
       snapshot.lastSetEndedAt = completedSets
@@ -230,13 +227,13 @@ class WearableSnapshotBuilder {
   /// first; a tap on one is a TapSetIntent.
   static List<WearSetCircle> _circles(
     WorkoutProvider workoutProvider,
+    SectionWorkout w,
     ProposedSet target,
   ) {
     final block = workoutProvider.exerciseBlocks
         .where((b) => b.exercise == target.exercise)
         .firstOrNull;
     if (block == null) return const [];
-    final w = SectionWorkout.mine(workoutProvider);
     return [
       for (final set in block.sets)
         if (!set.cancelled)
@@ -269,20 +266,6 @@ class WearableSnapshotBuilder {
     SetCircleState.skipped => WearCircleState.WEAR_CIRCLE_STATE_SKIPPED,
   };
 
-  /// The opening set of an exercise never done: a calibration set with
-  /// none of its exercise's calibration sets lifted yet.
-  static bool _isFirstEver(
-    ProposedSet set,
-    List<ProposedSet> proposedSets,
-    List<CompletedSet> completedSets,
-  ) {
-    if (!set.calibration) return false;
-    final done = {for (final c in completedSets) c.proposedSetId};
-    return !proposedSets.any(
-      (p) => p.exercise == set.exercise && p.calibration && done.contains(p.id),
-    );
-  }
-
   /// Whether the wearer lifts next in a session. False when solo or nobody
   /// is up.
   static bool _upNextIsMe({
@@ -312,31 +295,23 @@ class WearableSnapshotBuilder {
     return nextToLiftUserId == myUserId;
   }
 
-  static WearCompletionSummary _buildCompletionSummary({
-    required Workout workout,
-    required int nowUnix,
-    required List<ProposedSet> proposedSets,
-    required List<CompletedSet> completedSets,
-    required WeightUnit unit,
-  }) {
-    final durationSeconds = _elapsedSeconds(workout, nowUnix);
-    final proposedById = {for (final set in proposedSets) set.id: set};
-
-    var completedWorkingSets = 0;
-    var totalVolume = 0.0;
-    for (final completed in completedSets) {
-      final proposed = proposedById[completed.proposedSetId];
-      if (proposed == null || !isWorkingSet(proposed)) continue;
-      completedWorkingSets++;
-      totalVolume += completed.actualWeight * completed.actualReps;
-    }
-
+  /// The core's summary of the workout, rendered for the watch, over
+  /// [elapsedSeconds] (still counting until the workout is ended).
+  static WearCompletionSummary _buildCompletionSummary(
+    WorkoutSummary summary,
+    int elapsedSeconds,
+    WeightUnit unit,
+  ) {
+    final volume = summary.totalVolume.toDouble();
     // The watch prints volume_text as sent; it never formats a weight.
     return WearCompletionSummary(
-      durationText: _fmtDurationForSummary(durationSeconds),
-      completedWorkingSets: completedWorkingSets,
-      totalVolumeLb: totalVolume.round(),
-      volumeText: formatWeight(totalVolume, unit, includeUnit: true),
+      durationText: formatDurationShort(elapsedSeconds),
+      completedWorkingSets: summary.exercises.fold<int>(
+        0,
+        (n, e) => n + e.totalSets,
+      ),
+      totalVolumeLb: volume.round(),
+      volumeText: formatWeight(volume, unit, includeUnit: true),
     );
   }
 }
@@ -350,11 +325,4 @@ int _elapsedSeconds(Workout workout, int nowUnix) {
   if (start <= 0) return 0;
   final end = workout.endTime.toInt() > 0 ? workout.endTime.toInt() : nowUnix;
   return (end - start).clamp(0, 1 << 30);
-}
-
-String _fmtDurationForSummary(int totalSeconds) {
-  final hours = totalSeconds ~/ 3600;
-  final minutes = (totalSeconds % 3600) ~/ 60;
-  if (hours > 0) return '${hours}h ${minutes}m';
-  return '${minutes}m';
 }

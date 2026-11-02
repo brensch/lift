@@ -173,8 +173,6 @@ class MultiplayerProvider extends ChangeNotifier {
     });
   }
 
-  Future<String?> refreshInviteToken() => _ensureInviteToken();
-
   /// Accepts either a raw invite token or a share URL containing `?join=<token>`.
   Future<String?> joinViaInvite(String tokenOrUrl) async {
     final token = _extractToken(tokenOrUrl);

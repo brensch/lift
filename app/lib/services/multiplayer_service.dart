@@ -106,19 +106,4 @@ class MultiplayerServiceWrapper {
       options: _defaultCallOptions,
     );
   }
-
-  Future<ParticipantStatus> getParticipantWorkout(
-    String userId,
-    String workoutId,
-  ) async {
-    return await retryReadAfterReconnect(
-      operation: 'GetParticipantWorkout',
-      resetChannel: _client.resetChannel,
-      rpc: () => _client.multiplayerService.getParticipantWorkout(
-        GetParticipantWorkoutRequest()
-          ..userId = userId
-          ..workoutId = workoutId,
-      ),
-    );
-  }
 }

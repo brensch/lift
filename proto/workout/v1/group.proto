@@ -15,12 +15,6 @@ service MultiplayerService {
   // caller has none yet, one is generated.
   rpc GetMyInviteToken(GetMyInviteTokenRequest) returns (GetMyInviteTokenResponse);
 
-  // Rotate the caller's invite token (invalidates any previously-shared QR code).
-  rpc RotateInviteToken(RotateInviteTokenRequest) returns (RotateInviteTokenResponse);
-
-  // Get a specific participant's workout progress
-  rpc GetParticipantWorkout(GetParticipantWorkoutRequest) returns (ParticipantStatus);
-
   // Get the caller's current group session. Reads user_current_session — membership is
   // independent of whether the caller has an active workout. The Sync stream
   // (account.proto) pushes the same thing whenever it changes.
@@ -38,9 +32,6 @@ service MultiplayerService {
   // Backed by the durable session_members roster, so it survives leaving a
   // session and doubles as the "recent friends" list for quick re-pairing.
   rpc GetTrainingPartners(GetTrainingPartnersRequest) returns (GetTrainingPartnersResponse);
-
-  // The sessions the caller shared with one partner (dates + who lifted).
-  rpc GetSharedSessions(GetSharedSessionsRequest) returns (GetSharedSessionsResponse);
 
   // Ask a partner the caller has trained with before to train together, without
   // needing their QR again. Creates a pending request the partner must approve
@@ -69,18 +60,8 @@ message GetMyInviteTokenResponse {
   string invite_token = 1;
 }
 
-message RotateInviteTokenRequest {}
-message RotateInviteTokenResponse {
-  string invite_token = 1;
-}
-
 message LeaveCurrentSessionRequest {}
 message LeaveCurrentSessionResponse {}
-
-message GetParticipantWorkoutRequest {
-  string user_id = 1;
-  string workout_id = 2;
-}
 
 message GetCurrentSessionRequest {}
 
@@ -99,12 +80,9 @@ message GetCurrentSessionResponse {
 }
 
 message SessionStatus {
-  string session_id = 1;
   repeated ParticipantStatus participants = 2;
-  string next_up_user_id = 3;
-  ProposedSet next_up_set = 4;
-  int64 next_up_rest_until = 5;
-  string currently_lifting_user_id = 6;
+  reserved 1, 3, 4, 5, 6;
+  reserved "session_id", "next_up_user_id", "next_up_set", "next_up_rest_until", "currently_lifting_user_id";
 }
 
 message ParticipantStatus {
@@ -148,21 +126,6 @@ message TrainingPartner {
 message GetTrainingPartnersRequest {}
 message GetTrainingPartnersResponse {
   repeated TrainingPartner partners = 1;
-}
-
-// One session the caller and a partner were both in.
-message SharedSession {
-  string session_id = 1;
-  int64 trained_at = 2; // when the shared session started (earliest join)
-  bool caller_worked_out = 3; // did the caller log a workout in it
-  bool partner_worked_out = 4; // did the partner log a workout in it
-}
-
-message GetSharedSessionsRequest {
-  string partner_user_id = 1;
-}
-message GetSharedSessionsResponse {
-  repeated SharedSession sessions = 1;
 }
 
 message RequestJoinPartnerRequest {

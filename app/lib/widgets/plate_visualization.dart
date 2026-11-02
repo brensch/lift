@@ -253,20 +253,12 @@ class BigBarbell extends StatelessWidget {
   }
 }
 
-/// The bar loaded for [weightLb] (stored pounds), small: inline wherever a set's load is
-/// shown. Tappable (the default) it sits in a flat white box and opens the
-/// plate breakdown.
+/// The bar loaded for [weightLb] (stored pounds), small: inline wherever a
+/// set's load is shown.
 class PlateVisualization extends StatelessWidget {
   final double weightLb;
-  final double scale;
-  final bool isInteractive;
 
-  const PlateVisualization({
-    super.key,
-    required this.weightLb,
-    this.scale = 1.0,
-    this.isInteractive = true,
-  });
+  const PlateVisualization({super.key, required this.weightLb});
 
   Color _plateColor(BuildContext context, double plate) =>
       context.read<SettingsProvider>().plateColor(plate);
@@ -278,27 +270,11 @@ class PlateVisualization extends StatelessWidget {
     final unit = context.read<SettingsProvider>().weightUnit;
     final weight = displayWeightFromPounds(weightLb, unit);
     final plates = calcPlatesPerSide(weight, unit).plates;
-    final content = FittedBox(
+    return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Transform.scale(
-        scale: scale,
-        child: weight < standardBarWeight(unit)
-            ? _buildDumbbell()
-            : _buildBarbell(context, plates),
-      ),
-    );
-    if (!isInteractive) return content;
-    final t = context.tokens;
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(side: BorderSide(color: t.outline)),
-      child: InkWell(
-        onTap: () => showPlateBreakdownDialog(context, weightLb: weightLb),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: content,
-        ),
-      ),
+      child: weight < standardBarWeight(unit)
+          ? _buildDumbbell()
+          : _buildBarbell(context, plates),
     );
   }
 

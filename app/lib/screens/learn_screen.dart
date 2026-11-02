@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/app_icons.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import 'maths_screen.dart';
 import 'science_screen.dart';
 import 'tutorial_screen.dart';
@@ -15,38 +14,36 @@ class LearnScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(AppIcons.back),
-            onPressed: () => context.go('/'),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(AppIcons.back),
+          onPressed: () => context.go('/'),
+        ),
+        title: PageTitle('Learn'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          FlatRow(
+            icon: AppIcons.tutorial,
+            label: 'Tutorial',
+            subtitle: 'The walkthrough again',
+            onTap: () => _push(context, 'tutorial', const TutorialScreen()),
           ),
-          title: PageTitle('Learn'),
-        ),
-        body: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            FlatRow(
-              icon: AppIcons.tutorial,
-              label: 'Tutorial',
-              subtitle: 'The walkthrough again',
-              onTap: () => _push(context, 'tutorial', const TutorialScreen()),
-            ),
-            FlatRow(
-              icon: AppIcons.science,
-              label: 'Workout science',
-              subtitle: 'The papers behind the app',
-              onTap: () => _push(context, 'science', const ScienceScreen()),
-            ),
-            FlatRow(
-              icon: AppIcons.maths,
-              label: 'Calorie maths',
-              subtitle: 'How burn is worked out',
-              onTap: () => _push(context, 'maths', const MathsScreen()),
-            ),
-          ],
-        ),
+          FlatRow(
+            icon: AppIcons.science,
+            label: 'Workout science',
+            subtitle: 'The papers behind the app',
+            onTap: () => _push(context, 'science', const ScienceScreen()),
+          ),
+          FlatRow(
+            icon: AppIcons.maths,
+            label: 'Calorie maths',
+            subtitle: 'How burn is worked out',
+            onTap: () => _push(context, 'maths', const MathsScreen()),
+          ),
+        ],
       ),
     );
   }

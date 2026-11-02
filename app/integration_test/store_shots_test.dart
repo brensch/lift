@@ -34,7 +34,7 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
     tester.element(find.byType(MaterialApp).first),
     listen: false,
   );
-  final workout = wp.activeWorkout;
+  final workout = wp.workout;
   if (workout == null) return;
   final nowMs = DateTime.now().millisecondsSinceEpoch;
   final startMs = workout.startTime.toInt() * 1000;
@@ -58,7 +58,6 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
     WearSensorBatch()
       ..batchId = 'store-$sinceMs-$nowMs'
       ..workoutId = workout.id
-      ..sentAt = Int64(nowMs)
       ..heartRateSamples.addAll(samples),
   );
   await tester.pump(const Duration(milliseconds: 300));

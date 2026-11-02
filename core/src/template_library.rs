@@ -2,7 +2,7 @@
 //! The server sends its copy to every phone on sync; a user's library
 //! templates follow it (coupled) until they clone one. The copy built into
 //! the app stands in before the first sync. The file is validated by
-//! `cargo test`. The file's ready-made main plans (`plans`) are read from
+//! `cargo test`. The file's ready-made rotations (`plans`) are read from
 //! the copy built in. See docs/architecture/data-model.md, "Template
 //! library".
 

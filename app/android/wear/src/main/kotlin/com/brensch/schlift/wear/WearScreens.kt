@@ -497,6 +497,19 @@ private fun UpNextChip(
     d: Dp,
 ) {
     val c = LocalFaceColors.current
+    // Dimmed, nothing moves: the chip keeps the face's grey and no animation runs.
+    if (c.dim) {
+        UpNextText(text = text, d = d, color = c.text)
+    } else {
+        CyclingUpNextChip(text = text, d = d)
+    }
+}
+
+@Composable
+private fun CyclingUpNextChip(
+    text: String,
+    d: Dp,
+) {
     val colors = WearPalette.Series
     val cycle by rememberInfiniteTransition(label = "upNext").animateFloat(
         initialValue = 0f,
@@ -505,8 +518,20 @@ private fun UpNextChip(
         label = "upNextCycle",
     )
     val at = cycle.toInt()
-    // Dimmed, nothing moves: the chip keeps the face's grey.
-    val color = if (c.dim) c.text else lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at)
+    UpNextText(
+        text = text,
+        d = d,
+        color = lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at),
+    )
+}
+
+@Composable
+private fun UpNextText(
+    text: String,
+    d: Dp,
+    color: Color,
+) {
+    val c = LocalFaceColors.current
     Text(
         text = text,
         color = color,

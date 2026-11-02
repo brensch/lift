@@ -369,7 +369,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 stickyHeader: true,
               ),
               // ════ PAGE 3 — heart rate (full detail) ════
-              if (hasHeartRate)
+              // Built only while on show: the live chart redraws every second.
+              if (_page != 2)
+                const SizedBox.shrink()
+              else if (hasHeartRate)
                 ListView(
                   physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -380,7 +383,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       workoutStartTime: workout.startTime,
                       now: wp.now,
                       stateSnapshot: wp.stateSnapshot,
-                      fullView: true,
                     ),
                   ],
                 )

@@ -7,12 +7,6 @@ import "workout/v1/settings.proto";
 
 // MuscleGroup is defined in settings.proto.
 
-enum ExerciseCategory {
-  EXERCISE_CATEGORY_UNSPECIFIED = 0;
-  EXERCISE_CATEGORY_COMPOUND = 1;
-  EXERCISE_CATEGORY_AUXILIARY = 2;
-}
-
 // How an exercise is loaded. Drives the equipment filter in the picker
 // and the size of a progression step.
 enum EquipmentKind {
@@ -398,7 +392,7 @@ message GetWorkoutRequest {
   string workout_id = 1;
 }
 
-// Server-computed rollup for one exercise within a workout (working sets only).
+// The rollup for one exercise within a workout (working sets only).
 message ExerciseSummary {
   Exercise exercise = 1;
   int32 total_sets = 2;
@@ -409,7 +403,7 @@ message ExerciseSummary {
   float heaviest_set_weight = 6; // lb
 }
 
-// Server-computed rollup for a whole workout. The client renders this directly
+// The rollup for a whole workout. The client renders this directly
 // instead of aggregating raw sets. Volume/per-exercise cover working sets only;
 // resting and yapping cover every completed set (warmups included).
 message WorkoutSummary {
@@ -434,7 +428,6 @@ message GetWorkoutResponse {
   repeated ProposedSet proposed_sets = 3;
   repeated CompletedSet completed_sets = 4;
   ProposedSet next_up_set = 5;
-  WorkoutPlanChangeStats plan_change_stats = 6;
   WorkoutStateSnapshot state_snapshot = 7;
   WorkoutSummary summary = 9;
   // The calibration rung (a proposed set id) whose "how many more could you
@@ -451,14 +444,8 @@ message GetWorkoutResponse {
   repeated string passed_warmup_ids = 10;
   // Per exercise: the decision it started from and the changes since.
   repeated ExerciseLog exercise_logs = 11;
-  reserved 8;
-  reserved "user_messages";
-}
-
-message WorkoutPlanChangeStats {
-  int32 cancelled_total = 1;
-  int32 cancelled_warmups = 2;
-  int32 cancelled_working = 3;
+  reserved 6, 8;
+  reserved "plan_change_stats", "user_messages";
 }
 
 // A set is pending, done or cancelled. The workout's state is derived from
@@ -528,14 +515,6 @@ message GetExerciseProgressResponse {
   int64 since = 4; // earliest workout start_time (unix seconds)
 }
 
-// Shared response for plan-shaping operations: the full visible plan
-// after the change, plus the recomputed pointer and state.
-message WorkoutPlanResponse {
-  repeated ProposedSet proposed_sets = 1;
-  ProposedSet next_up_set = 2;
-  WorkoutStateSnapshot state_snapshot = 3;
-}
-
 // Append one block of sets per exercise, laid out from its decision.
 message AddExercisesRequest {
   string workout_id = 1;
@@ -570,13 +549,19 @@ message ReorderExercisesRequest {
   repeated Exercise exercises = 2;
 }
 
-// Begin a set: the workout is LIFTING it until its Done. Starting another
-// set moves the start to it; starting a done or cancelled set is a no-op.
 // Skip the exercise's undone warmups: they're marked skipped, never
 // removed, and doing one later still records it.
 message SkipWarmupsRequest {
   string workout_id = 1;
   Exercise exercise = 2;
+}
+
+// What one answer to a rung's question leads to (GetWorkoutResponse.rung_outcomes).
+message RungOutcome {
+  RepsLeft reps_left = 1;
+  float weight = 2; // lb
+  // The ramp ends: the weight is the working sets', not a next ramp set's.
+  bool settles = 3;
 }
 
 // The answer to "how many more could you have done?" on a calibration rung
@@ -590,13 +575,6 @@ message SkipWarmupsRequest {
 // and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
 // weight. Applies only to the open question
 // (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
-message RungOutcome {
-  RepsLeft reps_left = 1;
-  float weight = 2; // lb
-  // The ramp ends: the weight is the working sets', not a next ramp set's.
-  bool settles = 3;
-}
-
 message AnswerRungRequest {
   string workout_id = 1;
   string proposed_set_id = 2;
@@ -604,10 +582,12 @@ message AnswerRungRequest {
   float jump_lb = 4; // pounds, like every stored weight; 0 = not a jump
 }
 
+// Begin a set: the workout is LIFTING it until its Done. Starting another
+// set moves the start to it; starting a done or cancelled set is a no-op.
 message StartSetRequest {
   string workout_id = 1;
   string proposed_set_id = 2;
-  int64 started_at = 3; // Unix seconds from the client; 0 = server now
+  int64 started_at = 3; // Unix seconds; 0 = the event's time
 }
 
 message CompleteSetRequest {
@@ -619,34 +599,16 @@ message CompleteSetRequest {
 
   float actual_weight = 4;
 
-  int64 completed_at = 5; // Unix seconds; if 0, server uses current time
+  int64 completed_at = 5; // Unix seconds; 0 = the event's time
 
   reserved 6;
   reserved "effort";
-}
-
-message CompleteSetResponse {
-  CompletedSet completed_set = 1;
-
-  ProposedSet next_up_set = 2;
-
-  WorkoutStateSnapshot state_snapshot = 3;
-
-  reserved 4;
-  reserved "user_messages";
 }
 
 message DeleteCompletedSetRequest {
   string workout_id = 1;
 
   string completed_set_id = 2;
-}
-
-message DeleteCompletedSetResponse {
-  ProposedSet next_up_set = 1;
-  WorkoutStateSnapshot state_snapshot = 2;
-  reserved 3;
-  reserved "user_messages";
 }
 
 // Correct a done set after the fact (fewer reps, a different weight).
@@ -660,7 +622,7 @@ message EditCompletedSetRequest {
 message EndWorkoutRequest {
   string workout_id = 1;
 
-  int64 ended_at = 2; // Unix seconds; if 0, server uses current time
+  int64 ended_at = 2; // Unix seconds; 0 = the event's time
 }
 
 message EndWorkoutResponse {
@@ -689,9 +651,9 @@ message WorkoutTemplate {
   // the library's current ones (the stored ones are kept for when the entry
   // is gone). False for the user's own templates.
   bool coupled = 8;
-  // In the rotation the suggestion picks from; out of it, a favourite (on
+  // In the rotation the suggestion picks from; out of it, a reserve (on
   // Home, never suggested). The library defaults added at onboarding start
-  // in rotation; every other template starts as a favourite.
+  // in rotation; every other template starts as a reserve.
   bool in_rotation = 9;
   // The library entry this was added from, kept when it becomes the user's
   // own (library_id is cleared then); empty for one the user made. A
@@ -716,14 +678,14 @@ message LibraryTemplate {
 message ListTemplateLibraryRequest {}
 message ListTemplateLibraryResponse {
   repeated LibraryTemplate templates = 1;
-  // The ready-made main plans, each naming only templates listed here.
+  // The ready-made rotations, each naming only templates listed here.
   // Filled by the core from the plans built in; the server's sync leaves
   // it empty.
   repeated LibraryPlan plans = 2;
 }
 
-// A ready-made main plan (templates/library.yaml, `plans`): library
-// entries, in the order the main plan takes them.
+// A ready-made rotation (templates/library.yaml, `plans`): library
+// entries, in the order the rotation takes them.
 message LibraryPlan {
   string id = 1;
   string name = 2;
@@ -731,11 +693,11 @@ message LibraryPlan {
   repeated string library_ids = 4;
 }
 
-// Makes a ready-made plan the main plan: its entries the user does not
+// Makes a ready-made plan the rotation: its entries the user does not
 // have are added (an AddLibraryTemplates event), then one
 // ReorderTemplates puts the user's template for each entry (one following
-// it or made from it) first, in the plan's order, as the main plan and
-// everything else after it as backups. Nothing is deleted. Returns the
+// it or made from it) first, in the plan's order, as the rotation and
+// everything else after it as reserves. Nothing is deleted. Returns the
 // refreshed home.
 message ApplyLibraryPlanRequest {
   string plan_id = 1;
@@ -752,20 +714,18 @@ message AddLibraryTemplatesRequest {
   // The entries as the library had them, filled in by the core when the
   // event is recorded, so a replay never reads the library.
   repeated LibraryTemplate entries = 2;
-  // Into the rotation; otherwise (the default) they are favourites.
+  // Into the rotation; otherwise (the default) they are reserves.
   bool in_rotation = 3;
 }
 
 // Make a library template the user's own: it stops following the library
-// and keeps its id (and so its history). name and exercises are filled in
-// by the core from the library when the event is recorded.
+// and keeps its id (and so its history). name and exercises are the
+// library's when the event was recorded. Only folded from logs that hold
+// it; a clone is recorded as a SaveTemplateRequest with unlink.
 message CloneTemplateRequest {
   string template_id = 1;
   string name = 2;
   repeated Exercise exercises = 3;
-}
-message CloneTemplateResponse {
-  WorkoutTemplate template = 1;
 }
 message AddLibraryTemplatesResponse {
   GetHomeResponse home = 1;
@@ -782,15 +742,11 @@ message MuscleVolume {
 }
 
 message MuscleRecoveryStatus {
-  string muscle_key = 1; // "chest", "quads", ...
-  string label = 2; // "Chest"
-  int64 last_trained_at = 3; // 0 = never
-  int64 recovered_at = 4; // last_trained_at + window (0 = never trained)
-  float fraction = 5; // 0.0 (just trained) → 1.0 (recovered)
+  MuscleGroup muscle = 9;
   int64 hours_remaining = 6; // hours until recovered (0 if recovered)
   bool recovered = 7;
-  reserved 8;
-  reserved "in_next_workout";
+  reserved 1, 2, 3, 4, 5, 8;
+  reserved "muscle_key", "label", "last_trained_at", "recovered_at", "fraction", "in_next_workout";
 }
 
 message GetHomeRequest {
@@ -862,7 +818,7 @@ message RotationCheck {
   repeated MuscleVolume volume = 1;
   // Empty when nothing is wrong.
   repeated RotationWarning warnings = 2;
-  // Each backup (a template out of rotation) and each library entry the
+  // Each reserve (a template out of rotation) and each library entry the
   // user does not have whose lifts train first a muscle the pass trains
   // none of; the rest are not listed.
   repeated RotationAddition additions = 3;
@@ -910,15 +866,6 @@ message TemplatePlan {
   int32 max_seconds = 4;
 }
 
-// One exercise's plan at now, on its own in the budget.
-message GetExercisePlanRequest {
-  Exercise exercise = 1;
-  int32 budget_minutes = 2; // 0 = the default (60)
-}
-message GetExercisePlanResponse {
-  ExercisePlan plan = 1;
-}
-
 // A list of lifts planned at now as one workout in the budget, as starting
 // a template of them would plan it: the template editor's rows, saved or
 // not.
@@ -952,8 +899,8 @@ message DeleteTemplateResponse {}
 
 // The user's order of their templates. With rotation_count, the list is
 // also split there: the first rotation_count are in rotation, the rest
-// favourites (the Manage sheet's drag between the main plan and the
-// backups). Without it, only the order changes.
+// reserves (the Manage sheet's drag between the rotation and the
+// reserves). Without it, only the order changes.
 message ReorderTemplatesRequest {
   repeated string template_ids = 1;
   optional int32 rotation_count = 2;
@@ -1055,8 +1002,6 @@ message SetWorkoutSessionRequest {
 }
 
 message WorkoutMutation {
-  string event_id = 1;
-  int64 client_created_at = 2; // Unix seconds from client clock
   oneof mutation {
     CompleteSetRequest complete_set = 11;
     DeleteCompletedSetRequest delete_completed_set = 13;
@@ -1071,8 +1016,8 @@ message WorkoutMutation {
     SetWorkoutSessionRequest set_session = 26;
     AnswerRungRequest answer_rung = 27;
   }
-  reserved 10, 12, 15, 16, 21, 22;
-  reserved "skip_rest", "cancel_proposed_set", "rate_exercise";
+  reserved 1, 2, 10, 12, 15, 16, 21, 22;
+  reserved "event_id", "client_created_at", "skip_rest", "cancel_proposed_set", "rate_exercise";
 }
 
 message AppendWorkoutMutationsRequest {
@@ -1080,13 +1025,14 @@ message AppendWorkoutMutationsRequest {
 }
 
 message AppendWorkoutMutationsResponse {
-  repeated string applied_event_ids = 1;
   GetWorkoutResponse workout_state = 2;
+  reserved 1;
+  reserved "applied_event_ids";
 }
 
 // --- Service Definition ---
 
-// What the server still answers about workouts: reads for the web, from the
+// What the server answers about workouts: reads for the web, from the
 // account the phone syncs. Every write is an Event (account.proto), made on
 // the phone by the core and synced.
 service WorkoutService {
@@ -1094,20 +1040,11 @@ service WorkoutService {
   rpc ListWorkoutSummaries(ListWorkoutSummariesRequest) returns (ListWorkoutSummariesResponse);
   // Per-exercise progress series, everything precomputed.
   rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
-  rpc GetWorkout(GetWorkoutRequest) returns (GetWorkoutResponse);
-  rpc GetWorkoutHeartRate(GetWorkoutHeartRateRequest) returns (GetWorkoutHeartRateResponse);
-}
-
-message CreateUserRequest {
-  string name = 1;
-}
-
-message CreateUserResponse {
-  User user = 1;
 }
 
 message GetUserRequest {
-  string user_id = 1;
+  reserved 1;
+  reserved "user_id";
 }
 
 message GetUserResponse {
@@ -1125,9 +1062,7 @@ message UpdateMyProfileResponse {
 }
 
 service UserService {
-  // Create a new user
-  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
-  // Get user by ID
+  // The authenticated user.
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   // Update the authenticated user's profile metadata.
   rpc UpdateMyProfile(UpdateMyProfileRequest) returns (UpdateMyProfileResponse);

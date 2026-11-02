@@ -47,7 +47,6 @@ import 'screens/plate_colors_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/build_info_screen.dart';
-import 'tutorial/tutorial_seen.dart';
 import 'widgets/main_layout.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
@@ -63,9 +62,6 @@ const _serverPortValue = String.fromEnvironment(
   defaultValue: _defaultServerPort,
 );
 final int serverPort = int.parse(_serverPortValue);
-final String serverBaseUrl = serverPort == 443
-    ? 'https://$serverHost'
-    : 'http://$serverHost:$serverPort';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,17 +79,7 @@ void main() async {
 }
 
 class SchliftApp extends StatefulWidget {
-  const SchliftApp({
-    super.key,
-    this.serverHostOverride,
-    this.serverPortOverride,
-  });
-
-  /// Point the app at a specific backend, overriding the compile-time
-  /// SERVER_HOST/SERVER_PORT. Used by the end-to-end test harness to connect to
-  /// a backend it spawned on a dynamic port; null in normal builds.
-  final String? serverHostOverride;
-  final int? serverPortOverride;
+  const SchliftApp({super.key});
 
   @override
   State<SchliftApp> createState() => _SchliftAppState();
@@ -150,10 +136,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _grpcClient = GrpcClient(
-      host: widget.serverHostOverride ?? serverHost,
-      port: widget.serverPortOverride ?? serverPort,
-    );
+    _grpcClient = GrpcClient(host: serverHost, port: serverPort);
     _authService = AuthService(grpcClient: _grpcClient);
     PageTracker.instance.attach(
       _grpcClient,
@@ -237,13 +220,6 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     // Listen to auth changes: clear state on logout, load settings on login.
     // This covers mid-session signups/logins (not just app startup).
     _authProvider.addListener(() {
-      // The first notification is the saved session becoming known — before
-      // the router leaves /starting, so before any home screen can ask. Hand
-      // the old install-wide "tutorial seen" flag to whoever it belonged to.
-      // (Idempotent: only the first call does anything.)
-      if (_authProvider.sessionLoaded) {
-        unawaited(TutorialSeen.migrateLegacy(_authProvider.userId));
-      }
       _workoutProvider.setBodyWeightKg(_authProvider.bodyWeightKg);
       final userId = _authProvider.userId;
       if (userId != _openUserId) {
@@ -297,7 +273,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       refreshListenable: Listenable.merge([
         _authProvider,
         _settingsProvider,
-        _workoutProvider,
+        _workoutProvider.onboarded,
         PermissionsService.instance,
       ]),
       redirect: (context, state) {
@@ -328,8 +304,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
 
         // Route brand-new users to setup: an account is onboarded once it
         // has any templates or workouts.
-        final home = _workoutProvider.home;
-        if (loggedIn && !isOnboarding && home != null && !home.onboarded) {
+        final onboarded = _workoutProvider.onboarded.value;
+        if (loggedIn && !isOnboarding && onboarded == false) {
           return '/onboarding';
         }
 

@@ -153,7 +153,7 @@ class WorkoutServiceWrapper {
   );
 
   /// The user's order of [templateIds]; with [rotationCount], the first
-  /// that many are in rotation and the rest favourites.
+  /// that many are in rotation and the rest reserves.
   Future<void> reorderTemplates(
     List<String> templateIds, {
     int? rotationCount,
@@ -227,8 +227,8 @@ class WorkoutServiceWrapper {
     ListTemplateLibraryResponse.fromBuffer,
   );
 
-  /// Makes a ready-made plan the main plan: entries the user lacks are
-  /// added, the old main plan becomes backups. Returns the refreshed home.
+  /// Makes a ready-made plan the rotation: entries the user lacks are
+  /// added, the rest become reserves. Returns the refreshed home.
   Future<GetHomeResponse> applyLibraryPlan(String planId) async => (await _call(
     'ApplyLibraryPlan',
     ApplyLibraryPlanRequest(planId: planId),
@@ -236,7 +236,7 @@ class WorkoutServiceWrapper {
   )).home;
 
   /// Adds library entries to the user's templates, following the library,
-  /// into the rotation or (by default) as favourites; ones the user already
+  /// into the rotation or (by default) as reserves; ones the user already
   /// has are skipped. Returns the refreshed home.
   Future<GetHomeResponse> addLibraryTemplates(
     List<String> libraryIds, {

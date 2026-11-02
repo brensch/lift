@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
+import '../logic/session_state.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
@@ -11,7 +12,6 @@ import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
 
@@ -26,6 +26,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   List<_HistoryItem>? _items;
+  Map<String, List<String>> _partners = const {};
   bool _isLoading = true;
 
   @override
@@ -37,47 +38,57 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     final grpc = context.read<GrpcClient>();
     final service = context.read<WorkoutServiceWrapper>();
-    final multiplayer = MultiplayerServiceWrapper(grpc);
     final selfId = context.read<AuthProvider>().userId ?? '';
+    final List<_HistoryItem> items;
     try {
-      // One call: the server returns each finished workout with its computed
-      // summary (volume, working sets, exercises). Newest first already.
+      // Each finished workout with its summary (volume, working sets,
+      // exercises), from the core. Newest first already.
       final summaries = await service.listWorkoutSummaries();
-
-      final items = <_HistoryItem>[];
-      for (final ws in summaries) {
-        final w = ws.workout;
-        final s = ws.summary;
-        // Who you trained with, for group sessions (durable roster, minus you).
-        final partners = <String>[];
-        if (w.sessionId.isNotEmpty) {
-          try {
-            final resp = await multiplayer.getSessionParticipants(w.sessionId);
-            for (final p in resp.participants) {
-              if (p.user.id.isNotEmpty && p.user.id != selfId) {
-                partners.add(p.user.name);
-              }
-            }
-          } catch (_) {}
-        }
-        items.add(
+      items = [
+        for (final ws in summaries)
           _HistoryItem(
-            workout: w,
-            volume: s.totalVolume,
-            workingSets: s.exercises.fold(0, (a, e) => a + e.totalSets),
-            exercises: s.exercises.map((e) => e.exercise).toList(),
-            partners: partners,
+            workout: ws.workout,
+            volume: ws.summary.totalVolume,
+            workingSets: ws.summary.exercises.fold(
+              0,
+              (a, e) => a + e.totalSets,
+            ),
+            exercises: ws.summary.exercises.map((e) => e.exercise).toList(),
           ),
-        );
-      }
-      setState(() {
-        _items = items;
-        _isLoading = false;
-      });
+      ];
     } catch (e) {
       setState(() => _isLoading = false);
       debugPrint('Error loading history: $e');
+      return;
     }
+    if (!mounted) return;
+    setState(() {
+      _items = items;
+      _isLoading = false;
+    });
+
+    // Who you trained with, for group sessions (durable roster, minus you),
+    // asked of the server for every session at once once the list is up.
+    final multiplayer = MultiplayerServiceWrapper(grpc);
+    final sessionIds = {
+      for (final item in items)
+        if (item.workout.sessionId.isNotEmpty) item.workout.sessionId,
+    };
+    final rosters = await Future.wait(
+      sessionIds.map((id) async {
+        try {
+          final resp = await multiplayer.getSessionParticipants(id);
+          return MapEntry(id, [
+            for (final p in resp.participants)
+              if (p.user.id.isNotEmpty && p.user.id != selfId) p.user.name,
+          ]);
+        } catch (_) {
+          return MapEntry(id, const <String>[]);
+        }
+      }),
+    );
+    if (!mounted || rosters.isEmpty) return;
+    setState(() => _partners = Map.fromEntries(rosters));
   }
 
   @override
@@ -85,17 +96,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
 
-    Widget scaffold(Widget body) => TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(AppIcons.back),
-            onPressed: () => context.go('/'),
-          ),
-          title: PageTitle('History'),
+    Widget scaffold(Widget body) => Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(AppIcons.back),
+          onPressed: () => context.go('/'),
         ),
-        body: body,
+        title: PageTitle('History'),
       ),
+      body: body,
     );
 
     if (_isLoading) {
@@ -131,28 +140,50 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return now.difference(d).inDays < 7;
     }).length;
 
+    final rows = _rows();
     return scaffold(
-      ListView(
+      ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          FlatSection(
-            child: Row(
-              children: [
-                _headStat('${_items!.length}', 'workouts', cs),
-                const SizedBox(width: 24),
-                _headStat('$thisWeek', 'this week', cs),
-              ],
-            ),
-          ),
-          ..._grouped(cs, unit),
-        ],
+        itemCount: rows.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return FlatSection(
+              child: Row(
+                children: [
+                  _headStat('${_items!.length}', 'workouts', cs),
+                  const SizedBox(width: 24),
+                  _headStat('$thisWeek', 'this week', cs),
+                ],
+              ),
+            );
+          }
+          final row = rows[index - 1];
+          if (row is String) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: context.tokens.hairline),
+                ),
+              ),
+              child: SectionLabel(row),
+            );
+          }
+          final item = row as _HistoryItem;
+          return _HistoryCard(
+            item: item,
+            partners: _partners[item.workout.sessionId] ?? const [],
+            unit: unit,
+            cs: cs,
+          );
+        },
       ),
     );
   }
 
   /// Full-width rows grouped under a month heading, so a long history stays
-  /// scannable.
-  List<Widget> _grouped(ColorScheme cs, WeightUnit unit) {
+  /// scannable: each heading (a String) followed by its workouts.
+  List<Object> _rows() {
     const months = [
       'January',
       'February',
@@ -167,25 +198,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       'November',
       'December',
     ];
-    final out = <Widget>[];
+    final out = <Object>[];
     String? currentMonth;
     for (final item in _items!) {
       final label = '${months[item.date.month - 1]} ${item.date.year}';
       if (label != currentMonth) {
-        out.add(
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: context.tokens.hairline),
-              ),
-            ),
-            child: SectionLabel(label),
-          ),
-        );
+        out.add(label);
         currentMonth = label;
       }
-      out.add(_HistoryCard(item: item, unit: unit, cs: cs));
+      out.add(item);
     }
     return out;
   }
@@ -214,10 +235,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
 class _HistoryCard extends StatelessWidget {
   final _HistoryItem item;
+  final List<String> partners;
   final WeightUnit unit;
   final ColorScheme cs;
   const _HistoryCard({
     required this.item,
+    required this.partners,
     required this.unit,
     required this.cs,
   });
@@ -236,7 +259,7 @@ class _HistoryCard extends StatelessWidget {
       if (item.volume > 0)
         '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
       if (item.workingSets > 0) '${item.workingSets} sets',
-      if (item.partners.isNotEmpty) 'with ${_names(item.partners)}',
+      if (partners.isNotEmpty) 'with ${_names(partners)}',
     ].join(' · ');
 
     // A full-width row, split from the next by a hairline.
@@ -314,13 +337,8 @@ class _HistoryCard extends StatelessWidget {
     return buf.toString();
   }
 
-  String _formatDuration(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h > 0) return '${h}h ${m}m';
-    if (d.inMinutes < 1) return '<1m';
-    return '${m}m';
-  }
+  String _formatDuration(Duration d) =>
+      d.inMinutes < 1 ? '<1m' : formatDurationShort(d.inSeconds);
 }
 
 class _DateBadge extends StatelessWidget {
@@ -401,13 +419,11 @@ class _HistoryItem {
   final double volume;
   final int workingSets;
   final List<Exercise> exercises;
-  final List<String> partners;
   _HistoryItem({
     required this.workout,
     required this.volume,
     required this.workingSets,
     required this.exercises,
-    required this.partners,
   });
 
   DateTime get date =>

@@ -63,14 +63,6 @@ class AuthInterceptor extends ClientInterceptor {
   }
 }
 
-/// True when the server rejected this app version — the only right move is
-/// an update prompt; retrying is pointless.
-bool isAppUpdateRequiredError(Object error) {
-  return error is GrpcError &&
-      error.code == StatusCode.failedPrecondition &&
-      (error.message ?? '').contains('app_update_required');
-}
-
 String formatGrpcError(Object error) {
   if (error is GrpcError) {
     return '${error.codeName}: ${error.message}';

@@ -3,9 +3,8 @@
 > ## ⚠️ Historical design plan — not a description of the system
 >
 > This was written *before* the adaptive regime work, in future tense. It is kept
-> for context on why things are shaped the way they are. For how program state
-> actually works today, read
-> [`docs/architecture/regimes.md`](../architecture/regimes.md).
+> for context on why things are shaped the way they are. For how the system
+> works today, read [`docs/architecture/`](../architecture/README.md).
 >
 > Much of this plan shipped: the `WorkoutRegime` trait, typed `StatePayload`
 > state, schema-driven settings and onboarding, per-regime state machines, and

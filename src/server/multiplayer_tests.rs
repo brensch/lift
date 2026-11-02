@@ -86,13 +86,22 @@ mod session_history_tests {
         // Historical roster survives leaving: GetSessionParticipants (which backs a
         // past workout's "friends worked out with") still lists both, even though
         // the live cache was pruned.
-        let shared_session = svc
-            .db
-            .list_shared_sessions(&alice_id, &bob_id)
+        let shared_session = sess.session_id.clone();
+        let (_, carol_tok) = user(&svc, "carol").await;
+        let outsider = svc
+            .get_session_participants(authed(
+                &carol_tok,
+                GetSessionParticipantsRequest {
+                    session_id: shared_session.clone(),
+                },
+            ))
             .await
-            .unwrap()[0]
-            .0
-            .clone();
+            .unwrap_err();
+        assert_eq!(
+            outsider.code(),
+            tonic::Code::NotFound,
+            "someone who was not in the session must not see its roster"
+        );
         let roster = svc
             .get_session_participants(authed(
                 &alice_tok,
@@ -217,39 +226,6 @@ mod session_history_tests {
                 > 0,
             "bob's leave is on the roster"
         );
-    }
-
-    /// GetSharedSessions lists the sessions two users were both in.
-    #[tokio::test]
-    async fn shared_sessions_lists_the_pairing() {
-        let svc = setup().await;
-        let (alice_id, alice_tok) = user(&svc, "alice").await;
-        let (bob_id, bob_tok) = user(&svc, "bob").await;
-        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
-        svc.join_via_invite(authed(
-            &bob_tok,
-            JoinViaInviteRequest {
-                invite_token: alice_invite,
-            },
-        ))
-        .await
-        .unwrap();
-
-        let shared = svc
-            .get_shared_sessions(authed(
-                &alice_tok,
-                GetSharedSessionsRequest {
-                    partner_user_id: bob_id.clone(),
-                },
-            ))
-            .await
-            .unwrap()
-            .into_inner()
-            .sessions;
-        assert_eq!(shared.len(), 1, "alice and bob share exactly one session");
-        // Neither logged a workout in this test, so both flags are false.
-        assert!(!shared[0].caller_worked_out);
-        assert!(!shared[0].partner_worked_out);
     }
 
     /// Request → approve: gated on a prior pairing; the recipient sees the request

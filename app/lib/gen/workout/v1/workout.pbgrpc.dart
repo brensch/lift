@@ -20,7 +20,7 @@ import 'workout.pb.dart' as $0;
 
 export 'workout.pb.dart';
 
-/// What the server still answers about workouts: reads for the web, from the
+/// What the server answers about workouts: reads for the web, from the
 /// account the phone syncs. Every write is an Event (account.proto), made on
 /// the phone by the core and synced.
 @$pb.GrpcServiceName('workout.v1.WorkoutService')
@@ -51,20 +51,6 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getExerciseProgress, request, options: options);
   }
 
-  $grpc.ResponseFuture<$0.GetWorkoutResponse> getWorkout(
-    $0.GetWorkoutRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getWorkout, request, options: options);
-  }
-
-  $grpc.ResponseFuture<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate(
-    $0.GetWorkoutHeartRateRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getWorkoutHeartRate, request, options: options);
-  }
-
   // method descriptors
 
   static final _$listWorkoutSummaries = $grpc.ClientMethod<
@@ -77,16 +63,6 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/GetExerciseProgress',
       ($0.GetExerciseProgressRequest value) => value.writeToBuffer(),
       $0.GetExerciseProgressResponse.fromBuffer);
-  static final _$getWorkout =
-      $grpc.ClientMethod<$0.GetWorkoutRequest, $0.GetWorkoutResponse>(
-          '/workout.v1.WorkoutService/GetWorkout',
-          ($0.GetWorkoutRequest value) => value.writeToBuffer(),
-          $0.GetWorkoutResponse.fromBuffer);
-  static final _$getWorkoutHeartRate = $grpc.ClientMethod<
-          $0.GetWorkoutHeartRateRequest, $0.GetWorkoutHeartRateResponse>(
-      '/workout.v1.WorkoutService/GetWorkoutHeartRate',
-      ($0.GetWorkoutHeartRateRequest value) => value.writeToBuffer(),
-      $0.GetWorkoutHeartRateResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.WorkoutService')
@@ -112,22 +88,6 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetExerciseProgressRequest.fromBuffer(value),
         ($0.GetExerciseProgressResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetWorkoutRequest, $0.GetWorkoutResponse>(
-        'GetWorkout',
-        getWorkout_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) => $0.GetWorkoutRequest.fromBuffer(value),
-        ($0.GetWorkoutResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetWorkoutHeartRateRequest,
-            $0.GetWorkoutHeartRateResponse>(
-        'GetWorkoutHeartRate',
-        getWorkoutHeartRate_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetWorkoutHeartRateRequest.fromBuffer(value),
-        ($0.GetWorkoutHeartRateResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ListWorkoutSummariesResponse> listWorkoutSummaries_Pre(
@@ -147,23 +107,6 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetExerciseProgressResponse> getExerciseProgress(
       $grpc.ServiceCall call, $0.GetExerciseProgressRequest request);
-
-  $async.Future<$0.GetWorkoutResponse> getWorkout_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.GetWorkoutRequest> $request) async {
-    return getWorkout($call, await $request);
-  }
-
-  $async.Future<$0.GetWorkoutResponse> getWorkout(
-      $grpc.ServiceCall call, $0.GetWorkoutRequest request);
-
-  $async.Future<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.GetWorkoutHeartRateRequest> $request) async {
-    return getWorkoutHeartRate($call, await $request);
-  }
-
-  $async.Future<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate(
-      $grpc.ServiceCall call, $0.GetWorkoutHeartRateRequest request);
 }
 
 @$pb.GrpcServiceName('workout.v1.UserService')
@@ -178,15 +121,7 @@ class UserServiceClient extends $grpc.Client {
 
   UserServiceClient(super.channel, {super.options, super.interceptors});
 
-  /// Create a new user
-  $grpc.ResponseFuture<$0.CreateUserResponse> createUser(
-    $0.CreateUserRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$createUser, request, options: options);
-  }
-
-  /// Get user by ID
+  /// The authenticated user.
   $grpc.ResponseFuture<$0.GetUserResponse> getUser(
     $0.GetUserRequest request, {
     $grpc.CallOptions? options,
@@ -204,11 +139,6 @@ class UserServiceClient extends $grpc.Client {
 
   // method descriptors
 
-  static final _$createUser =
-      $grpc.ClientMethod<$0.CreateUserRequest, $0.CreateUserResponse>(
-          '/workout.v1.UserService/CreateUser',
-          ($0.CreateUserRequest value) => value.writeToBuffer(),
-          $0.CreateUserResponse.fromBuffer);
   static final _$getUser =
       $grpc.ClientMethod<$0.GetUserRequest, $0.GetUserResponse>(
           '/workout.v1.UserService/GetUser',
@@ -226,13 +156,6 @@ abstract class UserServiceBase extends $grpc.Service {
   $core.String get $name => 'workout.v1.UserService';
 
   UserServiceBase() {
-    $addMethod($grpc.ServiceMethod<$0.CreateUserRequest, $0.CreateUserResponse>(
-        'CreateUser',
-        createUser_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) => $0.CreateUserRequest.fromBuffer(value),
-        ($0.CreateUserResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GetUserRequest, $0.GetUserResponse>(
         'GetUser',
         getUser_Pre,
@@ -250,14 +173,6 @@ abstract class UserServiceBase extends $grpc.Service {
             $0.UpdateMyProfileRequest.fromBuffer(value),
         ($0.UpdateMyProfileResponse value) => value.writeToBuffer()));
   }
-
-  $async.Future<$0.CreateUserResponse> createUser_Pre($grpc.ServiceCall $call,
-      $async.Future<$0.CreateUserRequest> $request) async {
-    return createUser($call, await $request);
-  }
-
-  $async.Future<$0.CreateUserResponse> createUser(
-      $grpc.ServiceCall call, $0.CreateUserRequest request);
 
   $async.Future<$0.GetUserResponse> getUser_Pre($grpc.ServiceCall $call,
       $async.Future<$0.GetUserRequest> $request) async {

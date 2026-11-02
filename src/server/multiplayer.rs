@@ -159,31 +159,6 @@ impl MultiplayerService for ServerMultiplayerService {
         Ok(Response::new(GetMyInviteTokenResponse { invite_token }))
     }
 
-    async fn rotate_invite_token(
-        &self,
-        request: Request<RotateInviteTokenRequest>,
-    ) -> Result<Response<RotateInviteTokenResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        let invite_token = self
-            .db
-            .rotate_invite_token(&caller_id)
-            .await
-            .map_err(internal_error)?;
-        Ok(Response::new(RotateInviteTokenResponse { invite_token }))
-    }
-
-    async fn get_participant_workout(
-        &self,
-        request: Request<GetParticipantWorkoutRequest>,
-    ) -> Result<Response<ParticipantStatus>, Status> {
-        let _caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        info!(rpc = "GetParticipantWorkout", user_id = %req.user_id, "request");
-        Ok(Response::new(
-            participant_status(&self.db, &req.user_id, None).await?,
-        ))
-    }
-
     async fn get_current_session(
         &self,
         request: Request<GetCurrentSessionRequest>,
@@ -197,9 +172,9 @@ impl MultiplayerService for ServerMultiplayerService {
         &self,
         request: Request<GetSessionParticipantsRequest>,
     ) -> Result<Response<GetSessionParticipantsResponse>, Status> {
-        let _caller_id = authed_user_id(&request, &self.db).await?;
+        let caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
-        info!(rpc = "GetSessionParticipants", session_id = %req.session_id, "request");
+        info!(rpc = "GetSessionParticipants", %caller_id, session_id = %req.session_id, "request");
         if req.session_id.is_empty() {
             return Err(Status::invalid_argument("session_id is required"));
         }
@@ -212,6 +187,10 @@ impl MultiplayerService for ServerMultiplayerService {
             .list_session_member_ids(&req.session_id)
             .await
             .map_err(internal_error)?;
+        // Only someone who was in the session may see who else was.
+        if !member_ids.contains(&caller_id) {
+            return Err(Status::not_found("session not found"));
+        }
         let mut participants = Vec::with_capacity(member_ids.len());
         for user_id in member_ids {
             if let Some(user) = self.db.get_user(&user_id).await.map_err(internal_error)? {
@@ -283,35 +262,6 @@ impl MultiplayerService for ServerMultiplayerService {
             }
         }
         Ok(Response::new(GetTrainingPartnersResponse { partners }))
-    }
-
-    async fn get_shared_sessions(
-        &self,
-        request: Request<GetSharedSessionsRequest>,
-    ) -> Result<Response<GetSharedSessionsResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        let req = request.into_inner();
-        if req.partner_user_id.is_empty() {
-            return Err(Status::invalid_argument("partner_user_id is required"));
-        }
-        info!(rpc = "GetSharedSessions", %caller_id, partner = %req.partner_user_id, "request");
-        let rows = self
-            .db
-            .list_shared_sessions(&caller_id, &req.partner_user_id)
-            .await
-            .map_err(internal_error)?;
-        let sessions = rows
-            .into_iter()
-            .map(
-                |(session_id, trained_at, caller_wo, partner_wo)| SharedSession {
-                    session_id,
-                    trained_at,
-                    caller_worked_out: caller_wo,
-                    partner_worked_out: partner_wo,
-                },
-            )
-            .collect();
-        Ok(Response::new(GetSharedSessionsResponse { sessions }))
     }
 
     async fn request_join_partner(
@@ -415,14 +365,7 @@ pub(super) async fn current_session(
     participants.retain(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some(user_id));
     Ok(GetCurrentSessionResponse {
         session_id: session_id.clone(),
-        session_status: Some(SessionStatus {
-            session_id,
-            participants,
-            next_up_user_id: String::new(),
-            next_up_set: None,
-            next_up_rest_until: 0,
-            currently_lifting_user_id: String::new(),
-        }),
+        session_status: Some(SessionStatus { participants }),
     })
 }
 

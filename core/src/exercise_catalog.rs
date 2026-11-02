@@ -6,10 +6,8 @@
 //! recovery, the picker's equipment filter and the progression step all
 //! read from here — there is no second classification anywhere.
 
-use crate::pb::{EquipmentKind, Exercise, ExerciseCategory, MuscleGroup};
-use crate::weight_units::{
-    bar_weight, kg_to_pounds, round_to_unit_increment, snap_loadable_lb, AppWeightUnit,
-};
+use crate::pb::{EquipmentKind, Exercise, MuscleGroup};
+use crate::weight_units::{bar_weight, round_to_unit_increment, snap_loadable_lb, AppWeightUnit};
 
 /// How a move is loaded. Decides the smallest step you can actually add,
 /// the opener with no history, and whether "add weight" is even the right
@@ -250,36 +248,12 @@ pub const ALL_MUSCLES: [MuscleGroup; 10] = [
     MuscleGroup::Core,
 ];
 
-pub fn muscle_key(muscle: MuscleGroup) -> &'static str {
-    match muscle {
-        MuscleGroup::Chest => "chest",
-        MuscleGroup::Back => "back",
-        MuscleGroup::Shoulders => "shoulders",
-        MuscleGroup::Biceps => "biceps",
-        MuscleGroup::Triceps => "triceps",
-        MuscleGroup::Quads => "quads",
-        MuscleGroup::Hamstrings => "hamstrings",
-        MuscleGroup::Glutes => "glutes",
-        MuscleGroup::Calves => "calves",
-        MuscleGroup::Core => "core",
-        MuscleGroup::Unspecified => "unspecified",
-    }
-}
-
-pub fn muscle_label(muscle: MuscleGroup) -> &'static str {
-    match muscle {
-        MuscleGroup::Chest => "Chest",
-        MuscleGroup::Back => "Back",
-        MuscleGroup::Shoulders => "Shoulders",
-        MuscleGroup::Biceps => "Biceps",
-        MuscleGroup::Triceps => "Triceps",
-        MuscleGroup::Quads => "Quads",
-        MuscleGroup::Hamstrings => "Hamstrings",
-        MuscleGroup::Glutes => "Glutes",
-        MuscleGroup::Calves => "Calves",
-        MuscleGroup::Core => "Core",
-        MuscleGroup::Unspecified => "Unspecified",
-    }
+/// A lift's role: a compound works several joints at once; the rest are
+/// auxiliary.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExerciseCategory {
+    Compound,
+    Auxiliary,
 }
 
 pub fn category(ex: Exercise) -> ExerciseCategory {
@@ -397,19 +371,23 @@ pub fn rules(ex: Exercise) -> ClassRules {
     class_rules(lift_class(ex))
 }
 
+/// `lb` or `kg`, whichever is `unit`'s, in pounds.
+fn per_unit(unit: AppWeightUnit, lb: f32, kg: f32) -> f32 {
+    unit.to_lb(match unit {
+        AppWeightUnit::Lb => lb,
+        AppWeightUnit::Kg => kg,
+    })
+}
+
 /// The weight to prefill for an exercise with no history. The empty bar
 /// for barbell work, a conservative stack/dumbbell otherwise, and nothing
 /// at all for bodyweight moves — where a prefilled number would be a lie.
 pub fn starting_weight_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
-    let in_unit = |lb: f32, kg: f32| match unit {
-        AppWeightUnit::Lb => lb,
-        AppWeightUnit::Kg => kg_to_pounds(kg),
-    };
     match load_style(ex) {
-        LoadStyle::Barbell => in_unit(bar_weight(AppWeightUnit::Lb), bar_weight(AppWeightUnit::Kg)),
-        LoadStyle::Dumbbell => in_unit(20.0, 10.0),
-        LoadStyle::Machine => in_unit(40.0, 20.0),
-        LoadStyle::Cable => in_unit(20.0, 10.0),
+        LoadStyle::Barbell => unit.to_lb(bar_weight(unit)),
+        LoadStyle::Dumbbell => per_unit(unit, 20.0, 10.0),
+        LoadStyle::Machine => per_unit(unit, 40.0, 20.0),
+        LoadStyle::Cable => per_unit(unit, 20.0, 10.0),
         LoadStyle::Bodyweight => 0.0,
     }
 }
@@ -419,16 +397,12 @@ pub fn starting_weight_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
 /// bar, one notch on a stack, the next dumbbell up. Load moves rarely
 /// under double progression, so small is correct.
 pub fn progression_increment_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
-    let in_unit = |lb: f32, kg: f32| match unit {
-        AppWeightUnit::Lb => lb,
-        AppWeightUnit::Kg => kg_to_pounds(kg),
-    };
     match load_style(ex) {
         // Bodyweight work progresses by reps; adding phantom pounds to a
         // push-up would be nonsense.
         LoadStyle::Bodyweight => 0.0,
-        LoadStyle::Dumbbell => in_unit(5.0, 2.0),
-        _ => in_unit(5.0, 2.5),
+        LoadStyle::Dumbbell => per_unit(unit, 5.0, 2.0),
+        _ => per_unit(unit, 5.0, 2.5),
     }
 }
 
@@ -461,38 +435,6 @@ pub fn snap_down_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) ->
         snap_weight_lb(ex, snapped - step, unit)
     };
     down.max(snap_weight_lb(ex, step, unit))
-}
-
-/// Human name for an exercise, derived from the enum name — e.g.
-/// `EXERCISE_INCLINE_BENCH_PRESS` → `Incline Bench Press`. A few common
-/// lifts get their colloquial short forms.
-pub fn exercise_display_name(exercise: Exercise) -> String {
-    match exercise {
-        Exercise::OverheadPress => "OHP".to_string(),
-        Exercise::RomanianDeadlift => "RDL".to_string(),
-        Exercise::BulgarianSplitSquat => "BSS".to_string(),
-        other => prettify_exercise_name(other.as_str_name()),
-    }
-}
-
-fn prettify_exercise_name(str_name: &str) -> String {
-    let trimmed = str_name.strip_prefix("EXERCISE_").unwrap_or(str_name);
-    if trimmed.is_empty() {
-        return "Unknown".to_string();
-    }
-    trimmed
-        .split('_')
-        .map(|word| {
-            let mut chars = word.chars();
-            match chars.next() {
-                Some(first) => {
-                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
-                }
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
 }
 
 #[cfg(test)]

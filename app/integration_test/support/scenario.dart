@@ -465,7 +465,7 @@ class Scenario {
   Future<int> completeAllWorkingSetsInApp() async {
     var done = 0;
     for (var i = 0; i < 50; i++) {
-      final pending = workout.activeProposedSets.where(
+      final pending = workout.proposedSets.where(
         (p) => !p.warmup && !p.cancelled && !workout.isSetDone(p.id),
       );
       if (pending.isEmpty) break;
@@ -537,7 +537,7 @@ class Scenario {
     await settle(seconds: 1);
     await testMeIfAsked();
     expect(
-      workout.activeWorkout?.liftingSetId,
+      workout.workout?.liftingSetId,
       set.id,
       reason: 'the first tap starts the set',
     );

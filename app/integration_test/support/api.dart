@@ -139,9 +139,6 @@ class Peer {
     );
   }
 
-  Future<GetCurrentSessionResponse> currentSession() => _api.multiplayer
-      .getCurrentSession(GetCurrentSessionRequest(), options: _opts);
-
   /// The user's active workout as the backend holds it — used to cross-check
   /// that UI actions (starting sets, completing them) reached the server.
   Future<Workout?> activeWorkout() async {
@@ -269,13 +266,19 @@ class Peer {
   }
 
   Future<void> _complete(ProposedSet set, int reps) => _write(
-    'CompleteSet',
-    CompleteSetRequest()
-      ..workoutId = workoutId!
-      ..proposedSetId = set.id
-      ..actualReps = reps
-      ..actualWeight = set.targetWeight,
-    CompleteSetResponse.fromBuffer,
+    'AppendWorkoutMutations',
+    AppendWorkoutMutationsRequest(
+      mutations: [
+        WorkoutMutation(
+          completeSet: CompleteSetRequest()
+            ..workoutId = workoutId!
+            ..proposedSetId = set.id
+            ..actualReps = reps
+            ..actualWeight = set.targetWeight,
+        ),
+      ],
+    ),
+    AppendWorkoutMutationsResponse.fromBuffer,
   );
 
   /// Complete the next pending working set of the peer's workout.
@@ -339,15 +342,6 @@ class Peer {
       options: _opts,
     );
     return r.requestId;
-  }
-
-  /// Incoming pending join requests for this user.
-  Future<List<JoinRequest>> joinRequests() async {
-    final r = await _api.multiplayer.getJoinRequests(
-      GetJoinRequestsRequest(),
-      options: _opts,
-    );
-    return r.requests;
   }
 
   /// Approve or decline a join request; returns the session id when accepted.

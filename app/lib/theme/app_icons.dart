@@ -67,13 +67,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `personSimpleTaiChi`.
-  static const calm = IconData(
-    0xed5c,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
   /// Phosphor `camera`.
   static const camera = IconData(
     0xe10e,
@@ -186,13 +179,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `question`.
-  static const help = IconData(
-    0xe3e8,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
   /// Phosphor `clockCounterClockwise`.
   static const history = IconData(
     0xe1a0,
@@ -217,13 +203,6 @@ abstract final class AppIcons {
   /// Phosphor `lightning`.
   static const lightning = IconData(
     0xe2de,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
-  /// Phosphor `chatCircleDots`: the yapping state.
-  static const yapping = IconData(
-    0xe16c,
     fontFamily: _family,
     fontPackage: _package,
   );
@@ -319,13 +298,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `arrowsDownUp`.
-  static const reorder = IconData(
-    0xe098,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
   /// Phosphor `brain`.
   static const science = IconData(
     0xe74e,
@@ -361,13 +333,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `timer`.
-  static const timer = IconData(
-    0xe492,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
   /// Phosphor `arrowLineDown`.
   static const toBottom = IconData(
     0xe05c,
@@ -385,13 +350,6 @@ abstract final class AppIcons {
   /// Phosphor `graduationCap`.
   static const tutorial = IconData(
     0xe62c,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
-  /// Phosphor `fire`.
-  static const warmup = IconData(
-    0xe242,
     fontFamily: _family,
     fontPackage: _package,
   );

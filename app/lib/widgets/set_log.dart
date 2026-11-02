@@ -355,8 +355,8 @@ class _MiniCircle extends StatelessWidget {
         : reps >= target
         ? (t.text, t.text, t.background)
         : reps == 0
-        ? (Colors.transparent, t.effort, t.effort)
-        : (t.effort, t.effort, t.text);
+        ? (Colors.transparent, t.short, t.short)
+        : (t.short, t.short, t.text);
     return Container(
       width: 30,
       height: 30,

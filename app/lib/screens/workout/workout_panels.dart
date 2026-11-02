@@ -239,8 +239,6 @@ class PageTabs extends StatelessWidget {
   }
 }
 
-// ─── Page indicator (legacy dots, kept for reference) ───────────────────────
-
 // ─── Add exercise (a full-width row, like the sections above it) ────────────
 
 class AddExerciseRow extends StatelessWidget {

@@ -192,8 +192,7 @@ Run options:
 ## iOS (App Store)
 
 Workflow file: `.github/workflows/ios-build.yml`, triggered on `v*` tags or
-manual dispatch. It regenerates `Runner.xcodeproj` from `app/ios/project.yml`,
-then:
+manual dispatch. It builds the committed `Runner.xcodeproj`, then:
 
 - **If Apple signing secrets are present:** imports the distribution
   certificate into a temporary CI keychain, installs the iPhone + watch

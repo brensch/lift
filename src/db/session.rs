@@ -19,17 +19,6 @@ impl ServerDb {
         Ok(token)
     }
 
-    /// Rotate and return a fresh invite token for the user.
-    pub async fn rotate_invite_token(&self, user_id: &str) -> DbResult<String> {
-        let token = Uuid::new_v4().to_string();
-        sqlx::query("UPDATE users_current SET invite_token = ? WHERE user_id = ?")
-            .bind(&token)
-            .bind(user_id)
-            .execute(&self.write_pool)
-            .await?;
-        Ok(token)
-    }
-
     /// Resolve an invite token back to a user id.
     pub async fn lookup_user_by_invite_token(
         &self,
@@ -49,14 +38,11 @@ impl ServerDb {
     /// only be in one session at a time).
     pub async fn set_user_current_session(&self, user_id: &str, session_id: &str) -> DbResult<()> {
         sqlx::query(
-            "INSERT INTO user_current_session (user_id, session_id, joined_at) VALUES (?, ?, ?)
-             ON CONFLICT(user_id) DO UPDATE SET
-               session_id = excluded.session_id,
-               joined_at = excluded.joined_at",
+            "INSERT INTO user_current_session (user_id, session_id) VALUES (?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET session_id = excluded.session_id",
         )
         .bind(user_id)
         .bind(session_id)
-        .bind(now_unix())
         .execute(&self.write_pool)
         .await?;
         self.notify(Change::Membership(user_id.to_string()));
@@ -195,20 +181,16 @@ impl ServerDb {
     // ── Durable roster (session_members) ──
 
     /// Record (or refresh) a user's membership in a session. Sets first_joined_at
-    /// on first join; a rejoin clears left_at and bumps last_seen_at.
+    /// on first join; a rejoin clears left_at.
     pub async fn upsert_session_member(&self, session_id: &str, user_id: &str) -> DbResult<()> {
-        let now = now_unix();
         sqlx::query(
-            "INSERT INTO session_members (session_id, user_id, first_joined_at, last_seen_at, left_at)
-             VALUES (?, ?, ?, ?, 0)
-             ON CONFLICT(session_id, user_id) DO UPDATE SET
-               last_seen_at = excluded.last_seen_at,
-               left_at = 0",
+            "INSERT INTO session_members (session_id, user_id, first_joined_at, left_at)
+             VALUES (?, ?, ?, 0)
+             ON CONFLICT(session_id, user_id) DO UPDATE SET left_at = 0",
         )
         .bind(session_id)
         .bind(user_id)
-        .bind(now)
-        .bind(now)
+        .bind(now_unix())
         .execute(&self.write_pool)
         .await?;
         Ok(())
@@ -216,13 +198,11 @@ impl ServerDb {
 
     /// Mark a member as having left a session (durable row stays for history).
     pub async fn mark_session_member_left(&self, session_id: &str, user_id: &str) -> DbResult<()> {
-        let now = now_unix();
         sqlx::query(
-            "UPDATE session_members SET left_at = ?, last_seen_at = ?
+            "UPDATE session_members SET left_at = ?
              WHERE session_id = ? AND user_id = ? AND left_at = 0",
         )
-        .bind(now)
-        .bind(now)
+        .bind(now_unix())
         .bind(session_id)
         .bind(user_id)
         .execute(&self.write_pool)
@@ -271,45 +251,6 @@ impl ServerDb {
                     r.get::<String, _>("partner_id"),
                     r.get::<i64, _>("sessions_together"),
                     r.get::<i64, _>("last_trained_at"),
-                )
-            })
-            .collect())
-    }
-
-    /// The sessions a user shared with one partner: (session_id, session time,
-    /// caller_worked_out, partner_worked_out). Most recent first.
-    pub async fn list_shared_sessions(
-        &self,
-        user_id: &str,
-        partner_id: &str,
-    ) -> DbResult<Vec<(String, i64, bool, bool)>> {
-        let rows = sqlx::query(
-            "SELECT m1.session_id AS session_id,
-                    m1.first_joined_at AS trained_at,
-                    EXISTS(SELECT 1 FROM workouts w
-                           WHERE w.session_id = m1.session_id AND w.user_id = ?) AS caller_wo,
-                    EXISTS(SELECT 1 FROM workouts w
-                           WHERE w.session_id = m1.session_id AND w.user_id = ?) AS partner_wo
-             FROM session_members m1
-             JOIN session_members m2
-               ON m2.session_id = m1.session_id AND m2.user_id = ?
-             WHERE m1.user_id = ?
-             ORDER BY trained_at DESC",
-        )
-        .bind(user_id)
-        .bind(partner_id)
-        .bind(partner_id)
-        .bind(user_id)
-        .fetch_all(&self.read_pool)
-        .await?;
-        Ok(rows
-            .into_iter()
-            .map(|r| {
-                (
-                    r.get::<String, _>("session_id"),
-                    r.get::<i64, _>("trained_at"),
-                    r.get::<i64, _>("caller_wo") != 0,
-                    r.get::<i64, _>("partner_wo") != 0,
                 )
             })
             .collect())

@@ -145,7 +145,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final user = await UserServiceWrapper(
         context.read<GrpcClient>(),
-      ).getUser(userId);
+      ).getUser();
       if (!mounted || user == null || _profileTouched) return;
       const serverDefaultEmoji = '💪';
       final emoji = normalizedProfileEmoji(user.profileEmoji);
@@ -169,7 +169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final text = _bodyWeightController.text.trim();
     final value = double.tryParse(text);
     if (value == null || value <= 0) return 0;
-    return isMetricUnit(_unit) ? value : value * 0.45359237;
+    return isMetricUnit(_unit) ? value : poundsToKilograms(value);
   }
 
   Future<void> _finish() async {

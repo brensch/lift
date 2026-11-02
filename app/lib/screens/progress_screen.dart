@@ -12,7 +12,6 @@ import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
-import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
@@ -110,17 +109,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
 
-    Widget scaffold(Widget body) => TopLevelBackScope(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(AppIcons.back),
-            onPressed: () => context.go('/'),
-          ),
-          title: PageTitle('Progress'),
+    Widget scaffold(Widget body) => Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(AppIcons.back),
+          onPressed: () => context.go('/'),
         ),
-        body: body,
+        title: PageTitle('Progress'),
       ),
+      body: body,
     );
 
     if (_isLoading) {
@@ -257,7 +254,7 @@ class _ExerciseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = exerciseNames[series.exercise] ?? '?';
     final gain = series.gain;
-    final gainColor = gain > 0 ? context.tokens.accentGreen : cs.tertiary;
+    final gainColor = gain > 0 ? context.tokens.ready : cs.tertiary;
     final gainText = gain == 0
         ? ''
         : '${gain > 0 ? '+' : '−'}${formatWeight(gain.abs(), unit)}';

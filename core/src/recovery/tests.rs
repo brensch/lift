@@ -61,7 +61,7 @@ fn a_squat_session_blocks_legs_for_two_days() {
     let t0 = 1_700_000_000i64;
     let history = vec![workout(t0, &[Exercise::Squat])];
 
-    let after = per_muscle_recovery(&history, t0 + HOUR);
+    let after = per_muscle_recovery(&history);
     let quads = recovery_for(&after, MuscleGroup::Quads);
     assert!(!quads.is_recovered(t0 + HOUR));
     assert_eq!(quads.recovered_at, t0 + 48 * HOUR);
@@ -71,7 +71,7 @@ fn a_squat_session_blocks_legs_for_two_days() {
     assert!(chest.is_recovered(t0 + HOUR));
     assert_eq!(chest.last_trained_at, 0);
 
-    let later = per_muscle_recovery(&history, t0 + 2 * DAY + HOUR);
+    let later = per_muscle_recovery(&history);
     assert!(recovery_for(&later, MuscleGroup::Quads).is_recovered(t0 + 2 * DAY + HOUR));
 }
 
@@ -80,7 +80,7 @@ fn a_squat_session_blocks_legs_for_two_days() {
 fn windows_scale_with_the_muscle() {
     let t0 = 1_700_000_000i64;
     let history = vec![workout(t0, &[Exercise::BarbellCurl, Exercise::Crunch])];
-    let rec = per_muscle_recovery(&history, t0 + HOUR);
+    let rec = per_muscle_recovery(&history);
     assert_eq!(
         recovery_for(&rec, MuscleGroup::Biceps).recovered_at,
         t0 + 36 * HOUR
@@ -91,8 +91,7 @@ fn windows_scale_with_the_muscle() {
     );
 }
 
-/// The most recent session that trained a muscle wins, and the fraction
-/// climbs from 0 toward 1.
+/// The most recent session that trained a muscle wins.
 #[test]
 fn the_latest_session_sets_the_clock() {
     let t0 = 1_700_000_000i64;
@@ -100,13 +99,9 @@ fn the_latest_session_sets_the_clock() {
         workout(t0 - 5 * DAY, &[Exercise::BenchPress]),
         workout(t0, &[Exercise::PushUp]),
     ];
-    let rec = per_muscle_recovery(&history, t0 + 24 * HOUR);
+    let rec = per_muscle_recovery(&history);
     let chest = recovery_for(&rec, MuscleGroup::Chest);
     assert_eq!(chest.last_trained_at, t0);
-    assert!(
-        (chest.fraction - 0.5).abs() < 0.01,
-        "24 of 48 hours elapsed"
-    );
     assert_eq!(chest.hours_remaining(t0 + 24 * HOUR), 24);
 }
 
@@ -116,14 +111,14 @@ fn unfinished_sets_do_not_count() {
     let t0 = 1_700_000_000i64;
     let mut record = workout(t0, &[Exercise::Squat]);
     record.completed_sets.clear();
-    let rec = per_muscle_recovery(&[record], t0 + HOUR);
+    let rec = per_muscle_recovery(&[record]);
     assert!(recovery_for(&rec, MuscleGroup::Quads).is_recovered(t0 + HOUR));
 }
 
 /// Always all ten muscles, in catalog order.
 #[test]
 fn every_muscle_reports() {
-    let rec = per_muscle_recovery(&[], 1_000);
+    let rec = per_muscle_recovery(&[]);
     assert_eq!(rec.len(), 10);
     for entry in &rec {
         assert!(entry.is_recovered(1_000));

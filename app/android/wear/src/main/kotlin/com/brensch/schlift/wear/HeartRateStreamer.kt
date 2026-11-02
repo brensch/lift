@@ -7,6 +7,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
@@ -45,11 +46,13 @@ class HeartRateStreamer(
             Log.w("SchliftWear", "No heart rate sensor available on this watch")
             return
         }
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        // The sensor hub holds readings for up to REPORT_LATENCY_US before waking
+        // the app, half the flush interval, so every batch carries fresh samples.
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL, REPORT_LATENCY_US)
         flushJob =
             scope.launch {
                 while (isActive) {
-                    delay(5000)
+                    delay(FLUSH_INTERVAL_MS)
                     flushPending()
                 }
             }
@@ -67,10 +70,13 @@ class HeartRateStreamer(
     override fun onSensorChanged(event: SensorEvent?) {
         workoutId ?: return
         val bpm = event?.values?.firstOrNull() ?: return
+        // Readings arrive in bursts, so each is stamped from its own sensor
+        // timestamp (elapsed-realtime nanoseconds), not the delivery time.
+        val ageMs = (SystemClock.elapsedRealtimeNanos() - event.timestamp) / 1_000_000
         val sample =
             Wearable.HeartRateSample
                 .newBuilder()
-                .setSampledAt(System.currentTimeMillis())
+                .setSampledAt(System.currentTimeMillis() - ageMs.coerceAtLeast(0))
                 .setBpm(bpm)
                 .setAvailability(Wearable.HeartRateAvailability.HEART_RATE_AVAILABILITY_AVAILABLE)
                 .build()
@@ -114,7 +120,6 @@ class HeartRateStreamer(
                 .newBuilder()
                 .setBatchId(UUID.randomUUID().toString())
                 .setWorkoutId(activeWorkoutId)
-                .setSentAt(System.currentTimeMillis())
                 .addAllHeartRateSamples(samples)
                 .build()
 
@@ -126,5 +131,10 @@ class HeartRateStreamer(
             return
         }
         WearSensorBatchOutbox.flush(context)
+    }
+
+    private companion object {
+        const val FLUSH_INTERVAL_MS = 5_000L
+        const val REPORT_LATENCY_US = 2_500_000
     }
 }

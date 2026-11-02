@@ -36,9 +36,7 @@ impl std::fmt::Display for CoreError {
 impl From<WorkoutError> for CoreError {
     fn from(error: WorkoutError) -> Self {
         match error {
-            WorkoutError::FailedPrecondition(m) | WorkoutError::Internal(m) => {
-                Self::FailedPrecondition(m.to_string())
-            }
+            WorkoutError::FailedPrecondition(m) => Self::FailedPrecondition(m.to_string()),
         }
     }
 }
@@ -170,7 +168,7 @@ impl Account {
                     if self.templates.iter().any(|t| t.library_id == entry.id) {
                         continue; // already in the user's list
                     }
-                    // Added later, a library template is a favourite
+                    // Added later, a library template is a reserve
                     // unless the event says otherwise.
                     self.save_template(library_copy(&entry, req.in_rotation), at, &mut ids)?;
                 }
@@ -510,7 +508,9 @@ fn require_decisions(
     Ok(())
 }
 
-/// The workouts an event touches.
+/// The workouts whose rows an event rewrites. Heart rate is only ever
+/// appended, so it rewrites nothing (see
+/// [crate::projection::heart_rate_statements]).
 pub fn event_workout_ids(event: &Event) -> Vec<String> {
     match &event.kind {
         Some(event::Kind::StartWorkout(_)) => vec![event.id.clone()],
@@ -518,7 +518,6 @@ pub fn event_workout_ids(event: &Event) -> Vec<String> {
             mutation: Some(mutation),
             ..
         })) => vec![mutation_workout_id(mutation).to_string()],
-        Some(event::Kind::HeartRate(req)) => vec![req.workout_id.clone()],
         Some(event::Kind::ImportHistory(req)) => req
             .workouts
             .iter()
@@ -580,7 +579,7 @@ fn library_entries(
 
 /// A library entry in the user's list: a new template (empty id, given one
 /// and an order on save), coupled to the entry and made from it, in
-/// rotation or a favourite.
+/// rotation or a reserve.
 fn library_copy(entry: &LibraryTemplate, in_rotation: bool) -> WorkoutTemplate {
     WorkoutTemplate {
         in_rotation,

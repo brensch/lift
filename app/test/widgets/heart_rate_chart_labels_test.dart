@@ -65,7 +65,6 @@ void main() {
                     (startSec + lengthSec) * 1000,
                   ),
                   followLiveClock: false,
-                  fullView: true,
                 ),
               ),
             ),

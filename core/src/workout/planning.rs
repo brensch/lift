@@ -9,9 +9,7 @@ use super::*;
 use crate::exercise_catalog::{progression_increment_lb, snap_down_weight_lb, snap_weight_lb};
 use crate::ids::Ids;
 use crate::pb::{Exercise, ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
-use crate::weight_units::{
-    bar_weight, kg_to_pounds, plates, pounds_to_kg, simplest_loadable_near, AppWeightUnit,
-};
+use crate::weight_units::{bar_weight, plates, simplest_loadable_near, AppWeightUnit};
 
 const WARMUP_REST_SECONDS: i32 = 30;
 /// A calibration rung is always five reps, rested 90 s whatever happened.
@@ -29,21 +27,6 @@ pub const TOO_HEAVY_REPS: i32 = 3;
 /// A too-heavy rung's next rung is this fraction of it: a fifth lighter.
 const CALIBRATION_STEP_DOWN: f32 = 0.8;
 
-/// Stored weights are pounds; warmup snapping happens in the caller's display
-/// unit so the numbers are actually loadable there. These convert at the edges.
-fn to_display(weight_lb: f32, unit: AppWeightUnit) -> f32 {
-    match unit {
-        AppWeightUnit::Lb => weight_lb,
-        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
-    }
-}
-fn to_pounds(display: f32, unit: AppWeightUnit) -> f32 {
-    match unit {
-        AppWeightUnit::Lb => display,
-        AppWeightUnit::Kg => kg_to_pounds(display),
-    }
-}
-
 /// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the
 /// simplest plate step-up in `unit` — empty bar first, then loads that prefer
 /// one big plate over several small ones. Computed in the display unit and
@@ -56,7 +39,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
     let pl = plates(unit);
     let smallest = pl.last().copied().unwrap_or(2.5);
 
-    let working = to_display(working_weight_lb, unit);
+    let working = unit.from_lb(working_weight_lb);
     // Warmups must sit below the working weight by at least one small plate.
     let max = (working - smallest).max(smallest);
 
@@ -79,7 +62,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
             continue;
         }
         prev = chosen;
-        out.push((to_pounds(chosen, unit), reps[idx]));
+        out.push((unit.to_lb(chosen), reps[idx]));
     }
 
     out
@@ -331,10 +314,10 @@ fn block_sets(
 /// Plan ops only make sense on a live workout that the request names.
 fn require_open_workout(workout_ref: &WorkoutRecord, workout_id: &str) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != workout_id {
-        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
     }
     if workout_ref.workout.end_time > 0 {
-        return Err(WorkoutError::failed_precondition("Workout already ended"));
+        return Err(WorkoutError::FailedPrecondition("Workout already ended"));
     }
     Ok(())
 }
@@ -387,10 +370,10 @@ pub fn apply_adjust_exercise_weight(
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
     if !(0.0..=2000.0).contains(&req.working_weight) {
-        return Err(WorkoutError::failed_precondition("Weight out of range"));
+        return Err(WorkoutError::FailedPrecondition("Weight out of range"));
     }
     if !(0..=100).contains(&req.target_reps) {
-        return Err(WorkoutError::failed_precondition("Reps out of range"));
+        return Err(WorkoutError::FailedPrecondition("Reps out of range"));
     }
     // On a lift still ramping this moves the pending rung: the ramp goes
     // on from the weight given, and the reps decide where it stops.
@@ -618,15 +601,12 @@ mod warmup_tests {
     /// caller's unit (no junk decimals after the kg conversion).
     #[test]
     fn warmups_are_exactly_loadable_in_their_unit() {
-        use crate::weight_units::{bar_weight, plate_count_per_side, plates, pounds_to_kg};
+        use crate::weight_units::{bar_weight, plate_count_per_side, plates};
         for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
             let (bar, pl) = (bar_weight(unit), plates(unit));
             for w in golden_working_weights() {
                 for (weight_lb, _) in generate_warmup_defs(w, unit) {
-                    let display = match unit {
-                        AppWeightUnit::Lb => weight_lb,
-                        AppWeightUnit::Kg => pounds_to_kg(weight_lb),
-                    };
+                    let display = unit.from_lb(weight_lb);
                     // Sub-bar warmups (very light working weights) fall on the
                     // smallest-plate grid rather than a barbell load; skip those.
                     if display < bar {

@@ -123,10 +123,10 @@ templates:
     blurb: Pins and stacks. Busy-gym proof.
     exercises: [LEG_PRESS, MACHINE_CHEST_PRESS, LAT_PULLDOWN, LEG_EXTENSION, LEG_CURL, SEATED_CALF_RAISE]
 
-# Ready-made main plans: the Manage sheet's one-tap plans. Applying one
-# makes its templates the main plan in this order (adding any the user
+# Ready-made rotations: the Manage sheet's one-tap plans. Applying one
+# makes its templates the rotation in this order (adding any the user
 # doesn't have, using the user's own copy when there is one) and moves the
-# old main plan to the backups. `templates` are ids from above; `cargo
+# rest to the reserves. `templates` are ids from above; `cargo
 # test` fails on an unknown one. Ids are stable keys.
 plans:
   - id: stronglifts

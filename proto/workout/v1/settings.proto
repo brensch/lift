@@ -26,7 +26,8 @@ message PlateColor {
 
 message PlateColorsConfig {
   repeated PlateColor plates = 1;
-  float bar_weight_kg = 2;
+  reserved 2;
+  reserved "bar_weight_kg";
 }
 
 enum WeightUnit {
@@ -45,10 +46,9 @@ message UserSetting {
   oneof setting {
     PlateColorsConfig plate_colors = 10;
     WeightUnitConfig weight_unit = 12;
-    // field 11 reserved (was workout_config)
   }
-  reserved 13;
-  reserved "ignored_muscles";
+  reserved 11, 13;
+  reserved "workout_config", "ignored_muscles";
 }
 
 message UpdateSettingRequest {

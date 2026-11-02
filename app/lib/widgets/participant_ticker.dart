@@ -4,15 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/session_state.dart';
 import '../logic/user_profile.dart';
 import '../theme/theme_spec.dart';
 import '../gen/copy.dart';
-
-String _fmt(int seconds) {
-  final m = seconds.abs() ~/ 60;
-  final s = seconds.abs() % 60;
-  return '$m:${s.toString().padLeft(2, '0')}';
-}
 
 String participantDisplayName(ParticipantStatus participant) {
   final name = participant.user.name.trim();
@@ -64,7 +59,7 @@ ParticipantVisualStatus describeParticipantStatus(
       participant.activeWorkout.endTime != Int64.ZERO) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.allDone,
-      stateColor: tokens.successFg,
+      stateColor: tokens.success,
       sortPriority: 0,
       isComplete: true,
     );
@@ -77,9 +72,11 @@ ParticipantVisualStatus describeParticipantStatus(
   if (state == WorkoutState.WORKOUT_STATE_LIFTING && shownSet != null) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.lifting,
-      stateColor: tokens.workoutLiftingFg,
+      stateColor: tokens.lifting,
       proposedSet: shownSet,
-      timerText: _fmt(max(0, nowUnix - snapshot!.liftingStartedAt.toInt())),
+      timerText: formatRestClock(
+        max(0, nowUnix - snapshot!.liftingStartedAt.toInt()),
+      ),
       sortPriority: 3,
     );
   }
@@ -87,9 +84,9 @@ ParticipantVisualStatus describeParticipantStatus(
   if (state == WorkoutState.WORKOUT_STATE_RESTING && nextSet != null) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.resting,
-      stateColor: tokens.workoutRestingFg,
+      stateColor: tokens.resting,
       proposedSet: nextSet,
-      timerText: _fmt(max(0, restUntil - nowUnix)),
+      timerText: formatRestClock(max(0, restUntil - nowUnix)),
       restLeft: restLeftFraction(participant.completedSets, restUntil, nowUnix),
       sortPriority: 2,
     );
@@ -100,9 +97,9 @@ ParticipantVisualStatus describeParticipantStatus(
   if (state == WorkoutState.WORKOUT_STATE_YAPPING && nextSet != null) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.yapping,
-      stateColor: tokens.workoutYappingFg,
+      stateColor: tokens.yapping,
       proposedSet: nextSet,
-      timerText: _fmt(max(0, nowUnix - restUntil)),
+      timerText: formatRestClock(max(0, nowUnix - restUntil)),
       sortPriority: 1,
     );
   }
@@ -110,7 +107,7 @@ ParticipantVisualStatus describeParticipantStatus(
   if (nextSet != null) {
     return ParticipantVisualStatus(
       stateLabel: copy.workout.ready,
-      stateColor: tokens.warmupFg,
+      stateColor: tokens.warmup,
       proposedSet: nextSet,
       sortPriority: 1,
     );
@@ -118,7 +115,7 @@ ParticipantVisualStatus describeParticipantStatus(
 
   return ParticipantVisualStatus(
     stateLabel: copy.workout.allDone,
-    stateColor: tokens.successFg,
+    stateColor: tokens.success,
     sortPriority: 0,
     isComplete: true,
   );

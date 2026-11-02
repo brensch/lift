@@ -1,8 +1,6 @@
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
 BUN = $(HOME)/.bun/bin/bun
-RELEASE_ENV_FILE ?= .env
-AAB_OUT_DIR ?= aab
 
 ANDROID_SDK ?= $(HOME)/android-sdk
 ANDROID_HOME ?= $(ANDROID_SDK)
@@ -97,10 +95,8 @@ DEBUG_CERT_SHA256 = $(shell keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias 
 RELEASE_APK_ORIGINS = android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk
 BACKEND_DEV_ENV = \
 	RUST_LOG=info \
-	TEST_AUTH_ENABLED=1 \
 	WEBAUTHN_RP_ID=schlift.com \
 	WEBAUTHN_RP_ORIGIN=https://schlift.com \
-	WEBAUTHN_ANDROID_ORIGIN=android:apk-key-hash:$(DEBUG_APK_KEY_HASH) \
 	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$(DEBUG_APK_KEY_HASH),$(RELEASE_APK_ORIGINS) \
 	ANDROID_CERT_SHA256=$(DEBUG_CERT_SHA256)
 

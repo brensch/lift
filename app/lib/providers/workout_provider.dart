@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
@@ -79,6 +80,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<CompletedSet> _completed = [];
   Set<String> _passedWarmups = {};
   List<ExerciseLog> _logs = [];
+  WorkoutSummary? _summary;
   String _rungQuestion = '';
   List<RungOutcome> _rungOutcomes = const [];
   final Set<String> _askedRungs = {};
@@ -147,6 +149,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _completed = List.of(response.completedSets);
     _passedWarmups = response.passedWarmupIds.toSet();
     _logs = List.of(response.exerciseLogs);
+    _summary = response.hasSummary() ? response.summary : null;
     _rungQuestion = response.rungQuestionSetId;
     _rungOutcomes = List.of(response.rungOutcomes);
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
@@ -297,6 +300,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The home: templates, plans, volume, recovery, the suggestion.
   /// Null until the first load.
   GetHomeResponse? get home => _home;
+
+  /// Whether the account is onboarded, null until the first home. The
+  /// router listens to this alone, not to every change of the workout.
+  ValueListenable<bool?> get onboarded => _onboarded;
+  final ValueNotifier<bool?> _onboarded = ValueNotifier(null);
+
+  void _setHome(GetHomeResponse? home) {
+    _home = home;
+    _onboarded.value = home?.onboarded;
+  }
+
   List<WorkoutTemplate> get templates => _home?.templates ?? const [];
 
   /// One lap of the rotation: sets per muscle and what is wrong with it.
@@ -335,21 +349,37 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const minBudgetMinutes = 10;
   static const maxBudgetMinutes = 180;
 
-  /// Move the budget by [steps] of [budgetStepMinutes] and plan again.
-  Future<void> stepBudget(int steps) async {
+  /// Move the budget by [steps] of [budgetStepMinutes] and plan again,
+  /// once the taps settle: the future completes when home is planned in it.
+  Future<void> stepBudget(int steps) {
     final next = (_budgetMinutes + steps * budgetStepMinutes).clamp(
       minBudgetMinutes,
       maxBudgetMinutes,
     );
-    if (next == _budgetMinutes) return;
+    if (next == _budgetMinutes) return Future.value();
     _budgetMinutes = next;
     notifyListeners();
-    await refreshHome();
+    _budgetReplan?.cancel();
+    final replanned = _budgetReplanned ??= Completer<void>();
+    _budgetReplan = Timer(_budgetSettle, () async {
+      _budgetReplanned = null;
+      await refreshHome();
+      replanned.complete();
+    });
+    return replanned.future;
   }
+
+  static const _budgetSettle = Duration(milliseconds: 250);
+  Timer? _budgetReplan;
+  Completer<void>? _budgetReplanned;
 
   /// Each lift of the workout on screen: the decision it started from and
   /// the weight changes since, in workout order.
   List<ExerciseLog> get exerciseLogs => _logs;
+
+  /// The core's totals for the workout on screen: working-set volume and
+  /// sets per exercise, and its time.
+  WorkoutSummary? get summary => _summary;
 
   /// The ramp set whose "how many more could you have done?" is open, or
   /// '' when none: the core decides (done in full, unanswered, the latest
@@ -383,9 +413,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// library through it so the tutorial's provider stays in its sandbox.
   WorkoutServiceWrapper get service => _service;
 
-  Workout? get activeWorkout => _workout;
-  List<ProposedSet> get activeProposedSets => _proposed;
-  List<CompletedSet> get activeCompletedSets => _completed;
   WorkoutStateSnapshot? get stateSnapshot => _snapshot;
   bool get hasActiveWorkout =>
       _workout != null && _workout!.endTime == Int64.ZERO;
@@ -490,7 +517,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       } else {
         _clearWorkout();
       }
-      _home = await _service.getHome(budgetMinutes: _budgetMinutes);
+      _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
     } catch (e) {
       _lastLoadError = cleanErrorMessage(e);
       _handleError(e);
@@ -507,6 +534,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _completed = [];
     _passedWarmups = {};
     _logs = [];
+    _summary = null;
     _rungQuestion = '';
     _rungOutcomes = const [];
     _askedRungs.clear();
@@ -519,7 +547,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Refresh templates, plans and volume without touching the session.
   Future<void> refreshHome() async {
     try {
-      _home = await _service.getHome(budgetMinutes: _budgetMinutes);
+      final budget = _budgetMinutes;
+      final home = await _service.getHome(budgetMinutes: budget);
+      // The budget moved while planning: its own replan follows.
+      if (budget != _budgetMinutes) return;
+      _setHome(home);
       notifyListeners();
     } catch (e) {
       AppLogger.instance.warn('Workout', 'refreshHome failed', {
@@ -546,7 +578,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _service.getTemplatePlan(exercises, budgetMinutes: _budgetMinutes);
 
   /// Put [template] in the rotation the suggestion picks from, or make it
-  /// a favourite. A library template keeps following the library.
+  /// a reserve. A library template keeps following the library.
   Future<void> setInRotation(WorkoutTemplate template, bool inRotation) =>
       saveTemplate(template.deepCopy()..inRotation = inRotation);
 
@@ -556,7 +588,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Put the templates in [templateIds]' order; with [rotationCount], the
-  /// first that many are the rotation and the rest favourites (the Manage
+  /// first that many are the rotation and the rest reserves (the Manage
   /// sheet's drag across its two sections).
   Future<void> reorderTemplates(
     List<String> templateIds, {
@@ -567,7 +599,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Adds library entries to the user's templates, following the library
-  /// (templates/library.yaml on the server). The answer carries the
+  /// (templates/library.yaml, built into the core). The answer carries the
   /// refreshed home, planned in the default budget, so it is read again
   /// in this one.
   Future<void> addLibraryTemplates(
@@ -578,8 +610,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
-  /// Makes the ready-made plan [planId] the main plan (the core adds what
-  /// the user lacks and moves the old main plan to the backups).
+  /// Makes the ready-made plan [planId] the rotation (the core adds what
+  /// the user lacks and moves the rest to the reserves).
   Future<void> applyLibraryPlan(String planId) async {
     await _service.applyLibraryPlan(planId);
     await refreshHome();
@@ -635,15 +667,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  WorkoutMutation _mutation() => WorkoutMutation()
-    ..clientCreatedAt = Int64(DateTime.now().millisecondsSinceEpoch ~/ 1000);
-
   /// Begin a set: the workout is LIFTING it until its Done, the timer
   /// counting up from now.
   Future<void> startSet(String proposedSetId, {int? startedAt}) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..startSet = (StartSetRequest()
           ..workoutId = _workoutId
           ..proposedSetId = proposedSetId
@@ -660,7 +689,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..completeSet = (CompleteSetRequest()
           ..workoutId = _workoutId
           ..proposedSetId = proposedSetId
@@ -673,7 +702,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> deleteCompletedSet(String completedSetId) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..deleteCompletedSet = (DeleteCompletedSetRequest()
           ..workoutId = _workoutId
           ..completedSetId = completedSetId),
@@ -688,7 +717,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   ) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..editCompletedSet = (EditCompletedSetRequest()
           ..workoutId = _workoutId
           ..completedSetId = completedSetId
@@ -722,7 +751,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> answerRung(String proposedSetId, RepsLeft repsLeft) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..answerRung = (AnswerRungRequest()
           ..workoutId = _workoutId
           ..proposedSetId = proposedSetId
@@ -737,7 +766,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> answerRungJump(String proposedSetId, double jumpLb) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..answerRung = (AnswerRungRequest()
           ..workoutId = _workoutId
           ..proposedSetId = proposedSetId
@@ -750,7 +779,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> skipWarmups(Exercise exercise) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..skipWarmups = (SkipWarmupsRequest()
           ..workoutId = _workoutId
           ..exercise = exercise),
@@ -762,7 +791,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> addPrescribedExercises(List<Exercise> exercises) async {
     if (_workout == null || exercises.isEmpty) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..addExercises = (AddExercisesRequest()
           ..workoutId = _workoutId
           ..exercises.addAll(exercises)),
@@ -778,7 +807,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..adjustExerciseWeight = (AdjustExerciseWeightRequest()
           ..workoutId = _workoutId
           ..exercise = exercise
@@ -791,7 +820,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> removeExercise(Exercise exercise) async {
     if (_workout == null) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..removeExercise = (RemoveExerciseRequest()
           ..workoutId = _workoutId
           ..exercise = exercise),
@@ -804,7 +833,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (workout == null || !hasActiveWorkout) return;
     if (workout.sessionId == sessionId) return;
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..setSession = (SetWorkoutSessionRequest()
           ..workoutId = _workoutId
           ..sessionId = sessionId),
@@ -825,7 +854,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       ..addAll(moved);
     notifyListeners();
     await _mutate(
-      _mutation()
+      WorkoutMutation()
         ..reorderExercises = (ReorderExercisesRequest()
           ..workoutId = _workoutId
           ..exercises.addAll(exercises)),
@@ -891,7 +920,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         unawaited(FirstWorkout.markDone(userId));
       }
       // The plans just moved on; home shows them straight away.
-      _home = await _service.getHome(budgetMinutes: _budgetMinutes);
+      _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
       notifyListeners();
 
       if (!_sandbox) _writeToHealthPlatform(ended);
@@ -919,24 +948,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
       final title = names.join(', ');
-
-      var totalVolumeKg = 0.0;
-      var workingSets = 0;
-      for (final cs in _completed) {
-        final proposed = proposedSetById(cs.proposedSetId);
-        if (proposed != null && isWorkingSet(proposed)) {
-          totalVolumeKg += cs.actualWeight * cs.actualReps;
-          workingSets++;
-        }
-      }
+      final heartRate = List<HeartRateSample>.of(_wearHeartRateSamples);
 
       final result = await HealthService.writeCompletedWorkout(
         startTime: startTime,
         endTime: endTime,
         title: title,
-        totalVolumeKg: totalVolumeKg,
-        workingSets: workingSets,
         bodyWeightKg: _bodyWeightKg,
+      );
+      // The workout's heart rate, all of it in one go at the end.
+      await HealthService.writeHeartRateSamples(
+        workoutId: workout.id,
+        samples: heartRate,
       );
 
       if (result == HealthWriteResult.success) {
@@ -988,7 +1011,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _wasResting = false;
     _clearWorkout();
     _resetWearHeartRateBuffer();
-    _home = null;
+    _setHome(null);
     _userId = null;
     notifyListeners();
   }
@@ -1045,12 +1068,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (batch.batchId.isEmpty) return;
     if (!_wearHeartRateBatchIds.add(batch.batchId)) return;
 
+    final wasEmpty = _wearHeartRateSamples.isEmpty;
     var insertedAny = false;
     for (final sample in batch.heartRateSamples) {
       if (!_wearHeartRateSampleTimestamps.add(sample.sampledAt.toInt())) {
         continue;
       }
-      _wearHeartRateSamples.add(sample);
+      _insertHeartRateSample(sample);
       _unsavedHeartRate.add(
         WorkoutHeartRatePoint()
           ..sampledAt = sample.sampledAt
@@ -1060,10 +1084,32 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       insertedAny = true;
     }
     if (!insertedAny) return;
-    _wearHeartRateSamples.sort((a, b) => a.sampledAt.compareTo(b.sampledAt));
     _trimHeartRate();
-    notifyListeners();
+    // The session strip and the live chart read new samples on the 1 Hz
+    // clock; only the first one changes what is built (the chart appears).
+    if (wasEmpty) notifyListeners();
     unawaited(_saveHeartRate());
+  }
+
+  /// Insert [sample] in time order: appended when it is the newest, as a
+  /// live sample is.
+  void _insertHeartRateSample(HeartRateSample sample) {
+    final samples = _wearHeartRateSamples;
+    if (samples.isEmpty || samples.last.sampledAt <= sample.sampledAt) {
+      samples.add(sample);
+      return;
+    }
+    var lo = 0;
+    var hi = samples.length;
+    while (lo < hi) {
+      final mid = (lo + hi) >> 1;
+      if (samples[mid].sampledAt <= sample.sampledAt) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+    samples.insert(lo, sample);
   }
 
   /// Write the heart rate heard since the last save into the account, in
@@ -1083,14 +1129,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _unsavedHeartRate.clear();
     try {
       await _service.appendWorkoutHeartRate(workout.id, batch);
-      if (!_sandbox) {
-        unawaited(
-          HealthService.writeHeartRateSamples(
-            workoutId: workout.id,
-            samples: batch,
-          ),
-        );
-      }
     } catch (e) {
       _unsavedHeartRate.insertAll(0, batch);
       debugPrint('Heart rate save failed: $e');
@@ -1103,7 +1141,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
+    _budgetReplan?.cancel();
     _clock.dispose();
+    _onboarded.dispose();
     super.dispose();
   }
 }

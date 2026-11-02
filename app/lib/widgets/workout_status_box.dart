@@ -384,12 +384,7 @@ class _Plates extends StatelessWidget {
                   color: Colors.black,
                 ),
               )
-            : FittedBox(
-                child: PlateVisualization(
-                  weightLb: weight,
-                  isInteractive: false,
-                ),
-              ),
+            : FittedBox(child: PlateVisualization(weightLb: weight)),
       ),
     );
   }

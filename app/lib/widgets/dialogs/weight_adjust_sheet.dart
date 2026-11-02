@@ -14,6 +14,7 @@ import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../common/flat.dart';
 import '../common/weight_selector.dart';
+import 'workout_sheet.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
 
@@ -23,15 +24,10 @@ Future<void> showWeightAdjustSheet(
   required WorkoutProvider provider,
   VoidCallback? onDelete,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ChangeNotifierProvider.value(
-      value: provider,
-      child: _WeightAdjustSheet(block: block, onDelete: onDelete),
-    ),
+  return showWorkoutSheet(
+    context,
+    provider: provider,
+    child: _WeightAdjustSheet(block: block, onDelete: onDelete),
   );
 }
 

@@ -55,7 +55,7 @@ class WearableSyncCoordinator {
 
     _sensorSub = _bridgeService.sensorBatchStream.listen((batch) {
       if (!_workoutProvider.hasActiveWorkout) return;
-      final workoutId = _workoutProvider.activeWorkout?.id;
+      final workoutId = _workoutProvider.workout?.id;
       if (workoutId == null || batch.workoutId != workoutId) return;
       _workoutProvider.ingestWearHeartRateBatch(batch);
     });
@@ -66,7 +66,7 @@ class WearableSyncCoordinator {
   }
 
   void _onWorkoutChanged() {
-    final workoutId = _workoutProvider.activeWorkout?.id;
+    final workoutId = _workoutProvider.workout?.id;
     if (_lastWorkoutId != workoutId) {
       _handledIntentIds.clear();
       _lastWorkoutId = workoutId;
@@ -106,7 +106,7 @@ class WearableSyncCoordinator {
   }
 
   Future<void> _executeIntent(WearIntent intent) async {
-    final workoutId = _workoutProvider.activeWorkout?.id;
+    final workoutId = _workoutProvider.workout?.id;
     if (workoutId == null) return;
     if (intent.intentId.isEmpty) return;
     if (!_handledIntentIds.add(intent.intentId)) return;
@@ -128,7 +128,7 @@ class WearableSyncCoordinator {
         );
       } else if (intent.hasTapSet() && intent.tapSet.workoutId == workoutId) {
         // A circle tapped on the watch: what a tap on the phone's does.
-        final set = _workoutProvider.activeProposedSets
+        final set = _workoutProvider.proposedSets
             .where((s) => s.id == intent.tapSet.setId)
             .firstOrNull;
         if (set != null) {
@@ -156,7 +156,7 @@ class WearableSyncCoordinator {
   /// snapshot with no End action is what both watches read as ended; iOS also
   /// gets its dedicated end command for the HealthKit session.
   Future<void> signOut() async {
-    final workoutId = _workoutProvider.activeWorkout?.id;
+    final workoutId = _workoutProvider.workout?.id;
     _pendingIntents.clear();
     if (workoutId == null) return;
     _endCommandSentForWorkoutId = workoutId;

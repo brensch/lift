@@ -19,6 +19,50 @@ use tonic::Streaming;
 /// request to join expires from view.
 const RESEND_EVERY: std::time::Duration = std::time::Duration::from_secs(20);
 
+// What one push may hold. Far above anything a phone records (an outbox
+// after weeks offline, an import of years of training); past them the push
+// is refused whole.
+const MAX_EVENTS_PER_PUSH: usize = 100_000;
+const MAX_HEART_RATE_SAMPLES_PER_EVENT: usize = 20_000;
+const MAX_IMPORTED_WORKOUTS: usize = 10_000;
+const MAX_IMPORTED_HEART_RATE_SAMPLES: usize = 2_000_000;
+
+/// Refuse a push larger than any phone makes.
+fn check_push(events: &[Event]) -> ServerResult<()> {
+    let too_big = |what: &str, limit: usize| -> ServerResult<()> {
+        Err(Status::invalid_argument(format!("push too large: more than {limit} {what}")).into())
+    };
+    if events.len() > MAX_EVENTS_PER_PUSH {
+        return too_big("events", MAX_EVENTS_PER_PUSH);
+    }
+    for event in events {
+        match &event.kind {
+            Some(event::Kind::HeartRate(req))
+                if req.samples.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
+            {
+                return too_big(
+                    "heart-rate samples in one event",
+                    MAX_HEART_RATE_SAMPLES_PER_EVENT,
+                );
+            }
+            Some(event::Kind::ImportHistory(import)) => {
+                if import.workouts.len() > MAX_IMPORTED_WORKOUTS {
+                    return too_big("imported workouts", MAX_IMPORTED_WORKOUTS);
+                }
+                let samples: usize = import.workouts.iter().map(|w| w.heart_rate.len()).sum();
+                if samples > MAX_IMPORTED_HEART_RATE_SAMPLES {
+                    return too_big(
+                        "imported heart-rate samples",
+                        MAX_IMPORTED_HEART_RATE_SAMPLES,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 #[derive(Clone)]
 pub struct ServerSyncService {
     pub db: ServerDb,
@@ -49,6 +93,7 @@ impl SyncService for ServerSyncService {
                 db,
                 user_id,
                 tx,
+                pointer: None,
                 last_session: None,
                 last_requests: None,
             };
@@ -82,6 +127,9 @@ struct Stream {
     db: ServerDb,
     user_id: String,
     tx: mpsc::Sender<SyncResult>,
+    /// The session the user's pointer named when the session was last sent:
+    /// a session's changes concern this stream only when it is that one.
+    pointer: Option<String>,
     /// What was last sent, so an unchanged view isn't sent again.
     last_session: Option<GetCurrentSessionResponse>,
     last_requests: Option<GetJoinRequestsResponse>,
@@ -149,6 +197,7 @@ impl Stream {
         let head = match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
                 let events = unpack(&packed).map_err(core_status)?;
+                check_push(&events)?;
                 let pushed = self
                     .db
                     .push_events(&self.user_id, events)
@@ -170,10 +219,11 @@ impl Stream {
         Ok(self.send(sync_response::Kind::Head(head)).await)
     }
 
-    /// New events change what session partners see; a workout ending takes
-    /// the caller out of the session, its final state left on show.
+    /// New events other than heart rate change what session partners see; a
+    /// workout ending takes the caller out of the session, its final state
+    /// left on show.
     async fn after_push(&self, pushed: &Pushed) -> ServerResult<()> {
-        if !pushed.changed {
+        if !pushed.progressed {
             return Ok(());
         }
         let Some(session_id) = self
@@ -210,17 +260,8 @@ impl Stream {
         match change {
             Change::JoinRequests(user) if *user == self.user_id => self.send_requests().await,
             Change::Membership(user) if *user == self.user_id => self.send_session().await,
-            Change::Session(session) => {
-                let mine = self
-                    .db
-                    .get_user_current_session(&self.user_id)
-                    .await
-                    .map_err(internal_error)?;
-                if mine.as_ref() == Some(session) {
-                    self.send_session().await
-                } else {
-                    Ok(Ok(()))
-                }
+            Change::Session(session) if self.pointer.as_ref() == Some(session) => {
+                self.send_session().await
             }
             _ => Ok(Ok(())),
         }
@@ -234,6 +275,13 @@ impl Stream {
     }
 
     async fn send_session(&mut self) -> ServerResult<Result<(), Closed>> {
+        // Read before the session: the pointer is written before its change
+        // is announced, so a change that follows is never missed.
+        self.pointer = self
+            .db
+            .get_user_session_pointer(&self.user_id)
+            .await
+            .map_err(internal_error)?;
         let session = current_session(&self.db, &self.user_id).await?;
         if self.last_session.as_ref() == Some(&session) {
             return Ok(Ok(()));
@@ -249,5 +297,47 @@ impl Stream {
         }
         self.last_requests = Some(requests.clone());
         Ok(self.send(sync_response::Kind::JoinRequests(requests)).await)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn heart_rate(samples: usize) -> Event {
+        Event {
+            kind: Some(event::Kind::HeartRate(AppendWorkoutHeartRateRequest {
+                workout_id: "w".to_string(),
+                samples: vec![WorkoutHeartRatePoint::default(); samples],
+            })),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_push_past_the_limits_is_refused() {
+        assert!(check_push(&[heart_rate(MAX_HEART_RATE_SAMPLES_PER_EVENT)]).is_ok());
+        let error = check_push(&[heart_rate(MAX_HEART_RATE_SAMPLES_PER_EVENT + 1)]).err();
+        let status = Status::from(error.unwrap());
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        let many = vec![Event::default(); MAX_EVENTS_PER_PUSH + 1];
+        assert!(check_push(&many).is_err());
+    }
+
+    #[test]
+    fn a_large_import_is_allowed() {
+        let workout = ImportedWorkout {
+            heart_rate: vec![WorkoutHeartRatePoint::default(); 200],
+            completed_sets: vec![CompletedSet::default(); 30],
+            ..Default::default()
+        };
+        let import = Event {
+            kind: Some(event::Kind::ImportHistory(ImportHistory {
+                workouts: vec![workout; 500],
+                ..Default::default()
+            })),
+            ..Default::default()
+        };
+        assert!(check_push(&[import]).is_ok());
     }
 }

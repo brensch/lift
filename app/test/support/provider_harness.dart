@@ -127,7 +127,7 @@ class ProviderHarness {
     await provider.startWorkout('Test', exercises: exercises);
   }
 
-  List<ProposedSet> working(Exercise exercise) => provider.activeProposedSets
+  List<ProposedSet> working(Exercise exercise) => provider.proposedSets
       .where((s) => s.exercise == exercise && !s.warmup)
       .toList();
 }

@@ -35,8 +35,6 @@ pub struct MuscleRecovery {
     pub last_trained_at: i64,
     /// `last_trained_at + window` (0 = never trained).
     pub recovered_at: i64,
-    /// 0.0 (just trained) → 1.0 (recovered); 1.0 if never trained.
-    pub fraction: f32,
 }
 
 impl MuscleRecovery {
@@ -71,7 +69,7 @@ fn trained_exercises(record: &WorkoutRecord) -> Vec<Exercise> {
 }
 
 /// Recovery for all 10 muscles, from history.
-pub fn per_muscle_recovery(history: &[WorkoutRecord], now: i64) -> Vec<MuscleRecovery> {
+pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
     let mut latest: std::collections::HashMap<MuscleGroup, i64> = std::collections::HashMap::new();
 
     for record in history {
@@ -98,18 +96,12 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord], now: i64) -> Vec<MuscleRec
                     muscle,
                     last_trained_at: 0,
                     recovered_at: 0,
-                    fraction: 1.0,
                 };
             }
-            let window = recovery_hours(muscle) * HOUR;
-            let recovered_at = last + window;
-            let elapsed = (now - last).max(0) as f32;
-            let fraction = (elapsed / window as f32).clamp(0.0, 1.0);
             MuscleRecovery {
                 muscle,
                 last_trained_at: last,
-                recovered_at,
-                fraction,
+                recovered_at: last + recovery_hours(muscle) * HOUR,
             }
         })
         .collect()

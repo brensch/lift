@@ -1,13 +1,17 @@
 //! The account as plain tables: what's in an exported file, and what the
-//! server's analytics read. The log is the truth; these are rewritten from
+//! server's analytics read. The log is the truth; these are written from
 //! the fold, so they can be dropped and rebuilt at any time. Both hosts run
-//! the same statements — the phone through rusqlite, the server through
-//! sqlx — so the tables are defined once, here.
+//! the same statements — the phone through rusqlite when it exports, the
+//! server through sqlx as events arrive — so the tables are defined once,
+//! here.
+
+use std::collections::BTreeMap;
 
 use prost::Message;
 
 use crate::account::Account;
 use crate::history::WorkoutRecord;
+use crate::pb::{event, Event};
 
 /// The workout tables, on the phone and the server alike.
 pub const WORKOUT_SCHEMA: &str = r#"
@@ -23,8 +27,6 @@ CREATE TABLE IF NOT EXISTS workouts (
     lifting_started_at INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_workouts_user_time ON workouts(user_id, start_time DESC);
-CREATE INDEX IF NOT EXISTS idx_workouts_session ON workouts(session_id)
-    WHERE session_id != '';
 
 CREATE TABLE IF NOT EXISTS proposed_sets (
     id TEXT PRIMARY KEY,
@@ -54,7 +56,6 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     started_at INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
-CREATE INDEX IF NOT EXISTS idx_completed_sets_proposed ON completed_sets(proposed_set_id);
 
 CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
     id TEXT PRIMARY KEY,
@@ -159,8 +160,9 @@ fn statement(sql: &'static str, params: Vec<Value>) -> Statement {
     Statement { sql, params }
 }
 
-/// Rewrite one workout's rows. `session_id` is the session it was trained
-/// in, which only the server knows; the phone passes what the row had.
+/// Rewrite one workout's rows, all but its heart rate (see
+/// [heart_rate_statements]). `session_id` is the session it was trained in,
+/// which only the server knows; the phone passes what the row had.
 pub fn workout_statements(
     user_id: &str,
     record: &WorkoutRecord,
@@ -171,7 +173,6 @@ pub fn workout_statements(
         "DELETE FROM workouts WHERE id = ? AND user_id = ?",
         "DELETE FROM proposed_sets WHERE workout_id = ? AND user_id = ?",
         "DELETE FROM completed_sets WHERE workout_id = ? AND user_id = ?",
-        "DELETE FROM workout_heart_rate_samples WHERE workout_id = ? AND user_id = ?",
         "DELETE FROM exercise_decisions WHERE workout_id = ? AND user_id = ?",
     ]
     .into_iter()
@@ -233,21 +234,6 @@ pub fn workout_statements(
             ],
         ));
     }
-    for (n, sample) in record.heart_rate.iter().enumerate() {
-        out.push(statement(
-            "INSERT INTO workout_heart_rate_samples
-             (id, user_id, workout_id, sampled_at, bpm, availability)
-             VALUES (?, ?, ?, ?, ?, ?)",
-            vec![
-                format!("{}:{n}", w.id).into(),
-                user_id.into(),
-                w.id.as_str().into(),
-                sample.sampled_at.into(),
-                sample.bpm.into(),
-                sample.availability.into(),
-            ],
-        ));
-    }
     for (n, log) in record.exercise_logs.iter().enumerate() {
         let d = log.decision.clone().unwrap_or_default();
         out.push(statement(
@@ -273,8 +259,75 @@ pub fn workout_statements(
     out
 }
 
+/// The heart-rate rows `events` add, once they are folded into `account`:
+/// every sample of a workout they import, and the samples each heart-rate
+/// event appends. Samples only ever grow, so the rows already written stay.
+pub fn heart_rate_statements(user_id: &str, account: &Account, events: &[Event]) -> Vec<Statement> {
+    let mut added: BTreeMap<&str, usize> = BTreeMap::new();
+    for event in events {
+        match &event.kind {
+            Some(event::Kind::HeartRate(req)) => {
+                let n = added.entry(req.workout_id.as_str()).or_default();
+                *n = n.saturating_add(req.samples.len());
+            }
+            Some(event::Kind::ImportHistory(req)) => {
+                for w in req.workouts.iter().filter_map(|w| w.workout.as_ref()) {
+                    added.insert(w.id.as_str(), usize::MAX);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    for (id, n) in added {
+        if let Some(record) = account.workout(id) {
+            let first = record.heart_rate.len().saturating_sub(n);
+            out.extend(heart_rate_rows(user_id, record, first));
+        }
+    }
+    out
+}
+
+/// A workout's heart-rate samples from the `first`th on.
+fn heart_rate_rows(user_id: &str, record: &WorkoutRecord, first: usize) -> Vec<Statement> {
+    let id = &record.workout.id;
+    record.heart_rate[first..]
+        .iter()
+        .zip(first..)
+        .map(|(sample, n)| {
+            statement(
+                "INSERT OR REPLACE INTO workout_heart_rate_samples
+                 (id, user_id, workout_id, sampled_at, bpm, availability)
+                 VALUES (?, ?, ?, ?, ?, ?)",
+                vec![
+                    format!("{id}:{n}").into(),
+                    user_id.into(),
+                    id.as_str().into(),
+                    sample.sampled_at.into(),
+                    sample.bpm.into(),
+                    sample.availability.into(),
+                ],
+            )
+        })
+        .collect()
+}
+
+/// Every readable row of the account, into empty tables: an export.
+pub fn account_export_statements(user_id: &str, account: &Account) -> Vec<Statement> {
+    let mut out = account_statements(user_id, account);
+    for record in &account.workouts {
+        out.extend(workout_statements(
+            user_id,
+            record,
+            &record.workout.session_id,
+        ));
+        out.extend(heart_rate_rows(user_id, record, 0));
+    }
+    out
+}
+
 /// Rewrite the templates (small: done whole).
-pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
+fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
     let mut out = vec![statement(
         "DELETE FROM workout_templates WHERE user_id = ?",
         vec![user_id.into()],
@@ -304,4 +357,43 @@ pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
         ));
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pb::{AppendWorkoutHeartRateRequest, Workout, WorkoutHeartRatePoint};
+
+    fn heart_rate(workout_id: &str, n: usize) -> Event {
+        Event {
+            kind: Some(event::Kind::HeartRate(AppendWorkoutHeartRateRequest {
+                workout_id: workout_id.into(),
+                samples: vec![WorkoutHeartRatePoint::default(); n],
+            })),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn heart_rate_events_append_only_their_own_samples() {
+        let mut account = Account::default();
+        account.workouts.push(WorkoutRecord {
+            workout: Workout {
+                id: "w".into(),
+                ..Default::default()
+            },
+            ..Default::default()
+        });
+        let batch = [heart_rate("w", 2), heart_rate("w", 3)];
+        // Five samples from before this batch, then the batch's five.
+        for event in std::iter::once(heart_rate("w", 5)).chain(batch.clone()) {
+            account.apply(&event).unwrap();
+        }
+        let ids: Vec<Value> = heart_rate_statements("u", &account, &batch)
+            .into_iter()
+            .map(|s| s.params[0].clone())
+            .collect();
+        let expected: Vec<Value> = (5..10).map(|n| format!("w:{n}").into()).collect();
+        assert_eq!(ids, expected);
+    }
 }

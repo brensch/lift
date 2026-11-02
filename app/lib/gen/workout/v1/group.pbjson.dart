@@ -63,29 +63,6 @@ final $typed_data.Uint8List getMyInviteTokenResponseDescriptor =
         'ChhHZXRNeUludml0ZVRva2VuUmVzcG9uc2USIQoMaW52aXRlX3Rva2VuGAEgASgJUgtpbnZpdG'
         'VUb2tlbg==');
 
-@$core.Deprecated('Use rotateInviteTokenRequestDescriptor instead')
-const RotateInviteTokenRequest$json = {
-  '1': 'RotateInviteTokenRequest',
-};
-
-/// Descriptor for `RotateInviteTokenRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rotateInviteTokenRequestDescriptor =
-    $convert.base64Decode('ChhSb3RhdGVJbnZpdGVUb2tlblJlcXVlc3Q=');
-
-@$core.Deprecated('Use rotateInviteTokenResponseDescriptor instead')
-const RotateInviteTokenResponse$json = {
-  '1': 'RotateInviteTokenResponse',
-  '2': [
-    {'1': 'invite_token', '3': 1, '4': 1, '5': 9, '10': 'inviteToken'},
-  ],
-};
-
-/// Descriptor for `RotateInviteTokenResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rotateInviteTokenResponseDescriptor =
-    $convert.base64Decode(
-        'ChlSb3RhdGVJbnZpdGVUb2tlblJlc3BvbnNlEiEKDGludml0ZV90b2tlbhgBIAEoCVILaW52aX'
-        'RlVG9rZW4=');
-
 @$core.Deprecated('Use leaveCurrentSessionRequestDescriptor instead')
 const LeaveCurrentSessionRequest$json = {
   '1': 'LeaveCurrentSessionRequest',
@@ -103,21 +80,6 @@ const LeaveCurrentSessionResponse$json = {
 /// Descriptor for `LeaveCurrentSessionResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List leaveCurrentSessionResponseDescriptor =
     $convert.base64Decode('ChtMZWF2ZUN1cnJlbnRTZXNzaW9uUmVzcG9uc2U=');
-
-@$core.Deprecated('Use getParticipantWorkoutRequestDescriptor instead')
-const GetParticipantWorkoutRequest$json = {
-  '1': 'GetParticipantWorkoutRequest',
-  '2': [
-    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
-    {'1': 'workout_id', '3': 2, '4': 1, '5': 9, '10': 'workoutId'},
-  ],
-};
-
-/// Descriptor for `GetParticipantWorkoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getParticipantWorkoutRequestDescriptor =
-    $convert.base64Decode(
-        'ChxHZXRQYXJ0aWNpcGFudFdvcmtvdXRSZXF1ZXN0EhcKB3VzZXJfaWQYASABKAlSBnVzZXJJZB'
-        'IdCgp3b3Jrb3V0X2lkGAIgASgJUgl3b3Jrb3V0SWQ=');
 
 @$core.Deprecated('Use getCurrentSessionRequestDescriptor instead')
 const GetCurrentSessionRequest$json = {
@@ -191,7 +153,6 @@ final $typed_data.Uint8List getCurrentSessionResponseDescriptor = $convert.base6
 const SessionStatus$json = {
   '1': 'SessionStatus',
   '2': [
-    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
     {
       '1': 'participants',
       '3': 2,
@@ -200,40 +161,29 @@ const SessionStatus$json = {
       '6': '.workout.v1.ParticipantStatus',
       '10': 'participants'
     },
-    {'1': 'next_up_user_id', '3': 3, '4': 1, '5': 9, '10': 'nextUpUserId'},
-    {
-      '1': 'next_up_set',
-      '3': 4,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.ProposedSet',
-      '10': 'nextUpSet'
-    },
-    {
-      '1': 'next_up_rest_until',
-      '3': 5,
-      '4': 1,
-      '5': 3,
-      '10': 'nextUpRestUntil'
-    },
-    {
-      '1': 'currently_lifting_user_id',
-      '3': 6,
-      '4': 1,
-      '5': 9,
-      '10': 'currentlyLiftingUserId'
-    },
+  ],
+  '9': [
+    {'1': 1, '2': 2},
+    {'1': 3, '2': 4},
+    {'1': 4, '2': 5},
+    {'1': 5, '2': 6},
+    {'1': 6, '2': 7},
+  ],
+  '10': [
+    'session_id',
+    'next_up_user_id',
+    'next_up_set',
+    'next_up_rest_until',
+    'currently_lifting_user_id'
   ],
 };
 
 /// Descriptor for `SessionStatus`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List sessionStatusDescriptor = $convert.base64Decode(
-    'Cg1TZXNzaW9uU3RhdHVzEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZBJBCgxwYXJ0aW'
-    'NpcGFudHMYAiADKAsyHS53b3Jrb3V0LnYxLlBhcnRpY2lwYW50U3RhdHVzUgxwYXJ0aWNpcGFu'
-    'dHMSJQoPbmV4dF91cF91c2VyX2lkGAMgASgJUgxuZXh0VXBVc2VySWQSNwoLbmV4dF91cF9zZX'
-    'QYBCABKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSKwoSbmV4dF91cF9y'
-    'ZXN0X3VudGlsGAUgASgDUg9uZXh0VXBSZXN0VW50aWwSOQoZY3VycmVudGx5X2xpZnRpbmdfdX'
-    'Nlcl9pZBgGIAEoCVIWY3VycmVudGx5TGlmdGluZ1VzZXJJZA==');
+    'Cg1TZXNzaW9uU3RhdHVzEkEKDHBhcnRpY2lwYW50cxgCIAMoCzIdLndvcmtvdXQudjEuUGFydG'
+    'ljaXBhbnRTdGF0dXNSDHBhcnRpY2lwYW50c0oECAEQAkoECAMQBEoECAQQBUoECAUQBkoECAYQ'
+    'B1IKc2Vzc2lvbl9pZFIPbmV4dF91cF91c2VyX2lkUgtuZXh0X3VwX3NldFISbmV4dF91cF9yZX'
+    'N0X3VudGlsUhljdXJyZW50bHlfbGlmdGluZ191c2VyX2lk');
 
 @$core.Deprecated('Use participantStatusDescriptor instead')
 const ParticipantStatus$json = {
@@ -375,65 +325,6 @@ final $typed_data.Uint8List getTrainingPartnersResponseDescriptor =
     $convert.base64Decode(
         'ChtHZXRUcmFpbmluZ1BhcnRuZXJzUmVzcG9uc2USNwoIcGFydG5lcnMYASADKAsyGy53b3Jrb3'
         'V0LnYxLlRyYWluaW5nUGFydG5lclIIcGFydG5lcnM=');
-
-@$core.Deprecated('Use sharedSessionDescriptor instead')
-const SharedSession$json = {
-  '1': 'SharedSession',
-  '2': [
-    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
-    {'1': 'trained_at', '3': 2, '4': 1, '5': 3, '10': 'trainedAt'},
-    {'1': 'caller_worked_out', '3': 3, '4': 1, '5': 8, '10': 'callerWorkedOut'},
-    {
-      '1': 'partner_worked_out',
-      '3': 4,
-      '4': 1,
-      '5': 8,
-      '10': 'partnerWorkedOut'
-    },
-  ],
-};
-
-/// Descriptor for `SharedSession`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List sharedSessionDescriptor = $convert.base64Decode(
-    'Cg1TaGFyZWRTZXNzaW9uEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZBIdCgp0cmFpbm'
-    'VkX2F0GAIgASgDUgl0cmFpbmVkQXQSKgoRY2FsbGVyX3dvcmtlZF9vdXQYAyABKAhSD2NhbGxl'
-    'cldvcmtlZE91dBIsChJwYXJ0bmVyX3dvcmtlZF9vdXQYBCABKAhSEHBhcnRuZXJXb3JrZWRPdX'
-    'Q=');
-
-@$core.Deprecated('Use getSharedSessionsRequestDescriptor instead')
-const GetSharedSessionsRequest$json = {
-  '1': 'GetSharedSessionsRequest',
-  '2': [
-    {'1': 'partner_user_id', '3': 1, '4': 1, '5': 9, '10': 'partnerUserId'},
-  ],
-};
-
-/// Descriptor for `GetSharedSessionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSharedSessionsRequestDescriptor =
-    $convert.base64Decode(
-        'ChhHZXRTaGFyZWRTZXNzaW9uc1JlcXVlc3QSJgoPcGFydG5lcl91c2VyX2lkGAEgASgJUg1wYX'
-        'J0bmVyVXNlcklk');
-
-@$core.Deprecated('Use getSharedSessionsResponseDescriptor instead')
-const GetSharedSessionsResponse$json = {
-  '1': 'GetSharedSessionsResponse',
-  '2': [
-    {
-      '1': 'sessions',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.SharedSession',
-      '10': 'sessions'
-    },
-  ],
-};
-
-/// Descriptor for `GetSharedSessionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSharedSessionsResponseDescriptor =
-    $convert.base64Decode(
-        'ChlHZXRTaGFyZWRTZXNzaW9uc1Jlc3BvbnNlEjUKCHNlc3Npb25zGAEgAygLMhkud29ya291dC'
-        '52MS5TaGFyZWRTZXNzaW9uUghzZXNzaW9ucw==');
 
 @$core.Deprecated('Use requestJoinPartnerRequestDescriptor instead')
 const RequestJoinPartnerRequest$json = {

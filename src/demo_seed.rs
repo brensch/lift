@@ -207,23 +207,33 @@ fn live_session(account: &mut Account, template_id: &str, now: i64) -> Vec<Event
                         proposed_set_id: set.id.clone(),
                         started_at: clock,
                     })),
-                    ..Default::default()
                 }],
             })
             .expect("a planned set starts");
             clock += if set.warmup { 30 } else { 40 };
             let response = call
-                .complete_set(CompleteSetRequest {
-                    workout_id: started.id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    actual_reps: set.target_reps,
-                    actual_weight: set.target_weight,
-                    completed_at: clock,
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![WorkoutMutation {
+                        mutation: Some(workout_mutation::Mutation::CompleteSet(
+                            CompleteSetRequest {
+                                workout_id: started.id.clone(),
+                                proposed_set_id: set.id.clone(),
+                                actual_reps: set.target_reps,
+                                actual_weight: set.target_weight,
+                                completed_at: clock,
+                            },
+                        )),
+                    }],
                 })
                 .expect("a planned set completes");
             last_done = clock;
             clock = response
-                .completed_set
+                .workout_state
+                .and_then(|w| {
+                    w.completed_sets
+                        .into_iter()
+                        .find(|c| c.proposed_set_id == set.id)
+                })
                 .map(|c| c.rest_until)
                 .unwrap_or(clock);
         }

@@ -52,22 +52,6 @@ class MultiplayerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getMyInviteToken, request, options: options);
   }
 
-  /// Rotate the caller's invite token (invalidates any previously-shared QR code).
-  $grpc.ResponseFuture<$0.RotateInviteTokenResponse> rotateInviteToken(
-    $0.RotateInviteTokenRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$rotateInviteToken, request, options: options);
-  }
-
-  /// Get a specific participant's workout progress
-  $grpc.ResponseFuture<$0.ParticipantStatus> getParticipantWorkout(
-    $0.GetParticipantWorkoutRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getParticipantWorkout, request, options: options);
-  }
-
   /// Get the caller's current group session. Reads user_current_session — membership is
   /// independent of whether the caller has an active workout. The Sync stream
   /// (account.proto) pushes the same thing whenever it changes.
@@ -106,14 +90,6 @@ class MultiplayerServiceClient extends $grpc.Client {
     $grpc.CallOptions? options,
   }) {
     return $createUnaryCall(_$getTrainingPartners, request, options: options);
-  }
-
-  /// The sessions the caller shared with one partner (dates + who lifted).
-  $grpc.ResponseFuture<$0.GetSharedSessionsResponse> getSharedSessions(
-    $0.GetSharedSessionsRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getSharedSessions, request, options: options);
   }
 
   /// Ask a partner the caller has trained with before to train together, without
@@ -156,16 +132,6 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/GetMyInviteToken',
       ($0.GetMyInviteTokenRequest value) => value.writeToBuffer(),
       $0.GetMyInviteTokenResponse.fromBuffer);
-  static final _$rotateInviteToken = $grpc.ClientMethod<
-          $0.RotateInviteTokenRequest, $0.RotateInviteTokenResponse>(
-      '/workout.v1.MultiplayerService/RotateInviteToken',
-      ($0.RotateInviteTokenRequest value) => value.writeToBuffer(),
-      $0.RotateInviteTokenResponse.fromBuffer);
-  static final _$getParticipantWorkout =
-      $grpc.ClientMethod<$0.GetParticipantWorkoutRequest, $0.ParticipantStatus>(
-          '/workout.v1.MultiplayerService/GetParticipantWorkout',
-          ($0.GetParticipantWorkoutRequest value) => value.writeToBuffer(),
-          $0.ParticipantStatus.fromBuffer);
   static final _$getCurrentSession = $grpc.ClientMethod<
           $0.GetCurrentSessionRequest, $0.GetCurrentSessionResponse>(
       '/workout.v1.MultiplayerService/GetCurrentSession',
@@ -186,11 +152,6 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/GetTrainingPartners',
       ($0.GetTrainingPartnersRequest value) => value.writeToBuffer(),
       $0.GetTrainingPartnersResponse.fromBuffer);
-  static final _$getSharedSessions = $grpc.ClientMethod<
-          $0.GetSharedSessionsRequest, $0.GetSharedSessionsResponse>(
-      '/workout.v1.MultiplayerService/GetSharedSessions',
-      ($0.GetSharedSessionsRequest value) => value.writeToBuffer(),
-      $0.GetSharedSessionsResponse.fromBuffer);
   static final _$requestJoinPartner = $grpc.ClientMethod<
           $0.RequestJoinPartnerRequest, $0.RequestJoinPartnerResponse>(
       '/workout.v1.MultiplayerService/RequestJoinPartner',
@@ -231,24 +192,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetMyInviteTokenRequest.fromBuffer(value),
         ($0.GetMyInviteTokenResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.RotateInviteTokenRequest,
-            $0.RotateInviteTokenResponse>(
-        'RotateInviteToken',
-        rotateInviteToken_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.RotateInviteTokenRequest.fromBuffer(value),
-        ($0.RotateInviteTokenResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetParticipantWorkoutRequest,
-            $0.ParticipantStatus>(
-        'GetParticipantWorkout',
-        getParticipantWorkout_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetParticipantWorkoutRequest.fromBuffer(value),
-        ($0.ParticipantStatus value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GetCurrentSessionRequest,
             $0.GetCurrentSessionResponse>(
         'GetCurrentSession',
@@ -285,15 +228,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetTrainingPartnersRequest.fromBuffer(value),
         ($0.GetTrainingPartnersResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetSharedSessionsRequest,
-            $0.GetSharedSessionsResponse>(
-        'GetSharedSessions',
-        getSharedSessions_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetSharedSessionsRequest.fromBuffer(value),
-        ($0.GetSharedSessionsResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.RequestJoinPartnerRequest,
             $0.RequestJoinPartnerResponse>(
         'RequestJoinPartner',
@@ -341,24 +275,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
   $async.Future<$0.GetMyInviteTokenResponse> getMyInviteToken(
       $grpc.ServiceCall call, $0.GetMyInviteTokenRequest request);
 
-  $async.Future<$0.RotateInviteTokenResponse> rotateInviteToken_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.RotateInviteTokenRequest> $request) async {
-    return rotateInviteToken($call, await $request);
-  }
-
-  $async.Future<$0.RotateInviteTokenResponse> rotateInviteToken(
-      $grpc.ServiceCall call, $0.RotateInviteTokenRequest request);
-
-  $async.Future<$0.ParticipantStatus> getParticipantWorkout_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.GetParticipantWorkoutRequest> $request) async {
-    return getParticipantWorkout($call, await $request);
-  }
-
-  $async.Future<$0.ParticipantStatus> getParticipantWorkout(
-      $grpc.ServiceCall call, $0.GetParticipantWorkoutRequest request);
-
   $async.Future<$0.GetCurrentSessionResponse> getCurrentSession_Pre(
       $grpc.ServiceCall $call,
       $async.Future<$0.GetCurrentSessionRequest> $request) async {
@@ -394,15 +310,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetTrainingPartnersResponse> getTrainingPartners(
       $grpc.ServiceCall call, $0.GetTrainingPartnersRequest request);
-
-  $async.Future<$0.GetSharedSessionsResponse> getSharedSessions_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.GetSharedSessionsRequest> $request) async {
-    return getSharedSessions($call, await $request);
-  }
-
-  $async.Future<$0.GetSharedSessionsResponse> getSharedSessions(
-      $grpc.ServiceCall call, $0.GetSharedSessionsRequest request);
 
   $async.Future<$0.RequestJoinPartnerResponse> requestJoinPartner_Pre(
       $grpc.ServiceCall $call,

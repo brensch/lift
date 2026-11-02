@@ -1,17 +1,18 @@
 //! The account file: one SQLite file per account holding the event log
-//! (the truth), what the server has acknowledged, and the readable tables
-//! (`schlift_core::projection`). The account itself lives in memory, folded
-//! from the log when the file is opened.
+//! (the truth) and what the server has acknowledged. The account itself
+//! lives in memory, folded from the log when the file is opened. The
+//! readable tables (`schlift_core::projection`) are written only into an
+//! export.
 
 use std::path::Path;
 
 use prost::Message;
 use rusqlite::{params, Connection, OptionalExtension};
-use schlift_core::account::{event_workout_ids, Account};
+use schlift_core::account::Account;
 use schlift_core::api::{self, Call};
 use schlift_core::pb::{Event, LibraryTemplate, ListTemplateLibraryResponse};
 use schlift_core::projection::{
-    account_statements, workout_statements, Statement, Value, ACCOUNT_SCHEMA, WORKOUT_SCHEMA,
+    account_export_statements, Statement, Value, ACCOUNT_SCHEMA, WORKOUT_SCHEMA,
 };
 
 const SCHEMA: &str = r#"
@@ -69,7 +70,9 @@ impl Store {
     /// else is refused.
     pub fn open(path: &Path, user_id: &str, name: &str) -> StoreResult<Self> {
         let conn = Connection::open(path).map_err(storage)?;
-        conn.execute_batch(SCHEMA).map_err(storage)?;
+        // The readable tables belong in an export, not in the live file.
+        conn.execute_batch(&format!("{SCHEMA}{DROP_PROJECTIONS}"))
+            .map_err(storage)?;
         let owner: Option<String> = conn
             .query_row("SELECT value FROM meta WHERE key = 'user_id'", [], |r| {
                 r.get(0)
@@ -116,31 +119,7 @@ impl Store {
                 .templates;
         }
         store.account = Account::fold(&store.events_after(0)?);
-        store.reproject()?;
         Ok(store)
-    }
-
-    /// The readable tables, built afresh from the account: they are
-    /// derived, so a change to their shape (or to the rules) needs no
-    /// migration — every open rebuilds them.
-    fn reproject(&mut self) -> StoreResult<()> {
-        let tx = self.conn.transaction().map_err(storage)?;
-        tx.execute_batch(&format!(
-            "{DROP_PROJECTIONS}{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"
-        ))
-        .map_err(storage)?;
-        let mut statements = account_statements(&self.user_id, &self.account);
-        for record in &self.account.workouts {
-            statements.extend(workout_statements(
-                &self.user_id,
-                record,
-                &record.workout.session_id,
-            ));
-        }
-        for statement in statements {
-            run(&tx, statement)?;
-        }
-        tx.commit().map_err(storage)
     }
 
     pub fn seq(&self) -> i64 {
@@ -171,30 +150,20 @@ impl Store {
         Ok(response)
     }
 
-    /// Store events (already folded in) and rewrite what they touched.
+    /// Store events (already folded in).
     fn store(&mut self, events: &[Event]) -> StoreResult<()> {
         let tx = self.conn.transaction().map_err(storage)?;
-        let mut touched = std::collections::BTreeSet::new();
         for event in events {
-            tx.execute(
-                "INSERT INTO events (seq, id, at, event_blob) VALUES (?, ?, ?, ?)",
-                params![event.seq, event.id, event.at, event.encode_to_vec()],
-            )
-            .map_err(storage)?;
-            touched.extend(event_workout_ids(event));
-        }
-        let mut statements = account_statements(&self.user_id, &self.account);
-        for id in &touched {
-            if let Some(record) = self.account.workout(id) {
-                statements.extend(workout_statements(
-                    &self.user_id,
-                    record,
-                    &record.workout.session_id,
-                ));
-            }
-        }
-        for statement in statements {
-            run(&tx, statement)?;
+            tx.prepare_cached("INSERT INTO events (seq, id, at, event_blob) VALUES (?, ?, ?, ?)")
+                .and_then(|mut insert| {
+                    insert.execute(params![
+                        event.seq,
+                        event.id,
+                        event.at,
+                        event.encode_to_vec()
+                    ])
+                })
+                .map_err(storage)?;
         }
         tx.commit().map_err(storage)
     }
@@ -286,13 +255,21 @@ impl Store {
         Ok(self.account.seq)
     }
 
-    /// A copy of the whole file at `dest`: the export.
+    /// A copy of the whole file at `dest`, with the readable tables
+    /// written in: the export.
     pub fn export(&self, dest: &Path) -> StoreResult<()> {
         let _ = std::fs::remove_file(dest);
         self.conn
             .execute("VACUUM INTO ?", [dest.to_string_lossy()])
             .map_err(storage)?;
-        Ok(())
+        let mut conn = Connection::open(dest).map_err(storage)?;
+        let tx = conn.transaction().map_err(storage)?;
+        tx.execute_batch(&format!("{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
+            .map_err(storage)?;
+        for statement in account_export_statements(&self.user_id, &self.account) {
+            run(&tx, statement)?;
+        }
+        tx.commit().map_err(storage)
     }
 }
 
@@ -311,6 +288,8 @@ pub fn file_owner(path: &Path) -> StoreResult<(String, String)> {
     let user_id = meta("user_id")
         .map_err(|_| not_ours())?
         .ok_or_else(not_ours)?;
+    // The id names the account's file, so it must be an id the server made.
+    uuid::Uuid::parse_str(&user_id).map_err(|_| not_ours())?;
     let name = meta("name").map_err(|_| not_ours())?.unwrap_or_default();
     Ok((user_id, name))
 }
@@ -326,7 +305,8 @@ fn run(tx: &rusqlite::Transaction, statement: Statement) -> StoreResult<()> {
             Value::Blob(v) => rusqlite::types::Value::Blob(v),
         })
         .collect();
-    tx.execute(statement.sql, rusqlite::params_from_iter(params))
+    tx.prepare_cached(statement.sql)
+        .and_then(|mut query| query.execute(rusqlite::params_from_iter(params)))
         .map_err(storage)?;
     Ok(())
 }
@@ -335,8 +315,8 @@ fn run(tx: &rusqlite::Transaction, statement: Statement) -> StoreResult<()> {
 mod tests {
     use super::*;
     use schlift_core::pb::{
-        CompleteOnboardingRequest, GetHomeResponse, StartWorkoutRequest, StartWorkoutResponse,
-        WeightUnit,
+        AppendWorkoutHeartRateRequest, CompleteOnboardingRequest, GetHomeResponse,
+        StartWorkoutRequest, StartWorkoutResponse, WeightUnit, WorkoutHeartRatePoint,
     };
 
     fn temp(name: &str) -> std::path::PathBuf {
@@ -344,6 +324,27 @@ mod tests {
             "schlift-native-{name}-{}.sqlite",
             uuid::Uuid::new_v4()
         ))
+    }
+
+    const U1: &str = "6f1c1d6e-6a39-4c55-9a7e-1b8a8f3f2a01";
+    const U2: &str = "0b6d2c9a-3f5e-4d1a-8c2b-7e9f1a4d5c02";
+
+    fn start(store: &mut Store, template_id: &str) -> StartWorkoutResponse {
+        StartWorkoutResponse::decode(
+            store
+                .call(
+                    "StartWorkout",
+                    &StartWorkoutRequest {
+                        template_id: template_id.to_string(),
+                        ..Default::default()
+                    }
+                    .encode_to_vec(),
+                    2_000,
+                )
+                .unwrap()
+                .as_slice(),
+        )
+        .unwrap()
     }
 
     fn onboard(store: &mut Store) -> GetHomeResponse {
@@ -367,53 +368,36 @@ mod tests {
     #[test]
     fn a_reopened_file_is_the_same_account() {
         let path = temp("reopen");
-        let mut store = Store::open(&path, "u1", "una").unwrap();
+        let mut store = Store::open(&path, U1, "una").unwrap();
         let home = onboard(&mut store);
-        let started = StartWorkoutResponse::decode(
-            store
-                .call(
-                    "StartWorkout",
-                    &StartWorkoutRequest {
-                        template_id: home.templates[0].id.clone(),
-                        ..Default::default()
-                    }
-                    .encode_to_vec(),
-                    2_000,
-                )
-                .unwrap()
-                .as_slice(),
-        )
-        .unwrap();
+        let started = start(&mut store, &home.templates[0].id);
         let before = store.account.clone();
         drop(store);
 
-        let store = Store::open(&path, "u1", "una").unwrap();
+        let store = Store::open(&path, U1, "una").unwrap();
         assert_eq!(store.account, before);
         assert_eq!(store.account.active_workout_id, started.id);
-        // The readable tables are there too.
-        let sets: i64 = store
-            .conn
-            .query_row(
-                "SELECT COUNT(*) FROM proposed_sets WHERE workout_id = ?",
-                [&started.id],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(sets as usize, started.proposed_sets.len());
     }
 
     #[test]
     fn someone_elses_file_is_refused() {
         let path = temp("owner");
-        Store::open(&path, "u1", "una").unwrap();
-        assert!(Store::open(&path, "u2", "").is_err());
-        assert_eq!(file_owner(&path).unwrap(), ("u1".into(), "una".into()));
+        Store::open(&path, U1, "una").unwrap();
+        assert!(Store::open(&path, U2, "").is_err());
+        assert_eq!(file_owner(&path).unwrap(), (U1.into(), "una".into()));
+    }
+
+    #[test]
+    fn a_file_whose_owner_is_not_an_id_is_refused() {
+        let path = temp("not-an-id");
+        Store::open(&path, "../../elsewhere", "").unwrap();
+        assert!(file_owner(&path).is_err());
     }
 
     #[test]
     fn the_outbox_is_what_the_server_has_not_acked() {
         let path = temp("outbox");
-        let mut store = Store::open(&path, "u1", "una").unwrap();
+        let mut store = Store::open(&path, U1, "una").unwrap();
         onboard(&mut store);
         assert_eq!(store.acked().unwrap(), 0);
         assert_eq!(store.events_after(store.acked().unwrap()).unwrap().len(), 1);
@@ -428,11 +412,11 @@ mod tests {
 
     #[test]
     fn a_fresh_install_restores_from_the_servers_log() {
-        let mut original = Store::open(&temp("a"), "u1", "").unwrap();
+        let mut original = Store::open(&temp("a"), U1, "").unwrap();
         onboard(&mut original);
         let events = original.events_after(0).unwrap();
 
-        let mut fresh = Store::open(&temp("b"), "u1", "").unwrap();
+        let mut fresh = Store::open(&temp("b"), U1, "").unwrap();
         assert_eq!(fresh.restore(events).unwrap(), 1);
         assert_eq!(fresh.account, original.account);
         assert_eq!(fresh.acked().unwrap(), 1, "the server holds them");
@@ -440,11 +424,40 @@ mod tests {
 
     #[test]
     fn an_export_opens_as_the_same_account() {
-        let mut store = Store::open(&temp("x"), "u1", "una").unwrap();
-        onboard(&mut store);
+        let mut store = Store::open(&temp("x"), U1, "una").unwrap();
+        let home = onboard(&mut store);
+        let started = start(&mut store, &home.templates[0].id);
+        store
+            .call(
+                "AppendWorkoutHeartRate",
+                &AppendWorkoutHeartRateRequest {
+                    workout_id: started.id.clone(),
+                    samples: vec![WorkoutHeartRatePoint::default(); 3],
+                }
+                .encode_to_vec(),
+                2_005,
+            )
+            .unwrap();
         let dest = temp("export");
         store.export(&dest).unwrap();
-        assert_eq!(file_owner(&dest).unwrap(), ("u1".into(), "una".into()));
-        assert_eq!(Store::open(&dest, "u1", "").unwrap().account, store.account);
+        assert_eq!(file_owner(&dest).unwrap(), (U1.into(), "una".into()));
+
+        // The export has the readable tables; the live file doesn't.
+        let count = |conn: &Connection, table: &str| {
+            conn.query_row(
+                &format!("SELECT COUNT(*) FROM {table} WHERE workout_id = ?"),
+                [&started.id],
+                |r| r.get::<_, i64>(0),
+            )
+        };
+        let exported = Connection::open(&dest).unwrap();
+        assert_eq!(
+            count(&exported, "proposed_sets").unwrap() as usize,
+            started.proposed_sets.len()
+        );
+        assert_eq!(count(&exported, "workout_heart_rate_samples").unwrap(), 3);
+        assert!(count(&store.conn, "proposed_sets").is_err());
+
+        assert_eq!(Store::open(&dest, U1, "").unwrap().account, store.account);
     }
 }

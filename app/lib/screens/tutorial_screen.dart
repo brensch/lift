@@ -131,7 +131,7 @@ class _TutorialScreenState extends State<TutorialScreen>
         await _workouts.loadActiveWorkout('tutorial');
         // A watch on the wrist, as far as the bar is concerned.
         _workouts.ingestWearHeartRateBatch(
-          TutorialAccount.heartRateBatch(_workouts.activeWorkout!.id),
+          TutorialAccount.heartRateBatch(_workouts.workout!.id),
         );
       } else if (step.screen == 'home' && _workouts.hasActiveWorkout) {
         await _workouts.endWorkout(fireEndedCallback: false);

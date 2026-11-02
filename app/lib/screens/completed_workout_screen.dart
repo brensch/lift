@@ -8,6 +8,7 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/plan_text.dart';
+import '../logic/session_state.dart';
 import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
@@ -68,7 +69,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final sessionSelfId = auth.userId ?? '';
     try {
       _loadError = null;
-      final response = await _getWorkoutWithRetry(service);
+      final response = await service.getWorkout(widget.workoutId);
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
@@ -102,33 +103,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
         });
       }
     }
-  }
-
-  Future<GetWorkoutResponse> _getWorkoutWithRetry(
-    WorkoutServiceWrapper service,
-  ) async {
-    Object? lastError;
-    StackTrace? lastStack;
-    // Freshly ended workouts can briefly race backend persistence.
-    final attempts = widget.isHistory ? 1 : 8;
-    for (var attempt = 1; attempt <= attempts; attempt++) {
-      try {
-        final response = await service.getWorkout(widget.workoutId);
-        if (widget.isHistory || response.workout.endTime != Int64.ZERO) {
-          return response;
-        }
-        lastError = StateError('Workout summary is not finalized yet.');
-      } catch (e, st) {
-        lastError = e;
-        lastStack = st;
-      }
-      if (attempt == attempts) break;
-      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
-    }
-    if (lastStack != null) {
-      Error.throwWithStackTrace(lastError!, lastStack);
-    }
-    throw lastError ?? StateError('Failed to load finalized workout summary.');
   }
 
   Future<void> _loadMaxAfter(
@@ -272,17 +246,17 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                   (
                     copy.workout.lifting,
                     summary.liftingTimeLabel,
-                    context.tokens.workoutLiftingFg,
+                    context.tokens.lifting,
                   ),
                   (
                     copy.workout.resting,
                     summary.restingTimeLabel,
-                    context.tokens.workoutRestingFg,
+                    context.tokens.resting,
                   ),
                   (
                     copy.workout.yapping,
                     summary.yappingTimeLabel,
-                    context.tokens.workoutYappingFg,
+                    context.tokens.yapping,
                   ),
                 ],
               ),
@@ -300,7 +274,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                     workoutStartTime: workout.startTime,
                     now: chartNow,
                     followLiveClock: false,
-                    fullView: true,
                   ),
                 ),
               ),
@@ -607,39 +580,24 @@ class _ExerciseStatColumn extends StatelessWidget {
   }
 }
 
-/// Thin formatting view over the server-computed [WorkoutSummary]. All the
-/// numbers are already rolled up on the backend; this only turns them into
-/// display strings.
+/// Thin formatting view over the core's [WorkoutSummary]. The numbers are
+/// already rolled up; this only turns them into display strings.
 class WorkoutSummaryData {
   final WorkoutSummary _s;
   final WeightUnit unit;
   WorkoutSummaryData(this._s, this.unit);
 
-  String get durationLabel =>
-      _formatDuration(Duration(seconds: _s.durationSeconds.toInt()));
+  String get durationLabel => formatDurationShort(_s.durationSeconds.toInt());
   String get volumeLabel =>
       '${compactVolume(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
-  String get liftingTimeLabel =>
-      _formatDuration(Duration(seconds: _s.liftingSeconds.toInt()));
-  String get restingTimeLabel =>
-      _formatDuration(Duration(seconds: _s.restingSeconds.toInt()));
-  String get yappingTimeLabel =>
-      _formatDuration(Duration(seconds: _s.yappingSeconds.toInt()));
+  String get liftingTimeLabel => formatDurationShort(_s.liftingSeconds.toInt());
+  String get restingTimeLabel => formatDurationShort(_s.restingSeconds.toInt());
+  String get yappingTimeLabel => formatDurationShort(_s.yappingSeconds.toInt());
   List<ExerciseSummaryView> get exerciseSummaries =>
       _s.exercises.map((e) => ExerciseSummaryView(e, unit)).toList();
-
-  static String _formatDuration(Duration duration) {
-    if (duration == Duration.zero) return '0m';
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
-    }
-    return '${minutes}m';
-  }
 }
 
-/// Thin formatting view over the server's per-exercise [ExerciseSummary].
+/// Thin formatting view over the core's per-exercise [ExerciseSummary].
 class ExerciseSummaryView {
   final ExerciseSummary _e;
   final WeightUnit unit;

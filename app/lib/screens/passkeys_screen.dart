@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../gen/workout/v1/auth.pb.dart';
+import '../logic/utils.dart';
 import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
 
@@ -123,26 +124,12 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
 
   String _formatDate(int timestampSeconds) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestampSeconds * 1000);
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
     final hour = date.hour > 12
         ? date.hour - 12
         : (date.hour == 0 ? 12 : date.hour);
     final amPm = date.hour >= 12 ? 'PM' : 'AM';
     final minute = date.minute.toString().padLeft(2, '0');
-    return '${months[date.month - 1]} ${date.day}, ${date.year}, $hour:$minute $amPm';
+    return '${shortDate(date)}, ${date.year}, $hour:$minute $amPm';
   }
 
   String _formatTransports(List<String> transports) {

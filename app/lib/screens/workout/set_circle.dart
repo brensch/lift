@@ -112,8 +112,8 @@ class _SetCircleState extends State<SetCircle>
       ),
       SetCircleState.lifting => (t.lifting, t.lifting, t.onPrimary),
       SetCircleState.full => (t.text, t.text, t.background),
-      SetCircleState.short => (t.effort, t.effort, t.text),
-      SetCircleState.zero => (Colors.transparent, t.effort, t.effort),
+      SetCircleState.short => (t.short, t.short, t.text),
+      SetCircleState.zero => (Colors.transparent, t.short, t.short),
       SetCircleState.skipped => (Colors.transparent, t.hairline, t.muted),
     };
     final quiet = widget.small && widget.state == SetCircleState.pending;

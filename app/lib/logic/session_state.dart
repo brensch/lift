@@ -21,13 +21,19 @@ String formatElapsedClock(int totalSeconds) {
   return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }
 
+/// A duration in hours and minutes: "1h 5m", "45m".
+String formatDurationShort(int totalSeconds) {
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  if (hours > 0) return '${hours}h ${minutes}m';
+  return '${minutes}m';
+}
+
 bool isAllDoneState(int state) =>
     state == WorkoutState.WORKOUT_STATE_ALL_DONE.value;
 
 bool isRestingState(int state) =>
     state == WorkoutState.WORKOUT_STATE_RESTING.value;
-
-bool isReadyState(int state) => state == WorkoutState.WORKOUT_STATE_READY.value;
 
 /// A set has been started and isn't done yet.
 bool isLiftingState(int state) =>
@@ -50,14 +56,6 @@ int compareParticipantsByNextWorkout(
   if (aScheduled != null && bScheduled == null) return -1;
   if (aScheduled == null && bScheduled != null) return 1;
 
-  final nameCompare = participantDisplayName(
-    a,
-  ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());
-  if (nameCompare != 0) return nameCompare;
-  return a.user.id.compareTo(b.user.id);
-}
-
-int compareParticipantsStable(ParticipantStatus a, ParticipantStatus b) {
   final nameCompare = participantDisplayName(
     a,
   ).toLowerCase().compareTo(participantDisplayName(b).toLowerCase());

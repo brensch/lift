@@ -70,7 +70,7 @@ void main() {
       await s.tap(s.circleFor(first.id));
       expect(s.workout.isSetDone(first.id), isTrue, reason: 'logged');
       expect(
-        s.workout.activeProposedSets.where(
+        s.workout.proposedSets.where(
           (p) => p.exercise == first.exercise && p.calibration,
         ),
         hasLength(2),
@@ -80,7 +80,7 @@ void main() {
       await s.tap(s.circleFor(first.id));
       await s.settle(seconds: 1);
       expect(
-        s.workout.activeProposedSets.where(
+        s.workout.proposedSets.where(
           (p) => p.exercise == first.exercise && !p.calibration && !p.warmup,
         ),
         isNotEmpty,
@@ -96,7 +96,7 @@ void main() {
       // A working set one rep short: start, done, one more tap.
       final working = s.nextSet!;
       await s.liftSet(missed: 1);
-      final logged = s.workout.activeCompletedSets.singleWhere(
+      final logged = s.workout.completedSets.singleWhere(
         (c) => c.proposedSetId == working.id,
       );
       expect(

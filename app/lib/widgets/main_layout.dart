@@ -172,7 +172,7 @@ class MainLayout extends StatelessWidget {
                 ],
               ),
         bottomNavigationBar: WorkoutBottomBar(
-          key: ValueKey(wp.activeWorkout?.id ?? 'none'),
+          key: ValueKey(wp.workout?.id ?? 'none'),
         ),
       ),
     );

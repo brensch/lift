@@ -24,6 +24,7 @@ import '../../widgets/common/flat.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
+import '../../widgets/dialogs/workout_sheet.dart';
 
 /// Edit [template] (null: a new one). [personalise] is Clone: Save makes a
 /// library template the user's own, changed or not; backing out leaves it
@@ -63,7 +64,7 @@ class _TemplateEditorSheet extends StatefulWidget {
 class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   late final TextEditingController _nameController;
   late List<Exercise> _exercises;
-  // A new workout starts as a favourite.
+  // A new workout starts as a reserve.
   late bool _inRotation;
   bool _isSaving = false;
   // The list on screen planned as one workout; null until the first plan.
@@ -372,16 +373,11 @@ Future<void> showOverrideSheet(
   required WeightUnit unit,
   required WorkoutProvider provider,
 }) {
-  return showModalBottomSheet(
-    context: context,
-    routeSettings: const RouteSettings(name: 'sheet/override'),
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ChangeNotifierProvider.value(
-      value: provider,
-      child: _OverrideSheet(plan: plan, unit: unit),
-    ),
+  return showWorkoutSheet(
+    context,
+    provider: provider,
+    name: 'sheet/override',
+    child: _OverrideSheet(plan: plan, unit: unit),
   );
 }
 

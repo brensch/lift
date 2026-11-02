@@ -41,14 +41,14 @@ class SectionWorkout {
   /// Your workout, live: taps start, finish and correct sets.
   factory SectionWorkout.mine(WorkoutProvider wp) => SectionWorkout(
     completedSets: wp.completedSets,
-    proposedSets: wp.activeProposedSets,
-    liftingSetId: wp.activeWorkout?.liftingSetId ?? '',
+    proposedSets: wp.proposedSets,
+    liftingSetId: wp.workout?.liftingSetId ?? '',
     nextSetId: wp.doneTargetSet?.id,
     stateValue:
         wp.stateSnapshot?.state.value ??
         WorkoutState.WORKOUT_STATE_UNSPECIFIED.value,
     passedWarmupIds: {
-      for (final s in wp.activeProposedSets)
+      for (final s in wp.proposedSets)
         if (wp.isPassedWarmup(s)) s.id,
     },
     actions: wp.isWorkoutEnded ? null : wp,

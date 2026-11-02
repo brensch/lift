@@ -167,9 +167,6 @@ Deployment is push-to-`main` via `.github/workflows/backend-deploy.yml`: an
 ARM64 GitHub runner builds the binary, a self-hosted runner on the server
 installs it into a new release directory and restarts the unit.
 
-`docker-compose.yml` + `nginx.conf` are a **separate local/container path**, not
-what production runs. Don't assume changes to one apply to the other.
-
 The backend is a single binary with an embedded SQLite file — no external
 database, no cache, no queue. See `deploy/` and `docs/releasing.md`.
 

@@ -158,13 +158,13 @@ the first sync, the copy built into the app stands in.
   and a coupled start carries its exercises in `StartWorkout.exercises`.
   So the phone and the server fold the same log to the same account
   whatever library each has.
-- `CloneTemplate` makes a coupled template the user's own **in place**
-  (same id, so the workouts recorded against it stay with it): it stops
-  following the library. A `SaveTemplate` that changes a coupled
-  template's name or exercises does the same, and so does one with
-  `unlink` (the app's Clone: the editor opens on the template and Save
+- A `SaveTemplate` that changes a coupled template's name or exercises
+  makes it the user's own **in place** (same id, so the workouts recorded
+  against it stay with it): it stops following the library. So does one
+  with `unlink` (the app's Clone: the editor opens on the template and Save
   records it as the user's own, changed or not; backing out records
-  nothing); saved unchanged without it, it stays coupled. Templates made
+  nothing); saved unchanged without it, it stays coupled. A `CloneTemplate`
+  event in a log folds the same way as `unlink`. Templates made
   from scratch are never coupled.
 - `origin_library_id` is the entry a template was added from, and unlike
   `library_id` it is kept when the template becomes the user's own. A user
@@ -185,8 +185,8 @@ the first sync, the copy built into the app stands in.
   records existing events, no kind of its own: an `AddLibraryTemplates`
   (as reserves) for the plan's entries the user does not have, then one
   `ReorderTemplates` whose first `rotation_count` ids are the user's
-  template for each entry in the plan's order (one already in the main
-  plan first, else the first following or made from it, so a
+  template for each entry in the plan's order (one already in the
+  rotation first, else the first following or made from it, so a
   personalised copy is used rather than a second one), and after them
   every other template, the old rotation first, as reserves. Nothing is
   deleted. Plans come from the copy built into the core, not the

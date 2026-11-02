@@ -1,6 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../logic/audio.dart';
+import '../gen/copy.dart';
 import '../gen/sounds.dart';
 import 'package:flutter/services.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -170,7 +170,7 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     final previous = prefs.getString(_channelRevisionKey);
     if (previous == soundsRevision) return;
-    for (final id in soundPresets.keys) {
+    for (final id in copy.sounds.map((s) => s.id)) {
       await android.deleteNotificationChannel(channelId: 'rest_timer_$id');
       if (previous != null) {
         await android.deleteNotificationChannel(
