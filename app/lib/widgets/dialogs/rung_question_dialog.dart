@@ -33,8 +33,8 @@ class RungQuestionDialog extends StatelessWidget {
 
   static List<(RepsLeft, String)> get answers => [
     (RepsLeft.REPS_LEFT_ZERO_TO_ONE, copy.workout.rungAnswerZeroToOne),
-    (RepsLeft.REPS_LEFT_TWO_TO_THREE, copy.workout.rungAnswerTwoToThree),
-    (RepsLeft.REPS_LEFT_FOUR_PLUS, copy.workout.rungAnswerFourPlus),
+    (RepsLeft.REPS_LEFT_TWO_TO_FOUR, copy.workout.rungAnswerTwoToFour),
+    (RepsLeft.REPS_LEFT_FIVE_PLUS, copy.workout.rungAnswerFivePlus),
   ];
 
   @override
@@ -52,7 +52,10 @@ class RungQuestionDialog extends StatelessWidget {
         }
       });
     }
-    final label = TextStyle(fontSize: t.size.titleLg, fontWeight: t.weight.heavy);
+    final label = TextStyle(
+      fontSize: t.size.titleLg,
+      fontWeight: t.weight.heavy,
+    );
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
       child: SingleChildScrollView(

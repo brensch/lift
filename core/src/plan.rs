@@ -109,14 +109,15 @@ pub fn max_needed(weight: f32, reps: i32, sets: i32, bodyweight: bool) -> f32 {
 }
 
 /// The reps in reserve a ramp rung's answer to "how many more could you
-/// have done?" counts (`RepsLeft`): each range's middle, 0–1 as 0.5 and
-/// 2–3 as 2.5, and 4+ as 5. None when unanswered: a full rung then counts
-/// the usual 1.
+/// have done?" counts (`RepsLeft`): 0–1 as 0.5, 2–4 as 3, and 5+ as 8 (a
+/// lot left: it should jump, and on five reps 8 in reserve puts the next
+/// rung about a fifth heavier). None when unanswered: a full rung then
+/// counts the usual 1.
 pub fn answered_reserve(reps_left: i32) -> Option<f32> {
     match RepsLeft::try_from(reps_left).ok()? {
         RepsLeft::ZeroToOne => Some(0.5),
-        RepsLeft::TwoToThree => Some(2.5),
-        RepsLeft::FourPlus => Some(5.0),
+        RepsLeft::TwoToFour => Some(3.0),
+        RepsLeft::FivePlus => Some(8.0),
         RepsLeft::Unspecified => None,
     }
 }
@@ -1359,8 +1360,8 @@ mod tests {
         for (reps_left, reserve) in [
             (RepsLeft::Unspecified, 1.0),
             (RepsLeft::ZeroToOne, 0.5),
-            (RepsLeft::TwoToThree, 2.5),
-            (RepsLeft::FourPlus, 5.0),
+            (RepsLeft::TwoToFour, 3.0),
+            (RepsLeft::FivePlus, 8.0),
         ] {
             let mut ramp = session("w1", 1, Vec::new());
             ramp.rungs = vec![set(45.0, 5, true), answered(reps_left)];
@@ -1371,7 +1372,7 @@ mod tests {
             );
         }
         let mut ramp = session("w1", 1, Vec::new());
-        ramp.rungs = vec![answered(RepsLeft::FourPlus), set(65.0, 3, false)];
+        ramp.rungs = vec![answered(RepsLeft::FivePlus), set(65.0, 3, false)];
         let w = walk(Exercise::Squat, &[ramp], None);
         assert!(close(w.max.unwrap(), shown_max(65.0, 3, 0.0, 1, false)));
     }

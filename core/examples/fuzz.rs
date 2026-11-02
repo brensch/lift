@@ -399,11 +399,9 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                             None
                         };
                         if let Some(target) = target {
-                            let reps_left = [
-                                RepsLeft::ZeroToOne,
-                                RepsLeft::TwoToThree,
-                                RepsLeft::FourPlus,
-                            ][rng.gen_range(0..3)];
+                            let reps_left =
+                                [RepsLeft::ZeroToOne, RepsLeft::TwoToFour, RepsLeft::FivePlus]
+                                    [rng.gen_range(0..3)];
                             let _ = sim.call(now).append_workout_mutations(
                                 AppendWorkoutMutationsRequest {
                                     mutations: vec![mutation_at(

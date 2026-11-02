@@ -1663,7 +1663,7 @@ mod tests {
     fn more_left_climbs_to_one_rep_in_reserve() {
         let unit = AppWeightUnit::Lb;
         for weight in [100.0, 200.0, 450.0] {
-            for (reps_left, reserve) in [(RepsLeft::TwoToThree, 2.5), (RepsLeft::FourPlus, 5.0)] {
+            for (reps_left, reserve) in [(RepsLeft::TwoToFour, 3.0), (RepsLeft::FivePlus, 8.0)] {
                 let mut active = ramp_workout(weight);
                 complete(&mut active, "c1", 5, 2_000);
                 answer(&mut active, "c1", reps_left);
@@ -1686,17 +1686,17 @@ mod tests {
                 );
             }
         }
-        // 2–3 implies 1.25× the rung: a rep left at 1.04×, so +10% stands.
+        // 2–4 implies 1.27× the rung: a rep left at 1.06×, so +10% stands.
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
-        answer(&mut active, "c1", RepsLeft::TwoToThree);
+        answer(&mut active, "c1", RepsLeft::TwoToFour);
         assert_eq!(squat_plan(&active), vec![(110.0, true)]);
-        // 4+ implies 1.33×: a rep left at 1.11×, past +10% once it loads.
-        let mut active = ramp_workout(450.0);
+        // 5+ implies 1.43×: a rep left at about 1.19×, well past +10%.
+        let mut active = ramp_workout(200.0);
         complete(&mut active, "c1", 5, 2_000);
-        answer(&mut active, "c1", RepsLeft::FourPlus);
-        assert_eq!(squat_plan(&active), vec![(500.0, true)]);
-        assert_eq!(planning::next_calibration_weight(1, 450.0, unit), 495.0);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(planning::next_calibration_weight(1, 200.0, unit), 220.0);
+        assert_eq!(squat_plan(&active), vec![(235.0, true)]);
     }
 
     #[test]
@@ -1712,10 +1712,13 @@ mod tests {
     fn a_miss_after_an_answer_still_settles_it() {
         let mut active = ramp_workout(450.0);
         complete(&mut active, "c1", 5, 2_000);
-        answer(&mut active, "c1", RepsLeft::FourPlus);
-        let rung2 = squat_sets(&active)[1].id.clone();
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        let (rung2, weight) = {
+            let set = &squat_sets(&active)[1];
+            (set.id.clone(), set.target_weight)
+        };
         complete(&mut active, &rung2, 4, 2_200);
-        let max = crate::plan::shown_max(500.0, 4, 0.0, 1, false);
+        let max = crate::plan::shown_max(weight, 4, 0.0, 1, false);
         assert_eq!(squat_plan(&active)[1..], settled_at(max)[..]);
         assert_eq!(rung_question(&active), None);
     }
@@ -1729,7 +1732,7 @@ mod tests {
         complete(&mut active, "c1", 5, 2_000);
         answer(&mut active, "c1", RepsLeft::ZeroToOne);
         let settled = active.clone();
-        answer(&mut active, "c1", RepsLeft::FourPlus);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         assert_eq!(active, settled, "the ramp settled: ignored");
 
         // A rung after it done: the first rung's question is gone.
@@ -1767,7 +1770,7 @@ mod tests {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 4, 2_000);
         let before = active.clone();
-        answer(&mut active, "c1", RepsLeft::FourPlus);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         assert_eq!(active, before, "a miss");
     }
 
@@ -1800,7 +1803,7 @@ mod tests {
     fn a_rung_corrected_to_a_miss_drops_its_answer() {
         let mut active = ramp_workout(450.0);
         complete(&mut active, "c1", 5, 2_000);
-        answer(&mut active, "c1", RepsLeft::FourPlus);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let done = done_id(&active, "c1");
         edit(&mut active, &done, 4, 450.0);
         assert_eq!(

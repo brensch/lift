@@ -64,13 +64,13 @@ void main() {
     expect(find.text(copy.workout.rungQuestion), findsOneWidget);
     for (final text in [
       copy.workout.rungAnswerZeroToOne,
-      copy.workout.rungAnswerTwoToThree,
-      copy.workout.rungAnswerFourPlus,
+      copy.workout.rungAnswerTwoToFour,
+      copy.workout.rungAnswerFivePlus,
     ]) {
       expect(find.text(text), findsOneWidget);
     }
 
-    await tester.tap(find.text(copy.workout.rungAnswerFourPlus));
+    await tester.tap(find.text(copy.workout.rungAnswerFivePlus));
     await settle(tester);
     expect(find.byType(RungQuestionDialog), findsNothing);
     expect(h.provider.rungQuestionSetId, isEmpty);
@@ -78,7 +78,7 @@ void main() {
       h.provider.activeCompletedSets
           .firstWhere((c) => c.proposedSetId == first.id)
           .repsLeft,
-      RepsLeft.REPS_LEFT_FOUR_PLUS,
+      RepsLeft.REPS_LEFT_FIVE_PLUS,
     );
   });
 
@@ -95,7 +95,7 @@ void main() {
   ) async {
     final first = await boot(tester);
     await tester.runAsync(
-      () => h.provider.answerRung(first.id, RepsLeft.REPS_LEFT_TWO_TO_THREE),
+      () => h.provider.answerRung(first.id, RepsLeft.REPS_LEFT_TWO_TO_FOUR),
     );
     await tester.pumpAndSettle();
     expect(find.byType(RungQuestionDialog), findsNothing);

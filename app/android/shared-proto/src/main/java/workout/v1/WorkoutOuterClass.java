@@ -1080,13 +1080,13 @@ public final class WorkoutOuterClass {
      */
     REPS_LEFT_ZERO_TO_ONE(1),
     /**
-     * <code>REPS_LEFT_TWO_TO_THREE = 2;</code>
+     * <code>REPS_LEFT_TWO_TO_FOUR = 2;</code>
      */
-    REPS_LEFT_TWO_TO_THREE(2),
+    REPS_LEFT_TWO_TO_FOUR(2),
     /**
-     * <code>REPS_LEFT_FOUR_PLUS = 3;</code>
+     * <code>REPS_LEFT_FIVE_PLUS = 3;</code>
      */
-    REPS_LEFT_FOUR_PLUS(3),
+    REPS_LEFT_FIVE_PLUS(3),
     UNRECOGNIZED(-1),
     ;
 
@@ -1103,13 +1103,13 @@ public final class WorkoutOuterClass {
      */
     public static final int REPS_LEFT_ZERO_TO_ONE_VALUE = 1;
     /**
-     * <code>REPS_LEFT_TWO_TO_THREE = 2;</code>
+     * <code>REPS_LEFT_TWO_TO_FOUR = 2;</code>
      */
-    public static final int REPS_LEFT_TWO_TO_THREE_VALUE = 2;
+    public static final int REPS_LEFT_TWO_TO_FOUR_VALUE = 2;
     /**
-     * <code>REPS_LEFT_FOUR_PLUS = 3;</code>
+     * <code>REPS_LEFT_FIVE_PLUS = 3;</code>
      */
-    public static final int REPS_LEFT_FOUR_PLUS_VALUE = 3;
+    public static final int REPS_LEFT_FIVE_PLUS_VALUE = 3;
 
 
     @java.lang.Override
@@ -1135,8 +1135,8 @@ public final class WorkoutOuterClass {
       switch (value) {
         case 0: return REPS_LEFT_UNSPECIFIED;
         case 1: return REPS_LEFT_ZERO_TO_ONE;
-        case 2: return REPS_LEFT_TWO_TO_THREE;
-        case 3: return REPS_LEFT_FOUR_PLUS;
+        case 2: return REPS_LEFT_TWO_TO_FOUR;
+        case 3: return REPS_LEFT_FIVE_PLUS;
         default: return null;
       }
     }

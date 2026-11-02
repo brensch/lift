@@ -56,18 +56,17 @@ never done starts at the bottom of its range.
 A rung done with every rep asks, on the phone, "How many more could you
 have done?" (the watch says "Open phone!" meanwhile). The answer is
 recorded (`AnswerRung`) and counts as reps in reserve in that rung's shown
-max: 0–1 as 0.5, 2–3 as 2.5, 4+ as 5 (each range's middle; 4+ as 5).
+max: 0–1 as 0.5, 2–4 as 3, 5+ as 8 (a lot left: it should jump).
 
 | Answer | What follows the rung |
 |---|---|
 | 0–1 | the ramp ends: the working sets from `weight × (1 + 5.5/30)`, laid out as after a miss |
-| 2–3, 4+ | the next rung at the heaviest loadable `w` with `w × (1 + 6/30)` ≤ the max the answer shows (a rep in reserve on five), never under the usual +10% |
+| 2–4, 5+ | the next rung at the heaviest loadable `w` with `w × (1 + 6/30)` ≤ the max the answer shows (a rep in reserve on five), never under the usual +10% |
 | none | the usual +10% rung |
 
-With 5 reps, 2–3 shows 1.25× the rung and a rep in reserve on five is
-1.04× it, so 2–3 always takes the usual rung; 4+ shows 1.33× and gives
-1.11×, which beats +10% only where the weights load that way (450 lb →
-500 rather than 495). A later miss still settles the ramp as a miss.
+With 5 reps, 2–4 shows 1.27× the rung and a rep in reserve on five is
+1.06× it, so 2–4 takes the usual rung; 5+ shows 1.43× and gives about
+1.19×, a fifth heavier. A later miss still settles the ramp as a miss.
 In the walk, the ramp's max is the missed rung's, or else the last
 rung's with its answer's reserve (one rep unanswered).
 

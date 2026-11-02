@@ -1451,7 +1451,7 @@ mod calibration {
         let state = batch(&mut app, done(&rung1, 5), NOW + 100);
         assert_eq!(state.rung_question_set_id, rung1.id);
         let rung2 = state.proposed_sets[1].clone();
-        let state = batch(&mut app, answer(&rung1, RepsLeft::FourPlus), NOW + 110);
+        let state = batch(&mut app, answer(&rung1, RepsLeft::FivePlus), NOW + 110);
         assert!(state.rung_question_set_id.is_empty());
         assert_eq!(
             state.proposed_sets[1].id, rung2.id,
@@ -1465,7 +1465,7 @@ mod calibration {
             squat.len(),
             decision(&started, Exercise::Squat).sets as usize
         );
-        let stale = batch(&mut app, answer(&rung2, RepsLeft::FourPlus), NOW + 320);
+        let stale = batch(&mut app, answer(&rung2, RepsLeft::FivePlus), NOW + 320);
         assert_eq!(
             working(&stale.proposed_sets, Exercise::Squat),
             squat,

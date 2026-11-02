@@ -189,8 +189,8 @@ message CompletedSet {
 enum RepsLeft {
   REPS_LEFT_UNSPECIFIED = 0; // not answered
   REPS_LEFT_ZERO_TO_ONE = 1;
-  REPS_LEFT_TWO_TO_THREE = 2;
-  REPS_LEFT_FOUR_PLUS = 3;
+  REPS_LEFT_TWO_TO_FOUR = 2;
+  REPS_LEFT_FIVE_PLUS = 3;
 }
 
 // ── Plans: what each lift is given, and why ──

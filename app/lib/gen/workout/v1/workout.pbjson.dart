@@ -183,16 +183,16 @@ const RepsLeft$json = {
   '2': [
     {'1': 'REPS_LEFT_UNSPECIFIED', '2': 0},
     {'1': 'REPS_LEFT_ZERO_TO_ONE', '2': 1},
-    {'1': 'REPS_LEFT_TWO_TO_THREE', '2': 2},
-    {'1': 'REPS_LEFT_FOUR_PLUS', '2': 3},
+    {'1': 'REPS_LEFT_TWO_TO_FOUR', '2': 2},
+    {'1': 'REPS_LEFT_FIVE_PLUS', '2': 3},
   ],
 };
 
 /// Descriptor for `RepsLeft`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List repsLeftDescriptor = $convert.base64Decode(
     'CghSZXBzTGVmdBIZChVSRVBTX0xFRlRfVU5TUEVDSUZJRUQQABIZChVSRVBTX0xFRlRfWkVST1'
-    '9UT19PTkUQARIaChZSRVBTX0xFRlRfVFdPX1RPX1RIUkVFEAISFwoTUkVQU19MRUZUX0ZPVVJf'
-    'UExVUxAD');
+    '9UT19PTkUQARIZChVSRVBTX0xFRlRfVFdPX1RPX0ZPVVIQAhIXChNSRVBTX0xFRlRfRklWRV9Q'
+    'TFVTEAM=');
 
 @$core.Deprecated('Use planReasonKindDescriptor instead')
 const PlanReasonKind$json = {

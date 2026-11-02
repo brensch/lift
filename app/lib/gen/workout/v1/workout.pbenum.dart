@@ -337,16 +337,16 @@ class RepsLeft extends $pb.ProtobufEnum {
       RepsLeft._(0, _omitEnumNames ? '' : 'REPS_LEFT_UNSPECIFIED');
   static const RepsLeft REPS_LEFT_ZERO_TO_ONE =
       RepsLeft._(1, _omitEnumNames ? '' : 'REPS_LEFT_ZERO_TO_ONE');
-  static const RepsLeft REPS_LEFT_TWO_TO_THREE =
-      RepsLeft._(2, _omitEnumNames ? '' : 'REPS_LEFT_TWO_TO_THREE');
-  static const RepsLeft REPS_LEFT_FOUR_PLUS =
-      RepsLeft._(3, _omitEnumNames ? '' : 'REPS_LEFT_FOUR_PLUS');
+  static const RepsLeft REPS_LEFT_TWO_TO_FOUR =
+      RepsLeft._(2, _omitEnumNames ? '' : 'REPS_LEFT_TWO_TO_FOUR');
+  static const RepsLeft REPS_LEFT_FIVE_PLUS =
+      RepsLeft._(3, _omitEnumNames ? '' : 'REPS_LEFT_FIVE_PLUS');
 
   static const $core.List<RepsLeft> values = <RepsLeft>[
     REPS_LEFT_UNSPECIFIED,
     REPS_LEFT_ZERO_TO_ONE,
-    REPS_LEFT_TWO_TO_THREE,
-    REPS_LEFT_FOUR_PLUS,
+    REPS_LEFT_TWO_TO_FOUR,
+    REPS_LEFT_FIVE_PLUS,
   ];
 
   static final $core.List<RepsLeft?> _byValue =

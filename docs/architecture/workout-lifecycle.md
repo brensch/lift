@@ -400,11 +400,11 @@ shows a dialog with three answers (`RungQuestionDialog`, opened once per
 rung by `WorkoutProvider.onRungQuestion`, whether the set was done on the
 phone or the watch); the watch's weight row says "Open phone!" meanwhile.
 A tap records `AnswerRung` (kept on the done set as `reps_left`), which
-counts as reps in reserve: 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+counts as reps in reserve: 0–1 as 0.5, 2–4 as 3, 5+ as 8.
 
 - 0–1 → the ramp ends there: the working sets from
   `shown_max(weight, 5, 0.5)`, as a miss's, `CALIBRATION_SETTLED`;
-- 2–3 or 4+ → the pending rung is re-planned: the heaviest loadable weight
+- 2–4 or 5+ → the pending rung is re-planned: the heaviest loadable weight
   `w` with `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in
   reserve on five), never under the usual rung, `CALIBRATION_STEP`;
 - no answer (dismissed) → the usual rung stands.

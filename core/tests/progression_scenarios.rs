@@ -395,9 +395,9 @@ fn scenarios() -> Vec<Scenario> {
             id: "first_time_answers",
             title: "First time: the ramp, answered",
             description: "As the first time, and after every rung done in full the lifter \
-                          answers how many more they could have done, truthfully: 4+ \
-                          climbs to a rep in reserve (never less than the usual +10%), \
-                          2–3 climbs the usual rung, 0–1 ends the ramp there.",
+                          answers how many more they could have done, truthfully: 5+ \
+                          jumps to a rep in reserve on the max it implies (about a fifth \
+                          heavier), 2–4 climbs the usual rung, 0–1 ends the ramp there.",
             unit: WeightUnit::Lb,
             strength: 0.5,
             strength_factor: |ex| match ex {
@@ -565,8 +565,8 @@ fn reason_name(kind: i32) -> String {
 fn reps_left_name(reps_left: i32) -> &'static str {
     match RepsLeft::try_from(reps_left).unwrap_or(RepsLeft::Unspecified) {
         RepsLeft::ZeroToOne => "0–1",
-        RepsLeft::TwoToThree => "2–3",
-        RepsLeft::FourPlus => "4+",
+        RepsLeft::TwoToFour => "2–4",
+        RepsLeft::FivePlus => "5+",
         RepsLeft::Unspecified => "",
     }
 }
@@ -771,8 +771,8 @@ impl<'a> Runner<'a> {
     fn reps_left(&self, ex: Exercise, weight: f32, reps: i32) -> RepsLeft {
         match self.reps_possible(ex, weight) - reps {
             ..=1 => RepsLeft::ZeroToOne,
-            2..=3 => RepsLeft::TwoToThree,
-            _ => RepsLeft::FourPlus,
+            2..=4 => RepsLeft::TwoToFour,
+            _ => RepsLeft::FivePlus,
         }
     }
 

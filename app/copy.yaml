@@ -298,8 +298,8 @@ workout:
   rung_question: How many more could you have done?
   rung_question_hint: Be honest. The next set is riding on it.
   rung_answer_zero_to_one: "0–1"
-  rung_answer_two_to_three: "2–3"
-  rung_answer_four_plus: "4+"
+  rung_answer_two_to_four: "2–4"
+  rung_answer_five_plus: "5+"
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
   # The dimmed (always-on) watch face counts rest in whole minutes, since it

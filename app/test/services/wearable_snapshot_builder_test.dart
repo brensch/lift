@@ -84,7 +84,7 @@ void main() {
     expect(asking.firstTimeText, copy.workout.watchFirstTimeStatus);
     expect(asking.stateLabel, copy.workout.resting);
 
-    await h.provider.answerRung(first.id, RepsLeft.REPS_LEFT_FOUR_PLUS);
+    await h.provider.answerRung(first.id, RepsLeft.REPS_LEFT_FIVE_PLUS);
     final answered = card();
     expect(answered.firstTime, isFalse);
     expect(answered.firstTimeText, isEmpty);
