@@ -5,9 +5,10 @@
 // a peer on the same account cross-checks that every set was completed exactly
 // once with no duplicate rows.
 //
-// A fresh user calibrates each loaded lift: one rung, "2–3", and the working
-// sets are appended at that weight — so the plan grows as it is played. The
-// loop is bounded by actions, not by the opening set count.
+// A fresh user calibrates each loaded lift: one rung, done in full and
+// answered "0–1" more in its question dialog, and the working sets are
+// appended from it — so the plan grows as it is played. The loop is bounded
+// by actions, not by the opening set count.
 //
 // Runs inside s.run(), so any failure prints an explicit block (error + last
 // step + what's on screen) and a FAILURE screenshot — no log archaeology.
@@ -44,7 +45,7 @@ void main() {
       }
 
       // Drive the whole workout: each set on its circle, each rung answered
-      // 2–3. The loop is
+      // 0–1 (liftSet's default). The loop is
       // BOUNDED so a stuck set (the bug this scenario exists to catch)
       // exhausts the budget and fails instead of hanging the run. Three lifts
       // at five sets plus a rung each is ~18 sets, ~2 actions per set.
