@@ -111,6 +111,7 @@ const WearStatusCard$json = {
     {'1': 'unit_text', '3': 15, '4': 1, '5': 9, '10': 'unitText'},
     {'1': 'reps_text', '3': 16, '4': 1, '5': 9, '10': 'repsText'},
     {'1': 'first_time', '3': 18, '4': 1, '5': 8, '10': 'firstTime'},
+    {'1': 'first_time_text', '3': 22, '4': 1, '5': 9, '10': 'firstTimeText'},
     {
       '1': 'plates',
       '3': 19,
@@ -149,11 +150,11 @@ final $typed_data.Uint8List wearStatusCardDescriptor = $convert.base64Decode(
     'c2V0VGV4dBIjCg15YXBwaW5nX2xhYmVsGAwgASgJUgx5YXBwaW5nTGFiZWwSHwoLd2VpZ2h0X3'
     'RleHQYDiABKAlSCndlaWdodFRleHQSGwoJdW5pdF90ZXh0GA8gASgJUgh1bml0VGV4dBIbCgly'
     'ZXBzX3RleHQYECABKAlSCHJlcHNUZXh0Eh0KCmZpcnN0X3RpbWUYEiABKAhSCWZpcnN0VGltZR'
-    'ItCgZwbGF0ZXMYEyADKAsyFS53b3Jrb3V0LnYxLldlYXJQbGF0ZVIGcGxhdGVzEh8KC3BsYXRl'
-    'c190ZXh0GBQgASgJUgpwbGF0ZXNUZXh0EhkKCGJhcl90ZXh0GBUgASgJUgdiYXJUZXh0SgQIAR'
-    'ACSgQIAhADSgQIBRAGSgQIBxAISgQICBAJSgQIDRAOUgpzaWRlX2xhYmVsUgZoZWFkZXJSC2lz'
-    'X2NvbXBsZXRlUhFjdXJyZW50X2dyb3VwX3NldFIQdG90YWxfZ3JvdXBfc2V0c1IKZG9uZV9sYW'
-    'JlbA==');
+    'ImCg9maXJzdF90aW1lX3RleHQYFiABKAlSDWZpcnN0VGltZVRleHQSLQoGcGxhdGVzGBMgAygL'
+    'MhUud29ya291dC52MS5XZWFyUGxhdGVSBnBsYXRlcxIfCgtwbGF0ZXNfdGV4dBgUIAEoCVIKcG'
+    'xhdGVzVGV4dBIZCghiYXJfdGV4dBgVIAEoCVIHYmFyVGV4dEoECAEQAkoECAIQA0oECAUQBkoE'
+    'CAcQCEoECAgQCUoECA0QDlIKc2lkZV9sYWJlbFIGaGVhZGVyUgtpc19jb21wbGV0ZVIRY3Vycm'
+    'VudF9ncm91cF9zZXRSEHRvdGFsX2dyb3VwX3NldHNSCmRvbmVfbGFiZWw=');
 
 @$core.Deprecated('Use wearAmbientCopyDescriptor instead')
 const WearAmbientCopy$json = {

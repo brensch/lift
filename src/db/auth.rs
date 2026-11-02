@@ -298,6 +298,10 @@ impl ServerDb {
             .bind(user_id)
             .execute(&mut *tx)
             .await?;
+        sqlx::query("DELETE FROM exercise_decisions WHERE user_id = ?")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query("DELETE FROM completed_sets WHERE user_id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -396,6 +400,7 @@ mod account_deletion_tests {
             ("user_current_session", format!("(user_id, session_id, joined_at) VALUES (?, '{u}-s1', 1)")),
             ("session_participants_current", format!("(session_id, user_id, participant_blob, updated_at) VALUES ('{u}-s1', ?, x'00', 1)")),
             ("session_members", format!("(session_id, user_id, first_joined_at, last_seen_at, left_at) VALUES ('{u}-s1', ?, 1, 1, 0)")),
+            ("exercise_decisions", format!("(id, user_id, workout_id, position, exercise, sets, reps, weight, estimated_max, budget_minutes, log) VALUES ('{u}-d1', ?, '{u}-w1', 0, 1, 3, 5, 100.0, 120.0, 60, x'00')")),
             ("workout_heart_rate_samples", format!("(id, user_id, workout_id, sampled_at, bpm) VALUES ('{u}-h1', ?, '{u}-w1', 1, 120.0)")),
             ("page_views", "(user_id, app_session_id, seq, page, entered_at_ms) VALUES (?, 's', 1, '/settings', 1)".to_string()),
             ("admins", "(user_id, granted_at) VALUES (?, 1)".to_string()),

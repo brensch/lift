@@ -16,9 +16,6 @@ import '../services/user_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
-import 'maths_screen.dart';
-import 'science_screen.dart';
-import 'tutorial_screen.dart';
 import '../widgets/top_level_back_scope.dart';
 import '../theme/app_icons.dart';
 
@@ -72,25 +69,6 @@ class SettingsScreen extends StatelessWidget {
               label: 'Plate colours',
               subtitle: 'Assign colours to plate weights',
               onTap: () => context.push('/settings/plate-colors'),
-            ),
-            const FlatHeading('Learn'),
-            FlatRow(
-              icon: AppIcons.tutorial,
-              label: 'Tutorial',
-              subtitle: 'The walkthrough again',
-              onTap: () => _push(context, 'tutorial', const TutorialScreen()),
-            ),
-            FlatRow(
-              icon: AppIcons.science,
-              label: 'Workout science',
-              subtitle: 'The papers behind the app',
-              onTap: () => _push(context, 'science', const ScienceScreen()),
-            ),
-            FlatRow(
-              icon: AppIcons.maths,
-              label: 'Calorie maths',
-              subtitle: 'How burn is worked out',
-              onTap: () => _push(context, 'maths', const MathsScreen()),
             ),
             const FlatHeading('Account'),
             FlatRow(
@@ -212,15 +190,6 @@ class SettingsScreen extends StatelessWidget {
   }
 
   /// Open one of the full-screen reading pages over everything.
-  void _push(BuildContext context, String name, Widget page) {
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute<void>(
-        settings: RouteSettings(name: name),
-        builder: (_) => page,
-      ),
-    );
-  }
-
   Future<void> _showBodyWeightPicker(
     BuildContext context,
     AuthProvider auth,

@@ -9,6 +9,181 @@ public final class Settings {
       com.google.protobuf.ExtensionRegistryLite registry) {
   }
   /**
+   * <pre>
+   * The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
+   * use this one list — there is no second muscle grouping anywhere.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.MuscleGroup}
+   */
+  public enum MuscleGroup
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>MUSCLE_GROUP_UNSPECIFIED = 0;</code>
+     */
+    MUSCLE_GROUP_UNSPECIFIED(0),
+    /**
+     * <code>MUSCLE_GROUP_QUADS = 1;</code>
+     */
+    MUSCLE_GROUP_QUADS(1),
+    /**
+     * <code>MUSCLE_GROUP_HAMSTRINGS = 2;</code>
+     */
+    MUSCLE_GROUP_HAMSTRINGS(2),
+    /**
+     * <code>MUSCLE_GROUP_GLUTES = 3;</code>
+     */
+    MUSCLE_GROUP_GLUTES(3),
+    /**
+     * <code>MUSCLE_GROUP_CHEST = 4;</code>
+     */
+    MUSCLE_GROUP_CHEST(4),
+    /**
+     * <code>MUSCLE_GROUP_BACK = 5;</code>
+     */
+    MUSCLE_GROUP_BACK(5),
+    /**
+     * <code>MUSCLE_GROUP_SHOULDERS = 6;</code>
+     */
+    MUSCLE_GROUP_SHOULDERS(6),
+    /**
+     * <code>MUSCLE_GROUP_BICEPS = 7;</code>
+     */
+    MUSCLE_GROUP_BICEPS(7),
+    /**
+     * <code>MUSCLE_GROUP_TRICEPS = 8;</code>
+     */
+    MUSCLE_GROUP_TRICEPS(8),
+    /**
+     * <code>MUSCLE_GROUP_CALVES = 9;</code>
+     */
+    MUSCLE_GROUP_CALVES(9),
+    /**
+     * <code>MUSCLE_GROUP_CORE = 10;</code>
+     */
+    MUSCLE_GROUP_CORE(10),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>MUSCLE_GROUP_UNSPECIFIED = 0;</code>
+     */
+    public static final int MUSCLE_GROUP_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>MUSCLE_GROUP_QUADS = 1;</code>
+     */
+    public static final int MUSCLE_GROUP_QUADS_VALUE = 1;
+    /**
+     * <code>MUSCLE_GROUP_HAMSTRINGS = 2;</code>
+     */
+    public static final int MUSCLE_GROUP_HAMSTRINGS_VALUE = 2;
+    /**
+     * <code>MUSCLE_GROUP_GLUTES = 3;</code>
+     */
+    public static final int MUSCLE_GROUP_GLUTES_VALUE = 3;
+    /**
+     * <code>MUSCLE_GROUP_CHEST = 4;</code>
+     */
+    public static final int MUSCLE_GROUP_CHEST_VALUE = 4;
+    /**
+     * <code>MUSCLE_GROUP_BACK = 5;</code>
+     */
+    public static final int MUSCLE_GROUP_BACK_VALUE = 5;
+    /**
+     * <code>MUSCLE_GROUP_SHOULDERS = 6;</code>
+     */
+    public static final int MUSCLE_GROUP_SHOULDERS_VALUE = 6;
+    /**
+     * <code>MUSCLE_GROUP_BICEPS = 7;</code>
+     */
+    public static final int MUSCLE_GROUP_BICEPS_VALUE = 7;
+    /**
+     * <code>MUSCLE_GROUP_TRICEPS = 8;</code>
+     */
+    public static final int MUSCLE_GROUP_TRICEPS_VALUE = 8;
+    /**
+     * <code>MUSCLE_GROUP_CALVES = 9;</code>
+     */
+    public static final int MUSCLE_GROUP_CALVES_VALUE = 9;
+    /**
+     * <code>MUSCLE_GROUP_CORE = 10;</code>
+     */
+    public static final int MUSCLE_GROUP_CORE_VALUE = 10;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static MuscleGroup valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static MuscleGroup forNumber(int value) {
+      switch (value) {
+        case 0: return MUSCLE_GROUP_UNSPECIFIED;
+        case 1: return MUSCLE_GROUP_QUADS;
+        case 2: return MUSCLE_GROUP_HAMSTRINGS;
+        case 3: return MUSCLE_GROUP_GLUTES;
+        case 4: return MUSCLE_GROUP_CHEST;
+        case 5: return MUSCLE_GROUP_BACK;
+        case 6: return MUSCLE_GROUP_SHOULDERS;
+        case 7: return MUSCLE_GROUP_BICEPS;
+        case 8: return MUSCLE_GROUP_TRICEPS;
+        case 9: return MUSCLE_GROUP_CALVES;
+        case 10: return MUSCLE_GROUP_CORE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<MuscleGroup>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        MuscleGroup> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<MuscleGroup>() {
+            @java.lang.Override
+            public MuscleGroup findValueByNumber(int number) {
+              return MuscleGroup.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return MuscleGroupVerifier.INSTANCE;
+    }
+
+    private static final class MuscleGroupVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new MuscleGroupVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return MuscleGroup.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private MuscleGroup(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.MuscleGroup)
+  }
+
+  /**
    * Protobuf enum {@code workout.v1.WeightUnit}
    */
   public enum WeightUnit

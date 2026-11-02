@@ -1,17 +1,22 @@
 //! One workout, hydrated: the record every derived computation reads
-//! (progression, volume, recovery, weight history).
+//! (the plan's walk, volume, recovery, progress).
 
-use crate::pb::{CompletedSet, ProposedSet, Workout, WorkoutHeartRatePoint};
+use crate::pb::{
+    CompletedSet, ExerciseDecision, ExerciseLog, ProposedSet, WeightChange, WeightChangeCause,
+    Workout, WorkoutHeartRatePoint,
+};
 
 /// A workout's full state: the row, its ordered flat set list (there is no
 /// group structure — "the sets for one exercise" is derived wherever it's
-/// needed), what was done, and the heart rate through it.
+/// needed), what was done, the heart rate through it, and per lift the
+/// decision it started from with every change to its weight since.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct WorkoutRecord {
     pub workout: Workout,
     pub proposed_sets: Vec<ProposedSet>,
     pub completed_sets: Vec<CompletedSet>,
     pub heart_rate: Vec<WorkoutHeartRatePoint>,
+    pub exercise_logs: Vec<ExerciseLog>,
 }
 
 impl WorkoutRecord {
@@ -24,7 +29,7 @@ impl WorkoutRecord {
             workout,
             proposed_sets,
             completed_sets,
-            heart_rate: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -33,6 +38,53 @@ impl WorkoutRecord {
     pub fn renumber_sets(&mut self) {
         for (idx, set) in self.proposed_sets.iter_mut().enumerate() {
             set.workout_order = idx as i32;
+        }
+    }
+
+    /// The decision a lift was last given in this workout.
+    pub fn decision(&self, exercise: i32) -> Option<&ExerciseDecision> {
+        self.exercise_logs
+            .iter()
+            .rev()
+            .filter_map(|log| log.decision.as_ref())
+            .find(|d| d.exercise == exercise)
+    }
+
+    /// The working weight a lift is at now: its last change (a correction
+    /// fixes a done set, not the plan) or, before any, its decision's.
+    pub fn planned_weight(&self, exercise: i32) -> f32 {
+        let Some(log) = self.log(exercise) else {
+            return 0.0;
+        };
+        log.changes
+            .iter()
+            .rev()
+            .find(|c| c.cause != WeightChangeCause::Correction as i32)
+            .map(|c| c.after)
+            .or(log.decision.as_ref().map(|d| d.weight))
+            .unwrap_or(0.0)
+    }
+
+    fn log(&self, exercise: i32) -> Option<&ExerciseLog> {
+        self.exercise_logs.iter().rev().find(|log| {
+            log.decision
+                .as_ref()
+                .is_some_and(|d| d.exercise == exercise)
+        })
+    }
+
+    /// Record a change to a lift's weight on its log. A change that leaves
+    /// the weight where it was is not one.
+    pub fn log_change(&mut self, exercise: i32, change: WeightChange) {
+        if (change.after - change.before).abs() < 1e-3 {
+            return;
+        }
+        if let Some(log) = self.exercise_logs.iter_mut().rev().find(|log| {
+            log.decision
+                .as_ref()
+                .is_some_and(|d| d.exercise == exercise)
+        }) {
+            log.changes.push(change);
         }
     }
 }

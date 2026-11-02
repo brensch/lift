@@ -72,9 +72,6 @@ func circleLook(_ state: Workout_V1_WearCircleState, stage: Color, colors: FaceC
 func watchStage(_ snapshot: Workout_V1_WearWorkoutSnapshot, nowMs: Int64) -> WatchStage {
     let card = snapshot.youCard
     let onDark = WatchPalette.onDark
-    if card.firstTime {
-        return WatchStage(label: card.stateLabel, color: WatchPalette.firstTime, ink: onDark, timer: "")
-    }
     switch snapshot.state {
     case .lifting:
         return WatchStage(

@@ -2,7 +2,7 @@
 # Split from the top-level Makefile; variables live there.
 
 .PHONY: run-backend run-backend-release run-backend-scratch agent-backend-start agent-backend-stop \
-	fuzz-api fuzz-api-ci run-prod check
+	fuzz-api fuzz-api-ci progression-explorer run-prod check
 
 STOP_LOCAL_BACKENDS = pkill -f "[t]arget/(debug|release)/schlift" || true
 
@@ -73,6 +73,14 @@ fuzz-api:
 fuzz-api-ci:
 	cargo run --release -p schlift-core --example fuzz -- \
 		--users 6 --sessions 8 --seed 20240101
+
+# What the planning rules tell scripted lifters: rewrite the snapshot
+# (testdata/progression_scenarios.json) from the core and build the page
+# from it. Review the snapshot's diff before committing it.
+PROGRESSION_EXPLORER_OUT ?= .tmp/progression-explorer.html
+progression-explorer:
+	UPDATE_SCENARIOS=1 cargo test -p schlift-core --test progression_scenarios
+	node scripts/build_progression_explorer.mjs $(PROGRESSION_EXPLORER_OUT)
 
 run-prod:
 	docker-compose up --build

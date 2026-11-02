@@ -14,54 +14,6 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-/// The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
-/// use this one list — there is no second muscle grouping anywhere.
-class MuscleGroup extends $pb.ProtobufEnum {
-  static const MuscleGroup MUSCLE_GROUP_UNSPECIFIED =
-      MuscleGroup._(0, _omitEnumNames ? '' : 'MUSCLE_GROUP_UNSPECIFIED');
-  static const MuscleGroup MUSCLE_GROUP_QUADS =
-      MuscleGroup._(1, _omitEnumNames ? '' : 'MUSCLE_GROUP_QUADS');
-  static const MuscleGroup MUSCLE_GROUP_HAMSTRINGS =
-      MuscleGroup._(2, _omitEnumNames ? '' : 'MUSCLE_GROUP_HAMSTRINGS');
-  static const MuscleGroup MUSCLE_GROUP_GLUTES =
-      MuscleGroup._(3, _omitEnumNames ? '' : 'MUSCLE_GROUP_GLUTES');
-  static const MuscleGroup MUSCLE_GROUP_CHEST =
-      MuscleGroup._(4, _omitEnumNames ? '' : 'MUSCLE_GROUP_CHEST');
-  static const MuscleGroup MUSCLE_GROUP_BACK =
-      MuscleGroup._(5, _omitEnumNames ? '' : 'MUSCLE_GROUP_BACK');
-  static const MuscleGroup MUSCLE_GROUP_SHOULDERS =
-      MuscleGroup._(6, _omitEnumNames ? '' : 'MUSCLE_GROUP_SHOULDERS');
-  static const MuscleGroup MUSCLE_GROUP_BICEPS =
-      MuscleGroup._(7, _omitEnumNames ? '' : 'MUSCLE_GROUP_BICEPS');
-  static const MuscleGroup MUSCLE_GROUP_TRICEPS =
-      MuscleGroup._(8, _omitEnumNames ? '' : 'MUSCLE_GROUP_TRICEPS');
-  static const MuscleGroup MUSCLE_GROUP_CALVES =
-      MuscleGroup._(9, _omitEnumNames ? '' : 'MUSCLE_GROUP_CALVES');
-  static const MuscleGroup MUSCLE_GROUP_CORE =
-      MuscleGroup._(10, _omitEnumNames ? '' : 'MUSCLE_GROUP_CORE');
-
-  static const $core.List<MuscleGroup> values = <MuscleGroup>[
-    MUSCLE_GROUP_UNSPECIFIED,
-    MUSCLE_GROUP_QUADS,
-    MUSCLE_GROUP_HAMSTRINGS,
-    MUSCLE_GROUP_GLUTES,
-    MUSCLE_GROUP_CHEST,
-    MUSCLE_GROUP_BACK,
-    MUSCLE_GROUP_SHOULDERS,
-    MUSCLE_GROUP_BICEPS,
-    MUSCLE_GROUP_TRICEPS,
-    MUSCLE_GROUP_CALVES,
-    MUSCLE_GROUP_CORE,
-  ];
-
-  static final $core.List<MuscleGroup?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 10);
-  static MuscleGroup? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const MuscleGroup._(super.value, super.name);
-}
-
 class ExerciseCategory extends $pb.ProtobufEnum {
   static const ExerciseCategory EXERCISE_CATEGORY_UNSPECIFIED =
       ExerciseCategory._(
@@ -377,218 +329,209 @@ class Exercise extends $pb.ProtobufEnum {
   const Exercise._(super.value, super.name);
 }
 
-/// The one opinion the app asks for: after the final working set of an
-/// exercise, and after every calibration set.
-class Effort extends $pb.ProtobufEnum {
-  static const Effort EFFORT_UNSPECIFIED =
-      Effort._(0, _omitEnumNames ? '' : 'EFFORT_UNSPECIFIED');
-  static const Effort EFFORT_EASY =
-      Effort._(1, _omitEnumNames ? '' : 'EFFORT_EASY');
-  static const Effort EFFORT_RIGHT =
-      Effort._(2, _omitEnumNames ? '' : 'EFFORT_RIGHT');
-  static const Effort EFFORT_HARD =
-      Effort._(3, _omitEnumNames ? '' : 'EFFORT_HARD');
+/// How many more reps a calibration rung done in full had left in it. Each
+/// answer counts as a reserve in the rung's shown max (core/src/plan.rs):
+/// 0–1 as 0.5, 2–4 as 3, 5+ as 8.
+class RepsLeft extends $pb.ProtobufEnum {
+  static const RepsLeft REPS_LEFT_UNSPECIFIED =
+      RepsLeft._(0, _omitEnumNames ? '' : 'REPS_LEFT_UNSPECIFIED');
+  static const RepsLeft REPS_LEFT_ZERO_TO_ONE =
+      RepsLeft._(1, _omitEnumNames ? '' : 'REPS_LEFT_ZERO_TO_ONE');
+  static const RepsLeft REPS_LEFT_TWO_TO_FOUR =
+      RepsLeft._(2, _omitEnumNames ? '' : 'REPS_LEFT_TWO_TO_FOUR');
+  static const RepsLeft REPS_LEFT_FIVE_PLUS =
+      RepsLeft._(3, _omitEnumNames ? '' : 'REPS_LEFT_FIVE_PLUS');
 
-  static const $core.List<Effort> values = <Effort>[
-    EFFORT_UNSPECIFIED,
-    EFFORT_EASY,
-    EFFORT_RIGHT,
-    EFFORT_HARD,
+  static const $core.List<RepsLeft> values = <RepsLeft>[
+    REPS_LEFT_UNSPECIFIED,
+    REPS_LEFT_ZERO_TO_ONE,
+    REPS_LEFT_TWO_TO_FOUR,
+    REPS_LEFT_FIVE_PLUS,
   ];
 
-  static final $core.List<Effort?> _byValue =
+  static final $core.List<RepsLeft?> _byValue =
       $pb.ProtobufEnum.$_initByValueList(values, 3);
-  static Effort? valueOf($core.int value) =>
+  static RepsLeft? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const Effort._(super.value, super.name);
+  const RepsLeft._(super.value, super.name);
 }
 
-class UserMessageKind extends $pb.ProtobufEnum {
-  static const UserMessageKind USER_MESSAGE_KIND_UNSPECIFIED =
-      UserMessageKind._(
-          0, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_UNSPECIFIED');
-  static const UserMessageKind USER_MESSAGE_KIND_COACHING_NOTE =
-      UserMessageKind._(
-          1, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_COACHING_NOTE');
-  static const UserMessageKind USER_MESSAGE_KIND_GROUP_RATIONALE =
-      UserMessageKind._(
-          2, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_GROUP_RATIONALE');
-  static const UserMessageKind USER_MESSAGE_KIND_LOAD_INCREASE =
-      UserMessageKind._(
-          3, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_LOAD_INCREASE');
-  static const UserMessageKind USER_MESSAGE_KIND_LOAD_HOLD =
-      UserMessageKind._(4, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_LOAD_HOLD');
-  static const UserMessageKind USER_MESSAGE_KIND_STALL_DELOAD =
-      UserMessageKind._(
-          5, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_STALL_DELOAD');
-  static const UserMessageKind USER_MESSAGE_KIND_TEMPORAL_DELOAD =
-      UserMessageKind._(
-          6, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_TEMPORAL_DELOAD');
-  static const UserMessageKind USER_MESSAGE_KIND_SESSION_UPDATE =
-      UserMessageKind._(
-          7, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_SESSION_UPDATE');
-  static const UserMessageKind USER_MESSAGE_KIND_CYCLE_ADVANCE =
-      UserMessageKind._(
-          8, _omitEnumNames ? '' : 'USER_MESSAGE_KIND_CYCLE_ADVANCE');
+class PlanReasonKind extends $pb.ProtobufEnum {
+  static const PlanReasonKind PLAN_REASON_KIND_UNSPECIFIED =
+      PlanReasonKind._(0, _omitEnumNames ? '' : 'PLAN_REASON_KIND_UNSPECIFIED');
 
-  static const $core.List<UserMessageKind> values = <UserMessageKind>[
-    USER_MESSAGE_KIND_UNSPECIFIED,
-    USER_MESSAGE_KIND_COACHING_NOTE,
-    USER_MESSAGE_KIND_GROUP_RATIONALE,
-    USER_MESSAGE_KIND_LOAD_INCREASE,
-    USER_MESSAGE_KIND_LOAD_HOLD,
-    USER_MESSAGE_KIND_STALL_DELOAD,
-    USER_MESSAGE_KIND_TEMPORAL_DELOAD,
-    USER_MESSAGE_KIND_SESSION_UPDATE,
-    USER_MESSAGE_KIND_CYCLE_ADVANCE,
+  /// Every working rep hit last time: the max nudged up.
+  static const PlanReasonKind PLAN_REASON_KIND_MAX_UP =
+      PlanReasonKind._(1, _omitEnumNames ? '' : 'PLAN_REASON_KIND_MAX_UP');
+
+  /// A rep missed last time: the max reset to the most a set showed.
+  static const PlanReasonKind PLAN_REASON_KIND_MAX_FROM_MISS = PlanReasonKind._(
+      2, _omitEnumNames ? '' : 'PLAN_REASON_KIND_MAX_FROM_MISS');
+
+  /// Stopped early, a rushed miss, or the user lowered the weight: the max
+  /// unchanged. `cause` says which when it was not the weight (STOPPED_EARLY,
+  /// RUSHED).
+  static const PlanReasonKind PLAN_REASON_KIND_HELD =
+      PlanReasonKind._(3, _omitEnumNames ? '' : 'PLAN_REASON_KIND_HELD');
+
+  /// Three weeks or more away (six or more): the max cut to 90% (80%).
+  static const PlanReasonKind PLAN_REASON_KIND_TIME_OFF =
+      PlanReasonKind._(4, _omitEnumNames ? '' : 'PLAN_REASON_KIND_TIME_OFF');
+
+  /// Never done: a calibration ramp finds the max (a bodyweight lift
+  /// starts at the bottom of its range).
+  static const PlanReasonKind PLAN_REASON_KIND_FIRST_TIME =
+      PlanReasonKind._(5, _omitEnumNames ? '' : 'PLAN_REASON_KIND_FIRST_TIME');
+
+  /// The user's own weight and reps, set at `at`.
+  static const PlanReasonKind PLAN_REASON_KIND_USER_SET =
+      PlanReasonKind._(6, _omitEnumNames ? '' : 'PLAN_REASON_KIND_USER_SET');
+
+  /// This many sets: what the time budget fits, given to the lifts whose
+  /// muscles are furthest behind this week.
+  static const PlanReasonKind PLAN_REASON_KIND_SETS_FROM_TIME =
+      PlanReasonKind._(
+          7, _omitEnumNames ? '' : 'PLAN_REASON_KIND_SETS_FROM_TIME');
+
+  /// The plan against the lift's last session, what the user sees move:
+  /// before/after are the weights (lb), reps_*/sets_* the reps and sets,
+  /// and `cause` why. One of these comes first whenever the lift has a
+  /// last session to compare with (not after an override or a ramp alone).
+  /// Heavier than last time.
+  static const PlanReasonKind PLAN_REASON_KIND_WEIGHT_UP =
+      PlanReasonKind._(8, _omitEnumNames ? '' : 'PLAN_REASON_KIND_WEIGHT_UP');
+
+  /// Lighter than last time.
+  static const PlanReasonKind PLAN_REASON_KIND_WEIGHT_DOWN =
+      PlanReasonKind._(9, _omitEnumNames ? '' : 'PLAN_REASON_KIND_WEIGHT_DOWN');
+
+  /// The same weight, more reps.
+  static const PlanReasonKind PLAN_REASON_KIND_REPS_UP =
+      PlanReasonKind._(10, _omitEnumNames ? '' : 'PLAN_REASON_KIND_REPS_UP');
+
+  /// The same weight, fewer reps.
+  static const PlanReasonKind PLAN_REASON_KIND_REPS_DOWN =
+      PlanReasonKind._(11, _omitEnumNames ? '' : 'PLAN_REASON_KIND_REPS_DOWN');
+
+  /// The same weight and reps as last time.
+  static const PlanReasonKind PLAN_REASON_KIND_SAME_AS_LAST = PlanReasonKind._(
+      12, _omitEnumNames ? '' : 'PLAN_REASON_KIND_SAME_AS_LAST');
+
+  static const $core.List<PlanReasonKind> values = <PlanReasonKind>[
+    PLAN_REASON_KIND_UNSPECIFIED,
+    PLAN_REASON_KIND_MAX_UP,
+    PLAN_REASON_KIND_MAX_FROM_MISS,
+    PLAN_REASON_KIND_HELD,
+    PLAN_REASON_KIND_TIME_OFF,
+    PLAN_REASON_KIND_FIRST_TIME,
+    PLAN_REASON_KIND_USER_SET,
+    PLAN_REASON_KIND_SETS_FROM_TIME,
+    PLAN_REASON_KIND_WEIGHT_UP,
+    PLAN_REASON_KIND_WEIGHT_DOWN,
+    PLAN_REASON_KIND_REPS_UP,
+    PLAN_REASON_KIND_REPS_DOWN,
+    PLAN_REASON_KIND_SAME_AS_LAST,
   ];
 
-  static final $core.List<UserMessageKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 8);
-  static UserMessageKind? valueOf($core.int value) =>
+  static final $core.List<PlanReasonKind?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
+  static PlanReasonKind? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const UserMessageKind._(super.value, super.name);
+  const PlanReasonKind._(super.value, super.name);
 }
 
-class UserMessageSurface extends $pb.ProtobufEnum {
-  static const UserMessageSurface USER_MESSAGE_SURFACE_UNSPECIFIED =
-      UserMessageSurface._(
-          0, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_UNSPECIFIED');
-  static const UserMessageSurface USER_MESSAGE_SURFACE_SCHEDULE =
-      UserMessageSurface._(
-          1, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_SCHEDULE');
-  static const UserMessageSurface USER_MESSAGE_SURFACE_WORKOUT_BRIEFING =
-      UserMessageSurface._(
-          2, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_WORKOUT_BRIEFING');
-  static const UserMessageSurface USER_MESSAGE_SURFACE_WORKOUT_FEED =
-      UserMessageSurface._(
-          3, _omitEnumNames ? '' : 'USER_MESSAGE_SURFACE_WORKOUT_FEED');
+/// Why a plan differs from (or matches) the lift's last session.
+class PlanChangeCause extends $pb.ProtobufEnum {
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_UNSPECIFIED =
+      PlanChangeCause._(
+          0, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_UNSPECIFIED');
 
-  static const $core.List<UserMessageSurface> values = <UserMessageSurface>[
-    USER_MESSAGE_SURFACE_UNSPECIFIED,
-    USER_MESSAGE_SURFACE_SCHEDULE,
-    USER_MESSAGE_SURFACE_WORKOUT_BRIEFING,
-    USER_MESSAGE_SURFACE_WORKOUT_FEED,
+  /// Every rep hit last time.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_HIT =
+      PlanChangeCause._(1, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_HIT');
+
+  /// A rep missed last time.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_MISSED =
+      PlanChangeCause._(2, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_MISSED');
+
+  /// Last time stopped early: the max held.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_STOPPED_EARLY =
+      PlanChangeCause._(
+          3, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_STOPPED_EARLY');
+
+  /// A different number of sets: last time's sets would have kept last
+  /// time's numbers (sets_before, sets_after).
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_SETS =
+      PlanChangeCause._(4, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_SETS');
+
+  /// Three weeks or more away (days_off): the max cut.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_TIME_OFF =
+      PlanChangeCause._(5, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_TIME_OFF');
+
+  /// Every working set done, but a miss came before the previous set's rest
+  /// was up: excused, the max held.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_RUSHED =
+      PlanChangeCause._(6, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_RUSHED');
+
+  static const $core.List<PlanChangeCause> values = <PlanChangeCause>[
+    PLAN_CHANGE_CAUSE_UNSPECIFIED,
+    PLAN_CHANGE_CAUSE_HIT,
+    PLAN_CHANGE_CAUSE_MISSED,
+    PLAN_CHANGE_CAUSE_STOPPED_EARLY,
+    PLAN_CHANGE_CAUSE_SETS,
+    PLAN_CHANGE_CAUSE_TIME_OFF,
+    PLAN_CHANGE_CAUSE_RUSHED,
   ];
 
-  static final $core.List<UserMessageSurface?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
-  static UserMessageSurface? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const UserMessageSurface._(super.value, super.name);
-}
-
-class ProgressionChangeKind extends $pb.ProtobufEnum {
-  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_UNSPECIFIED =
-      ProgressionChangeKind._(
-          0, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_UNSPECIFIED');
-  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_INCREASE =
-      ProgressionChangeKind._(
-          1, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_INCREASE');
-  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_HOLD =
-      ProgressionChangeKind._(
-          2, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_HOLD');
-  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_DELOAD =
-      ProgressionChangeKind._(
-          3, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_DELOAD');
-  static const ProgressionChangeKind PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE =
-      ProgressionChangeKind._(
-          4, _omitEnumNames ? '' : 'PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE');
-
-  static const $core.List<ProgressionChangeKind> values =
-      <ProgressionChangeKind>[
-    PROGRESSION_CHANGE_KIND_UNSPECIFIED,
-    PROGRESSION_CHANGE_KIND_INCREASE,
-    PROGRESSION_CHANGE_KIND_HOLD,
-    PROGRESSION_CHANGE_KIND_DELOAD,
-    PROGRESSION_CHANGE_KIND_CYCLE_ADVANCE,
-  ];
-
-  static final $core.List<ProgressionChangeKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
-  static ProgressionChangeKind? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ProgressionChangeKind._(super.value, super.name);
-}
-
-class ProgressionMetricKind extends $pb.ProtobufEnum {
-  static const ProgressionMetricKind PROGRESSION_METRIC_KIND_UNSPECIFIED =
-      ProgressionMetricKind._(
-          0, _omitEnumNames ? '' : 'PROGRESSION_METRIC_KIND_UNSPECIFIED');
-  static const ProgressionMetricKind PROGRESSION_METRIC_KIND_WORKING_WEIGHT =
-      ProgressionMetricKind._(
-          1, _omitEnumNames ? '' : 'PROGRESSION_METRIC_KIND_WORKING_WEIGHT');
-  static const ProgressionMetricKind PROGRESSION_METRIC_KIND_TRAINING_MAX =
-      ProgressionMetricKind._(
-          2, _omitEnumNames ? '' : 'PROGRESSION_METRIC_KIND_TRAINING_MAX');
-
-  static const $core.List<ProgressionMetricKind> values =
-      <ProgressionMetricKind>[
-    PROGRESSION_METRIC_KIND_UNSPECIFIED,
-    PROGRESSION_METRIC_KIND_WORKING_WEIGHT,
-    PROGRESSION_METRIC_KIND_TRAINING_MAX,
-  ];
-
-  static final $core.List<ProgressionMetricKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 2);
-  static ProgressionMetricKind? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ProgressionMetricKind._(super.value, super.name);
-}
-
-class ProgressionReasonKind extends $pb.ProtobufEnum {
-  static const ProgressionReasonKind PROGRESSION_REASON_KIND_UNSPECIFIED =
-      ProgressionReasonKind._(
-          0, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_UNSPECIFIED');
-  static const ProgressionReasonKind
-      PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS =
-      ProgressionReasonKind._(
-          1,
-          _omitEnumNames
-              ? ''
-              : 'PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS');
-  static const ProgressionReasonKind
-      PROGRESSION_REASON_KIND_MISSED_TARGET_REPS = ProgressionReasonKind._(2,
-          _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_MISSED_TARGET_REPS');
-  static const ProgressionReasonKind PROGRESSION_REASON_KIND_REPEATED_MISSES =
-      ProgressionReasonKind._(
-          3, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_REPEATED_MISSES');
-  static const ProgressionReasonKind PROGRESSION_REASON_KIND_STAGE_ADVANCE =
-      ProgressionReasonKind._(
-          4, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_STAGE_ADVANCE');
-  static const ProgressionReasonKind PROGRESSION_REASON_KIND_CYCLE_COMPLETED =
-      ProgressionReasonKind._(
-          5, _omitEnumNames ? '' : 'PROGRESSION_REASON_KIND_CYCLE_COMPLETED');
-  static const ProgressionReasonKind
-      PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK =
-      ProgressionReasonKind._(
-          6,
-          _omitEnumNames
-              ? ''
-              : 'PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK');
-
-  static const $core.List<ProgressionReasonKind> values =
-      <ProgressionReasonKind>[
-    PROGRESSION_REASON_KIND_UNSPECIFIED,
-    PROGRESSION_REASON_KIND_COMPLETED_ALL_WORKING_SETS,
-    PROGRESSION_REASON_KIND_MISSED_TARGET_REPS,
-    PROGRESSION_REASON_KIND_REPEATED_MISSES,
-    PROGRESSION_REASON_KIND_STAGE_ADVANCE,
-    PROGRESSION_REASON_KIND_CYCLE_COMPLETED,
-    PROGRESSION_REASON_KIND_CLEARED_PROGRESSION_CHECK,
-  ];
-
-  static final $core.List<ProgressionReasonKind?> _byValue =
+  static final $core.List<PlanChangeCause?> _byValue =
       $pb.ProtobufEnum.$_initByValueList(values, 6);
-  static ProgressionReasonKind? valueOf($core.int value) =>
+  static PlanChangeCause? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const ProgressionReasonKind._(super.value, super.name);
+  const PlanChangeCause._(super.value, super.name);
+}
+
+class WeightChangeCause extends $pb.ProtobufEnum {
+  static const WeightChangeCause WEIGHT_CHANGE_CAUSE_UNSPECIFIED =
+      WeightChangeCause._(
+          0, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_UNSPECIFIED');
+
+  /// AdjustExerciseWeight, from the phone or the watch.
+  static const WeightChangeCause WEIGHT_CHANGE_CAUSE_USER_ADJUST =
+      WeightChangeCause._(
+          1, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_USER_ADJUST');
+
+  /// The calibration ramp's next rung.
+  static const WeightChangeCause WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP =
+      WeightChangeCause._(
+          2, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP');
+
+  /// The ramp done: the working weight set.
+  static const WeightChangeCause WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED =
+      WeightChangeCause._(
+          3, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED');
+
+  /// EditCompletedSet: the weight recorded on a done set fixed.
+  static const WeightChangeCause WEIGHT_CHANGE_CAUSE_CORRECTION =
+      WeightChangeCause._(
+          4, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_CORRECTION');
+
+  static const $core.List<WeightChangeCause> values = <WeightChangeCause>[
+    WEIGHT_CHANGE_CAUSE_UNSPECIFIED,
+    WEIGHT_CHANGE_CAUSE_USER_ADJUST,
+    WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP,
+    WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED,
+    WEIGHT_CHANGE_CAUSE_CORRECTION,
+  ];
+
+  static final $core.List<WeightChangeCause?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static WeightChangeCause? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const WeightChangeCause._(super.value, super.name);
 }
 
 /// A set is pending, done or cancelled. The workout's state is derived from
@@ -630,57 +573,33 @@ class WorkoutState extends $pb.ProtobufEnum {
   const WorkoutState._(super.value, super.name);
 }
 
-/// Used only to scale the seeded starting weights at onboarding.
-class Gender extends $pb.ProtobufEnum {
-  static const Gender GENDER_UNSPECIFIED =
-      Gender._(0, _omitEnumNames ? '' : 'GENDER_UNSPECIFIED');
-  static const Gender GENDER_FEMALE =
-      Gender._(1, _omitEnumNames ? '' : 'GENDER_FEMALE');
-  static const Gender GENDER_MALE =
-      Gender._(2, _omitEnumNames ? '' : 'GENDER_MALE');
+class RotationWarningKind extends $pb.ProtobufEnum {
+  static const RotationWarningKind ROTATION_WARNING_KIND_UNSPECIFIED =
+      RotationWarningKind._(
+          0, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_UNSPECIFIED');
 
-  static const $core.List<Gender> values = <Gender>[
-    GENDER_UNSPECIFIED,
-    GENDER_FEMALE,
-    GENDER_MALE,
+  /// A muscle nothing in rotation trains.
+  static const RotationWarningKind ROTATION_WARNING_KIND_GAP =
+      RotationWarningKind._(
+          1, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_GAP');
+
+  /// Two templates sharing over 70% of the smaller one's lifts.
+  static const RotationWarningKind ROTATION_WARNING_KIND_OVERLAP =
+      RotationWarningKind._(
+          2, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_OVERLAP');
+
+  static const $core.List<RotationWarningKind> values = <RotationWarningKind>[
+    ROTATION_WARNING_KIND_UNSPECIFIED,
+    ROTATION_WARNING_KIND_GAP,
+    ROTATION_WARNING_KIND_OVERLAP,
   ];
 
-  static final $core.List<Gender?> _byValue =
+  static final $core.List<RotationWarningKind?> _byValue =
       $pb.ProtobufEnum.$_initByValueList(values, 2);
-  static Gender? valueOf($core.int value) =>
+  static RotationWarningKind? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
-  const Gender._(super.value, super.name);
-}
-
-/// Lifting experience, used to scale recommended starting weights.
-class ExperienceLevel extends $pb.ProtobufEnum {
-  static const ExperienceLevel EXPERIENCE_LEVEL_UNSPECIFIED = ExperienceLevel._(
-      0, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_UNSPECIFIED');
-  static const ExperienceLevel EXPERIENCE_LEVEL_CUTE =
-      ExperienceLevel._(1, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_CUTE');
-  static const ExperienceLevel EXPERIENCE_LEVEL_BEGINNER =
-      ExperienceLevel._(2, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_BEGINNER');
-  static const ExperienceLevel EXPERIENCE_LEVEL_INTERMEDIATE =
-      ExperienceLevel._(
-          3, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_INTERMEDIATE');
-  static const ExperienceLevel EXPERIENCE_LEVEL_EXPERT =
-      ExperienceLevel._(4, _omitEnumNames ? '' : 'EXPERIENCE_LEVEL_EXPERT');
-
-  static const $core.List<ExperienceLevel> values = <ExperienceLevel>[
-    EXPERIENCE_LEVEL_UNSPECIFIED,
-    EXPERIENCE_LEVEL_CUTE,
-    EXPERIENCE_LEVEL_BEGINNER,
-    EXPERIENCE_LEVEL_INTERMEDIATE,
-    EXPERIENCE_LEVEL_EXPERT,
-  ];
-
-  static final $core.List<ExperienceLevel?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
-  static ExperienceLevel? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const ExperienceLevel._(super.value, super.name);
+  const RotationWarningKind._(super.value, super.name);
 }
 
 const $core.bool _omitEnumNames =

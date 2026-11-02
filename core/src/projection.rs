@@ -4,7 +4,9 @@
 //! the same statements — the phone through rusqlite, the server through
 //! sqlx — so the tables are defined once, here.
 
-use crate::account::{tracker_record, Account};
+use prost::Message;
+
+use crate::account::Account;
 use crate::history::WorkoutRecord;
 
 /// The workout tables, on the phone and the server alike.
@@ -34,8 +36,7 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     target_weight REAL NOT NULL,
     warmup INTEGER NOT NULL DEFAULT 0,
     cancelled INTEGER NOT NULL DEFAULT 0,
-    rest_after_success INTEGER NOT NULL DEFAULT 0,
-    rest_after_failure INTEGER NOT NULL DEFAULT 0,
+    rest_seconds INTEGER NOT NULL DEFAULT 0,
     calibration INTEGER NOT NULL DEFAULT 0,
     skipped INTEGER NOT NULL DEFAULT 0
 );
@@ -50,7 +51,6 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     actual_weight REAL NOT NULL,
     ended_at INTEGER NOT NULL DEFAULT 0,
     rest_until INTEGER NOT NULL DEFAULT 0,
-    effort INTEGER NOT NULL DEFAULT 0,
     started_at INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
@@ -66,24 +66,30 @@ CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
 );
 CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
     ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
+
+-- Per lift in a workout, in the order planned: the decision it started
+-- from, and `log`, its ExerciseLog (proto: the decision with its reasons,
+-- then every weight change).
+CREATE TABLE IF NOT EXISTS exercise_decisions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    workout_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    exercise INTEGER NOT NULL,
+    sets INTEGER NOT NULL,
+    reps INTEGER NOT NULL,
+    weight REAL NOT NULL,
+    estimated_max REAL NOT NULL,
+    budget_minutes INTEGER NOT NULL,
+    log BLOB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_exercise_decisions_workout
+    ON exercise_decisions(workout_id, position);
 "#;
 
 /// The rest of the account, on the phone only (the server keeps it in the
 /// fold): so an exported file reads as everything the app knows.
 pub const ACCOUNT_SCHEMA: &str = r#"
-CREATE TABLE IF NOT EXISTS exercise_trackers (
-    user_id TEXT NOT NULL,
-    exercise INTEGER NOT NULL,
-    working_weight REAL NOT NULL,
-    current_reps INTEGER NOT NULL,
-    consecutive_misses INTEGER NOT NULL,
-    last_performed_at INTEGER NOT NULL,
-    override_sets INTEGER NOT NULL,
-    override_rep_low INTEGER NOT NULL,
-    override_rep_high INTEGER NOT NULL,
-    PRIMARY KEY(user_id, exercise)
-);
-
 CREATE TABLE IF NOT EXISTS workout_templates (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -103,6 +109,7 @@ pub enum Value {
     Int(i64),
     Real(f64),
     Text(String),
+    Blob(Vec<u8>),
 }
 
 impl From<i64> for Value {
@@ -165,6 +172,7 @@ pub fn workout_statements(
         "DELETE FROM proposed_sets WHERE workout_id = ? AND user_id = ?",
         "DELETE FROM completed_sets WHERE workout_id = ? AND user_id = ?",
         "DELETE FROM workout_heart_rate_samples WHERE workout_id = ? AND user_id = ?",
+        "DELETE FROM exercise_decisions WHERE workout_id = ? AND user_id = ?",
     ]
     .into_iter()
     .map(|sql| statement(sql, vec![w.id.as_str().into(), user_id.into()]))
@@ -188,9 +196,9 @@ pub fn workout_statements(
     for set in &record.proposed_sets {
         out.push(statement(
             "INSERT INTO proposed_sets (id, user_id, workout_id, workout_order, exercise,
-             target_reps, target_weight, warmup, cancelled, rest_after_success,
-             rest_after_failure, calibration, skipped)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             target_reps, target_weight, warmup, cancelled, rest_seconds, calibration,
+             skipped)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 set.id.as_str().into(),
                 user_id.into(),
@@ -201,8 +209,7 @@ pub fn workout_statements(
                 set.target_weight.into(),
                 set.warmup.into(),
                 set.cancelled.into(),
-                set.rest_after_success.into(),
-                set.rest_after_failure.into(),
+                set.rest_seconds.into(),
                 set.calibration.into(),
                 set.skipped.into(),
             ],
@@ -211,8 +218,8 @@ pub fn workout_statements(
     for set in &record.completed_sets {
         out.push(statement(
             "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id,
-             actual_reps, actual_weight, ended_at, rest_until, effort, started_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             actual_reps, actual_weight, ended_at, rest_until, started_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 set.id.as_str().into(),
                 user_id.into(),
@@ -222,7 +229,6 @@ pub fn workout_statements(
                 set.actual_weight.into(),
                 set.ended_at.into(),
                 set.rest_until.into(),
-                set.effort.into(),
                 set.started_at.into(),
             ],
         ));
@@ -242,41 +248,37 @@ pub fn workout_statements(
             ],
         ));
     }
-    out
-}
-
-/// Rewrite the trackers and templates (small: done whole).
-pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
-    let mut out = vec![
-        statement(
-            "DELETE FROM exercise_trackers WHERE user_id = ?",
-            vec![user_id.into()],
-        ),
-        statement(
-            "DELETE FROM workout_templates WHERE user_id = ?",
-            vec![user_id.into()],
-        ),
-    ];
-    for (exercise, state) in &account.trackers {
-        let t = tracker_record(*exercise, state);
+    for (n, log) in record.exercise_logs.iter().enumerate() {
+        let d = log.decision.clone().unwrap_or_default();
         out.push(statement(
-            "INSERT INTO exercise_trackers (user_id, exercise, working_weight, current_reps,
-             consecutive_misses, last_performed_at, override_sets, override_rep_low,
-             override_rep_high)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO exercise_decisions
+             (id, user_id, workout_id, position, exercise, sets, reps, weight,
+              estimated_max, budget_minutes, log)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
+                format!("{}:{n}", w.id).into(),
                 user_id.into(),
-                t.exercise.into(),
-                t.working_weight.into(),
-                t.current_reps.into(),
-                t.consecutive_misses.into(),
-                t.last_performed_at.into(),
-                t.override_sets.into(),
-                t.override_rep_low.into(),
-                t.override_rep_high.into(),
+                w.id.as_str().into(),
+                (n as i64).into(),
+                d.exercise.into(),
+                d.sets.into(),
+                d.reps.into(),
+                d.weight.into(),
+                d.max.into(),
+                d.budget_minutes.into(),
+                Value::Blob(log.encode_to_vec()),
             ],
         ));
     }
+    out
+}
+
+/// Rewrite the templates (small: done whole).
+pub fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
+    let mut out = vec![statement(
+        "DELETE FROM workout_templates WHERE user_id = ?",
+        vec![user_id.into()],
+    )];
     for t in &account.templates {
         let exercises = t
             .exercises

@@ -1,7 +1,7 @@
 # System Overview
 
 Schlift is a strength-training app. A user composes workout templates, logs
-sets against prescribed targets, and can share a live session with other
+sets against the targets planned for them, and can share a live session with other
 lifters. The account lives on the phone and works fully offline: the Rust
 core (`core/`) is linked into the app and runs every rule there. The server
 keeps a synced copy for multiplayer, the web and analytics. The watch is a

@@ -163,40 +163,47 @@ class Peer {
     );
   }
 
-  /// The home payload: templates, resolved trackers, volume, suggestion.
+  /// The home payload: templates, plans, volume, suggestion.
   Future<GetHomeResponse> home() =>
       _read('GetHome', GetHomeRequest(), GetHomeResponse.fromBuffer);
 
-  /// The resolved tracker for one exercise (weight the next workout uses).
-  Future<ExerciseTracker?> trackerFor(Exercise exercise) async {
+  /// One exercise's plan (what the next workout gives it).
+  Future<ExercisePlan?> planFor(Exercise exercise) async {
     final response = await home();
-    for (final tracker in response.trackers) {
-      if (tracker.exercise == exercise) return tracker;
+    for (final plan in response.plans) {
+      if (plan.decision.exercise == exercise) return plan;
     }
     return null;
   }
 
-  Future<void> _setTracker(SetExerciseTrackerRequest request) => _write(
-    'SetExerciseTracker',
-    request,
-    SetExerciseTrackerResponse.fromBuffer,
+  /// The user's own numbers for [exercise]: the next start gives it
+  /// exactly these.
+  Future<void> _setOverride(
+    Exercise exercise,
+    double weight, {
+    required int reps,
+    required int sets,
+  }) => _write(
+    'SetOverride',
+    SetOverrideRequest(
+      exercise: exercise,
+      weight: weight,
+      reps: reps,
+      sets: sets,
+    ),
+    SetOverrideResponse.fromBuffer,
   );
 
   /// Start a simple one-exercise workout (used to give a peer visible
-  /// activity). The core prescribes everything from the tracker, so the
-  /// weight is planted there first.
+  /// activity). The core plans everything, so the weight is set by hand
+  /// first.
   Future<void> startWorkout(
     String name,
     Exercise exercise,
     double weight,
     int sets,
   ) async {
-    await _setTracker(
-      SetExerciseTrackerRequest()
-        ..exercise = exercise
-        ..workingWeight = weight
-        ..overrideSets = sets,
-    );
+    await _setOverride(exercise, weight, reps: 5, sets: sets);
     final resp = await _write(
       'StartWorkout',
       StartWorkoutRequest()
@@ -227,14 +234,7 @@ class Peer {
   }) async {
     final req = StartWorkoutRequest()..name = name;
     for (final lift in lifts) {
-      await _setTracker(
-        SetExerciseTrackerRequest()
-          ..exercise = lift.key
-          ..workingWeight = lift.value
-          ..overrideSets = sets
-          ..overrideRepLow = reps
-          ..overrideRepHigh = reps,
-      );
+      await _setOverride(lift.key, lift.value, reps: reps, sets: sets);
       req.exercises.add(lift.key);
     }
     final resp = await _write(
@@ -299,12 +299,12 @@ class Peer {
     AddLibraryTemplatesResponse.fromBuffer,
   );
 
-  /// Whether [exercise] has ever been performed (a tracker with a session
-  /// behind it). Before that, a loaded exercise opens with a calibration rung
+  /// Whether [exercise] has ever been performed (a session behind its
+  /// plan). Before that, a loaded exercise opens with a calibration ramp
   /// instead of warmups + working sets.
   Future<bool> hasPerformed(Exercise exercise) async {
-    final tracker = await trackerFor(exercise);
-    return tracker != null && tracker.lastPerformedAt > Int64.ZERO;
+    final plan = await planFor(exercise);
+    return plan != null && plan.lastPerformedAt > Int64.ZERO;
   }
 
   Future<void> endWorkout() async {

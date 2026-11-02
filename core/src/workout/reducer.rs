@@ -1,8 +1,8 @@
 use super::*;
-use crate::exercise_catalog::snap_weight_lb;
 use crate::ids::{derived_id, Ids};
 use crate::pb::{
-    EditCompletedSetRequest, Effort, Exercise, SkipWarmupsRequest, StartSetRequest, Workout,
+    AnswerRungRequest, EditCompletedSetRequest, RepsLeft, SkipWarmupsRequest, StartSetRequest,
+    WeightChange, WeightChangeCause, Workout,
 };
 use crate::progress::compute_next_up_set;
 use crate::weight_units::AppWeightUnit;
@@ -179,6 +179,8 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         .map(|s| s.id.clone())
         .collect();
     GetWorkoutResponse {
+        rung_question_set_id: rung_question(active).unwrap_or_default(),
+        rung_outcomes: Vec::new(),
         passed_warmup_ids,
         workout: Some(active.workout.clone()),
         proposed_sets: active.proposed_sets.clone(),
@@ -186,8 +188,8 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         next_up_set,
         plan_change_stats: Some(workout_plan_change_stats_from_sets(&active.proposed_sets)),
         state_snapshot,
-        user_messages: Vec::new(),
         summary,
+        exercise_logs: active.exercise_logs.clone(),
     }
 }
 
@@ -203,7 +205,7 @@ pub fn start_workout_response_from_active(
         completed_sets: resp.completed_sets,
         next_up_set: resp.next_up_set,
         state_snapshot: resp.state_snapshot,
-        user_messages: Vec::new(),
+        exercise_logs: resp.exercise_logs,
     }
 }
 
@@ -213,11 +215,10 @@ pub fn active_from_get_workout_response(
     let workout = resp
         .workout
         .ok_or_else(|| WorkoutError::internal("Checkpoint missing workout"))?;
-    Ok(WorkoutRecord::new(
-        workout,
-        resp.proposed_sets,
-        resp.completed_sets,
-    ))
+    Ok(WorkoutRecord {
+        exercise_logs: resp.exercise_logs,
+        ..WorkoutRecord::new(workout, resp.proposed_sets, resp.completed_sets)
+    })
 }
 
 /// Begin a set: the workout is LIFTING it until its Done. Open questions
@@ -280,8 +281,7 @@ pub fn apply_start_set_to_active(
 }
 
 /// Log a set as done. A calibration rung settles there and then: it
-/// appends the next rung or the working sets, in [unit]. Any effort on the
-/// request is ignored (ratings are retired).
+/// appends the next rung or the working sets, in [unit].
 pub fn apply_complete_set_to_active(
     workout_ref: &mut WorkoutRecord,
     req: &CompleteSetRequest,
@@ -318,8 +318,7 @@ pub fn apply_complete_set_to_active(
         &workout_ref.proposed_sets,
         &workout_ref.completed_sets,
     );
-    let rest_until =
-        ended_at + rest_seconds_after(&proposed, req.actual_reps, is_final_set_of_exercise);
+    let rest_until = ended_at + rest_seconds_after(&proposed, is_final_set_of_exercise);
     // The set's start, if it was started; any Done ends the lifting.
     let started_at = if workout_ref.workout.lifting_set_id == req.proposed_set_id {
         workout_ref.workout.lifting_started_at
@@ -337,41 +336,36 @@ pub fn apply_complete_set_to_active(
         actual_weight: req.actual_weight,
         ended_at,
         rest_until,
-        effort: Effort::Unspecified as i32,
         started_at,
+        reps_left: RepsLeft::Unspecified as i32,
+        jump_lb: 0.0,
     });
     // A calibration rung settles the moment it's done (`would_append`).
     if proposed.calibration {
-        settle_rung(workout_ref, &completed_set_id, unit);
+        settle_rung(workout_ref, &completed_set_id, unit, ended_at);
     }
     Ok(())
 }
 
-/// How long to rest after a set: the success rest when the target was
-/// hit, the failure rest otherwise, and the short between-exercise rest
-/// after an exercise's final set. A calibration rung always rests its
-/// own 90 s — the ramp continues after it, so it is never final.
-fn rest_seconds_after(proposed: &ProposedSet, actual_reps: i32, is_final: bool) -> i64 {
-    if proposed.calibration {
-        return proposed.rest_after_success as i64;
-    }
-    if is_final {
+/// How long to rest after a set: its own rest, or the short
+/// between-exercise rest after an exercise's final set. A calibration rung
+/// always rests its own 90 s — the ramp continues after it, so it is never
+/// final.
+fn rest_seconds_after(proposed: &ProposedSet, is_final: bool) -> i64 {
+    if is_final && !proposed.calibration {
         return END_OF_EXERCISE_REST_SECONDS;
     }
-    if actual_reps >= proposed.target_reps {
-        proposed.rest_after_success as i64
-    } else {
-        proposed.rest_after_failure as i64
-    }
+    proposed.rest_seconds as i64
 }
 
-/// Correct a done set after the fact: reps and weight change, and the rest
-/// is recomputed from `ended_at` by the same rule Done used (fewer reps
-/// than planned switches to the failure rest). An unknown set is a no-op.
+/// Correct a done set after the fact: reps and weight change, the rest is
+/// recomputed from `ended_at` by the same rule Done used, and a weight
+/// fixed is logged at `at` (a CORRECTION). An unknown set is a no-op.
 pub fn apply_edit_completed_set_to_active(
     workout_ref: &mut WorkoutRecord,
     req: &EditCompletedSetRequest,
     unit: AppWeightUnit,
+    at: i64,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
@@ -403,22 +397,47 @@ pub fn apply_edit_completed_set_to_active(
         &workout_ref.proposed_sets,
         &workout_ref.completed_sets,
     );
-    let rest = rest_seconds_after(&proposed, req.actual_reps, is_final);
+    let rest = rest_seconds_after(&proposed, is_final);
     let set = &mut workout_ref.completed_sets[idx];
+    let weight_before = set.actual_weight;
+    // A rung corrected to a miss ran to failure: it had nothing left.
+    if req.actual_reps < proposed.target_reps {
+        set.reps_left = RepsLeft::Unspecified as i32;
+        set.jump_lb = 0.0;
+    }
     set.actual_reps = req.actual_reps;
     set.actual_weight = req.actual_weight;
     set.rest_until = set.ended_at + rest;
+    let ended_at = set.ended_at;
+    workout_ref.log_change(
+        proposed.exercise,
+        WeightChange {
+            at,
+            from_set_id: proposed.id.clone(),
+            before: weight_before,
+            after: req.actual_weight,
+            cause: WeightChangeCause::Correction as i32,
+        },
+    );
     // A rung's reps decide what follows it: settle it again on the new count.
     if proposed.calibration {
-        resettle_rung(workout_ref, &req.completed_set_id, unit);
+        resettle_rung(workout_ref, &req.completed_set_id, unit, ended_at);
     }
     Ok(())
 }
 
 /// A calibration rung, done: append what its reps call for (see
-/// `would_append`) straight after it.
-fn settle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: AppWeightUnit) {
+/// `would_append`) straight after it, and log the weight it moves to.
+fn settle_rung(
+    workout_ref: &mut WorkoutRecord,
+    completed_set_id: &str,
+    unit: AppWeightUnit,
+    at: i64,
+) {
     let Some(rung) = rung_of(workout_ref, completed_set_id) else {
+        return;
+    };
+    let Some(decision) = workout_ref.decision(rung.exercise).cloned() else {
         return;
     };
     let appended = would_append(
@@ -426,16 +445,37 @@ fn settle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: Ap
         &workout_ref.completed_sets,
         &rung,
         completed_set_id,
+        &decision,
         unit,
     );
+    if let Some(first) = appended.first() {
+        let cause = if first.calibration {
+            WeightChangeCause::CalibrationStep
+        } else {
+            WeightChangeCause::CalibrationSettled
+        };
+        let change = WeightChange {
+            at,
+            from_set_id: first.id.clone(),
+            before: rung.target_weight,
+            after: first.target_weight,
+            cause: cause as i32,
+        };
+        workout_ref.log_change(rung.exercise, change);
+    }
     planning::insert_sets_after(workout_ref, &rung.id, appended);
 }
 
 /// A rung's reps were corrected (a rep tapped off after Done): take back
-/// what it appended and settle it again. Only while what is pending for
-/// the exercise is exactly that append — once one of those sets is done,
-/// or the weight was typed, the plan stands.
-fn resettle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: AppWeightUnit) {
+/// what it appended, and its log entry, and settle it again. Only while
+/// what is pending for the exercise is exactly that append — once one of
+/// those sets is done, or the weight was typed, the plan stands.
+fn resettle_rung(
+    workout_ref: &mut WorkoutRecord,
+    completed_set_id: &str,
+    unit: AppWeightUnit,
+    at: i64,
+) {
     let Some(rung) = rung_of(workout_ref, completed_set_id) else {
         return;
     };
@@ -452,12 +492,124 @@ fn resettle_rung(workout_ref: &mut WorkoutRecord, completed_set_id: &str, unit: 
         .iter()
         .filter(|s| s.exercise == rung.exercise && !s.cancelled && !done.contains(s.id.as_str()))
         .collect();
-    if pending.is_empty() || !pending.iter().all(|s| ours.contains(&s.id)) {
+    if pending.is_empty()
+        || !pending.iter().all(|s| ours.contains(&s.id))
+        || !take_back_append(workout_ref, completed_set_id)
+    {
         return;
     }
-    workout_ref.proposed_sets.retain(|s| !ours.contains(&s.id));
-    workout_ref.renumber_sets();
-    settle_rung(workout_ref, completed_set_id, unit);
+    settle_rung(workout_ref, completed_set_id, unit, at);
+}
+
+/// The ramp set whose "how many more could you have done?" is open, as a
+/// proposed set id: the workout's latest done set, a calibration rung done
+/// in full and unanswered, with nothing pending for its lift but the rung
+/// it appended, and nothing being lifted. Its answer can still change what
+/// comes next; once anything else happens the question is gone.
+pub fn rung_question(workout_ref: &WorkoutRecord) -> Option<String> {
+    if workout_ref.workout.end_time > 0 {
+        return None;
+    }
+    let done: std::collections::HashSet<&str> = workout_ref
+        .completed_sets
+        .iter()
+        .filter(|c| c.ended_at != 0)
+        .map(|c| c.proposed_set_id.as_str())
+        .collect();
+    let lifting = workout_ref.proposed_sets.iter().any(|s| {
+        s.id == workout_ref.workout.lifting_set_id && !s.cancelled && !done.contains(s.id.as_str())
+    });
+    if lifting {
+        return None;
+    }
+    let last = last_done_set(&workout_ref.completed_sets)?;
+    let rung = rung_of(workout_ref, &last.id)?;
+    if last.actual_reps < rung.target_reps
+        || last.reps_left != RepsLeft::Unspecified as i32
+        || last.jump_lb != 0.0
+    {
+        return None;
+    }
+    let next = derived_id(&last.id, 0);
+    let mut pending = workout_ref
+        .proposed_sets
+        .iter()
+        .filter(|s| s.exercise == rung.exercise && !s.cancelled && !done.contains(s.id.as_str()));
+    let only_next = pending
+        .next()
+        .is_some_and(|s| s.id == next && s.calibration)
+        && pending.next().is_none();
+    only_next.then_some(rung.id)
+}
+
+/// The answer to an open rung question (`rung_question`): recorded on the
+/// done set, and the ramp settled again from it (`would_append`). The
+/// answer is a range (`reps_left`) or a specific jump (`jump_lb`), exactly
+/// one of them; a jump must be over 0 and at most twice the rung's weight
+/// (`MAX_JUMP_FRACTION`). Both, neither, a jump out of range, or an answer
+/// to any other set is a no-op.
+pub fn apply_answer_rung_to_active(
+    workout_ref: &mut WorkoutRecord,
+    req: &AnswerRungRequest,
+    unit: AppWeightUnit,
+    at: i64,
+) -> Result<(), WorkoutError> {
+    if workout_ref.workout.id != req.workout_id {
+        return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
+    }
+    let ranged = req.reps_left != RepsLeft::Unspecified as i32;
+    let jumped = req.jump_lb != 0.0;
+    if ranged == jumped
+        || (ranged && RepsLeft::try_from(req.reps_left).is_err())
+        || rung_question(workout_ref).as_deref() != Some(req.proposed_set_id.as_str())
+    {
+        return Ok(());
+    }
+    let Some(done) = workout_ref
+        .completed_sets
+        .iter()
+        .filter(|c| c.proposed_set_id == req.proposed_set_id && c.ended_at != 0)
+        .max_by_key(|c| c.ended_at)
+    else {
+        return Ok(());
+    };
+    if jumped {
+        let lifted = if done.actual_weight > 0.0 {
+            done.actual_weight
+        } else {
+            workout_ref
+                .proposed_sets
+                .iter()
+                .find(|s| s.id == req.proposed_set_id)
+                .map_or(0.0, |s| s.target_weight)
+        };
+        if !jump_in_range(req.jump_lb, lifted) {
+            return Ok(());
+        }
+    }
+    let Some(done) = workout_ref
+        .completed_sets
+        .iter_mut()
+        .filter(|c| c.proposed_set_id == req.proposed_set_id && c.ended_at != 0)
+        .max_by_key(|c| c.ended_at)
+    else {
+        return Ok(());
+    };
+    done.reps_left = req.reps_left;
+    done.jump_lb = req.jump_lb;
+    let completed_set_id = done.id.clone();
+    resettle_rung(workout_ref, &completed_set_id, unit, at);
+    Ok(())
+}
+
+/// The largest specific jump a rung's answer takes, as a fraction of the
+/// rung's weight: past twice the rung it is a typo, not a jump.
+pub const MAX_JUMP_FRACTION: f32 = 2.0;
+
+/// Whether `jump_lb` is a jump a rung lifted at `lifted` lb can be
+/// answered with: over 0, at most `MAX_JUMP_FRACTION` of the rung.
+pub fn jump_in_range(jump_lb: f32, lifted: f32) -> bool {
+    jump_lb.is_finite() && jump_lb > 0.0 && jump_lb <= lifted * MAX_JUMP_FRACTION + 1e-3
 }
 
 /// The calibration rung a done set lifted, if it was one.
@@ -473,55 +625,176 @@ fn rung_of(workout_ref: &WorkoutRecord, completed_set_id: &str) -> Option<Propos
         .cloned()
 }
 
-/// The ramp rule, pure: what a done `rung` appends. Every rep → the next
-/// rung up (the larger of one step and 10%); a miss, or the sixth rung →
-/// the prescription's working sets at 90% of the heaviest rung done in full
-/// (this rung's weight when none was). Ids are
-/// `uuid5(NAMESPACE_OID, "{completed_set_id}:{n}")`.
+/// The ramp rule, pure: what a done `rung` appends. Too heavy (fewer
+/// than `TOO_HEAVY_REPS` reps), with fewer than six rungs → the next rung
+/// a fifth lighter (`planning::stepped_down_calibration_weight`), though
+/// never back at or under the heaviest rung already done in full; with
+/// nothing loadable left between the two, the ramp settles from that full
+/// rung. A too-heavy rung never gives the max itself. Every rep, with fewer than six rungs → the next rung up:
+/// the larger of one step and 10%, or with
+/// an answer of 2–4 or 5+ the weight the max it implies leaves one rep in
+/// reserve on (`planning::answered_calibration_weight`), never less, or
+/// with a specific jump the rung plus it (`planning::jumped_calibration_weight`). A
+/// miss of 3–4 reps — a set to failure —, an answer of 0–1, or the sixth
+/// rung → the decision's working sets, planned from the max the rung shows
+/// (`plan::shown_max`: no reserve on a miss, the answer's on an answered
+/// rung, one on a full rung otherwise). A too-heavy sixth rung, or one
+/// already at the lightest load, settles as a miss of at least one rep.
+/// Ids are
+/// `uuid5(NAMESPACE_OID, "{completed_set_id}:{n}")`, whatever was appended.
 pub fn would_append(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
     rung: &ProposedSet,
     completed_set_id: &str,
+    decision: &crate::pb::ExerciseDecision,
     unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
-    let rungs: Vec<&ProposedSet> = proposed_sets
+    // The rungs the lift has, this one included: a rung done again after
+    // an undo, out of order, still counts the ones past it.
+    let rungs = proposed_sets
         .iter()
         .filter(|set| set.exercise == rung.exercise && set.calibration && !set.cancelled)
-        .collect();
-    let position = rungs.iter().position(|set| set.id == rung.id).unwrap_or(0);
-    let done_in_full = |set: &ProposedSet| {
-        completed_sets.iter().any(|c| {
-            c.proposed_set_id == set.id && c.ended_at != 0 && c.actual_reps >= set.target_reps
-        })
+        .count();
+    let Some(done) = completed_sets
+        .iter()
+        .find(|c| c.id == completed_set_id && c.ended_at != 0)
+    else {
+        return Vec::new();
+    };
+    let full = done.actual_reps >= rung.target_reps;
+    let answer = full
+        .then(|| crate::plan::answered_reserve(done.reps_left))
+        .flatten();
+    let settled_by_answer = full && done.reps_left == RepsLeft::ZeroToOne as i32;
+    let lifted = if done.actual_weight > 0.0 {
+        done.actual_weight
+    } else {
+        rung.target_weight
     };
     let workout_id = &rung.workout_id;
-    let mut appended = if done_in_full(rung) && position + 1 < planning::MAX_CALIBRATION_RUNGS {
-        vec![planning::calibration_set(
-            workout_id,
+    let more = rungs < planning::MAX_CALIBRATION_RUNGS;
+    let too_heavy = done.actual_reps < planning::TOO_HEAVY_REPS;
+    let best_full = if too_heavy && more {
+        heaviest_full_rung(
+            proposed_sets,
+            completed_sets,
             rung.exercise,
-            planning::next_calibration_weight(rung.exercise, rung.target_weight, unit),
-        )]
+            completed_set_id,
+        )
     } else {
-        let heaviest = rungs
-            .iter()
-            .filter(|set| done_in_full(set))
-            .map(|set| set.target_weight)
-            .fold(0.0, f32::max);
-        let base = if heaviest > 0.0 {
-            heaviest
-        } else {
-            rung.target_weight
+        None
+    };
+    let step_down = (too_heavy && more)
+        .then(|| {
+            planning::stepped_down_calibration_weight(
+                rung.exercise,
+                lifted,
+                best_full.as_ref().map(|(w, _, _)| *w),
+                unit,
+            )
+        })
+        .flatten();
+    let mut appended = if let Some(weight) = step_down {
+        vec![planning::calibration_set(workout_id, rung.exercise, weight)]
+    } else if let (true, Some((weight, reps, reps_left))) = (too_heavy && more, best_full) {
+        // Too heavy, and nothing loads between it and the heaviest rung
+        // done in full: the ramp ends at that rung, as if it had settled
+        // there.
+        let reserve = crate::plan::answered_reserve(reps_left).unwrap_or(1.0);
+        let max = crate::plan::shown_max(weight, reps, reserve, 1, false).min(failure_cap(
+            proposed_sets,
+            completed_sets,
+            rung.exercise,
+        ));
+        planning::working_sets_after_calibration(workout_id, decision, max, unit)
+    } else if full && !settled_by_answer && more {
+        let weight = match answer {
+            Some(reserve) => {
+                planning::answered_calibration_weight(rung.exercise, lifted, reserve, unit)
+            }
+            None if done.jump_lb > 0.0 => {
+                planning::jumped_calibration_weight(rung.exercise, lifted, done.jump_lb, unit)
+            }
+            None => planning::next_calibration_weight(rung.exercise, rung.target_weight, unit),
         };
-        let weight = Exercise::try_from(rung.exercise)
-            .map(|ex| snap_weight_lb(ex, base * planning::CALIBRATION_SETTLE_FRACTION, unit))
-            .unwrap_or(base);
-        planning::working_sets_after_calibration(workout_id, rung.exercise, weight)
+        vec![planning::calibration_set(workout_id, rung.exercise, weight)]
+    } else {
+        let reserve = match (full, answer) {
+            (false, _) => 0.0,
+            (true, Some(reserve)) => reserve,
+            (true, None) => 1.0,
+        };
+        // A too-heavy rung settles only when the ramp can go no further
+        // (the sixth rung, or nothing lighter loads): read as best it can
+        // be, with at least one rep.
+        let reps = done.actual_reps.max(1);
+        let max = crate::plan::shown_max(lifted, reps, reserve, 1, false).min(failure_cap(
+            proposed_sets,
+            completed_sets,
+            rung.exercise,
+        ));
+        planning::working_sets_after_calibration(workout_id, decision, max, unit)
     };
     for (n, set) in appended.iter_mut().enumerate() {
         set.id = derived_id(completed_set_id, n);
     }
     appended
+}
+
+/// The most any rung of `exercise` short of its reps allows: such a set ran
+/// to failure, so the max is no more than it shows (at least one rep). An
+/// answer on a rung done in full ("5+") can never outbid it, so fewer reps
+/// on a rung never plan heavier. Infinite when no rung fell short.
+fn failure_cap(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+    exercise: i32,
+) -> f32 {
+    completed_sets
+        .iter()
+        .filter(|c| c.ended_at != 0)
+        .filter_map(|c| {
+            let rung = proposed_sets.iter().find(|s| {
+                s.id == c.proposed_set_id && s.exercise == exercise && s.calibration && !s.cancelled
+            })?;
+            let weight = if c.actual_weight > 0.0 {
+                c.actual_weight
+            } else {
+                rung.target_weight
+            };
+            (c.actual_reps < rung.target_reps)
+                .then(|| crate::plan::shown_max(weight, c.actual_reps.max(1), 0.0, 1, false))
+        })
+        .fold(f32::INFINITY, f32::min)
+}
+
+/// The heaviest calibration rung of `exercise` done in full, other than
+/// the done set `except`: its weight lifted, reps and answer (`RepsLeft`).
+fn heaviest_full_rung(
+    proposed_sets: &[ProposedSet],
+    completed_sets: &[CompletedSet],
+    exercise: i32,
+    except: &str,
+) -> Option<(f32, i32, i32)> {
+    completed_sets
+        .iter()
+        .filter(|c| c.id != except && c.ended_at != 0)
+        .filter_map(|c| {
+            let rung = proposed_sets.iter().find(|s| {
+                s.id == c.proposed_set_id && s.exercise == exercise && s.calibration && !s.cancelled
+            })?;
+            let weight = if c.actual_weight > 0.0 {
+                c.actual_weight
+            } else {
+                rung.target_weight
+            };
+            (c.actual_reps >= rung.target_reps).then_some((weight, c.actual_reps, c.reps_left))
+        })
+        .fold(None, |best: Option<(f32, i32, i32)>, next| match best {
+            Some(b) if b.0 >= next.0 => Some(b),
+            _ => Some(next),
+        })
 }
 
 pub fn apply_delete_completed_set_to_active(
@@ -531,10 +804,37 @@ pub fn apply_delete_completed_set_to_active(
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::failed_precondition("Workout ID mismatch"));
     }
+    let rung = rung_of(workout_ref, &req.completed_set_id);
     workout_ref
         .completed_sets
         .retain(|c| !(c.workout_id == req.workout_id && c.id == req.completed_set_id));
+    // An undone rung takes back what it appended while none of it is
+    // lifted: done again, it appends afresh, never a second time.
+    if rung.is_some() {
+        take_back_append(workout_ref, &req.completed_set_id);
+    }
     Ok(())
+}
+
+/// Remove what the done set `completed_set_id` appended (its derived
+/// ids), and their log entries, unless one of them was lifted. Returns
+/// whether it did.
+fn take_back_append(workout_ref: &mut WorkoutRecord, completed_set_id: &str) -> bool {
+    let ours: std::collections::HashSet<String> =
+        (0..64).map(|n| derived_id(completed_set_id, n)).collect();
+    if workout_ref
+        .completed_sets
+        .iter()
+        .any(|c| ours.contains(&c.proposed_set_id))
+    {
+        return false;
+    }
+    workout_ref.proposed_sets.retain(|s| !ours.contains(&s.id));
+    for log in &mut workout_ref.exercise_logs {
+        log.changes.retain(|c| !ours.contains(&c.from_set_id));
+    }
+    workout_ref.renumber_sets();
+    true
 }
 
 #[cfg(test)]
@@ -552,8 +852,7 @@ mod tests {
             target_reps: 5,
             target_weight: 135.0,
             warmup,
-            rest_after_success: 180,
-            rest_after_failure: 300,
+            rest_seconds: 180,
             cancelled: false,
             calibration: false,
             skipped: false,
@@ -575,16 +874,22 @@ mod tests {
         )
     }
 
+    /// Done at the set's own weight.
     fn complete(active: &mut WorkoutRecord, set_id: &str, reps: i32, at: i64) {
+        let weight = active
+            .proposed_sets
+            .iter()
+            .find(|s| s.id == set_id)
+            .map(|s| s.target_weight)
+            .unwrap_or(0.0);
         apply_complete_set_to_active(
             active,
             &CompleteSetRequest {
                 workout_id: "w1".to_string(),
                 proposed_set_id: set_id.to_string(),
                 actual_reps: reps,
-                actual_weight: 135.0,
+                actual_weight: weight,
                 completed_at: at,
-                effort: 0,
             },
             AppWeightUnit::Lb,
             &mut Ids::new(&Uuid::new_v4().to_string()),
@@ -696,7 +1001,6 @@ mod tests {
                 actual_reps: 5,
                 actual_weight: 135.0,
                 completed_at: 2_000,
-                effort: 0,
             },
             AppWeightUnit::Lb,
             &mut Ids::new(&Uuid::new_v4().to_string()),
@@ -706,14 +1010,12 @@ mod tests {
     }
 
     #[test]
-    fn rest_depends_on_hitting_the_target() {
-        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
-        complete(&mut active, "s1", 5, 2_000); // hit 5/5 -> success rest
-        assert_eq!(active.completed_sets[0].rest_until, 2_000 + 180);
-
-        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
-        complete(&mut active, "s1", 3, 2_000); // missed -> failure rest
-        assert_eq!(active.completed_sets[0].rest_until, 2_000 + 300);
+    fn a_set_rests_its_own_rest_hit_or_not() {
+        for reps in [5, 3] {
+            let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
+            complete(&mut active, "s1", reps, 2_000);
+            assert_eq!(active.completed_sets[0].rest_until, 2_000 + 180);
+        }
     }
 
     #[test]
@@ -1020,6 +1322,7 @@ mod tests {
                 actual_weight: weight,
             },
             AppWeightUnit::Lb,
+            9_000,
         )
         .unwrap();
     }
@@ -1038,21 +1341,13 @@ mod tests {
         let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
         complete(&mut active, "s1", 5, 2_000);
         let id = done_id(&active, "s1");
-        assert_eq!(
-            active.completed_sets[0].rest_until, 2_180,
-            "hit: success rest"
-        );
+        assert_eq!(active.completed_sets[0].rest_until, 2_180);
 
-        // Fewer reps than planned: the rest switches to the failure rest,
-        // still anchored at ended_at. Weight changes land too.
+        // Reps and weight change; the rest stays anchored at ended_at.
         edit(&mut active, &id, 3, 125.0);
         let c = &active.completed_sets[0];
         assert_eq!((c.actual_reps, c.actual_weight), (3, 125.0));
-        assert_eq!(c.rest_until, 2_300);
-
-        // Back to target: back to the success rest.
-        edit(&mut active, &id, 5, 125.0);
-        assert_eq!(active.completed_sets[0].rest_until, 2_180);
+        assert_eq!(c.rest_until, 2_180);
 
         // The exercise's final set keeps the short between-exercise rest.
         complete(&mut active, "s2", 5, 2_400);
@@ -1080,11 +1375,45 @@ mod tests {
         rung.calibration = true;
         rung.target_reps = 5;
         rung.target_weight = weight;
-        rung.rest_after_success = 90;
-        rung.rest_after_failure = 90;
+        rung.rest_seconds = 90;
         let mut other = proposed("b1", 1, false);
         other.exercise = 2;
-        active_with(vec![rung, other])
+        let mut active = active_with(vec![rung, other]);
+        active.exercise_logs.push(crate::pb::ExerciseLog {
+            decision: Some(ramp_decision(weight)),
+            changes: Vec::new(),
+        });
+        active
+    }
+
+    /// A squat never done: 3 sets in the heavy class, a ramp from `weight`.
+    fn ramp_decision(weight: f32) -> crate::pb::ExerciseDecision {
+        crate::pb::ExerciseDecision {
+            exercise: 1,
+            sets: 3,
+            reps: 5,
+            weight,
+            rest_seconds: 180,
+            warmups: true,
+            rep_low: 5,
+            rep_high: 8,
+            calibration: true,
+            ..Default::default()
+        }
+    }
+
+    fn causes(active: &WorkoutRecord) -> Vec<(WeightChangeCause, f32, f32)> {
+        active.exercise_logs[0]
+            .changes
+            .iter()
+            .map(|c| {
+                (
+                    WeightChangeCause::try_from(c.cause).unwrap(),
+                    c.before,
+                    c.after,
+                )
+            })
+            .collect()
     }
 
     fn squat_sets(active: &WorkoutRecord) -> Vec<&ProposedSet> {
@@ -1106,6 +1435,7 @@ mod tests {
             },
             AppWeightUnit::Lb,
             &mut Ids::new(&Uuid::new_v4().to_string()),
+            3_000,
         )
         .unwrap();
     }
@@ -1149,10 +1479,10 @@ mod tests {
         assert_eq!(active.proposed_sets[1].target_weight, 220.0);
     }
 
-    /// A miss ends the ramp: the working sets at 90% of the heaviest rung
-    /// done in full.
+    /// A miss ends the ramp: the missed rung, a set to failure, gives the
+    /// max, and the decision's working sets are planned from it.
     #[test]
-    fn a_miss_settles_at_ninety_percent_of_the_heaviest_full_rung() {
+    fn a_miss_settles_from_the_max_the_rung_shows() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
         let rung2 = active.proposed_sets[1].id.clone();
@@ -1163,21 +1493,35 @@ mod tests {
             .into_iter()
             .filter(|s| !s.calibration)
             .collect();
-        assert_eq!(working.len(), 5, "the full 5×5");
+        assert_eq!(working.len(), 3, "the decision's sets");
+        // 110 × 4 to failure shows 124.7; the heaviest it covers at 5 is
+        // 101, so 100 × 5.
         for (n, set) in working.iter().enumerate() {
-            assert_eq!(set.target_weight, 90.0, "90% of the 100 done in full");
-            assert_eq!(set.target_reps, 5);
+            assert_eq!((set.target_weight, set.target_reps), (100.0, 5));
             assert_eq!(set.id, uuid5(&done2, n));
-            assert_eq!((set.rest_after_success, set.rest_after_failure), (180, 240));
+            assert_eq!(set.rest_seconds, 180);
         }
         assert_eq!(active.proposed_sets.last().unwrap().id, "b1");
+        assert_eq!(
+            causes(&active),
+            vec![
+                (WeightChangeCause::CalibrationStep, 100.0, 110.0),
+                (WeightChangeCause::CalibrationSettled, 110.0, 100.0),
+            ]
+        );
     }
 
     #[test]
     fn a_first_rung_missed_settles_under_it() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 3, 2_000);
-        assert_eq!(squat_plan(&active), vec![(90.0, false); 5]);
+        // 100 × 3 shows 110: 85 covers 6 at the bottom of the range.
+        assert_eq!(squat_plan(&active), vec![(85.0, false); 3]);
+        assert_eq!(
+            squat_sets(&active).last().unwrap().target_reps,
+            6,
+            "a rep more before the next plate"
+        );
     }
 
     #[test]
@@ -1206,13 +1550,270 @@ mod tests {
             .collect();
         assert_eq!(rungs.len(), planning::MAX_CALIBRATION_RUNGS);
         let top = *rungs.last().unwrap();
-        let working: Vec<f32> = squat_sets(&active)
+        let max = crate::plan::shown_max(top, 5, 1.0, 1, false);
+        let (weight, reps) = crate::plan::choose(
+            crate::pb::Exercise::Squat,
+            max,
+            None,
+            3,
+            5,
+            8,
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
             .iter()
             .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working, vec![(weight, reps); 3]);
+    }
+
+    // ── Too heavy: a rung under TOO_HEAVY_REPS steps the ramp down ──────
+
+    /// The calibration rung pending for the squat, if any.
+    fn pending_rung(active: &WorkoutRecord) -> Option<ProposedSet> {
+        squat_sets(active)
+            .into_iter()
+            .find(|s| {
+                s.calibration
+                    && !active
+                        .completed_sets
+                        .iter()
+                        .any(|c| c.proposed_set_id == s.id)
+            })
+            .cloned()
+    }
+
+    /// 0, 1 or 2 reps: not a max, the next rung a fifth lighter (snapped
+    /// down to what loads), no question, a CALIBRATION_STEP down.
+    #[test]
+    fn too_few_reps_step_the_ramp_down_a_fifth() {
+        for reps in 0..planning::TOO_HEAVY_REPS {
+            let mut active = ramp_workout(200.0);
+            complete(&mut active, "c1", reps, 2_000);
+            assert_eq!(squat_plan(&active), vec![(160.0, true)], "{reps} reps");
+            assert_eq!(rung_question(&active), None, "{reps} reps: no question");
+            assert_eq!(
+                causes(&active),
+                vec![(WeightChangeCause::CalibrationStep, 200.0, 160.0)]
+            );
+            assert_eq!(active.proposed_sets[2].id, "b1", "ahead of bench");
+        }
+        // 0.8 × 135 = 108 snaps down to 105.
+        let mut active = ramp_workout(135.0);
+        complete(&mut active, "c1", 1, 2_000);
+        assert_eq!(squat_plan(&active), vec![(105.0, true)]);
+    }
+
+    /// Where a fifth lighter snaps back to the same weight, one step under
+    /// it; never under the empty bar.
+    #[test]
+    fn a_step_down_is_always_lighter_and_never_under_the_bar() {
+        let step =
+            |w: f32| planning::stepped_down_calibration_weight(1, w, None, AppWeightUnit::Lb);
+        assert_eq!(step(50.0), Some(45.0), "0.8 × 50 is under the bar");
+        assert_eq!(step(45.0), None, "nothing under the empty bar");
+        // A stack in steps of 5: 0.8 × 5 = 4 snaps to 5, the same weight.
+        let press = crate::pb::Exercise::LegPress as i32;
+        let machine =
+            |w: f32| planning::stepped_down_calibration_weight(press, w, None, AppWeightUnit::Lb);
+        assert_eq!(machine(10.0), Some(5.0));
+        assert_eq!(machine(5.0), None);
+        for w in [50.0, 95.0, 135.0, 225.0, 315.0] {
+            let down = step(w).unwrap();
+            assert!(down < w && down >= 45.0, "{w} → {down}");
+        }
+        // Kilograms: 0.8 × 100 kg = 80 kg.
+        let kg = crate::weight_units::kg_to_pounds;
+        let down = planning::stepped_down_calibration_weight(1, kg(100.0), None, AppWeightUnit::Kg)
+            .unwrap();
+        assert!((crate::weight_units::pounds_to_kg(down) - 80.0).abs() < 0.01);
+    }
+
+    /// A too-heavy rung on the empty bar has nothing lighter to try: the
+    /// ramp settles from it as a set to failure of at least one rep.
+    #[test]
+    fn too_heavy_on_the_bar_settles() {
+        let mut active = ramp_workout(45.0);
+        complete(&mut active, "c1", 0, 2_000);
+        assert!(squat_plan(&active).iter().all(|(_, rung)| !rung));
+        assert_eq!(squat_plan(&active).len(), 3);
+    }
+
+    /// 3 or 4 reps settle the ramp, as a miss always did.
+    #[test]
+    fn three_or_four_reps_settle() {
+        for reps in [3, 4] {
+            let mut active = ramp_workout(200.0);
+            complete(&mut active, "c1", reps, 2_000);
+            let plan = squat_plan(&active);
+            assert_eq!(plan.len(), 3, "{reps} reps");
+            assert!(plan.iter().all(|(_, rung)| !rung), "{reps} reps");
+        }
+    }
+
+    /// A step down then a full rung: the question is asked, as on any full
+    /// rung, and the ramp climbs from there.
+    #[test]
+    fn a_full_rung_after_a_step_down_asks() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 0, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        complete(&mut active, &rung2.id, 5, 2_200);
+        assert_eq!(rung_question(&active).as_deref(), Some(rung2.id.as_str()));
+        assert_eq!(
+            pending_rung(&active).unwrap().target_weight,
+            175.0,
+            "160 + 10%, loadable"
+        );
+    }
+
+    /// A step down then a 3–4 miss: the working sets come from that rung,
+    /// not the too-heavy one.
+    #[test]
+    fn a_miss_after_a_step_down_settles_from_it() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 1, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        complete(&mut active, &rung2.id, 4, 2_200);
+        let decision = ramp_decision(200.0);
+        let want = planning::working_sets_after_calibration(
+            "w1",
+            &decision,
+            crate::plan::shown_max(160.0, 4, 0.0, 1, false),
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        let want: Vec<(f32, i32)> = want
+            .iter()
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working, want);
+        assert_eq!(
+            causes(&active),
+            vec![
+                (WeightChangeCause::CalibrationStep, 200.0, 160.0),
+                (WeightChangeCause::CalibrationSettled, 160.0, want[0].0),
+            ]
+        );
+    }
+
+    /// Too heavy after a rung done in full: the step down never goes back
+    /// to or under that rung, it splits the gap; with nothing loadable
+    /// between, the ramp settles from the full rung.
+    #[test]
+    fn a_step_down_stays_over_a_full_rung() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        assert_eq!(rung2.target_weight, 110.0);
+        complete(&mut active, &rung2.id, 2, 2_200);
+        assert_eq!(
+            pending_rung(&active).unwrap().target_weight,
+            105.0,
+            "not 0.8 × 110 = 85: over the 100 done in full"
+        );
+
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = pending_rung(&active).unwrap();
+        adjust(&mut active, 1, 105.0);
+        let rung2 = squat_sets(&active)
+            .into_iter()
+            .find(|s| s.id == rung2.id)
+            .unwrap()
+            .clone();
+        assert_eq!(rung2.target_weight, 105.0);
+        complete(&mut active, &rung2.id, 0, 2_200);
+        // Settled from the 100 done in full, capped by the 105 it failed.
+        let max = crate::plan::shown_max(100.0, 5, 1.0, 1, false)
+            .min(crate::plan::shown_max(105.0, 1, 0.0, 1, false));
+        let want = planning::working_sets_after_calibration(
+            "w1",
+            &ramp_decision(100.0),
+            max,
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working.len(), 3, "settled from the 100 done in full");
+        assert_eq!(working[0], (want[0].target_weight, want[0].target_reps));
+    }
+
+    /// The sixth rung too heavy: the ramp can go no further, so it settles
+    /// from that rung as best it can — a set to failure, at least one rep.
+    #[test]
+    fn a_too_heavy_sixth_rung_settles() {
+        let mut active = ramp_workout(300.0);
+        let mut at = 2_000;
+        for n in 0..planning::MAX_CALIBRATION_RUNGS {
+            let rung = pending_rung(&active).unwrap();
+            complete(&mut active, &rung.id, 0, at);
+            at += 200;
+            let rungs = squat_sets(&active).iter().filter(|s| s.calibration).count();
+            if n + 1 < planning::MAX_CALIBRATION_RUNGS {
+                assert_eq!(rungs, n + 2, "rung {} steps down", n + 1);
+            }
+        }
+        let rungs: Vec<f32> = squat_sets(&active)
+            .iter()
+            .filter(|s| s.calibration)
             .map(|s| s.target_weight)
             .collect();
-        assert_eq!(working.len(), 5);
-        assert!(working.iter().all(|w| (*w - top * 0.9).abs() <= 5.0));
+        assert_eq!(rungs.len(), planning::MAX_CALIBRATION_RUNGS);
+        assert!(rungs.windows(2).all(|w| w[1] < w[0]), "{rungs:?}");
+        let last = *rungs.last().unwrap();
+        let want = planning::working_sets_after_calibration(
+            "w1",
+            &ramp_decision(300.0),
+            crate::plan::shown_max(last, 1, 0.0, 1, false),
+            AppWeightUnit::Lb,
+        );
+        let working: Vec<(f32, i32)> = squat_sets(&active)
+            .iter()
+            .filter(|s| !s.calibration)
+            .map(|s| (s.target_weight, s.target_reps))
+            .collect();
+        assert_eq!(working.len(), 3);
+        assert_eq!(working[0], (want[0].target_weight, want[0].target_reps));
+    }
+
+    /// Corrections either way re-settle by the same rules: a too-heavy rung
+    /// corrected to 3 settles, and back to 2 steps down again; a 3-rep rung
+    /// corrected to 2 steps down.
+    #[test]
+    fn correcting_a_too_heavy_rung_resettles_it() {
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 2, 2_000);
+        let done = done_id(&active, "c1");
+        assert_eq!(squat_plan(&active), vec![(160.0, true)]);
+        edit(&mut active, &done, 3, 200.0);
+        let plan = squat_plan(&active);
+        assert_eq!(plan.len(), 3);
+        assert!(plan.iter().all(|(_, rung)| !rung), "settled at 3");
+        assert_eq!(
+            causes(&active)
+                .iter()
+                .filter(|c| c.0 == WeightChangeCause::CalibrationStep)
+                .count(),
+            0,
+            "the step down it took back is gone from the log"
+        );
+        edit(&mut active, &done, 2, 200.0);
+        assert_eq!(squat_plan(&active), vec![(160.0, true)], "and back");
+
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 4, 2_000);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 1, 200.0);
+        assert_eq!(squat_plan(&active), vec![(160.0, true)]);
     }
 
     /// Tapping a rep off a rung after Done (the way a miss is recorded)
@@ -1224,7 +1825,12 @@ mod tests {
         assert_eq!(squat_plan(&active), vec![(110.0, true)]);
         let done = done_id(&active, "c1");
         edit(&mut active, &done, 4, 100.0);
-        assert_eq!(squat_plan(&active), vec![(90.0, false); 5]);
+        assert_eq!(squat_plan(&active), vec![(90.0, false); 3]);
+        assert_eq!(
+            causes(&active),
+            vec![(WeightChangeCause::CalibrationSettled, 100.0, 90.0)],
+            "the step it took back is gone from the log"
+        );
         edit(&mut active, &done, 5, 100.0);
         assert_eq!(squat_plan(&active), vec![(110.0, true)], "and back");
     }
@@ -1241,41 +1847,75 @@ mod tests {
         assert_eq!(squat_plan(&active), plan);
     }
 
+    /// Once a working set the rung settled is lifted, correcting the rung
+    /// leaves the plan, and that set, where they are.
     #[test]
-    fn typing_a_weight_mid_ramp_replaces_the_rung_with_the_full_working_sets() {
+    fn a_settled_set_lifted_keeps_the_rung_settled() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 3, 2_000);
+        let first = active.proposed_sets[1].id.clone();
+        complete(&mut active, &first, 5, 2_200);
+        let plan = squat_plan(&active);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 5, 100.0);
+        assert_eq!(squat_plan(&active), plan);
+        assert!(active.completed_sets.iter().all(|c| active
+            .proposed_sets
+            .iter()
+            .any(|s| s.id == c.proposed_set_id)));
+    }
+
+    /// A weight typed mid-ramp moves the pending rung there: it is still a
+    /// rung, with its id, and the ramp goes on from it.
+    #[test]
+    fn typing_a_weight_mid_ramp_moves_the_pending_rung() {
         let mut active = ramp_workout(45.0);
         complete(&mut active, "c1", 5, 2_000);
         let pending_rung = active.proposed_sets[1].id.clone();
         assert!(active.proposed_sets[1].calibration);
 
-        adjust(&mut active, 1, 102.0);
+        adjust(&mut active, 1, 100.0);
         let squat = squat_sets(&active);
-        assert!(
-            squat.iter().all(|s| s.id != pending_rung),
-            "the pending rung is gone"
-        );
-        let working: Vec<&&ProposedSet> = squat.iter().filter(|s| !s.calibration).collect();
-        assert_eq!(working.len(), 5, "the prescription's 5×5");
-        for (n, set) in working.iter().enumerate() {
-            assert_eq!(set.id, uuid5(&pending_rung, n), "pinned id for n = {n}");
-            assert_eq!(set.target_weight, 100.0, "102 snapped loadable");
-            assert_eq!(set.target_reps, 5);
-            assert!(!set.warmup);
-        }
-        assert_eq!(
-            active.proposed_sets[1].id, working[0].id,
-            "where the rung was"
-        );
+        assert_eq!(squat.len(), 2, "the done rung and the pending one");
+        assert_eq!(squat[1].id, pending_rung, "the same rung");
+        assert!(squat[1].calibration, "still ramping");
+        assert_eq!(squat[1].target_weight, 100.0);
         assert_eq!(
             active.proposed_sets.last().unwrap().id,
             "b1",
             "other exercises stay behind"
         );
-        assert!(active
-            .proposed_sets
-            .iter()
-            .enumerate()
-            .all(|(i, s)| s.workout_order == i as i32));
+        assert_eq!(
+            causes(&active).last(),
+            Some(&(WeightChangeCause::UserAdjust, 50.0, 100.0))
+        );
+    }
+
+    /// Fixing a done set's weight is a correction on the log; fixing only
+    /// its reps is not a weight change.
+    #[test]
+    fn a_fixed_weight_is_a_correction() {
+        let mut active = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
+        active.exercise_logs.push(crate::pb::ExerciseLog {
+            decision: Some(crate::pb::ExerciseDecision {
+                exercise: 1,
+                weight: 135.0,
+                ..Default::default()
+            }),
+            changes: Vec::new(),
+        });
+        complete(&mut active, "s1", 5, 2_000);
+        let id = done_id(&active, "s1");
+        edit(&mut active, &id, 4, 135.0);
+        assert!(causes(&active).is_empty());
+        edit(&mut active, &id, 4, 125.0);
+        assert_eq!(
+            causes(&active),
+            vec![(WeightChangeCause::Correction, 135.0, 125.0)]
+        );
+        let change = &active.exercise_logs[0].changes[0];
+        assert_eq!((change.at, change.from_set_id.as_str()), (9_000, "s1"));
+        assert_eq!(active.planned_weight(1), 135.0, "the plan's weight stands");
     }
 
     #[test]
@@ -1302,5 +1942,386 @@ mod tests {
         let before = active.completed_sets.clone();
         complete(&mut active, "s1", 3, 2_050);
         assert_eq!(active.completed_sets, before, "one row, untouched");
+    }
+
+    /// Undoing a rung takes back the rung it appended, so doing it again
+    /// appends one, not a second.
+    #[test]
+    fn an_undone_rung_takes_back_its_append() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let done = done_id(&active, "c1");
+        apply_delete_completed_set_to_active(
+            &mut active,
+            &DeleteCompletedSetRequest {
+                workout_id: "w1".to_string(),
+                completed_set_id: done,
+            },
+        )
+        .unwrap();
+        assert_eq!(squat_plan(&active), Vec::<(f32, bool)>::new());
+        assert!(causes(&active).is_empty(), "and its log entry");
+        complete(&mut active, "c1", 5, 2_100);
+        assert_eq!(squat_plan(&active), vec![(110.0, true)]);
+    }
+
+    // ── How many more could you have done? ──────────────────────────────────
+
+    fn answer(active: &mut WorkoutRecord, set_id: &str, reps_left: RepsLeft) {
+        send_answer(active, set_id, reps_left, 0.0, AppWeightUnit::Lb);
+    }
+
+    /// A specific jump of `jump_lb` for the next rung.
+    fn jump(active: &mut WorkoutRecord, set_id: &str, jump_lb: f32, unit: AppWeightUnit) {
+        send_answer(active, set_id, RepsLeft::Unspecified, jump_lb, unit);
+    }
+
+    fn send_answer(
+        active: &mut WorkoutRecord,
+        set_id: &str,
+        reps_left: RepsLeft,
+        jump_lb: f32,
+        unit: AppWeightUnit,
+    ) {
+        apply_answer_rung_to_active(
+            active,
+            &AnswerRungRequest {
+                workout_id: "w1".to_string(),
+                proposed_set_id: set_id.to_string(),
+                reps_left: reps_left as i32,
+                jump_lb,
+            },
+            unit,
+            3_000,
+        )
+        .unwrap();
+    }
+
+    /// A specific jump: the next rung is the rung plus it, snapped to
+    /// what loads, still a rung, logged as a calibration step.
+    #[test]
+    fn a_jump_climbs_by_it_and_the_ramp_goes_on() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        jump(&mut active, "c1", 37.0, AppWeightUnit::Lb);
+        assert_eq!(squat_plan(&active), vec![(135.0, true)], "137 loads as 135");
+        assert_eq!(
+            causes(&active),
+            vec![(WeightChangeCause::CalibrationStep, 100.0, 135.0)]
+        );
+        assert_eq!(rung_question(&active), None, "answered");
+        let done = &active.completed_sets[0];
+        assert_eq!((done.jump_lb, done.reps_left), (37.0, 0));
+        // The ramp goes on: the jumped rung asks in turn.
+        let rung2 = squat_sets(&active)[1].id.clone();
+        complete(&mut active, &rung2, 5, 2_200);
+        assert_eq!(rung_question(&active).as_deref(), Some(rung2.as_str()));
+        assert!(squat_plan(&active)[1].1, "a third rung");
+
+        // Too small to load: still one step up.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        jump(&mut active, "c1", 1.0, AppWeightUnit::Lb);
+        assert_eq!(squat_plan(&active), vec![(105.0, true)]);
+    }
+
+    /// In kilograms the jump lands on kilogram plates.
+    #[test]
+    fn a_jump_in_kilograms_snaps_to_kilogram_plates() {
+        use crate::weight_units::kg_to_pounds;
+        let rung = kg_to_pounds(60.0);
+        let mut active = ramp_workout(rung);
+        complete(&mut active, "c1", 5, 2_000);
+        jump(&mut active, "c1", kg_to_pounds(7.0), AppWeightUnit::Kg);
+        let next = squat_plan(&active);
+        assert_eq!(next.len(), 1);
+        assert!(next[0].1);
+        assert!(
+            (next[0].0 - kg_to_pounds(67.5)).abs() < 0.01,
+            "67 kg loads as 67.5: {}",
+            next[0].0
+        );
+    }
+
+    /// Exactly one of a range and a jump, and a jump in range: anything
+    /// else is ignored, as is a jump to a question no longer open.
+    #[test]
+    fn a_bad_or_stale_jump_is_a_no_op() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let before = active.clone();
+        let lb = AppWeightUnit::Lb;
+        send_answer(&mut active, "c1", RepsLeft::FivePlus, 20.0, lb);
+        assert_eq!(active, before, "both");
+        send_answer(&mut active, "c1", RepsLeft::Unspecified, 0.0, lb);
+        assert_eq!(active, before, "neither");
+        for bad in [-10.0, 200.5, f32::NAN, f32::INFINITY] {
+            jump(&mut active, "c1", bad, lb);
+            assert_eq!(active, before, "out of range: {bad}");
+        }
+        jump(&mut active, "c1", 200.0, lb);
+        assert_eq!(
+            squat_plan(&active),
+            vec![(300.0, true)],
+            "twice the rung is fine"
+        );
+
+        // Answered already, by a range or a jump: a jump is ignored.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::TwoToFour);
+        let answered = active.clone();
+        jump(&mut active, "c1", 50.0, lb);
+        assert_eq!(active, answered, "answered by a range");
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        jump(&mut active, "c1", 50.0, lb);
+        let jumped = active.clone();
+        jump(&mut active, "c1", 20.0, lb);
+        answer(&mut active, "c1", RepsLeft::ZeroToOne);
+        assert_eq!(active, jumped, "answered by a jump");
+
+        // The next rung started: too late.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = squat_sets(&active)[1].id.clone();
+        start(&mut active, &rung2, 2_100);
+        let before = active.clone();
+        jump(&mut active, "c1", 50.0, lb);
+        assert_eq!(active, before, "something is being lifted");
+    }
+
+    /// A jumped rung corrected to a miss drops the jump, and settles as a
+    /// miss.
+    #[test]
+    fn a_jumped_rung_corrected_to_a_miss_drops_its_jump() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        jump(&mut active, "c1", 50.0, AppWeightUnit::Lb);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 4, 100.0);
+        assert_eq!(active.completed_sets[0].jump_lb, 0.0);
+        let max = crate::plan::shown_max(100.0, 4, 0.0, 1, false);
+        assert_eq!(squat_plan(&active), settled_at(max));
+    }
+
+    /// The working sets a squat max gives this ramp's decision.
+    fn settled_at(max: f32) -> Vec<(f32, bool)> {
+        let (weight, _) = crate::plan::choose(
+            crate::pb::Exercise::Squat,
+            max,
+            None,
+            3,
+            5,
+            8,
+            AppWeightUnit::Lb,
+        );
+        vec![(weight, false); 3]
+    }
+
+    #[test]
+    fn a_full_rung_asks_and_a_short_one_does_not() {
+        let mut active = ramp_workout(100.0);
+        assert_eq!(rung_question(&active), None, "nothing done yet");
+        complete(&mut active, "c1", 5, 2_000);
+        assert_eq!(rung_question(&active).as_deref(), Some("c1"));
+        assert_eq!(
+            get_workout_response_from_active(&active, 2_010).rung_question_set_id,
+            "c1"
+        );
+
+        let mut short = ramp_workout(100.0);
+        complete(&mut short, "c1", 4, 2_000);
+        assert_eq!(rung_question(&short), None, "a miss settles, no question");
+
+        let mut working = active_with(vec![proposed("s1", 0, false), proposed("s2", 1, false)]);
+        complete(&mut working, "s1", 5, 2_000);
+        assert_eq!(rung_question(&working), None, "a working set never asks");
+    }
+
+    /// 0–1: the ramp ends at that set, its max counting half a rep in
+    /// reserve, laid out as a miss's is.
+    #[test]
+    fn zero_to_one_settles_the_ramp_at_that_set() {
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::ZeroToOne);
+        let max = crate::plan::shown_max(100.0, 5, 0.5, 1, false);
+        assert_eq!(squat_plan(&active), settled_at(max));
+        assert_eq!(squat_plan(&active), vec![(95.0, false); 3]);
+        let done = done_id(&active, "c1");
+        assert_eq!(
+            squat_sets(&active)[1].id,
+            uuid5(&done, 0),
+            "ids from the done set, as a miss's"
+        );
+        assert_eq!(
+            causes(&active),
+            vec![(WeightChangeCause::CalibrationSettled, 100.0, 95.0)],
+            "the step it took back is gone from the log"
+        );
+        assert_eq!(rung_question(&active), None, "answered");
+        assert_eq!(
+            active.completed_sets[0].reps_left,
+            RepsLeft::ZeroToOne as i32
+        );
+    }
+
+    /// 2–3 and 4+: the next rung is where the max they imply leaves a rep
+    /// in reserve on five, never under the usual +10%.
+    #[test]
+    fn more_left_climbs_to_one_rep_in_reserve() {
+        let unit = AppWeightUnit::Lb;
+        for weight in [100.0, 200.0, 450.0] {
+            for (reps_left, reserve) in [(RepsLeft::TwoToFour, 3.0), (RepsLeft::FivePlus, 8.0)] {
+                let mut active = ramp_workout(weight);
+                complete(&mut active, "c1", 5, 2_000);
+                answer(&mut active, "c1", reps_left);
+                let usual = planning::next_calibration_weight(1, weight, unit);
+                let max = crate::plan::shown_max(weight, 5, reserve, 1, false);
+                let next = squat_plan(&active);
+                assert_eq!(next.len(), 1);
+                assert!(next[0].1, "still a rung");
+                assert!(
+                    next[0].0 >= usual,
+                    "never under +10%: {weight} {reps_left:?}"
+                );
+                assert!(
+                    next[0].0 * 1.2 <= max + 1e-3 || next[0].0 == usual,
+                    "a rep in reserve on five: {weight} {reps_left:?}"
+                );
+                assert_eq!(
+                    causes(&active),
+                    vec![(WeightChangeCause::CalibrationStep, weight, next[0].0)]
+                );
+            }
+        }
+        // 2–4 implies 1.27× the rung: a rep left at 1.06×, so +10% stands.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::TwoToFour);
+        assert_eq!(squat_plan(&active), vec![(110.0, true)]);
+        // 5+ implies 1.43×: a rep left at about 1.19×, well past +10%.
+        let mut active = ramp_workout(200.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(planning::next_calibration_weight(1, 200.0, unit), 220.0);
+        assert_eq!(squat_plan(&active), vec![(235.0, true)]);
+    }
+
+    #[test]
+    fn unanswered_climbs_the_usual_rung() {
+        let mut active = ramp_workout(450.0);
+        complete(&mut active, "c1", 5, 2_000);
+        assert_eq!(squat_plan(&active), vec![(495.0, true)]);
+    }
+
+    /// An answered rung, then a miss on the rung after it: the miss
+    /// settles the ramp as ever.
+    #[test]
+    fn a_miss_after_an_answer_still_settles_it() {
+        let mut active = ramp_workout(450.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        let (rung2, weight) = {
+            let set = &squat_sets(&active)[1];
+            (set.id.clone(), set.target_weight)
+        };
+        complete(&mut active, &rung2, 4, 2_200);
+        let max = crate::plan::shown_max(weight, 4, 0.0, 1, false);
+        assert_eq!(squat_plan(&active)[1..], settled_at(max)[..]);
+        assert_eq!(rung_question(&active), None);
+    }
+
+    /// An answer only counts on the open question: not twice, not to a set
+    /// before the latest, not once something is lifted, not on a miss.
+    #[test]
+    fn a_stale_answer_is_a_no_op() {
+        // Answered already: the second answer changes nothing.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::ZeroToOne);
+        let settled = active.clone();
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(active, settled, "the ramp settled: ignored");
+
+        // A rung after it done: the first rung's question is gone.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = squat_sets(&active)[1].id.clone();
+        complete(&mut active, &rung2, 5, 2_200);
+        let before = active.clone();
+        answer(&mut active, "c1", RepsLeft::ZeroToOne);
+        assert_eq!(active, before, "not the latest rung");
+        answer(&mut active, &rung2, RepsLeft::Unspecified);
+        assert_eq!(active, before, "no answer");
+        answer(&mut active, "nope", RepsLeft::ZeroToOne);
+        assert_eq!(active, before, "an unknown set");
+
+        // The next rung started: the weight is on the bar.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        let rung2 = squat_sets(&active)[1].id.clone();
+        start(&mut active, &rung2, 2_100);
+        assert_eq!(rung_question(&active), None);
+        let before = active.clone();
+        answer(&mut active, "c1", RepsLeft::ZeroToOne);
+        assert_eq!(active, before, "something is being lifted");
+
+        // Another lift's set done after it.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 5, 2_000);
+        complete(&mut active, "b1", 5, 2_100);
+        let before = active.clone();
+        answer(&mut active, "c1", RepsLeft::ZeroToOne);
+        assert_eq!(active, before, "not the latest set");
+
+        // A miss: it ran to failure, nothing to ask.
+        let mut active = ramp_workout(100.0);
+        complete(&mut active, "c1", 4, 2_000);
+        let before = active.clone();
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(active, before, "a miss");
+    }
+
+    /// The sixth rung settles the ramp on its own: no question.
+    #[test]
+    fn the_sixth_rung_does_not_ask() {
+        let mut active = ramp_workout(100.0);
+        let mut at = 2_000;
+        for _ in 0..planning::MAX_CALIBRATION_RUNGS {
+            let rung = squat_sets(&active)
+                .into_iter()
+                .find(|s| {
+                    s.calibration
+                        && !active
+                            .completed_sets
+                            .iter()
+                            .any(|c| c.proposed_set_id == s.id)
+                })
+                .unwrap()
+                .id
+                .clone();
+            complete(&mut active, &rung, 5, at);
+            at += 200;
+        }
+        assert_eq!(rung_question(&active), None);
+    }
+
+    /// A rung answered, then corrected to a miss: the answer goes with it.
+    #[test]
+    fn a_rung_corrected_to_a_miss_drops_its_answer() {
+        let mut active = ramp_workout(450.0);
+        complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        let done = done_id(&active, "c1");
+        edit(&mut active, &done, 4, 450.0);
+        assert_eq!(
+            active.completed_sets[0].reps_left,
+            RepsLeft::Unspecified as i32
+        );
+        edit(&mut active, &done, 5, 450.0);
+        assert_eq!(squat_plan(&active), vec![(495.0, true)], "unanswered again");
+        assert_eq!(rung_question(&active).as_deref(), Some("c1"), "asks again");
     }
 }

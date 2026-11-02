@@ -86,15 +86,6 @@ const Event$json = {
       '10': 'addLibraryTemplates'
     },
     {
-      '1': 'set_exercise_tracker',
-      '3': 17,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.SetExerciseTrackerRequest',
-      '9': 0,
-      '10': 'setExerciseTracker'
-    },
-    {
       '1': 'complete_onboarding',
       '3': 18,
       '4': 1,
@@ -111,15 +102,6 @@ const Event$json = {
       '6': '.workout.v1.UpdateSettingRequest',
       '9': 0,
       '10': 'updateSetting'
-    },
-    {
-      '1': 'dismiss_user_messages',
-      '3': 20,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.DismissUserMessagesRequest',
-      '9': 0,
-      '10': 'dismissUserMessages'
     },
     {
       '1': 'import_history',
@@ -139,10 +121,24 @@ const Event$json = {
       '9': 0,
       '10': 'cloneTemplate'
     },
+    {
+      '1': 'set_override',
+      '3': 23,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.SetOverrideRequest',
+      '9': 0,
+      '10': 'setOverride'
+    },
   ],
   '8': [
     {'1': 'kind'},
   ],
+  '9': [
+    {'1': 17, '2': 18},
+    {'1': 20, '2': 21},
+  ],
+  '10': ['set_exercise_tracker', 'dismiss_user_messages'],
 };
 
 /// Descriptor for `Event`. Decode as a `google.protobuf.DescriptorProto`.
@@ -157,16 +153,15 @@ final $typed_data.Uint8List eventDescriptor = $convert.base64Decode(
     'VxdWVzdEgAUg5kZWxldGVUZW1wbGF0ZRJSChFyZW9yZGVyX3RlbXBsYXRlcxgPIAEoCzIjLndv'
     'cmtvdXQudjEuUmVvcmRlclRlbXBsYXRlc1JlcXVlc3RIAFIQcmVvcmRlclRlbXBsYXRlcxJcCh'
     'VhZGRfbGlicmFyeV90ZW1wbGF0ZXMYECABKAsyJi53b3Jrb3V0LnYxLkFkZExpYnJhcnlUZW1w'
-    'bGF0ZXNSZXF1ZXN0SABSE2FkZExpYnJhcnlUZW1wbGF0ZXMSWQoUc2V0X2V4ZXJjaXNlX3RyYW'
-    'NrZXIYESABKAsyJS53b3Jrb3V0LnYxLlNldEV4ZXJjaXNlVHJhY2tlclJlcXVlc3RIAFISc2V0'
-    'RXhlcmNpc2VUcmFja2VyElgKE2NvbXBsZXRlX29uYm9hcmRpbmcYEiABKAsyJS53b3Jrb3V0Ln'
-    'YxLkNvbXBsZXRlT25ib2FyZGluZ1JlcXVlc3RIAFISY29tcGxldGVPbmJvYXJkaW5nEkkKDnVw'
-    'ZGF0ZV9zZXR0aW5nGBMgASgLMiAud29ya291dC52MS5VcGRhdGVTZXR0aW5nUmVxdWVzdEgAUg'
-    '11cGRhdGVTZXR0aW5nElwKFWRpc21pc3NfdXNlcl9tZXNzYWdlcxgUIAEoCzImLndvcmtvdXQu'
-    'djEuRGlzbWlzc1VzZXJNZXNzYWdlc1JlcXVlc3RIAFITZGlzbWlzc1VzZXJNZXNzYWdlcxJCCg'
-    '5pbXBvcnRfaGlzdG9yeRgVIAEoCzIZLndvcmtvdXQudjEuSW1wb3J0SGlzdG9yeUgAUg1pbXBv'
-    'cnRIaXN0b3J5EkkKDmNsb25lX3RlbXBsYXRlGBYgASgLMiAud29ya291dC52MS5DbG9uZVRlbX'
-    'BsYXRlUmVxdWVzdEgAUg1jbG9uZVRlbXBsYXRlQgYKBGtpbmQ=');
+    'bGF0ZXNSZXF1ZXN0SABSE2FkZExpYnJhcnlUZW1wbGF0ZXMSWAoTY29tcGxldGVfb25ib2FyZG'
+    'luZxgSIAEoCzIlLndvcmtvdXQudjEuQ29tcGxldGVPbmJvYXJkaW5nUmVxdWVzdEgAUhJjb21w'
+    'bGV0ZU9uYm9hcmRpbmcSSQoOdXBkYXRlX3NldHRpbmcYEyABKAsyIC53b3Jrb3V0LnYxLlVwZG'
+    'F0ZVNldHRpbmdSZXF1ZXN0SABSDXVwZGF0ZVNldHRpbmcSQgoOaW1wb3J0X2hpc3RvcnkYFSAB'
+    'KAsyGS53b3Jrb3V0LnYxLkltcG9ydEhpc3RvcnlIAFINaW1wb3J0SGlzdG9yeRJJCg5jbG9uZV'
+    '90ZW1wbGF0ZRgWIAEoCzIgLndvcmtvdXQudjEuQ2xvbmVUZW1wbGF0ZVJlcXVlc3RIAFINY2xv'
+    'bmVUZW1wbGF0ZRJDCgxzZXRfb3ZlcnJpZGUYFyABKAsyHi53b3Jrb3V0LnYxLlNldE92ZXJyaW'
+    'RlUmVxdWVzdEgAUgtzZXRPdmVycmlkZUIGCgRraW5kSgQIERASSgQIFBAVUhRzZXRfZXhlcmNp'
+    'c2VfdHJhY2tlclIVZGlzbWlzc191c2VyX21lc3NhZ2Vz');
 
 @$core.Deprecated('Use importHistoryDescriptor instead')
 const ImportHistory$json = {
@@ -181,21 +176,25 @@ const ImportHistory$json = {
       '10': 'workouts'
     },
     {
-      '1': 'trackers',
-      '3': 2,
+      '1': 'starting_weights',
+      '3': 3,
       '4': 3,
       '5': 11,
-      '6': '.workout.v1.TrackerRecord',
-      '10': 'trackers'
+      '6': '.workout.v1.ExerciseWeight',
+      '10': 'startingWeights'
     },
   ],
+  '9': [
+    {'1': 2, '2': 3},
+  ],
+  '10': ['trackers'],
 };
 
 /// Descriptor for `ImportHistory`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List importHistoryDescriptor = $convert.base64Decode(
     'Cg1JbXBvcnRIaXN0b3J5EjcKCHdvcmtvdXRzGAEgAygLMhsud29ya291dC52MS5JbXBvcnRlZF'
-    'dvcmtvdXRSCHdvcmtvdXRzEjUKCHRyYWNrZXJzGAIgAygLMhkud29ya291dC52MS5UcmFja2Vy'
-    'UmVjb3JkUgh0cmFja2Vycw==');
+    'dvcmtvdXRSCHdvcmtvdXRzEkUKEHN0YXJ0aW5nX3dlaWdodHMYAyADKAsyGi53b3Jrb3V0LnYx'
+    'LkV4ZXJjaXNlV2VpZ2h0Ug9zdGFydGluZ1dlaWdodHNKBAgCEANSCHRyYWNrZXJz');
 
 @$core.Deprecated('Use importHistoryResponseDescriptor instead')
 const ImportHistoryResponse$json = {
@@ -242,6 +241,14 @@ const ImportedWorkout$json = {
       '6': '.workout.v1.WorkoutHeartRatePoint',
       '10': 'heartRate'
     },
+    {
+      '1': 'exercise_logs',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseLog',
+      '10': 'exerciseLogs'
+    },
   ],
 };
 
@@ -251,49 +258,8 @@ final $typed_data.Uint8List importedWorkoutDescriptor = $convert.base64Decode(
     'IHd29ya291dBI8Cg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNl'
     'dFIMcHJvcG9zZWRTZXRzEj8KDmNvbXBsZXRlZF9zZXRzGAMgAygLMhgud29ya291dC52MS5Db2'
     '1wbGV0ZWRTZXRSDWNvbXBsZXRlZFNldHMSQAoKaGVhcnRfcmF0ZRgEIAMoCzIhLndvcmtvdXQu'
-    'djEuV29ya291dEhlYXJ0UmF0ZVBvaW50UgloZWFydFJhdGU=');
-
-@$core.Deprecated('Use trackerRecordDescriptor instead')
-const TrackerRecord$json = {
-  '1': 'TrackerRecord',
-  '2': [
-    {
-      '1': 'exercise',
-      '3': 1,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.Exercise',
-      '10': 'exercise'
-    },
-    {'1': 'working_weight', '3': 2, '4': 1, '5': 2, '10': 'workingWeight'},
-    {'1': 'current_reps', '3': 3, '4': 1, '5': 5, '10': 'currentReps'},
-    {
-      '1': 'consecutive_misses',
-      '3': 4,
-      '4': 1,
-      '5': 5,
-      '10': 'consecutiveMisses'
-    },
-    {'1': 'last_performed_at', '3': 5, '4': 1, '5': 3, '10': 'lastPerformedAt'},
-    {'1': 'override_sets', '3': 6, '4': 1, '5': 5, '10': 'overrideSets'},
-    {'1': 'override_rep_low', '3': 7, '4': 1, '5': 5, '10': 'overrideRepLow'},
-    {'1': 'override_rep_high', '3': 8, '4': 1, '5': 5, '10': 'overrideRepHigh'},
-  ],
-  '9': [
-    {'1': 9, '2': 10},
-  ],
-  '10': ['consecutive_hard'],
-};
-
-/// Descriptor for `TrackerRecord`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List trackerRecordDescriptor = $convert.base64Decode(
-    'Cg1UcmFja2VyUmVjb3JkEjAKCGV4ZXJjaXNlGAEgASgOMhQud29ya291dC52MS5FeGVyY2lzZV'
-    'IIZXhlcmNpc2USJQoOd29ya2luZ193ZWlnaHQYAiABKAJSDXdvcmtpbmdXZWlnaHQSIQoMY3Vy'
-    'cmVudF9yZXBzGAMgASgFUgtjdXJyZW50UmVwcxItChJjb25zZWN1dGl2ZV9taXNzZXMYBCABKA'
-    'VSEWNvbnNlY3V0aXZlTWlzc2VzEioKEWxhc3RfcGVyZm9ybWVkX2F0GAUgASgDUg9sYXN0UGVy'
-    'Zm9ybWVkQXQSIwoNb3ZlcnJpZGVfc2V0cxgGIAEoBVIMb3ZlcnJpZGVTZXRzEigKEG92ZXJyaW'
-    'RlX3JlcF9sb3cYByABKAVSDm92ZXJyaWRlUmVwTG93EioKEW92ZXJyaWRlX3JlcF9oaWdoGAgg'
-    'ASgFUg9vdmVycmlkZVJlcEhpZ2hKBAgJEApSEGNvbnNlY3V0aXZlX2hhcmQ=');
+    'djEuV29ya291dEhlYXJ0UmF0ZVBvaW50UgloZWFydFJhdGUSPAoNZXhlcmNpc2VfbG9ncxgFIA'
+    'MoCzIXLndvcmtvdXQudjEuRXhlcmNpc2VMb2dSDGV4ZXJjaXNlTG9ncw==');
 
 @$core.Deprecated('Use syncRequestDescriptor instead')
 const SyncRequest$json = {

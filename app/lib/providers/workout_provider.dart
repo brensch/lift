@@ -63,6 +63,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// (e.g. the watch).
   void Function(String workoutId)? onWorkoutEnded;
 
+  /// Called once for each ramp set whose "how many more could you have
+  /// done?" opens: done with every rep, on the phone or the watch. The app
+  /// shell shows the question; dismissed, it stays unanswered.
+  void Function(String proposedSetId)? onRungQuestion;
+
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
   bool _isLoading = false;
@@ -73,6 +78,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedSet> _proposed = [];
   List<CompletedSet> _completed = [];
   Set<String> _passedWarmups = {};
+  List<ExerciseLog> _logs = [];
+  String _rungQuestion = '';
+  List<RungOutcome> _rungOutcomes = const [];
+  final Set<String> _askedRungs = {};
   ProposedSet? _nextUp;
   WorkoutStateSnapshot? _snapshot;
   GetHomeResponse? _home;
@@ -97,8 +106,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// and nothing real in front. It never schedules or cancels OS
   /// notifications, plays no sound, writes nothing to the health platform
   /// and leaves the notification tap handler to the real provider.
-  WorkoutProvider(this._service, this._settingsProvider, {bool sandbox = false})
-    : _sandbox = sandbox {
+  WorkoutProvider(
+    this._service,
+    this._settingsProvider, {
+    bool sandbox = false,
+    int budgetMinutes = defaultBudgetMinutes,
+  }) : _sandbox = sandbox,
+       _budgetMinutes = budgetMinutes {
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -132,6 +146,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
     _completed = List.of(response.completedSets);
     _passedWarmups = response.passedWarmupIds.toSet();
+    _logs = List.of(response.exerciseLogs);
+    _rungQuestion = response.rungQuestionSetId;
+    _rungOutcomes = List.of(response.rungOutcomes);
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -159,6 +176,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _applyWorkoutResponse(response.workoutState);
       }
       notifyListeners();
+      // A change just opened a ramp set's question: ask it, once.
+      final asking = _rungQuestion;
+      if (asking.isNotEmpty && _askedRungs.add(asking)) {
+        onRungQuestion?.call(asking);
+      }
     } catch (e) {
       _handleError(e);
     }
@@ -272,17 +294,80 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedSet> get proposedSets => _proposed;
   List<CompletedSet> get completedSets => _completed;
 
-  /// The home: templates, trackers, volume, recovery, the suggestion.
+  /// The home: templates, plans, volume, recovery, the suggestion.
   /// Null until the first load.
   GetHomeResponse? get home => _home;
   List<WorkoutTemplate> get templates => _home?.templates ?? const [];
-  List<ExerciseTracker> get trackers => _home?.trackers ?? const [];
 
-  /// The resolved tracker for one exercise. The home has one for every
-  /// exercise, so this only misses before the first load.
-  ExerciseTracker? trackerFor(Exercise exercise) {
-    for (final tracker in trackers) {
-      if (tracker.exercise == exercise) return tracker;
+  /// One lap of the rotation: sets per muscle and what is wrong with it.
+  RotationCheck? get rotationCheck => _home?.rotationCheck;
+
+  /// Every exercise in the catalog, planned at the home's now on its own.
+  List<ExercisePlan> get plans => _home?.plans ?? const [];
+
+  /// One exercise's plan. The home has one for every exercise, so this only
+  /// misses before the first load.
+  ExercisePlan? planFor(Exercise exercise) {
+    for (final plan in plans) {
+      if (plan.decision.exercise == exercise) return plan;
+    }
+    return null;
+  }
+
+  /// How [exercise] is loaded (barbell, dumbbell, bodyweight, …).
+  EquipmentKind equipmentOf(Exercise exercise) =>
+      planFor(exercise)?.equipment ?? EquipmentKind.EQUIPMENT_KIND_UNSPECIFIED;
+
+  /// A template's lifts planned in the budget: what starting it records.
+  TemplatePlan? templatePlanFor(String templateId) {
+    for (final plan in _home?.templatePlans ?? const <TemplatePlan>[]) {
+      if (plan.templateId == templateId) return plan;
+    }
+    return null;
+  }
+
+  /// The time the user has for a workout, in minutes. Home plans every lift
+  /// in it, and a start records it.
+  int get budgetMinutes => _budgetMinutes;
+  int _budgetMinutes;
+  static const defaultBudgetMinutes = 60;
+  static const budgetStepMinutes = 5;
+  static const minBudgetMinutes = 10;
+  static const maxBudgetMinutes = 180;
+
+  /// Move the budget by [steps] of [budgetStepMinutes] and plan again.
+  Future<void> stepBudget(int steps) async {
+    final next = (_budgetMinutes + steps * budgetStepMinutes).clamp(
+      minBudgetMinutes,
+      maxBudgetMinutes,
+    );
+    if (next == _budgetMinutes) return;
+    _budgetMinutes = next;
+    notifyListeners();
+    await refreshHome();
+  }
+
+  /// Each lift of the workout on screen: the decision it started from and
+  /// the weight changes since, in workout order.
+  List<ExerciseLog> get exerciseLogs => _logs;
+
+  /// The ramp set whose "how many more could you have done?" is open, or
+  /// '' when none: the core decides (done in full, unanswered, the latest
+  /// set, nothing lifted since).
+  String get rungQuestionSetId => _rungQuestion;
+
+  /// What each range answer to the open question leads to (the core
+  /// answers a copy): the next ramp set's weight, or the working sets'.
+  RungOutcome? rungOutcome(RepsLeft repsLeft) {
+    for (final o in _rungOutcomes) {
+      if (o.repsLeft == repsLeft) return o;
+    }
+    return null;
+  }
+
+  ExerciseLog? logFor(Exercise exercise) {
+    for (final log in _logs) {
+      if (log.decision.exercise == exercise) return log;
     }
     return null;
   }
@@ -373,8 +458,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// each step during the first one only. Someone who has lifted before
   /// (any exercise performed) is never new, whatever this device recorded.
   bool get isFirstWorkout =>
-      !_firstWorkoutDone &&
-      !trackers.any((t) => t.lastPerformedAt > Int64.ZERO);
+      !_firstWorkoutDone && !plans.any((p) => p.lastPerformedAt > Int64.ZERO);
   // Until the device flag is read, assume done: no hint flashes up.
   bool _firstWorkoutDone = true;
   String? _userId;
@@ -399,12 +483,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final active = await _service.getActiveWorkout();
       if (active != null) {
         _applyWorkoutResponse(await _service.getWorkout(active.id));
+        // A question open before this load was asked then.
+        if (_rungQuestion.isNotEmpty) _askedRungs.add(_rungQuestion);
         _mergeHeartRate(await _service.getWorkoutHeartRate(active.id));
         _startTimer();
       } else {
         _clearWorkout();
       }
-      _home = await _service.getHome();
+      _home = await _service.getHome(budgetMinutes: _budgetMinutes);
     } catch (e) {
       _lastLoadError = cleanErrorMessage(e);
       _handleError(e);
@@ -420,16 +506,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _proposed = [];
     _completed = [];
     _passedWarmups = {};
+    _logs = [];
+    _rungQuestion = '';
+    _rungOutcomes = const [];
+    _askedRungs.clear();
     _nextUp = null;
     _blocksCache.clear();
     _applyStateSnapshot(null);
     _stopTimer();
   }
 
-  /// Refresh templates/trackers/volume without touching the session.
+  /// Refresh templates, plans and volume without touching the session.
   Future<void> refreshHome() async {
     try {
-      _home = await _service.getHome();
+      _home = await _service.getHome(budgetMinutes: _budgetMinutes);
       notifyListeners();
     } catch (e) {
       AppLogger.instance.warn('Workout', 'refreshHome failed', {
@@ -438,54 +528,84 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  // ── Templates and trackers ──
+  // ── Templates and plans ──
 
-  Future<void> saveTemplate(WorkoutTemplate template) async {
-    await _service.saveTemplate(template);
+  /// Create or update [template]. [unlink] makes a library template the
+  /// user's own, changed or not: Clone, saved.
+  Future<void> saveTemplate(
+    WorkoutTemplate template, {
+    bool unlink = false,
+  }) async {
+    await _service.saveTemplate(template, unlink: unlink);
     await refreshHome();
   }
+
+  /// [exercises] planned as one workout in the budget, exactly as Home plans
+  /// a template of them: the template editor's rows, saved or not.
+  Future<TemplatePlan> planTemplate(List<Exercise> exercises) =>
+      _service.getTemplatePlan(exercises, budgetMinutes: _budgetMinutes);
+
+  /// Put [template] in the rotation the suggestion picks from, or make it
+  /// a favourite. A library template keeps following the library.
+  Future<void> setInRotation(WorkoutTemplate template, bool inRotation) =>
+      saveTemplate(template.deepCopy()..inRotation = inRotation);
 
   Future<void> deleteTemplate(String templateId) async {
     await _service.deleteTemplate(templateId);
     await refreshHome();
   }
 
-  /// Make a library template the user's own, to edit. Returns it.
-  Future<WorkoutTemplate> cloneTemplate(String templateId) async {
-    final template = await _service.cloneTemplate(templateId);
-    await refreshHome();
-    return template;
-  }
-
-  Future<void> reorderTemplates(List<String> templateIds) async {
-    await _service.reorderTemplates(templateIds);
+  /// Put the templates in [templateIds]' order; with [rotationCount], the
+  /// first that many are the rotation and the rest favourites (the Manage
+  /// sheet's drag across its two sections).
+  Future<void> reorderTemplates(
+    List<String> templateIds, {
+    int? rotationCount,
+  }) async {
+    await _service.reorderTemplates(templateIds, rotationCount: rotationCount);
     await refreshHome();
   }
 
   /// Adds library entries to the user's templates, following the library
   /// (templates/library.yaml on the server). The answer carries the
-  /// refreshed home.
-  Future<void> addLibraryTemplates(List<String> libraryIds) async {
-    _home = await _service.addLibraryTemplates(libraryIds);
-    notifyListeners();
+  /// refreshed home, planned in the default budget, so it is read again
+  /// in this one.
+  Future<void> addLibraryTemplates(
+    List<String> libraryIds, {
+    bool inRotation = false,
+  }) async {
+    await _service.addLibraryTemplates(libraryIds, inRotation: inRotation);
+    await refreshHome();
   }
 
-  Future<void> setExerciseTracker({
+  /// Makes the ready-made plan [planId] the main plan (the core adds what
+  /// the user lacks and moves the old main plan to the backups).
+  Future<void> applyLibraryPlan(String planId) async {
+    await _service.applyLibraryPlan(planId);
+    await refreshHome();
+  }
+
+  /// The user's own weight and reps (and optionally sets) for [exercise]:
+  /// the plan carries on from it.
+  Future<void> setOverride({
     required Exercise exercise,
-    required double workingWeightLb,
-    int overrideSets = 0,
-    int overrideRepLow = 0,
-    int overrideRepHigh = 0,
-    int targetReps = 0,
+    required double weightLb,
+    required int reps,
+    int? sets,
   }) async {
-    await _service.setExerciseTracker(
+    await _service.setOverride(
       exercise: exercise,
-      workingWeight: workingWeightLb,
-      overrideSets: overrideSets,
-      overrideRepLow: overrideRepLow,
-      overrideRepHigh: overrideRepHigh,
-      targetReps: targetReps,
+      weight: weightLb,
+      reps: reps,
+      sets: sets,
     );
+    await refreshHome();
+  }
+
+  /// Drop the user's own weight for [exercise]; the plan goes back to
+  /// what the history says.
+  Future<void> removeOverride(Exercise exercise) async {
+    await _service.setOverride(exercise: exercise, weight: 0, reps: 0);
     await refreshHome();
   }
 
@@ -503,6 +623,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         name,
         templateId: templateId,
         exercises: exercises,
+        budgetMinutes: _budgetMinutes,
       );
       _applyWorkoutResponse(await _service.getWorkout(started.id));
       _startTimer();
@@ -595,6 +716,35 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await deleteCompletedSet(completedSetId);
   }
 
+  /// Answer a ramp set's "how many more could you have done?": 0–1 ends
+  /// the ramp there, more climbs the next rung for it. The core ignores an
+  /// answer to a question no longer open.
+  Future<void> answerRung(String proposedSetId, RepsLeft repsLeft) async {
+    if (_workout == null) return;
+    await _mutate(
+      _mutation()
+        ..answerRung = (AnswerRungRequest()
+          ..workoutId = _workoutId
+          ..proposedSetId = proposedSetId
+          ..repsLeft = repsLeft),
+    );
+  }
+
+  /// Answer a ramp set's question with a specific jump instead: the next
+  /// ramp set is that set's weight plus [jumpLb] (pounds), snapped to what
+  /// loads, and the ramp goes on. The core ignores a jump out of range or
+  /// to a question no longer open.
+  Future<void> answerRungJump(String proposedSetId, double jumpLb) async {
+    if (_workout == null) return;
+    await _mutate(
+      _mutation()
+        ..answerRung = (AnswerRungRequest()
+          ..workoutId = _workoutId
+          ..proposedSetId = proposedSetId
+          ..jumpLb = jumpLb),
+    );
+  }
+
   /// Skip [exercise]'s warmups (the warmup row's "Skip"): they're marked
   /// skipped — kept, out of the way, still doable.
   Future<void> skipWarmups(Exercise exercise) async {
@@ -607,9 +757,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  /// Add exercises to the workout with the app in charge of the numbers:
-  /// weight/sets/reps/rest/warmups from each exercise's tracker — exactly
-  /// what a template start would prescribe.
+  /// Add exercises to the workout, each planned by the core in the
+  /// workout's budget, exactly as a start would plan it.
   Future<void> addPrescribedExercises(List<Exercise> exercises) async {
     if (_workout == null || exercises.isEmpty) return;
     await _mutate(
@@ -741,8 +890,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _firstWorkoutDone = true;
         unawaited(FirstWorkout.markDone(userId));
       }
-      // The trackers just moved on; home shows them straight away.
-      _home = await _service.getHome();
+      // The plans just moved on; home shows them straight away.
+      _home = await _service.getHome(budgetMinutes: _budgetMinutes);
       notifyListeners();
 
       if (!_sandbox) _writeToHealthPlatform(ended);

@@ -4,7 +4,8 @@ import SwiftUI
 /// the wrist, panels split by thin lines. From the top: the exercise's set circles, every
 /// one tappable; the band (the stage, up next when it's you, its clock), its colour
 /// draining off while you rest; the exercise and set; the weight (tap it for the plates)
-/// × the reps in the set's circle; heart rate | workout length | the time.
+/// × the reps in the set's circle; heart rate | workout length | the time. On a
+/// first-time set the weight row says to open the phone and no tap touches a set.
 struct FaceScreen: View {
     @EnvironmentObject private var connector: PhoneConnector
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -80,12 +81,15 @@ struct FaceScreen: View {
         ambientRestFor(snapshot, nowMs: connector.synchronizedNowMs(), now: now)
     }
 
+    /// A first-time set waits on the phone: no tap on the face touches a set.
     private func tapSet(_ setID: String) {
+        guard !card.firstTime else { return }
         connector.sendTap(setID: setID)
     }
 
     /// The rep circle taps the set in hand, or does the next thing there is to do.
     private func tapRep() {
+        guard !card.firstTime else { return }
         if let set = inHand {
             tapSet(set.setID)
         } else if let action = primary {
@@ -107,7 +111,11 @@ struct FaceScreen: View {
                 line(colors.rule)
                 exerciseRow(height: height * 0.11)
                 line(colors.hairline)
-                weightRow(stage: stage, height: height * 0.25)
+                if card.firstTimeText.isEmpty {
+                    weightRow(stage: stage, height: height * 0.25)
+                } else {
+                    firstTimeRow(height: height * 0.25)
+                }
                 line(colors.hairline)
                 stats(height: height * 0.13)
                 line(colors.hairline)
@@ -154,7 +162,7 @@ struct FaceScreen: View {
                 .overlay(Circle().strokeBorder(look.ring, lineWidth: circle.state == .next ? 2.5 : 1.5))
         }
         .buttonStyle(.plain)
-        .disabled(connector.isActionPending)
+        .disabled(connector.isActionPending || card.firstTime)
     }
 
     /// The phone's status band: the stage, up next when it's you, its clock. While
@@ -223,7 +231,7 @@ struct FaceScreen: View {
                     Text(weightText)
                         .font(monoFontName(size: height * 0.61))
                         .watchAutoShrink(minScale: 0.4)
-                    if weightText != "?" && !card.unitText.isEmpty {
+                    if !card.unitText.isEmpty {
                         Text(card.unitText).font(monoFontName(size: height * 0.21))
                     }
                 }
@@ -264,6 +272,18 @@ struct FaceScreen: View {
 }
 
 extension FaceScreen {
+    /// A first-time set's weight row: the answer is on the phone. Not tappable.
+    private func firstTimeRow(height: CGFloat) -> some View {
+        Text(card.firstTimeText)
+            .font(monoFontName(size: height * 0.45))
+            .foregroundColor(colors.text)
+            .watchAutoShrink(minScale: 0.4)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: height)
+            .background(colors.panel)
+    }
+
     /// Heart rate | workout length | the time.
     private func stats(height: CGFloat) -> some View {
         let bpmColor = colors.dim ? colors.muted : heartRateColor(connector.latestBpm)

@@ -617,8 +617,9 @@ private fun WorkoutScreens(
             onAction(action)
         }
     }
+    // A first-time set waits on the phone: no tap on the face touches a set.
     val tapSet: (String) -> Unit = { setId ->
-        if (!isActionPending) {
+        if (!isActionPending && !data.youCard.firstTime) {
             pendingActionEmittedAt = data.emittedAt
             pendingActionStartedAtMs = System.currentTimeMillis()
             onTapSet(setId)
@@ -691,7 +692,6 @@ private fun WorkoutScreens(
 
     val stageColor =
         when {
-            card.firstTime -> WearPalette.FirstTime
             lifting -> WearPalette.Lifting
             yapping -> WearPalette.Yapping
             resting -> WearPalette.Resting
@@ -713,7 +713,6 @@ private fun WorkoutScreens(
             timer =
                 when {
                     dim -> rest?.minutes ?: ""
-                    card.firstTime -> ""
                     lifting -> deriveLiftingTimer(data)
                     resting -> restTimer.text
                     else -> ""
@@ -729,7 +728,7 @@ private fun WorkoutScreens(
             bandInk =
                 when {
                     dim -> WearPalette.AmbientText
-                    lifting && !card.firstTime -> WearPalette.Text
+                    lifting -> WearPalette.Text
                     else -> WearPalette.OnDark
                 },
             bandFill = if (draining && !dim) bandFill.value else 1f,
@@ -744,6 +743,7 @@ private fun WorkoutScreens(
             elapsed = if (dim) rest?.until ?: "" else elapsedText,
             clock = java.text.SimpleDateFormat("H:mm", java.util.Locale.getDefault()).format(java.util.Date(nowTick * 1000L)),
             hasPlates = card.platesText.isNotEmpty(),
+            firstTimeText = card.firstTimeText,
         )
 
     PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
@@ -754,6 +754,7 @@ private fun WorkoutScreens(
         onTapSet = tapSet,
         onRep = {
             when {
+                card.firstTime -> Unit
                 inHand != null -> tapSet(inHand.setId)
                 else -> primary?.let(fire)
             }

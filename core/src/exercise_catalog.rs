@@ -1,10 +1,10 @@
 //! Per-exercise metadata: what a movement is (equipment, role, muscles)
-//! and what the app prescribes for it (sets, rep range, rest, warmups,
-//! opener weight, progression step).
+//! and what its class gives it (rep range, rest, warmups), with the opener
+//! weight and the progression step.
 //!
-//! This is the single source of truth. The prescription, the volume
-//! model, recovery, the picker's equipment filter and the progression
-//! step all read from here — there is no second classification anywhere.
+//! This is the single source of truth. The plan, the volume model,
+//! recovery, the picker's equipment filter and the progression step all
+//! read from here — there is no second classification anywhere.
 
 use crate::pb::{EquipmentKind, Exercise, ExerciseCategory, MuscleGroup};
 use crate::weight_units::{
@@ -328,82 +328,73 @@ pub fn category(ex: Exercise) -> ExerciseCategory {
     }
 }
 
-/// The sets, rep range and rest the app prescribes, derived from what the
-/// exercise is. This is the whole table; there is no per-user or per-goal
-/// variant. Users can override sets and range on the tracker.
+/// The three classes every lift falls in. The class sets the rep range,
+/// the rest and the warmups; the sets come from the workout's budget
+/// (`plan::sets_for_lifts`).
 ///
-/// - Barbell compounds: 5×5 (the deadlift 3×5, the most fatiguing lift).
-///   Heavy, low-rep work builds the most strength, and growth is similar
-///   across rep ranges when sets are hard (Schoenfeld et al. 2017); five
-///   sets three times a week is ~15 a week per muscle, inside the 10–20
-///   band (Baz-Valle et al. 2022). A range of 5–5 makes progression linear:
-///   every rep, every set → the next weight.
-/// - Everything else that's loaded: 3×8–12. One equipment step is a big
-///   jump on a light dumbbell or stack, so reps carry the progress first;
-///   load and rep progression grow muscle alike (Plotkin et al. 2022).
-/// - Bodyweight and core: 3 sets, reps climb.
+/// | Class | Lifts | Reps | Rest | Warmups |
+/// |---|---|---|---|---|
+/// | Heavy | barbell compounds | 5–8 | 3:00 | 40/55/70/85% ladder |
+/// | Standard | every other loaded lift | 8–12 | 2:00 | none |
+/// | Bodyweight | bodyweight lifts and core | 5–15 | 1:30 | none |
+///
+/// 1RM strength favours heavy loads, and 5–8 reps is heavy (roughly 75–85%
+/// of a max); growth is alike from about 6 to 30 reps taken near failure
+/// (Schoenfeld et al. 2017; Lopez et al. 2021). Longer rest beats short on
+/// the big lifts (Schoenfeld et al. 2016).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Prescription {
-    pub sets: i32,
+pub enum LiftClass {
+    Heavy,
+    Standard,
+    Bodyweight,
+}
+
+pub fn lift_class(ex: Exercise) -> LiftClass {
+    if load_style(ex) == LoadStyle::Bodyweight || primary_muscle(ex) == MuscleGroup::Core {
+        LiftClass::Bodyweight
+    } else if load_style(ex) == LoadStyle::Barbell && category(ex) == ExerciseCategory::Compound {
+        LiftClass::Heavy
+    } else {
+        LiftClass::Standard
+    }
+}
+
+/// What a lift's class gives it: the rep range, the rest after a set and
+/// whether a warmup ladder leads into the working sets.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ClassRules {
     pub rep_low: i32,
     pub rep_high: i32,
     pub rest_seconds: i32,
-    pub rest_seconds_failure: i32,
-    pub include_warmup: bool,
+    pub warmups: bool,
 }
 
-pub fn prescription(ex: Exercise) -> Prescription {
-    let style = load_style(ex);
-    let is_core = primary_muscle(ex) == MuscleGroup::Core;
-    let compound = category(ex) == ExerciseCategory::Compound;
-
-    if is_core {
-        return Prescription {
-            sets: 3,
-            rep_low: 10,
-            rep_high: 20,
-            rest_seconds: 60,
-            rest_seconds_failure: 90,
-            include_warmup: false,
-        };
-    }
-    // Only the barbell compounds that load the lower body (squats, hinges,
-    // hip thrusts) earn the full three minutes — they tax the whole system.
-    // Upper-body barbell work recovers enough in 2:30 that the extra 30 s
-    // per set buys nothing but session length.
-    let loads_lower_body = muscles(ex).iter().any(|m| {
-        matches!(
-            m,
-            MuscleGroup::Quads | MuscleGroup::Hamstrings | MuscleGroup::Glutes
-        )
-    });
-    match (style, compound) {
-        // The heavy barbell moves: the only class that warms up with a ladder.
-        (LoadStyle::Barbell, true) => Prescription {
-            sets: if ex == Exercise::Deadlift { 3 } else { 5 },
+pub fn class_rules(class: LiftClass) -> ClassRules {
+    match class {
+        LiftClass::Heavy => ClassRules {
             rep_low: 5,
-            rep_high: 5,
-            rest_seconds: if loads_lower_body { 180 } else { 150 },
-            rest_seconds_failure: if loads_lower_body { 240 } else { 210 },
-            include_warmup: true,
+            rep_high: 8,
+            rest_seconds: 180,
+            warmups: true,
         },
-        (LoadStyle::Bodyweight, _) => Prescription {
-            sets: 3,
-            rep_low: 5,
-            rep_high: 15,
-            rest_seconds: 120,
-            rest_seconds_failure: 180,
-            include_warmup: false,
-        },
-        (_, compound) => Prescription {
-            sets: 3,
+        LiftClass::Standard => ClassRules {
             rep_low: 8,
             rep_high: 12,
-            rest_seconds: if compound { 120 } else { 90 },
-            rest_seconds_failure: if compound { 180 } else { 120 },
-            include_warmup: false,
+            rest_seconds: 120,
+            warmups: false,
+        },
+        LiftClass::Bodyweight => ClassRules {
+            rep_low: 5,
+            rep_high: 15,
+            rest_seconds: 90,
+            warmups: false,
         },
     }
+}
+
+/// The rules of the lift's class.
+pub fn rules(ex: Exercise) -> ClassRules {
+    class_rules(lift_class(ex))
 }
 
 /// The weight to prefill for an exercise with no history. The empty bar
@@ -456,6 +447,22 @@ pub fn snap_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) -> f32 
     }
 }
 
+/// The heaviest weight at or under `weight_lb` you can load for this
+/// exercise (never under the empty bar or one step).
+pub fn snap_down_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) -> f32 {
+    let step = progression_increment_lb(ex, unit);
+    let snapped = snap_weight_lb(ex, weight_lb, unit);
+    if step <= 0.0 {
+        return snapped;
+    }
+    let down = if snapped <= weight_lb + 1e-3 {
+        snapped
+    } else {
+        snap_weight_lb(ex, snapped - step, unit)
+    };
+    down.max(snap_weight_lb(ex, step, unit))
+}
+
 /// Human name for an exercise, derived from the enum name — e.g.
 /// `EXERCISE_INCLINE_BENCH_PRESS` → `Incline Bench Press`. A few common
 /// lifts get their colloquial short forms.
@@ -505,12 +512,9 @@ mod tests {
         );
         for ex in &all {
             assert!(!muscles(*ex).is_empty(), "{ex:?} has no muscle mapping");
-            let p = prescription(*ex);
-            assert!(
-                p.sets > 0 && p.rep_low > 0 && p.rep_high >= p.rep_low,
-                "{ex:?}: {p:?}"
-            );
-            assert!(p.rest_seconds > 0 && p.rest_seconds_failure >= p.rest_seconds);
+            let p = rules(*ex);
+            assert!(p.rep_low > 0 && p.rep_high >= p.rep_low, "{ex:?}: {p:?}");
+            assert!(p.rest_seconds > 0);
         }
     }
 
@@ -536,43 +540,42 @@ mod tests {
         assert_eq!(load_style(Exercise::CalfRaise), LoadStyle::Dumbbell);
     }
 
-    /// The prescription table, pinned: 5×5 for the barbell compounds (3×5
-    /// for the deadlift), 3×8–12 for everything else that's loaded, reps
-    /// alone for bodyweight and core. Only barbell compounds warm up.
+    /// The class table, pinned: only the barbell compounds are heavy and
+    /// warm up; core lifts are in the bodyweight class whatever loads them.
     #[test]
-    fn prescriptions_follow_the_class() {
-        let squat = prescription(Exercise::Squat);
-        assert_eq!((squat.sets, squat.rep_low, squat.rep_high), (5, 5, 5));
-        let deadlift = prescription(Exercise::Deadlift);
+    fn rules_follow_the_class() {
+        let heavy = ClassRules {
+            rep_low: 5,
+            rep_high: 8,
+            rest_seconds: 180,
+            warmups: true,
+        };
+        for ex in [
+            Exercise::Squat,
+            Exercise::BenchPress,
+            Exercise::Deadlift,
+            Exercise::OverheadPress,
+            Exercise::BarbellRow,
+        ] {
+            assert_eq!(rules(ex), heavy, "{ex:?}");
+        }
+        let standard = rules(Exercise::LateralRaise);
         assert_eq!(
-            (deadlift.sets, deadlift.rep_low, deadlift.rep_high),
-            (3, 5, 5)
+            (standard.rep_low, standard.rep_high, standard.rest_seconds),
+            (8, 12, 120)
         );
-        assert_eq!(squat.rest_seconds, 180, "lower-body barbell: full rest");
-        assert!(squat.include_warmup);
-
-        // Upper-body barbell compounds rest 2:30, and the deadlift — primary
-        // Back but hamstring/glute loaded — keeps the full three minutes.
-        assert_eq!(prescription(Exercise::BenchPress).rest_seconds, 150);
-        assert_eq!(prescription(Exercise::BarbellRow).rest_seconds, 150);
-        assert_eq!(prescription(Exercise::OverheadPress).rest_seconds, 150);
-        assert_eq!(prescription(Exercise::Deadlift).rest_seconds, 180);
-        assert_eq!(prescription(Exercise::RomanianDeadlift).rest_seconds, 180);
-
-        let raise = prescription(Exercise::LateralRaise);
-        assert_eq!((raise.sets, raise.rep_low, raise.rep_high), (3, 8, 12));
-        assert_eq!(raise.rest_seconds, 90);
-        assert!(!raise.include_warmup);
-
-        let pullup = prescription(Exercise::PullUp);
-        assert_eq!((pullup.rep_low, pullup.rep_high), (5, 15));
-
-        let db_row = prescription(Exercise::DumbbellRow);
-        assert_eq!((db_row.rep_low, db_row.rep_high), (8, 12));
-
-        let crunch = prescription(Exercise::Crunch);
-        assert_eq!((crunch.rep_low, crunch.rep_high), (10, 20));
-        assert_eq!(crunch.rest_seconds, 60);
+        assert!(!standard.warmups);
+        assert_eq!(lift_class(Exercise::BarbellCurl), LiftClass::Standard);
+        assert_eq!(lift_class(Exercise::DumbbellRow), LiftClass::Standard);
+        for ex in [Exercise::PullUp, Exercise::Crunch, Exercise::CableCrunch] {
+            let p = rules(ex);
+            assert_eq!(
+                (p.rep_low, p.rep_high, p.rest_seconds),
+                (5, 15, 90),
+                "{ex:?}"
+            );
+            assert!(!p.warmups);
+        }
     }
 
     #[test]
@@ -604,5 +607,18 @@ mod tests {
             45.0,
             "a barbell never goes under the empty bar"
         );
+    }
+
+    #[test]
+    fn snapping_down_never_goes_over() {
+        let lb = AppWeightUnit::Lb;
+        assert_eq!(snap_down_weight_lb(Exercise::Squat, 189.7, lb), 185.0);
+        assert_eq!(snap_down_weight_lb(Exercise::Squat, 190.0, lb), 190.0);
+        assert_eq!(snap_down_weight_lb(Exercise::Squat, 30.0, lb), 45.0);
+        assert_eq!(snap_down_weight_lb(Exercise::LateralRaise, 24.0, lb), 20.0);
+        assert_eq!(snap_down_weight_lb(Exercise::LateralRaise, 2.0, lb), 5.0);
+        let kg = AppWeightUnit::Kg;
+        let down = snap_down_weight_lb(Exercise::Squat, 100.0, kg);
+        assert!(down <= 100.0 + 1e-3 && down > 94.0, "{down}");
     }
 }

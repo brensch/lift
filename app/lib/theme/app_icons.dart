@@ -228,9 +228,9 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `rows`.
-  static const lines = IconData(
-    0xe5a2,
+  /// Phosphor `slidersHorizontal`.
+  static const manage = IconData(
+    0xe434,
     fontFamily: _family,
     fontPackage: _package,
   );

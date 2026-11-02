@@ -38,12 +38,14 @@ class WorkoutServiceWrapper {
     String name, {
     String templateId = '',
     List<Exercise> exercises = const [],
+    int budgetMinutes = 0,
   }) => _call(
     'StartWorkout',
     StartWorkoutRequest()
       ..name = name
       ..exercises.addAll(exercises)
-      ..templateId = templateId,
+      ..templateId = templateId
+      ..budgetMinutes = budgetMinutes,
     StartWorkoutResponse.fromBuffer,
   );
 
@@ -61,12 +63,6 @@ class WorkoutServiceWrapper {
     );
     return response.hasWorkout() ? response.workout : null;
   }
-
-  Future<List<Workout>> listWorkouts() async => (await _call(
-    'ListWorkouts',
-    ListWorkoutsRequest(),
-    ListWorkoutsResponse.fromBuffer,
-  )).workouts;
 
   Future<List<WorkoutWithSummary>> listWorkoutSummaries() async => (await _call(
     'ListWorkoutSummaries',
@@ -118,16 +114,37 @@ class WorkoutServiceWrapper {
         EndWorkoutResponse.fromBuffer,
       );
 
-  /// Everything the home screen needs in one call.
-  Future<GetHomeResponse> getHome() =>
-      _call('GetHome', GetHomeRequest(), GetHomeResponse.fromBuffer);
+  /// Everything the home screen needs in one call, every lift planned in
+  /// [budgetMinutes] (0 = the core's default).
+  Future<GetHomeResponse> getHome({int budgetMinutes = 0}) => _call(
+    'GetHome',
+    GetHomeRequest(budgetMinutes: budgetMinutes),
+    GetHomeResponse.fromBuffer,
+  );
 
-  Future<WorkoutTemplate> saveTemplate(WorkoutTemplate template) async =>
-      (await _call(
-        'SaveTemplate',
-        SaveTemplateRequest()..template = template,
-        SaveTemplateResponse.fromBuffer,
-      )).template;
+  /// Create or update [template]; [unlink] makes a library template the
+  /// user's own even when saved unchanged.
+  Future<WorkoutTemplate> saveTemplate(
+    WorkoutTemplate template, {
+    bool unlink = false,
+  }) async => (await _call(
+    'SaveTemplate',
+    SaveTemplateRequest()
+      ..template = template
+      ..unlink = unlink,
+    SaveTemplateResponse.fromBuffer,
+  )).template;
+
+  /// [exercises] planned as one workout in [budgetMinutes], as starting a
+  /// template of them would plan it.
+  Future<TemplatePlan> getTemplatePlan(
+    List<Exercise> exercises, {
+    int budgetMinutes = 0,
+  }) async => (await _call(
+    'GetTemplatePlan',
+    GetTemplatePlanRequest(exercises: exercises, budgetMinutes: budgetMinutes),
+    GetTemplatePlanResponse.fromBuffer,
+  )).plan;
 
   Future<void> deleteTemplate(String templateId) => _call(
     'DeleteTemplate',
@@ -135,47 +152,52 @@ class WorkoutServiceWrapper {
     DeleteTemplateResponse.fromBuffer,
   );
 
-  Future<void> reorderTemplates(List<String> templateIds) => _call(
-    'ReorderTemplates',
-    ReorderTemplatesRequest()..templateIds.addAll(templateIds),
-    ReorderTemplatesResponse.fromBuffer,
-  );
+  /// The user's order of [templateIds]; with [rotationCount], the first
+  /// that many are in rotation and the rest favourites.
+  Future<void> reorderTemplates(
+    List<String> templateIds, {
+    int? rotationCount,
+  }) {
+    final request = ReorderTemplatesRequest()..templateIds.addAll(templateIds);
+    if (rotationCount != null) request.rotationCount = rotationCount;
+    return _call(
+      'ReorderTemplates',
+      request,
+      ReorderTemplatesResponse.fromBuffer,
+    );
+  }
 
-  /// Manual correction/override for one exercise. Overrides of 0 = derived.
-  Future<ExerciseTracker> setExerciseTracker({
+  /// The user's own weight and reps (and optionally sets) for one lift:
+  /// the plan carries on from it. Reps of 0 removes it.
+  Future<ExercisePlan> setOverride({
     required Exercise exercise,
-    required double workingWeight,
-    int overrideSets = 0,
-    int overrideRepLow = 0,
-    int overrideRepHigh = 0,
-    int targetReps = 0,
-  }) async => (await _call(
-    'SetExerciseTracker',
-    SetExerciseTrackerRequest()
+    required double weight,
+    required int reps,
+    int? sets,
+  }) async {
+    final request = SetOverrideRequest()
       ..exercise = exercise
-      ..workingWeight = workingWeight
-      ..overrideSets = overrideSets
-      ..overrideRepLow = overrideRepLow
-      ..overrideRepHigh = overrideRepHigh
-      ..targetReps = targetReps,
-    SetExerciseTrackerResponse.fromBuffer,
-  )).tracker;
+      ..weight = weight
+      ..reps = reps;
+    if (sets != null) request.sets = sets;
+    return (await _call(
+      'SetOverride',
+      request,
+      SetOverrideResponse.fromBuffer,
+    )).plan;
+  }
 
-  /// Finishes setup: saves the unit, seeds trackers, and copies the chosen
-  /// library templates (the library's defaults when none are named).
+  /// Finishes setup: saves the unit, records the starting weights
+  /// [strength] picks (chick 0 .. gorilla 1; unset keeps the catalog's
+  /// openers), and copies the chosen library templates (the library's
+  /// defaults when none are named).
   Future<GetHomeResponse> completeOnboarding({
-    required double bodyWeightKg,
-    required ExperienceLevel experience,
     required WeightUnit unit,
-    Gender gender = Gender.GENDER_UNSPECIFIED,
     List<String> libraryIds = const [],
-    double? strength, // chick 0 .. gorilla 1; replaces experience/gender
+    double? strength,
   }) async {
     final request = CompleteOnboardingRequest()
-      ..bodyWeightKg = bodyWeightKg
-      ..experience = experience
       ..unit = unit
-      ..gender = gender
       ..libraryIds.addAll(libraryIds);
     if (strength != null) request.strength = strength;
     return (await _call(
@@ -185,7 +207,7 @@ class WorkoutServiceWrapper {
     )).home;
   }
 
-  /// The first working weights the setup slider shows, one step per 1% of
+  /// The starting weights the setup slider shows, one step per 1% of
   /// the slider, in [unit].
   Future<List<StartingWeightsStep>> getStartingWeights(WeightUnit unit) async =>
       (await _call(
@@ -195,29 +217,35 @@ class WorkoutServiceWrapper {
       )).steps;
 
   /// The template library everyone picks from.
-  Future<List<LibraryTemplate>> listTemplateLibrary() async => (await _call(
+  Future<List<LibraryTemplate>> listTemplateLibrary() async =>
+      (await templateLibrary()).templates;
+
+  /// The template library and the ready-made plans made from it.
+  Future<ListTemplateLibraryResponse> templateLibrary() => _call(
     'ListTemplateLibrary',
     ListTemplateLibraryRequest(),
     ListTemplateLibraryResponse.fromBuffer,
-  )).templates;
+  );
 
-  /// Adds library entries to the user's templates, following the library;
-  /// ones already there are skipped. Returns the refreshed home.
-  Future<GetHomeResponse> addLibraryTemplates(List<String> libraryIds) async =>
-      (await _call(
-        'AddLibraryTemplates',
-        AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
-        AddLibraryTemplatesResponse.fromBuffer,
-      )).home;
+  /// Makes a ready-made plan the main plan: entries the user lacks are
+  /// added, the old main plan becomes backups. Returns the refreshed home.
+  Future<GetHomeResponse> applyLibraryPlan(String planId) async => (await _call(
+    'ApplyLibraryPlan',
+    ApplyLibraryPlanRequest(planId: planId),
+    ApplyLibraryPlanResponse.fromBuffer,
+  )).home;
 
-  /// Make a library template the user's own (same id, so its history
-  /// stays with it). Returns it.
-  Future<WorkoutTemplate> cloneTemplate(String templateId) async =>
-      (await _call(
-        'CloneTemplate',
-        CloneTemplateRequest()..templateId = templateId,
-        CloneTemplateResponse.fromBuffer,
-      )).template;
+  /// Adds library entries to the user's templates, following the library,
+  /// into the rotation or (by default) as favourites; ones the user already
+  /// has are skipped. Returns the refreshed home.
+  Future<GetHomeResponse> addLibraryTemplates(
+    List<String> libraryIds, {
+    bool inRotation = false,
+  }) async => (await _call(
+    'AddLibraryTemplates',
+    AddLibraryTemplatesRequest(libraryIds: libraryIds, inRotation: inRotation),
+    AddLibraryTemplatesResponse.fromBuffer,
+  )).home;
 
   Future<List<UserSetting>> getSettings() async => (await _call(
     'GetSettings',
@@ -230,11 +258,4 @@ class WorkoutServiceWrapper {
     UpdateSettingRequest(setting: setting),
     UpdateSettingResponse.fromBuffer,
   );
-
-  Future<List<String>> dismissUserMessages(List<String> keys) async =>
-      (await _call(
-        'DismissUserMessages',
-        DismissUserMessagesRequest()..messageKeys.addAll(keys),
-        DismissUserMessagesResponse.fromBuffer,
-      )).dismissedMessageKeys;
 }

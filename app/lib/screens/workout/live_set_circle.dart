@@ -4,13 +4,15 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../logic/weight_units.dart';
+import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
 import '../../logic/session_state.dart';
 import '../../providers/workout_provider.dart';
-import '../../theme/app_icons.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/common/weight_selector.dart';
 import 'section_workout.dart';
@@ -99,6 +101,8 @@ class LiveSetCircle extends StatelessWidget {
   /// calibration sets is lifted yet.
   static bool isFirstEver(SectionWorkout w, ProposedSet set) =>
       set.calibration &&
+      // Started ("test me", or the watch): it is a set like any other.
+      w.liftingSetId != set.id &&
       !w.proposedSets.any(
         (s) =>
             s.exercise == set.exercise &&
@@ -131,24 +135,22 @@ class _FirstTimeDialog extends StatefulWidget {
 }
 
 class _FirstTimeDialogState extends State<_FirstTimeDialog> {
-  /// What their strength answer at sign-up put this lift at, in lb.
-  late double _weightLb =
-      widget.wp.trackerFor(widget.set.exercise)?.workingWeight ??
-      widget.set.targetWeight;
+  /// Where the ramp starts, in lb: its first set as planned, or wherever
+  /// the user moves it.
+  late double _weightLb = widget.set.targetWeight;
 
   bool get _barbell =>
-      widget.wp.trackerFor(widget.set.exercise)?.equipment ==
+      widget.wp.equipmentOf(widget.set.exercise) ==
       EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
-  void _lift() {
-    if (_weightLb <= 0) return;
+  /// The ramp from the weight picked: its first set moved there when it
+  /// isn't the planned one, then started. Right first time, it's one set.
+  Future<void> _test() async {
     Navigator.pop(context);
-    widget.wp.adjustExerciseWeight(widget.set.exercise, _weightLb);
-  }
-
-  void _test() {
-    Navigator.pop(context);
-    widget.wp.startSet(widget.set.id);
+    if (_weightLb != widget.set.targetWeight) {
+      await widget.wp.adjustExerciseWeight(widget.set.exercise, _weightLb);
+    }
+    await widget.wp.startSet(widget.set.id);
   }
 
   @override
@@ -156,10 +158,10 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
     final t = context.tokens;
     final w = copy.workout;
     final name = exerciseNames[widget.set.exercise] ?? '?';
+    final unit = context.watch<SettingsProvider>().weightUnit;
     final label = TextStyle(
       fontSize: t.size.bodyLg,
       fontWeight: t.weight.heavy,
-      color: t.text,
     );
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
@@ -178,9 +180,7 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
               ),
             ),
             const SizedBox(height: 16),
-            // You know your weight: set it, go.
-            Text(w.firstTimeLift, style: label),
-            const SizedBox(height: 8),
+            // Where the ramp starts: as planned, or moved.
             WeightSelector(
               weightLb: _weightLb,
               barbell: _barbell,
@@ -190,17 +190,14 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
             SizedBox(
               height: 56,
               child: FilledButton(
-                onPressed: _weightLb > 0 ? _lift : null,
-                child: const Icon(AppIcons.forward),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // You don't: the calibration sets find it.
-            SizedBox(
-              height: 56,
-              child: OutlinedButton(
-                onPressed: _test,
-                child: Text(w.firstTimeTest, style: label),
+                onPressed: _weightLb > 0 ? _test : null,
+                child: Text(
+                  w.firstTimeTest.replaceAll(
+                    '{weight}',
+                    formatWeight(_weightLb, unit, includeUnit: true),
+                  ),
+                  style: label,
+                ),
               ),
             ),
           ],

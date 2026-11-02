@@ -40,6 +40,7 @@ class WearStatusCard extends $pb.GeneratedMessage {
     $core.Iterable<WearPlate>? plates,
     $core.String? platesText,
     $core.String? barText,
+    $core.String? firstTimeText,
   }) {
     final result = create();
     if (stateLabel != null) result.stateLabel = stateLabel;
@@ -56,6 +57,7 @@ class WearStatusCard extends $pb.GeneratedMessage {
     if (plates != null) result.plates.addAll(plates);
     if (platesText != null) result.platesText = platesText;
     if (barText != null) result.barText = barText;
+    if (firstTimeText != null) result.firstTimeText = firstTimeText;
     return result;
   }
 
@@ -88,6 +90,7 @@ class WearStatusCard extends $pb.GeneratedMessage {
         subBuilder: WearPlate.create)
     ..aOS(20, _omitFieldNames ? '' : 'platesText')
     ..aOS(21, _omitFieldNames ? '' : 'barText')
+    ..aOS(22, _omitFieldNames ? '' : 'firstTimeText')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -203,8 +206,12 @@ class WearStatusCard extends $pb.GeneratedMessage {
   @$pb.TagNumber(16)
   void clearRepsText() => $_clearField(16);
 
-  /// The opening set of an exercise never done: no weight yet. A tap starts
-  /// the calibration sets; giving the weight is done on the phone.
+  /// A question is waiting on the phone: the opening set of an exercise never
+  /// done, not yet started (your weight, or test me), or a ramp set just done
+  /// in full asking how many more you could have done
+  /// (GetWorkoutResponse.rung_question_set_id). The band shows the state as
+  /// usual; the weight row shows first_time_text in place of weight × reps,
+  /// and no tap on the face does anything to the exercise's sets.
   @$pb.TagNumber(18)
   $core.bool get firstTime => $_getBF(10);
   @$pb.TagNumber(18)
@@ -236,6 +243,15 @@ class WearStatusCard extends $pb.GeneratedMessage {
   $core.bool hasBarText() => $_has(13);
   @$pb.TagNumber(21)
   void clearBarText() => $_clearField(21);
+
+  @$pb.TagNumber(22)
+  $core.String get firstTimeText => $_getSZ(14);
+  @$pb.TagNumber(22)
+  set firstTimeText($core.String value) => $_setString(14, value);
+  @$pb.TagNumber(22)
+  $core.bool hasFirstTimeText() => $_has(14);
+  @$pb.TagNumber(22)
+  void clearFirstTimeText() => $_clearField(22);
 }
 
 /// The dimmed face counts rest in whole minutes: it is redrawn about once a

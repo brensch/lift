@@ -4,7 +4,6 @@
 /// (core/tests/api.rs, the reducer and planner tests).
 library;
 
-import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 
@@ -17,9 +16,9 @@ void main() {
 
   setUp(() async {
     h = await ProviderHarness.boot(sandbox: true);
-    await h.seedTrackers({
-      Exercise.EXERCISE_SQUAT: 185,
-      Exercise.EXERCISE_LATERAL_RAISE: 20,
+    await h.seedHistory({
+      Exercise.EXERCISE_SQUAT: (185, 5),
+      Exercise.EXERCISE_LATERAL_RAISE: (20, 10),
     });
   });
 
@@ -28,12 +27,22 @@ void main() {
   const squat = Exercise.EXERCISE_SQUAT;
   const raise = Exercise.EXERCISE_LATERAL_RAISE;
 
-  test('a start lays out the prescribed blocks, warmups first', () async {
+  test('a start lays out the planned blocks, warmups first', () async {
     await h.start([squat, raise]);
     final p = h.provider;
     expect(p.hasActiveWorkout, isTrue);
     expect(p.exerciseBlocks.map((b) => b.exercise), [squat, raise]);
+    // Every rep last time: the same weight, the max nudged up.
     expect(h.working(squat).map((s) => s.targetWeight).toSet(), {185.0});
+    final decision = p.logFor(squat)!.decision;
+    expect(h.working(squat).map((s) => s.targetReps).toSet(), {decision.reps});
+    // Against last time first, then the max's step.
+    expect(
+      decision.reasons.map((r) => r.kind),
+      contains(PlanReasonKind.PLAN_REASON_KIND_MAX_UP),
+    );
+    expect(decision.budgetMinutes, 60);
+    expect(h.working(squat).length, decision.sets);
     expect(p.activeProposedSets.first.warmup, isTrue);
     expect(
       p.stateSnapshot!.state,
@@ -81,17 +90,56 @@ void main() {
     expect(h.provider.doneTargetSet!.warmup, isFalse);
   });
 
-  test('ending moves the tracker on and the home shows it', () async {
+  test('ending moves the plan on and the home shows it', () async {
     await h.start([raise]);
+    final started = h.provider.planFor(raise)!.lastPerformedAt;
+    final maxBefore = h.provider.planFor(raise)!.decision.max;
     for (final set in h.working(raise)) {
       await h.provider.completeSet(set.id, 15, set.targetWeight);
     }
     await h.provider.endWorkout(fireEndedCallback: false);
     expect(h.provider.isWorkoutEnded, isTrue);
     expect(h.provider.home!.activeWorkoutId, isEmpty);
-    final tracker = h.provider.trackerFor(raise)!;
-    expect(tracker.lastPerformedAt, isNot(Int64.ZERO));
-    expect(tracker.workingWeight, greaterThan(20), reason: 'topped the range');
+    final plan = h.provider.planFor(raise)!;
+    expect(plan.lastPerformedAt, greaterThan(started));
+    expect(
+      plan.decision.reasons.map((r) => r.kind),
+      containsAllInOrder([
+        PlanReasonKind.PLAN_REASON_KIND_REPS_UP,
+        PlanReasonKind.PLAN_REASON_KIND_MAX_UP,
+      ]),
+    );
+    expect(plan.decision.max, greaterThan(maxBefore), reason: 'every rep hit');
+    expect(
+      plan.decision.reps,
+      16,
+      reason: 'past the top, while the next dumbbell is out of reach',
+    );
+  });
+
+  test('the budget moves in 5-minute steps and plans the home', () async {
+    expect(h.provider.budgetMinutes, 60);
+    await h.provider.stepBudget(-1);
+    expect(h.provider.budgetMinutes, 55);
+    expect(h.provider.home!.budgetMinutes, 55);
+    await h.start([raise]);
+    expect(h.provider.logFor(raise)!.decision.budgetMinutes, 55);
+  });
+
+  test('an override is the next plan, and removing it goes back', () async {
+    await h.provider.setOverride(exercise: squat, weightLb: 135, reps: 8);
+    var plan = h.provider.planFor(squat)!;
+    expect(plan.overridden, isTrue);
+    expect(plan.decision.weight, 135);
+    expect(plan.decision.reps, 8);
+    expect(
+      plan.decision.reasons.first.kind,
+      PlanReasonKind.PLAN_REASON_KIND_USER_SET,
+    );
+    await h.provider.removeOverride(squat);
+    plan = h.provider.planFor(squat)!;
+    expect(plan.overridden, isFalse);
+    expect(plan.decision.weight, 185);
   });
 
   test('the session a workout is in is recorded on it', () async {
@@ -115,5 +163,66 @@ void main() {
     await h.provider.dismissEndedWorkout();
     expect(h.provider.workout, isNull);
     expect(h.provider.home, isNotNull, reason: 'home has something to show');
+  });
+
+  test('a ramp set done in full asks once; the answer is sent', () async {
+    // Never done: a ramp. Squat and the raise have history, so no ramp.
+    const deadlift = Exercise.EXERCISE_DEADLIFT;
+    final asked = <String>[];
+    h.provider.onRungQuestion = asked.add;
+    await h.start([raise, deadlift]);
+    final p = h.provider;
+
+    // A working set never asks.
+    final working = h.working(raise).first;
+    await p.completeSet(working.id, 10, 20);
+    expect(asked, isEmpty);
+    expect(p.rungQuestionSetId, isEmpty);
+
+    // A ramp set short of its reps is a miss: no question.
+    ProposedSet rung() => p.activeProposedSets.firstWhere(
+      (s) => s.calibration && !p.isSetDone(s.id),
+    );
+    final first = rung();
+    await p.completeSet(first.id, first.targetReps, first.targetWeight);
+    expect(asked, [first.id], reason: 'every rep: asked');
+    expect(p.rungQuestionSetId, first.id);
+
+    // A change that leaves it open does not ask again.
+    await p.skipWarmups(deadlift);
+    expect(asked, [first.id]);
+
+    // 0–1: the ramp ends there and the question is gone.
+    await p.answerRung(first.id, RepsLeft.REPS_LEFT_ZERO_TO_ONE);
+    expect(p.rungQuestionSetId, isEmpty);
+    expect(
+      p.activeCompletedSets
+          .firstWhere((c) => c.proposedSetId == first.id)
+          .repsLeft,
+      RepsLeft.REPS_LEFT_ZERO_TO_ONE,
+    );
+    expect(
+      p.activeProposedSets.where(
+        (s) => s.exercise == deadlift && s.calibration,
+      ),
+      hasLength(1),
+      reason: 'no rung after it',
+    );
+    expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
+  });
+
+  test('a missed ramp set never asks', () async {
+    final asked = <String>[];
+    h.provider.onRungQuestion = asked.add;
+    await h.start([Exercise.EXERCISE_DEADLIFT]);
+    final first = h.provider.doneTargetSet!;
+    expect(first.calibration, isTrue);
+    await h.provider.completeSet(
+      first.id,
+      first.targetReps - 1,
+      first.targetWeight,
+    );
+    expect(asked, isEmpty);
+    expect(h.provider.rungQuestionSetId, isEmpty);
   });
 }

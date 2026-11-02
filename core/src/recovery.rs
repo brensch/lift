@@ -2,10 +2,12 @@
 //!
 //! One fixed recovery window per muscle, over the same 10-muscle taxonomy
 //! everything else uses. For each muscle the most recent workout that
-//! trained it sets `last_trained_at`; recovered at `last + window`.
+//! trained it sets `last_trained_at`, from when that workout started (so
+//! a long session does not push its first lift's recovery back);
+//! recovered at `last + window`.
 
 use crate::exercise_catalog::{muscles, ALL_MUSCLES};
-use crate::history::{workout_time, WorkoutRecord};
+use crate::history::WorkoutRecord;
 use crate::pb::{Exercise, MuscleGroup};
 
 const HOUR: i64 = 3600;
@@ -29,7 +31,7 @@ pub fn recovery_hours(muscle: MuscleGroup) -> i64 {
 #[derive(Clone, Copy, Debug)]
 pub struct MuscleRecovery {
     pub muscle: MuscleGroup,
-    /// End time of the most recent workout that trained it (0 = never).
+    /// Start time of the most recent workout that trained it (0 = never).
     pub last_trained_at: i64,
     /// `last_trained_at + window` (0 = never trained).
     pub recovered_at: i64,
@@ -73,7 +75,7 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord], now: i64) -> Vec<MuscleRec
     let mut latest: std::collections::HashMap<MuscleGroup, i64> = std::collections::HashMap::new();
 
     for record in history {
-        let t = workout_time(record);
+        let t = record.workout.start_time;
         if t <= 0 {
             continue;
         }

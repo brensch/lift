@@ -5,9 +5,8 @@ the actual Flutter app running on an Android emulator, talking to a real backend
 over gRPC. Every step captures a full-resolution screenshot and a structured log
 entry, and the run produces an auditable HTML report.
 
-It replaces the earlier headless widget-test harness, which rendered with missing
-fonts and couldn't reach the backend. This one drives the app exactly as a person
-would, so what you see in the report is what a user would see.
+It drives the app exactly as a person would, so what you see in the report
+is what a user would see.
 
 ## Why this shape
 
@@ -59,12 +58,14 @@ so it's a single self-contained file).
 
 ## The scenarios
 
-The live-workout model is one-tap sets (`docs/plans/one-tap-sets.md`): Done
-logs the ready set as prescribed and starts the rest; the rest offers Fewer
-reps / Skip rest; nothing is rated; all done is End workout. A
+The live workout is sets as circles
+([workout-lifecycle.md](../architecture/workout-lifecycle.md)): tap the
+up-next circle to start a set, tap it when done, once more per missed rep;
+all done is End workout. Every workout is planned when it starts. A
 brand-new user's first session of a loaded lift is a calibration ramp
-(5-rep rungs until a rep is missed), not warmups + working sets, so scenarios that need
-the warmup ladder seed a session through the API first.
+(5-rep rungs until a rep is missed, then the working sets from the max it
+found), not warmups + working sets, so scenarios that need the warmup
+ladder seed a session through the API first.
 
 | File | What it proves |
 | --- | --- |
@@ -72,13 +73,13 @@ the warmup ladder seed a session through the API first.
 | `login_tabs_test.dart` | The NEW USER and SIGN IN tabs render their copy. |
 | `solo_onboarding_test.dart` | A new user dev-logs in and is routed to onboarding. |
 | `solo_onboarding_full_test.dart` | The whole onboarding flow (marker → unit → strength → bodyweight → templates) → home with START. |
-| `solo_workout_test.dart` | START opens the live bar on a calibration rung; Done logs it; "How was that?" is asked and Right appends the working sets. |
+| `solo_workout_test.dart` | START opens the live workout on a calibration rung; a full rung climbs to the next, a rep tapped off settles the working weight. |
 | `solo_workout_finish_test.dart` | Done, then End workout through the confirm dialog → the summary with Duration / Volume / Sets / Rest. |
-| `solo_workout_full_test.dart` | Plays an entire workout (Done / Skip rest / Right, bounded) to "All sets complete"; the backend holds exactly one completion per set; ends on the summary. |
+| `solo_workout_full_test.dart` | Plays an entire workout on its circles (bounded by actions, as the ramp grows the plan) to "All sets complete"; the backend holds exactly one completion per set; ends on the summary. |
 | `skip_warmups_test.dart` | With API-seeded history the next session opens with warmups; "Skip" on the warmup row marks them skipped (none removed), up next moves to the first working set, and a skipped warmup can still be done. |
 | `crash_recovery_test.dart` | Done, then a cold relaunch resumes the live workout with the set still recorded. |
 | `workout_backend_sync_test.dart` | A set logged with Done is in the backend's active workout. |
-| `workout_home_after_finish_test.dart` | Sets completed in the app (rung answered Right, then the working sets), ended from the UI: the summary and the backend's tracker agree on the calibrated weight. |
+| `workout_home_after_finish_test.dart` | A first session calibrated and finished in the app, ended from the UI: the summary shows the calibrated weight and the next plan builds on it. |
 | `multiplayer_peer_test.dart` | An API peer joins; the app shows the 2-person session. |
 | `multiplayer_leave_test.dart` | The app tracks a peer joining *and* leaving in real time. |
 | `multiplayer_workout_progress_test.dart` | A peer joining mid-workout shows on the workout screen; the app user's own workout stays intact. |
@@ -166,10 +167,11 @@ exactly as a reinstalled phone would.
 
 See `integration_test/support/api.dart` for `Peer` (invite/join, start workout,
 complete sets, end workout, leave session, add library templates, training
-partners and join requests). `completeAllWorkingSets()` / `doWorkout()` answer a
-calibration rung "Right" on the way through, so a seeded session leaves the
-tracker performed and the user's next session gets the warmup ladder;
-`hasPerformed(exercise)` tells you which world you are in.
+partners and join requests). `doWorkout()` sets an override per lift (its
+weight, reps and sets) and completes every working set at its target, so a
+seeded session leaves the lift performed and the user's next session gets
+the warmup ladder; `hasPerformed(exercise)` (from the lift's plan) tells
+you which world you are in.
 
 ## How the report survives the run
 

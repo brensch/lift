@@ -1,4 +1,4 @@
-/// The receipts: every number the app prescribes, where it comes from,
+/// The receipts: every number the app plans, where it comes from,
 /// and links to the actual research. Reachable from onboarding (pushed
 /// over the flow, back pops) and from the main menu.
 library;
@@ -21,9 +21,8 @@ class ScienceScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: [
           Text(
-            'Schlift trains you for muscle growth. Every number (sets, '
-            'reps, rest, weight) comes from the research below. One '
-            'rule filters it all: keep it simple enough that you do it.',
+            'Every number I give you comes from one estimate per lift and '
+            'the time you said you have. The studies behind it are below.',
             style: TextStyle(
               fontSize: context.tokens.size.body,
               height: 1.5,
@@ -31,35 +30,37 @@ class ScienceScreen extends StatelessWidget {
             ),
           ),
           const _Section(
-            title: 'Weekly volume: 10–20 sets per muscle',
+            title: 'Three kinds of lift',
             body:
-                'More weekly hard sets grow more muscle, up to a limit. '
-                'Ten or more sets per muscle clearly beat fewer. The '
-                'benefit fades past about twenty. That is the band on the '
-                'home screen. A set counts 1.0 for the muscle that drives '
-                'the movement and 0.5 for each helper.',
+                'Barbell compounds are heavy: 5–8 reps, 3:00 rest, warmups '
+                'first. Every other loaded lift is 8–12 reps with 2:00. '
+                'Bodyweight and core are 5–15 reps with 1:30. Heavy is '
+                'better for strength. For size, anything from about 6 to 30 '
+                'reps works if it\'s hard. Long rest beats short on the big '
+                'lifts.',
             citations: [
               _Citation(
-                'Schoenfeld, Ogborn & Krieger (2017): dose-response of '
-                    'weekly sets on muscle growth',
-                'https://pubmed.ncbi.nlm.nih.gov/27433992/',
+                'Schoenfeld et al. (2017): low- vs high-load training, '
+                    'meta-analysis',
+                'https://pubmed.ncbi.nlm.nih.gov/28834797/',
               ),
               _Citation(
-                'Baz-Valle et al. (2022): systematic review of weekly '
-                    'volume per muscle group',
-                'https://pubmed.ncbi.nlm.nih.gov/35291645/',
+                'Schoenfeld et al. (2016): 3 min vs 1 min rest, '
+                    'randomized trial',
+                'https://pubmed.ncbi.nlm.nih.gov/26605807/',
               ),
             ],
           ),
           const _Section(
-            title: 'Effort: the reps decide',
+            title: 'Your estimated max',
             body:
-                'Sets only count if they are hard, but you never have to '
-                'rate them. Hitting every target rep is the only signal. '
-                'The weight climbs each session you hit them all, so sets '
-                'get hard on their own, and a missed rep says you got '
-                'there. Sets close to failure grow muscle like full '
-                'failure does, with less fatigue.',
+                'Each lift has one number: the most I think you could lift '
+                'once. For bodyweight lifts it\'s the most reps in a set. I '
+                'work it out from every set you\'ve logged, assuming one rep '
+                'left in the tank and a bit of fatigue per set. Hit every '
+                'rep and it goes up a rep\'s worth. Miss one and it drops to '
+                'what you actually showed. Stop early, or lower the weight '
+                'yourself, and it stays put.',
             citations: [
               _Citation(
                 'Grgic et al. (2022): training to failure vs not, '
@@ -69,90 +70,59 @@ class ScienceScreen extends StatelessWidget {
             ],
           ),
           const _Section(
-            title: 'Sets and reps: 5×5, 3×8–12',
+            title: 'Reps and weight',
             body:
-                'Effort decides growth, not the exact load, so the '
-                'numbers are practical. Barbell compounds are 5 sets of 5 '
-                '(deadlifts 3 of 5): heavy enough for strength, enough '
-                'sets for size. Other loaded work is 3 sets of 8–12, '
-                'bodyweight 3 of 5–15, core 3 of 10–20.',
-            citations: [
-              _Citation(
-                'Schoenfeld et al. (2017): low- vs high-load training, '
-                    'meta-analysis',
-                'https://pubmed.ncbi.nlm.nih.gov/28834797/',
-              ),
-            ],
-          ),
-          const _Section(
-            title: 'Rest: 3:00 / 2:30 / 2:00 / 1:30 / 1:00',
-            body:
-                'Short rest cuts your next set, which cuts growth. Three '
-                'minutes beat one minute in trials. Rest goes where it '
-                'pays: 3:00 on lower-body barbell lifts, 2:30 on '
-                'upper-body barbell lifts, 2:00 on other compounds, 1:30 '
-                'on isolation, 1:00 on core. Starting early is always '
-                'allowed.',
-            citations: [
-              _Citation(
-                'Schoenfeld et al. (2016): 3 min vs 1 min rest, '
-                    'randomized trial',
-                'https://pubmed.ncbi.nlm.nih.gov/26605807/',
-              ),
-              _Citation(
-                'Grgic et al. (2017): rest interval review for '
-                    'hypertrophy',
-                'https://pubmed.ncbi.nlm.nih.gov/28933024/',
-              ),
-            ],
-          ),
-          const _Section(
-            title: 'Progression: hit every rep',
-            body:
-                'On a 5×5, every rep of every set means one small step '
-                'up next time. In a rep range, clear every set and the '
-                'rep target climbs by one; top the range and the weight '
-                'takes a step while reps reset. Adding reps grows muscle '
-                'about as well as adding load. Progression always follows '
-                'what you actually lifted.',
+                'I keep you at the weight you did last time, for as many '
+                'reps as your max covers. Past the top of the range, the '
+                'weight goes up a step. Under the bottom, it comes down to '
+                'what you can do. So you add a rep a session, then a '
+                'plate. More reps works about as well as more weight.',
             citations: [
               _Citation(
                 'Plotkin et al. (2022): load progression vs repetition '
                     'progression',
                 'https://pubmed.ncbi.nlm.nih.gov/36199287/',
               ),
+            ],
+          ),
+          const _Section(
+            title: 'Sets: from your time',
+            body:
+                'You tell me how long you have on the home screen. Sixty '
+                'minutes unless you say otherwise. Every lift gets two '
+                'sets. The rest go one at a time, five at most, to whichever '
+                'muscle is furthest under ten sets this week. I time your '
+                'sets and rests, and once I have ten of each I use yours '
+                'instead of my guesses. If two sets each won\'t fit, I tell '
+                'you how long it needs.',
+            citations: [
               _Citation(
-                'ACSM (2009): progression models in resistance training',
-                'https://pubmed.ncbi.nlm.nih.gov/19204579/',
+                'Schoenfeld, Ogborn & Krieger (2017): dose-response of '
+                    'weekly sets on muscle growth',
+                'https://pubmed.ncbi.nlm.nih.gov/27433992/',
               ),
             ],
           ),
           const _Section(
-            title: 'Misses and deloads',
+            title: 'Weekly volume: 10–20 sets per muscle',
             body:
-                'Miss a rep and the weight holds. Everyone has bad days. '
-                'Miss three sessions in a row and the weight drops 10%, '
-                'then climbs past the stall. Grinding a stuck weight '
-                'forever is how progress dies.',
-            citations: [],
+                'Ten hard sets a week per muscle beats fewer. Past twenty '
+                'you\'re mostly just tired. That\'s the band on the home '
+                'screen.',
+            citations: [
+              _Citation(
+                'Baz-Valle et al. (2022): systematic review of weekly '
+                    'volume per muscle group',
+                'https://pubmed.ncbi.nlm.nih.gov/35291645/',
+              ),
+            ],
           ),
           const _Section(
-            title: 'Finding your weight',
+            title: 'Time off',
             body:
-                'A lift you have never logged starts light, in sets of '
-                '5, each about 10% heavier than the last. The first '
-                'missed rep ends it: your working sets start at 90% of '
-                'the heaviest set you did in full. Five reps to failure '
-                'is about 85% of your max; a 5×5 sits around 75–80%.',
-            citations: [],
-          ),
-          const _Section(
-            title: 'Time off: 3 and 6 weeks',
-            body:
-                'Strength holds for about three weeks without training, '
-                'then fades. Back after 3 weeks away from a lift, it '
-                'starts at 90%; after 6 weeks, at 80%. Your old numbers '
-                'come back fast.',
+                'Strength holds for about three weeks. Away from a lift '
+                'longer than that and I cut its max to 90%. Six weeks, 80%. '
+                'It comes back fast.',
             citations: [
               _Citation(
                 'Bosquet et al. (2013): training cessation and muscular '
@@ -162,12 +132,56 @@ class ScienceScreen extends StatelessWidget {
             ],
           ),
           const _Section(
-            title: 'Recovery windows: 48 / 36 / 24 hours',
+            title: 'The first time',
             body:
-                'Muscle rebuilds for roughly 24–48 hours after training. '
-                'Big muscles show ready after ~48 h, arms and delts after '
-                '~36 h, calves and core after ~24 h. Training early is '
-                'allowed. The amber marker is information, not a gate.',
+                'A lift you\'ve never done starts from the weight your '
+                'emoji picked, or wherever you tell me to start. Sets of 5 '
+                'from 60% of it, 10% heavier each '
+                'set, until you miss a rep. Six sets at most. Get all 5 and '
+                'I ask how many more you had in you. 0–1 and we\'re done '
+                'there. 2–4, the next set goes up as usual. 5+, it jumps '
+                'about a fifth, to roughly one rep short of what you '
+                'showed. Or type exactly how much to add and the next set '
+                'goes up by that. Don\'t answer and it goes up as usual. '
+                'Under 3 reps and it was too heavy, which tells me nothing, '
+                'so the next set is a fifth lighter (never back down to one '
+                'you already did all 5 of). 3 or 4 reps and we\'re done. '
+                'The set you got 3 or 4 on, or the one you said 0–1 on, '
+                'tells me your max, and the rest of the workout comes from '
+                'that. Bodyweight lifts start at the bottom of the range.',
+            citations: [],
+          ),
+          const _Section(
+            title: 'Your own numbers',
+            body:
+                'Tap a lift in a workout\'s editor to give it your own '
+                'weight and reps, and sets if you want. I work out the max '
+                'that means and carry on from there. Take them off and I '
+                'go back to your history.',
+            citations: [],
+          ),
+          const _Section(
+            title: 'No automatic drops',
+            body:
+                'I never lower a weight during a workout. Missed reps? Rest '
+                'and go again. Cooked? Lower it yourself. I\'ll take the '
+                'hint next time.',
+            citations: [],
+          ),
+          const _Section(
+            title: 'Warmups',
+            body:
+                'Heavy lifts get four warmup sets at about 40, 55, 70 and '
+                '85% of the working weight. Everything else warms itself '
+                'up.',
+            citations: [],
+          ),
+          const _Section(
+            title: 'Recovery',
+            body:
+                'Big muscles take about 48 hours, arms and shoulders 36, '
+                'calves and core 24. The amber marker is a suggestion, not '
+                'a bouncer.',
             citations: [
               _Citation(
                 'MacDougall et al. (1995): muscle protein synthesis '
@@ -181,44 +195,6 @@ class ScienceScreen extends StatelessWidget {
               ),
             ],
           ),
-          const _Section(
-            title: 'Warmups',
-            body:
-                'Barbell compounds get four warmup sets at roughly '
-                '40/55/70/85% of the working weight. Walking up to a '
-                'heavy bar cold is how injuries happen. Light isolation '
-                'work needs none. The first set is its own warmup.',
-            citations: [],
-          ),
-          const _Section(
-            title: 'Starting weights, and what gender changes',
-            body:
-                'First weights are seeded from bodyweight, experience '
-                'and gender. At the same bodyweight, women average ~52% '
-                'of men\u2019s upper-body strength and ~66% lower-body. So '
-                'upper-body seeds scale to ~60% and lower-body to ~75%. '
-                'Gender changes nothing else. Relative gains are similar '
-                'between sexes, so the program is identical. The seed is '
-                'only a guess: progression finds your real weight in 2–3 '
-                'sessions.',
-            citations: [
-              _Citation(
-                'Miller et al. (1993): sex differences in strength: '
-                    '~52% upper body, ~66% lower body',
-                'https://pubmed.ncbi.nlm.nih.gov/8477683/',
-              ),
-              _Citation(
-                'Nuzzo (2023): comprehensive review of sex differences '
-                    'in muscle strength and size',
-                'https://pubmed.ncbi.nlm.nih.gov/36696264/',
-              ),
-              _Citation(
-                'Roberts et al. (2020): sex differences in resistance '
-                    'training response, meta-analysis',
-                'https://pubmed.ncbi.nlm.nih.gov/32218059/',
-              ),
-            ],
-          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(14),
@@ -227,10 +203,9 @@ class ScienceScreen extends StatelessWidget {
               border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
             ),
             child: Text(
-              'Honesty note: effect sizes in this research are modest '
-              'and most studies are short. Good programs differ little. '
-              'The one variable that beats all others is showing up. '
-              'That is why Schlift optimises for simplicity.',
+              'Honesty note: the effects in these studies are small and '
+              'most of them are short. Good programs barely differ. '
+              'Showing up beats all of it, so I kept it simple.',
               style: TextStyle(
                 fontSize: context.tokens.size.body,
                 height: 1.5,

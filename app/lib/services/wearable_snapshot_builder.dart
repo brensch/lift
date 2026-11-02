@@ -1,7 +1,8 @@
 /// The watch's whole world, built from the phone's state. Both watch apps
 /// render this snapshot and nothing else, so what goes in here is the
 /// contract: READY / LIFTING / RESTING / YAPPING / ALL_DONE, one status
-/// card (the set's weight, reps and plates, and what a tap does), the
+/// card (the set's weight, reps and plates, and what a tap does; or, while
+/// the phone asks something, "Open phone!"), the
 /// actions each state offers (Start, then Done), and the set just done for
 /// the watch's few seconds of taking reps off it.
 library;
@@ -74,9 +75,15 @@ class WearableSnapshotBuilder {
       String stateLabel = '',
       String timerText = '',
     }) {
-      final firstTime = _isFirstEver(set, proposedSets, completedSets);
+      // Until it is started: the phone asks for the weight, or tests you.
+      // Or a ramp set just done in full: the phone asks how many more you
+      // could have done (only ever open with nothing being lifted).
+      final firstTime =
+          (set.id != workout.liftingSetId &&
+              _isFirstEver(set, proposedSets, completedSets)) ||
+          workoutProvider.rungQuestionSetId.isNotEmpty;
       final barbell =
-          workoutProvider.trackerFor(set.exercise)?.equipment ==
+          workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
       final weight = set.targetWeight.toDouble();
       final plates = barbell && !firstTime
@@ -88,17 +95,19 @@ class WearableSnapshotBuilder {
       String num(double v) => v % 1 == 0 ? v.toInt().toString() : '$v';
       final heaviest = standardPlates(unit).first;
       return WearStatusCard(
-        stateLabel: firstTime ? copy.workout.firstTimeStatus : stateLabel,
+        stateLabel: stateLabel,
         timerText: timerText,
         displaySet: set,
         exerciseName: exerciseNames[set.exercise] ?? '?',
         setLine: setLineFor(set, proposedSets),
         setText: setTextFor(set, unit),
         yappingLabel: copy.workout.yapping,
-        weightText: firstTime ? '?' : formatWeight(weight, unit),
+        weightText: firstTime ? '' : formatWeight(weight, unit),
         unitText: weightUnitSuffix(unit),
-        repsText: firstTime ? '?' : '${set.targetReps}',
+        repsText: firstTime ? '' : '${set.targetReps}',
         firstTime: firstTime,
+        // In place of weight × reps: the answer is on the phone.
+        firstTimeText: firstTime ? copy.workout.watchFirstTimeStatus : '',
         plates: [
           for (final p in plates)
             WearPlate(

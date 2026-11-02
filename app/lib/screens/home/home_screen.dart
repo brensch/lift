@@ -1,10 +1,13 @@
 /// Home: your templates, your weekly volume, and one suggestion.
 ///
-/// A template is an ordered list of exercises and nothing else — the
-/// server prescribes sets, reps, rest and weight from the trackers, so
-/// every card here shows the numbers the workout will actually start
-/// with. The suggestion is the template whose muscles are furthest below
-/// the 10–20 weekly-set band; it is one tap, never a gate.
+/// A template is an ordered list of exercises and nothing else — the core
+/// plans sets, reps, rest and weight in the time the user has, so every
+/// card here shows the numbers the workout will actually start with, and
+/// why. The chips are in groups: the rotation, the favourites, then New
+/// and Manage.
+/// The suggestion is the rotation template whose rested muscles are
+/// furthest below the 10–20 weekly-set band, and the card says which; it
+/// is one tap, never a gate.
 library;
 
 import 'dart:async';
@@ -16,11 +19,11 @@ import '../../tutorial/tutorial_target.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
-import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
+import '../../gen/workout/v1/settings.pb.dart' show MuscleGroup, WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
-import '../../logic/session_estimate.dart';
-import '../../logic/weight_units.dart';
+import '../../logic/plan_text.dart';
+import '../../logic/rotation_text.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
@@ -29,6 +32,7 @@ import '../../theme/theme_spec.dart';
 import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
+import '../../widgets/common/flat.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
 
@@ -109,21 +113,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _editTemplates() =>
       showTemplateLibrary(context, provider: context.read<WorkoutProvider>());
 
-  /// Make a library workout the user's own and open it to edit.
-  Future<void> _cloneTemplate(WorkoutTemplate template) async {
-    final wp = context.read<WorkoutProvider>();
-    final messenger = ScaffoldMessenger.of(context);
-    final WorkoutTemplate cloned;
-    try {
-      cloned = await wp.cloneTemplate(template.id);
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
-      return;
-    }
-    if (mounted) {
-      await showTemplateEditor(context, template: cloned, provider: wp);
-    }
-  }
+  /// Open a library workout in the editor to make it the user's own:
+  /// nothing changes until Save there.
+  Future<void> _cloneTemplate(WorkoutTemplate template) => showTemplateEditor(
+    context,
+    template: template,
+    provider: context.read<WorkoutProvider>(),
+    personalise: true,
+  );
 
   Future<void> _editTemplate(WorkoutTemplate? template) async {
     final wp = context.read<WorkoutProvider>();
@@ -209,9 +206,15 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     }
+    Widget chip(WorkoutTemplate template) => TemplateChip(
+      template: template,
+      selected: template.id == selected?.id,
+      recommended: template.id == suggestedId,
+      onTap: () => setState(() => _selectedTemplateId = template.id),
+    );
     final highlight = selected == null
         ? const <MuscleGroup>{}
-        : templateMuscles(selected, wp.trackers).toSet();
+        : templateMuscles(selected, wp.plans).toSet();
 
     // Scrolls (and pulls to refresh) only when the content is taller than the
     // screen; when it fits, the page stays put. No stretch at the edges.
@@ -234,18 +237,14 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 14),
             TutorialTarget(
               id: 'home_templates',
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
+              child: _TemplateChips(
+                rotation: [
                   for (final template in templates)
-                    TemplateChip(
-                      template: template,
-                      selected: template.id == selected?.id,
-                      recommended: template.id == suggestedId,
-                      onTap: () =>
-                          setState(() => _selectedTemplateId = template.id),
-                    ),
+                    if (template.inRotation) chip(template),
+                ],
+                favourites: [
+                  for (final template in templates)
+                    if (!template.inRotation) chip(template),
                   _ActionChip(
                     icon: AppIcons.lightning,
                     label: 'Empty',
@@ -253,6 +252,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () =>
                         setState(() => _selectedTemplateId = _emptyWorkoutId),
                   ),
+                ],
+                actions: [
                   // Straight to a blank workout of your own.
                   _ActionChip(
                     icon: AppIcons.add,
@@ -263,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   TutorialTarget(
                     id: 'home_add',
                     child: _ActionChip(
-                      icon: AppIcons.edit,
+                      icon: AppIcons.manage,
                       label: copy.library.editButton,
                       selected: false,
                       onTap: _editTemplates,
@@ -279,28 +280,75 @@ class _HomeScreenState extends State<HomeScreen> {
                 onStart: () => _start(),
               )
             else if (selected != null)
-              TutorialTarget(
-                id: 'home_plan',
-                child: SelectedTemplateCard(
-                  template: selected,
-                  trackers: wp.trackers,
-                  unit: unit,
-                  recommended: selected.id == suggestedId,
-                  suggestionReason: selected.id == suggestedId
-                      ? home.suggestionReason
-                      : '',
-                  isStarting: _isStarting,
-                  onStart: () => _start(templateId: selected!.id),
-                  onEdit: () => _editTemplate(selected),
-                  onClone: () => _cloneTemplate(selected!),
-                  onDelete: () => _confirmDeleteTemplate(selected!),
-                ),
+              SelectedTemplateCard(
+                template: selected,
+                plan: wp.templatePlanFor(selected.id),
+                budgetMinutes: wp.budgetMinutes,
+                onBudgetStep: wp.stepBudget,
+                unit: unit,
+                recommended: selected.id == suggestedId,
+                reason: selected.id == suggestedId && home.hasSuggestionReason()
+                    ? suggestionLine(home.suggestionReason)
+                    : '',
+                isStarting: _isStarting,
+                onStart: () => _start(templateId: selected!.id),
+                onEdit: () => _editTemplate(selected),
+                onClone: () => _cloneTemplate(selected!),
+                onDelete: () => _confirmDeleteTemplate(selected!),
+                onToggleRotation: () =>
+                    wp.setInRotation(selected!, !selected.inRotation),
               )
             else
               _EmptyState(onCreate: () => _editTemplate(null)),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The template chips in three groups: the rotation and the favourites
+/// (the Empty workout chip last), each under its title, then a line of
+/// the action chips. A group with nothing in it has no title; an empty
+/// rotation says how to fill it.
+class _TemplateChips extends StatelessWidget {
+  final List<Widget> rotation;
+  final List<Widget> favourites;
+  final List<Widget> actions;
+
+  const _TemplateChips({
+    required this.rotation,
+    required this.favourites,
+    required this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = copy.library;
+    Widget wrap(List<Widget> children) =>
+        Wrap(spacing: 6, runSpacing: 6, children: children);
+    Widget group(String title, List<Widget> chips) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [SectionLabel(title), const SizedBox(height: 6), wrap(chips)],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (rotation.isEmpty)
+          Text(
+            l.rotationEmptyHome,
+            style: TextStyle(fontSize: t.size.body, color: t.muted),
+          )
+        else
+          group(l.rotationHeading, rotation),
+        if (favourites.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          group(l.favouritesHeading, favourites),
+        ],
+        const SizedBox(height: 12),
+        wrap(actions),
+      ],
     );
   }
 }
@@ -424,27 +472,15 @@ class _ActionChip extends StatelessWidget {
   }
 }
 
-/// Short display names for the ten muscles, shared by the volume rows and
-/// the template chips.
-const muscleShortLabels = {
-  MuscleGroup.MUSCLE_GROUP_CHEST: 'Chest',
-  MuscleGroup.MUSCLE_GROUP_BACK: 'Back',
-  MuscleGroup.MUSCLE_GROUP_SHOULDERS: 'Delts',
-  MuscleGroup.MUSCLE_GROUP_BICEPS: 'Biceps',
-  MuscleGroup.MUSCLE_GROUP_TRICEPS: 'Triceps',
-  MuscleGroup.MUSCLE_GROUP_QUADS: 'Quads',
-  MuscleGroup.MUSCLE_GROUP_HAMSTRINGS: 'Hams',
-  MuscleGroup.MUSCLE_GROUP_GLUTES: 'Glutes',
-  MuscleGroup.MUSCLE_GROUP_CALVES: 'Calves',
-  MuscleGroup.MUSCLE_GROUP_CORE: 'Core',
-};
-
-/// The distinct primary muscles a template trains, in exercise order.
+/// The distinct primary muscles a template trains, in exercise order, from
+/// each lift's plan (Home's [plans] hold every lift's).
 List<MuscleGroup> templateMuscles(
   WorkoutTemplate template,
-  List<ExerciseTracker> trackers,
+  List<ExercisePlan> plans,
 ) {
-  final byExercise = {for (final t in trackers) t.exercise: t.primaryMuscle};
+  final byExercise = {
+    for (final p in plans) p.decision.exercise: p.primaryMuscle,
+  };
   final out = <MuscleGroup>[];
   for (final exercise in template.exercises) {
     final muscle = byExercise[exercise];
@@ -504,19 +540,27 @@ class _EmptyState extends StatelessWidget {
 /// countdown chip until the muscle is recovered), and selection (name
 /// color: green = the selected workout hits it and it's ready, amber =
 /// it hits it but the muscle isn't recovered yet; untargeted rows dim).
+///
+/// [proportional] draws shares instead (the Manage sheet's lap of the main
+/// plan, which is not a week): each bar against the most-trained muscle's,
+/// with no band, no tick, no set count and no recovery chip.
 class VolumeCard extends StatelessWidget {
   final List<MuscleVolume> volume;
   final List<MuscleRecoveryStatus> recovery;
 
   /// Primary muscles of the selected template; empty = nothing selected
-  /// (no dimming, no colored names).
+  /// (no dimming, no colored names). Not drawn when [proportional].
   final Set<MuscleGroup> highlight;
+
+  /// Bars as shares of the largest, not against the weekly target.
+  final bool proportional;
 
   const VolumeCard({
     super.key,
     required this.volume,
     required this.recovery,
     this.highlight = const {},
+    this.proportional = false,
   });
 
   static const _recoveryKeys = {
@@ -541,6 +585,10 @@ class VolumeCard extends StatelessWidget {
         if (_recoveryKeys[entry.muscleKey] != null)
           _recoveryKeys[entry.muscleKey]!: entry,
     };
+    final most = volume.fold<double>(
+      0,
+      (most, v) => v.completedSets7d > most ? v.completedSets7d : most,
+    );
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
@@ -553,12 +601,14 @@ class VolumeCard extends StatelessWidget {
           for (final entry in volume)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 3.5),
-              child: _VolumeRow(
-                entry: entry,
-                recovery: recoveryByMuscle[entry.muscle],
-                targeted: highlight.contains(entry.muscle),
-                anySelected: highlight.isNotEmpty,
-              ),
+              child: proportional
+                  ? _ShareRow(entry: entry, most: most)
+                  : _VolumeRow(
+                      entry: entry,
+                      recovery: recoveryByMuscle[entry.muscle],
+                      targeted: highlight.contains(entry.muscle),
+                      anySelected: highlight.isNotEmpty,
+                    ),
             ),
         ],
       ),
@@ -727,6 +777,65 @@ class _VolumeRow extends StatelessWidget {
   }
 }
 
+/// One muscle as a share: its name and a bar against [most], the
+/// largest of the card's. Nothing else.
+class _ShareRow extends StatelessWidget {
+  final MuscleVolume entry;
+  final double most;
+
+  const _ShareRow({required this.entry, required this.most});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final cs = Theme.of(context).colorScheme;
+    final share = most > 0
+        ? (entry.completedSets7d / most).clamp(0.0, 1.0)
+        : 0.0;
+    return Row(
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            muscleShortLabels[entry.muscle] ?? '?',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: t.size.bodyLg,
+              fontWeight: t.weight.bold,
+              color: cs.onSurface,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SizedBox(
+            height: 6,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+                    borderRadius: t.br(6),
+                  ),
+                ),
+                FractionallySizedBox(
+                  widthFactor: share,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: t.muted,
+                      borderRadius: t.br(6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// "14h" — hours until this muscle is recovered. Amber when the selected
 /// workout is about to train it anyway.
 class _RecoveryChip extends StatelessWidget {
@@ -826,46 +935,50 @@ class TemplateChip extends StatelessWidget {
   }
 }
 
-/// The one expanded card: every exercise with the exact numbers the workout
-/// will start with, the muscles it hits, the time it should take, and START.
+/// The one expanded card: the time the user has, every exercise with the
+/// exact numbers the workout will start with and why, the time it should
+/// take, and START.
 class SelectedTemplateCard extends StatelessWidget {
   final WorkoutTemplate template;
-  final List<ExerciseTracker> trackers;
+
+  /// The template planned in the budget; null before the first load.
+  final TemplatePlan? plan;
+  final int budgetMinutes;
+  final ValueChanged<int> onBudgetStep;
   final WeightUnit unit;
   final bool recommended;
-  final String suggestionReason;
+
+  /// Why it is suggested, from the core's reason; empty when it is not.
+  final String reason;
   final bool isStarting;
   final VoidCallback onStart;
   final VoidCallback onEdit;
   final VoidCallback onClone;
   final VoidCallback onDelete;
+  final VoidCallback onToggleRotation;
 
   const SelectedTemplateCard({
     super.key,
     required this.template,
-    required this.trackers,
+    required this.plan,
+    required this.budgetMinutes,
+    required this.onBudgetStep,
     required this.unit,
     required this.recommended,
-    required this.suggestionReason,
+    required this.reason,
     required this.isStarting,
     required this.onStart,
     required this.onEdit,
     required this.onClone,
     required this.onDelete,
+    required this.onToggleRotation,
   });
-
-  ExerciseTracker? _trackerFor(Exercise exercise) {
-    for (final tracker in trackers) {
-      if (tracker.exercise == exercise) return tracker;
-    }
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final accent = recommended ? cs.primary : cs.outline.withValues(alpha: 0.5);
-    final time = estimatedSessionLabel(template, trackers);
+    final plans = plan?.plans ?? const <ExercisePlan>[];
 
     return Container(
       decoration: BoxDecoration(
@@ -884,45 +997,24 @@ class SelectedTemplateCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            template.name,
-                            style: TextStyle(
-                              fontSize: context.tokens.size.titleLg,
-                              fontWeight: context.tokens.weight.heavy,
-                              letterSpacing: -0.3,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (time.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Text(
-                              time,
-                              style: TextStyle(
-                                fontSize: context.tokens.size.bodyLg,
-                                fontWeight: context.tokens.weight.bold,
-                                color: cs.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                          ),
-                      ],
+                    Text(
+                      template.name,
+                      style: TextStyle(
+                        fontSize: context.tokens.size.titleLg,
+                        fontWeight: context.tokens.weight.heavy,
+                        letterSpacing: -0.3,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     if (!template.coupled) const PersonalTag(),
-                    if (recommended)
+                    if (recommended && reason.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          suggestionReason.isEmpty
-                              ? 'Recommended next'
-                              : 'Recommended: $suggestionReason',
+                          reason,
                           style: TextStyle(
                             fontSize: context.tokens.size.body,
-                            fontWeight: context.tokens.weight.bold,
-                            color: cs.primary,
+                            color: cs.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ),
@@ -938,38 +1030,55 @@ class SelectedTemplateCard extends StatelessWidget {
                   if (value == 'edit') onEdit();
                   if (value == 'clone') onClone();
                   if (value == 'delete') onDelete();
+                  if (value == 'rotation') onToggleRotation();
                 },
                 // A library workout follows the library: clone it to make
-                // it yours. Your own you edit.
-                itemBuilder: (_) => template.coupled
-                    ? [
-                        PopupMenuItem(
-                          value: 'clone',
-                          child: Text(copy.library.clone),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(copy.library.remove),
-                        ),
-                      ]
-                    : [
-                        const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text(copy.library.delete),
-                        ),
-                      ],
+                // it yours. Your own you edit. Either goes in or out of
+                // the rotation.
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'rotation',
+                    child: Text(
+                      template.inRotation
+                          ? copy.rotation.remove
+                          : copy.rotation.add,
+                    ),
+                  ),
+                  if (template.coupled) ...[
+                    PopupMenuItem(
+                      value: 'clone',
+                      child: Text(copy.library.clone),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(copy.library.remove),
+                    ),
+                  ] else ...[
+                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(copy.library.delete),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
-          for (final exercise in template.exercises)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 5, right: 8),
-              child: _ExerciseLine(
-                exercise: exercise,
-                tracker: _trackerFor(exercise),
-                unit: unit,
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8, right: 8),
+            child: TutorialTarget(
+              id: 'home_time',
+              child: _TimeControl(
+                plan: plan ?? TemplatePlan.getDefault(),
+                budgetMinutes: budgetMinutes,
+                onStep: onBudgetStep,
               ),
+            ),
+          ),
+          for (final exercisePlan in plans)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6, right: 8),
+              child: _ExerciseLine(decision: exercisePlan.decision, unit: unit),
             ),
           const SizedBox(height: 10),
           Padding(
@@ -1004,51 +1113,127 @@ class SelectedTemplateCard extends StatelessWidget {
   }
 }
 
-/// One line of a template card: "Squat   3×8 @ 185 lb".
-class _ExerciseLine extends StatelessWidget {
-  final Exercise exercise;
-  final ExerciseTracker? tracker;
-  final WeightUnit unit;
+/// "− 60 min +" and what the plan takes: "~52 min", "Needs 70 min" when
+/// two sets a lift don't fit, or "~62 min · the longest it gets" when the
+/// budget is at or past what the workout can use (its `max_seconds`): then
+/// + buys nothing and is off. The budget is shared by every template, so
+/// it is never moved here; only this template's cap is shown. A lift never
+/// done ramps until a set falls short, so a workout with one has no length
+/// to give: the calibration line stands in its place.
+class _TimeControl extends StatelessWidget {
+  final TemplatePlan plan;
+  final int budgetMinutes;
+  final ValueChanged<int> onStep;
 
-  const _ExerciseLine({
-    required this.exercise,
-    required this.tracker,
-    required this.unit,
+  const _TimeControl({
+    required this.plan,
+    required this.budgetMinutes,
+    required this.onStep,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = exerciseNames[exercise] ?? '?';
-    final resolved = tracker;
-    final prescription = resolved == null
+    final t = context.tokens;
+    if (plan.plans.any((p) => p.decision.calibration)) {
+      return Text(
+        copy.plan.calibration,
+        style: TextStyle(fontSize: t.size.body, color: t.muted),
+      );
+    }
+    final seconds = plan.estimatedSeconds;
+    final budget = budgetMinutes * 60;
+    final over = seconds > budget;
+    final capped = plan.maxSeconds > 0 && budget >= plan.maxSeconds;
+    final template = over
+        ? copy.plan.needs
+        : (capped ? copy.plan.longest : copy.plan.estimate);
+    final estimate = seconds <= 0
         ? ''
-        : resolved.workingWeight > 0
-        ? '${resolved.sets}×${resolved.targetReps} @ '
-              '${formatWeight(resolved.workingWeight, unit, includeUnit: true)}'
-        : '${resolved.sets}×${resolved.targetReps}';
+        : template.replaceAll('{min}', '${planMinutes(seconds)}');
     return Row(
       children: [
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: () => onStep(-1),
+          icon: const Icon(AppIcons.removeCircle),
+        ),
+        Text(
+          copy.plan.budget.replaceAll('{min}', '$budgetMinutes'),
+          style: TextStyle(
+            fontSize: t.size.bodyLg,
+            fontWeight: t.weight.heavy,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: capped ? null : () => onStep(1),
+          icon: const Icon(AppIcons.addCircle),
+        ),
         Expanded(
           child: Text(
-            name,
+            estimate,
+            textAlign: TextAlign.end,
             style: TextStyle(
-              fontSize: context.tokens.size.bodyLg,
-              fontWeight: context.tokens.weight.bold,
+              fontSize: t.size.body,
+              fontWeight: t.weight.bold,
+              color: over ? cs.error : cs.onSurface.withValues(alpha: 0.6),
             ),
-            overflow: TextOverflow.ellipsis,
           ),
         ),
-        const SizedBox(width: 8),
-        Text(
-          prescription,
-          style: TextStyle(
-            fontSize: context.tokens.size.bodyLg,
-            fontWeight: context.tokens.weight.bold,
-            fontFeatures: const [FontFeature.tabularFigures()],
-            color: cs.onSurface.withValues(alpha: 0.7),
-          ),
+      ],
+    );
+  }
+}
+
+/// One lift of a template card: "Squat   3×8 @ 185 lb", and under it why.
+class _ExerciseLine extends StatelessWidget {
+  final ExerciseDecision decision;
+  final WeightUnit unit;
+
+  const _ExerciseLine({required this.decision, required this.unit});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final name = exerciseNames[decision.exercise] ?? '?';
+    final reason = reasonShort(decision, unit);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: context.tokens.size.bodyLg,
+                  fontWeight: context.tokens.weight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              planLine(decision, unit),
+              style: TextStyle(
+                fontSize: context.tokens.size.bodyLg,
+                fontWeight: context.tokens.weight.bold,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: cs.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
         ),
+        if (reason.isNotEmpty)
+          Text(
+            reason,
+            style: TextStyle(
+              fontSize: context.tokens.size.small,
+              color: cs.onSurface.withValues(alpha: 0.55),
+            ),
+          ),
       ],
     );
   }

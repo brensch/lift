@@ -285,6 +285,18 @@ class _HeartRateChartState extends State<HeartRateChart> {
         2;
     final bottomAxisHeight =
         _labelSize(context, formatElapsedHms(maxX.round()), caption).height + 8;
+    // A zone's name only where its band is tall enough to hold it: thin
+    // bands side by side would stack their names on each other.
+    final zoneLabelHeight = _labelSize(
+      context,
+      'Z5',
+      caption.copyWith(fontWeight: context.tokens.weight.bold),
+    ).height;
+    final pxPerBpm =
+        ((widget.fullView ? 320 : 160) - bottomAxisHeight) /
+        max(1.0, maxY - minY);
+    bool zoneLabelFits(HeartRateZone z) =>
+        (z.high - z.low) * pxPerBpm >= zoneLabelHeight;
     // Colour the single line by HR zone with a vertical stepped gradient
     // (one series) instead of emitting a separate series per point pair.
     final gradient = zoneGradient(zones, maxY);
@@ -439,24 +451,26 @@ class _HeartRateChartState extends State<HeartRateChart> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InkWell(
-            borderRadius: context.tokens.br(8),
-            onTap: widget.collapsible
-                ? () => setState(() => _collapsed = !_collapsed)
-                : null,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: _collapsed && widget.collapsible
-                  ? KeyedSubtree(
-                      key: const ValueKey('collapsed-hr-header'),
-                      child: collapsedHeader,
-                    )
-                  : KeyedSubtree(
-                      key: const ValueKey('expanded-hr-header'),
-                      child: expandedHeader,
-                    ),
+          // A finished workout has no "now" to read a current BPM from.
+          if (widget.followLiveClock)
+            InkWell(
+              borderRadius: context.tokens.br(8),
+              onTap: widget.collapsible
+                  ? () => setState(() => _collapsed = !_collapsed)
+                  : null,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: _collapsed && widget.collapsible
+                    ? KeyedSubtree(
+                        key: const ValueKey('collapsed-hr-header'),
+                        child: collapsedHeader,
+                      )
+                    : KeyedSubtree(
+                        key: const ValueKey('expanded-hr-header'),
+                        child: expandedHeader,
+                      ),
+              ),
             ),
-          ),
           AnimatedSize(
             duration: const Duration(milliseconds: 240),
             curve: Curves.easeInOutCubic,
@@ -589,7 +603,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                         getTitlesWidget: (value, meta) {
                                           for (final z in zones) {
                                             final mid = (z.low + z.high) / 2.0;
-                                            if ((value - mid).abs() < 1) {
+                                            if ((value - mid).abs() < 1 &&
+                                                zoneLabelFits(z)) {
                                               return SideTitleWidget(
                                                 meta: meta,
                                                 space: _axisGap,

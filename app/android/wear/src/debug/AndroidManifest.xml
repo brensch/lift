@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: a snapshot fed over adb (store screenshots on an
+     emulator with no phone paired). Never in a release build. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name="com.brensch.schlift.wear.DebugSnapshotReceiver"
+            android:exported="true" />
+    </application>
+</manifest>

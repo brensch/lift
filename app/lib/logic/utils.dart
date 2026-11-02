@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:grpc/grpc.dart';
 import 'package:passkeys/exceptions.dart';
 
 String cleanErrorMessage(dynamic error) {
@@ -16,10 +15,6 @@ String cleanErrorMessage(dynamic error) {
         '',
       ) // Remove trailing details if any
       .trim();
-}
-
-bool isUnauthenticatedError(Object error) {
-  return error is GrpcError && error.code == StatusCode.unauthenticated;
 }
 
 String formatPlatformError(PlatformException error) {
@@ -85,4 +80,23 @@ String _passkeyError(String code, String? message, [Object? details]) {
       ? 'Passkey operation failed.'
       : message.trim();
   return 'Passkey error ($code): $messageText$detailText';
+}
+
+/// "Oct 3": a day as the charts and plan reasons show it.
+String shortDate(DateTime d) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${months[d.month - 1]} ${d.day}';
 }

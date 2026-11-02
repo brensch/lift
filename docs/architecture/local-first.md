@@ -33,6 +33,13 @@ saved, a setting changed. An event carries:
   its sets, a template) is derived from it (`core/src/ids.rs`).
 - `at` — the phone's clock when it happened. The fold never reads a clock.
 
+An event records what the rules decided when it was made, not just what
+was asked: a `StartWorkout` carries every lift's decision (sets, reps,
+weight, the max and the reasons), a `CompleteOnboarding` the starting
+weights, an `AddLibraryTemplates` the library entries. The fold lays those
+out; it never plans and never consults the library, so a change to the
+rules changes nothing already recorded.
+
 So `Account::fold(events)` is deterministic: the phone and the server build
 the same account from the same log, ids and times included. Every test in
 `core/tests/api.rs` and every user in the fuzzer (`core/examples/fuzz.rs`)
@@ -42,11 +49,15 @@ left behind.
 `Account::apply` changes the account by one event, all of it or (on an error)
 none of it. `Account::replay` folds in an event already in the log: it takes
 its place whether or not it applies (an event made by different rules is a
-no-op, never a gap).
+no-op, never a gap). A start or an add that names a lift without its
+recorded decision is refused, so a log without decisions can't fold into
+empty workouts.
 
-`ImportHistory` brings history in as it was (finished workouts, trackers):
-how accounts that predate the log were converted, and how the tutorial and the
-demo accounts are seeded.
+`ImportHistory` brings history in as it was: finished workouts with their
+sets, and the starting weights of lifts never done. The plan walks
+imported workouts like any others. It is how the tutorial and the demo
+accounts are seeded, and how existing accounts were brought into this
+log's shape.
 
 ## The API
 
@@ -67,7 +78,11 @@ name, so the app keeps its generated types and only the transport changed.
   acknowledged) and the readable tables of `core/src/projection.rs`, rewritten
   as events land. A write is in the file before the app is answered.
 - The file is the user's: Settings → Export gives them it whole (every
-  workout, set and tracker as plain tables, next to the log).
+  workout, set and lift's decision as plain tables, next to the log).
+- The account files (`accounts/<user>.sqlite` in the app's support
+  directory) are kept out of Android Auto Backup and device transfer
+  (`app/android/app/src/main/res/xml/`): a new install always pulls the
+  account from the server.
 - `app/lib/services/local_core.dart` is the Dart doorway; `WorkoutServiceWrapper`
   makes the app's calls through it. Providers hold no rules: each action is one
   call, and what's on screen is the core's answer.
@@ -98,7 +113,9 @@ A fresh install pulls the account's log first (`PullEvents`) and only then
 opens for use, so it carries on the server's history rather than starting
 one of its own. If a phone ever pushes a log that disagrees with the server's
 on a seq both hold (two phones recorded the account), the server refuses it
-(`account_diverged`); nothing is merged.
+(`account_diverged`); nothing is merged. A push carrying a start or an add
+without its decisions is refused the same way, and nothing of it is
+stored.
 
 ## On the server
 

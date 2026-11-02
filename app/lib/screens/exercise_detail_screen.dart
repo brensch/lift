@@ -4,6 +4,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
+import '../logic/plan_text.dart';
+import '../logic/utils.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
@@ -23,12 +25,9 @@ class ExerciseDetailScreen extends StatefulWidget {
   State<ExerciseDetailScreen> createState() => _ExerciseDetailScreenState();
 }
 
-enum _Metric { weight, oneRm }
-
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   List<_Session>? _sessions;
   bool _isLoading = true;
-  _Metric _metric = _Metric.weight;
 
   @override
   void initState() {
@@ -39,8 +38,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Future<void> _load() async {
     final service = context.read<WorkoutServiceWrapper>();
     try {
-      // One call: the server returns the per-exercise session series (oldest
-      // first) with top weight/reps, est-1RM, volume and set count precomputed.
+      // One call: the core returns the per-exercise session series (oldest
+      // first) with top weight/reps, the estimated max after each session,
+      // volume and set count precomputed.
       final resp = await service.getExerciseProgress();
       final ep = resp.exercises.firstWhere(
         (e) => e.exercise == widget.exercise,
@@ -52,7 +52,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               date: DateTime.fromMillisecondsSinceEpoch(p.date.toInt() * 1000),
               topWeight: p.topWeight,
               topReps: p.topReps,
-              bestOneRm: p.bestOneRepMax,
+              estimatedMax: p.estimatedMax,
               volume: p.volume,
               sets: p.sets,
             ),
@@ -101,9 +101,9 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final best = sessions
         .map((s) => s.topWeight)
         .reduce((a, b) => a > b ? a : b);
-    final bestOneRm = sessions
-        .map((s) => s.bestOneRm)
-        .reduce((a, b) => a > b ? a : b);
+    // A bodyweight lift's max is a rep max, and its heaviest set is reps.
+    final bodyweight = sessions.every((s) => s.topWeight <= 0);
+    final maxNow = sessions.last.estimatedMax;
     final totalVolume = sessions.fold<double>(0, (a, s) => a + s.volume);
     final totalSets = sessions.fold<int>(0, (a, s) => a + s.sets);
 
@@ -111,32 +111,29 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          // Headline: current top weight + best est. 1RM.
+          // Headline: the estimated max now, and the heaviest set last time,
+          // in the chart's colours.
           FlatSection(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 _headStat(
-                  '${formatWeight(current, unit)} $suffix',
-                  'current top set',
+                  maxText(maxNow, unit, bodyweight: bodyweight),
+                  'estimated max',
                   cs,
                   big: true,
                   color: context.tokens.series.first,
                 ),
                 const Spacer(),
                 _headStat(
-                  '${formatWeight(bestOneRm, unit)} $suffix',
-                  'best est. 1RM',
+                  bodyweight
+                      ? '${sessions.last.topReps} reps'
+                      : '${formatWeight(current, unit)} $suffix',
+                  'heaviest set last time',
                   cs,
+                  color: context.tokens.series[1],
                 ),
               ],
-            ),
-          ),
-          FlatTabs(
-            labels: const ['Top weight', 'Est. 1RM'],
-            selected: _metric == _Metric.weight ? 0 : 1,
-            onSelect: (i) => setState(
-              () => _metric = i == 0 ? _Metric.weight : _Metric.oneRm,
             ),
           ),
           FlatSection(
@@ -145,9 +142,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     height: 200,
                     child: _TrendChart(
                       sessions: sessions,
-                      metric: _metric,
+                      bodyweight: bodyweight,
                       unit: unit,
-                      color: context.tokens.series.first,
+                      maxColor: context.tokens.series.first,
+                      liftedColor: context.tokens.series[1],
                       cs: cs,
                     ),
                   )
@@ -251,30 +249,61 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   );
 }
 
+/// The estimated max after each session, and under it the heaviest set
+/// lifted (reps, for a bodyweight lift).
 class _TrendChart extends StatelessWidget {
   final List<_Session> sessions;
-  final _Metric metric;
+  final bool bodyweight;
   final WeightUnit unit;
-  final Color color;
+  final Color maxColor;
+  final Color liftedColor;
   final ColorScheme cs;
   const _TrendChart({
     required this.sessions,
-    required this.metric,
+    required this.bodyweight,
     required this.unit,
-    required this.color,
+    required this.maxColor,
+    required this.liftedColor,
     required this.cs,
   });
 
-  double _value(_Session s) =>
-      metric == _Metric.weight ? s.topWeight : s.bestOneRm;
+  double _lifted(_Session s) => bodyweight ? s.topReps.toDouble() : s.topWeight;
+
+  String _label(double v) =>
+      bodyweight ? '${v.round()}' : formatWeight(v, unit);
+
+  LineChartBarData _line(List<FlSpot> spots, Color color) => LineChartBarData(
+    spots: spots,
+    isCurved: true,
+    curveSmoothness: 0.2,
+    color: color,
+    barWidth: 3,
+    dotData: FlDotData(
+      show: true,
+      checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
+      getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
+        radius: 4,
+        color: color,
+        strokeWidth: 2,
+        strokeColor: cs.surface,
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final spots = [
+    final maxSpots = [
       for (var i = 0; i < sessions.length; i++)
-        FlSpot(i.toDouble(), _value(sessions[i])),
+        if (sessions[i].estimatedMax > 0)
+          FlSpot(i.toDouble(), sessions[i].estimatedMax),
     ];
-    final vals = sessions.map(_value).toList();
+    final liftedSpots = [
+      for (var i = 0; i < sessions.length; i++)
+        FlSpot(i.toDouble(), _lifted(sessions[i])),
+    ];
+    final vals = [
+      for (final spot in [...maxSpots, ...liftedSpots]) spot.y,
+    ];
     final minV = vals.reduce((a, b) => a < b ? a : b);
     final maxV = vals.reduce((a, b) => a > b ? a : b);
     final pad = ((maxV - minV) * 0.25).clamp(2.0, double.infinity);
@@ -298,7 +327,7 @@ class _TrendChart extends StatelessWidget {
               reservedSize: 36,
               interval: interval,
               getTitlesWidget: (v, meta) => Text(
-                formatWeight(v, unit),
+                _label(v),
                 style: TextStyle(
                   fontSize: context.tokens.size.caption,
                   color: cs.tertiary,
@@ -326,7 +355,7 @@ class _TrendChart extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    _shortDate(sessions[i].date),
+                    shortDate(sessions[i].date),
                     style: TextStyle(
                       fontSize: context.tokens.size.caption,
                       color: cs.tertiary,
@@ -343,8 +372,9 @@ class _TrendChart extends StatelessWidget {
             getTooltipColor: (_) => cs.inverseSurface,
             getTooltipItems: (items) => items.map((s) {
               final ses = sessions[s.x.round()];
+              final suffix = bodyweight ? 'reps' : weightUnitSuffix(unit);
               return LineTooltipItem(
-                '${formatWeight(_value(ses), unit)} ${weightUnitSuffix(unit)}\n${_shortDate(ses.date)}',
+                '${_label(s.y)} $suffix\n${shortDate(ses.date)}',
                 TextStyle(
                   color: cs.onInverseSurface,
                   fontWeight: context.tokens.weight.bold,
@@ -355,23 +385,8 @@ class _TrendChart extends StatelessWidget {
           ),
         ),
         lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            curveSmoothness: 0.2,
-            color: color,
-            barWidth: 3,
-            dotData: FlDotData(
-              show: true,
-              checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
-              getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
-                radius: 4,
-                color: color,
-                strokeWidth: 2,
-                strokeColor: cs.surface,
-              ),
-            ),
-          ),
+          _line(liftedSpots, liftedColor),
+          _line(maxSpots, maxColor),
         ],
       ),
     );
@@ -398,7 +413,7 @@ class _SessionRow extends StatelessWidget {
           SizedBox(
             width: 52,
             child: Text(
-              _shortDate(session.date),
+              shortDate(session.date),
               style: TextStyle(
                 color: cs.tertiary,
                 fontSize: context.tokens.size.small,
@@ -434,36 +449,18 @@ class _SessionRow extends StatelessWidget {
   }
 }
 
-String _shortDate(DateTime d) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[d.month - 1]} ${d.day}';
-}
-
 class _Session {
   final DateTime date;
   final double topWeight;
   final int topReps;
-  final double bestOneRm;
+  final double estimatedMax;
   final double volume;
   final int sets;
   _Session({
     required this.date,
     required this.topWeight,
     required this.topReps,
-    required this.bestOneRm,
+    required this.estimatedMax,
     required this.volume,
     required this.sets,
   });

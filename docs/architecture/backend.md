@@ -26,7 +26,7 @@ graph TD
         acc["account.rs<br/>Account, apply, fold"]
         api["api.rs<br/>View / Call"]
         proj["projection.rs<br/>SQL tables"]
-        rules["workout/, exercise_progress.rs,<br/>volume.rs, …"]
+        rules["plan.rs, workout/,<br/>exercise_progress.rs, volume.rs, …"]
     end
 
     subgraph data["src/db/ — ServerDb"]
@@ -67,9 +67,9 @@ graph TD
 | `server/analytics.rs` | Page views, admin stats |
 | `db/accounts.rs` | `account_events`, the folded-account cache, projecting pushed workouts |
 | `db/` | All SQL. No SQL exists outside this directory and `core/src/projection.rs`. |
-| `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only), written through the core's API and `ImportHistory` |
+| `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only): plain rising sessions imported with `ImportHistory` (the core's walk works out each lift's max), a live session through the real start |
 
-The rules — planning, the reducer, progression, volume, summaries — are in
+The rules — the plan, the reducer, volume, summaries — are in
 `core/`; see [local-first.md](local-first.md) and
 [workout-lifecycle.md](workout-lifecycle.md).
 
@@ -87,7 +87,10 @@ The rules — planning, the reducer, progression, volume, summaries — are in
 3. Skips seqs already held, takes the rest while they carry on from the head
    without a gap.
 4. Replays each into the fold. An event that doesn't apply still takes its
-   place (it applied on the phone, under the phone's rules).
+   place (it applied on the phone, under the phone's rules) — except a
+   start or an add naming lifts with no recorded decisions, a log the
+   server does not hold: the push is refused (`account_diverged`),
+   nothing is stored and the cached fold is dropped.
 5. In one transaction: inserts the events and rewrites the projected rows
    (`core/src/projection.rs`) of every workout they touched. If that fails,
    the cached fold is dropped so the next read refolds from what was written.
@@ -137,8 +140,10 @@ exist to index and filter; the blob is the truth.
 
 There is no migration framework. `SERVER_SCHEMA` (`src/db/mod.rs`) and
 `core::projection::WORKOUT_SCHEMA` are `CREATE TABLE IF NOT EXISTS` blocks
-run at startup. Adding a column to a table that already exists in production
-needs an idempotent `ALTER TABLE` next to them.
+run at startup. A column added to a projected table that already exists in
+production goes in `ADDED_COLUMNS` (`src/db/mod.rs`): added at startup when
+`pragma_table_info` says it is missing. Columns the projections do not
+write stay, with their defaults.
 
 The projected workout tables can always be rebuilt: they are rewritten from
 the fold, and the log is the truth.
@@ -213,8 +218,11 @@ and message before unwinding.
 ## Tests
 
 - `src/server/sync_tests.rs` — over a real server on a local port: events
-  pushed and folded, the projections they leave, divergence refused, and the
-  Sync stream carrying one partner's progress to the other.
+  pushed and folded, the projections they leave, divergence and a start
+  without decisions refused, an old table brought up to date, and the Sync
+  stream carrying one partner's progress to the other.
+- `src/demo_seed.rs` — both demo users seed, and the walk over their
+  history rises.
 - `src/server/multiplayer_tests.rs` — session roster and training-together
   history through the real handlers.
 - `src/db/auth.rs` — account deletion covers every table with a `user_id`.

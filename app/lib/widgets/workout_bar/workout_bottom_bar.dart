@@ -1,8 +1,9 @@
 /// The banner under every screen while a workout is live: where everyone
 /// is. A status bar per partner (at most three in view, the rest a scroll
 /// away), yours always at the bottom. It has no buttons of its own: sets are
-/// started and logged on their circles. During someone's first workout a
-/// line on top says what to do next.
+/// started and logged on their circles. A line on top says, when a lift
+/// comes up, why its numbers are what they are — and during someone's
+/// first workout, what to do next instead.
 library;
 
 import 'dart:math';
@@ -14,11 +15,14 @@ import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/group.pb.dart';
+import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../logic/plan_text.dart';
 import '../../logic/session_state.dart';
 import '../../logic/user_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/multiplayer_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../screens/workout/live_set_circle.dart';
 import '../../screens/workout/section_workout.dart';
@@ -105,6 +109,18 @@ String _hint(WorkoutProvider wp) {
   return copy.workout.hints.ready;
 }
 
+/// Why [set]'s lift has the numbers it has, while none of its sets is done
+/// yet (the lift has just come up); '' otherwise.
+String _liftReason(WorkoutProvider wp, ProposedSet? set, WeightUnit unit) {
+  if (set == null) return '';
+  final started = wp.activeProposedSets.any(
+    (s) => s.exercise == set.exercise && wp.isSetDone(s.id),
+  );
+  if (started) return '';
+  final decision = wp.logFor(set.exercise)?.decision;
+  return decision == null ? '' : reasonShort(decision, unit);
+}
+
 class WorkoutBottomBar extends StatefulWidget {
   const WorkoutBottomBar({super.key});
 
@@ -185,6 +201,13 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             snapshot?.state.value ??
             WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
         final you = _youState(wp, t, nowUnix);
+        final topLine = wp.isFirstWorkout
+            ? _hint(wp)
+            : _liftReason(
+                wp,
+                you.set,
+                context.watch<SettingsProvider>().weightUnit,
+              );
 
         // Soonest to lift first: the bottom of the stack, next to yours.
         final others =
@@ -260,9 +283,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (wp.isFirstWorkout) ...[
+                    if (topLine.isNotEmpty) ...[
                       Text(
-                        _hint(wp),
+                        topLine,
                         style: TextStyle(
                           fontSize: t.size.body,
                           fontWeight: t.weight.medium,
