@@ -197,7 +197,7 @@ class _SummaryHeader extends StatelessWidget {
         const SizedBox(width: 24),
         _headStat(
           context,
-          _compactVolume(displayWeightFromPounds(totalVolume, unit)),
+          compactVolume(totalVolume, unit),
           '${weightUnitSuffix(unit)} lifted',
           cs,
         ),
@@ -214,12 +214,6 @@ class _SummaryHeader extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _compactVolume(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
-    return v.round().toString();
   }
 
   Widget _headStat(

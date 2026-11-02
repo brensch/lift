@@ -290,12 +290,18 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             if (hasHeartRateChart)
               FlatSection(
                 label: 'Heart',
-                child: HeartRateChart(
-                  heartRateSamples: _heartRateSamples,
-                  completedSets: ownCompletedSets,
-                  workoutStartTime: workout.startTime,
-                  now: chartNow,
-                  followLiveClock: false,
+                bleed: true,
+                // Edge to edge, as the workout's Heart tab draws it.
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: HeartRateChart(
+                    heartRateSamples: _heartRateSamples,
+                    completedSets: ownCompletedSets,
+                    workoutStartTime: workout.startTime,
+                    now: chartNow,
+                    followLiveClock: false,
+                    fullView: true,
+                  ),
                 ),
               ),
             FlatSection(label: 'Trained with', child: _buildFriends(context)),
@@ -434,15 +440,18 @@ class _MetricGrid extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              m.$2,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.titleLg,
-                  fontWeight: t.weight.bold,
-                  color: t.text,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                m.$2,
+                maxLines: 1,
+                style: t.mono(
+                  TextStyle(
+                    fontSize: t.size.titleLg,
+                    fontWeight: t.weight.bold,
+                    color: t.text,
+                  ),
                 ),
               ),
             ),
@@ -609,7 +618,7 @@ class WorkoutSummaryData {
   String get durationLabel =>
       _formatDuration(Duration(seconds: _s.durationSeconds.toInt()));
   String get volumeLabel =>
-      '${formatWeight(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
+      '${compactVolume(_s.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get liftingTimeLabel =>
       _formatDuration(Duration(seconds: _s.liftingSeconds.toInt()));
   String get restingTimeLabel =>
@@ -641,7 +650,7 @@ class ExerciseSummaryView {
   int get totalReps => _e.totalReps;
   String get name => exerciseNames[_e.exercise] ?? 'Unknown';
   String get volumeLabel =>
-      '${formatWeight(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
+      '${compactVolume(_e.totalVolume, unit)} ${weightUnitSuffix(unit)}';
   String get heaviestSetWeightLabel => _e.heaviestSetWeight > 0
       ? '${formatWeight(_e.heaviestSetWeight, unit)} ${weightUnitSuffix(unit)}'
       : '-';
