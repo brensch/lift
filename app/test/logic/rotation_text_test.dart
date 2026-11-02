@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/copy.dart';
+import 'package:schlift/gen/workout/v1/settings.pb.dart' show MuscleGroup;
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/logic/rotation_text.dart';
 
@@ -67,9 +68,15 @@ void main() {
     });
   });
 
-  group('rotationWarningLines', () {
-    test('one line per warning, names filled in', () {
+  group('rotationCheckLines', () {
+    test('the gap is what it trains; one line per other warning', () {
       final check = RotationCheck(
+        volume: [
+          MuscleVolume(
+            muscle: MuscleGroup.MUSCLE_GROUP_CHEST,
+            completedSets7d: 3,
+          ),
+        ],
         warnings: [
           RotationWarning(
             kind: RotationWarningKind.ROTATION_WARNING_KIND_GAP,
@@ -89,12 +96,16 @@ void main() {
           ),
         ],
       );
-      final lines = rotationWarningLines(check, {
+      final lines = rotationCheckLines(check, {
         'a': 'Full Body',
         'b': 'StrongLifts A',
       });
-      expect(lines, [
+      expect(
+        lines.trains,
         r.gap.replaceAll('{muscles}', 'calves ${r.and} core'),
+      );
+      expect(lines.gap, isTrue);
+      expect(lines.warnings, [
         r.overlap
             .replaceAll('{a}', 'Full Body')
             .replaceAll('{b}', 'StrongLifts A')
@@ -104,8 +115,22 @@ void main() {
       ]);
     });
 
-    test('nothing wrong, nothing said', () {
-      expect(rotationWarningLines(RotationCheck(), {}), isEmpty);
+    test('nothing wrong, nothing but what it trains', () {
+      final everything = rotationCheckLines(
+        RotationCheck(
+          volume: [
+            MuscleVolume(
+              muscle: MuscleGroup.MUSCLE_GROUP_CHEST,
+              completedSets7d: 3,
+            ),
+          ],
+        ),
+        {},
+      );
+      expect(everything.trains, r.trainsEverything);
+      expect(everything.gap, isFalse);
+      expect(everything.warnings, isEmpty);
+      expect(rotationCheckLines(RotationCheck(), {}).trains, r.trainsNothing);
     });
   });
 }

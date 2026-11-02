@@ -3,7 +3,8 @@
 /// A template is an ordered list of exercises and nothing else — the core
 /// plans sets, reps, rest and weight in the time the user has, so every
 /// card here shows the numbers the workout will actually start with, and
-/// why. The rotation's chips come first, the favourites after a divider.
+/// why. The chips are in groups: the rotation, the favourites, then New
+/// and Manage.
 /// The suggestion is the rotation template whose rested muscles are
 /// furthest below the 10–20 weekly-set band, and the card says which; it
 /// is one tap, never a gate.
@@ -18,7 +19,7 @@ import '../../tutorial/tutorial_target.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
-import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
+import '../../gen/workout/v1/settings.pb.dart' show MuscleGroup, WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../logic/plan_text.dart';
@@ -31,6 +32,7 @@ import '../../theme/theme_spec.dart';
 import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
+import '../../widgets/common/flat.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
 
@@ -230,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 volume: home.volume,
                 recovery: home.recovery,
                 highlight: highlight,
+                ignored: wp.ignoredMuscles,
               ),
             ),
             const SizedBox(height: 14),
@@ -250,6 +253,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () =>
                         setState(() => _selectedTemplateId = _emptyWorkoutId),
                   ),
+                ],
+                actions: [
                   // Straight to a blank workout of your own.
                   _ActionChip(
                     icon: AppIcons.add,
@@ -260,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   TutorialTarget(
                     id: 'home_add',
                     child: _ActionChip(
-                      icon: AppIcons.edit,
+                      icon: AppIcons.lines,
                       label: copy.library.editButton,
                       selected: false,
                       onTap: _editTemplates,
@@ -307,32 +312,47 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// The template chips: the rotation first, then after a divider the
-/// favourites and the action chips. With nothing in one group, no divider.
+/// The template chips in three groups: the rotation and the favourites
+/// (the Empty workout chip last), each under its title, then a line of
+/// the action chips. A group with nothing in it has no title; an empty
+/// rotation says how to fill it.
 class _TemplateChips extends StatelessWidget {
   final List<Widget> rotation;
   final List<Widget> favourites;
+  final List<Widget> actions;
 
-  const _TemplateChips({required this.rotation, required this.favourites});
+  const _TemplateChips({
+    required this.rotation,
+    required this.favourites,
+    required this.actions,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final t = context.tokens;
+    final l = copy.library;
     Widget wrap(List<Widget> children) =>
         Wrap(spacing: 6, runSpacing: 6, children: children);
-    if (rotation.isEmpty) return wrap(favourites);
+    Widget group(String title, List<Widget> chips) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [SectionLabel(title), const SizedBox(height: 6), wrap(chips)],
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        wrap(rotation),
-        // Edge to edge, past the page's side padding.
-        SizedBox(
-          height: 17,
-          child: OverflowBox(
-            maxWidth: MediaQuery.sizeOf(context).width,
-            child: Divider(height: 17, color: context.tokens.hairline),
-          ),
-        ),
-        wrap(favourites),
+        if (rotation.isEmpty)
+          Text(
+            l.rotationEmptyHome,
+            style: TextStyle(fontSize: t.size.body, color: t.muted),
+          )
+        else
+          group(l.rotationHeading, rotation),
+        if (favourites.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          group(l.favouritesHeading, favourites),
+        ],
+        const SizedBox(height: 12),
+        wrap(actions),
       ],
     );
   }
@@ -532,11 +552,15 @@ class VolumeCard extends StatelessWidget {
   /// (no dimming, no colored names).
   final Set<MuscleGroup> highlight;
 
+  /// Muscles the user does not count: their rows greyed.
+  final Set<MuscleGroup> ignored;
+
   const VolumeCard({
     super.key,
     required this.volume,
     required this.recovery,
     this.highlight = const {},
+    this.ignored = const {},
   });
 
   static const _recoveryKeys = {
@@ -578,6 +602,7 @@ class VolumeCard extends StatelessWidget {
                 recovery: recoveryByMuscle[entry.muscle],
                 targeted: highlight.contains(entry.muscle),
                 anySelected: highlight.isNotEmpty,
+                ignored: ignored.contains(entry.muscle),
               ),
             ),
         ],
@@ -591,12 +616,14 @@ class _VolumeRow extends StatelessWidget {
   final MuscleRecoveryStatus? recovery;
   final bool targeted;
   final bool anySelected;
+  final bool ignored;
 
   const _VolumeRow({
     required this.entry,
     required this.recovery,
     required this.targeted,
     required this.anySelected,
+    required this.ignored,
   });
 
   static const _trackMax = 24.0;
@@ -617,7 +644,12 @@ class _VolumeRow extends StatelessWidget {
 
     final recovering = recovery != null && !recovery!.recovered;
     // The selected workout's muscles are picked out in the primary orange.
-    final nameColor = targeted ? context.tokens.primary : cs.onSurface;
+    // An ignored muscle is muted whatever is selected.
+    final nameColor = ignored
+        ? context.tokens.muted
+        : targeted
+        ? context.tokens.primary
+        : cs.onSurface;
 
     final row = Row(
       children: [
@@ -742,8 +774,12 @@ class _VolumeRow extends StatelessWidget {
       ],
     );
 
-    // With a workout selected, untargeted muscles step back.
-    return Opacity(opacity: anySelected && !targeted ? 0.45 : 1.0, child: row);
+    // With a workout selected, untargeted muscles step back; ignored ones
+    // always do.
+    return Opacity(
+      opacity: ignored || (anySelected && !targeted) ? 0.45 : 1.0,
+      child: row,
+    );
   }
 }
 

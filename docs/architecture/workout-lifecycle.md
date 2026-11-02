@@ -184,13 +184,24 @@ The template editor plans the list on screen the same way
 
 ## Picking a workout: the rotation and the suggestion
 
-Every template is either **in rotation** (`WorkoutTemplate.in_rotation`)
-or a **favourite**. The workouts picked at onboarding start in rotation;
-a library template added later, or one the user makes, starts as a
-favourite. The template editor's switch and the Home card's menu move a
-template between the two; it is saved through `SaveTemplate`, and a
-library template saved only to change this keeps following the library.
-Home shows the rotation's chips first and the favourites after a divider.
+Every template is either **in rotation** (`WorkoutTemplate.in_rotation`;
+the app calls it the **main plan**) or a **favourite** (a **backup**).
+The workouts picked at onboarding start in rotation; a library template
+added from the Manage sheet goes into the rotation (`AddLibraryTemplates`
+with `in_rotation`; without it, a favourite), and one the user makes
+starts as a favourite. The template editor's switch and the Home card's
+menu move a template between the two through `SaveTemplate`; the Manage
+sheet's drag does it with the order in one `ReorderTemplates`
+(`rotation_count`: the first that many of the list are the rotation, the
+rest favourites). Either way a library template keeps following the
+library. Home shows the rotation's chips and the favourites', each in the
+user's order, under their own section labels.
+
+**Ignored muscles** are a setting (`UserSetting.ignored_muscles`, written
+with `UpdateSetting`): muscles the user does not train on purpose. The
+suggestion counts none of them behind, the rotation check warns of no
+gap in them, and `GetHome` names them (`ignored_muscles`) so Home's weekly
+volume greys them.
 
 `GetHome` suggests one rotation template (`core/src/volume.rs`,
 `suggest_template`), fresh each time from history, never stored:
@@ -202,7 +213,8 @@ Home shows the rotation's chips first and the favourites after a divider.
 2. A template whose first lift's primary muscle is still recovering is
    left out.
 3. A template's score is the sum, over its distinct primary muscles that
-   have recovered, of how far each is below 10 hard sets this week.
+   have recovered and are not ignored, of how far each is below 10 hard
+   sets this week.
 4. Every template within 20% of the best score is tied. The tie goes to
    the template started least recently (never started first).
 5. When no template left in scores above 0, the suggestion is the one
@@ -228,8 +240,11 @@ check's overlap warning names a pair that shares most of its lifts.
 a lift, counted as the week is (primary 1.0, secondary 0.5). Three sets a
 lift, not the planner's, so the check describes the rotation and not this
 week's history or budget. It warns of a **gap** (a muscle nothing in
-rotation trains), an **overlap** (two templates sharing over 70% of the
-smaller one's lifts) and **too few** (under two templates in rotation). The Edit sheet shows the lap's bars and the warnings.
+rotation trains, ignored muscles left out), an **overlap** (two templates
+sharing over 70% of the smaller one's lifts) and **too few** (under two
+templates in rotation). The Manage sheet words it: one line of what a lap
+trains (the gap, when there is one), then the other warnings; the lap's
+sets per muscle are not shown.
 
 ## Starting a workout
 

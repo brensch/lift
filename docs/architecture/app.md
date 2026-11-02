@@ -35,7 +35,7 @@ The rules that matter:
   and reasons), the set state machine, summaries, volume and the home's
   suggestion are the core's. A provider makes one call and shows the
   answer; Dart only words the reasons (`logic/plan_text.dart`) and the
-  suggestion's reason and the rotation check's warnings
+  suggestion's reason and the rotation check's lines
   (`logic/rotation_text.dart`).
 - **`logic/` must not import Flutter.** It is display-side helpers only —
   plate maths for the bar picture, unit formatting, grouping sets into
@@ -184,11 +184,11 @@ Every screen shows the core's decisions, never its own numbers:
 
 | Screen | Shows | From |
 |---|---|---|
-| Home | the rotation's chips, then the favourites after a divider; under the suggested template's name, why (its rested muscles behind, what is still recovering, or that every workout opens on something recovering); the recovery chips; the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason (the plan against last time: "Down to 107.5 kg: 4 sets today, 3 last time."); the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason`, `recovery` |
-| Edit sheet | the rotation check: one lap's sets per muscle on Home's bars, and a line for each warning | `GetHome`: `rotation_check` |
-| Template editor | the In rotation switch | `SaveTemplate` |
+| Home | the chips in three groups, each under a section label: the main plan (the rotation; ☆ on the suggestion; a one-line hint instead when it is empty), the backups (the favourites, then the Empty workout), and a line with New and Manage; the weekly volume with ignored muscles greyed; under the suggested template's name, why (its rested muscles behind, what is still recovering, or that every workout opens on something recovering); the recovery chips; the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason (the plan against last time: "Down to 107.5 kg: 4 sets today, 3 last time."); the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason`, `recovery`, `ignored_muscles` |
+| Manage sheet | the rotation check in words: one line of what a lap trains ("Trains everything but calves and core.", in the warning colour while there is a gap), then a line for an overlap or too few; the ten muscles as toggles, one tapped to ignore it (struck through) or count it again; then one `ReorderableListView` of the main plan and the backups under their headings (an empty section shows a line to drop on), each row a drag handle, the name with its lifts, and delete; a drag reorders within a section or moves a workout across; tapping a row opens the editor. Below it, Add: the library entries the user does not have, by group, each with + into the main plan | `GetHome`: `rotation_check`, `ignored_muscles`; `UpdateSetting(ignored_muscles)`; `ReorderTemplates(rotation_count)`; `AddLibraryTemplates(in_rotation)`; `DeleteTemplate` |
+| Template editor | the In the main plan switch | `SaveTemplate` |
 | Template editor | each lift's next plan, the list on screen planned as one workout in Home's budget (so a saved template reads as Home's card does); the sheet that sets or removes an override | `GetTemplatePlan(exercises, budget_minutes)`, `SetOverride` |
-| Edit sheet, Home card menu | Clone: the editor on the template, recording nothing until Save, which saves it as the user's own (`unlink`) | `SaveTemplate` |
+| Home card menu | Clone: the editor on the template, recording nothing until Save, which saves it as the user's own (`unlink`) | `SaveTemplate` |
 | Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
 | Progress, exercise detail | the estimated max over time beside the heaviest set each session | `GetExerciseProgress` |

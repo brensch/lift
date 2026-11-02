@@ -612,7 +612,7 @@ class PlanReason extends $pb.GeneratedMessage {
     $core.String? setId,
     $fixnum.Int64? at,
     $core.int? budgetMinutes,
-    MuscleGroup? muscle,
+    $1.MuscleGroup? muscle,
     $core.double? weeklySets,
     PlanChangeCause? cause,
     $core.int? repsBefore,
@@ -661,8 +661,8 @@ class PlanReason extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'setId')
     ..aInt64(7, _omitFieldNames ? '' : 'at')
     ..aI(8, _omitFieldNames ? '' : 'budgetMinutes')
-    ..aE<MuscleGroup>(9, _omitFieldNames ? '' : 'muscle',
-        enumValues: MuscleGroup.values)
+    ..aE<$1.MuscleGroup>(9, _omitFieldNames ? '' : 'muscle',
+        enumValues: $1.MuscleGroup.values)
     ..aD(10, _omitFieldNames ? '' : 'weeklySets', fieldType: $pb.PbFieldType.OF)
     ..aE<PlanChangeCause>(11, _omitFieldNames ? '' : 'cause',
         enumValues: PlanChangeCause.values)
@@ -773,9 +773,9 @@ class PlanReason extends $pb.GeneratedMessage {
   void clearBudgetMinutes() => $_clearField(8);
 
   @$pb.TagNumber(9)
-  MuscleGroup get muscle => $_getN(8);
+  $1.MuscleGroup get muscle => $_getN(8);
   @$pb.TagNumber(9)
-  set muscle(MuscleGroup value) => $_setField(9, value);
+  set muscle($1.MuscleGroup value) => $_setField(9, value);
   @$pb.TagNumber(9)
   $core.bool hasMuscle() => $_has(8);
   @$pb.TagNumber(9)
@@ -1221,7 +1221,7 @@ class ExercisePlan extends $pb.GeneratedMessage {
   factory ExercisePlan({
     ExerciseDecision? decision,
     $core.bool? overridden,
-    MuscleGroup? primaryMuscle,
+    $1.MuscleGroup? primaryMuscle,
     EquipmentKind? equipment,
     $fixnum.Int64? lastPerformedAt,
   }) {
@@ -1250,8 +1250,8 @@ class ExercisePlan extends $pb.GeneratedMessage {
     ..aOM<ExerciseDecision>(1, _omitFieldNames ? '' : 'decision',
         subBuilder: ExerciseDecision.create)
     ..aOB(2, _omitFieldNames ? '' : 'overridden')
-    ..aE<MuscleGroup>(3, _omitFieldNames ? '' : 'primaryMuscle',
-        enumValues: MuscleGroup.values)
+    ..aE<$1.MuscleGroup>(3, _omitFieldNames ? '' : 'primaryMuscle',
+        enumValues: $1.MuscleGroup.values)
     ..aE<EquipmentKind>(4, _omitFieldNames ? '' : 'equipment',
         enumValues: EquipmentKind.values)
     ..aInt64(5, _omitFieldNames ? '' : 'lastPerformedAt')
@@ -1298,9 +1298,9 @@ class ExercisePlan extends $pb.GeneratedMessage {
   void clearOverridden() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  MuscleGroup get primaryMuscle => $_getN(2);
+  $1.MuscleGroup get primaryMuscle => $_getN(2);
   @$pb.TagNumber(3)
-  set primaryMuscle(MuscleGroup value) => $_setField(3, value);
+  set primaryMuscle($1.MuscleGroup value) => $_setField(3, value);
   @$pb.TagNumber(3)
   $core.bool hasPrimaryMuscle() => $_has(2);
   @$pb.TagNumber(3)
@@ -3826,6 +3826,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     $core.String? libraryId,
     $core.bool? coupled,
     $core.bool? inRotation,
+    $core.String? originLibraryId,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -3837,6 +3838,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     if (libraryId != null) result.libraryId = libraryId;
     if (coupled != null) result.coupled = coupled;
     if (inRotation != null) result.inRotation = inRotation;
+    if (originLibraryId != null) result.originLibraryId = originLibraryId;
     return result;
   }
 
@@ -3865,6 +3867,7 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
     ..aOS(7, _omitFieldNames ? '' : 'libraryId')
     ..aOB(8, _omitFieldNames ? '' : 'coupled')
     ..aOB(9, _omitFieldNames ? '' : 'inRotation')
+    ..aOS(10, _omitFieldNames ? '' : 'originLibraryId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3968,6 +3971,19 @@ class WorkoutTemplate extends $pb.GeneratedMessage {
   $core.bool hasInRotation() => $_has(8);
   @$pb.TagNumber(9)
   void clearInRotation() => $_clearField(9);
+
+  /// The library entry this was added from, kept when it becomes the user's
+  /// own (library_id is cleared then); empty for one the user made. A
+  /// template with one stands for that entry: the library is not offered
+  /// again beside it.
+  @$pb.TagNumber(10)
+  $core.String get originLibraryId => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set originLibraryId($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasOriginLibraryId() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearOriginLibraryId() => $_clearField(10);
 }
 
 /// One entry of the template library (templates/library.yaml): a workout
@@ -4189,15 +4205,18 @@ class ListTemplateLibraryResponse extends $pb.GeneratedMessage {
 }
 
 /// Adds library entries to the caller's templates, coupled, skipping any
-/// whose library_id is already present. Returns the refreshed home.
+/// the caller already has (a template following it, or one of their own
+/// made from it). Returns the refreshed home.
 class AddLibraryTemplatesRequest extends $pb.GeneratedMessage {
   factory AddLibraryTemplatesRequest({
     $core.Iterable<$core.String>? libraryIds,
     $core.Iterable<LibraryTemplate>? entries,
+    $core.bool? inRotation,
   }) {
     final result = create();
     if (libraryIds != null) result.libraryIds.addAll(libraryIds);
     if (entries != null) result.entries.addAll(entries);
+    if (inRotation != null) result.inRotation = inRotation;
     return result;
   }
 
@@ -4217,6 +4236,7 @@ class AddLibraryTemplatesRequest extends $pb.GeneratedMessage {
     ..pPS(1, _omitFieldNames ? '' : 'libraryIds')
     ..pPM<LibraryTemplate>(2, _omitFieldNames ? '' : 'entries',
         subBuilder: LibraryTemplate.create)
+    ..aOB(3, _omitFieldNames ? '' : 'inRotation')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4247,6 +4267,16 @@ class AddLibraryTemplatesRequest extends $pb.GeneratedMessage {
   /// event is recorded, so a replay never reads the library.
   @$pb.TagNumber(2)
   $pb.PbList<LibraryTemplate> get entries => $_getList(1);
+
+  /// Into the rotation; otherwise (the default) they are favourites.
+  @$pb.TagNumber(3)
+  $core.bool get inRotation => $_getBF(2);
+  @$pb.TagNumber(3)
+  set inRotation($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasInRotation() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearInRotation() => $_clearField(3);
 }
 
 /// Make a library template the user's own: it stops following the library
@@ -4450,7 +4480,7 @@ class AddLibraryTemplatesResponse extends $pb.GeneratedMessage {
 /// and 0.5 for each secondary; warmups and cancelled sets count 0.
 class MuscleVolume extends $pb.GeneratedMessage {
   factory MuscleVolume({
-    MuscleGroup? muscle,
+    $1.MuscleGroup? muscle,
     $core.double? completedSets7d,
     $core.int? targetLow,
     $core.int? targetHigh,
@@ -4476,8 +4506,8 @@ class MuscleVolume extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'MuscleVolume',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aE<MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
-        enumValues: MuscleGroup.values)
+    ..aE<$1.MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
+        enumValues: $1.MuscleGroup.values)
     ..aD(2, _omitFieldNames ? '' : 'completedSets7d',
         protoName: 'completed_sets_7d', fieldType: $pb.PbFieldType.OF)
     ..aI(3, _omitFieldNames ? '' : 'targetLow')
@@ -4504,9 +4534,9 @@ class MuscleVolume extends $pb.GeneratedMessage {
   static MuscleVolume? _defaultInstance;
 
   @$pb.TagNumber(1)
-  MuscleGroup get muscle => $_getN(0);
+  $1.MuscleGroup get muscle => $_getN(0);
   @$pb.TagNumber(1)
-  set muscle(MuscleGroup value) => $_setField(1, value);
+  set muscle($1.MuscleGroup value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasMuscle() => $_has(0);
   @$pb.TagNumber(1)
@@ -4734,6 +4764,7 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     $core.int? budgetMinutes,
     SuggestionReason? suggestionReason,
     RotationCheck? rotationCheck,
+    $core.Iterable<$1.MuscleGroup>? ignoredMuscles,
   }) {
     final result = create();
     if (templates != null) result.templates.addAll(templates);
@@ -4748,6 +4779,7 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
     if (suggestionReason != null) result.suggestionReason = suggestionReason;
     if (rotationCheck != null) result.rotationCheck = rotationCheck;
+    if (ignoredMuscles != null) result.ignoredMuscles.addAll(ignoredMuscles);
     return result;
   }
 
@@ -4782,6 +4814,11 @@ class GetHomeResponse extends $pb.GeneratedMessage {
         subBuilder: SuggestionReason.create)
     ..aOM<RotationCheck>(14, _omitFieldNames ? '' : 'rotationCheck',
         subBuilder: RotationCheck.create)
+    ..pc<$1.MuscleGroup>(
+        15, _omitFieldNames ? '' : 'ignoredMuscles', $pb.PbFieldType.KE,
+        valueOf: $1.MuscleGroup.valueOf,
+        enumValues: $1.MuscleGroup.values,
+        defaultEnumValue: $1.MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4885,6 +4922,11 @@ class GetHomeResponse extends $pb.GeneratedMessage {
   void clearRotationCheck() => $_clearField(14);
   @$pb.TagNumber(14)
   RotationCheck ensureRotationCheck() => $_ensure(10);
+
+  /// The muscles the user does not train on purpose (the ignored-muscles
+  /// setting): no gap is warned of and no suggestion counts them behind.
+  @$pb.TagNumber(15)
+  $pb.PbList<$1.MuscleGroup> get ignoredMuscles => $_getList(11);
 }
 
 /// Why the suggestion is the template it is.
@@ -4983,7 +5025,7 @@ class SuggestionReason extends $pb.GeneratedMessage {
 
 class SuggestionMuscle extends $pb.GeneratedMessage {
   factory SuggestionMuscle({
-    MuscleGroup? muscle,
+    $1.MuscleGroup? muscle,
     $core.double? sets7d,
     $core.int? target,
   }) {
@@ -5007,8 +5049,8 @@ class SuggestionMuscle extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SuggestionMuscle',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aE<MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
-        enumValues: MuscleGroup.values)
+    ..aE<$1.MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
+        enumValues: $1.MuscleGroup.values)
     ..aD(2, _omitFieldNames ? '' : 'sets7d',
         protoName: 'sets_7d', fieldType: $pb.PbFieldType.OF)
     ..aI(3, _omitFieldNames ? '' : 'target')
@@ -5034,9 +5076,9 @@ class SuggestionMuscle extends $pb.GeneratedMessage {
   static SuggestionMuscle? _defaultInstance;
 
   @$pb.TagNumber(1)
-  MuscleGroup get muscle => $_getN(0);
+  $1.MuscleGroup get muscle => $_getN(0);
   @$pb.TagNumber(1)
-  set muscle(MuscleGroup value) => $_setField(1, value);
+  set muscle($1.MuscleGroup value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasMuscle() => $_has(0);
   @$pb.TagNumber(1)
@@ -5063,7 +5105,7 @@ class SuggestionMuscle extends $pb.GeneratedMessage {
 
 class RecoveringMuscle extends $pb.GeneratedMessage {
   factory RecoveringMuscle({
-    MuscleGroup? muscle,
+    $1.MuscleGroup? muscle,
     $core.int? hoursRemaining,
   }) {
     final result = create();
@@ -5085,8 +5127,8 @@ class RecoveringMuscle extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'RecoveringMuscle',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aE<MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
-        enumValues: MuscleGroup.values)
+    ..aE<$1.MuscleGroup>(1, _omitFieldNames ? '' : 'muscle',
+        enumValues: $1.MuscleGroup.values)
     ..aI(2, _omitFieldNames ? '' : 'hoursRemaining')
     ..hasRequiredFields = false;
 
@@ -5110,9 +5152,9 @@ class RecoveringMuscle extends $pb.GeneratedMessage {
   static RecoveringMuscle? _defaultInstance;
 
   @$pb.TagNumber(1)
-  MuscleGroup get muscle => $_getN(0);
+  $1.MuscleGroup get muscle => $_getN(0);
   @$pb.TagNumber(1)
-  set muscle(MuscleGroup value) => $_setField(1, value);
+  set muscle($1.MuscleGroup value) => $_setField(1, value);
   @$pb.TagNumber(1)
   $core.bool hasMuscle() => $_has(0);
   @$pb.TagNumber(1)
@@ -5192,7 +5234,7 @@ class RotationCheck extends $pb.GeneratedMessage {
 class RotationWarning extends $pb.GeneratedMessage {
   factory RotationWarning({
     RotationWarningKind? kind,
-    $core.Iterable<MuscleGroup>? muscles,
+    $core.Iterable<$1.MuscleGroup>? muscles,
     $core.Iterable<$core.String>? templateIds,
     $core.int? shared,
     $core.int? of,
@@ -5221,10 +5263,11 @@ class RotationWarning extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aE<RotationWarningKind>(1, _omitFieldNames ? '' : 'kind',
         enumValues: RotationWarningKind.values)
-    ..pc<MuscleGroup>(2, _omitFieldNames ? '' : 'muscles', $pb.PbFieldType.KE,
-        valueOf: MuscleGroup.valueOf,
-        enumValues: MuscleGroup.values,
-        defaultEnumValue: MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
+    ..pc<$1.MuscleGroup>(
+        2, _omitFieldNames ? '' : 'muscles', $pb.PbFieldType.KE,
+        valueOf: $1.MuscleGroup.valueOf,
+        enumValues: $1.MuscleGroup.values,
+        defaultEnumValue: $1.MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
     ..pPS(3, _omitFieldNames ? '' : 'templateIds')
     ..aI(4, _omitFieldNames ? '' : 'shared')
     ..aI(5, _omitFieldNames ? '' : 'of')
@@ -5258,9 +5301,9 @@ class RotationWarning extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearKind() => $_clearField(1);
 
-  /// GAP: every muscle nothing trains.
+  /// GAP: every muscle nothing trains, ignored muscles left out.
   @$pb.TagNumber(2)
-  $pb.PbList<MuscleGroup> get muscles => $_getList(1);
+  $pb.PbList<$1.MuscleGroup> get muscles => $_getList(1);
 
   /// OVERLAP: the two templates.
   @$pb.TagNumber(3)
@@ -5855,12 +5898,18 @@ class DeleteTemplateResponse extends $pb.GeneratedMessage {
   static DeleteTemplateResponse? _defaultInstance;
 }
 
+/// The user's order of their templates. With rotation_count, the list is
+/// also split there: the first rotation_count are in rotation, the rest
+/// favourites (the Manage sheet's drag between the main plan and the
+/// backups). Without it, only the order changes.
 class ReorderTemplatesRequest extends $pb.GeneratedMessage {
   factory ReorderTemplatesRequest({
     $core.Iterable<$core.String>? templateIds,
+    $core.int? rotationCount,
   }) {
     final result = create();
     if (templateIds != null) result.templateIds.addAll(templateIds);
+    if (rotationCount != null) result.rotationCount = rotationCount;
     return result;
   }
 
@@ -5878,6 +5927,7 @@ class ReorderTemplatesRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..pPS(1, _omitFieldNames ? '' : 'templateIds')
+    ..aI(2, _omitFieldNames ? '' : 'rotationCount')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5902,6 +5952,15 @@ class ReorderTemplatesRequest extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<$core.String> get templateIds => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.int get rotationCount => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set rotationCount($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasRotationCount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearRotationCount() => $_clearField(2);
 }
 
 class ReorderTemplatesResponse extends $pb.GeneratedMessage {

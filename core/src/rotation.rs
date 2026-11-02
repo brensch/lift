@@ -40,9 +40,10 @@ fn lifts(template: &WorkoutTemplate) -> Vec<Exercise> {
     out
 }
 
-/// The check over the templates in rotation (the rest are ignored), in
-/// the order given.
-pub fn rotation_check(templates: &[WorkoutTemplate]) -> RotationCheck {
+/// The check over the templates in rotation (the rest are left out), in
+/// the order given. A muscle in [ignored] is one the user does not train
+/// on purpose: never a gap.
+pub fn rotation_check(templates: &[WorkoutTemplate], ignored: &[MuscleGroup]) -> RotationCheck {
     let rotation: Vec<&WorkoutTemplate> = templates.iter().filter(|t| t.in_rotation).collect();
 
     let mut sets: HashMap<MuscleGroup, f32> = HashMap::new();
@@ -79,6 +80,7 @@ pub fn rotation_check(templates: &[WorkoutTemplate]) -> RotationCheck {
         .iter()
         .filter(|v| v.completed_sets_7d <= 0.0)
         .map(|v| v.muscle)
+        .filter(|m| !ignored.iter().any(|i| *i as i32 == *m))
         .collect();
     if !untrained.is_empty() {
         warnings.push(RotationWarning {
@@ -123,6 +125,10 @@ mod tests {
         }
     }
 
+    fn rotation_check_all(templates: &[WorkoutTemplate]) -> RotationCheck {
+        rotation_check(templates, &[])
+    }
+
     fn kinds(check: &RotationCheck) -> Vec<RotationWarningKind> {
         check
             .warnings
@@ -144,7 +150,7 @@ mod tests {
     /// sets per lift are three, half for a secondary.
     #[test]
     fn a_sound_rotation_has_no_warnings() {
-        let check = rotation_check(&[
+        let check = rotation_check_all(&[
             template(
                 "upper",
                 &[
@@ -176,20 +182,22 @@ mod tests {
     #[test]
     fn too_few_templates() {
         let one = template("legs", &[Exercise::Squat]);
-        assert!(kinds(&rotation_check(std::slice::from_ref(&one)))
+        assert!(kinds(&rotation_check_all(std::slice::from_ref(&one)))
             .contains(&RotationWarningKind::TooFew));
-        let none = rotation_check(&[]);
+        let none = rotation_check_all(&[]);
         assert_eq!(kinds(&none), vec![RotationWarningKind::TooFew]);
         // Favourites do not count.
         let mut favourite = template("arms", &[Exercise::BarbellCurl]);
         favourite.in_rotation = false;
-        assert!(kinds(&rotation_check(&[one, favourite])).contains(&RotationWarningKind::TooFew));
+        assert!(
+            kinds(&rotation_check_all(&[one, favourite])).contains(&RotationWarningKind::TooFew)
+        );
     }
 
     /// Nothing trains calves or core: one gap naming both.
     #[test]
     fn a_gap_names_every_untrained_muscle() {
-        let check = rotation_check(&[
+        let check = rotation_check_all(&[
             template(
                 "a",
                 &[
@@ -221,6 +229,33 @@ mod tests {
         );
     }
 
+    /// An ignored muscle is never a gap; the others still are.
+    #[test]
+    fn an_ignored_muscle_is_no_gap() {
+        let rotation = [
+            template("a", &[Exercise::BenchPress, Exercise::Squat]),
+            template("b", &[Exercise::BarbellRow, Exercise::RomanianDeadlift]),
+        ];
+        let gap = |check: &RotationCheck| {
+            check
+                .warnings
+                .iter()
+                .find(|w| w.kind == RotationWarningKind::Gap as i32)
+                .map(|w| w.muscles.clone())
+                .unwrap_or_default()
+        };
+        let all = gap(&rotation_check(&rotation, &[]));
+        assert!(all.contains(&(MuscleGroup::Calves as i32)), "{all:?}");
+        let some = gap(&rotation_check(&rotation, &[MuscleGroup::Calves]));
+        assert!(!some.contains(&(MuscleGroup::Calves as i32)), "{some:?}");
+        assert!(some.contains(&(MuscleGroup::Core as i32)), "{some:?}");
+        let every_gap: Vec<MuscleGroup> = all
+            .iter()
+            .map(|m| MuscleGroup::try_from(*m).unwrap())
+            .collect();
+        assert!(!kinds(&rotation_check(&rotation, &every_gap)).contains(&RotationWarningKind::Gap));
+    }
+
     /// Overlap is over 70% of the smaller template's lifts: 3 of 4 is,
     /// 2 of 3 is not.
     #[test]
@@ -244,7 +279,7 @@ mod tests {
                 Exercise::CalfRaise,
             ],
         );
-        let check = rotation_check(&[big.clone(), near]);
+        let check = rotation_check_all(&[big.clone(), near]);
         let overlap = check
             .warnings
             .iter()
@@ -257,6 +292,6 @@ mod tests {
             "apart",
             &[Exercise::Squat, Exercise::BenchPress, Exercise::CalfRaise],
         );
-        assert!(!kinds(&rotation_check(&[big, apart])).contains(&RotationWarningKind::Overlap));
+        assert!(!kinds(&rotation_check_all(&[big, apart])).contains(&RotationWarningKind::Overlap));
     }
 }

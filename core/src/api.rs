@@ -384,8 +384,14 @@ impl<'a> Call<'a> {
         &mut self,
         mut req: AddLibraryTemplatesRequest,
     ) -> Result<AddLibraryTemplatesResponse, CoreError> {
+        // An entry the user already has (following it, or their own made
+        // from it) is not added again: no duplicates.
+        req.library_ids
+            .retain(|id| !self.account.has_library_entry(id));
         req.entries = self.library_entries(&req.library_ids)?;
-        self.record(event::Kind::AddLibraryTemplates(req))?;
+        if !req.entries.is_empty() {
+            self.record(event::Kind::AddLibraryTemplates(req))?;
+        }
         Ok(AddLibraryTemplatesResponse {
             home: Some(self.view().home(0)),
         })
@@ -685,12 +691,14 @@ impl<'a> View<'a> {
             .iter()
             .map(|t| self.resolved(t))
             .collect();
+        let ignored = self.account.ignored_muscles();
         let suggestion = suggest_template(
             &templates,
             &volume,
             &muscle_recovery,
             self.now,
             &last_started,
+            &ignored,
         );
         let template_plans = templates
             .iter()
@@ -708,7 +716,8 @@ impl<'a> View<'a> {
             active_workout_id: self.account.active_workout_id.clone(),
             volume,
             recovery,
-            rotation_check: Some(rotation_check(&templates)),
+            rotation_check: Some(rotation_check(&templates, &ignored)),
+            ignored_muscles: ignored.iter().map(|m| *m as i32).collect(),
             suggested_template_id: suggestion
                 .as_ref()
                 .map(|s| s.template_id.clone())

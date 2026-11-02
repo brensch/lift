@@ -164,11 +164,22 @@ the first sync, the copy built into the app stands in.
   records it as the user's own, changed or not; backing out records
   nothing); saved unchanged without it, it stays coupled. Templates made
   from scratch are never coupled.
+- `origin_library_id` is the entry a template was added from, and unlike
+  `library_id` it is kept when the template becomes the user's own. A user
+  **has** an entry when a template follows it or was made from it
+  (`Account::has_library_entry`); `AddLibraryTemplates` drops such an
+  entry before it records the event, so no entry is added twice. The fold
+  itself skips only an entry a template still follows, as it always has,
+  so older logs fold as they did.
 - Every workout keeps its own exercises and sets plus `template_id`, so a
   change to a default never rewrites a past session.
-- In the app's Edit sheet library workouts are ticked in and out
-  (`AddLibraryTemplates` / `DeleteTemplate`); the user's own are edited or
-  deleted. Never reuse or rename an id in the YAML.
+- In the app's Manage sheet a library workout the user does not have is
+  added to the main plan with + (`AddLibraryTemplates`, `in_rotation`;
+  without it an entry is added as a backup); the user's own are dragged
+  within or between the main plan and the backups (one
+  `ReorderTemplates` with `rotation_count`: the order, and where the
+  rotation ends), opened in the editor, or deleted.
+  Never reuse or rename an id in the YAML.
 - The website's `/routines` page is rendered from the same YAML at build
   time (`web/scripts/sync-content.mjs`), not from an RPC.
 

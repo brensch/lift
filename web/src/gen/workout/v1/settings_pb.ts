@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/settings.proto.
  */
 export const file_workout_v1_settings: GenFile = /*@__PURE__*/
-  fileDesc("Chl3b3Jrb3V0L3YxL3NldHRpbmdzLnByb3RvEgp3b3Jrb3V0LnYxIjIKClBsYXRlQ29sb3ISEQoJd2VpZ2h0X2tnGAEgASgCEhEKCWhleF9jb2xvchgCIAEoCSJSChFQbGF0ZUNvbG9yc0NvbmZpZxImCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ29sb3ISFQoNYmFyX3dlaWdodF9rZxgCIAEoAiI4ChBXZWlnaHRVbml0Q29uZmlnEiQKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXQihAEKC1VzZXJTZXR0aW5nEjUKDHBsYXRlX2NvbG9ycxgKIAEoCzIdLndvcmtvdXQudjEuUGxhdGVDb2xvcnNDb25maWdIABIzCgt3ZWlnaHRfdW5pdBgMIAEoCzIcLndvcmtvdXQudjEuV2VpZ2h0VW5pdENvbmZpZ0gAQgkKB3NldHRpbmciQAoUVXBkYXRlU2V0dGluZ1JlcXVlc3QSKAoHc2V0dGluZxgBIAEoCzIXLndvcmtvdXQudjEuVXNlclNldHRpbmciFwoVVXBkYXRlU2V0dGluZ1Jlc3BvbnNlIhQKEkdldFNldHRpbmdzUmVxdWVzdCJAChNHZXRTZXR0aW5nc1Jlc3BvbnNlEikKCHNldHRpbmdzGAEgAygLMhcud29ya291dC52MS5Vc2VyU2V0dGluZypRCgpXZWlnaHRVbml0EhsKF1dFSUdIVF9VTklUX1VOU1BFQ0lGSUVEEAASEgoOV0VJR0hUX1VOSVRfTEIQARISCg5XRUlHSFRfVU5JVF9LRxACMmEKD1NldHRpbmdzU2VydmljZRJOCgtHZXRTZXR0aW5ncxIeLndvcmtvdXQudjEuR2V0U2V0dGluZ3NSZXF1ZXN0Gh8ud29ya291dC52MS5HZXRTZXR0aW5nc1Jlc3BvbnNlYgZwcm90bzM");
+  fileDesc("Chl3b3Jrb3V0L3YxL3NldHRpbmdzLnByb3RvEgp3b3Jrb3V0LnYxIjIKClBsYXRlQ29sb3ISEQoJd2VpZ2h0X2tnGAEgASgCEhEKCWhleF9jb2xvchgCIAEoCSJSChFQbGF0ZUNvbG9yc0NvbmZpZxImCgZwbGF0ZXMYASADKAsyFi53b3Jrb3V0LnYxLlBsYXRlQ29sb3ISFQoNYmFyX3dlaWdodF9rZxgCIAEoAiI4ChBXZWlnaHRVbml0Q29uZmlnEiQKBHVuaXQYASABKA4yFi53b3Jrb3V0LnYxLldlaWdodFVuaXQiQAoUSWdub3JlZE11c2NsZXNDb25maWcSKAoHbXVzY2xlcxgBIAMoDjIXLndvcmtvdXQudjEuTXVzY2xlR3JvdXAiwQEKC1VzZXJTZXR0aW5nEjUKDHBsYXRlX2NvbG9ycxgKIAEoCzIdLndvcmtvdXQudjEuUGxhdGVDb2xvcnNDb25maWdIABIzCgt3ZWlnaHRfdW5pdBgMIAEoCzIcLndvcmtvdXQudjEuV2VpZ2h0VW5pdENvbmZpZ0gAEjsKD2lnbm9yZWRfbXVzY2xlcxgNIAEoCzIgLndvcmtvdXQudjEuSWdub3JlZE11c2NsZXNDb25maWdIAEIJCgdzZXR0aW5nIkAKFFVwZGF0ZVNldHRpbmdSZXF1ZXN0EigKB3NldHRpbmcYASABKAsyFy53b3Jrb3V0LnYxLlVzZXJTZXR0aW5nIhcKFVVwZGF0ZVNldHRpbmdSZXNwb25zZSIUChJHZXRTZXR0aW5nc1JlcXVlc3QiQAoTR2V0U2V0dGluZ3NSZXNwb25zZRIpCghzZXR0aW5ncxgBIAMoCzIXLndvcmtvdXQudjEuVXNlclNldHRpbmcqpwIKC011c2NsZUdyb3VwEhwKGE1VU0NMRV9HUk9VUF9VTlNQRUNJRklFRBAAEhYKEk1VU0NMRV9HUk9VUF9RVUFEUxABEhsKF01VU0NMRV9HUk9VUF9IQU1TVFJJTkdTEAISFwoTTVVTQ0xFX0dST1VQX0dMVVRFUxADEhYKEk1VU0NMRV9HUk9VUF9DSEVTVBAEEhUKEU1VU0NMRV9HUk9VUF9CQUNLEAUSGgoWTVVTQ0xFX0dST1VQX1NIT1VMREVSUxAGEhcKE01VU0NMRV9HUk9VUF9CSUNFUFMQBxIYChRNVVNDTEVfR1JPVVBfVFJJQ0VQUxAIEhcKE01VU0NMRV9HUk9VUF9DQUxWRVMQCRIVChFNVVNDTEVfR1JPVVBfQ09SRRAKKlEKCldlaWdodFVuaXQSGwoXV0VJR0hUX1VOSVRfVU5TUEVDSUZJRUQQABISCg5XRUlHSFRfVU5JVF9MQhABEhIKDldFSUdIVF9VTklUX0tHEAIyYQoPU2V0dGluZ3NTZXJ2aWNlEk4KC0dldFNldHRpbmdzEh4ud29ya291dC52MS5HZXRTZXR0aW5nc1JlcXVlc3QaHy53b3Jrb3V0LnYxLkdldFNldHRpbmdzUmVzcG9uc2ViBnByb3RvMw");
 
 /**
  * @generated from message workout.v1.PlateColor
@@ -74,6 +74,27 @@ export const WeightUnitConfigSchema: GenMessage<WeightUnitConfig> = /*@__PURE__*
   messageDesc(file_workout_v1_settings, 2);
 
 /**
+ * Muscles the user does not train on purpose: the rotation check warns of
+ * no gap in them, the suggestion counts none of them behind, and Home's
+ * weekly volume shows them muted.
+ *
+ * @generated from message workout.v1.IgnoredMusclesConfig
+ */
+export type IgnoredMusclesConfig = Message<"workout.v1.IgnoredMusclesConfig"> & {
+  /**
+   * @generated from field: repeated workout.v1.MuscleGroup muscles = 1;
+   */
+  muscles: MuscleGroup[];
+};
+
+/**
+ * Describes the message workout.v1.IgnoredMusclesConfig.
+ * Use `create(IgnoredMusclesConfigSchema)` to create a new message.
+ */
+export const IgnoredMusclesConfigSchema: GenMessage<IgnoredMusclesConfig> = /*@__PURE__*/
+  messageDesc(file_workout_v1_settings, 3);
+
+/**
  * @generated from message workout.v1.UserSetting
  */
 export type UserSetting = Message<"workout.v1.UserSetting"> & {
@@ -88,12 +109,18 @@ export type UserSetting = Message<"workout.v1.UserSetting"> & {
     case: "plateColors";
   } | {
     /**
-     * field 11 reserved (was workout_config)
-     *
      * @generated from field: workout.v1.WeightUnitConfig weight_unit = 12;
      */
     value: WeightUnitConfig;
     case: "weightUnit";
+  } | {
+    /**
+     * field 11 reserved (was workout_config)
+     *
+     * @generated from field: workout.v1.IgnoredMusclesConfig ignored_muscles = 13;
+     */
+    value: IgnoredMusclesConfig;
+    case: "ignoredMuscles";
   } | { case: undefined; value?: undefined };
 };
 
@@ -102,7 +129,7 @@ export type UserSetting = Message<"workout.v1.UserSetting"> & {
  * Use `create(UserSettingSchema)` to create a new message.
  */
 export const UserSettingSchema: GenMessage<UserSetting> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 3);
+  messageDesc(file_workout_v1_settings, 4);
 
 /**
  * @generated from message workout.v1.UpdateSettingRequest
@@ -119,7 +146,7 @@ export type UpdateSettingRequest = Message<"workout.v1.UpdateSettingRequest"> & 
  * Use `create(UpdateSettingRequestSchema)` to create a new message.
  */
 export const UpdateSettingRequestSchema: GenMessage<UpdateSettingRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 4);
+  messageDesc(file_workout_v1_settings, 5);
 
 /**
  * @generated from message workout.v1.UpdateSettingResponse
@@ -132,7 +159,7 @@ export type UpdateSettingResponse = Message<"workout.v1.UpdateSettingResponse"> 
  * Use `create(UpdateSettingResponseSchema)` to create a new message.
  */
 export const UpdateSettingResponseSchema: GenMessage<UpdateSettingResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 5);
+  messageDesc(file_workout_v1_settings, 6);
 
 /**
  * @generated from message workout.v1.GetSettingsRequest
@@ -145,7 +172,7 @@ export type GetSettingsRequest = Message<"workout.v1.GetSettingsRequest"> & {
  * Use `create(GetSettingsRequestSchema)` to create a new message.
  */
 export const GetSettingsRequestSchema: GenMessage<GetSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 6);
+  messageDesc(file_workout_v1_settings, 7);
 
 /**
  * @generated from message workout.v1.GetSettingsResponse
@@ -162,7 +189,76 @@ export type GetSettingsResponse = Message<"workout.v1.GetSettingsResponse"> & {
  * Use `create(GetSettingsResponseSchema)` to create a new message.
  */
 export const GetSettingsResponseSchema: GenMessage<GetSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_settings, 7);
+  messageDesc(file_workout_v1_settings, 8);
+
+/**
+ * The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
+ * use this one list — there is no second muscle grouping anywhere.
+ *
+ * @generated from enum workout.v1.MuscleGroup
+ */
+export enum MuscleGroup {
+  /**
+   * @generated from enum value: MUSCLE_GROUP_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_QUADS = 1;
+   */
+  QUADS = 1,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_HAMSTRINGS = 2;
+   */
+  HAMSTRINGS = 2,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_GLUTES = 3;
+   */
+  GLUTES = 3,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_CHEST = 4;
+   */
+  CHEST = 4,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_BACK = 5;
+   */
+  BACK = 5,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_SHOULDERS = 6;
+   */
+  SHOULDERS = 6,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_BICEPS = 7;
+   */
+  BICEPS = 7,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_TRICEPS = 8;
+   */
+  TRICEPS = 8,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_CALVES = 9;
+   */
+  CALVES = 9,
+
+  /**
+   * @generated from enum value: MUSCLE_GROUP_CORE = 10;
+   */
+  CORE = 10,
+}
+
+/**
+ * Describes the enum workout.v1.MuscleGroup.
+ */
+export const MuscleGroupSchema: GenEnum<MuscleGroup> = /*@__PURE__*/
+  enumDesc(file_workout_v1_settings, 0);
 
 /**
  * @generated from enum workout.v1.WeightUnit
@@ -188,7 +284,7 @@ export enum WeightUnit {
  * Describes the enum workout.v1.WeightUnit.
  */
 export const WeightUnitSchema: GenEnum<WeightUnit> = /*@__PURE__*/
-  enumDesc(file_workout_v1_settings, 0);
+  enumDesc(file_workout_v1_settings, 1);
 
 /**
  * @generated from service workout.v1.SettingsService

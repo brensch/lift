@@ -9,6 +9,181 @@ public final class Settings {
       com.google.protobuf.ExtensionRegistryLite registry) {
   }
   /**
+   * <pre>
+   * The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
+   * use this one list — there is no second muscle grouping anywhere.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.MuscleGroup}
+   */
+  public enum MuscleGroup
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>MUSCLE_GROUP_UNSPECIFIED = 0;</code>
+     */
+    MUSCLE_GROUP_UNSPECIFIED(0),
+    /**
+     * <code>MUSCLE_GROUP_QUADS = 1;</code>
+     */
+    MUSCLE_GROUP_QUADS(1),
+    /**
+     * <code>MUSCLE_GROUP_HAMSTRINGS = 2;</code>
+     */
+    MUSCLE_GROUP_HAMSTRINGS(2),
+    /**
+     * <code>MUSCLE_GROUP_GLUTES = 3;</code>
+     */
+    MUSCLE_GROUP_GLUTES(3),
+    /**
+     * <code>MUSCLE_GROUP_CHEST = 4;</code>
+     */
+    MUSCLE_GROUP_CHEST(4),
+    /**
+     * <code>MUSCLE_GROUP_BACK = 5;</code>
+     */
+    MUSCLE_GROUP_BACK(5),
+    /**
+     * <code>MUSCLE_GROUP_SHOULDERS = 6;</code>
+     */
+    MUSCLE_GROUP_SHOULDERS(6),
+    /**
+     * <code>MUSCLE_GROUP_BICEPS = 7;</code>
+     */
+    MUSCLE_GROUP_BICEPS(7),
+    /**
+     * <code>MUSCLE_GROUP_TRICEPS = 8;</code>
+     */
+    MUSCLE_GROUP_TRICEPS(8),
+    /**
+     * <code>MUSCLE_GROUP_CALVES = 9;</code>
+     */
+    MUSCLE_GROUP_CALVES(9),
+    /**
+     * <code>MUSCLE_GROUP_CORE = 10;</code>
+     */
+    MUSCLE_GROUP_CORE(10),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>MUSCLE_GROUP_UNSPECIFIED = 0;</code>
+     */
+    public static final int MUSCLE_GROUP_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>MUSCLE_GROUP_QUADS = 1;</code>
+     */
+    public static final int MUSCLE_GROUP_QUADS_VALUE = 1;
+    /**
+     * <code>MUSCLE_GROUP_HAMSTRINGS = 2;</code>
+     */
+    public static final int MUSCLE_GROUP_HAMSTRINGS_VALUE = 2;
+    /**
+     * <code>MUSCLE_GROUP_GLUTES = 3;</code>
+     */
+    public static final int MUSCLE_GROUP_GLUTES_VALUE = 3;
+    /**
+     * <code>MUSCLE_GROUP_CHEST = 4;</code>
+     */
+    public static final int MUSCLE_GROUP_CHEST_VALUE = 4;
+    /**
+     * <code>MUSCLE_GROUP_BACK = 5;</code>
+     */
+    public static final int MUSCLE_GROUP_BACK_VALUE = 5;
+    /**
+     * <code>MUSCLE_GROUP_SHOULDERS = 6;</code>
+     */
+    public static final int MUSCLE_GROUP_SHOULDERS_VALUE = 6;
+    /**
+     * <code>MUSCLE_GROUP_BICEPS = 7;</code>
+     */
+    public static final int MUSCLE_GROUP_BICEPS_VALUE = 7;
+    /**
+     * <code>MUSCLE_GROUP_TRICEPS = 8;</code>
+     */
+    public static final int MUSCLE_GROUP_TRICEPS_VALUE = 8;
+    /**
+     * <code>MUSCLE_GROUP_CALVES = 9;</code>
+     */
+    public static final int MUSCLE_GROUP_CALVES_VALUE = 9;
+    /**
+     * <code>MUSCLE_GROUP_CORE = 10;</code>
+     */
+    public static final int MUSCLE_GROUP_CORE_VALUE = 10;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static MuscleGroup valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static MuscleGroup forNumber(int value) {
+      switch (value) {
+        case 0: return MUSCLE_GROUP_UNSPECIFIED;
+        case 1: return MUSCLE_GROUP_QUADS;
+        case 2: return MUSCLE_GROUP_HAMSTRINGS;
+        case 3: return MUSCLE_GROUP_GLUTES;
+        case 4: return MUSCLE_GROUP_CHEST;
+        case 5: return MUSCLE_GROUP_BACK;
+        case 6: return MUSCLE_GROUP_SHOULDERS;
+        case 7: return MUSCLE_GROUP_BICEPS;
+        case 8: return MUSCLE_GROUP_TRICEPS;
+        case 9: return MUSCLE_GROUP_CALVES;
+        case 10: return MUSCLE_GROUP_CORE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<MuscleGroup>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        MuscleGroup> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<MuscleGroup>() {
+            @java.lang.Override
+            public MuscleGroup findValueByNumber(int number) {
+              return MuscleGroup.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return MuscleGroupVerifier.INSTANCE;
+    }
+
+    private static final class MuscleGroupVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new MuscleGroupVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return MuscleGroup.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private MuscleGroup(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.MuscleGroup)
+  }
+
+  /**
    * Protobuf enum {@code workout.v1.WeightUnit}
    */
   public enum WeightUnit
@@ -1199,6 +1374,480 @@ public final class Settings {
     }
   }
 
+  public interface IgnoredMusclesConfigOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.IgnoredMusclesConfig)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList();
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    int getMusclesCount();
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    workout.v1.Settings.MuscleGroup getMuscles(int index);
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    java.util.List<java.lang.Integer>
+    getMusclesValueList();
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    int getMusclesValue(int index);
+  }
+  /**
+   * <pre>
+   * Muscles the user does not train on purpose: the rotation check warns of
+   * no gap in them, the suggestion counts none of them behind, and Home's
+   * weekly volume shows them muted.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.IgnoredMusclesConfig}
+   */
+  public  static final class IgnoredMusclesConfig extends
+      com.google.protobuf.GeneratedMessageLite<
+          IgnoredMusclesConfig, IgnoredMusclesConfig.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.IgnoredMusclesConfig)
+      IgnoredMusclesConfigOrBuilder {
+    private IgnoredMusclesConfig() {
+      muscles_ = emptyIntList();
+    }
+    public static final int MUSCLES_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.IntList muscles_;
+    private static final com.google.protobuf.Internal.ListAdapter.Converter<
+        java.lang.Integer, workout.v1.Settings.MuscleGroup> muscles_converter_ =
+            new com.google.protobuf.Internal.ListAdapter.Converter<
+                java.lang.Integer, workout.v1.Settings.MuscleGroup>() {
+              @java.lang.Override
+              public workout.v1.Settings.MuscleGroup convert(java.lang.Integer from) {
+                workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(from);
+                return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
+              }
+            };
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList() {
+      return new com.google.protobuf.Internal.ListAdapter<
+          java.lang.Integer, workout.v1.Settings.MuscleGroup>(muscles_, muscles_converter_);
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    @java.lang.Override
+    public int getMusclesCount() {
+      return muscles_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    @java.lang.Override
+    public workout.v1.Settings.MuscleGroup getMuscles(int index) {
+      workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(muscles_.getInt(index));
+      return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.Integer>
+    getMusclesValueList() {
+      return muscles_;
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    @java.lang.Override
+    public int getMusclesValue(int index) {
+      return muscles_.getInt(index);
+    }
+    private int musclesMemoizedSerializedSize;
+    private void ensureMusclesIsMutable() {
+      com.google.protobuf.Internal.IntList tmp = muscles_;
+      if (!tmp.isModifiable()) {
+        muscles_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+      }
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param index The index to set the value at.
+     * @param value The muscles to set.
+     */
+    private void setMuscles(
+        int index, workout.v1.Settings.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.setInt(index, value.getNumber());
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param value The muscles to add.
+     */
+    private void addMuscles(workout.v1.Settings.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.addInt(value.getNumber());
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param values The muscles to add.
+     */
+    private void addAllMuscles(
+        java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
+      ensureMusclesIsMutable();
+      for (workout.v1.Settings.MuscleGroup value : values) {
+        muscles_.addInt(value.getNumber());
+      }
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     */
+    private void clearMuscles() {
+      muscles_ = emptyIntList();
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to set.
+     */
+    private void setMusclesValue(
+        int index, int value) {
+      ensureMusclesIsMutable();
+      muscles_.setInt(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to add.
+     */
+    private void addMusclesValue(int value) {
+      ensureMusclesIsMutable();
+      muscles_.addInt(value);
+    }
+    /**
+     * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+     * @param values The enum numeric values on the wire for muscles to add.
+     */
+    private void addAllMusclesValue(
+        java.lang.Iterable<java.lang.Integer> values) {
+      ensureMusclesIsMutable();
+      for (int value : values) {
+        muscles_.addInt(value);
+      }
+    }
+
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Settings.IgnoredMusclesConfig parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Settings.IgnoredMusclesConfig prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Muscles the user does not train on purpose: the rotation check warns of
+     * no gap in them, the suggestion counts none of them behind, and Home's
+     * weekly volume shows them muted.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.IgnoredMusclesConfig}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Settings.IgnoredMusclesConfig, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.IgnoredMusclesConfig)
+        workout.v1.Settings.IgnoredMusclesConfigOrBuilder {
+      // Construct using workout.v1.Settings.IgnoredMusclesConfig.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @return A list containing the muscles.
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList() {
+        return instance.getMusclesList();
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @return The count of muscles.
+       */
+      @java.lang.Override
+      public int getMusclesCount() {
+        return instance.getMusclesCount();
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param index The index of the element to return.
+       * @return The muscles at the given index.
+       */
+      @java.lang.Override
+      public workout.v1.Settings.MuscleGroup getMuscles(int index) {
+        return instance.getMuscles(index);
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscles(
+          int index, workout.v1.Settings.MuscleGroup value) {
+        copyOnWrite();
+        instance.setMuscles(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param value The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMuscles(workout.v1.Settings.MuscleGroup value) {
+        copyOnWrite();
+        instance.addMuscles(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param values The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMuscles(
+          java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
+        copyOnWrite();
+        instance.addAllMuscles(values);  return this;
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMuscles() {
+        copyOnWrite();
+        instance.clearMuscles();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @return A list containing the enum numeric values on the wire for muscles.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Integer>
+      getMusclesValueList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getMusclesValueList());
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param index The index of the value to return.
+       * @return The enum numeric value on the wire of muscles at the given index.
+       */
+      @java.lang.Override
+      public int getMusclesValue(int index) {
+        return instance.getMusclesValue(index);
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The enum numeric value on the wire for muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMusclesValue(
+          int index, int value) {
+        copyOnWrite();
+        instance.setMusclesValue(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param value The enum numeric value on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMusclesValue(int value) {
+        instance.addMusclesValue(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.MuscleGroup muscles = 1 [json_name = "muscles"];</code>
+       * @param values The enum numeric values on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMusclesValue(
+          java.lang.Iterable<java.lang.Integer> values) {
+        copyOnWrite();
+        instance.addAllMusclesValue(values);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.IgnoredMusclesConfig)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Settings.IgnoredMusclesConfig();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "muscles_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0001\u0000\u0001,";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Settings.IgnoredMusclesConfig> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Settings.IgnoredMusclesConfig.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Settings.IgnoredMusclesConfig>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.IgnoredMusclesConfig)
+    private static final workout.v1.Settings.IgnoredMusclesConfig DEFAULT_INSTANCE;
+    static {
+      IgnoredMusclesConfig defaultInstance = new IgnoredMusclesConfig();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        IgnoredMusclesConfig.class, defaultInstance);
+    }
+
+    public static workout.v1.Settings.IgnoredMusclesConfig getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<IgnoredMusclesConfig> PARSER;
+
+    public static com.google.protobuf.Parser<IgnoredMusclesConfig> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface UserSettingOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.UserSetting)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -1215,23 +1864,34 @@ public final class Settings {
     workout.v1.Settings.PlateColorsConfig getPlateColors();
 
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      * @return Whether the weightUnit field is set.
      */
     boolean hasWeightUnit();
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      * @return The weightUnit.
      */
     workout.v1.Settings.WeightUnitConfig getWeightUnit();
+
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     * @return Whether the ignoredMuscles field is set.
+     */
+    boolean hasIgnoredMuscles();
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     * @return The ignoredMuscles.
+     */
+    workout.v1.Settings.IgnoredMusclesConfig getIgnoredMuscles();
 
     public workout.v1.Settings.UserSetting.SettingCase getSettingCase();
   }
@@ -1250,6 +1910,7 @@ public final class Settings {
     public enum SettingCase {
       PLATE_COLORS(10),
       WEIGHT_UNIT(12),
+      IGNORED_MUSCLES(13),
       SETTING_NOT_SET(0);
       private final int value;
       private SettingCase(int value) {
@@ -1267,6 +1928,7 @@ public final class Settings {
         switch (value) {
           case 10: return PLATE_COLORS;
           case 12: return WEIGHT_UNIT;
+          case 13: return IGNORED_MUSCLES;
           case 0: return SETTING_NOT_SET;
           default: return null;
         }
@@ -1340,10 +2002,6 @@ public final class Settings {
 
     public static final int WEIGHT_UNIT_FIELD_NUMBER = 12;
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     @java.lang.Override
@@ -1351,10 +2009,6 @@ public final class Settings {
       return settingCase_ == 12;
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     @java.lang.Override
@@ -1365,10 +2019,6 @@ public final class Settings {
       return workout.v1.Settings.WeightUnitConfig.getDefaultInstance();
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     private void setWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1377,10 +2027,6 @@ public final class Settings {
       settingCase_ = 12;
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     private void mergeWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1395,14 +2041,80 @@ public final class Settings {
       settingCase_ = 12;
     }
     /**
-     * <pre>
-     * field 11 reserved (was workout_config)
-     * </pre>
-     *
      * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
      */
     private void clearWeightUnit() {
       if (settingCase_ == 12) {
+        settingCase_ = 0;
+        setting_ = null;
+      }
+    }
+
+    public static final int IGNORED_MUSCLES_FIELD_NUMBER = 13;
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     */
+    @java.lang.Override
+    public boolean hasIgnoredMuscles() {
+      return settingCase_ == 13;
+    }
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Settings.IgnoredMusclesConfig getIgnoredMuscles() {
+      if (settingCase_ == 13) {
+         return (workout.v1.Settings.IgnoredMusclesConfig) setting_;
+      }
+      return workout.v1.Settings.IgnoredMusclesConfig.getDefaultInstance();
+    }
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     */
+    private void setIgnoredMuscles(workout.v1.Settings.IgnoredMusclesConfig value) {
+      value.getClass();
+  setting_ = value;
+      settingCase_ = 13;
+    }
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     */
+    private void mergeIgnoredMuscles(workout.v1.Settings.IgnoredMusclesConfig value) {
+      value.getClass();
+  if (settingCase_ == 13 &&
+          setting_ != workout.v1.Settings.IgnoredMusclesConfig.getDefaultInstance()) {
+        setting_ = workout.v1.Settings.IgnoredMusclesConfig.newBuilder((workout.v1.Settings.IgnoredMusclesConfig) setting_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        setting_ = value;
+      }
+      settingCase_ = 13;
+    }
+    /**
+     * <pre>
+     * field 11 reserved (was workout_config)
+     * </pre>
+     *
+     * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+     */
+    private void clearIgnoredMuscles() {
+      if (settingCase_ == 13) {
         settingCase_ = 0;
         setting_ = null;
       }
@@ -1564,10 +2276,6 @@ public final class Settings {
       }
 
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       @java.lang.Override
@@ -1575,10 +2283,6 @@ public final class Settings {
         return instance.hasWeightUnit();
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       @java.lang.Override
@@ -1586,10 +2290,6 @@ public final class Settings {
         return instance.getWeightUnit();
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder setWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1598,10 +2298,6 @@ public final class Settings {
         return this;
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder setWeightUnit(
@@ -1611,10 +2307,6 @@ public final class Settings {
         return this;
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder mergeWeightUnit(workout.v1.Settings.WeightUnitConfig value) {
@@ -1623,15 +2315,83 @@ public final class Settings {
         return this;
       }
       /**
-       * <pre>
-       * field 11 reserved (was workout_config)
-       * </pre>
-       *
        * <code>.workout.v1.WeightUnitConfig weight_unit = 12 [json_name = "weightUnit"];</code>
        */
       public Builder clearWeightUnit() {
         copyOnWrite();
         instance.clearWeightUnit();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * field 11 reserved (was workout_config)
+       * </pre>
+       *
+       * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+       */
+      @java.lang.Override
+      public boolean hasIgnoredMuscles() {
+        return instance.hasIgnoredMuscles();
+      }
+      /**
+       * <pre>
+       * field 11 reserved (was workout_config)
+       * </pre>
+       *
+       * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Settings.IgnoredMusclesConfig getIgnoredMuscles() {
+        return instance.getIgnoredMuscles();
+      }
+      /**
+       * <pre>
+       * field 11 reserved (was workout_config)
+       * </pre>
+       *
+       * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+       */
+      public Builder setIgnoredMuscles(workout.v1.Settings.IgnoredMusclesConfig value) {
+        copyOnWrite();
+        instance.setIgnoredMuscles(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * field 11 reserved (was workout_config)
+       * </pre>
+       *
+       * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+       */
+      public Builder setIgnoredMuscles(
+          workout.v1.Settings.IgnoredMusclesConfig.Builder builderForValue) {
+        copyOnWrite();
+        instance.setIgnoredMuscles(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * field 11 reserved (was workout_config)
+       * </pre>
+       *
+       * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+       */
+      public Builder mergeIgnoredMuscles(workout.v1.Settings.IgnoredMusclesConfig value) {
+        copyOnWrite();
+        instance.mergeIgnoredMuscles(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * field 11 reserved (was workout_config)
+       * </pre>
+       *
+       * <code>.workout.v1.IgnoredMusclesConfig ignored_muscles = 13 [json_name = "ignoredMuscles"];</code>
+       */
+      public Builder clearIgnoredMuscles() {
+        copyOnWrite();
+        instance.clearIgnoredMuscles();
         return this;
       }
 
@@ -1655,9 +2415,10 @@ public final class Settings {
               "settingCase_",
               workout.v1.Settings.PlateColorsConfig.class,
               workout.v1.Settings.WeightUnitConfig.class,
+              workout.v1.Settings.IgnoredMusclesConfig.class,
             };
             java.lang.String info =
-                "\u0000\u0002\u0001\u0000\n\f\u0002\u0000\u0000\u0000\n<\u0000\f<\u0000";
+                "\u0000\u0003\u0001\u0000\n\r\u0003\u0000\u0000\u0000\n<\u0000\f<\u0000\r<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

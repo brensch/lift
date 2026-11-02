@@ -14,54 +14,6 @@ import 'dart:core' as $core;
 
 import 'package:protobuf/protobuf.dart' as $pb;
 
-/// The 10-muscle taxonomy. Volume, recovery and the exercise catalog all
-/// use this one list — there is no second muscle grouping anywhere.
-class MuscleGroup extends $pb.ProtobufEnum {
-  static const MuscleGroup MUSCLE_GROUP_UNSPECIFIED =
-      MuscleGroup._(0, _omitEnumNames ? '' : 'MUSCLE_GROUP_UNSPECIFIED');
-  static const MuscleGroup MUSCLE_GROUP_QUADS =
-      MuscleGroup._(1, _omitEnumNames ? '' : 'MUSCLE_GROUP_QUADS');
-  static const MuscleGroup MUSCLE_GROUP_HAMSTRINGS =
-      MuscleGroup._(2, _omitEnumNames ? '' : 'MUSCLE_GROUP_HAMSTRINGS');
-  static const MuscleGroup MUSCLE_GROUP_GLUTES =
-      MuscleGroup._(3, _omitEnumNames ? '' : 'MUSCLE_GROUP_GLUTES');
-  static const MuscleGroup MUSCLE_GROUP_CHEST =
-      MuscleGroup._(4, _omitEnumNames ? '' : 'MUSCLE_GROUP_CHEST');
-  static const MuscleGroup MUSCLE_GROUP_BACK =
-      MuscleGroup._(5, _omitEnumNames ? '' : 'MUSCLE_GROUP_BACK');
-  static const MuscleGroup MUSCLE_GROUP_SHOULDERS =
-      MuscleGroup._(6, _omitEnumNames ? '' : 'MUSCLE_GROUP_SHOULDERS');
-  static const MuscleGroup MUSCLE_GROUP_BICEPS =
-      MuscleGroup._(7, _omitEnumNames ? '' : 'MUSCLE_GROUP_BICEPS');
-  static const MuscleGroup MUSCLE_GROUP_TRICEPS =
-      MuscleGroup._(8, _omitEnumNames ? '' : 'MUSCLE_GROUP_TRICEPS');
-  static const MuscleGroup MUSCLE_GROUP_CALVES =
-      MuscleGroup._(9, _omitEnumNames ? '' : 'MUSCLE_GROUP_CALVES');
-  static const MuscleGroup MUSCLE_GROUP_CORE =
-      MuscleGroup._(10, _omitEnumNames ? '' : 'MUSCLE_GROUP_CORE');
-
-  static const $core.List<MuscleGroup> values = <MuscleGroup>[
-    MUSCLE_GROUP_UNSPECIFIED,
-    MUSCLE_GROUP_QUADS,
-    MUSCLE_GROUP_HAMSTRINGS,
-    MUSCLE_GROUP_GLUTES,
-    MUSCLE_GROUP_CHEST,
-    MUSCLE_GROUP_BACK,
-    MUSCLE_GROUP_SHOULDERS,
-    MUSCLE_GROUP_BICEPS,
-    MUSCLE_GROUP_TRICEPS,
-    MUSCLE_GROUP_CALVES,
-    MUSCLE_GROUP_CORE,
-  ];
-
-  static final $core.List<MuscleGroup?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 10);
-  static MuscleGroup? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const MuscleGroup._(super.value, super.name);
-}
-
 class ExerciseCategory extends $pb.ProtobufEnum {
   static const ExerciseCategory EXERCISE_CATEGORY_UNSPECIFIED =
       ExerciseCategory._(

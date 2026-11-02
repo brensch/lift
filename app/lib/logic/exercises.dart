@@ -1,3 +1,4 @@
+import '../gen/workout/v1/settings.pbenum.dart';
 import '../gen/workout/v1/workout.pbenum.dart';
 
 /// Body-part groupings used for tags + the exercise-picker filters.

@@ -1488,7 +1488,7 @@ impl<'a> Runner<'a> {
             self.app.call(now - 600, |c| {
                 c.add_library_templates(AddLibraryTemplatesRequest {
                     library_ids: ids,
-                    entries: vec![],
+                    ..Default::default()
                 })
             });
         }
@@ -1754,6 +1754,7 @@ fn rotation() -> RotationRun {
                         &recovery,
                         at,
                         &last_started,
+                        &[],
                     )
                     .expect("a template in rotation is suggested alone");
                     let behind: Vec<MuscleGroup> = alone

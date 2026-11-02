@@ -69,10 +69,7 @@ void main() {
   });
 
   testWidgets('under the cap + moves the budget', (tester) async {
-    final plan = TemplatePlan(
-      estimatedSeconds: 44 * 60,
-      maxSeconds: 62 * 60,
-    );
+    final plan = TemplatePlan(estimatedSeconds: 44 * 60, maxSeconds: 62 * 60);
     final stepped = await pumpCard(tester, budget: 45, plan: plan);
     expect(plusEnabled(tester), isTrue);
     expect(stepped, 1);

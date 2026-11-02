@@ -29,7 +29,7 @@ tutorial:
     - screen: home
       target: home_add
       title: Need more options?
-      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your favourites, or make your own.
+      body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your main plan, or make your own.
     - screen: home
       target: home_plan
       title: I got your numbers
@@ -40,16 +40,26 @@ tutorial:
       body: Pressing Start is how you Start. Let's get schlifting!
 
 # The template library: templates/library.yaml, offered during setup and
-# from the Edit chip on the home screen.
+# from the Manage chip on the home screen.
 library:
   # The home chip that opens a blank workout of your own. Placeholder.
   new_button: New
   # The home chip that opens the sheet. Placeholder.
-  edit_button: Edit
+  edit_button: Manage
   sheet_title: Your workouts
-  # Your own workouts (cloned or made from scratch), above the library.
-  # Placeholders.
-  yours_heading: Yours
+  # The groups, on Home's chips and in the sheet: the main plan (the
+  # rotation the suggestion picks from) and the backups. Placeholders.
+  rotation_heading: Main plan
+  favourites_heading: Backup
+  # The sheet's last section: library workouts the user doesn't have yet.
+  add_heading: Add
+  # Home, when nothing is in the main plan. Placeholder.
+  rotation_empty_home: Nothing in the main plan. Manage puts some in.
+  # An empty section in the sheet, where a workout can be dropped.
+  # Placeholder.
+  drop_here: Drag a workout here
+  # The sheet's library rows: + adds it to the main plan. Placeholder.
+  add_to_plan: Add to the main plan
   # Marks a workout as the user's own, on home and in the sheet.
   personal: Personalised
   # Makes a library workout the user's own to edit; it stops following
@@ -60,16 +70,16 @@ library:
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
-# The rotation: the workouts the suggestion picks from. The rest are
-# favourites, on Home after a divider and never suggested. {…} are
+# The main plan (the rotation): the workouts the suggestion picks from.
+# The rest are backups, on Home in their own group and never suggested. {…} are
 # substituted by the code. All placeholder copy.
 rotation:
   # The template editor's switch, and the line under it.
-  switch_label: In rotation
-  switch_hint: The suggestion picks from these. Off, it's a favourite.
+  switch_label: In the main plan
+  switch_hint: The suggestion picks from these. Off, it's a backup.
   # Home card menu.
-  add: Put in rotation
-  remove: Make it a favourite
+  add: Move to main plan
+  remove: Move to backup
   # Home, under the suggested workout's name: the (at most two) muscles
   # most behind. {muscles} is "chest 2/10" or "chest 2/10 and back 0/10".
   rested_one: "{muscles} this week, rested"
@@ -83,12 +93,17 @@ rotation:
   # Every workout in rotation opens on a muscle still recovering: the one
   # whose first lift is back soonest.
   first_lift: "Every workout starts on something sore. First back: {muscle}, in {hours}h."
-  # The rotation check, at the top of the Edit sheet.
-  check_title: One lap of the rotation
-  check_body: Sets per muscle, each workout once at three sets a lift.
-  gap: "Nothing trains {muscles}."
+  # The rotation check, at the top of the sheet: one line of what the
+  # rotation trains (ignored muscles left out), then any warnings.
+  trains_everything: Trains everything.
+  trains_nothing: Trains nothing yet.
+  gap: "Trains everything but {muscles}."
   overlap: "{a} and {b} share {shared} of {of} lifts."
-  too_few: "Put two or more workouts in rotation."
+  too_few: "Put two or more workouts in the main plan."
+  # The muscles under the check: tap one to stop counting it (no gap, no
+  # suggestion for it, greyed on Home).
+  muscles_title: Muscles you train
+  muscles_hint: Tap one you don't care about. It stops counting.
 
 # Sign-in screen.
 login:
@@ -178,7 +193,7 @@ onboarding:
     field: Bodyweight
     failed: "Setup failed: {error}. Try again."
   templates:
-    title: Pick your favourite workouts
+    title: Pick your main plan
     body: You can add, remove, or edit them later. Pretty cool.
     none_selected: Pick at least one. Or one hundred.
     finish: START LIFTING

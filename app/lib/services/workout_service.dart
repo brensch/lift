@@ -158,11 +158,20 @@ class WorkoutServiceWrapper {
     DeleteTemplateResponse.fromBuffer,
   );
 
-  Future<void> reorderTemplates(List<String> templateIds) => _call(
-    'ReorderTemplates',
-    ReorderTemplatesRequest()..templateIds.addAll(templateIds),
-    ReorderTemplatesResponse.fromBuffer,
-  );
+  /// The user's order of [templateIds]; with [rotationCount], the first
+  /// that many are in rotation and the rest favourites.
+  Future<void> reorderTemplates(
+    List<String> templateIds, {
+    int? rotationCount,
+  }) {
+    final request = ReorderTemplatesRequest()..templateIds.addAll(templateIds);
+    if (rotationCount != null) request.rotationCount = rotationCount;
+    return _call(
+      'ReorderTemplates',
+      request,
+      ReorderTemplatesResponse.fromBuffer,
+    );
+  }
 
   /// The user's own weight and reps (and optionally sets) for one lift:
   /// the plan carries on from it. Reps of 0 removes it.
@@ -220,14 +229,17 @@ class WorkoutServiceWrapper {
     ListTemplateLibraryResponse.fromBuffer,
   )).templates;
 
-  /// Adds library entries to the user's templates, following the library;
-  /// ones already there are skipped. Returns the refreshed home.
-  Future<GetHomeResponse> addLibraryTemplates(List<String> libraryIds) async =>
-      (await _call(
-        'AddLibraryTemplates',
-        AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
-        AddLibraryTemplatesResponse.fromBuffer,
-      )).home;
+  /// Adds library entries to the user's templates, following the library,
+  /// into the rotation or (by default) as favourites; ones the user already
+  /// has are skipped. Returns the refreshed home.
+  Future<GetHomeResponse> addLibraryTemplates(
+    List<String> libraryIds, {
+    bool inRotation = false,
+  }) async => (await _call(
+    'AddLibraryTemplates',
+    AddLibraryTemplatesRequest(libraryIds: libraryIds, inRotation: inRotation),
+    AddLibraryTemplatesResponse.fromBuffer,
+  )).home;
 
   Future<List<UserSetting>> getSettings() async => (await _call(
     'GetSettings',

@@ -4,7 +4,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fixnum/fixnum.dart';
-import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
+import '../gen/workout/v1/settings.pb.dart'
+    show IgnoredMusclesConfig, MuscleGroup, UserSetting, WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/first_workout.dart';
@@ -516,8 +517,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await refreshHome();
   }
 
-  Future<void> reorderTemplates(List<String> templateIds) async {
-    await _service.reorderTemplates(templateIds);
+  /// Put the templates in [templateIds]' order; with [rotationCount], the
+  /// first that many are the rotation and the rest favourites (the Manage
+  /// sheet's drag across its two sections).
+  Future<void> reorderTemplates(
+    List<String> templateIds, {
+    int? rotationCount,
+  }) async {
+    await _service.reorderTemplates(templateIds, rotationCount: rotationCount);
     await refreshHome();
   }
 
@@ -525,8 +532,24 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// (templates/library.yaml on the server). The answer carries the
   /// refreshed home, planned in the default budget, so it is read again
   /// in this one.
-  Future<void> addLibraryTemplates(List<String> libraryIds) async {
-    await _service.addLibraryTemplates(libraryIds);
+  Future<void> addLibraryTemplates(
+    List<String> libraryIds, {
+    bool inRotation = false,
+  }) async {
+    await _service.addLibraryTemplates(libraryIds, inRotation: inRotation);
+    await refreshHome();
+  }
+
+  /// The muscles the user does not train on purpose: no gap is warned of,
+  /// the suggestion never counts them behind, and Home greys them.
+  Set<MuscleGroup> get ignoredMuscles =>
+      _home?.ignoredMuscles.toSet() ?? const {};
+
+  /// Ignore [muscles] (and only those) from now on.
+  Future<void> setIgnoredMuscles(Set<MuscleGroup> muscles) async {
+    await _service.updateSetting(
+      UserSetting(ignoredMuscles: IgnoredMusclesConfig(muscles: muscles)),
+    );
     await refreshHome();
   }
 

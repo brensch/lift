@@ -3,9 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/settings.pb.dart';
+import 'package:schlift/gen/workout/v1/workout.pb.dart';
+import 'package:schlift/logic/exercises.dart';
 import 'package:schlift/logic/rotation_text.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/screens/home/home_screen.dart';
+import 'package:schlift/screens/home/template_library_sheet.dart';
+import 'package:schlift/widgets/template_row.dart';
 import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/services/grpc_client.dart';
 import 'package:schlift/services/wearable_bridge_service.dart';
@@ -15,63 +19,71 @@ import 'package:schlift/theme/app_theme.dart';
 import '../support/provider_harness.dart';
 
 /// Home with StrongLifts A and B in rotation (onboarding's) and Arms as a
-/// favourite (added later): rotation chips above the divider, favourites
-/// below, the suggestion's reason under its name, and the rotation check
-/// at the top of the Edit sheet.
-void main() {
-  testWidgets('rotation, favourites, the reason and the check', (tester) async {
-    final h = (await tester.runAsync(() async {
-      final h = await ProviderHarness.boot(sandbox: true);
-      await h.service.completeOnboarding(
-        unit: WeightUnit.WEIGHT_UNIT_LB,
-        libraryIds: ['stronglifts_a', 'stronglifts_b'],
-      );
-      await h.service.addLibraryTemplates(['arms']);
-      await h.provider.loadActiveWorkout('test');
-      return h;
-    }))!;
-    addTearDown(h.dispose);
-    tester.view.physicalSize = const Size(1080, 2280);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
-
-    final grpc = GrpcClient(host: '127.0.0.1', port: 1);
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider.value(value: h.provider),
-          ChangeNotifierProvider.value(value: h.settings),
-          Provider<WearableBridgeService>.value(
-            value: NoopWearableBridgeService(),
-          ),
-          ChangeNotifierProvider(
-            create: (_) => AuthProvider(
-              authService: AuthService(grpcClient: grpc),
-              grpcClient: grpc,
-            ),
-          ),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.theme,
-          home: const Scaffold(body: HomeScreen()),
-        ),
-      ),
+/// favourite (added later), at phone size.
+Future<ProviderHarness> boot(WidgetTester tester) async {
+  final h = (await tester.runAsync(() async {
+    final h = await ProviderHarness.boot(sandbox: true);
+    await h.service.completeOnboarding(
+      unit: WeightUnit.WEIGHT_UNIT_LB,
+      libraryIds: ['stronglifts_a', 'stronglifts_b'],
     );
-    await tester.pumpAndSettle();
+    await h.service.addLibraryTemplates(['arms']);
+    await h.provider.loadActiveWorkout('test');
+    return h;
+  }))!;
+  tester.view.physicalSize = const Size(1080, 2280);
+  tester.view.devicePixelRatio = 3.0;
+  addTearDown(tester.view.reset);
 
-    Future<void> settle(bool Function() done) async {
-      for (var i = 0; i < 40 && !done(); i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 50)),
-        );
-        await tester.pump();
-      }
-      // The sheet's loading spinner never settles: pump through the
-      // sheet's entrance instead.
-      for (var i = 0; i < 10; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-    }
+  final grpc = GrpcClient(host: '127.0.0.1', port: 1);
+  await tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: h.provider),
+        ChangeNotifierProvider.value(value: h.settings),
+        Provider<WearableBridgeService>.value(
+          value: NoopWearableBridgeService(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(
+            authService: AuthService(grpcClient: grpc),
+            grpcClient: grpc,
+          ),
+        ),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.theme,
+        home: const Scaffold(body: HomeScreen()),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return h;
+}
+
+/// Let the core answer until [done], then pump through any sheet's
+/// entrance (the library's loading spinner never settles).
+Future<void> settle(WidgetTester tester, bool Function() done) async {
+  for (var i = 0; i < 40 && !done(); i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+  }
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+/// The chips in their groups, the suggestion's reason, and the Manage
+/// sheet: the rotation check in words, the sections, adding into the
+/// rotation, moving to the favourites, ignoring a muscle.
+void main() {
+  testWidgets('Home: rotation, favourites, actions, the reason', (
+    tester,
+  ) async {
+    final h = await boot(tester);
+    addTearDown(h.dispose);
 
     final home = h.provider.home!;
     final suggested = home.templates.firstWhere(
@@ -79,13 +91,23 @@ void main() {
     );
     expect(suggested.inRotation, isTrue);
 
-    // Chips: rotation above the divider, favourites below.
-    final divider = tester.getTopLeft(find.byType(Divider).first).dy;
-    double chipY(String name) =>
-        tester.getTopLeft(find.widgetWithText(TemplateChip, name)).dy;
-    expect(chipY('StrongLifts A'), lessThan(divider));
-    expect(chipY('StrongLifts B'), lessThan(divider));
-    expect(chipY('Arms'), greaterThan(divider));
+    // Chips in three groups: the rotation under its title, the favourites
+    // (and the Empty workout) under theirs, then New and Manage on a line
+    // of their own.
+    final l = copy.library;
+    double y(Finder f) => tester.getTopLeft(f).dy;
+    double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
+    final rotationTitle = y(find.text(l.rotationHeading.toUpperCase()));
+    final favouritesTitle = y(find.text(l.favouritesHeading.toUpperCase()));
+    expect(rotationTitle, lessThan(chipY('StrongLifts A')));
+    expect(chipY('StrongLifts A'), lessThan(favouritesTitle));
+    expect(chipY('StrongLifts B'), lessThan(favouritesTitle));
+    expect(chipY('Arms'), greaterThan(favouritesTitle));
+    final empty = y(find.text('Empty'));
+    expect(empty, greaterThan(favouritesTitle));
+    expect(y(find.text(l.newButton)), greaterThan(empty));
+    expect(y(find.text(l.editButton)), y(find.text(l.newButton)));
+    expect(find.byType(Divider), findsNothing);
 
     // The reason under the suggested template's name, from the core's
     // structured reason; the old orange line is gone.
@@ -101,29 +123,173 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(copy.rotation.add));
     await settle(
+      tester,
       () => h.provider.templates.firstWhere((t) => t.name == 'Arms').inRotation,
     );
     expect(
       chipY('Arms'),
-      lessThan(tester.getTopLeft(find.byType(Divider).first).dy),
+      lessThan(y(find.text(l.favouritesHeading.toUpperCase()))),
+    );
+  });
+
+  testWidgets('the Manage sheet: words, sections, add, drag, delete, ignore', (
+    tester,
+  ) async {
+    final h = await boot(tester);
+    addTearDown(h.dispose);
+    final l = copy.library;
+    final sheet = find.byType(DraggableScrollableSheet);
+    Finder inSheet(Finder f) => find.descendant(of: sheet, matching: f);
+    Finder row(String name) => find.widgetWithText(TemplateRow, name);
+    Finder rowIcon(String name, String tooltip) =>
+        find.descendant(of: row(name), matching: find.byTooltip(tooltip));
+    // Drag the sheet's list until [target] is built, letting the core
+    // answer (the library loads from it) between drags.
+    Future<void> scrollTo(Finder target, double by) async {
+      for (var i = 0; i < 30 && target.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.drag(
+          inSheet(find.byType(Scrollable)).first,
+          Offset(0, -by),
+        );
+        await tester.pump();
+      }
+      await tester.ensureVisible(target);
+      await tester.pump();
+    }
+
+    WorkoutTemplate named(String name) =>
+        h.provider.templates.firstWhere((t) => t.name == name);
+
+    await tester.tap(find.text(l.editButton));
+    await settle(
+      tester,
+      () =>
+          sheet.evaluate().isNotEmpty &&
+          inSheet(find.byType(CircularProgressIndicator)).evaluate().isEmpty,
     );
 
-    // The Edit sheet opens on the rotation check: one lap's bars and what
-    // is wrong with it.
-    await tester.tap(find.text(copy.library.editButton));
-    await settle(
-      () => find
-          .text(copy.rotation.checkTitle.toUpperCase())
-          .evaluate()
-          .isNotEmpty,
-    );
-    expect(find.text(copy.rotation.checkTitle.toUpperCase()), findsOneWidget);
+    // The check in words, no bars.
     final names = {for (final t in h.provider.templates) t.id: t.name};
-    final warnings = rotationWarningLines(h.provider.rotationCheck!, names);
-    expect(warnings, isNotEmpty, reason: 'nothing in it trains calves');
-    for (final w in warnings) {
-      expect(find.text(w), findsOneWidget);
+    final lines = rotationCheckLines(h.provider.rotationCheck!, names);
+    expect(lines.gap, isTrue, reason: 'nothing in it trains calves');
+    expect(inSheet(find.text(lines.trains)), findsOneWidget);
+    for (final w in lines.warnings) {
+      expect(inSheet(find.text(w)), findsOneWidget);
     }
-    expect(find.byType(VolumeCard), findsWidgets);
+    expect(inSheet(find.byType(VolumeCard)), findsNothing);
+
+    // The sections, and no library row for what the user has.
+    for (final title in [l.rotationHeading, l.favouritesHeading]) {
+      expect(inSheet(find.text(title.toUpperCase())), findsOneWidget);
+    }
+    expect(
+      inSheet(find.widgetWithText(TemplateRow, 'StrongLifts B')),
+      findsOneWidget,
+    );
+    // Each of the user's rows: a drag handle and delete, nothing else.
+    expect(
+      find.descendant(
+        of: row('StrongLifts B'),
+        matching: find.byIcon(AppIcons.drag),
+      ),
+      findsOneWidget,
+    );
+    expect(rowIcon('StrongLifts B', l.delete), findsOneWidget);
+    expect(
+      find.descendant(
+        of: row('StrongLifts B'),
+        matching: find.byType(TextButton),
+      ),
+      findsNothing,
+    );
+    expect(inSheet(find.byType(Checkbox)), findsNothing);
+    expect(inSheet(find.text(l.clone.toUpperCase())), findsNothing);
+
+    // + adds a library workout to the main plan, and its library row is
+    // gone.
+    await scrollTo(rowIcon('Big Three', l.addToPlan), 200);
+    await tester.tap(rowIcon('Big Three', l.addToPlan));
+    await settle(
+      tester,
+      () => h.provider.templates.any((t) => t.name == 'Big Three'),
+    );
+    expect(named('Big Three').inRotation, isTrue);
+    expect(rowIcon('Big Three', l.addToPlan), findsNothing);
+
+    // The list is [Main plan, A, B, Big Three, Backup, Arms]. A drag
+    // (through the list's own callback) of B past the Backup heading makes
+    // it the first backup.
+    List<String> names_(bool main) => [
+      for (final t in h.provider.templates)
+        if (t.inRotation == main) t.name,
+    ];
+    expect(names_(true), ['StrongLifts A', 'StrongLifts B', 'Big Three']);
+    void drag(int from, int to) => tester
+        .widget<ReorderableListView>(inSheet(find.byType(ReorderableListView)))
+        .onReorderItem!(from, to);
+    drag(2, 4);
+    await settle(tester, () => !named('StrongLifts B').inRotation);
+    expect(names_(true), ['StrongLifts A', 'Big Three']);
+    expect(names_(false), ['StrongLifts B', 'Arms']);
+
+    // Arms up to the top of the main plan: [Main plan, Arms, A, Big Three,
+    // Backup, B].
+    drag(5, 1);
+    await settle(tester, () => named('Arms').inRotation);
+    expect(names_(true), ['Arms', 'StrongLifts A', 'Big Three']);
+    expect(names_(false), ['StrongLifts B']);
+    // Home's chips follow the same order.
+    expect(
+      tester.getTopLeft(find.widgetWithText(TemplateChip, 'Arms')).dx,
+      lessThan(
+        tester
+            .getTopLeft(find.widgetWithText(TemplateChip, 'StrongLifts A'))
+            .dx,
+      ),
+    );
+
+    // Emptying the backups leaves a line to drop on.
+    drag(5, 1);
+    await settle(tester, () => named('StrongLifts B').inRotation);
+    expect(names_(false), isEmpty);
+    await scrollTo(inSheet(find.text(l.dropHere)), 200);
+    expect(inSheet(find.text(l.dropHere)), findsOneWidget);
+
+    // Delete removes one; a library workout goes without asking.
+    await scrollTo(rowIcon('Arms', l.delete), -200);
+    await tester.tap(rowIcon('Arms', l.delete));
+    await settle(
+      tester,
+      () => h.provider.templates.every((t) => t.name != 'Arms'),
+    );
+    expect(h.provider.templates.any((t) => t.name == 'Arms'), isFalse);
+
+    // Ignoring every muscle in the gap takes the gap away; Home's weekly
+    // volume greys them.
+    final gap = h.provider.rotationCheck!.warnings
+        .firstWhere(
+          (w) => w.kind == RotationWarningKind.ROTATION_WARNING_KIND_GAP,
+        )
+        .muscles
+        .toList();
+    await scrollTo(find.byType(RotationCheckSection), -200);
+    for (final muscle in gap) {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(RotationCheckSection),
+          matching: find.text(muscleShortLabels[muscle]!),
+        ),
+      );
+      await settle(tester, () => h.provider.ignoredMuscles.contains(muscle));
+    }
+    final after = rotationCheckLines(h.provider.rotationCheck!, names);
+    expect(after.gap, isFalse);
+    expect(inSheet(find.text(lines.trains)), findsNothing);
+    expect(inSheet(find.text(copy.rotation.trainsEverything)), findsOneWidget);
+    final card = tester.widget<VolumeCard>(find.byType(VolumeCard));
+    expect(card.ignored, gap.toSet());
   });
 }

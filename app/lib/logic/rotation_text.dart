@@ -1,8 +1,9 @@
 /// The words for the rotation: Home's line under the suggested workout,
-/// from the core's structured reason, and the rotation check's warnings.
+/// from the core's structured reason, and the rotation check's lines.
 library;
 
 import '../gen/copy.dart';
+import '../gen/workout/v1/settings.pb.dart' show MuscleGroup;
 import '../gen/workout/v1/workout.pb.dart';
 import 'exercises.dart';
 
@@ -60,29 +61,42 @@ String suggestionLine(SuggestionReason reason) {
   return _sentence(parts.join(' · '));
 }
 
-/// One plain line per warning, in the order the core gives them;
-/// [names] maps a template id to its name.
-List<String> rotationWarningLines(
+/// The rotation check in words: [trains] is one line of what a lap of
+/// the rotation trains (the gap, when there is one: [gap] is then true),
+/// and [warnings] one plain line for each other thing wrong, in the order
+/// the core gives them. [names] maps a template id to its name.
+({String trains, bool gap, List<String> warnings}) rotationCheckLines(
   RotationCheck check,
   Map<String, String> names,
 ) {
   final r = copy.rotation;
   String name(String id) => names[id] ?? '?';
-  return [
-    for (final w in check.warnings)
-      switch (w.kind) {
-        RotationWarningKind.ROTATION_WARNING_KIND_GAP => r.gap.replaceAll(
+  var trains = check.volume.any((v) => v.completedSets7d > 0)
+      ? r.trainsEverything
+      : r.trainsNothing;
+  var gap = false;
+  final warnings = <String>[];
+  for (final w in check.warnings) {
+    switch (w.kind) {
+      case RotationWarningKind.ROTATION_WARNING_KIND_GAP:
+        gap = true;
+        trains = r.gap.replaceAll(
           '{muscles}',
           joinList([for (final m in w.muscles) _muscle(m).toLowerCase()]),
-        ),
-        RotationWarningKind.ROTATION_WARNING_KIND_OVERLAP =>
+        );
+      case RotationWarningKind.ROTATION_WARNING_KIND_OVERLAP:
+        warnings.add(
           r.overlap
               .replaceAll('{a}', name(w.templateIds.first))
               .replaceAll('{b}', name(w.templateIds.last))
               .replaceAll('{shared}', '${w.shared}')
               .replaceAll('{of}', '${w.of}'),
-        RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW => r.tooFew,
-        _ => '',
-      },
-  ].where((line) => line.isNotEmpty).toList();
+        );
+      case RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW:
+        warnings.add(r.tooFew);
+      default:
+        break;
+    }
+  }
+  return (trains: trains, gap: gap, warnings: warnings);
 }

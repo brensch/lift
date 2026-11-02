@@ -201,16 +201,72 @@ class WeightUnitConfig extends $pb.GeneratedMessage {
   void clearUnit() => $_clearField(1);
 }
 
-enum UserSetting_Setting { plateColors, weightUnit, notSet }
+/// Muscles the user does not train on purpose: the rotation check warns of
+/// no gap in them, the suggestion counts none of them behind, and Home's
+/// weekly volume shows them muted.
+class IgnoredMusclesConfig extends $pb.GeneratedMessage {
+  factory IgnoredMusclesConfig({
+    $core.Iterable<MuscleGroup>? muscles,
+  }) {
+    final result = create();
+    if (muscles != null) result.muscles.addAll(muscles);
+    return result;
+  }
+
+  IgnoredMusclesConfig._();
+
+  factory IgnoredMusclesConfig.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory IgnoredMusclesConfig.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'IgnoredMusclesConfig',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pc<MuscleGroup>(1, _omitFieldNames ? '' : 'muscles', $pb.PbFieldType.KE,
+        valueOf: MuscleGroup.valueOf,
+        enumValues: MuscleGroup.values,
+        defaultEnumValue: MuscleGroup.MUSCLE_GROUP_UNSPECIFIED)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  IgnoredMusclesConfig clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  IgnoredMusclesConfig copyWith(void Function(IgnoredMusclesConfig) updates) =>
+      super.copyWith((message) => updates(message as IgnoredMusclesConfig))
+          as IgnoredMusclesConfig;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static IgnoredMusclesConfig create() => IgnoredMusclesConfig._();
+  @$core.override
+  IgnoredMusclesConfig createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static IgnoredMusclesConfig getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<IgnoredMusclesConfig>(create);
+  static IgnoredMusclesConfig? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<MuscleGroup> get muscles => $_getList(0);
+}
+
+enum UserSetting_Setting { plateColors, weightUnit, ignoredMuscles, notSet }
 
 class UserSetting extends $pb.GeneratedMessage {
   factory UserSetting({
     PlateColorsConfig? plateColors,
     WeightUnitConfig? weightUnit,
+    IgnoredMusclesConfig? ignoredMuscles,
   }) {
     final result = create();
     if (plateColors != null) result.plateColors = plateColors;
     if (weightUnit != null) result.weightUnit = weightUnit;
+    if (ignoredMuscles != null) result.ignoredMuscles = ignoredMuscles;
     return result;
   }
 
@@ -227,17 +283,20 @@ class UserSetting extends $pb.GeneratedMessage {
       _UserSetting_SettingByTag = {
     10: UserSetting_Setting.plateColors,
     12: UserSetting_Setting.weightUnit,
+    13: UserSetting_Setting.ignoredMuscles,
     0: UserSetting_Setting.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'UserSetting',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [10, 12])
+    ..oo(0, [10, 12, 13])
     ..aOM<PlateColorsConfig>(10, _omitFieldNames ? '' : 'plateColors',
         subBuilder: PlateColorsConfig.create)
     ..aOM<WeightUnitConfig>(12, _omitFieldNames ? '' : 'weightUnit',
         subBuilder: WeightUnitConfig.create)
+    ..aOM<IgnoredMusclesConfig>(13, _omitFieldNames ? '' : 'ignoredMuscles',
+        subBuilder: IgnoredMusclesConfig.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -261,10 +320,12 @@ class UserSetting extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(10)
   @$pb.TagNumber(12)
+  @$pb.TagNumber(13)
   UserSetting_Setting whichSetting() =>
       _UserSetting_SettingByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(10)
   @$pb.TagNumber(12)
+  @$pb.TagNumber(13)
   void clearSetting() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(10)
@@ -288,6 +349,17 @@ class UserSetting extends $pb.GeneratedMessage {
   void clearWeightUnit() => $_clearField(12);
   @$pb.TagNumber(12)
   WeightUnitConfig ensureWeightUnit() => $_ensure(1);
+
+  @$pb.TagNumber(13)
+  IgnoredMusclesConfig get ignoredMuscles => $_getN(2);
+  @$pb.TagNumber(13)
+  set ignoredMuscles(IgnoredMusclesConfig value) => $_setField(13, value);
+  @$pb.TagNumber(13)
+  $core.bool hasIgnoredMuscles() => $_has(2);
+  @$pb.TagNumber(13)
+  void clearIgnoredMuscles() => $_clearField(13);
+  @$pb.TagNumber(13)
+  IgnoredMusclesConfig ensureIgnoredMuscles() => $_ensure(2);
 }
 
 class UpdateSettingRequest extends $pb.GeneratedMessage {

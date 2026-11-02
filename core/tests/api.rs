@@ -328,7 +328,7 @@ mod home_and_onboarding {
             .call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into(), already.clone()],
-                entries: vec![],
+                ..Default::default()
             })
             .unwrap()
             .home
@@ -341,7 +341,8 @@ mod home_and_onboarding {
         assert!(added.coupled, "a library workout follows the library");
 
         // Saved unchanged it still follows; renamed it becomes the user's
-        // own, and the library entry can be added again beside it.
+        // own, made from the entry, and the entry is not added again
+        // beside it.
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(added.clone()),
@@ -361,16 +362,19 @@ mod home_and_onboarding {
         let renamed = home.templates.iter().find(|t| t.id == added.id).unwrap();
         assert_eq!(renamed.name, "Cake Day");
         assert!(!renamed.coupled && renamed.library_id.is_empty());
+        assert_eq!(renamed.origin_library_id, "butt_stuff");
+        let events = app.log.len();
         let home = app
             .call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into()],
-                entries: vec![],
+                ..Default::default()
             })
             .unwrap()
             .home
             .unwrap();
-        assert_eq!(home.templates.len(), before + 2);
+        assert_eq!(home.templates.len(), before + 1, "no duplicate");
+        assert_eq!(app.log.len(), events, "nothing to record");
 
         // Deletion of the copy leaves the library untouched.
         app.call()
@@ -487,6 +491,7 @@ mod templates {
         app.call()
             .reorder_templates(ReorderTemplatesRequest {
                 template_ids: vec![second.id.clone(), saved.id.clone()],
+                ..Default::default()
             })
             .unwrap();
         let listed = home(&mut app).templates;
@@ -1592,7 +1597,7 @@ mod the_log {
             .call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into(), "nope".into()],
-                entries: vec![],
+                ..Default::default()
             })
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)));
@@ -1886,7 +1891,7 @@ mod rotation {
         app.call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["full_body".into()],
-                entries: vec![],
+                ..Default::default()
             })
             .unwrap();
         let mine = app
@@ -1918,7 +1923,7 @@ mod rotation {
         app.call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["full_body".into()],
-                entries: vec![],
+                ..Default::default()
             })
             .unwrap();
         app.library
@@ -1954,6 +1959,193 @@ mod rotation {
         assert_eq!(app.log.len(), events);
     }
 
+    /// A library template can go straight into the rotation; without
+    /// saying so it is a favourite.
+    #[test]
+    fn a_library_template_can_be_added_into_the_rotation() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["full_body".into()],
+                in_rotation: true,
+                ..Default::default()
+            })
+            .unwrap();
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["arms".into()],
+                ..Default::default()
+            })
+            .unwrap();
+        let after = home(&mut app);
+        let full_body = by_library(&after, "full_body");
+        assert!(full_body.in_rotation && full_body.coupled);
+        assert!(!by_library(&after, "arms").in_rotation);
+    }
+
+    /// A template cloned from the library keeps where it came from, and
+    /// the entry is never added again beside it, into the rotation or not.
+    #[test]
+    fn a_personalised_copy_is_not_offered_again() {
+        let mut app = App::new();
+        let onboarded = onboard(&mut app, WeightUnit::Lb);
+        let b = by_library(&onboarded, "stronglifts_b");
+        let cloned = app
+            .call()
+            .clone_template(CloneTemplateRequest {
+                template_id: b.id.clone(),
+                ..Default::default()
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        assert!(!cloned.coupled && cloned.library_id.is_empty());
+        assert_eq!(cloned.origin_library_id, "stronglifts_b");
+        // Edited after, it is still the one made from the entry.
+        let mut edited = cloned.clone();
+        edited.name = "Legs, mine".into();
+        app.call()
+            .save_template(SaveTemplateRequest {
+                template: Some(edited),
+                ..Default::default()
+            })
+            .unwrap();
+        assert!(app.account.has_library_entry("stronglifts_b"));
+        let events = app.log.len();
+        let after = app
+            .call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["stronglifts_b".into()],
+                in_rotation: true,
+                ..Default::default()
+            })
+            .unwrap()
+            .home
+            .unwrap();
+        assert_eq!(after.templates.len(), onboarded.templates.len());
+        assert_eq!(app.log.len(), events);
+    }
+
+    /// Ignored muscles are a setting: Home names them, the rotation check
+    /// warns of no gap in them, and the suggestion counts none of them
+    /// behind.
+    #[test]
+    fn ignored_muscles_leave_the_gap_and_the_suggestion() {
+        let mut app = App::new();
+        let onboarded = onboard(&mut app, WeightUnit::Lb);
+        let gap = |home: &GetHomeResponse| {
+            home.rotation_check
+                .as_ref()
+                .unwrap()
+                .warnings
+                .iter()
+                .find(|w| w.kind == RotationWarningKind::Gap as i32)
+                .map(|w| w.muscles.clone())
+                .unwrap_or_default()
+        };
+        let gaps = gap(&onboarded);
+        assert!(!gaps.is_empty(), "the defaults leave something untrained");
+        let mut ignored = gaps.clone();
+        // Given twice and with a nonsense value, kept once and valid.
+        ignored.push(gaps[0]);
+        ignored.push(MuscleGroup::Unspecified as i32);
+        app.call()
+            .update_setting(UpdateSettingRequest {
+                setting: Some(UserSetting {
+                    setting: Some(user_setting::Setting::IgnoredMuscles(
+                        IgnoredMusclesConfig { muscles: ignored },
+                    )),
+                }),
+            })
+            .unwrap();
+        let after = home(&mut app);
+        assert!(gap(&after).is_empty(), "{:?}", after.rotation_check);
+        let mut sorted = gaps.clone();
+        sorted.sort_unstable();
+        assert_eq!(after.ignored_muscles, sorted);
+        let reason = after.suggestion_reason.unwrap();
+        assert!(reason
+            .behind
+            .iter()
+            .all(|m| !after.ignored_muscles.contains(&m.muscle)));
+        assert!(reason
+            .recovering
+            .iter()
+            .all(|m| !after.ignored_muscles.contains(&m.muscle)));
+    }
+
+    /// The Manage sheet's drag: one reorder that also splits the list into
+    /// the rotation and the favourites; without the split only the order
+    /// changes. Library templates moved keep following the library.
+    #[test]
+    fn a_reorder_can_move_templates_between_rotation_and_favourites() {
+        let mut app = App::new();
+        let onboarded = onboard(&mut app, WeightUnit::Lb);
+        app.call()
+            .add_library_templates(AddLibraryTemplatesRequest {
+                library_ids: vec!["arms".into()],
+                ..Default::default()
+            })
+            .unwrap();
+        let a = by_library(&onboarded, "stronglifts_a").id;
+        let b = by_library(&onboarded, "stronglifts_b").id;
+        let arms = by_library(&home(&mut app), "arms").id;
+        // Arms to the top of the rotation, B down to the favourites.
+        app.call()
+            .reorder_templates(ReorderTemplatesRequest {
+                template_ids: vec![arms.clone(), a.clone(), b.clone()],
+                rotation_count: Some(2),
+            })
+            .unwrap();
+        let after = home(&mut app);
+        let order: Vec<(&str, bool)> = after
+            .templates
+            .iter()
+            .map(|t| (t.id.as_str(), t.in_rotation))
+            .collect();
+        assert_eq!(
+            order,
+            vec![
+                (arms.as_str(), true),
+                (a.as_str(), true),
+                (b.as_str(), false)
+            ]
+        );
+        assert!(after.templates.iter().all(|t| t.coupled));
+
+        // Order alone leaves the split as it is.
+        app.call()
+            .reorder_templates(ReorderTemplatesRequest {
+                template_ids: vec![b.clone(), a.clone(), arms.clone()],
+                ..Default::default()
+            })
+            .unwrap();
+        let after = home(&mut app);
+        let order: Vec<(&str, bool)> = after
+            .templates
+            .iter()
+            .map(|t| (t.id.as_str(), t.in_rotation))
+            .collect();
+        assert_eq!(
+            order,
+            vec![
+                (b.as_str(), false),
+                (a.as_str(), true),
+                (arms.as_str(), true)
+            ]
+        );
+
+        let err = app
+            .call()
+            .reorder_templates(ReorderTemplatesRequest {
+                template_ids: vec![a],
+                rotation_count: Some(-1),
+            })
+            .unwrap_err();
+        assert!(matches!(err, CoreError::InvalidArgument(_)));
+    }
+
     /// A favourite is never suggested, however far behind its muscles are.
     #[test]
     fn the_suggestion_comes_from_the_rotation() {
@@ -1962,7 +2154,7 @@ mod rotation {
         app.call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["arms".into()],
-                entries: vec![],
+                ..Default::default()
             })
             .unwrap();
         let after = home(&mut app);

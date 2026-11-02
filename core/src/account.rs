@@ -8,8 +8,9 @@ use crate::history::WorkoutRecord;
 use crate::ids::Ids;
 use crate::pb::{
     event, user_setting, workout_mutation::Mutation, CompleteOnboardingRequest, Event, Exercise,
-    ExerciseDecision, ImportHistory, LibraryTemplate, SetOverrideRequest, StartWorkoutRequest,
-    UserSetting, WeightUnit, WeightUnitConfig, Workout, WorkoutMutation, WorkoutTemplate,
+    ExerciseDecision, ImportHistory, LibraryTemplate, MuscleGroup, SetOverrideRequest,
+    StartWorkoutRequest, UserSetting, WeightUnit, WeightUnitConfig, Workout, WorkoutMutation,
+    WorkoutTemplate,
 };
 use crate::plan::Override;
 use crate::weight_units::{unit_from_proto, AppWeightUnit};
@@ -125,6 +126,11 @@ impl Account {
                         template.library_id.clear();
                     }
                 }
+                // Where it came from outlives the coupling.
+                template.origin_library_id = self
+                    .template(&template.id)
+                    .map(|t| t.origin_library_id.clone())
+                    .unwrap_or_default();
                 self.save_template(template, at, &mut ids)?;
             }
             event::Kind::CloneTemplate(req) => {
@@ -147,9 +153,15 @@ impl Account {
                 self.templates.retain(|t| t.id != req.template_id);
             }
             event::Kind::ReorderTemplates(req) => {
+                if req.rotation_count.is_some_and(|n| n < 0) {
+                    return Err(invalid("rotation_count is negative"));
+                }
                 for (order, id) in req.template_ids.iter().enumerate() {
                     if let Some(t) = self.templates.iter_mut().find(|t| &t.id == id) {
                         t.order = order as i32;
+                        if let Some(n) = req.rotation_count {
+                            t.in_rotation = (order as i32) < n;
+                        }
                     }
                 }
                 self.sort_templates();
@@ -159,17 +171,26 @@ impl Account {
                     if self.templates.iter().any(|t| t.library_id == entry.id) {
                         continue; // already in the user's list
                     }
-                    // Added later, a library template is a favourite.
-                    self.save_template(library_copy(&entry, false), at, &mut ids)?;
+                    // Added later, a library template is a favourite
+                    // unless the event says otherwise.
+                    self.save_template(library_copy(&entry, req.in_rotation), at, &mut ids)?;
                 }
             }
             event::Kind::SetOverride(req) => self.set_override(req, at)?,
             event::Kind::CompleteOnboarding(req) => self.complete_onboarding(req, at, &mut ids)?,
             event::Kind::UpdateSetting(req) => {
-                let setting = req
+                let mut setting = req
                     .setting
                     .clone()
                     .ok_or_else(|| invalid("setting is required"))?;
+                if let Some(user_setting::Setting::IgnoredMuscles(config)) = &mut setting.setting {
+                    // Each muscle once, in the taxonomy's order.
+                    config.muscles.retain(|m| {
+                        MuscleGroup::try_from(*m).is_ok_and(|m| m != MuscleGroup::Unspecified)
+                    });
+                    config.muscles.sort_unstable();
+                    config.muscles.dedup();
+                }
                 let kind = setting_kind(&setting).ok_or_else(|| invalid("setting is empty"))?;
                 self.settings.retain(|s| setting_kind(s) != Some(kind));
                 self.settings.push(setting);
@@ -192,6 +213,22 @@ impl Account {
             .unwrap_or(AppWeightUnit::Lb)
     }
 
+    /// The muscles the user does not train on purpose.
+    pub fn ignored_muscles(&self) -> Vec<MuscleGroup> {
+        self.settings
+            .iter()
+            .find_map(|s| match &s.setting {
+                Some(user_setting::Setting::IgnoredMuscles(c)) => Some(
+                    c.muscles
+                        .iter()
+                        .filter_map(|m| MuscleGroup::try_from(*m).ok())
+                        .collect(),
+                ),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+
     pub fn workout(&self, id: &str) -> Option<&WorkoutRecord> {
         self.workouts.iter().find(|r| r.workout.id == id)
     }
@@ -212,6 +249,13 @@ impl Account {
 
     pub fn template(&self, id: &str) -> Option<&WorkoutTemplate> {
         self.templates.iter().find(|t| t.id == id)
+    }
+
+    /// The user has [library_id]: a template follows it or was made from it.
+    pub fn has_library_entry(&self, library_id: &str) -> bool {
+        self.templates
+            .iter()
+            .any(|t| t.library_id == library_id || t.origin_library_id == library_id)
     }
 
     // ── Writes ──
@@ -527,12 +571,14 @@ pub fn mutation_workout_id(mutation: &Mutation) -> &str {
 enum SettingKind {
     PlateColors,
     WeightUnit,
+    IgnoredMuscles,
 }
 
 fn setting_kind(setting: &UserSetting) -> Option<SettingKind> {
     match setting.setting {
         Some(user_setting::Setting::PlateColors(_)) => Some(SettingKind::PlateColors),
         Some(user_setting::Setting::WeightUnit(_)) => Some(SettingKind::WeightUnit),
+        Some(user_setting::Setting::IgnoredMuscles(_)) => Some(SettingKind::IgnoredMuscles),
         None => None,
     }
 }
@@ -556,13 +602,15 @@ fn library_entries(
 }
 
 /// A library entry in the user's list: a new template (empty id, given one
-/// and an order on save), coupled to the entry, in rotation or a favourite.
+/// and an order on save), coupled to the entry and made from it, in
+/// rotation or a favourite.
 fn library_copy(entry: &LibraryTemplate, in_rotation: bool) -> WorkoutTemplate {
     WorkoutTemplate {
         in_rotation,
         name: entry.name.clone(),
         exercises: entry.exercises.clone(),
         library_id: entry.id.clone(),
+        origin_library_id: entry.id.clone(),
         coupled: true,
         ..Default::default()
     }
