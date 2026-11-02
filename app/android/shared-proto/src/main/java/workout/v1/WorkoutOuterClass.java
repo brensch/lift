@@ -1258,7 +1258,9 @@ public final class WorkoutOuterClass {
     PLAN_REASON_KIND_MAX_FROM_MISS(2),
     /**
      * <pre>
-     * Stopped early, or the user lowered the weight: the max unchanged.
+     * Stopped early, a rushed miss, or the user lowered the weight: the max
+     * unchanged. `cause` says which when it was not the weight (STOPPED_EARLY,
+     * RUSHED).
      * </pre>
      *
      * <code>PLAN_REASON_KIND_HELD = 3;</code>
@@ -1367,7 +1369,9 @@ public final class WorkoutOuterClass {
     public static final int PLAN_REASON_KIND_MAX_FROM_MISS_VALUE = 2;
     /**
      * <pre>
-     * Stopped early, or the user lowered the weight: the max unchanged.
+     * Stopped early, a rushed miss, or the user lowered the weight: the max
+     * unchanged. `cause` says which when it was not the weight (STOPPED_EARLY,
+     * RUSHED).
      * </pre>
      *
      * <code>PLAN_REASON_KIND_HELD = 3;</code>
@@ -1581,6 +1585,15 @@ public final class WorkoutOuterClass {
      * <code>PLAN_CHANGE_CAUSE_TIME_OFF = 5;</code>
      */
     PLAN_CHANGE_CAUSE_TIME_OFF(5),
+    /**
+     * <pre>
+     * Every working set done, but a miss came before the previous set's rest
+     * was up: excused, the max held.
+     * </pre>
+     *
+     * <code>PLAN_CHANGE_CAUSE_RUSHED = 6;</code>
+     */
+    PLAN_CHANGE_CAUSE_RUSHED(6),
     UNRECOGNIZED(-1),
     ;
 
@@ -1629,6 +1642,15 @@ public final class WorkoutOuterClass {
      * <code>PLAN_CHANGE_CAUSE_TIME_OFF = 5;</code>
      */
     public static final int PLAN_CHANGE_CAUSE_TIME_OFF_VALUE = 5;
+    /**
+     * <pre>
+     * Every working set done, but a miss came before the previous set's rest
+     * was up: excused, the max held.
+     * </pre>
+     *
+     * <code>PLAN_CHANGE_CAUSE_RUSHED = 6;</code>
+     */
+    public static final int PLAN_CHANGE_CAUSE_RUSHED_VALUE = 6;
 
 
     @java.lang.Override
@@ -1658,6 +1680,7 @@ public final class WorkoutOuterClass {
         case 3: return PLAN_CHANGE_CAUSE_STOPPED_EARLY;
         case 4: return PLAN_CHANGE_CAUSE_SETS;
         case 5: return PLAN_CHANGE_CAUSE_TIME_OFF;
+        case 6: return PLAN_CHANGE_CAUSE_RUSHED;
         default: return null;
       }
     }
@@ -6054,7 +6077,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -6064,7 +6088,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -6536,7 +6561,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -6549,7 +6575,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -6563,7 +6590,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -6575,7 +6603,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -6588,7 +6617,8 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-     * this plan's.
+     * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+     * weight).
      * </pre>
      *
      * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -7247,7 +7277,8 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-       * this plan's.
+       * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+       * weight).
        * </pre>
        *
        * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -7260,7 +7291,8 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-       * this plan's.
+       * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+       * weight).
        * </pre>
        *
        * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -7275,7 +7307,8 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-       * this plan's.
+       * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+       * weight).
        * </pre>
        *
        * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -7288,7 +7321,8 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-       * this plan's.
+       * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+       * weight).
        * </pre>
        *
        * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -7303,7 +7337,8 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-       * this plan's.
+       * this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+       * weight).
        * </pre>
        *
        * <code>.workout.v1.PlanChangeCause cause = 11 [json_name = "cause"];</code>
@@ -42138,6 +42173,18 @@ public final class WorkoutOuterClass {
      * @return The estimatedSeconds.
      */
     int getEstimatedSeconds();
+
+    /**
+     * <pre>
+     * The longest it gets: the estimate with every lift whose sets are the
+     * budget's to give at the most sets a lift takes (fixed sets as they
+     * are). A budget at or past it buys nothing more.
+     * </pre>
+     *
+     * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+     * @return The maxSeconds.
+     */
+    int getMaxSeconds();
   }
   /**
    * Protobuf type {@code workout.v1.TemplatePlan}
@@ -42375,6 +42422,50 @@ public final class WorkoutOuterClass {
     private void clearEstimatedSeconds() {
       
       estimatedSeconds_ = 0;
+    }
+
+    public static final int MAX_SECONDS_FIELD_NUMBER = 4;
+    private int maxSeconds_;
+    /**
+     * <pre>
+     * The longest it gets: the estimate with every lift whose sets are the
+     * budget's to give at the most sets a lift takes (fixed sets as they
+     * are). A budget at or past it buys nothing more.
+     * </pre>
+     *
+     * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+     * @return The maxSeconds.
+     */
+    @java.lang.Override
+    public int getMaxSeconds() {
+      return maxSeconds_;
+    }
+    /**
+     * <pre>
+     * The longest it gets: the estimate with every lift whose sets are the
+     * budget's to give at the most sets a lift takes (fixed sets as they
+     * are). A budget at or past it buys nothing more.
+     * </pre>
+     *
+     * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+     * @param value The maxSeconds to set.
+     */
+    private void setMaxSeconds(int value) {
+      
+      maxSeconds_ = value;
+    }
+    /**
+     * <pre>
+     * The longest it gets: the estimate with every lift whose sets are the
+     * budget's to give at the most sets a lift takes (fixed sets as they
+     * are). A budget at or past it buys nothing more.
+     * </pre>
+     *
+     * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+     */
+    private void clearMaxSeconds() {
+      
+      maxSeconds_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.TemplatePlan parseFrom(
@@ -42714,6 +42805,52 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The longest it gets: the estimate with every lift whose sets are the
+       * budget's to give at the most sets a lift takes (fixed sets as they
+       * are). A budget at or past it buys nothing more.
+       * </pre>
+       *
+       * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+       * @return The maxSeconds.
+       */
+      @java.lang.Override
+      public int getMaxSeconds() {
+        return instance.getMaxSeconds();
+      }
+      /**
+       * <pre>
+       * The longest it gets: the estimate with every lift whose sets are the
+       * budget's to give at the most sets a lift takes (fixed sets as they
+       * are). A budget at or past it buys nothing more.
+       * </pre>
+       *
+       * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+       * @param value The maxSeconds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMaxSeconds(int value) {
+        copyOnWrite();
+        instance.setMaxSeconds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The longest it gets: the estimate with every lift whose sets are the
+       * budget's to give at the most sets a lift takes (fixed sets as they
+       * are). A budget at or past it buys nothing more.
+       * </pre>
+       *
+       * <code>int32 max_seconds = 4 [json_name = "maxSeconds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMaxSeconds() {
+        copyOnWrite();
+        instance.clearMaxSeconds();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.TemplatePlan)
     }
     @java.lang.Override
@@ -42734,10 +42871,11 @@ public final class WorkoutOuterClass {
               "plans_",
               workout.v1.WorkoutOuterClass.ExercisePlan.class,
               "estimatedSeconds_",
+              "maxSeconds_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\u0208\u0002\u001b" +
-                "\u0003\u0004";
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0001\u0000\u0001\u0208\u0002\u001b" +
+                "\u0003\u0004\u0004\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

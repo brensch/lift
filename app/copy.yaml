@@ -296,6 +296,9 @@ plan:
   budget: "{min} min"
   # The workout's estimated length beside the time control.
   estimate: "~{min} min"
+  # The same, when the budget is at or past what the workout can use
+  # (every lift at its most sets): + is off.
+  longest: "~{min} min · the longest it gets"
   # When two sets a lift don't fit the time.
   needs: "Needs {min} min"
   # A lift never done, loaded: its first set, where the ramp starts.
@@ -306,6 +309,9 @@ plan:
     max_up: "Hit every rep. Max up to {max}."
     max_from_miss: "Missed a rep. Max back to {max}."
     held: "Max held at {max}."
+    # HELD after a miss started before the rest was up: excused.
+    held_rushed: "Held at {max}: you missed a set you didn't rest for."
+    held_stopped_early: "Held at {max}: you stopped early."
     time_off: "{days} days off. Max cut to {max}."
     first_time: "First time. The ramp finds your max."
     first_time_bodyweight: "First time. Bottom of the range."
@@ -327,6 +333,7 @@ plan:
     hit: "every rep last time"
     missed: "missed reps last time"
     stopped_early: "stopped early last time"
+    rushed: "you missed a set you didn't rest for"
     sets: "{sets} sets today, {last} last time"
     time_off: "{days} days off"
   # Changes to a weight during a workout.

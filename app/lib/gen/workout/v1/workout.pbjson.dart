@@ -245,6 +245,7 @@ const PlanChangeCause$json = {
     {'1': 'PLAN_CHANGE_CAUSE_STOPPED_EARLY', '2': 3},
     {'1': 'PLAN_CHANGE_CAUSE_SETS', '2': 4},
     {'1': 'PLAN_CHANGE_CAUSE_TIME_OFF', '2': 5},
+    {'1': 'PLAN_CHANGE_CAUSE_RUSHED', '2': 6},
   ],
 };
 
@@ -253,7 +254,8 @@ final $typed_data.Uint8List planChangeCauseDescriptor = $convert.base64Decode(
     'Cg9QbGFuQ2hhbmdlQ2F1c2USIQodUExBTl9DSEFOR0VfQ0FVU0VfVU5TUEVDSUZJRUQQABIZCh'
     'VQTEFOX0NIQU5HRV9DQVVTRV9ISVQQARIcChhQTEFOX0NIQU5HRV9DQVVTRV9NSVNTRUQQAhIj'
     'Ch9QTEFOX0NIQU5HRV9DQVVTRV9TVE9QUEVEX0VBUkxZEAMSGgoWUExBTl9DSEFOR0VfQ0FVU0'
-    'VfU0VUUxAEEh4KGlBMQU5fQ0hBTkdFX0NBVVNFX1RJTUVfT0ZGEAU=');
+    'VfU0VUUxAEEh4KGlBMQU5fQ0hBTkdFX0NBVVNFX1RJTUVfT0ZGEAUSHAoYUExBTl9DSEFOR0Vf'
+    'Q0FVU0VfUlVTSEVEEAY=');
 
 @$core.Deprecated('Use weightChangeCauseDescriptor instead')
 const WeightChangeCause$json = {
@@ -2051,6 +2053,7 @@ const TemplatePlan$json = {
       '5': 5,
       '10': 'estimatedSeconds'
     },
+    {'1': 'max_seconds', '3': 4, '4': 1, '5': 5, '10': 'maxSeconds'},
   ],
 };
 
@@ -2058,7 +2061,8 @@ const TemplatePlan$json = {
 final $typed_data.Uint8List templatePlanDescriptor = $convert.base64Decode(
     'CgxUZW1wbGF0ZVBsYW4SHwoLdGVtcGxhdGVfaWQYASABKAlSCnRlbXBsYXRlSWQSLgoFcGxhbn'
     'MYAiADKAsyGC53b3Jrb3V0LnYxLkV4ZXJjaXNlUGxhblIFcGxhbnMSKwoRZXN0aW1hdGVkX3Nl'
-    'Y29uZHMYAyABKAVSEGVzdGltYXRlZFNlY29uZHM=');
+    'Y29uZHMYAyABKAVSEGVzdGltYXRlZFNlY29uZHMSHwoLbWF4X3NlY29uZHMYBCABKAVSCm1heF'
+    'NlY29uZHM=');
 
 @$core.Deprecated('Use getExercisePlanRequestDescriptor instead')
 const GetExercisePlanRequest$json = {

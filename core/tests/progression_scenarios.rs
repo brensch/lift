@@ -1519,6 +1519,26 @@ impl<'a> Runner<'a> {
                         ),
                     });
                 }
+                // The longest it gets bounds the estimate, and a budget at
+                // or past it plans exactly that.
+                let capped = budget * 60 >= plan.max_seconds;
+                if plan.estimated_seconds > plan.max_seconds
+                    || (capped && plan.estimated_seconds != plan.max_seconds)
+                {
+                    self.flags.push(Flag {
+                        severity: Severity::Violation,
+                        kind: "longest_off",
+                        session: 0,
+                        exercise: None,
+                        detail: format!(
+                            "Home preview of {} at {budget} min: estimated {:.1} min, the \
+                             longest it gets {:.1} min",
+                            t.name,
+                            plan.estimated_seconds as f32 / 60.0,
+                            plan.max_seconds as f32 / 60.0
+                        ),
+                    });
+                }
                 rows.push(J::Obj(vec![
                     ("template", s(t.name.clone())),
                     ("budget_minutes", J::Int(budget as i64)),
@@ -1526,6 +1546,8 @@ impl<'a> Runner<'a> {
                         "estimated_minutes",
                         num(plan.estimated_seconds as f32 / 60.0),
                     ),
+                    ("max_minutes", num(plan.max_seconds as f32 / 60.0)),
+                    ("capped", J::Bool(capped)),
                     (
                         "needs_minutes",
                         if over {

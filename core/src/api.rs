@@ -610,10 +610,12 @@ impl<'a> View<'a> {
         values: &[i32],
         budget_minutes: i32,
     ) -> TemplatePlan {
-        let decisions = planner.workout(&exercises(values), &[], budget_minutes);
+        let lifts = exercises(values);
+        let decisions = planner.workout(&lifts, &[], budget_minutes);
         TemplatePlan {
             template_id: String::new(),
             estimated_seconds: decisions.iter().map(|d| d.estimated_seconds).sum(),
+            max_seconds: planner.max_seconds(&lifts),
             plans: decisions.into_iter().map(|d| planner.view(d)).collect(),
         }
     }

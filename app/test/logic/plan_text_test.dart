@@ -127,6 +127,27 @@ void main() {
       hasLength(2),
       reason: 'held, and nothing moved',
     );
+
+    // A rushed miss is its own cause, not stopping early.
+    final rushed = ExerciseDecision(
+      weight: 300,
+      reasons: [
+        versus(
+          PlanReasonKind.PLAN_REASON_KIND_SAME_AS_LAST,
+          PlanChangeCause.PLAN_CHANGE_CAUSE_RUSHED,
+        ),
+        PlanReason(
+          kind: PlanReasonKind.PLAN_REASON_KIND_HELD,
+          cause: PlanChangeCause.PLAN_CHANGE_CAUSE_RUSHED,
+          after: 300,
+        ),
+      ],
+    );
+    expect(reasonShort(rushed, lb), '${v.same}: ${v.rushed}.');
+    expect(
+      reasonLines(rushed, lb)[1],
+      copy.plan.reasons.heldRushed.replaceAll('{max}', '300 lb'),
+    );
   });
 
   test('a bodyweight max is in reps', () {

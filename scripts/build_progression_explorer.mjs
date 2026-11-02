@@ -418,13 +418,14 @@ td.won { font-weight: 700; }
     var rows = sc.previews.map(function (p) {
       var over = p.needs_minutes != null;
       return '<tr' + (over ? ' class="flagged"' : '') + '><td>' + esc(p.template) + '</td><td class="num">' + p.budget_minutes +
-        '</td><td class="num">' + p.estimated_minutes + '</td><td>' + (over ? 'needs ' + p.needs_minutes + ' min' : 'fits') + '</td><td class="mono">' +
+        '</td><td class="num">' + p.estimated_minutes + '</td><td class="num">' + p.max_minutes + '</td><td>' +
+        (over ? 'needs ' + p.needs_minutes + ' min' : p.capped ? 'the longest it gets (+ off)' : 'fits') + '</td><td class="mono">' +
         p.lifts.map(function (l) {
           var lift = liftOf(sc, l.exercise) || { name: l.exercise.toLowerCase().replace(/_/g, ' ') };
           return esc(lift.name) + ' ' + l.sets + '×' + l.reps;
         }).join(' · ') + '</td></tr>';
     }).join('');
-    return '<div class="panel"><h3>Home preview by budget</h3><p class="note">After the last session, each template as Home would plan it at each budget: the sets every lift gets and the estimated minutes. Where two sets each do not fit, the card says how long it needs.</p><div class="scroll"><table class="narrow"><thead><tr><th>Template</th><th class="num">Budget</th><th class="num">Est.</th><th>Card</th><th>Sets per lift</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+    return '<div class="panel"><h3>Home preview by budget</h3><p class="note">After the last session, each template as Home would plan it at each budget: the sets every lift gets and the estimated minutes. Where two sets each do not fit, the card says how long it needs; at or past the longest it gets (every free lift at five sets, Max), the card says so and + is off.</p><div class="scroll"><table class="narrow"><thead><tr><th>Template</th><th class="num">Budget</th><th class="num">Est.</th><th class="num">Max</th><th>Card</th><th>Sets per lift</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   }
 
   function liftPanel(sc, lift) {

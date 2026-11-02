@@ -68,6 +68,7 @@ String _versusText(PlanReason r, WeightUnit unit) {
     PlanChangeCause.PLAN_CHANGE_CAUSE_HIT => c.hit,
     PlanChangeCause.PLAN_CHANGE_CAUSE_MISSED => c.missed,
     PlanChangeCause.PLAN_CHANGE_CAUSE_STOPPED_EARLY => c.stoppedEarly,
+    PlanChangeCause.PLAN_CHANGE_CAUSE_RUSHED => c.rushed,
     PlanChangeCause.PLAN_CHANGE_CAUSE_SETS => c.sets,
     PlanChangeCause.PLAN_CHANGE_CAUSE_TIME_OFF => c.timeOff,
     _ => '',
@@ -93,7 +94,12 @@ String reasonText(PlanReason r, WeightUnit unit, {required bool bodyweight}) {
     case PlanReasonKind.PLAN_REASON_KIND_MAX_FROM_MISS:
       return c.maxFromMiss.replaceAll('{max}', max(r.after));
     case PlanReasonKind.PLAN_REASON_KIND_HELD:
-      return c.held.replaceAll('{max}', max(r.after));
+      final held = switch (r.cause) {
+        PlanChangeCause.PLAN_CHANGE_CAUSE_RUSHED => c.heldRushed,
+        PlanChangeCause.PLAN_CHANGE_CAUSE_STOPPED_EARLY => c.heldStoppedEarly,
+        _ => c.held,
+      };
+      return held.replaceAll('{max}', max(r.after));
     case PlanReasonKind.PLAN_REASON_KIND_TIME_OFF:
       return c.timeOff
           .replaceAll('{days}', '${r.daysOff}')

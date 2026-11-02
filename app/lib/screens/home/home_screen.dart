@@ -986,6 +986,7 @@ class SelectedTemplateCard extends StatelessWidget {
             child: _TimeControl(
               budgetMinutes: budgetMinutes,
               estimatedSeconds: plan?.estimatedSeconds ?? 0,
+              maxSeconds: plan?.maxSeconds ?? 0,
               onStep: onBudgetStep,
             ),
           ),
@@ -1027,16 +1028,21 @@ class SelectedTemplateCard extends StatelessWidget {
   }
 }
 
-/// "− 60 min +" and what the plan takes: "~52 min", or "Needs 70 min"
-/// when two sets a lift don't fit.
+/// "− 60 min +" and what the plan takes: "~52 min", "Needs 70 min" when
+/// two sets a lift don't fit, or "~62 min · the longest it gets" when the
+/// budget is at or past what the workout can use ([maxSeconds]): then +
+/// buys nothing and is off. The budget is shared by every template, so it
+/// is never moved here; only this template's cap is shown.
 class _TimeControl extends StatelessWidget {
   final int budgetMinutes;
   final int estimatedSeconds;
+  final int maxSeconds;
   final ValueChanged<int> onStep;
 
   const _TimeControl({
     required this.budgetMinutes,
     required this.estimatedSeconds,
+    required this.maxSeconds,
     required this.onStep,
   });
 
@@ -1046,12 +1052,13 @@ class _TimeControl extends StatelessWidget {
     final t = context.tokens;
     final minutes = planMinutes(estimatedSeconds);
     final over = estimatedSeconds > budgetMinutes * 60;
+    final capped = maxSeconds > 0 && budgetMinutes * 60 >= maxSeconds;
+    final template = over
+        ? copy.plan.needs
+        : (capped ? copy.plan.longest : copy.plan.estimate);
     final estimate = estimatedSeconds <= 0
         ? ''
-        : (over ? copy.plan.needs : copy.plan.estimate).replaceAll(
-            '{min}',
-            '$minutes',
-          );
+        : template.replaceAll('{min}', '$minutes');
     return Row(
       children: [
         IconButton(
@@ -1069,16 +1076,18 @@ class _TimeControl extends StatelessWidget {
         ),
         IconButton(
           visualDensity: VisualDensity.compact,
-          onPressed: () => onStep(1),
+          onPressed: capped ? null : () => onStep(1),
           icon: const Icon(AppIcons.addCircle),
         ),
-        const Spacer(),
-        Text(
-          estimate,
-          style: TextStyle(
-            fontSize: t.size.body,
-            fontWeight: t.weight.bold,
-            color: over ? cs.error : cs.onSurface.withValues(alpha: 0.6),
+        Expanded(
+          child: Text(
+            estimate,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: t.size.body,
+              fontWeight: t.weight.bold,
+              color: over ? cs.error : cs.onSurface.withValues(alpha: 0.6),
+            ),
           ),
         ),
       ],

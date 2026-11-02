@@ -28,10 +28,14 @@ and 0 for a set short of it (it ran to failure).
 | every working rep hit | the higher of the max before and what the session shows with one more rep on every set: one rep's worth up at the weight lifted; a lighter weight the user chose leaves it where it was |
 | a rep missed | the most any working set shows, never more than the max before |
 | stopped early | unchanged |
+| a miss rushed | unchanged |
 
-A session stopped early when the lift was removed, the workout ended with
-working sets undone, or a miss was done before the previous set's rest had
-run out (rushed, not a real miss).
+A session **stopped early** when working sets of that lift were left
+undone: the lift was removed, or the workout ended first. A miss done
+before the previous set's rest had run out is **rushed**: excused, not a
+real miss, so it is left out of the sets judged and the max holds. The two
+are separate: a rushed session had every set done, and its reasons say it
+was rushed, never that it stopped early.
 
 Bodyweight lifts track a rep max the same way: a hit is one more rep, a
 miss sets it to what the sets show.
@@ -93,6 +97,14 @@ does not fit the budget. If two sets each do not fit, the card says how
 long the workout needs instead of starting short. Sets an override names
 are kept as they are.
 
+**The longest it gets.** Each template plan also carries `max_seconds`:
+the workout costed the same way with every lift whose sets are the
+budget's to give at 5 (an override's sets as they are). A budget at or
+past it buys nothing more, so Home's card says so beside the estimate
+("~62 min · the longest it gets") and turns + off. The budget itself is
+shared by every template and never moves on its own; switching templates
+only shows the selected one's cap.
+
 Each lift's `estimated_seconds` is its own share of the workout: its sets,
 its warmups or ramp, and the move to it from the lift before. A workout
 has each lift once.
@@ -146,14 +158,15 @@ Reason {
       | SAME_AS_LAST    //   the same weight and reps
       | MAX_UP          // every rep last time: the max nudged up
       | MAX_FROM_MISS   // a missed set reset the max to what it showed
-      | HELD            // stopped early, or the user lowered the weight
+      | HELD            // stopped early, a rushed miss, or the user lowered the weight
       | TIME_OFF        // 3 or 6 weeks away: the max cut
       | FIRST_TIME      // never done: the ramp finds the max
       | USER_SET        // the user's own weight, from <when>
       | SETS_FROM_TIME  // this many sets: the budget, and which muscles are behind
   before, after, detail (days off, the set that showed it, when)
   // against last time: before/after are the weights, and
-  cause: HIT | MISSED | STOPPED_EARLY | SETS | TIME_OFF
+  cause: HIT | MISSED | STOPPED_EARLY | RUSHED | SETS | TIME_OFF
+  // HELD carries STOPPED_EARLY or RUSHED too, when it was not the weight
   reps_before, reps_after, sets_before, sets_after
 }
 ```
@@ -166,8 +179,12 @@ the sets the session was planned with — and says why it moved:
 | Cause | When |
 |---|---|
 | `TIME_OFF` | the max was cut for time away |
-| `SETS` | a different number of sets, and last time's number would have moved the plan another way (more sets making it lighter, fewer letting it step up) |
-| `HIT`, `MISSED`, `STOPPED_EARLY` | otherwise, how the last session went |
+| `SETS` | a different number of sets, and last time's number would have moved the plan another way (more sets making it lighter, fewer letting it step up); or the max held (stopped early, rushed) and the plan moved anyway, which only the sets can have done |
+| `HIT`, `MISSED`, `STOPPED_EARLY`, `RUSHED` | otherwise, how the last session went |
+
+So 4 × 110 kg with one rushed miss, then 5 sets today at 105 kg, reads
+"Down to 105 kg: 5 sets today, 4 last time." — the max held, and the extra
+set is what lowered the weight.
 
 A lift with no last session to compare with (never done, an override
 still the latest word, a ramp alone) has no comparison. Screens lead with
@@ -318,13 +335,14 @@ Workouts logged offline and not synced before the deploy are lost.
 - Core tests cover: each reason; time off after a hit; a miss resetting
   the max; a lowered weight holding it; an override as a new start; the
   set allocation (budget, the 2-set floor, the 5-set cap, the weekly
-  deficit, override sets kept, "needs N min"); learned timings replacing
+  deficit, override sets kept, "needs N min", the longest it gets); learned timings replacing
   defaults at ten samples; rounding producing an extra rep before a plate;
   a started workout unaffected by a later rule change; every weight log
   cause; Home's plan equal to a start at the same now and budget.
 - Core tests cover the comparison with last time (a miss bringing the
   weight down, more sets bringing it down, a hit bringing a rep or a step
-  up, stopping early keeping it), the suggestion (recovered muscles only,
+  up, stopping early keeping it, a rushed miss holding the max and an extra
+  set after it taking the blame), the suggestion (recovered muscles only,
   a recovering first lift leaving a template out, the one back soonest
   when every one is, the 20% tie and the least recent, the fallback,
   favourites left out) and each rotation-check warning; the progression

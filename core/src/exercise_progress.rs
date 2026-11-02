@@ -1,5 +1,6 @@
 //! What one session says about a lift: every working set and calibration
-//! rung done, in the order done, and whether the session ran its course.
+//! rung done, in the order done, whether the session ran its course, and
+//! whether a miss was rushed.
 //! The plan's walk (`crate::plan`) reads these and nothing else from
 //! history.
 //!
@@ -36,19 +37,29 @@ pub struct SessionOutcome {
     pub sets: Vec<SetDone>,
     /// The calibration rungs done, in the order done.
     pub rungs: Vec<SetDone>,
-    /// The session did not run its course: a working set was left undone
-    /// (the lift removed, or the workout ended), or a set was missed before
-    /// the previous set's rest was over (rushed, not a real miss).
+    /// The session did not run its course: a working set of this lift was
+    /// left undone (the lift removed, or the workout ended first).
     pub stopped_early: bool,
+    /// A working set was missed before the previous set's rest was over:
+    /// excused, not a real miss. The set is left out of `sets`.
+    pub rushed: bool,
     /// The working sets planned for it, done or not: the decision's when
     /// the workout recorded one.
     pub planned_sets: i32,
 }
 
 impl SessionOutcome {
-    /// Every working set done, every rep hit.
+    /// Every working set done, every rep hit (none of it rushed).
     pub fn all_hit(&self) -> bool {
-        !self.stopped_early && !self.sets.is_empty() && self.sets.iter().all(|s| s.hit)
+        !self.stopped_early
+            && !self.rushed
+            && !self.sets.is_empty()
+            && self.sets.iter().all(|s| s.hit)
+    }
+
+    /// The max holds: the session stopped early, or a miss was rushed.
+    pub fn excused(&self) -> bool {
+        self.stopped_early || self.rushed
     }
 }
 
@@ -92,12 +103,13 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
                 sets: Vec::new(),
                 rungs: Vec::new(),
                 stopped_early: false,
+                rushed: false,
                 planned_sets: 0,
             });
         if proposed.calibration {
             outcome.rungs.push(set);
         } else if !set.hit && done_early(record, completed.ended_at) {
-            outcome.stopped_early = true;
+            outcome.rushed = true;
         } else {
             outcome.sets.push(set);
         }
@@ -225,14 +237,24 @@ mod tests {
     }
 
     /// A miss done before the previous set's rest ended is rushed, not a
-    /// real miss: the session stopped early instead.
+    /// real miss, and every set was done: not stopped early.
     #[test]
-    fn a_miss_done_early_stops_the_session_early() {
+    fn a_miss_done_early_is_rushed() {
         let mut record = session(Exercise::Squat, 200.0, 8, &[8, 8, 6]);
         record.completed_sets[1].rest_until = record.completed_sets[1].ended_at + 10;
         let outcome = outcome(&record, Exercise::Squat);
-        assert!(outcome.stopped_early);
+        assert!(outcome.rushed && !outcome.stopped_early);
+        assert!(outcome.excused() && !outcome.all_hit());
         assert_eq!(outcome.sets.len(), 2, "the rushed miss is not judged");
+    }
+
+    /// A hit done before the rest ended is just a hit.
+    #[test]
+    fn a_hit_done_early_is_not_rushed() {
+        let mut record = session(Exercise::Squat, 200.0, 8, &[8, 8, 8]);
+        record.completed_sets[1].rest_until = record.completed_sets[1].ended_at + 10;
+        let outcome = outcome(&record, Exercise::Squat);
+        assert!(!outcome.rushed && outcome.all_hit());
     }
 
     /// A working set left undone (removed, or the workout ended) is
@@ -244,6 +266,7 @@ mod tests {
         cancelled.cancelled = true;
         record.proposed_sets.push(cancelled);
         assert!(outcome(&record, Exercise::Squat).stopped_early);
+        assert!(!outcome(&record, Exercise::Squat).rushed);
 
         let mut record = session(Exercise::Squat, 200.0, 6, &[6]);
         record

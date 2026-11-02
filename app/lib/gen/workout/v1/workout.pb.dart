@@ -791,7 +791,8 @@ class PlanReason extends $pb.GeneratedMessage {
   void clearWeeklySets() => $_clearField(10);
 
   /// WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-  /// this plan's.
+  /// this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+  /// weight).
   @$pb.TagNumber(11)
   PlanChangeCause get cause => $_getN(10);
   @$pb.TagNumber(11)
@@ -5290,11 +5291,13 @@ class TemplatePlan extends $pb.GeneratedMessage {
     $core.String? templateId,
     $core.Iterable<ExercisePlan>? plans,
     $core.int? estimatedSeconds,
+    $core.int? maxSeconds,
   }) {
     final result = create();
     if (templateId != null) result.templateId = templateId;
     if (plans != null) result.plans.addAll(plans);
     if (estimatedSeconds != null) result.estimatedSeconds = estimatedSeconds;
+    if (maxSeconds != null) result.maxSeconds = maxSeconds;
     return result;
   }
 
@@ -5315,6 +5318,7 @@ class TemplatePlan extends $pb.GeneratedMessage {
     ..pPM<ExercisePlan>(2, _omitFieldNames ? '' : 'plans',
         subBuilder: ExercisePlan.create)
     ..aI(3, _omitFieldNames ? '' : 'estimatedSeconds')
+    ..aI(4, _omitFieldNames ? '' : 'maxSeconds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5358,6 +5362,18 @@ class TemplatePlan extends $pb.GeneratedMessage {
   $core.bool hasEstimatedSeconds() => $_has(2);
   @$pb.TagNumber(3)
   void clearEstimatedSeconds() => $_clearField(3);
+
+  /// The longest it gets: the estimate with every lift whose sets are the
+  /// budget's to give at the most sets a lift takes (fixed sets as they
+  /// are). A budget at or past it buys nothing more.
+  @$pb.TagNumber(4)
+  $core.int get maxSeconds => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set maxSeconds($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasMaxSeconds() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearMaxSeconds() => $_clearField(4);
 }
 
 /// One exercise's plan at now, on its own in the budget.

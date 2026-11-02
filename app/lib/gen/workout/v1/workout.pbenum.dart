@@ -389,7 +389,9 @@ class PlanReasonKind extends $pb.ProtobufEnum {
   static const PlanReasonKind PLAN_REASON_KIND_MAX_FROM_MISS = PlanReasonKind._(
       2, _omitEnumNames ? '' : 'PLAN_REASON_KIND_MAX_FROM_MISS');
 
-  /// Stopped early, or the user lowered the weight: the max unchanged.
+  /// Stopped early, a rushed miss, or the user lowered the weight: the max
+  /// unchanged. `cause` says which when it was not the weight (STOPPED_EARLY,
+  /// RUSHED).
   static const PlanReasonKind PLAN_REASON_KIND_HELD =
       PlanReasonKind._(3, _omitEnumNames ? '' : 'PLAN_REASON_KIND_HELD');
 
@@ -488,6 +490,11 @@ class PlanChangeCause extends $pb.ProtobufEnum {
   static const PlanChangeCause PLAN_CHANGE_CAUSE_TIME_OFF =
       PlanChangeCause._(5, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_TIME_OFF');
 
+  /// Every working set done, but a miss came before the previous set's rest
+  /// was up: excused, the max held.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_RUSHED =
+      PlanChangeCause._(6, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_RUSHED');
+
   static const $core.List<PlanChangeCause> values = <PlanChangeCause>[
     PLAN_CHANGE_CAUSE_UNSPECIFIED,
     PLAN_CHANGE_CAUSE_HIT,
@@ -495,10 +502,11 @@ class PlanChangeCause extends $pb.ProtobufEnum {
     PLAN_CHANGE_CAUSE_STOPPED_EARLY,
     PLAN_CHANGE_CAUSE_SETS,
     PLAN_CHANGE_CAUSE_TIME_OFF,
+    PLAN_CHANGE_CAUSE_RUSHED,
   ];
 
   static final $core.List<PlanChangeCause?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 5);
+      $pb.ProtobufEnum.$_initByValueList(values, 6);
   static PlanChangeCause? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

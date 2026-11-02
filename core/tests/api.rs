@@ -939,6 +939,50 @@ mod budget {
         assert!(needs > 5 * 60, "needs {} min", needs / 60 + 1);
     }
 
+    /// The longest a workout gets: every free lift at five sets, an
+    /// override's sets as they are. A budget past it plans exactly that.
+    #[test]
+    fn the_longest_a_workout_gets() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let lifts = [Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow];
+        for lift in lifts {
+            import_session(&mut app, lift, 100.0, 5, &[5, 5, 5], NOW - 3 * DAY);
+        }
+        app.call()
+            .set_override(SetOverrideRequest {
+                exercise: Exercise::BenchPress as i32,
+                weight: 100.0,
+                reps: 5,
+                sets: Some(2),
+            })
+            .unwrap();
+        let plan = |budget: i32| {
+            app.view()
+                .get_template_plan(GetTemplatePlanRequest {
+                    exercises: lifts.iter().map(|l| *l as i32).collect(),
+                    budget_minutes: budget,
+                })
+                .unwrap()
+                .plan
+                .unwrap()
+        };
+        let roomy = plan(600);
+        let decided: Vec<ExerciseDecision> = roomy
+            .plans
+            .iter()
+            .filter_map(|p| p.decision.clone())
+            .collect();
+        assert_eq!(sets(&decided), vec![5, 2, 5], "the override's sets kept");
+        assert_eq!(roomy.estimated_seconds, roomy.max_seconds);
+        let tight = plan(20);
+        assert_eq!(tight.max_seconds, roomy.max_seconds, "the budget's own");
+        assert!(tight.estimated_seconds < tight.max_seconds);
+        // The cap is a budget that plans it all.
+        let cap = plan((roomy.max_seconds + 59) / 60);
+        assert_eq!(cap.estimated_seconds, cap.max_seconds);
+    }
+
     /// A lift added mid-workout is planned in the workout's budget around
     /// the lifts already there, which keep theirs.
     #[test]

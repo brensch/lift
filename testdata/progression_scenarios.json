@@ -18077,6 +18077,8 @@
           "template": "StrongLifts A",
           "budget_minutes": 20,
           "estimated_minutes": 31.8,
+          "max_minutes": 72.8,
+          "capped": false,
           "needs_minutes": 32,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18089,6 +18091,8 @@
           "template": "StrongLifts B",
           "budget_minutes": 20,
           "estimated_minutes": 31.3,
+          "max_minutes": 70.8,
+          "capped": false,
           "needs_minutes": 32,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18101,6 +18105,8 @@
           "template": "Full Body",
           "budget_minutes": 20,
           "estimated_minutes": 44.5,
+          "max_minutes": 93.5,
+          "capped": false,
           "needs_minutes": 45,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18114,6 +18120,8 @@
           "template": "StrongLifts A",
           "budget_minutes": 30,
           "estimated_minutes": 31.8,
+          "max_minutes": 72.8,
+          "capped": false,
           "needs_minutes": 32,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18126,6 +18134,8 @@
           "template": "StrongLifts B",
           "budget_minutes": 30,
           "estimated_minutes": 31.3,
+          "max_minutes": 70.8,
+          "capped": false,
           "needs_minutes": 32,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18138,6 +18148,8 @@
           "template": "Full Body",
           "budget_minutes": 30,
           "estimated_minutes": 44.5,
+          "max_minutes": 93.5,
+          "capped": false,
           "needs_minutes": 45,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18151,6 +18163,8 @@
           "template": "StrongLifts A",
           "budget_minutes": 45,
           "estimated_minutes": 42.8,
+          "max_minutes": 72.8,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18163,6 +18177,8 @@
           "template": "StrongLifts B",
           "budget_minutes": 45,
           "estimated_minutes": 42.3,
+          "max_minutes": 70.8,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 3, "reps": 7, "weight": 150, "estimated_seconds": 730},
@@ -18175,6 +18191,8 @@
           "template": "Full Body",
           "budget_minutes": 45,
           "estimated_minutes": 44.5,
+          "max_minutes": 93.5,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18188,6 +18206,8 @@
           "template": "StrongLifts A",
           "budget_minutes": 60,
           "estimated_minutes": 56.5,
+          "max_minutes": 72.8,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 4, "reps": 8, "weight": 145, "estimated_seconds": 950},
@@ -18200,6 +18220,8 @@
           "template": "StrongLifts B",
           "budget_minutes": 60,
           "estimated_minutes": 57,
+          "max_minutes": 70.8,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 5, "reps": 8, "weight": 145, "estimated_seconds": 1170},
@@ -18212,6 +18234,8 @@
           "template": "Full Body",
           "budget_minutes": 60,
           "estimated_minutes": 57.2,
+          "max_minutes": 93.5,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 2, "reps": 8, "weight": 150, "estimated_seconds": 510},
@@ -18225,6 +18249,8 @@
           "template": "StrongLifts A",
           "budget_minutes": 90,
           "estimated_minutes": 72.8,
+          "max_minutes": 72.8,
+          "capped": true,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 5, "reps": 8, "weight": 145, "estimated_seconds": 1170},
@@ -18237,6 +18263,8 @@
           "template": "StrongLifts B",
           "budget_minutes": 90,
           "estimated_minutes": 70.8,
+          "max_minutes": 70.8,
+          "capped": true,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 5, "reps": 8, "weight": 145, "estimated_seconds": 1170},
@@ -18249,6 +18277,8 @@
           "template": "Full Body",
           "budget_minutes": 90,
           "estimated_minutes": 87.2,
+          "max_minutes": 93.5,
+          "capped": false,
           "needs_minutes": null,
           "lifts": [
             {"exercise": "SQUAT", "sets": 5, "reps": 8, "weight": 145, "estimated_seconds": 1170},

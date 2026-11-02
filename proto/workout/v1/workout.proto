@@ -208,7 +208,9 @@ enum PlanReasonKind {
   PLAN_REASON_KIND_MAX_UP = 1;
   // A rep missed last time: the max reset to the most a set showed.
   PLAN_REASON_KIND_MAX_FROM_MISS = 2;
-  // Stopped early, or the user lowered the weight: the max unchanged.
+  // Stopped early, a rushed miss, or the user lowered the weight: the max
+  // unchanged. `cause` says which when it was not the weight (STOPPED_EARLY,
+  // RUSHED).
   PLAN_REASON_KIND_HELD = 3;
   // Three weeks or more away (six or more): the max cut to 90% (80%).
   PLAN_REASON_KIND_TIME_OFF = 4;
@@ -250,6 +252,9 @@ enum PlanChangeCause {
   PLAN_CHANGE_CAUSE_SETS = 4;
   // Three weeks or more away (days_off): the max cut.
   PLAN_CHANGE_CAUSE_TIME_OFF = 5;
+  // Every working set done, but a miss came before the previous set's rest
+  // was up: excused, the max held.
+  PLAN_CHANGE_CAUSE_RUSHED = 6;
 }
 
 // One step of a decision, in the order the steps applied.
@@ -275,7 +280,8 @@ message PlanReason {
   MuscleGroup muscle = 9;
   float weekly_sets = 10;
   // WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
-  // this plan's.
+  // this plan's. HELD: STOPPED_EARLY or RUSHED, or unspecified (a lowered
+  // weight).
   PlanChangeCause cause = 11;
   int32 reps_before = 12;
   int32 reps_after = 13;
@@ -820,6 +826,10 @@ message TemplatePlan {
   // The workout's estimated length: more than the budget when two sets a
   // lift do not fit ("needs N min").
   int32 estimated_seconds = 3;
+  // The longest it gets: the estimate with every lift whose sets are the
+  // budget's to give at the most sets a lift takes (fixed sets as they
+  // are). A budget at or past it buys nothing more.
+  int32 max_seconds = 4;
 }
 
 // One exercise's plan at now, on its own in the budget.

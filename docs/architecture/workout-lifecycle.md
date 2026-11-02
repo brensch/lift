@@ -74,11 +74,14 @@ for each set before it.
 | every working rep hit | the higher of the max before and what the session shows with one more rep on every set |
 | a rep missed | the most any working set shows, never more than the max before |
 | stopped early | unchanged |
+| a miss rushed | unchanged |
 
-A session **stopped early** when the lift was removed, the workout ended
-with working sets undone, or a miss was done before the previous set's
-rest had run out (rushed, not a real miss). A lighter weight the user chose
-shows less than the max, so it holds it.
+A session **stopped early** when working sets of that lift were left
+undone: the lift was removed, or the workout ended first. A miss done
+before the previous set's rest had run out is **rushed** (`rushed` on
+`SessionOutcome`): excused, left out of the sets judged, and the max
+holds; every set was still done, so it is not stopping early. A lighter
+weight the user chose shows less than the max, so it holds it.
 
 **Time off** comes from the gap between sessions: 21 days or more since the
 lift was last done cuts the max to 90%, 42 or more to 80%. Inside the walk
@@ -114,6 +117,13 @@ earlier lift), until the lift that should get the next set doesn't fit
 (`allocate`). Sets an override names are kept as they are. If two sets
 each don't fit, Home says how long the workout needs instead.
 
+Each template plan also carries **the longest it gets** (`max_seconds`):
+the same costs with every lift whose sets are the budget's to give at 5,
+fixed sets as they are (`Planner::max_seconds`). When the budget is at or
+past it, more time buys nothing: Home's card says so beside the estimate
+and turns + off. The budget is shared by every template and is not moved
+when the selection changes; the card shows the selected template's cap.
+
 What things cost (`Costs`): a working set 40 s plus its class's rest, a
 heavy lift's warmups 4 minutes, moving between lifts 2 minutes — or the
 user's own medians over the last four weeks once there are ten samples of a
@@ -141,9 +151,11 @@ override, or when the last session was a ramp alone):
 | `SAME_AS_LAST` | The same weight and reps |
 
 with its `cause`: every rep hit (`HIT`), a rep missed (`MISSED`), stopped
-early (`STOPPED_EARLY`), time off (`TIME_OFF`), or the number of sets
-(`SETS`, when last time's number of sets would have moved the plan another
-way — more sets making it lighter, say), and last time's reps and sets
+early (`STOPPED_EARLY`), a rushed miss (`RUSHED`), time off (`TIME_OFF`),
+or the number of sets (`SETS`, when last time's number of sets would have
+moved the plan another way — more sets making it lighter, say — or when
+the max held after stopping early or a rushed miss and the plan moved
+anyway, which only the sets can have done), and last time's reps and sets
 beside this plan's. The steps that set the max follow, in the order they
 applied:
 
@@ -151,7 +163,7 @@ applied:
 |---|---|
 | `MAX_UP` | Every rep last time: the max nudged up |
 | `MAX_FROM_MISS` | A missed set reset the max to what it showed (names the set) |
-| `HELD` | Stopped early, or the user lowered the weight |
+| `HELD` | Stopped early or a rushed miss (`cause` says which), or the user lowered the weight |
 | `TIME_OFF` | 3 or 6 weeks away: the max cut (days off) |
 | `FIRST_TIME` | Never done: the ramp finds the max |
 | `USER_SET` | The user's own weight and reps, from when they set it |
@@ -163,7 +175,8 @@ that weight moved; a `HELD` max is not shown beside a weight that moved
 
 Home, the template editor and the exercise page show the same decisions:
 `GetHome` plans every lift (`plans`, each lift on its own) and every
-template (`template_plans`, with the workout's estimated length) at now in
+template (`template_plans`, with the workout's estimated length and the
+longest it gets) at now in
 the chosen budget, exactly as a start at that moment would record them.
 The template editor plans the list on screen the same way
 (`GetTemplatePlan`), so a saved template reads as its Home card does.
@@ -461,7 +474,7 @@ reopens on the same set, synced or not.
 | Concern | File |
 |---|---|
 | The plan: the walk, time off, overrides, set allocation, reps and weight, reasons | `core/src/plan.rs` |
-| What a session says about a lift (hit, missed, stopped early) | `core/src/exercise_progress.rs` |
+| What a session says about a lift (hit, missed, stopped early, rushed) | `core/src/exercise_progress.rs` |
 | Classes, muscles, plate snapping, steps | `core/src/exercise_catalog.rs` |
 | Laying out decisions, warmups, the ramp's appends, the per-exercise ops | `core/src/workout/planning.rs` |
 | State transitions, the weight log entries | `core/src/workout/reducer.rs` |
