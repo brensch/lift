@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../theme/theme_spec.dart';
 
 class WobblyText extends StatelessWidget {
   final String text;
   final double fontSize;
-  final int seed;
 
   /// How far each letter drifts, in logical pixels; its tilt scales with it.
   final double maxOffset;
@@ -15,13 +15,13 @@ class WobblyText extends StatelessWidget {
     super.key,
     required this.text,
     this.fontSize = 48,
-    this.seed = 42,
     this.maxOffset = 0.8,
   });
 
   @override
   Widget build(BuildContext context) {
-    final rng = Random(seed);
+    // Fresh every time: each launch wobbles its own way.
+    final rng = Random();
     final letters = text.split('');
 
     // Shrinks rather than overflows when the slot is narrow (large font
@@ -65,56 +65,93 @@ class _WobblyLetter extends StatefulWidget {
 
 class _WobblyLetterState extends State<_WobblyLetter>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late double dxSeed;
-  late double dySeed;
-  late double rotateSeed;
-  late double durationFactor;
+  /// Seconds since the letter appeared. A clock, not a loop: nothing here
+  /// repeats, so neither does the motion.
+  final _seconds = ValueNotifier<double>(0);
+  late final Ticker _ticker;
+
+  /// Per axis (x, y, tilt): two phases and the speed of the first wave.
+  late final List<double> _phases;
+  late final List<double> _speeds;
+
+  /// Seconds for the first wave to come round once.
+  static const _period = 7.0;
+
+  /// The second wave's speed over the first's. Irrational, so the two never
+  /// come back into line and the sum never retraces itself.
+  static const _ratio = 1.6180339887;
 
   @override
   void initState() {
     super.initState();
-    dxSeed = widget.rng.nextDouble() * 2 * pi;
-    dySeed = widget.rng.nextDouble() * 2 * pi;
-    rotateSeed = widget.rng.nextDouble() * 2 * pi;
-    durationFactor = 0.5 + widget.rng.nextDouble();
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat(reverse: true);
+    _phases = [for (var i = 0; i < 6; i++) widget.rng.nextDouble() * 2 * pi];
+    _speeds = [for (var i = 0; i < 3; i++) 0.7 + widget.rng.nextDouble() * 0.6];
+    _ticker = createTicker(
+      (elapsed) => _seconds.value = elapsed.inMicroseconds / 1e6,
+    )..start();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _ticker.dispose();
+    _seconds.dispose();
     super.dispose();
+  }
+
+  /// -1..1: the sum of two waves whose speeds never line up.
+  double _drift(int axis, double t) {
+    final w = t * 2 * pi / _period * _speeds[axis];
+    return (sin(w + _phases[axis * 2]) +
+            sin(w * _ratio + _phases[axis * 2 + 1])) /
+        2;
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value * 2 * pi;
+    return ValueListenableBuilder<double>(
+      valueListenable: _seconds,
+      builder: (context, t, child) {
         final wobble = widget.maxOffset;
-        final dx = sin(t * 0.4 + dxSeed) * wobble;
-        final dy = cos(t * 0.5 + dySeed) * wobble;
-        final angle = sin(t * 0.3 + rotateSeed) * 0.0125 * wobble;
-
-        return Transform.translate(
-          offset: Offset(dx, dy),
-          child: Transform.rotate(
-            angle: angle,
-            child: Text(
-              widget.char == ' ' ? '\u00A0' : widget.char,
-              style: context.tokens.wordmark(
-                TextStyle(fontSize: widget.fontSize),
-              ),
-            ),
-          ),
+        // One transform, drawn from the letter rasterised once and sampled
+        // smoothly. Re-laying the glyph at each sub-pixel offset snapped it
+        // to the pixel grid, a shake along the path.
+        return Transform(
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.medium,
+          transform: Matrix4.translationValues(
+            _drift(0, t) * wobble,
+            _drift(1, t) * wobble,
+            0,
+          )..rotateZ(_drift(2, t) * 0.0125 * wobble),
+          child: child,
         );
       },
+      child: _letter(context),
+    );
+  }
+
+  /// The glyph, outlined in its own colour when the theme emboldens it.
+  Widget _letter(BuildContext context) {
+    final t = context.tokens;
+    final char = widget.char == ' ' ? '\u00A0' : widget.char;
+    final style = t.wordmark(TextStyle(fontSize: widget.fontSize));
+    final fill = Text(char, style: style);
+    if (t.wordmarkEmbolden <= 0) return fill;
+    final color = DefaultTextStyle.of(context).style.color ?? t.text;
+    return Stack(
+      children: [
+        Text(
+          char,
+          style: style.copyWith(
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeJoin = StrokeJoin.miter
+              ..strokeWidth = t.wordmarkEmbolden * (style.fontSize ?? 0)
+              ..color = color,
+          ),
+        ),
+        fill,
+      ],
     );
   }
 }

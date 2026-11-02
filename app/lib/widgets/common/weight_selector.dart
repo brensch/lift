@@ -233,14 +233,21 @@ class _WeightSelectorState extends State<WeightSelector> {
           if (widget.barbell)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Text(
-                perSide,
-                textAlign: TextAlign.center,
-                style: t.mono(
-                  TextStyle(
-                    fontSize: t.size.body,
-                    fontWeight: t.weight.bold,
-                    color: t.muted,
+              // One line always, shrunk to fit: a long load wrapping onto a
+              // second line made the selector jump in height as it changed.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  perSide,
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
+                  style: t.mono(
+                    TextStyle(
+                      fontSize: t.size.body,
+                      fontWeight: t.weight.bold,
+                      color: t.muted,
+                    ),
                   ),
                 ),
               ),
