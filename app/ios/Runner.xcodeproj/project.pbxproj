@@ -42,7 +42,6 @@
 		3897E08613EFB2354FC6ED77 /* PhoneConnector+HeartRate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4BBB2E9A14BAE5FEED1C4BD /* PhoneConnector+HeartRate.swift */; };
 		F947BE4719B29D55082D0277 /* PhoneConnector+Messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */; };
 		5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2369EE1B891E190DF2D26271 /* SceneDelegate.swift */; };
-		6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */; };
 		7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */; };
 		DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */; };
 		86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */; };
@@ -128,7 +127,6 @@
 		1BA5CF54A368DD151691BD9F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		1C0B02B8A3792430DE97AC0B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2369EE1B891E190DF2D26271 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Manrope-Variable.ttf"; sourceTree = "<group>"; };
 		2BA101BC039C30FFF53AA926 /* workout.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = workout.pb.swift; sourceTree = "<group>"; };
 		3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SchliftWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -261,7 +259,6 @@
 		94944B13DDD876F1DF397D9D /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
-				2698BD39D122F262B67D9DAF /* Manrope-Variable.ttf */,
 				B85FB613086265B4AFCEDFA0 /* SpaceGrotesk-Variable.ttf */,
 				9BDD249AF6CC75457D7ECF2F /* SpaceMono-Regular.ttf */,
 				0EE403A311E72FC1944985ED /* SpaceMono-Bold.ttf */,
@@ -467,7 +464,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9C4F5A980802824E4E81418E /* Assets.xcassets in Resources */,
-				6E2193AE8C9DBC6FF047115F /* Manrope-Variable.ttf in Resources */,
 				86552A24B102B66F13AD5E33 /* SpaceGrotesk-Variable.ttf in Resources */,
 				CB08C5C9F96CC826ED7B72E2 /* SpaceMono-Regular.ttf in Resources */,
 				DD506040AC7D2AC77907EF98 /* SpaceMono-Bold.ttf in Resources */,
