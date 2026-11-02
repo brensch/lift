@@ -146,6 +146,51 @@ Home, the template editor and the exercise page show the same decisions:
 template (`template_plans`, with the workout's estimated length) at now in
 the chosen budget, exactly as a start at that moment would record them.
 
+## Picking a workout: the rotation and the suggestion
+
+Every template is either **in rotation** (`WorkoutTemplate.in_rotation`)
+or a **favourite**. The workouts picked at onboarding start in rotation;
+a library template added later, or one the user makes, starts as a
+favourite. The template editor's switch and the Home card's menu move a
+template between the two; it is saved through `SaveTemplate`, and a
+library template saved only to change this keeps following the library.
+Home shows the rotation's chips first and the favourites after a divider.
+
+`GetHome` suggests one rotation template (`core/src/volume.rs`,
+`suggest_template`), fresh each time from history, never stored:
+
+1. A template's score is the sum, over its distinct primary muscles that
+   have **recovered** now (`core/src/recovery.rs`: 48 h for chest, back,
+   quads, hamstrings and glutes, 36 h for shoulders and arms, 24 h for
+   calves and core), of how far each is below 10 hard sets this week.
+2. Every template within 20% of the best score is tied, and so is an
+   **overdue** one (not started in 14 days, or never) with a score above
+   0. The tie goes to the template started least recently (never started
+   first).
+3. When nothing in rotation scores above 0, the suggestion is the
+   rotation template started least recently (the **fallback**).
+
+Favourites are never suggested; with nothing in rotation there is no
+suggestion. The answer is structured (`SuggestionReason`): the suggested
+template's rested muscles that are behind (sets this week, target), the
+muscles the rotation trains that are behind but still recovering (hours
+left), and whether it won as overdue or the fallback. Home words it under
+the template's name (`app/lib/logic/rotation_text.dart`).
+
+Overdue is there because the score adds muscles up: a template whose
+muscles another covers (StrongLifts A inside Full Body) never comes
+within 20% of it, and without the overdue rule is never suggested.
+
+`GetHome` also checks the rotation (`core/src/rotation.rs`,
+`RotationCheck`): one lap of it, each template once at three working sets
+a lift, counted as the week is (primary 1.0, secondary 0.5). Three sets a
+lift, not the planner's, so the check describes the rotation and not this
+week's history or budget. It warns of a **gap** (a muscle nothing in
+rotation trains), an **overlap** (two templates sharing over 70% of the
+smaller one's lifts), a **lopsided** lap (the most-trained muscle at 3× or
+more the least-trained trained one) and **too few** (under two templates
+in rotation). The Edit sheet shows the lap's bars and the warnings.
+
 ## Starting a workout
 
 ```mermaid
@@ -156,7 +201,7 @@ sequenceDiagram
 
     App->>N: GetHome(budget_minutes)
     N->>A: View::home → Planner
-    A-->>App: templates, template_plans (each lift's<br/>decision + reasons, estimated length),<br/>volume, recovery, suggestion
+    A-->>App: templates, template_plans (each lift's<br/>decision + reasons, estimated length),<br/>volume, recovery, suggestion + reason,<br/>rotation check
 
     App->>N: StartWorkout(template_id, budget_minutes)
     N->>N: Call::start_workout: exercises (the template's),<br/>Planner::workout → decisions
@@ -395,7 +440,9 @@ reopens on the same set, synced or not.
 | Laying out decisions, warmups, the ramp's appends, the per-exercise ops | `core/src/workout/planning.rs` |
 | State transitions, the weight log entries | `core/src/workout/reducer.rs` |
 | Next-up-set derivation | `core/src/progress.rs` |
-| Weekly hard sets per muscle, the template suggestion | `core/src/volume.rs` |
+| Weekly hard sets per muscle, the suggestion | `core/src/volume.rs` |
+| Per-muscle recovery windows | `core/src/recovery.rs` |
+| The rotation check | `core/src/rotation.rs` |
 | Events, start, add, end, overrides | `core/src/account.rs` |
 | The RPCs the app calls; Home's plans | `core/src/api.rs` |
 | Showing it | `app/lib/providers/workout_provider.dart` (no rules) |

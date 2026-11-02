@@ -34,7 +34,9 @@ The rules that matter:
 - **No domain rules in Dart.** The plan (every lift's sets, reps, weight
   and reasons), the set state machine, summaries, volume and the home's
   suggestion are the core's. A provider makes one call and shows the
-  answer; Dart only words the reasons (`logic/plan_text.dart`).
+  answer; Dart only words the reasons (`logic/plan_text.dart`) and the
+  suggestion's reason and the rotation check's warnings
+  (`logic/rotation_text.dart`).
 - **`logic/` must not import Flutter.** It is display-side helpers only —
   plate maths for the bar picture, unit formatting, grouping sets into
   exercise blocks — testable without a widget harness.
@@ -182,7 +184,9 @@ Every screen shows the core's decisions, never its own numbers:
 
 | Screen | Shows | From |
 |---|---|---|
-| Home | the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason; the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans` |
+| Home | the rotation's chips, then the favourites after a divider; under the suggested template's name, why (its rested muscles behind, what is still recovering); the time control (5-minute steps, 60 by default); each template's lifts as sets × reps @ weight with the reason; the workout's estimated length, or how long it needs | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason` |
+| Edit sheet | the rotation check: one lap's sets per muscle on Home's bars, and a line for each warning | `GetHome`: `rotation_check` |
+| Template editor | the In rotation switch | `SaveTemplate` |
 | Template editor | each lift's next plan; the sheet that sets or removes an override | `plans`, `SetOverride` |
 | Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |

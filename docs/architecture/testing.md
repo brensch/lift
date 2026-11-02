@@ -40,7 +40,10 @@ Pure and fast, inline in their modules under `core/src/`:
   so a `_ =>` fallback cannot quietly misfile a new lift), the class rules,
   plate snapping.
 - `volume.rs` — the 7-day window, primary/secondary weighting, and the
-  suggestion's deficit scoring and tie-break.
+  suggestion: recovered muscles only, the 20% tie and the least recent,
+  overdue templates, the fallback, favourites left out.
+- `rotation.rs` — the rotation check: each warning (gap, overlap,
+  lopsided, too few) and the sets a lap counts.
 - `workout/reducer.rs`, `workout/planning.rs` — set transitions, rest,
   calibration rungs (climb, settle, re-settle) and the weight log entries
   they make; warmup ladders.
@@ -61,6 +64,20 @@ here, because they only appear **between** two calls.
 
 **Every test also checks that replaying its recorded events rebuilds exactly
 the same account** — the property the phone and the server both rely on.
+
+## Progression scenarios and the rotation
+
+`core/tests/progression_scenarios.rs` drives scripted lifters through the
+API and writes what they were told to `testdata/progression_scenarios.json`
+(`make progression-explorer` rewrites it and builds the explorer page).
+Its rotation run onboards Full Body, Upper, Lower and StrongLifts A and B
+into the rotation and for three weeks (Mon, Wed, Thu, Sat) starts whatever
+Home suggests, doing every set; each day's pick, reason and every
+template's score go in the snapshot, and the explorer's Rotation tab draws
+them as a calendar and a timeline beside the rotation check. The test
+fails if a template is suggested two training days running while another
+had rested muscles behind, if a rotation template is never suggested, or
+if Full Body takes over 40% of the days.
 
 ## Invariant fuzzer
 

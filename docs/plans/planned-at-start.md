@@ -170,12 +170,71 @@ WeightChange {
 Weight never drops during a workout on its own. Someone who misses reps
 rests and tries again; someone who is cooked lowers the weight.
 
+## Which workout: the rotation and the suggestion
+
+A template is in rotation or a favourite. The workouts picked at
+onboarding are the rotation; any other template, from the library or the
+user's own, starts as a favourite. The template editor has an In rotation
+switch and Home's card menu moves a template either way (saved with
+`SaveTemplate`; a library template stays coupled). Home shows the
+rotation's chips first, then the favourites after a divider.
+
+Home suggests one rotation template, worked out at every `GetHome` and
+never stored:
+
+```
+score(template) = Σ over its distinct primary muscles that have recovered
+                  of max(0, 10 − hard sets this week)
+```
+
+Recovered is the recovery windows: 48 h for chest, back, quads,
+hamstrings and glutes; 36 h for shoulders, biceps and triceps; 24 h for
+calves and core. Every template within 20% of the best score is tied, and
+so is one overdue (not started in 14 days, or never) with a score above 0;
+the tie goes to the one started least recently, never started first. If
+nothing scores above 0, the rotation template started least recently.
+Favourites are never suggested.
+
+The answer is structured:
+
+```
+SuggestionReason {
+  behind: [{muscle, sets_7d, target}]       // what won it, most behind first
+  recovering: [{muscle, hours_remaining}]   // behind but not ready
+  fallback                                  // nothing ready and behind
+  overdue                                   // won on being overdue
+}
+```
+
+and Home words it under the template's name: "Chest 2/10 and back 0/10
+this week, both rested · quads recovering (20h)".
+
+The overdue rule keeps the rotation turning: the score adds muscles up,
+so a template whose muscles another covers (StrongLifts A inside Full
+Body) never comes within 20% of it and would never be suggested.
+
+**The rotation check.** One lap of the rotation, each template once at
+three working sets a lift, counted as Home counts the week (primary 1.0,
+secondary 0.5): sets per muscle, and warnings only when something is
+wrong:
+
+| Warning | When |
+|---|---|
+| gap | a muscle nothing in rotation trains |
+| overlap | two templates share over 70% of the smaller one's lifts |
+| lopsided | the most-trained muscle gets 3× or more the least-trained trained one |
+| too few | fewer than 2 templates in rotation |
+
+The Edit sheet shows the lap on Home's muscle bars and the warnings as
+plain lines.
+
 ## What each page shows
 
 | Page | Shows | From |
 |---|---|---|
-| Home | the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`) |
-| Template editor | each lift's next plan; the sheet that sets an override | `plan` |
+| Home | rotation chips, then favourites; the suggestion and why; the time control; each lift's sets × reps @ weight and the reason; the workout's estimated length | `plan` at now with the budget: per template (`template_plans`), and per lift with each lift as a one-lift workout (`plans`); `suggest_template` |
+| Edit sheet | the rotation check | `rotation_check` |
+| Template editor | in rotation or not; each lift's next plan; the sheet that sets an override | `plan` |
 | Live workout, watch | the set's weight and reps; the reason when the lift comes up; changes | the workout's log |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
 | Progress, exercise detail | the estimated max over time, and the heaviest weight lifted each session | the walk, history |
@@ -231,6 +290,12 @@ Workouts logged offline and not synced before the deploy are lost.
   defaults at ten samples; rounding producing an extra rep before a plate;
   a started workout unaffected by a later rule change; every weight log
   cause; Home's plan equal to a start at the same now and budget.
+- Core tests cover the suggestion (recovered muscles only, the 20% tie
+  and the least recent, overdue, the fallback, favourites left out) and
+  each rotation-check warning; the progression scenarios' rotation run
+  turns over (no template twice running while another has rested muscles
+  behind, every rotation template picked in three weeks, Full Body at
+  most 40% of days).
 - The fuzzer, `make test-app` and the e2e suite pass.
 - The Learn pages and docs/architecture describe this design and nothing
   else; nothing in the repo mentions trackers, user messages or gender
