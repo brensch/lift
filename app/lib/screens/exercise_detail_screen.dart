@@ -12,9 +12,9 @@ import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
 import '../theme/theme_spec.dart';
 
-/// One lift, in depth: tap a card on Progress to see its full history — a
-/// weight / estimated-1RM trend you can toggle between, personal bests, and a
-/// per-session breakdown. Progress shows the trend across lifts; this is the
+/// One lift, in depth: tap a card on Progress to see its full history — the
+/// estimated max after each session with the heaviest set under it, the
+/// totals, and a per-session breakdown. Progress shows the trend across lifts; this is the
 /// drill-down for a single one.
 class ExerciseDetailScreen extends StatefulWidget {
   final Exercise exercise;
