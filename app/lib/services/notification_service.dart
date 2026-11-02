@@ -155,11 +155,10 @@ class NotificationService {
     }
   }
 
-  /// Cancels any pending or active rest notifications.
   static const _channelRevisionKey = 'rest_channel_revision';
 
-  /// Deletes rest channels made for an older sounds revision (and the
-  /// unversioned ones from before revisions existed), once per revision.
+  /// Deletes the rest channels made for the previous sounds revision, once
+  /// per revision.
   static Future<void> _dropStaleRestChannels() async {
     final android = _plugin
         .resolvePlatformSpecificImplementation<
@@ -169,32 +168,17 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     final previous = prefs.getString(_channelRevisionKey);
     if (previous == soundsRevision) return;
-    for (final id in copy.sounds.map((s) => s.id)) {
-      await android.deleteNotificationChannel(channelId: 'rest_timer_$id');
-      if (previous != null) {
+    if (previous != null) {
+      for (final id in copy.sounds.map((s) => s.id)) {
         await android.deleteNotificationChannel(
           channelId: 'rest_timer_${id}_$previous',
         );
       }
     }
-    // The synthesised presets from before the recordings.
-    for (final id in const [
-      'chord_strum',
-      'bell_high',
-      'classic_beep',
-      'success_rise',
-      'boxing_bell',
-      'elevator_ding',
-      'dojo_gong',
-      'retro_arcade',
-      'crystal_shine',
-      'morning_dew',
-    ]) {
-      await android.deleteNotificationChannel(channelId: 'rest_timer_$id');
-    }
     await prefs.setString(_channelRevisionKey, soundsRevision);
   }
 
+  /// Cancels any pending or active rest notifications.
   static Future<void> cancelRest() =>
       _bestEffort('cancelRest', () => _plugin.cancel(id: _restNotificationId));
 

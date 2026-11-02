@@ -26,7 +26,6 @@ const schliftSpec = ThemeSpec(
   success: Color(0xFF3D8B4A),
   short: Color(0xFFD99A00),
   overdue: Color(0xFFA85F00),
-  warning: Color(0xFF8A5A00),
   resting: Color(0xFF3C5FB0),
   // Lifting: a set has been started. The signal orange: do it now.
   lifting: Color(0xFFFF4F00),

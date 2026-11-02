@@ -286,10 +286,14 @@ public final class Settings {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-     * @return The weightKg.
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
+     * @return The weight.
      */
-    float getWeightKg();
+    float getWeight();
 
     /**
      * <code>string hex_color = 2 [json_name = "hexColor"];</code>
@@ -314,30 +318,42 @@ public final class Settings {
     private PlateColor() {
       hexColor_ = "";
     }
-    public static final int WEIGHT_KG_FIELD_NUMBER = 1;
-    private float weightKg_;
+    public static final int WEIGHT_FIELD_NUMBER = 1;
+    private float weight_;
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-     * @return The weightKg.
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
+     * @return The weight.
      */
     @java.lang.Override
-    public float getWeightKg() {
-      return weightKg_;
+    public float getWeight() {
+      return weight_;
     }
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-     * @param value The weightKg to set.
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
+     * @param value The weight to set.
      */
-    private void setWeightKg(float value) {
+    private void setWeight(float value) {
       
-      weightKg_ = value;
+      weight_ = value;
     }
     /**
-     * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
+     * <pre>
+     * the plate's size, in the user's unit
+     * </pre>
+     *
+     * <code>float weight = 1 [json_name = "weight"];</code>
      */
-    private void clearWeightKg() {
+    private void clearWeight() {
       
-      weightKg_ = 0F;
+      weight_ = 0F;
     }
 
     public static final int HEX_COLOR_FIELD_NUMBER = 2;
@@ -483,30 +499,42 @@ public final class Settings {
 
 
       /**
-       * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-       * @return The weightKg.
+       * <pre>
+       * the plate's size, in the user's unit
+       * </pre>
+       *
+       * <code>float weight = 1 [json_name = "weight"];</code>
+       * @return The weight.
        */
       @java.lang.Override
-      public float getWeightKg() {
-        return instance.getWeightKg();
+      public float getWeight() {
+        return instance.getWeight();
       }
       /**
-       * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
-       * @param value The weightKg to set.
+       * <pre>
+       * the plate's size, in the user's unit
+       * </pre>
+       *
+       * <code>float weight = 1 [json_name = "weight"];</code>
+       * @param value The weight to set.
        * @return This builder for chaining.
        */
-      public Builder setWeightKg(float value) {
+      public Builder setWeight(float value) {
         copyOnWrite();
-        instance.setWeightKg(value);
+        instance.setWeight(value);
         return this;
       }
       /**
-       * <code>float weight_kg = 1 [json_name = "weightKg"];</code>
+       * <pre>
+       * the plate's size, in the user's unit
+       * </pre>
+       *
+       * <code>float weight = 1 [json_name = "weight"];</code>
        * @return This builder for chaining.
        */
-      public Builder clearWeightKg() {
+      public Builder clearWeight() {
         copyOnWrite();
-        instance.clearWeightKg();
+        instance.clearWeight();
         return this;
       }
 
@@ -575,7 +603,7 @@ public final class Settings {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "weightKg_",
+              "weight_",
               "hexColor_",
             };
             java.lang.String info =

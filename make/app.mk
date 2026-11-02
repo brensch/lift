@@ -37,12 +37,12 @@ dev:
 # Killing make does not reach the cargo watch and server under it.
 STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS)
 
-# Backend + web dashboard dev server. `run-frontend` is the web half.
 # The Dart tests, against the real core: the host build of app/native first.
 test-app:
 	cargo build -p schlift_native
 	cd app && $(FLUTTER) test
 
+# Backend + web dashboard dev server. `run-frontend` is the web half.
 run-web-dev:
 	@echo "Starting backend and frontend... Press Ctrl+C to stop."
 	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; $(MAKE) run-backend & $(MAKE) run-frontend & wait'

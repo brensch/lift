@@ -14,8 +14,6 @@ mod db;
 #[cfg(feature = "test-auth")]
 mod demo_seed;
 mod server;
-// The domain lives in schlift-core; these keep `crate::progress` and
-// friends naming it as before.
 mod time;
 
 use auth::AuthState;

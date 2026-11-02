@@ -401,8 +401,17 @@ pub fn progression_increment_lb(ex: Exercise, unit: AppWeightUnit) -> f32 {
         // Bodyweight work progresses by reps; adding phantom pounds to a
         // push-up would be nonsense.
         LoadStyle::Bodyweight => 0.0,
-        LoadStyle::Dumbbell => per_unit(unit, 5.0, 2.0),
-        _ => per_unit(unit, 5.0, 2.5),
+        style => unit.to_lb(step(style, unit)),
+    }
+}
+
+/// The equipment's weight step, in `unit`'s own scale: the grid its
+/// weights snap to and the amount it progresses by.
+fn step(style: LoadStyle, unit: AppWeightUnit) -> f32 {
+    match (style, unit) {
+        (_, AppWeightUnit::Lb) => 5.0,
+        (LoadStyle::Dumbbell, AppWeightUnit::Kg) => 2.0,
+        (_, AppWeightUnit::Kg) => 2.5,
     }
 }
 
@@ -416,8 +425,7 @@ pub fn snap_weight_lb(ex: Exercise, weight_lb: f32, unit: AppWeightUnit) -> f32 
     match load_style(ex) {
         LoadStyle::Barbell => snap_loadable_lb(weight_lb, unit).max(starting_weight_lb(ex, unit)),
         LoadStyle::Bodyweight => weight_lb,
-        LoadStyle::Dumbbell => round_to_unit_increment(weight_lb, unit, 5.0, 2.0),
-        _ => round_to_unit_increment(weight_lb, unit, 5.0, 2.5),
+        style => round_to_unit_increment(weight_lb, unit, step(style, unit)),
     }
 }
 

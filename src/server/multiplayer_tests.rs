@@ -83,42 +83,41 @@ mod session_history_tests {
             );
         }
 
-        // Historical roster survives leaving: GetSessionParticipants (which backs a
-        // past workout's "friends worked out with") still lists both, even though
+        // Historical roster survives leaving: GetSessionRosters (which backs a
+        // past workout's "friends worked out with") still lists bob, even though
         // the live cache was pruned.
         let shared_session = sess.session_id.clone();
         let (_, carol_tok) = user(&svc, "carol").await;
         let outsider = svc
-            .get_session_participants(authed(
+            .get_session_rosters(authed(
                 &carol_tok,
-                GetSessionParticipantsRequest {
-                    session_id: shared_session.clone(),
-                },
-            ))
-            .await
-            .unwrap_err();
-        assert_eq!(
-            outsider.code(),
-            tonic::Code::NotFound,
-            "someone who was not in the session must not see its roster"
-        );
-        let roster = svc
-            .get_session_participants(authed(
-                &alice_tok,
-                GetSessionParticipantsRequest {
-                    session_id: shared_session,
+                GetSessionRostersRequest {
+                    session_ids: vec![shared_session.clone()],
                 },
             ))
             .await
             .unwrap()
             .into_inner()
-            .participants;
-        let roster_ids: Vec<_> = roster
-            .iter()
-            .filter_map(|p| p.user.as_ref().map(|u| u.id.clone()))
-            .collect();
-        assert!(roster_ids.contains(&alice_id));
-        assert!(roster_ids.contains(&bob_id));
+            .rosters;
+        assert!(
+            outsider.is_empty(),
+            "someone who was not in the session must not see its roster"
+        );
+        let rosters = svc
+            .get_session_rosters(authed(
+                &alice_tok,
+                GetSessionRostersRequest {
+                    session_ids: vec![shared_session.clone(), "no-such-session".into()],
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .rosters;
+        assert_eq!(rosters.len(), 1, "only the session alice was in");
+        assert_eq!(rosters[0].session_id, shared_session);
+        let partner_ids: Vec<_> = rosters[0].partners.iter().map(|u| u.id.clone()).collect();
+        assert_eq!(partner_ids, vec![bob_id.clone()], "everyone but alice");
 
         // History still records the pairing.
         let partners = svc

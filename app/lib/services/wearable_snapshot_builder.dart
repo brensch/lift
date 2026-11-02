@@ -81,8 +81,7 @@ class WearableSnapshotBuilder {
       // Or a ramp set just done in full: the phone asks how many more you
       // could have done (only ever open with nothing being lifted).
       final firstTime =
-          LiveSetCircle.isFirstEver(w, set) ||
-          workoutProvider.rungQuestionSetId.isNotEmpty;
+          w.isFirstTime(set) || workoutProvider.rungQuestionSetId.isNotEmpty;
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
@@ -253,7 +252,7 @@ class WearableSnapshotBuilder {
     if (LiveSetCircle.setCircleState(w, set) == SetCircleState.skipped) {
       return '–';
     }
-    if (LiveSetCircle.isFirstEver(w, set)) return '?';
+    if (w.isFirstTime(set)) return '?';
     return '${set.targetReps}';
   }
 

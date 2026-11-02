@@ -506,6 +506,39 @@ mod stream {
         assert_eq!(link.acked(0).await, 0, "the heartbeat's answer");
     }
 
+    /// Deleting the account ends its open streams: a push after it is
+    /// refused, so the deleted log is not stored again.
+    #[tokio::test]
+    async fn a_deleted_account_cannot_push_again() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (dave, token) = db
+            .get_or_create_user_with_auth_session("dave")
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &token).await;
+        let mut phone = Phone::new();
+        let (_, events) = phone.start_squats(now_unix());
+        link.push(events).await;
+        assert_eq!(link.acked(1).await, 1);
+
+        db.delete_user_account_and_data(&dave.id).await.unwrap();
+        link.push(phone.log.clone()).await;
+        let status = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match link.down.message().await {
+                    Ok(Some(_)) => continue,
+                    Ok(None) => panic!("closed without a status"),
+                    Err(status) => return status,
+                }
+            }
+        })
+        .await
+        .expect("the stream ends");
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+        assert!(db.events_after(&dave.id, 0).await.unwrap().is_empty());
+    }
+
     /// The stream needs a signed-in caller.
     #[tokio::test]
     async fn a_stranger_is_turned_away() {

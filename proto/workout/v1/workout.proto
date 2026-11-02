@@ -448,6 +448,10 @@ message GetWorkoutResponse {
   // Undone warmups that are behind you (skipped, or a working set of their
   // exercise is done): shown out of the way, nothing waits on them.
   repeated string passed_warmup_ids = 10;
+  // The calibration sets of exercises never done before, not being lifted:
+  // none of that exercise's calibration sets is done yet, so the phone asks
+  // for the weight first.
+  repeated string first_time_set_ids = 14;
   // Per exercise: the decision it started from and the changes since.
   repeated ExerciseLog exercise_logs = 11;
   reserved 6, 8;
@@ -797,6 +801,13 @@ message GetHomeResponse {
   // The rotation's shape, one pass through it: sets per muscle, what is
   // wrong with it, and what each workout outside it would add.
   RotationCheck rotation_check = 14;
+  // The library entries the user does not have (no template follows one or
+  // was made from it): what the Add sheet offers.
+  repeated string addable_library_ids = 16;
+  // The ready-made plan (LibraryPlan.id) the rotation already is: the same
+  // workouts, each following or made from one of its entries, in any
+  // order. Empty when none.
+  string current_plan_id = 17;
   reserved 2, 4, 8, 15;
   reserved "trackers", "user_messages", "ignored_muscles";
 }

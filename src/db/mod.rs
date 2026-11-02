@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id
 -- synced. Everything about a person's training is the fold of their log;
 -- the workout tables (schlift_core::projection::WORKOUT_SCHEMA) are
 -- projections of it, rewritten whenever a workout's events arrive, for SQL
--- analytics and multiplayer history.
+-- analytics.
 CREATE TABLE IF NOT EXISTS account_events (
     user_id TEXT NOT NULL,
     seq INTEGER NOT NULL,

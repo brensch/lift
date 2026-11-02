@@ -93,7 +93,7 @@ graph LR
 Regenerate after editing a `.proto`:
 
 ```bash
-make proto-all      # dart + android + swift
+make proto-all      # dart + android + web + swift
 ```
 
 Rust regenerates automatically via `build.rs` on the next `cargo build`.

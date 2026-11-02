@@ -342,113 +342,156 @@ class GetCurrentSessionRequest extends $pb.GeneratedMessage {
   static GetCurrentSessionRequest? _defaultInstance;
 }
 
-class GetSessionParticipantsRequest extends $pb.GeneratedMessage {
-  factory GetSessionParticipantsRequest({
-    $core.String? sessionId,
+class GetSessionRostersRequest extends $pb.GeneratedMessage {
+  factory GetSessionRostersRequest({
+    $core.Iterable<$core.String>? sessionIds,
   }) {
     final result = create();
-    if (sessionId != null) result.sessionId = sessionId;
+    if (sessionIds != null) result.sessionIds.addAll(sessionIds);
     return result;
   }
 
-  GetSessionParticipantsRequest._();
+  GetSessionRostersRequest._();
 
-  factory GetSessionParticipantsRequest.fromBuffer($core.List<$core.int> data,
+  factory GetSessionRostersRequest.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory GetSessionParticipantsRequest.fromJson($core.String json,
+  factory GetSessionRostersRequest.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetSessionParticipantsRequest',
+      _omitMessageNames ? '' : 'GetSessionRostersRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..pPS(1, _omitFieldNames ? '' : 'sessionIds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsRequest clone() => deepCopy();
+  GetSessionRostersRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsRequest copyWith(
-          void Function(GetSessionParticipantsRequest) updates) =>
-      super.copyWith(
-              (message) => updates(message as GetSessionParticipantsRequest))
-          as GetSessionParticipantsRequest;
+  GetSessionRostersRequest copyWith(
+          void Function(GetSessionRostersRequest) updates) =>
+      super.copyWith((message) => updates(message as GetSessionRostersRequest))
+          as GetSessionRostersRequest;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsRequest create() =>
-      GetSessionParticipantsRequest._();
+  static GetSessionRostersRequest create() => GetSessionRostersRequest._();
   @$core.override
-  GetSessionParticipantsRequest createEmptyInstance() => create();
+  GetSessionRostersRequest createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetSessionParticipantsRequest>(create);
-  static GetSessionParticipantsRequest? _defaultInstance;
+  static GetSessionRostersRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSessionRostersRequest>(create);
+  static GetSessionRostersRequest? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $core.String get sessionId => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set sessionId($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSessionId() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSessionId() => $_clearField(1);
+  $pb.PbList<$core.String> get sessionIds => $_getList(0);
 }
 
-class GetSessionParticipantsResponse extends $pb.GeneratedMessage {
-  factory GetSessionParticipantsResponse({
-    $core.String? sessionId,
-    $core.Iterable<ParticipantStatus>? participants,
+/// One roster per asked session the caller was in, in the order asked; a
+/// session the caller was not in is left out.
+class GetSessionRostersResponse extends $pb.GeneratedMessage {
+  factory GetSessionRostersResponse({
+    $core.Iterable<SessionRoster>? rosters,
   }) {
     final result = create();
-    if (sessionId != null) result.sessionId = sessionId;
-    if (participants != null) result.participants.addAll(participants);
+    if (rosters != null) result.rosters.addAll(rosters);
     return result;
   }
 
-  GetSessionParticipantsResponse._();
+  GetSessionRostersResponse._();
 
-  factory GetSessionParticipantsResponse.fromBuffer($core.List<$core.int> data,
+  factory GetSessionRostersResponse.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory GetSessionParticipantsResponse.fromJson($core.String json,
+  factory GetSessionRostersResponse.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetSessionParticipantsResponse',
+      _omitMessageNames ? '' : 'GetSessionRostersResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
-    ..pPM<ParticipantStatus>(2, _omitFieldNames ? '' : 'participants',
-        subBuilder: ParticipantStatus.create)
+    ..pPM<SessionRoster>(1, _omitFieldNames ? '' : 'rosters',
+        subBuilder: SessionRoster.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsResponse clone() => deepCopy();
+  GetSessionRostersResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSessionParticipantsResponse copyWith(
-          void Function(GetSessionParticipantsResponse) updates) =>
-      super.copyWith(
-              (message) => updates(message as GetSessionParticipantsResponse))
-          as GetSessionParticipantsResponse;
+  GetSessionRostersResponse copyWith(
+          void Function(GetSessionRostersResponse) updates) =>
+      super.copyWith((message) => updates(message as GetSessionRostersResponse))
+          as GetSessionRostersResponse;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsResponse create() =>
-      GetSessionParticipantsResponse._();
+  static GetSessionRostersResponse create() => GetSessionRostersResponse._();
   @$core.override
-  GetSessionParticipantsResponse createEmptyInstance() => create();
+  GetSessionRostersResponse createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static GetSessionParticipantsResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetSessionParticipantsResponse>(create);
-  static GetSessionParticipantsResponse? _defaultInstance;
+  static GetSessionRostersResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSessionRostersResponse>(create);
+  static GetSessionRostersResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<SessionRoster> get rosters => $_getList(0);
+}
+
+/// Everyone but the caller who was ever in a session, in the order they
+/// joined. It survives everyone leaving.
+class SessionRoster extends $pb.GeneratedMessage {
+  factory SessionRoster({
+    $core.String? sessionId,
+    $core.Iterable<$1.User>? partners,
+  }) {
+    final result = create();
+    if (sessionId != null) result.sessionId = sessionId;
+    if (partners != null) result.partners.addAll(partners);
+    return result;
+  }
+
+  SessionRoster._();
+
+  factory SessionRoster.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SessionRoster.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SessionRoster',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'sessionId')
+    ..pPM<$1.User>(2, _omitFieldNames ? '' : 'partners',
+        subBuilder: $1.User.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SessionRoster clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SessionRoster copyWith(void Function(SessionRoster) updates) =>
+      super.copyWith((message) => updates(message as SessionRoster))
+          as SessionRoster;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SessionRoster create() => SessionRoster._();
+  @$core.override
+  SessionRoster createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SessionRoster getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SessionRoster>(create);
+  static SessionRoster? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sessionId => $_getSZ(0);
@@ -460,7 +503,7 @@ class GetSessionParticipantsResponse extends $pb.GeneratedMessage {
   void clearSessionId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  $pb.PbList<ParticipantStatus> get participants => $_getList(1);
+  $pb.PbList<$1.User> get partners => $_getList(1);
 }
 
 class GetCurrentSessionResponse extends $pb.GeneratedMessage {
@@ -592,6 +635,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $1.ProposedSet? nextUpSet,
     $1.WorkoutStateSnapshot? stateSnapshot,
     $core.Iterable<$core.String>? passedWarmupIds,
+    $core.Iterable<$core.String>? firstTimeSetIds,
   }) {
     final result = create();
     if (user != null) result.user = user;
@@ -602,6 +646,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (nextUpSet != null) result.nextUpSet = nextUpSet;
     if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     if (passedWarmupIds != null) result.passedWarmupIds.addAll(passedWarmupIds);
+    if (firstTimeSetIds != null) result.firstTimeSetIds.addAll(firstTimeSetIds);
     return result;
   }
 
@@ -631,6 +676,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     ..aOM<$1.WorkoutStateSnapshot>(10, _omitFieldNames ? '' : 'stateSnapshot',
         subBuilder: $1.WorkoutStateSnapshot.create)
     ..pPS(11, _omitFieldNames ? '' : 'passedWarmupIds')
+    ..pPS(12, _omitFieldNames ? '' : 'firstTimeSetIds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -717,6 +763,10 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   /// As GetWorkoutResponse.passed_warmup_ids.
   @$pb.TagNumber(11)
   $pb.PbList<$core.String> get passedWarmupIds => $_getList(7);
+
+  /// As GetWorkoutResponse.first_time_set_ids.
+  @$pb.TagNumber(12)
+  $pb.PbList<$core.String> get firstTimeSetIds => $_getList(8);
 }
 
 /// Someone the caller has shared at least one session with.

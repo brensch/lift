@@ -217,17 +217,30 @@ pub fn is_passed_warmup(
     proposed_sets: &[ProposedSet],
     completed_sets: &[CompletedSet],
 ) -> bool {
-    let done = |id: &str| {
-        completed_sets
-            .iter()
-            .any(|c| c.proposed_set_id == id && c.ended_at > 0)
-    };
     set.warmup
-        && !done(&set.id)
+        && !is_done(&set.id, completed_sets)
         && (set.skipped
             || proposed_sets
                 .iter()
-                .any(|p| p.exercise == set.exercise && !p.warmup && done(&p.id)))
+                .any(|p| p.exercise == set.exercise && !p.warmup && is_done(&p.id, completed_sets)))
+}
+
+/// A proposed set with a finished completion.
+pub fn is_done(proposed_set_id: &str, completed_sets: &[CompletedSet]) -> bool {
+    completed_sets
+        .iter()
+        .any(|c| c.proposed_set_id == proposed_set_id && c.ended_at > 0)
+}
+
+/// A calibration set of an exercise never done before, not being lifted:
+/// none of the exercise's calibration sets is done yet. Started ("test
+/// me", or the watch), it is a set like any other.
+pub fn is_first_time(set: &ProposedSet, workout: &WorkoutRecord) -> bool {
+    set.calibration
+        && workout.workout.lifting_set_id != set.id
+        && !workout.proposed_sets.iter().any(|p| {
+            p.exercise == set.exercise && p.calibration && is_done(&p.id, &workout.completed_sets)
+        })
 }
 
 /// The set up next — the one source of truth for `next_up_set` and the
@@ -242,10 +255,7 @@ pub fn compute_next_up_set(
     proposed_sets
         .iter()
         .find(|p| {
-            !completed_sets
-                .iter()
-                .any(|c| c.proposed_set_id == p.id && c.ended_at > 0)
-                && !is_passed_warmup(p, proposed_sets, completed_sets)
+            !is_done(&p.id, completed_sets) && !is_passed_warmup(p, proposed_sets, completed_sets)
         })
         .cloned()
 }

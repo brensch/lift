@@ -1,6 +1,6 @@
 # Exercise-art authoring guide
 
-You are drawing a looping stick-figure animation of a gym exercise. Each
+How to draw a looping stick-figure animation of a gym exercise. Each
 exercise is one Dart file named after its proto enum (snake_case), exporting one
 function. Keep it **simple and roughly accurate** — it must read as the movement
 next to a label, nothing more.
@@ -148,10 +148,6 @@ Reference stills are public-domain at:
 of a movement's shape. Not all names exist; don't block on it.
 
 ## When done
+- Add the function to the map in `registry.dart`.
 - Run `flutter analyze lib/widgets/exercise_art` — it must be clean.
 - **Delete your throwaway `test/_audit_<family>_test.dart` and its golden.**
-- Do NOT edit `registry.dart` or `exercise_art_preview_test.dart` (the parent
-  wires those up to avoid conflicts).
-- Report back: for each exercise, the proto enum name, the function name, and the
-  file name, plus one line on how confident you are it reads correctly.
-```

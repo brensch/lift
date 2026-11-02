@@ -168,7 +168,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 const SizedBox(width: 18),
                 _footStat('Total sets', '$totalSets', cs),
                 const SizedBox(width: 18),
-                _footStat('Volume', '${_compact(totalVolume)} $suffix', cs),
+                _footStat(
+                  'Volume',
+                  '${compactVolume(totalVolume, unit)} $suffix',
+                  cs,
+                ),
               ],
             ),
           ),
@@ -186,12 +190,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         ],
       ),
     );
-  }
-
-  static String _compact(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
-    return v.round().toString();
   }
 
   Widget _headStat(
@@ -429,7 +427,7 @@ class _SessionRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${session.sets} sets · ${_compactVol(session.volume)} $suffix',
+            '${session.sets} sets · ${compactVolume(session.volume, unit)} $suffix',
             style: TextStyle(
               color: cs.tertiary,
               fontSize: context.tokens.size.small,
@@ -438,11 +436,6 @@ class _SessionRow extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  static String _compactVol(double v) {
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}k';
-    return v.round().toString();
   }
 }
 

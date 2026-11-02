@@ -71,15 +71,13 @@ class MultiplayerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$leaveCurrentSession, request, options: options);
   }
 
-  /// Fetch every participant snapshot ever recorded for a specific session.
-  /// Used for historical views (e.g. "who was in this past workout's session").
-  $grpc.ResponseFuture<$0.GetSessionParticipantsResponse>
-      getSessionParticipants(
-    $0.GetSessionParticipantsRequest request, {
+  /// Who else was in each of the given past sessions, in one call: History
+  /// and a past workout's summary ("who did I train with").
+  $grpc.ResponseFuture<$0.GetSessionRostersResponse> getSessionRosters(
+    $0.GetSessionRostersRequest request, {
     $grpc.CallOptions? options,
   }) {
-    return $createUnaryCall(_$getSessionParticipants, request,
-        options: options);
+    return $createUnaryCall(_$getSessionRosters, request, options: options);
   }
 
   /// People the caller has trained with (shared a session), most-recent first.
@@ -142,11 +140,11 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/LeaveCurrentSession',
       ($0.LeaveCurrentSessionRequest value) => value.writeToBuffer(),
       $0.LeaveCurrentSessionResponse.fromBuffer);
-  static final _$getSessionParticipants = $grpc.ClientMethod<
-          $0.GetSessionParticipantsRequest, $0.GetSessionParticipantsResponse>(
-      '/workout.v1.MultiplayerService/GetSessionParticipants',
-      ($0.GetSessionParticipantsRequest value) => value.writeToBuffer(),
-      $0.GetSessionParticipantsResponse.fromBuffer);
+  static final _$getSessionRosters = $grpc.ClientMethod<
+          $0.GetSessionRostersRequest, $0.GetSessionRostersResponse>(
+      '/workout.v1.MultiplayerService/GetSessionRosters',
+      ($0.GetSessionRostersRequest value) => value.writeToBuffer(),
+      $0.GetSessionRostersResponse.fromBuffer);
   static final _$getTrainingPartners = $grpc.ClientMethod<
           $0.GetTrainingPartnersRequest, $0.GetTrainingPartnersResponse>(
       '/workout.v1.MultiplayerService/GetTrainingPartners',
@@ -210,15 +208,15 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.LeaveCurrentSessionRequest.fromBuffer(value),
         ($0.LeaveCurrentSessionResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetSessionParticipantsRequest,
-            $0.GetSessionParticipantsResponse>(
-        'GetSessionParticipants',
-        getSessionParticipants_Pre,
+    $addMethod($grpc.ServiceMethod<$0.GetSessionRostersRequest,
+            $0.GetSessionRostersResponse>(
+        'GetSessionRosters',
+        getSessionRosters_Pre,
         false,
         false,
         ($core.List<$core.int> value) =>
-            $0.GetSessionParticipantsRequest.fromBuffer(value),
-        ($0.GetSessionParticipantsResponse value) => value.writeToBuffer()));
+            $0.GetSessionRostersRequest.fromBuffer(value),
+        ($0.GetSessionRostersResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.GetTrainingPartnersRequest,
             $0.GetTrainingPartnersResponse>(
         'GetTrainingPartners',
@@ -293,14 +291,14 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
   $async.Future<$0.LeaveCurrentSessionResponse> leaveCurrentSession(
       $grpc.ServiceCall call, $0.LeaveCurrentSessionRequest request);
 
-  $async.Future<$0.GetSessionParticipantsResponse> getSessionParticipants_Pre(
+  $async.Future<$0.GetSessionRostersResponse> getSessionRosters_Pre(
       $grpc.ServiceCall $call,
-      $async.Future<$0.GetSessionParticipantsRequest> $request) async {
-    return getSessionParticipants($call, await $request);
+      $async.Future<$0.GetSessionRostersRequest> $request) async {
+    return getSessionRosters($call, await $request);
   }
 
-  $async.Future<$0.GetSessionParticipantsResponse> getSessionParticipants(
-      $grpc.ServiceCall call, $0.GetSessionParticipantsRequest request);
+  $async.Future<$0.GetSessionRostersResponse> getSessionRosters(
+      $grpc.ServiceCall call, $0.GetSessionRostersRequest request);
 
   $async.Future<$0.GetTrainingPartnersResponse> getTrainingPartners_Pre(
       $grpc.ServiceCall $call,

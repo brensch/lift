@@ -226,9 +226,7 @@ impl Account {
 
     /// The user has [library_id]: a template follows it or was made from it.
     pub fn has_library_entry(&self, library_id: &str) -> bool {
-        self.templates
-            .iter()
-            .any(|t| t.library_id == library_id || t.origin_library_id == library_id)
+        self.templates.iter().any(|t| follows(t, library_id))
     }
 
     // ── Writes ──
@@ -592,4 +590,9 @@ fn library_copy(entry: &LibraryTemplate, in_rotation: bool) -> WorkoutTemplate {
         coupled: true,
         ..Default::default()
     }
+}
+
+/// [template] follows library entry [library_id] or was made from it.
+pub fn follows(template: &WorkoutTemplate, library_id: &str) -> bool {
+    template.library_id == library_id || template.origin_library_id == library_id
 }

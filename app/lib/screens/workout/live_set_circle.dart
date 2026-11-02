@@ -47,7 +47,7 @@ class LiveSetCircle extends StatelessWidget {
       onTap = null;
     } else if (done == null &&
         state != SetCircleState.lifting &&
-        isFirstEver(w, set)) {
+        w.isFirstTime(set)) {
       onTap = () => showFirstTimeDialog(context, wp, set);
     } else {
       onTap = () => tapSet(wp, w, set);
@@ -56,7 +56,7 @@ class LiveSetCircle extends StatelessWidget {
       number: reps,
       state: state,
       // Nothing known yet about a first-ever exercise.
-      text: done == null && isFirstEver(w, set) ? '?' : null,
+      text: done == null && w.isFirstTime(set) ? '?' : null,
       nextColor: nextColor,
       small: set.warmup,
       onTap: onTap,
@@ -96,19 +96,6 @@ class LiveSetCircle extends StatelessWidget {
     }
     return wp.startSet(set.id);
   }
-
-  /// The opening set of an exercise never done before: nothing of its
-  /// calibration sets is lifted yet.
-  static bool isFirstEver(SectionWorkout w, ProposedSet set) =>
-      set.calibration &&
-      // Started ("test me", or the watch): it is a set like any other.
-      w.liftingSetId != set.id &&
-      !w.proposedSets.any(
-        (s) =>
-            s.exercise == set.exercise &&
-            s.calibration &&
-            w.doneFor(s.id) != null,
-      );
 }
 
 /// First time doing an exercise: give the weight you lift (the working sets

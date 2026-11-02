@@ -9,6 +9,7 @@
 use crate::exercise_catalog::{muscles, ALL_MUSCLES};
 use crate::history::WorkoutRecord;
 use crate::pb::{Exercise, MuscleGroup};
+use crate::progress::is_done;
 
 const HOUR: i64 = 3600;
 
@@ -54,11 +55,7 @@ fn trained_exercises(record: &WorkoutRecord) -> Vec<Exercise> {
         if proposed.warmup {
             continue;
         }
-        let done = record
-            .completed_sets
-            .iter()
-            .any(|c| c.proposed_set_id == proposed.id && c.ended_at != 0);
-        if done {
+        if is_done(&proposed.id, &record.completed_sets) {
             let ex = Exercise::try_from(proposed.exercise).unwrap_or(Exercise::Unspecified);
             if !out.contains(&ex) {
                 out.push(ex);

@@ -24,9 +24,9 @@ service MultiplayerService {
   // so peers in the session still see their historical state.
   rpc LeaveCurrentSession(LeaveCurrentSessionRequest) returns (LeaveCurrentSessionResponse);
 
-  // Fetch every participant snapshot ever recorded for a specific session.
-  // Used for historical views (e.g. "who was in this past workout's session").
-  rpc GetSessionParticipants(GetSessionParticipantsRequest) returns (GetSessionParticipantsResponse);
+  // Who else was in each of the given past sessions, in one call: History
+  // and a past workout's summary ("who did I train with").
+  rpc GetSessionRosters(GetSessionRostersRequest) returns (GetSessionRostersResponse);
 
   // People the caller has trained with (shared a session), most-recent first.
   // Backed by the durable session_members roster, so it survives leaving a
@@ -65,13 +65,21 @@ message LeaveCurrentSessionResponse {}
 
 message GetCurrentSessionRequest {}
 
-message GetSessionParticipantsRequest {
-  string session_id = 1;
+message GetSessionRostersRequest {
+  repeated string session_ids = 1;
 }
 
-message GetSessionParticipantsResponse {
+// One roster per asked session the caller was in, in the order asked; a
+// session the caller was not in is left out.
+message GetSessionRostersResponse {
+  repeated SessionRoster rosters = 1;
+}
+
+// Everyone but the caller who was ever in a session, in the order they
+// joined. It survives everyone leaving.
+message SessionRoster {
   string session_id = 1;
-  repeated ParticipantStatus participants = 2;
+  repeated User partners = 2;
 }
 
 message GetCurrentSessionResponse {
@@ -109,6 +117,9 @@ message ParticipantStatus {
 
   // As GetWorkoutResponse.passed_warmup_ids.
   repeated string passed_warmup_ids = 11;
+
+  // As GetWorkoutResponse.first_time_set_ids.
+  repeated string first_time_set_ids = 12;
 
   reserved 8, 9;
   reserved "rest_until", "has_active_set";

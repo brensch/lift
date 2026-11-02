@@ -56,15 +56,6 @@ class MultiplayerServiceWrapper {
     return response.requestId;
   }
 
-  /// The caller's incoming (pending) join requests, to prompt approve/decline.
-  Future<List<JoinRequest>> getJoinRequests() async {
-    final response = await _client.multiplayerService.getJoinRequests(
-      GetJoinRequestsRequest(),
-      options: _defaultCallOptions,
-    );
-    return response.requests;
-  }
-
   /// Approve or decline a join request. Returns the session id when accepted.
   Future<String> respondJoinRequest(String requestId, bool accept) async {
     final response = await _client.multiplayerService.respondJoinRequest(
@@ -87,17 +78,19 @@ class MultiplayerServiceWrapper {
     );
   }
 
-  Future<GetSessionParticipantsResponse> getSessionParticipants(
-    String sessionId,
+  /// Who else was in each of [sessionIds] the caller was in, in one call.
+  Future<List<SessionRoster>> getSessionRosters(
+    Iterable<String> sessionIds,
   ) async {
-    return await retryReadAfterReconnect(
-      operation: 'GetSessionParticipants',
+    final response = await retryReadAfterReconnect(
+      operation: 'GetSessionRosters',
       resetChannel: _client.resetChannel,
-      rpc: () => _client.multiplayerService.getSessionParticipants(
-        GetSessionParticipantsRequest()..sessionId = sessionId,
+      rpc: () => _client.multiplayerService.getSessionRosters(
+        GetSessionRostersRequest(sessionIds: sessionIds),
         options: _defaultCallOptions,
       ),
     );
+    return response.rosters;
   }
 
   Future<void> leaveCurrentSession() async {

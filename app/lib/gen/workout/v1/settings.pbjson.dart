@@ -61,15 +61,15 @@ final $typed_data.Uint8List weightUnitDescriptor = $convert.base64Decode(
 const PlateColor$json = {
   '1': 'PlateColor',
   '2': [
-    {'1': 'weight_kg', '3': 1, '4': 1, '5': 2, '10': 'weightKg'},
+    {'1': 'weight', '3': 1, '4': 1, '5': 2, '10': 'weight'},
     {'1': 'hex_color', '3': 2, '4': 1, '5': 9, '10': 'hexColor'},
   ],
 };
 
 /// Descriptor for `PlateColor`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List plateColorDescriptor = $convert.base64Decode(
-    'CgpQbGF0ZUNvbG9yEhsKCXdlaWdodF9rZxgBIAEoAlIId2VpZ2h0S2cSGwoJaGV4X2NvbG9yGA'
-    'IgASgJUghoZXhDb2xvcg==');
+    'CgpQbGF0ZUNvbG9yEhYKBndlaWdodBgBIAEoAlIGd2VpZ2h0EhsKCWhleF9jb2xvchgCIAEoCV'
+    'IIaGV4Q29sb3I=');
 
 @$core.Deprecated('Use plateColorsConfigDescriptor instead')
 const PlateColorsConfig$json = {

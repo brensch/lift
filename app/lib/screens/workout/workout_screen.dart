@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 
-import '../../tutorial/tutorial_target.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../gen/copy.dart';
@@ -224,13 +223,10 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
         const SizedBox(height: 8),
         // ── The views, by name ──
-        TutorialTarget(
-          id: 'workout_tabs',
-          child: PageTabs(
-            tabs: pageTabs,
-            index: _page,
-            onTap: (i) => setState(() => _page = i),
-          ),
+        PageTabs(
+          tabs: pageTabs,
+          index: _page,
+          onTap: (i) => setState(() => _page = i),
         ),
         Divider(height: 1, color: colorScheme.outline.withValues(alpha: 0.8)),
 

@@ -66,6 +66,19 @@ fn client_ip<T>(request: &Request<T>) -> Option<String> {
         .or_else(|| request.remote_addr().map(|a| a.ip().to_string()))
 }
 
+/// Who is counted as one client for the limit on ceremonies in flight: the
+/// address, or for IPv6 its /64, which one host can move freely within.
+fn client_key<T>(request: &Request<T>) -> String {
+    let ip = client_ip(request).unwrap_or_default();
+    match ip.parse::<std::net::IpAddr>() {
+        Ok(std::net::IpAddr::V6(v6)) => {
+            let s = v6.segments();
+            format!("{:x}:{:x}:{:x}:{:x}::/64", s[0], s[1], s[2], s[3])
+        }
+        _ => ip,
+    }
+}
+
 #[tonic::async_trait]
 impl AuthService for ServerAuthService {
     /// Development-only login that bypasses WebAuthn entirely.
@@ -114,10 +127,7 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<LogoutRequest>,
     ) -> Result<Response<LogoutResponse>, Status> {
-        let token = request
-            .metadata()
-            .get("x-session-token")
-            .and_then(|v| v.to_str().ok())
+        let token = session_token(&request)
             .ok_or_else(|| Status::unauthenticated("Missing session token"))?;
         info!(rpc = "Logout", "request");
         self.db
@@ -132,6 +142,7 @@ impl AuthService for ServerAuthService {
         request: Request<RegisterStartRequest>,
     ) -> Result<Response<RegisterStartResponse>, Status> {
         let (platform, app_version) = client_labels(&request);
+        let client = client_key(&request);
         let req = request.into_inner();
         let username = req.username.trim().to_string();
         info!(rpc = "RegisterStart", %username, "request");
@@ -156,7 +167,7 @@ impl AuthService for ServerAuthService {
 
         let (user_id, options) = self
             .auth_state
-            .start_registration(&username)
+            .start_registration(&username, &client)
             .await
             .map_err(Status::internal)?;
         self.track_attempt_start(&user_id, "register", &platform, &app_version)
@@ -211,17 +222,18 @@ impl AuthService for ServerAuthService {
         request: Request<LoginStartRequest>,
     ) -> Result<Response<LoginStartResponse>, Status> {
         let (platform, app_version) = client_labels(&request);
+        let client = client_key(&request);
         let req = request.into_inner();
         info!(rpc = "LoginStart", "request");
         let (challenge_id, options) = match req.username.as_deref() {
             Some(username) if !username.trim().is_empty() => self
                 .auth_state
-                .start_authentication_with_username(username.trim())
+                .start_authentication_with_username(username.trim(), &client)
                 .await
                 .map_err(Status::invalid_argument)?,
             _ => self
                 .auth_state
-                .start_authentication()
+                .start_authentication(&client)
                 .await
                 .map_err(Status::internal)?,
         };
@@ -275,7 +287,7 @@ impl AuthService for ServerAuthService {
             .ok_or_else(|| Status::not_found("User not found"))?;
         let options = self
             .auth_state
-            .start_add_passkey(&user_id, &user.name)
+            .start_add_passkey(&user_id, &user.name, &client_key(&request))
             .await
             .map_err(Status::internal)?;
         let options_json =
@@ -364,11 +376,7 @@ impl AuthService for ServerAuthService {
             .delete_user_account_and_data(&user_id)
             .await
             .map_err(internal_error)?;
-        if let Some(token) = request
-            .metadata()
-            .get("x-session-token")
-            .and_then(|v| v.to_str().ok())
-        {
+        if let Some(token) = session_token(&request) {
             let _ = self.db.delete_auth_session(token).await;
         }
         Ok(Response::new(DeleteAccountResponse {
@@ -521,6 +529,39 @@ mod auth_attempt_tests {
         assert_eq!(row.get::<String, _>("outcome"), "started");
         assert_eq!(row.get::<String, _>("platform"), "android");
         assert_eq!(row.get::<String, _>("app_version"), "1.2.3");
+    }
+
+    fn login_from(ip: &str) -> Request<LoginStartRequest> {
+        let mut request = Request::new(LoginStartRequest { username: None });
+        request
+            .metadata_mut()
+            .insert("x-forwarded-for", ip.parse().unwrap());
+        request
+    }
+
+    /// One client starting sign-ins without end is refused past its share;
+    /// everyone else can still sign in.
+    #[tokio::test]
+    async fn one_client_cannot_crowd_out_the_others_sign_ins() {
+        let db = temp_db().await;
+        let auth = service(&db).await;
+        let mut refused = false;
+        for _ in 0..50 {
+            if auth.login_start(login_from("203.0.113.7")).await.is_err() {
+                refused = true;
+                break;
+            }
+        }
+        assert!(refused, "the flood is cut off");
+        // Another address in the same IPv6 /64 is the same client.
+        for ip in ["2001:db8::1", "2001:db8::2"] {
+            for _ in 0..25 {
+                let _ = auth.login_start(login_from(ip)).await;
+            }
+        }
+        assert!(auth.login_start(login_from("2001:db8::3")).await.is_err());
+        assert!(auth.login_start(login_from("198.51.100.1")).await.is_ok());
+        assert!(auth.login_start(login_from("2001:db8:1::1")).await.is_ok());
     }
 
     /// The unauthenticated report path must not be a way to write rows.

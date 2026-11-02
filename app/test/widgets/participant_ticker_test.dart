@@ -4,6 +4,7 @@ import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/group.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/theme/schlift_spec.dart';
+import 'package:schlift/logic/session_state.dart';
 import 'package:schlift/widgets/participant_ticker.dart';
 
 void main() {

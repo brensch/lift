@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 
 // ── Multiplayer Service ──
 //
@@ -168,39 +169,44 @@ impl MultiplayerService for ServerMultiplayerService {
         Ok(Response::new(current_session(&self.db, &caller_id).await?))
     }
 
-    async fn get_session_participants(
+    async fn get_session_rosters(
         &self,
-        request: Request<GetSessionParticipantsRequest>,
-    ) -> Result<Response<GetSessionParticipantsResponse>, Status> {
+        request: Request<GetSessionRostersRequest>,
+    ) -> Result<Response<GetSessionRostersResponse>, Status> {
         let caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
-        info!(rpc = "GetSessionParticipants", %caller_id, session_id = %req.session_id, "request");
-        if req.session_id.is_empty() {
-            return Err(Status::invalid_argument("session_id is required"));
-        }
-        // Historical roster: read from the durable session_members table, not the
-        // live participant cache (which is pruned when members leave). This is what
-        // backs "who did I train with" on a past workout's summary, so it must
-        // survive everyone leaving. Identity only — live progress isn't retained.
-        let member_ids = self
-            .db
-            .list_session_member_ids(&req.session_id)
-            .await
-            .map_err(internal_error)?;
-        // Only someone who was in the session may see who else was.
-        if !member_ids.contains(&caller_id) {
-            return Err(Status::not_found("session not found"));
-        }
-        let mut participants = Vec::with_capacity(member_ids.len());
-        for user_id in member_ids {
-            if let Some(user) = self.db.get_user(&user_id).await.map_err(internal_error)? {
-                participants.push(build_participant_status(user, None));
+        info!(rpc = "GetSessionRosters", %caller_id, sessions = req.session_ids.len(), "request");
+        // Historical rosters: read from the durable session_members table, not
+        // the live participant cache (which is pruned when members leave), so
+        // they survive everyone leaving. Identity only.
+        let mut users: HashMap<String, Option<User>> = HashMap::new();
+        let mut rosters = Vec::with_capacity(req.session_ids.len());
+        for session_id in req.session_ids {
+            let member_ids = self
+                .db
+                .list_session_member_ids(&session_id)
+                .await
+                .map_err(internal_error)?;
+            // Only someone who was in the session may see who else was.
+            if !member_ids.contains(&caller_id) {
+                continue;
             }
+            let mut partners = Vec::with_capacity(member_ids.len());
+            for user_id in member_ids.into_iter().filter(|id| id != &caller_id) {
+                if !users.contains_key(&user_id) {
+                    let user = self.db.get_user(&user_id).await.map_err(internal_error)?;
+                    users.insert(user_id.clone(), user);
+                }
+                if let Some(Some(user)) = users.get(&user_id) {
+                    partners.push(user.clone());
+                }
+            }
+            rosters.push(SessionRoster {
+                session_id,
+                partners,
+            });
         }
-        Ok(Response::new(GetSessionParticipantsResponse {
-            session_id: req.session_id,
-            participants,
-        }))
+        Ok(Response::new(GetSessionRostersResponse { rosters }))
     }
 
     async fn leave_current_session(

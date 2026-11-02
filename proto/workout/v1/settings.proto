@@ -20,7 +20,7 @@ enum MuscleGroup {
 // ─── Plate colors ─────────────────────────────────────────────────────────────
 
 message PlateColor {
-  float weight_kg = 1;
+  float weight = 1; // the plate's size, in the user's unit
   string hex_color = 2;
 }
 

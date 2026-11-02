@@ -46,6 +46,7 @@ DROP TABLE IF EXISTS proposed_sets;
 DROP TABLE IF EXISTS completed_sets;
 DROP TABLE IF EXISTS workout_heart_rate_samples;
 DROP TABLE IF EXISTS exercise_decisions;
+DROP TABLE IF EXISTS exercise_trackers;
 DROP TABLE IF EXISTS workout_templates;
 ";
 

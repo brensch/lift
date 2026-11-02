@@ -40,26 +40,6 @@ Future<void> showTemplateLibrary(
   );
 }
 
-/// Whether the user has [entry]: a template follows it, or is their own
-/// made from it. Such an entry is never offered to add again.
-bool hasLibraryEntry(List<WorkoutTemplate> templates, LibraryTemplate entry) =>
-    templates.any(
-      (t) => t.libraryId == entry.id || t.originLibraryId == entry.id,
-    );
-
-/// Whether [rotation] is [plan] already: the same workouts, each one following
-/// or made from one of the plan's entries. The order is not compared (the
-/// suggestion does not go through the rotation in order).
-bool isCurrentPlan(List<WorkoutTemplate> rotation, LibraryPlan plan) {
-  if (rotation.length != plan.libraryIds.length) return false;
-  final left = plan.libraryIds.toSet();
-  for (final t in rotation) {
-    final id = left.contains(t.libraryId) ? t.libraryId : t.originLibraryId;
-    if (!left.remove(id)) return false;
-  }
-  return left.isEmpty;
-}
-
 class _LibrarySheet extends StatefulWidget {
   const _LibrarySheet();
 
@@ -271,12 +251,12 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   }
 
   /// Below the list: the ready-made plans (the one the rotation is
-  /// already says so), then the library workouts the user does not have,
-  /// by group, each added to the rotation with +, each saying what it
-  /// would add.
+  /// already says so), then the library workouts the user does not have
+  /// ([addableIds], as the core says), by group, each added to the
+  /// rotation with +, each saying what it would add.
   Widget _addSection(
-    List<WorkoutTemplate> templates,
-    List<WorkoutTemplate> rotation,
+    Set<String> addableIds,
+    String currentPlanId,
     Map<String, List<MuscleGroup>> adds,
   ) {
     final l = copy.library;
@@ -295,7 +275,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
         if (entries.isEmpty) return _Note(l.empty);
         final names = {for (final e in entries) e.id: e.name};
         final addable = entries
-            .where((e) => !hasLibraryEntry(templates, e))
+            .where((e) => addableIds.contains(e.id))
             .toList();
         if (addable.isEmpty && library.plans.isEmpty) {
           return const SizedBox.shrink();
@@ -310,7 +290,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                 key: ValueKey('plan-${plan.id}'),
                 plan: plan,
                 workouts: [for (final id in plan.libraryIds) names[id] ?? id],
-                current: isCurrentPlan(rotation, plan),
+                current: plan.id == currentPlanId,
                 onApply: _busy.contains('plan:${plan.id}')
                     ? null
                     : () => _apply(plan),
@@ -400,7 +380,11 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                   ),
                   null => null,
                 },
-                footer: _addSection(templates, split.rotation, adds.library),
+                footer: _addSection(
+                  {...?wp.home?.addableLibraryIds},
+                  wp.home?.currentPlanId ?? '',
+                  adds.library,
+                ),
                 itemCount: items.length,
                 // newIndex is already adjusted for the removed item.
                 onReorderItem: (from, to) => _reorder(items, from, to),

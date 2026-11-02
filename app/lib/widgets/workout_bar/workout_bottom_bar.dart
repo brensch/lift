@@ -372,10 +372,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                               ),
                         firstTime:
                             you.set != null &&
-                            LiveSetCircle.isFirstEver(
-                              SectionWorkout.mine(wp),
-                              you.set!,
-                            ),
+                            wp.firstTimeSetIds.contains(you.set!.id),
                       ),
                     ),
                     if (allDone && wp.workout?.endTime == Int64.ZERO) ...[

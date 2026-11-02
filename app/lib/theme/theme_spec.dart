@@ -89,7 +89,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     this.onError = Colors.white,
     this.success = const Color(0xFF16A34A),
     this.ready = const Color(0xFF3AD98B),
-    this.warning = const Color(0xFFCA8A04),
     this.overdue = const Color(0xFFF5B544),
     this.warmup = const Color(0xFF6B7280),
     this.resting = const Color(0xFF3B82F6),
@@ -171,7 +170,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   /// Ready / done-today green on the home screen.
   final Color ready;
-  final Color warning;
 
   /// Overdue amber.
   final Color overdue;

@@ -161,8 +161,9 @@ fn statement(sql: &'static str, params: Vec<Value>) -> Statement {
 }
 
 /// Rewrite one workout's rows, all but its heart rate (see
-/// [heart_rate_statements]). `session_id` is the session it was trained in,
-/// which only the server knows; the phone passes what the row had.
+/// [heart_rate_statements]). `session_id` is the session it was trained in:
+/// the one recorded on the workout, or the server's own guess for a workout
+/// without one.
 pub fn workout_statements(
     user_id: &str,
     record: &WorkoutRecord,
@@ -314,24 +315,7 @@ fn heart_rate_rows(user_id: &str, record: &WorkoutRecord, first: usize) -> Vec<S
 
 /// Every readable row of the account, into empty tables: an export.
 pub fn account_export_statements(user_id: &str, account: &Account) -> Vec<Statement> {
-    let mut out = account_statements(user_id, account);
-    for record in &account.workouts {
-        out.extend(workout_statements(
-            user_id,
-            record,
-            &record.workout.session_id,
-        ));
-        out.extend(heart_rate_rows(user_id, record, 0));
-    }
-    out
-}
-
-/// Rewrite the templates (small: done whole).
-fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
-    let mut out = vec![statement(
-        "DELETE FROM workout_templates WHERE user_id = ?",
-        vec![user_id.into()],
-    )];
+    let mut out = Vec::new();
     for t in &account.templates {
         let exercises = t
             .exercises
@@ -355,6 +339,14 @@ fn account_statements(user_id: &str, account: &Account) -> Vec<Statement> {
                 t.updated_at.into(),
             ],
         ));
+    }
+    for record in &account.workouts {
+        out.extend(workout_statements(
+            user_id,
+            record,
+            &record.workout.session_id,
+        ));
+        out.extend(heart_rate_rows(user_id, record, 0));
     }
     out
 }

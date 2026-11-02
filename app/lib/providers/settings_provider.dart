@@ -108,7 +108,7 @@ class SettingsProvider extends ChangeNotifier {
 
     final config = PlateColorsConfig(
       plates: colors.entries
-          .map((e) => PlateColor(weightKg: e.key, hexColor: colorHex(e.value)))
+          .map((e) => PlateColor(weight: e.key, hexColor: colorHex(e.value)))
           .toList(),
     );
 
@@ -126,7 +126,7 @@ class SettingsProvider extends ChangeNotifier {
     for (final plate in config.plates) {
       final color = colorFromHex(plate.hexColor);
       if (color != null) {
-        colors[plate.weightKg] = color;
+        colors[plate.weight] = color;
       }
     }
     if (colors.isNotEmpty) {

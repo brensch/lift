@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use prost::Message;
 
-use crate::account::{Account, CoreError};
+use crate::account::{follows, Account, CoreError};
 use crate::exercise_catalog::all_exercises;
 use crate::history::WorkoutRecord;
 use crate::ids::derived_id;
@@ -346,7 +346,7 @@ impl<'a> Call<'a> {
         let mut rotation: Vec<String> = Vec::with_capacity(plan.library_ids.len());
         for id in &plan.library_ids {
             // One already in the rotation before any other made from it.
-            let from = |t: &&WorkoutTemplate| &t.library_id == id || &t.origin_library_id == id;
+            let from = |t: &&WorkoutTemplate| follows(t, id);
             let mine = templates
                 .iter()
                 .filter(from)
@@ -474,8 +474,8 @@ impl<'a> View<'a> {
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))
     }
 
-    /// A workout as the app shows it: visible sets, each lift's log and
-    /// estimated max after it.
+    /// A workout as the app shows it: visible sets, each lift's log and,
+    /// once it is finished, the estimated max after it.
     pub fn workout_response(&self, id: &str) -> Result<GetWorkoutResponse, CoreError> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
@@ -483,7 +483,12 @@ impl<'a> View<'a> {
         // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
         response.proposed_sets.retain(|s| !s.cancelled);
-        if let Some(summary) = &mut response.summary {
+        // A lift's max moves only once its workout is finished.
+        if let Some(summary) = response
+            .summary
+            .as_mut()
+            .filter(|_| record.workout.end_time > 0)
+        {
             let planner = Planner::new(self.account, self.now);
             for lift in &mut summary.exercises {
                 let Ok(exercise) = Exercise::try_from(lift.exercise) else {
@@ -749,6 +754,10 @@ impl<'a> View<'a> {
             volume,
             recovery,
             rotation_check: Some(rotation_check(&templates, &addable)),
+            addable_library_ids: addable.iter().map(|e| e.id.clone()).collect(),
+            current_plan_id: current_plan(&templates)
+                .map(|p| p.id.clone())
+                .unwrap_or_default(),
             suggested_template_id: suggestion
                 .as_ref()
                 .map(|s| s.template_id.clone())
@@ -792,6 +801,27 @@ impl<'a> View<'a> {
             settings: self.account.settings.clone(),
         }
     }
+}
+
+/// The ready-made plan the rotation already is: the same workouts, each
+/// following or made from one of the plan's entries. The order is not
+/// compared (the suggestion does not go through the rotation in order).
+fn current_plan(templates: &[WorkoutTemplate]) -> Option<&'static LibraryPlan> {
+    let rotation: Vec<&WorkoutTemplate> = templates.iter().filter(|t| t.in_rotation).collect();
+    crate::template_library::plans().iter().find(|plan| {
+        let mut left: Vec<&String> = plan.library_ids.iter().collect();
+        rotation.len() == left.len()
+            && rotation.iter().all(|t| {
+                let at = |id: &str| left.iter().position(|l| l.as_str() == id);
+                match at(&t.library_id).or_else(|| at(&t.origin_library_id)) {
+                    Some(i) => {
+                        left.remove(i);
+                        true
+                    }
+                    None => false,
+                }
+            })
+    })
 }
 
 /// The valid exercises of a list, in order, each once: a workout has a lift

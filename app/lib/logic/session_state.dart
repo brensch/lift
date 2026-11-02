@@ -1,9 +1,12 @@
 /// Pure session/workout-state logic: snapshot-state predicates, participant ordering, and the client-side "who lifts next" derivation. No Flutter imports.
 library;
 
+import 'dart:math';
+
+import 'package:fixnum/fixnum.dart';
+
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/group.pb.dart';
-import '../widgets/participant_ticker.dart';
 
 String formatRestClock(int seconds) {
   final m = seconds.abs() ~/ 60;
@@ -42,6 +45,79 @@ bool isLiftingState(int state) =>
 /// The last set's rest has run out and the next set isn't started.
 bool isYappingState(int state) =>
     state == WorkoutState.WORKOUT_STATE_YAPPING.value;
+
+/// A snapshot's state on this clock. The snapshot is from the last change,
+/// so a rest it says is running may have run out since: that is yapping.
+WorkoutState stateAt(WorkoutStateSnapshot? snapshot, int nowUnix) {
+  final state = snapshot?.state ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED;
+  if (state == WorkoutState.WORKOUT_STATE_RESTING &&
+      snapshot!.restUntil.toInt() <= nowUnix) {
+    return WorkoutState.WORKOUT_STATE_YAPPING;
+  }
+  return state;
+}
+
+/// The set a workout shows: the snapshot's, else the next one up.
+ProposedSet? shownSet(WorkoutStateSnapshot? snapshot, ProposedSet? nextUp) =>
+    snapshot != null && snapshot.hasDisplaySet() ? snapshot.displaySet : nextUp;
+
+/// When a lifter is due at the rack: their rest end, past or not, or now
+/// with no rest running. Null while lifting (on the rack, not waiting for
+/// it), when all done, or with no set left.
+int? scheduledStartUnix({
+  required int stateValue,
+  required int restUntil,
+  required bool hasNextSet,
+  required int nowUnix,
+}) {
+  if (!hasNextSet || isAllDoneState(stateValue) || isLiftingState(stateValue)) {
+    return null;
+  }
+  return restUntil > 0 ? restUntil : nowUnix;
+}
+
+/// A partner's [scheduledStartUnix]; null once their workout has ended.
+int? participantScheduledStartUnix(
+  ParticipantStatus participant, {
+  required int nowUnix,
+}) {
+  if (participant.hasActiveWorkout() &&
+      participant.activeWorkout.endTime != Int64.ZERO) {
+    return null;
+  }
+  final snapshot = participant.hasStateSnapshot()
+      ? participant.stateSnapshot
+      : null;
+  return scheduledStartUnix(
+    stateValue:
+        snapshot?.state.value ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED.value,
+    restUntil: snapshot?.restUntil.toInt() ?? 0,
+    hasNextSet: participant.hasNextUpSet(),
+    nowUnix: nowUnix,
+  );
+}
+
+String participantDisplayName(ParticipantStatus participant) {
+  final name = participant.user.name.trim();
+  if (name.isNotEmpty) return name;
+  final id = participant.user.id.trim();
+  if (id.isNotEmpty) return id;
+  return 'Unknown';
+}
+
+/// How much of a rest is still to go, 0..1: from the last set's Done to
+/// [restUntil]. Null when there's no rest to measure.
+double? restLeftFraction(
+  Iterable<CompletedSet> completedSets,
+  int restUntil,
+  int nowUnix,
+) {
+  if (completedSets.isEmpty || restUntil <= 0) return null;
+  final start = completedSets.map((c) => c.endedAt.toInt()).reduce(max);
+  final total = restUntil - start;
+  if (total <= 0) return null;
+  return ((restUntil - nowUnix) / total).clamp(0.0, 1.0);
+}
 
 int compareParticipantsByNextWorkout(
   ParticipantStatus a,
@@ -95,13 +171,12 @@ String? computeNextToLiftUserId({
   }
 
   if (myUserId != null && myUserId.isNotEmpty) {
-    // Lifting is on the rack already, not waiting for it.
-    final myStart =
-        !isAllDoneState(stateValue) &&
-            !isLiftingState(stateValue) &&
-            nextSet != null
-        ? (restUntil > 0 ? restUntil : nowUnix)
-        : null;
+    final myStart = scheduledStartUnix(
+      stateValue: stateValue,
+      restUntil: restUntil,
+      hasNextSet: nextSet != null,
+      nowUnix: nowUnix,
+    );
     if (myStart != null && isCandidate(myUserId, myStart)) {
       bestId = myUserId;
       bestStart = myStart;
@@ -110,5 +185,3 @@ String? computeNextToLiftUserId({
 
   return bestId;
 }
-
-// ─── WorkoutBottomBar ─────────────────────────────────────────────────────────

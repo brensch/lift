@@ -1492,6 +1492,52 @@ mod calibration {
         assert_eq!(squat[0].target_weight, 135.0);
     }
 
+    /// A never-done lift's ramp asks for a weight until it is started or
+    /// a rung of it is done; a lift with no ramp never asks.
+    #[test]
+    fn a_ramp_asks_for_a_weight_until_it_is_started() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat, Exercise::PullUp]);
+        let rung1 = started.proposed_sets[0].clone();
+        let batch = |app: &mut App, m: Mutation| {
+            app.call()
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![mutation(m)],
+                })
+                .unwrap()
+                .workout_state
+                .unwrap()
+        };
+        let state = app
+            .view()
+            .get_workout(GetWorkoutRequest {
+                workout_id: started.id.clone(),
+            })
+            .unwrap();
+        assert_eq!(state.first_time_set_ids, vec![rung1.id.clone()]);
+        let state = batch(
+            &mut app,
+            Mutation::StartSet(StartSetRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: rung1.id.clone(),
+                started_at: NOW + 10,
+            }),
+        );
+        assert!(state.first_time_set_ids.is_empty(), "started: tested");
+        let state = batch(
+            &mut app,
+            Mutation::CompleteSet(CompleteSetRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: rung1.id.clone(),
+                actual_reps: 5,
+                actual_weight: rung1.target_weight,
+                completed_at: NOW + 60,
+            }),
+        );
+        assert!(state.first_time_set_ids.is_empty(), "a rung done");
+    }
+
     #[test]
     fn bodyweight_never_calibrates() {
         let mut app = App::new();
@@ -2430,6 +2476,14 @@ mod rotation {
             ),
         );
         assert_eq!(home.templates.len(), before + 2, "push and legs added");
+        assert_eq!(home.current_plan_id, "push_pull_legs");
+        for had in ["push", "pull", "legs", "arms"] {
+            assert!(
+                !home.addable_library_ids.iter().any(|id| id == had),
+                "{had} is not offered again"
+            );
+        }
+        assert!(!home.addable_library_ids.is_empty());
         let mine = home.templates.iter().find(|t| t.id == pull.id).unwrap();
         assert!(mine.in_rotation && !mine.coupled, "the user's own is used");
         assert!(
@@ -2447,6 +2501,7 @@ mod rotation {
         let home = apply_plan(&mut app, "stronglifts");
         assert_eq!(home.templates.len(), count);
         assert_eq!(app.log.len(), events + 1, "only the reorder");
+        assert_eq!(home.current_plan_id, "stronglifts");
         assert_eq!(
             sections(&home),
             (

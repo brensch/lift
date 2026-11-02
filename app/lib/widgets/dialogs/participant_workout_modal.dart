@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import '../../gen/workout/v1/group.pb.dart';
 import '../../logic/exercise_blocks.dart';
+import '../../logic/session_state.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../screens/workout/exercise_section.dart';

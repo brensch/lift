@@ -9,7 +9,7 @@ edition = "2021"
 
 [dependencies]
 prost = "0.13.4"
-uuid = { version = "1.11.0", features = ["v4", "v5", "fast-rng"] }
+uuid = { version = "1.11.0", features = ["v5"] }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
 zstd = "0.13"
@@ -17,6 +17,7 @@ zstd = "0.13"
 [dev-dependencies]
 clap = { version = "4.5", features = ["derive"] }
 rand = "0.8"
+uuid = { version = "1.11.0", features = ["v4"] }
 
 [build-dependencies]
 prost-build = "0.13.4"

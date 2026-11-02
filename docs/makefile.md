@@ -76,6 +76,7 @@ channel that does come from CI, because it runs on the server.
 | `make agent-backend-start` / `agent-backend-stop` | Background instance with a pidfile and a log, waits for `/api/health`. Uses `:50051`, so it collides with any other backend on the machine. |
 | `make run-web-dev` | Backend + web dev server together. `make run-frontend` is the web half. |
 | `make check` | `cargo check` + web build. |
+| `make progression-explorer` | Rewrites `testdata/progression_scenarios.json` from the core (`UPDATE_SCENARIOS=1`) and builds `.tmp/progression-explorer.html` (`PROGRESSION_EXPLORER_OUT`). Review the snapshot diff before committing. |
 | `make fuzz-api` | The core's invariant fuzzer, in-process (`cargo run -p schlift-core --example fuzz`; `FUZZ_USERS`, `FUZZ_SESSIONS`, `FUZZ_SEED`). No backend needed. `make fuzz-api-ci` is the fixed-seed run CI does. |
 
 For a throwaway instance that collides with nothing, skip make:

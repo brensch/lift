@@ -14,28 +14,23 @@ tutorial:
 
   # The walkthrough runs over the real screens with a sample account behind
   # them. Each step points at one `target` (an id the screens know: see
-  # TutorialTarget in the code) on a `screen` (home), with the explanation
+  # TutorialTarget in the code) on the home screen, with the explanation
   # in a popover beside it. The tour ends at Start; the workout screen
   # explains itself.
   steps:
-    - screen: home
-      target: home_volume
+    - target: home_volume
       title: I'm tracking your muscles.
       body: Not in a creepy way though. I'll let you know which muscle groups need more work and which have rested enough.
-    - screen: home
-      target: home_templates
+    - target: home_templates
       title: Pick your workout
       body: The star is today's suggestion, picked from whatever covers the most unworked muscles. You can pick whatever you want though, ie butt again.
-    - screen: home
-      target: home_add
+    - target: home_add
       title: Need more options?
       body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your rotation, or make your own.
-    - screen: home
-      target: home_time
+    - target: home_time
       title: I got your number(s)
       body: You're working hard in the gym. I'm working hard crunching the numbers. What a team. Tell me how long you want to work out and on which workout template, I'll figure out the rest.
-    - screen: home
-      target: home_start
+    - target: home_start
       title: Start
       body: Pressing Start is how you Start. Let's get schlifting!
 

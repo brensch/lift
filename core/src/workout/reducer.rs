@@ -4,7 +4,7 @@ use crate::pb::{
     AnswerRungRequest, EditCompletedSetRequest, RepsLeft, SkipWarmupsRequest, StartSetRequest,
     WeightChange, WeightChangeCause, Workout,
 };
-use crate::progress::compute_next_up_set;
+use crate::progress::{compute_next_up_set, is_done};
 use crate::weight_units::AppWeightUnit;
 
 const STATE_ALL_DONE: i32 = 1;
@@ -45,11 +45,7 @@ pub fn is_final_set_of_exercise_after_completion(
                 && set.id != proposed_set_id
                 && (current.warmup || !set.warmup)
         })
-        .any(|set| {
-            !completed_sets
-                .iter()
-                .any(|done| done.proposed_set_id == set.id && done.ended_at != 0)
-        })
+        .any(|set| !is_done(&set.id, completed_sets))
 }
 
 /// The most recently finished set, by `ended_at`.
@@ -64,7 +60,7 @@ fn last_done_set(completed_sets: &[CompletedSet]) -> Option<&CompletedSet> {
 /// `WorkoutState` in workout.proto): LIFTING while the marker points at a
 /// set that is still pending; otherwise, after a done set, RESTING while its
 /// rest runs and YAPPING once it has run out; READY before any set; ALL_DONE
-/// with nothing left. Mirrored in the app's `WorkoutProvider`.
+/// with nothing left.
 pub fn workout_state_snapshot(
     workout: &Workout,
     proposed_sets: &[ProposedSet],
@@ -80,11 +76,7 @@ pub fn workout_state_snapshot(
         let lifting = proposed_active
             .iter()
             .find(|p| p.id == workout.lifting_set_id)
-            .filter(|p| {
-                !completed_sets
-                    .iter()
-                    .any(|c| c.proposed_set_id == p.id && c.ended_at != 0)
-            });
+            .filter(|p| !is_done(&p.id, completed_sets));
         if let Some(set) = lifting {
             return WorkoutStateSnapshot {
                 state: STATE_LIFTING,
@@ -159,10 +151,17 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         })
         .map(|s| s.id.clone())
         .collect();
+    let first_time_set_ids = active
+        .proposed_sets
+        .iter()
+        .filter(|s| crate::progress::is_first_time(s, active))
+        .map(|s| s.id.clone())
+        .collect();
     GetWorkoutResponse {
         rung_question_set_id: rung_question(active).unwrap_or_default(),
         rung_outcomes: Vec::new(),
         passed_warmup_ids,
+        first_time_set_ids,
         workout: Some(active.workout.clone()),
         proposed_sets: active.proposed_sets.clone(),
         completed_sets: active.completed_sets.clone(),

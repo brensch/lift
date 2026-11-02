@@ -12,10 +12,12 @@ use webauthn_rs::WebauthnBuilder;
 use crate::db::ServerDb;
 
 const CHALLENGE_TTL_SECS: u64 = 300;
-/// Ceremonies in flight past this (of each kind, within the TTL) are
-/// refused rather than remembered: the maps can't be grown without bound by
-/// anyone calling the unauthenticated starts.
-const MAX_PENDING_CHALLENGES: usize = 10_000;
+/// Ceremonies in flight (of each kind, within the TTL) past these are
+/// refused rather than remembered: per client, so one caller of the
+/// unauthenticated starts can't crowd out everyone else's sign-ins; and in
+/// all, so many callers can't grow the maps without bound.
+const MAX_PENDING_PER_CLIENT: usize = 20;
+const MAX_PENDING_CHALLENGES: usize = 100_000;
 const TOO_MANY_PENDING: &str = "Too many sign-ins in progress; try again shortly";
 
 enum AuthChallengeState {
@@ -29,12 +31,18 @@ enum AuthChallengeState {
 struct PendingAuthChallenge {
     state: AuthChallengeState,
     issued_challenge: String,
+    client: String,
     created_at: Instant,
 }
 
 /// A registration handshake in flight: the webauthn-rs state, the username it
-/// was started for, and when it was issued (for TTL expiry).
-type PendingRegistration = (PasskeyRegistration, String, Instant);
+/// was started for, who started it, and when (for TTL expiry).
+struct PendingRegistration {
+    state: PasskeyRegistration,
+    username: String,
+    client: String,
+    created_at: Instant,
+}
 
 pub struct AuthState {
     pub webauthn: Arc<Webauthn>,
@@ -79,6 +87,7 @@ impl AuthState {
     pub async fn start_registration(
         &self,
         username: &str,
+        client: &str,
     ) -> Result<(String, CreationChallengeResponse), String> {
         let user_id = uuid::Uuid::new_v4().to_string();
         let user_unique_id =
@@ -90,13 +99,15 @@ impl AuthState {
             .map_err(|e| format!("WebAuthn error: {}", e))?;
 
         let mut challenges = self.reg_challenges.lock().await;
-        self.cleanup_expired_reg(&mut challenges);
-        if challenges.len() >= MAX_PENDING_CHALLENGES {
-            return Err(TOO_MANY_PENDING.to_string());
-        }
+        admit_registration(&mut challenges, client)?;
         challenges.insert(
             user_id.clone(),
-            (reg_state, username.to_string(), Instant::now()),
+            PendingRegistration {
+                state: reg_state,
+                username: username.to_string(),
+                client: client.to_string(),
+                created_at: Instant::now(),
+            },
         );
 
         Ok((user_id, ccr))
@@ -110,14 +121,16 @@ impl AuthState {
         name: Option<String>,
     ) -> Result<String, String> {
         let mut challenges = self.reg_challenges.lock().await;
-        let (reg_state, username, _) = challenges
+        let PendingRegistration {
+            state, username, ..
+        } = challenges
             .remove(user_id)
             .ok_or_else(|| "No pending registration challenge".to_string())?;
         drop(challenges);
 
         let passkey = self
             .webauthn
-            .finish_passkey_registration(reg, &reg_state)
+            .finish_passkey_registration(reg, &state)
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
         let cred_id = format!("{:?}", passkey.cred_id());
         self.refuse_registered(&cred_id).await?;
@@ -141,6 +154,7 @@ impl AuthState {
         &self,
         user_id: &str,
         username: &str,
+        client: &str,
     ) -> Result<CreationChallengeResponse, String> {
         let user_unique_id =
             uuid::Uuid::parse_str(user_id).map_err(|e| format!("Invalid UUID: {}", e))?;
@@ -173,13 +187,15 @@ impl AuthState {
             .map_err(|e| format!("WebAuthn error: {}", e))?;
 
         let mut challenges = self.reg_challenges.lock().await;
-        self.cleanup_expired_reg(&mut challenges);
-        if challenges.len() >= MAX_PENDING_CHALLENGES {
-            return Err(TOO_MANY_PENDING.to_string());
-        }
+        admit_registration(&mut challenges, client)?;
         challenges.insert(
             user_id.to_string(),
-            (reg_state, username.to_string(), Instant::now()),
+            PendingRegistration {
+                state: reg_state,
+                username: username.to_string(),
+                client: client.to_string(),
+                created_at: Instant::now(),
+            },
         );
 
         Ok(ccr)
@@ -193,14 +209,14 @@ impl AuthState {
         name: Option<String>,
     ) -> Result<(), String> {
         let mut challenges = self.reg_challenges.lock().await;
-        let (reg_state, _, _) = challenges
+        let pending = challenges
             .remove(user_id)
             .ok_or_else(|| "No pending add-passkey challenge".to_string())?;
         drop(challenges);
 
         let passkey = self
             .webauthn
-            .finish_passkey_registration(reg, &reg_state)
+            .finish_passkey_registration(reg, &pending.state)
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
         let cred_id = format!("{:?}", passkey.cred_id());
         self.refuse_registered(&cred_id).await?;
@@ -215,7 +231,10 @@ impl AuthState {
         Ok(())
     }
 
-    pub async fn start_authentication(&self) -> Result<(String, RequestChallengeResponse), String> {
+    pub async fn start_authentication(
+        &self,
+        client: &str,
+    ) -> Result<(String, RequestChallengeResponse), String> {
         let (rcr, auth_state) = self
             .webauthn
             .start_discoverable_authentication()
@@ -224,15 +243,13 @@ impl AuthState {
         let challenge_id = uuid::Uuid::new_v4().to_string();
 
         let mut challenges = self.auth_challenges.lock().await;
-        self.cleanup_expired_auth(&mut challenges);
-        if challenges.len() >= MAX_PENDING_CHALLENGES {
-            return Err(TOO_MANY_PENDING.to_string());
-        }
+        admit_authentication(&mut challenges, client)?;
         challenges.insert(
             challenge_id.clone(),
             PendingAuthChallenge {
                 state: AuthChallengeState::Discoverable(auth_state),
                 issued_challenge: encode_challenge(&rcr.public_key.challenge),
+                client: client.to_string(),
                 created_at: Instant::now(),
             },
         );
@@ -243,6 +260,7 @@ impl AuthState {
     pub async fn start_authentication_with_username(
         &self,
         username: &str,
+        client: &str,
     ) -> Result<(String, RequestChallengeResponse), String> {
         let user = self
             .db
@@ -274,10 +292,7 @@ impl AuthState {
         let challenge_id = uuid::Uuid::new_v4().to_string();
 
         let mut challenges = self.auth_challenges.lock().await;
-        self.cleanup_expired_auth(&mut challenges);
-        if challenges.len() >= MAX_PENDING_CHALLENGES {
-            return Err(TOO_MANY_PENDING.to_string());
-        }
+        admit_authentication(&mut challenges, client)?;
         challenges.insert(
             challenge_id.clone(),
             PendingAuthChallenge {
@@ -286,6 +301,7 @@ impl AuthState {
                     user_id: user.id,
                 },
                 issued_challenge: encode_challenge(&rcr.public_key.challenge),
+                client: client.to_string(),
                 created_at: Instant::now(),
             },
         );
@@ -453,23 +469,42 @@ impl AuthState {
             }
         }
     }
+}
 
-    fn cleanup_expired_reg(
-        &self,
-        map: &mut HashMap<String, (PasskeyRegistration, String, Instant)>,
-    ) {
-        let now = Instant::now();
-        map.retain(|_, (_, _, created)| {
-            now.duration_since(*created).as_secs() < CHALLENGE_TTL_SECS
-        });
-    }
+/// Forget expired registrations, then make room for one more from `client`.
+fn admit_registration(
+    map: &mut HashMap<String, PendingRegistration>,
+    client: &str,
+) -> Result<(), String> {
+    map.retain(|_, pending| live(pending.created_at));
+    admit(map.values().map(|pending| pending.client.as_str()), client)
+}
 
-    fn cleanup_expired_auth(&self, map: &mut HashMap<String, PendingAuthChallenge>) {
-        let now = Instant::now();
-        map.retain(|_, pending| {
-            now.duration_since(pending.created_at).as_secs() < CHALLENGE_TTL_SECS
-        });
+/// Forget expired sign-ins, then make room for one more from `client`.
+fn admit_authentication(
+    map: &mut HashMap<String, PendingAuthChallenge>,
+    client: &str,
+) -> Result<(), String> {
+    map.retain(|_, pending| live(pending.created_at));
+    admit(map.values().map(|pending| pending.client.as_str()), client)
+}
+
+fn live(created_at: Instant) -> bool {
+    created_at.elapsed().as_secs() < CHALLENGE_TTL_SECS
+}
+
+/// Refuse one more ceremony when `client` already has its share in flight,
+/// or everyone together has.
+fn admit<'a>(pending: impl Iterator<Item = &'a str>, client: &str) -> Result<(), String> {
+    let (mut all, mut theirs) = (0, 0);
+    for from in pending {
+        all += 1;
+        theirs += usize::from(from == client);
     }
+    if all >= MAX_PENDING_CHALLENGES || theirs >= MAX_PENDING_PER_CLIENT {
+        return Err(TOO_MANY_PENDING.to_string());
+    }
+    Ok(())
 }
 
 /// A passkey as stored: the webauthn-rs `Passkey` with the name the user

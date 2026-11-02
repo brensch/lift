@@ -1904,6 +1904,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     $core.Iterable<ExerciseLog>? exerciseLogs,
     $core.String? rungQuestionSetId,
     $core.Iterable<RungOutcome>? rungOutcomes,
+    $core.Iterable<$core.String>? firstTimeSetIds,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
@@ -1916,6 +1917,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     if (exerciseLogs != null) result.exerciseLogs.addAll(exerciseLogs);
     if (rungQuestionSetId != null) result.rungQuestionSetId = rungQuestionSetId;
     if (rungOutcomes != null) result.rungOutcomes.addAll(rungOutcomes);
+    if (firstTimeSetIds != null) result.firstTimeSetIds.addAll(firstTimeSetIds);
     return result;
   }
 
@@ -1950,6 +1952,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     ..aOS(12, _omitFieldNames ? '' : 'rungQuestionSetId')
     ..pPM<RungOutcome>(13, _omitFieldNames ? '' : 'rungOutcomes',
         subBuilder: RungOutcome.create)
+    ..pPS(14, _omitFieldNames ? '' : 'firstTimeSetIds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2048,6 +2051,12 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
   /// 2–4 and 5+ the next ramp set's weight. Empty when no question is open.
   @$pb.TagNumber(13)
   $pb.PbList<RungOutcome> get rungOutcomes => $_getList(9);
+
+  /// The calibration sets of exercises never done before, not being lifted:
+  /// none of that exercise's calibration sets is done yet, so the phone asks
+  /// for the weight first.
+  @$pb.TagNumber(14)
+  $pb.PbList<$core.String> get firstTimeSetIds => $_getList(10);
 }
 
 class WorkoutStateSnapshot extends $pb.GeneratedMessage {
@@ -4765,6 +4774,8 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     $core.int? budgetMinutes,
     SuggestionReason? suggestionReason,
     RotationCheck? rotationCheck,
+    $core.Iterable<$core.String>? addableLibraryIds,
+    $core.String? currentPlanId,
   }) {
     final result = create();
     if (templates != null) result.templates.addAll(templates);
@@ -4779,6 +4790,9 @@ class GetHomeResponse extends $pb.GeneratedMessage {
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
     if (suggestionReason != null) result.suggestionReason = suggestionReason;
     if (rotationCheck != null) result.rotationCheck = rotationCheck;
+    if (addableLibraryIds != null)
+      result.addableLibraryIds.addAll(addableLibraryIds);
+    if (currentPlanId != null) result.currentPlanId = currentPlanId;
     return result;
   }
 
@@ -4813,6 +4827,8 @@ class GetHomeResponse extends $pb.GeneratedMessage {
         subBuilder: SuggestionReason.create)
     ..aOM<RotationCheck>(14, _omitFieldNames ? '' : 'rotationCheck',
         subBuilder: RotationCheck.create)
+    ..pPS(16, _omitFieldNames ? '' : 'addableLibraryIds')
+    ..aOS(17, _omitFieldNames ? '' : 'currentPlanId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4916,6 +4932,23 @@ class GetHomeResponse extends $pb.GeneratedMessage {
   void clearRotationCheck() => $_clearField(14);
   @$pb.TagNumber(14)
   RotationCheck ensureRotationCheck() => $_ensure(10);
+
+  /// The library entries the user does not have (no template follows one or
+  /// was made from it): what the Add sheet offers.
+  @$pb.TagNumber(16)
+  $pb.PbList<$core.String> get addableLibraryIds => $_getList(11);
+
+  /// The ready-made plan (LibraryPlan.id) the rotation already is: the same
+  /// workouts, each following or made from one of its entries, in any
+  /// order. Empty when none.
+  @$pb.TagNumber(17)
+  $core.String get currentPlanId => $_getSZ(12);
+  @$pb.TagNumber(17)
+  set currentPlanId($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(17)
+  $core.bool hasCurrentPlanId() => $_has(12);
+  @$pb.TagNumber(17)
+  void clearCurrentPlanId() => $_clearField(17);
 }
 
 /// Why the suggestion is the template it is.

@@ -7,6 +7,7 @@ import 'package:fixnum/fixnum.dart';
 
 import '../../gen/workout/v1/group.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../logic/session_state.dart';
 import '../../providers/workout_provider.dart';
 
 class SectionWorkout {
@@ -25,6 +26,10 @@ class SectionWorkout {
   /// Undone warmups that are behind you, as the core worked out.
   final Set<String> passedWarmupIds;
 
+  /// Calibration sets of exercises never done before, as the core worked
+  /// out: the phone asks for the weight first.
+  final Set<String> firstTimeSetIds;
+
   /// Your own live workout, which taps act on; null for someone else's.
   final WorkoutProvider? actions;
 
@@ -35,6 +40,7 @@ class SectionWorkout {
     required this.nextSetId,
     required this.stateValue,
     required this.passedWarmupIds,
+    required this.firstTimeSetIds,
     required this.actions,
   });
 
@@ -51,30 +57,22 @@ class SectionWorkout {
       for (final s in wp.proposedSets)
         if (wp.isPassedWarmup(s)) s.id,
     },
+    firstTimeSetIds: wp.firstTimeSetIds,
     actions: wp.isWorkoutEnded ? null : wp,
   );
 
   /// A session partner's workout, to look at.
   factory SectionWorkout.of(ParticipantStatus p) {
     final snapshot = p.hasStateSnapshot() ? p.stateSnapshot : null;
-    // Their snapshot is from their last change: a rest it says is running
-    // may have run out since, which on this clock is yapping.
-    var state =
-        snapshot?.state.value ?? WorkoutState.WORKOUT_STATE_UNSPECIFIED.value;
     final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    if (state == WorkoutState.WORKOUT_STATE_RESTING.value &&
-        snapshot!.restUntil.toInt() <= nowUnix) {
-      state = WorkoutState.WORKOUT_STATE_YAPPING.value;
-    }
     return SectionWorkout(
       completedSets: p.completedSets,
       proposedSets: p.proposedSets,
       liftingSetId: p.hasActiveWorkout() ? p.activeWorkout.liftingSetId : '',
-      nextSetId: snapshot != null && snapshot.hasDisplaySet()
-          ? snapshot.displaySet.id
-          : (p.hasNextUpSet() ? p.nextUpSet.id : null),
-      stateValue: state,
+      nextSetId: shownSet(snapshot, p.hasNextUpSet() ? p.nextUpSet : null)?.id,
+      stateValue: stateAt(snapshot, nowUnix).value,
       passedWarmupIds: p.passedWarmupIds.toSet(),
+      firstTimeSetIds: p.firstTimeSetIds.toSet(),
       actions: null,
     );
   }
@@ -95,4 +93,8 @@ class SectionWorkout {
   /// An undone warmup that's behind you: skipped, or one of its exercise's
   /// working sets is done.
   bool isPassedWarmup(ProposedSet set) => passedWarmupIds.contains(set.id);
+
+  /// The opening set of an exercise never done before: nothing of its
+  /// calibration sets is lifted yet, and it is not being lifted.
+  bool isFirstTime(ProposedSet set) => firstTimeSetIds.contains(set.id);
 }

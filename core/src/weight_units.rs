@@ -41,16 +41,9 @@ pub fn kg_to_pounds(kg: f32) -> f32 {
     kg / LB_TO_KG
 }
 
-pub fn round_to_unit_increment(
-    weight_lb: f32,
-    unit: AppWeightUnit,
-    lb_step: f32,
-    kg_step: f32,
-) -> f32 {
-    let step = match unit {
-        AppWeightUnit::Lb => lb_step,
-        AppWeightUnit::Kg => kg_step,
-    };
+/// `weight_lb` rounded to the nearest multiple of `step` in `unit`'s own
+/// scale, in pounds.
+pub fn round_to_unit_increment(weight_lb: f32, unit: AppWeightUnit, step: f32) -> f32 {
     unit.to_lb((unit.from_lb(weight_lb) / step).round() * step)
 }
 
@@ -131,7 +124,7 @@ pub fn snap_loadable(target: f32, bar: f32, plates: &[f32]) -> f32 {
 
 /// Lexicographic "is a strictly better warmup candidate": fewer plates, then
 /// closer to the ideal target, then lighter. Kept explicit because f32 isn't
-/// `Ord`, and Dart mirrors this exact ordering.
+/// `Ord`.
 fn candidate_is_better(a: (f32, f32, f32), b: (f32, f32, f32)) -> bool {
     if a.0 != b.0 {
         return a.0 < b.0;

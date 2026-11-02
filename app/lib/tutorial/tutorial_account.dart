@@ -1,33 +1,23 @@
 /// The tutorial's sandbox: a real account, in memory, run by the same core as
 /// the user's — three templates, lifts a few months in, last week's
-/// training behind it (so volume and recovery have something to say), and
-/// on cue a session two exercises in with its rest still running. Nothing
-/// touches the network or the user's own account.
+/// training behind it (so volume and recovery have something to say).
+/// Nothing touches the network or the user's own account.
 library;
 
 import 'package:fixnum/fixnum.dart';
 
 import '../gen/workout/v1/account.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
-import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../services/local_core.dart';
 import '../services/workout_service.dart';
 
 class TutorialAccount {
   final LocalCore core;
-  final WorkoutServiceWrapper _service;
 
-  /// The template the home suggests, and the session runs.
-  final String suggestedTemplateId;
-
-  TutorialAccount._(this.core, this.suggestedTemplateId)
-    : _service = WorkoutServiceWrapper(FixedCore(core));
+  TutorialAccount._(this.core);
 
   static const _day = 86400;
-
-  /// How far in the sample session is when the tutorial reaches it.
-  static const sessionAge = Duration(minutes: 24);
 
   static const _pull = [
     Exercise.EXERCISE_BARBELL_ROW,
@@ -81,22 +71,16 @@ class TutorialAccount {
         ],
       ),
     );
-    final ids = <String>[];
     for (final (name, exercises) in [
       ('Pull', _pull),
       ('Legs', _legs),
       ('Push', _push),
     ]) {
-      final saved = await service.saveTemplate(
+      await service.saveTemplate(
         WorkoutTemplate(name: name, exercises: exercises, inRotation: true),
       );
-      ids.add(saved.id);
     }
-    final home = await service.getHome();
-    final suggested = home.suggestedTemplateId.isEmpty
-        ? ids.first
-        : home.suggestedTemplateId;
-    return TutorialAccount._(core, suggested);
+    return TutorialAccount._(core);
   }
 
   /// A finished session of [exercises] at [at]: three sets each at its
@@ -148,66 +132,5 @@ class TutorialAccount {
       proposedSets: proposed,
       completedSets: completed,
     );
-  }
-
-  /// The suggested template, started [sessionAge] ago with its first two
-  /// exercises done; the last set finished moments ago, so its rest is
-  /// still running.
-  Future<String> startSession() async {
-    final now = DateTime.now();
-    final started = await _service.startWorkout(
-      '',
-      templateId: suggestedTemplateId,
-      at: now.subtract(sessionAge),
-    );
-    final firstTwo = <Exercise>[];
-    for (final set in started.proposedSets) {
-      if (!firstTwo.contains(set.exercise)) firstTwo.add(set.exercise);
-    }
-    firstTwo.removeRange(2, firstTwo.length);
-    final done = started.proposedSets
-        .where((s) => firstTwo.contains(s.exercise))
-        .toList();
-    // Spaced evenly back from a quarter-minute ago.
-    final last = now.subtract(const Duration(seconds: 15));
-    for (var i = 0; i < done.length; i++) {
-      final at = last.subtract(Duration(seconds: 130 * (done.length - 1 - i)));
-      await _service.appendWorkoutMutations([
-        WorkoutMutation(
-          completeSet: CompleteSetRequest(
-            workoutId: started.id,
-            proposedSetId: done[i].id,
-            actualReps: done[i].targetReps,
-            actualWeight: done[i].targetWeight,
-            completedAt: Int64(at.millisecondsSinceEpoch ~/ 1000),
-          ),
-        ),
-      ], at: at);
-    }
-    return started.id;
-  }
-
-  /// A watch's worth of heart rate for the session so far: a sample every
-  /// five seconds, climbing through sets and easing during rests.
-  static WearSensorBatch heartRateBatch(String workoutId) {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final startMs = nowMs - sessionAge.inMilliseconds;
-    final batch = WearSensorBatch()
-      ..batchId = 'tutorial-hr'
-      ..workoutId = workoutId;
-    for (var ms = startMs; ms <= nowMs; ms += 5000) {
-      final t = (ms - startMs) / 1000;
-      // Sets every ~3 minutes: up to ~150, back down to ~105 while resting.
-      final phase = (t % 180) / 180;
-      final bpm = phase < 0.25
-          ? 105 + 45 * (phase / 0.25)
-          : 150 - 45 * ((phase - 0.25) / 0.75);
-      batch.heartRateSamples.add(
-        HeartRateSample()
-          ..sampledAt = Int64(ms)
-          ..bpm = bpm + ((t * 7) % 5) - 2,
-      );
-    }
-    return batch;
   }
 }

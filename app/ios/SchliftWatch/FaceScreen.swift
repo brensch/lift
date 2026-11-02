@@ -1,11 +1,12 @@
 import SwiftUI
 
 /// The watch face, one layout for every live state: the phone's status box stacked for
-/// the wrist, panels split by thin lines. From the top: the exercise's set circles, every
-/// one tappable; the band (the stage, up next when it's you, its clock), its colour
-/// draining off while you rest; the exercise and set; the weight (tap it for the plates)
-/// × the reps in the set's circle; heart rate | workout length | the time. On a
-/// first-time set the weight row says to open the phone and no tap touches a set.
+/// the wrist, panels split by thin lines. From the top: the exercise's set circles,
+/// tappable unless a first time waits; the band (the stage, up next when it's you, its
+/// clock), its colour draining off while you rest; the exercise and set; the weight (tap
+/// it for the plates) × the reps in the set's circle; heart rate | workout length | the
+/// time. On a first-time set the weight row says to open the phone and no tap touches a
+/// set.
 struct FaceScreen: View {
     @EnvironmentObject private var connector: PhoneConnector
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -114,7 +115,7 @@ struct FaceScreen: View {
         .background(colors.ground.ignoresSafeArea())
     }
 
-    /// The exercise's sets, every one tappable, scrolled to the one in hand.
+    /// The exercise's sets, tappable unless a first time waits, scrolled to the one in hand.
     private func setRow(stage: WatchStage, height: CGFloat) -> some View {
         let size = height * 0.66
         let current = inHand?.setID

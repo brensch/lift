@@ -11,6 +11,7 @@ import '../gen/workout/v1/wearable.pb.dart';
 import '../logic/first_workout.dart';
 import '../logic/audio.dart';
 import '../logic/exercise_blocks.dart';
+import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
 import '../providers/settings_provider.dart';
 import '../services/workout_service.dart';
@@ -59,6 +60,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ProposedSet> _proposed = [];
   List<CompletedSet> _completed = [];
   Set<String> _passedWarmups = {};
+  Set<String> _firstTimeSets = {};
   List<ExerciseLog> _logs = [];
   WorkoutSummary? _summary;
   String _rungQuestion = '';
@@ -128,6 +130,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
     _completed = List.of(response.completedSets);
     _passedWarmups = response.passedWarmupIds.toSet();
+    _firstTimeSets = response.firstTimeSetIds.toSet();
     _logs = List.of(response.exerciseLogs);
     _summary = response.hasSummary() ? response.summary : null;
     _rungQuestion = response.rungQuestionSetId;
@@ -410,6 +413,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// working sets is done. The core decides; this reads its answer.
   bool isPassedWarmup(ProposedSet set) => _passedWarmups.contains(set.id);
 
+  /// The set ids the core says are first-time calibration sets
+  /// (`GetWorkoutResponse.first_time_set_ids`).
+  Set<String> get firstTimeSetIds => _firstTimeSets;
+
   bool isSetDone(String setId) => _completed.any(
     (c) => c.proposedSetId == setId && c.endedAt != Int64.ZERO,
   );
@@ -419,13 +426,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The set up next: the state's display set — the next pending set, or
   /// while a rung is still asking, the set its "right" would append — so
   /// the circle and the banner show it before anything is done.
-  ProposedSet? get doneTargetSet {
-    final snapshot = _snapshot;
-    if (snapshot != null && snapshot.hasDisplaySet()) {
-      return snapshot.displaySet;
-    }
-    return _nextUp;
-  }
+  ProposedSet? get doneTargetSet => shownSet(_snapshot, _nextUp);
 
   ProposedSet? proposedSetById(String id) {
     for (final set in _proposed) {
@@ -516,6 +517,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _proposed = [];
     _completed = [];
     _passedWarmups = {};
+    _firstTimeSets = {};
     _logs = [];
     _summary = null;
     _rungQuestion = '';

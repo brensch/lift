@@ -11,7 +11,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     static let restCompletionCatchUpWindowMs: Int64 = 15000
 
     @Published var snapshot: Workout_V1_WearWorkoutSnapshot?
-    @Published private(set) var latestBpm: Double?
+    /// Not published: the face reads it on its own tick (every second lit, about once a
+    /// minute dimmed), so a reading does not redraw the always-on face between its ticks.
+    private(set) var latestBpm: Double?
     @Published private(set) var isActionPending = false
 
     private var heartbeatTimer: Timer?

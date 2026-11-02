@@ -7,7 +7,7 @@ import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
 import '../logic/session_state.dart';
 import '../logic/weight_units.dart';
-import '../providers/auth_provider.dart';
+import '../gen/workout/v1/group.pb.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
@@ -39,7 +39,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Future<void> _load() async {
     final grpc = context.read<GrpcClient>();
     final service = context.read<WorkoutServiceWrapper>();
-    final selfId = context.read<AuthProvider>().userId ?? '';
     final List<_HistoryItem> items;
     try {
       // Each finished workout with its summary (volume, working sets,
@@ -66,27 +65,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     // Who you trained with, for group sessions (durable roster, minus you),
-    // asked of the server for every session at once once the list is up.
-    final multiplayer = MultiplayerServiceWrapper(grpc);
+    // asked of the server in one call once the list is up.
     final sessionIds = {
       for (final item in items)
         if (item.workout.sessionId.isNotEmpty) item.workout.sessionId,
     };
-    final rosters = await Future.wait(
-      sessionIds.map((id) async {
-        try {
-          final resp = await multiplayer.getSessionParticipants(id);
-          return MapEntry(id, [
-            for (final p in resp.participants)
-              if (p.user.id.isNotEmpty && p.user.id != selfId) p.user.name,
-          ]);
-        } catch (_) {
-          return MapEntry(id, const <String>[]);
-        }
-      }),
+    if (sessionIds.isEmpty) return;
+    final List<SessionRoster> rosters;
+    try {
+      rosters = await MultiplayerServiceWrapper(
+        grpc,
+      ).getSessionRosters(sessionIds);
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    setState(
+      () => _partners = {
+        for (final r in rosters)
+          r.sessionId: [for (final u in r.partners) u.name],
+      },
     );
-    if (!mounted || rosters.isEmpty) return;
-    setState(() => _partners = Map.fromEntries(rosters));
   }
 
   @override
@@ -255,7 +254,7 @@ class _HistoryCard extends StatelessWidget {
 
     final details = [
       if (item.volume > 0)
-        '${_thousands(item.volume)} ${weightUnitSuffix(unit)}',
+        '${_thousands(displayWeightFromPounds(item.volume, unit))} ${weightUnitSuffix(unit)}',
       if (item.workingSets > 0) '${item.workingSets} sets',
       if (partners.isNotEmpty) 'with ${_names(partners)}',
     ].join(' · ');

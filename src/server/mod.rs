@@ -40,6 +40,6 @@ pub use workout::ServerWorkoutService;
 
 use multiplayer::{current_session, join_requests};
 use support::{
-    authed_admin_id, authed_user_id, build_participant_status, client_labels, core_status,
-    internal_error, read_api, refresh_participant_for_user, ServerResult,
+    authed_admin_id, authed_user_id, client_labels, core_status, internal_error, read_api,
+    refresh_participant_for_user, session_token, ServerResult,
 };

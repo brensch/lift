@@ -60,11 +60,9 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
 
   Future<void> _loadWorkout() async {
     final grpc = context.read<GrpcClient>();
-    final auth = context.read<AuthProvider>();
     final workoutProvider = context.read<WorkoutProvider>();
     final service = context.read<WorkoutServiceWrapper>();
     final multiplayer = MultiplayerServiceWrapper(grpc);
-    final sessionSelfId = auth.userId ?? '';
     try {
       _loadError = null;
       final response = await service.getWorkout(widget.workoutId);
@@ -87,7 +85,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       }
 
       if (sessionId.isNotEmpty) {
-        await _loadSessionFriends(sessionId, multiplayer, sessionSelfId);
+        await _loadSessionFriends(sessionId, multiplayer);
       }
     } catch (e, st) {
       debugPrint(
@@ -105,20 +103,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
   Future<void> _loadSessionFriends(
     String sessionId,
     MultiplayerServiceWrapper service,
-    String selfId,
   ) async {
     List<User> friends = [];
     try {
-      final sessionResponse = await service.getSessionParticipants(sessionId);
-      final participants = sessionResponse.participants;
-      final seen = <String>{};
-      for (final participant in participants) {
-        final user = participant.user;
-        if (user.id.isEmpty || (selfId.isNotEmpty && user.id == selfId)) {
-          continue;
-        }
-        if (seen.add(user.id)) friends.add(user);
-      }
+      final rosters = await service.getSessionRosters([sessionId]);
+      friends = [for (final r in rosters) ...r.partners];
     } catch (_) {
       friends = [];
     }

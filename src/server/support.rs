@@ -71,16 +71,20 @@ fn version_below(version: &str, min: &str) -> bool {
     false
 }
 
-pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> ServerResult<String> {
-    check_app_version(request)?;
-    let token = request
+/// The caller's session token, as sent.
+pub(super) fn session_token<T>(request: &Request<T>) -> Option<&str> {
+    request
         .metadata()
         .get("x-session-token")
         .and_then(|v| v.to_str().ok())
-        .ok_or_else(|| {
-            tracing::warn!(rpc_auth = "missing_token", "auth failed: no session token");
-            Status::unauthenticated("Missing session token")
-        })?;
+}
+
+pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> ServerResult<String> {
+    check_app_version(request)?;
+    let token = session_token(request).ok_or_else(|| {
+        tracing::warn!(rpc_auth = "missing_token", "auth failed: no session token");
+        Status::unauthenticated("Missing session token")
+    })?;
     db.validate_auth_session(token)
         .await
         .map_err(internal_error)?
@@ -130,7 +134,7 @@ pub(super) fn client_labels<T>(request: &Request<T>) -> (String, String) {
     (platform, header("x-app-version"))
 }
 
-pub(super) fn build_participant_status(
+fn build_participant_status(
     user: User,
     workout_resp: Option<&GetWorkoutResponse>,
 ) -> ParticipantStatus {
@@ -148,6 +152,7 @@ pub(super) fn build_participant_status(
             next_up_set: resp.next_up_set.clone(),
             state_snapshot: resp.state_snapshot.clone(),
             passed_warmup_ids: resp.passed_warmup_ids.clone(),
+            first_time_set_ids: resp.first_time_set_ids.clone(),
         }
     } else {
         ParticipantStatus {
@@ -159,6 +164,7 @@ pub(super) fn build_participant_status(
             next_up_set: None,
             state_snapshot: None,
             passed_warmup_ids: Vec::new(),
+            first_time_set_ids: Vec::new(),
         }
     }
 }

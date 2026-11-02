@@ -926,6 +926,13 @@ const GetWorkoutResponse$json = {
       '10': 'passedWarmupIds'
     },
     {
+      '1': 'first_time_set_ids',
+      '3': 14,
+      '4': 3,
+      '5': 9,
+      '10': 'firstTimeSetIds'
+    },
+    {
       '1': 'exercise_logs',
       '3': 11,
       '4': 3,
@@ -953,9 +960,10 @@ final $typed_data.Uint8List getWorkoutResponseDescriptor = $convert.base64Decode
     'cnkYCSABKAsyGi53b3Jrb3V0LnYxLldvcmtvdXRTdW1tYXJ5UgdzdW1tYXJ5Ei8KFHJ1bmdfcX'
     'Vlc3Rpb25fc2V0X2lkGAwgASgJUhFydW5nUXVlc3Rpb25TZXRJZBI8Cg1ydW5nX291dGNvbWVz'
     'GA0gAygLMhcud29ya291dC52MS5SdW5nT3V0Y29tZVIMcnVuZ091dGNvbWVzEioKEXBhc3NlZF'
-    '93YXJtdXBfaWRzGAogAygJUg9wYXNzZWRXYXJtdXBJZHMSPAoNZXhlcmNpc2VfbG9ncxgLIAMo'
-    'CzIXLndvcmtvdXQudjEuRXhlcmNpc2VMb2dSDGV4ZXJjaXNlTG9nc0oECAIQA0oECAYQB0oECA'
-    'gQCVIPZXhlcmNpc2VfZ3JvdXBzUhFwbGFuX2NoYW5nZV9zdGF0c1INdXNlcl9tZXNzYWdlcw==');
+    '93YXJtdXBfaWRzGAogAygJUg9wYXNzZWRXYXJtdXBJZHMSKwoSZmlyc3RfdGltZV9zZXRfaWRz'
+    'GA4gAygJUg9maXJzdFRpbWVTZXRJZHMSPAoNZXhlcmNpc2VfbG9ncxgLIAMoCzIXLndvcmtvdX'
+    'QudjEuRXhlcmNpc2VMb2dSDGV4ZXJjaXNlTG9nc0oECAIQA0oECAYQB0oECAgQCVIPZXhlcmNp'
+    'c2VfZ3JvdXBzUhFwbGFuX2NoYW5nZV9zdGF0c1INdXNlcl9tZXNzYWdlcw==');
 
 @$core.Deprecated('Use workoutStateSnapshotDescriptor instead')
 const WorkoutStateSnapshot$json = {
@@ -1823,6 +1831,14 @@ const GetHomeResponse$json = {
       '6': '.workout.v1.RotationCheck',
       '10': 'rotationCheck'
     },
+    {
+      '1': 'addable_library_ids',
+      '3': 16,
+      '4': 3,
+      '5': 9,
+      '10': 'addableLibraryIds'
+    },
+    {'1': 'current_plan_id', '3': 17, '4': 1, '5': 9, '10': 'currentPlanId'},
   ],
   '9': [
     {'1': 2, '2': 3},
@@ -1845,9 +1861,10 @@ final $typed_data.Uint8List getHomeResponseDescriptor = $convert.base64Decode(
     'QSLgoFcGxhbnMYCiADKAsyGC53b3Jrb3V0LnYxLkV4ZXJjaXNlUGxhblIFcGxhbnMSPwoOdGVt'
     'cGxhdGVfcGxhbnMYCyADKAsyGC53b3Jrb3V0LnYxLlRlbXBsYXRlUGxhblINdGVtcGxhdGVQbG'
     'FucxIlCg5idWRnZXRfbWludXRlcxgMIAEoBVINYnVkZ2V0TWludXRlcxJACg5yb3RhdGlvbl9j'
-    'aGVjaxgOIAEoCzIZLndvcmtvdXQudjEuUm90YXRpb25DaGVja1INcm90YXRpb25DaGVja0oECA'
-    'IQA0oECAQQBUoECAgQCUoECA8QEFIIdHJhY2tlcnNSDXVzZXJfbWVzc2FnZXNSD2lnbm9yZWRf'
-    'bXVzY2xlcw==');
+    'aGVjaxgOIAEoCzIZLndvcmtvdXQudjEuUm90YXRpb25DaGVja1INcm90YXRpb25DaGVjaxIuCh'
+    'NhZGRhYmxlX2xpYnJhcnlfaWRzGBAgAygJUhFhZGRhYmxlTGlicmFyeUlkcxImCg9jdXJyZW50'
+    'X3BsYW5faWQYESABKAlSDWN1cnJlbnRQbGFuSWRKBAgCEANKBAgEEAVKBAgIEAlKBAgPEBBSCH'
+    'RyYWNrZXJzUg11c2VyX21lc3NhZ2VzUg9pZ25vcmVkX211c2NsZXM=');
 
 @$core.Deprecated('Use suggestionReasonDescriptor instead')
 const SuggestionReason$json = {

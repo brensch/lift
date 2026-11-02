@@ -15731,6 +15731,55 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @return A list containing the firstTimeSetIds.
+     */
+    java.util.List<java.lang.String>
+        getFirstTimeSetIdsList();
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @return The count of firstTimeSetIds.
+     */
+    int getFirstTimeSetIdsCount();
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param index The index of the element to return.
+     * @return The firstTimeSetIds at the given index.
+     */
+    java.lang.String getFirstTimeSetIds(int index);
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param index The index of the element to return.
+     * @return The firstTimeSetIds at the given index.
+     */
+    com.google.protobuf.ByteString
+        getFirstTimeSetIdsBytes(int index);
+
+    /**
+     * <pre>
      * Per exercise: the decision it started from and the changes since.
      * </pre>
      *
@@ -15769,6 +15818,7 @@ public final class WorkoutOuterClass {
       rungQuestionSetId_ = "";
       rungOutcomes_ = emptyProtobufList();
       passedWarmupIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+      firstTimeSetIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
       exerciseLogs_ = emptyProtobufList();
     }
     public static final int WORKOUT_FIELD_NUMBER = 1;
@@ -16521,6 +16571,153 @@ public final class WorkoutOuterClass {
       checkByteStringIsUtf8(value);
       ensurePassedWarmupIdsIsMutable();
       passedWarmupIds_.add(value.toStringUtf8());
+    }
+
+    public static final int FIRST_TIME_SET_IDS_FIELD_NUMBER = 14;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> firstTimeSetIds_;
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @return A list containing the firstTimeSetIds.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.String> getFirstTimeSetIdsList() {
+      return firstTimeSetIds_;
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @return The count of firstTimeSetIds.
+     */
+    @java.lang.Override
+    public int getFirstTimeSetIdsCount() {
+      return firstTimeSetIds_.size();
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param index The index of the element to return.
+     * @return The firstTimeSetIds at the given index.
+     */
+    @java.lang.Override
+    public java.lang.String getFirstTimeSetIds(int index) {
+      return firstTimeSetIds_.get(index);
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the firstTimeSetIds at the given index.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getFirstTimeSetIdsBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          firstTimeSetIds_.get(index));
+    }
+    private void ensureFirstTimeSetIdsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          firstTimeSetIds_;  if (!tmp.isModifiable()) {
+        firstTimeSetIds_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The firstTimeSetIds to set.
+     */
+    private void setFirstTimeSetIds(
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureFirstTimeSetIdsIsMutable();
+      firstTimeSetIds_.set(index, value);
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param value The firstTimeSetIds to add.
+     */
+    private void addFirstTimeSetIds(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureFirstTimeSetIdsIsMutable();
+      firstTimeSetIds_.add(value);
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param values The firstTimeSetIds to add.
+     */
+    private void addAllFirstTimeSetIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureFirstTimeSetIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, firstTimeSetIds_);
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     */
+    private void clearFirstTimeSetIds() {
+      firstTimeSetIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * The calibration sets of exercises never done before, not being lifted:
+     * none of that exercise's calibration sets is done yet, so the phone asks
+     * for the weight first.
+     * </pre>
+     *
+     * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+     * @param value The bytes of the firstTimeSetIds to add.
+     */
+    private void addFirstTimeSetIdsBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      ensureFirstTimeSetIdsIsMutable();
+      firstTimeSetIds_.add(value.toStringUtf8());
     }
 
     public static final int EXERCISE_LOGS_FIELD_NUMBER = 11;
@@ -17545,6 +17742,152 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @return A list containing the firstTimeSetIds.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.String>
+          getFirstTimeSetIdsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getFirstTimeSetIdsList());
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @return The count of firstTimeSetIds.
+       */
+      @java.lang.Override
+      public int getFirstTimeSetIdsCount() {
+        return instance.getFirstTimeSetIdsCount();
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @param index The index of the element to return.
+       * @return The firstTimeSetIds at the given index.
+       */
+      @java.lang.Override
+      public java.lang.String getFirstTimeSetIds(int index) {
+        return instance.getFirstTimeSetIds(index);
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the firstTimeSetIds at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getFirstTimeSetIdsBytes(int index) {
+        return instance.getFirstTimeSetIdsBytes(index);
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @param index The index to set the value at.
+       * @param value The firstTimeSetIds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFirstTimeSetIds(
+          int index, java.lang.String value) {
+        copyOnWrite();
+        instance.setFirstTimeSetIds(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @param value The firstTimeSetIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addFirstTimeSetIds(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.addFirstTimeSetIds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @param values The firstTimeSetIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllFirstTimeSetIds(
+          java.lang.Iterable<java.lang.String> values) {
+        copyOnWrite();
+        instance.addAllFirstTimeSetIds(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearFirstTimeSetIds() {
+        copyOnWrite();
+        instance.clearFirstTimeSetIds();
+        return this;
+      }
+      /**
+       * <pre>
+       * The calibration sets of exercises never done before, not being lifted:
+       * none of that exercise's calibration sets is done yet, so the phone asks
+       * for the weight first.
+       * </pre>
+       *
+       * <code>repeated string first_time_set_ids = 14 [json_name = "firstTimeSetIds"];</code>
+       * @param value The bytes of the firstTimeSetIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addFirstTimeSetIdsBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.addFirstTimeSetIdsBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
        * Per exercise: the decision it started from and the changes since.
        * </pre>
        *
@@ -17723,10 +18066,12 @@ public final class WorkoutOuterClass {
               "rungQuestionSetId_",
               "rungOutcomes_",
               workout.v1.WorkoutOuterClass.RungOutcome.class,
+              "firstTimeSetIds_",
             };
             java.lang.String info =
-                "\u0000\n\u0000\u0000\u0001\r\n\u0000\u0005\u0000\u0001\t\u0003\u001b\u0004\u001b" +
-                "\u0005\t\u0007\t\t\t\n\u021a\u000b\u001b\f\u0208\r\u001b";
+                "\u0000\u000b\u0000\u0000\u0001\u000e\u000b\u0000\u0006\u0000\u0001\t\u0003\u001b" +
+                "\u0004\u001b\u0005\t\u0007\t\t\t\n\u021a\u000b\u001b\f\u0208\r\u001b\u000e\u021a" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -37220,6 +37565,75 @@ public final class WorkoutOuterClass {
      * @return The rotationCheck.
      */
     workout.v1.WorkoutOuterClass.RotationCheck getRotationCheck();
+
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @return A list containing the addableLibraryIds.
+     */
+    java.util.List<java.lang.String>
+        getAddableLibraryIdsList();
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @return The count of addableLibraryIds.
+     */
+    int getAddableLibraryIdsCount();
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param index The index of the element to return.
+     * @return The addableLibraryIds at the given index.
+     */
+    java.lang.String getAddableLibraryIds(int index);
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param index The index of the element to return.
+     * @return The addableLibraryIds at the given index.
+     */
+    com.google.protobuf.ByteString
+        getAddableLibraryIdsBytes(int index);
+
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     * @return The currentPlanId.
+     */
+    java.lang.String getCurrentPlanId();
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     * @return The bytes for currentPlanId.
+     */
+    com.google.protobuf.ByteString
+        getCurrentPlanIdBytes();
   }
   /**
    * Protobuf type {@code workout.v1.GetHomeResponse}
@@ -37237,6 +37651,8 @@ public final class WorkoutOuterClass {
       suggestedTemplateId_ = "";
       plans_ = emptyProtobufList();
       templatePlans_ = emptyProtobufList();
+      addableLibraryIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+      currentPlanId_ = "";
     }
     public static final int TEMPLATES_FIELD_NUMBER = 1;
     private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.WorkoutTemplate> templates_;
@@ -38169,6 +38585,221 @@ public final class WorkoutOuterClass {
      * <code>.workout.v1.RotationCheck rotation_check = 14 [json_name = "rotationCheck"];</code>
      */
     private void clearRotationCheck() {  rotationCheck_ = null;
+      
+    }
+
+    public static final int ADDABLE_LIBRARY_IDS_FIELD_NUMBER = 16;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> addableLibraryIds_;
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @return A list containing the addableLibraryIds.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.String> getAddableLibraryIdsList() {
+      return addableLibraryIds_;
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @return The count of addableLibraryIds.
+     */
+    @java.lang.Override
+    public int getAddableLibraryIdsCount() {
+      return addableLibraryIds_.size();
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param index The index of the element to return.
+     * @return The addableLibraryIds at the given index.
+     */
+    @java.lang.Override
+    public java.lang.String getAddableLibraryIds(int index) {
+      return addableLibraryIds_.get(index);
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the addableLibraryIds at the given index.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getAddableLibraryIdsBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          addableLibraryIds_.get(index));
+    }
+    private void ensureAddableLibraryIdsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          addableLibraryIds_;  if (!tmp.isModifiable()) {
+        addableLibraryIds_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param index The index to set the value at.
+     * @param value The addableLibraryIds to set.
+     */
+    private void setAddableLibraryIds(
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureAddableLibraryIdsIsMutable();
+      addableLibraryIds_.set(index, value);
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param value The addableLibraryIds to add.
+     */
+    private void addAddableLibraryIds(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureAddableLibraryIdsIsMutable();
+      addableLibraryIds_.add(value);
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param values The addableLibraryIds to add.
+     */
+    private void addAllAddableLibraryIds(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureAddableLibraryIdsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, addableLibraryIds_);
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     */
+    private void clearAddableLibraryIds() {
+      addableLibraryIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * The library entries the user does not have (no template follows one or
+     * was made from it): what the Add sheet offers.
+     * </pre>
+     *
+     * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+     * @param value The bytes of the addableLibraryIds to add.
+     */
+    private void addAddableLibraryIdsBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      ensureAddableLibraryIdsIsMutable();
+      addableLibraryIds_.add(value.toStringUtf8());
+    }
+
+    public static final int CURRENT_PLAN_ID_FIELD_NUMBER = 17;
+    private java.lang.String currentPlanId_;
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     * @return The currentPlanId.
+     */
+    @java.lang.Override
+    public java.lang.String getCurrentPlanId() {
+      return currentPlanId_;
+    }
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     * @return The bytes for currentPlanId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getCurrentPlanIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(currentPlanId_);
+    }
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     * @param value The currentPlanId to set.
+     */
+    private void setCurrentPlanId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      currentPlanId_ = value;
+    }
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     */
+    private void clearCurrentPlanId() {
+      
+      currentPlanId_ = getDefaultInstance().getCurrentPlanId();
+    }
+    /**
+     * <pre>
+     * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+     * workouts, each following or made from one of its entries, in any
+     * order. Empty when none.
+     * </pre>
+     *
+     * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+     * @param value The bytes for currentPlanId to set.
+     */
+    private void setCurrentPlanIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      currentPlanId_ = value.toStringUtf8();
       
     }
 
@@ -39270,6 +39901,222 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @return A list containing the addableLibraryIds.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.String>
+          getAddableLibraryIdsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getAddableLibraryIdsList());
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @return The count of addableLibraryIds.
+       */
+      @java.lang.Override
+      public int getAddableLibraryIdsCount() {
+        return instance.getAddableLibraryIdsCount();
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @param index The index of the element to return.
+       * @return The addableLibraryIds at the given index.
+       */
+      @java.lang.Override
+      public java.lang.String getAddableLibraryIds(int index) {
+        return instance.getAddableLibraryIds(index);
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the addableLibraryIds at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getAddableLibraryIdsBytes(int index) {
+        return instance.getAddableLibraryIdsBytes(index);
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @param index The index to set the value at.
+       * @param value The addableLibraryIds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAddableLibraryIds(
+          int index, java.lang.String value) {
+        copyOnWrite();
+        instance.setAddableLibraryIds(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @param value The addableLibraryIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAddableLibraryIds(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.addAddableLibraryIds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @param values The addableLibraryIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllAddableLibraryIds(
+          java.lang.Iterable<java.lang.String> values) {
+        copyOnWrite();
+        instance.addAllAddableLibraryIds(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAddableLibraryIds() {
+        copyOnWrite();
+        instance.clearAddableLibraryIds();
+        return this;
+      }
+      /**
+       * <pre>
+       * The library entries the user does not have (no template follows one or
+       * was made from it): what the Add sheet offers.
+       * </pre>
+       *
+       * <code>repeated string addable_library_ids = 16 [json_name = "addableLibraryIds"];</code>
+       * @param value The bytes of the addableLibraryIds to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAddableLibraryIdsBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.addAddableLibraryIdsBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+       * workouts, each following or made from one of its entries, in any
+       * order. Empty when none.
+       * </pre>
+       *
+       * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+       * @return The currentPlanId.
+       */
+      @java.lang.Override
+      public java.lang.String getCurrentPlanId() {
+        return instance.getCurrentPlanId();
+      }
+      /**
+       * <pre>
+       * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+       * workouts, each following or made from one of its entries, in any
+       * order. Empty when none.
+       * </pre>
+       *
+       * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+       * @return The bytes for currentPlanId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getCurrentPlanIdBytes() {
+        return instance.getCurrentPlanIdBytes();
+      }
+      /**
+       * <pre>
+       * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+       * workouts, each following or made from one of its entries, in any
+       * order. Empty when none.
+       * </pre>
+       *
+       * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+       * @param value The currentPlanId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCurrentPlanId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setCurrentPlanId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+       * workouts, each following or made from one of its entries, in any
+       * order. Empty when none.
+       * </pre>
+       *
+       * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCurrentPlanId() {
+        copyOnWrite();
+        instance.clearCurrentPlanId();
+        return this;
+      }
+      /**
+       * <pre>
+       * The ready-made plan (LibraryPlan.id) the rotation already is: the same
+       * workouts, each following or made from one of its entries, in any
+       * order. Empty when none.
+       * </pre>
+       *
+       * <code>string current_plan_id = 17 [json_name = "currentPlanId"];</code>
+       * @param value The bytes for currentPlanId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCurrentPlanIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setCurrentPlanIdBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.GetHomeResponse)
     }
     @java.lang.Override
@@ -39302,11 +40149,13 @@ public final class WorkoutOuterClass {
               "budgetMinutes_",
               "suggestionReason_",
               "rotationCheck_",
+              "addableLibraryIds_",
+              "currentPlanId_",
             };
             java.lang.String info =
-                "\u0000\u000b\u0000\u0000\u0001\u000e\u000b\u0000\u0005\u0000\u0001\u001b\u0003\u0208" +
-                "\u0005\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e" +
-                "\t";
+                "\u0000\r\u0000\u0000\u0001\u0011\r\u0000\u0006\u0000\u0001\u001b\u0003\u0208\u0005" +
+                "\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e\t\u0010" +
+                "\u021a\u0011\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

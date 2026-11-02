@@ -1,31 +1,28 @@
 /// The login screen's passkey button: the theme primary, full width, with
-/// the label in whichever of black or white reads on it.
+/// a fingerprint before the label.
 library;
 
 import 'package:flutter/material.dart';
+import '../../theme/app_icons.dart';
 import '../../theme/theme_spec.dart';
 
 class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool loading;
-  final IconData? icon;
 
   const PrimaryButton({
     super.key,
     required this.label,
-    this.onPressed,
-    this.loading = false,
-    this.icon,
+    required this.onPressed,
+    required this.loading,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final bg = cs.primary;
-    final fg = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
-        ? Colors.white
-        : Colors.black;
+    final fg = cs.onPrimary;
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -50,10 +47,8 @@ class PrimaryButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[
-                    Icon(icon, size: 19, color: fg),
-                    const SizedBox(width: 9),
-                  ],
+                  Icon(AppIcons.fingerprint, size: 19, color: fg),
+                  const SizedBox(width: 9),
                   Text(
                     label,
                     style: TextStyle(

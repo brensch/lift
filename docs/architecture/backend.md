@@ -58,11 +58,11 @@ graph TD
 | Module | Owns |
 |---|---|
 | `server/sync.rs` | `SyncService`: the bidirectional `Sync` stream (events up, acks and session down) and `PullEvents` |
-| `server/workout.rs` | `WorkoutService`: four reads for the web, answered by the core's `View` |
+| `server/workout.rs` | `WorkoutService`: two reads for the web (`ListWorkoutSummaries`, `GetExerciseProgress`), answered by the core's `View` |
 | `server/settings.rs` | `SettingsService.GetSettings`, the same way |
 | `server/multiplayer.rs` | Sessions, invites, join requests, training partners |
 | `server/support.rs` | `authed_user_id`, `read_api`, participant status from the fold, the app-version gate |
-| `server/user.rs` | User CRUD, profile |
+| `server/user.rs` | `GetUser`, `UpdateMyProfile` |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/analytics.rs` | Page views, admin stats |
 | `db/accounts.rs` | `account_events`, the folded-account cache, projecting pushed workouts |
@@ -168,7 +168,7 @@ graph LR
     end
     subgraph "MultiplayerService"
         m1["JoinViaInvite / LeaveCurrentSession"]
-        m2["GetCurrentSession / GetSessionParticipants"]
+        m2["GetCurrentSession / GetSessionRosters"]
         m3["GetMyInviteToken"]
         m4["RequestJoinPartner / GetJoinRequests<br/>RespondJoinRequest"]
         m5["GetTrainingPartners"]

@@ -90,42 +90,61 @@ const GetCurrentSessionRequest$json = {
 final $typed_data.Uint8List getCurrentSessionRequestDescriptor =
     $convert.base64Decode('ChhHZXRDdXJyZW50U2Vzc2lvblJlcXVlc3Q=');
 
-@$core.Deprecated('Use getSessionParticipantsRequestDescriptor instead')
-const GetSessionParticipantsRequest$json = {
-  '1': 'GetSessionParticipantsRequest',
+@$core.Deprecated('Use getSessionRostersRequestDescriptor instead')
+const GetSessionRostersRequest$json = {
+  '1': 'GetSessionRostersRequest',
   '2': [
-    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {'1': 'session_ids', '3': 1, '4': 3, '5': 9, '10': 'sessionIds'},
   ],
 };
 
-/// Descriptor for `GetSessionParticipantsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSessionParticipantsRequestDescriptor =
+/// Descriptor for `GetSessionRostersRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSessionRostersRequestDescriptor =
     $convert.base64Decode(
-        'Ch1HZXRTZXNzaW9uUGFydGljaXBhbnRzUmVxdWVzdBIdCgpzZXNzaW9uX2lkGAEgASgJUglzZX'
-        'NzaW9uSWQ=');
+        'ChhHZXRTZXNzaW9uUm9zdGVyc1JlcXVlc3QSHwoLc2Vzc2lvbl9pZHMYASADKAlSCnNlc3Npb2'
+        '5JZHM=');
 
-@$core.Deprecated('Use getSessionParticipantsResponseDescriptor instead')
-const GetSessionParticipantsResponse$json = {
-  '1': 'GetSessionParticipantsResponse',
+@$core.Deprecated('Use getSessionRostersResponseDescriptor instead')
+const GetSessionRostersResponse$json = {
+  '1': 'GetSessionRostersResponse',
   '2': [
-    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
     {
-      '1': 'participants',
-      '3': 2,
+      '1': 'rosters',
+      '3': 1,
       '4': 3,
       '5': 11,
-      '6': '.workout.v1.ParticipantStatus',
-      '10': 'participants'
+      '6': '.workout.v1.SessionRoster',
+      '10': 'rosters'
     },
   ],
 };
 
-/// Descriptor for `GetSessionParticipantsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List getSessionParticipantsResponseDescriptor =
+/// Descriptor for `GetSessionRostersResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSessionRostersResponseDescriptor =
     $convert.base64Decode(
-        'Ch5HZXRTZXNzaW9uUGFydGljaXBhbnRzUmVzcG9uc2USHQoKc2Vzc2lvbl9pZBgBIAEoCVIJc2'
-        'Vzc2lvbklkEkEKDHBhcnRpY2lwYW50cxgCIAMoCzIdLndvcmtvdXQudjEuUGFydGljaXBhbnRT'
-        'dGF0dXNSDHBhcnRpY2lwYW50cw==');
+        'ChlHZXRTZXNzaW9uUm9zdGVyc1Jlc3BvbnNlEjMKB3Jvc3RlcnMYASADKAsyGS53b3Jrb3V0Ln'
+        'YxLlNlc3Npb25Sb3N0ZXJSB3Jvc3RlcnM=');
+
+@$core.Deprecated('Use sessionRosterDescriptor instead')
+const SessionRoster$json = {
+  '1': 'SessionRoster',
+  '2': [
+    {'1': 'session_id', '3': 1, '4': 1, '5': 9, '10': 'sessionId'},
+    {
+      '1': 'partners',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.User',
+      '10': 'partners'
+    },
+  ],
+};
+
+/// Descriptor for `SessionRoster`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List sessionRosterDescriptor = $convert.base64Decode(
+    'Cg1TZXNzaW9uUm9zdGVyEh0KCnNlc3Npb25faWQYASABKAlSCXNlc3Npb25JZBIsCghwYXJ0bm'
+    'VycxgCIAMoCzIQLndvcmtvdXQudjEuVXNlclIIcGFydG5lcnM=');
 
 @$core.Deprecated('Use getCurrentSessionResponseDescriptor instead')
 const GetCurrentSessionResponse$json = {
@@ -245,6 +264,13 @@ const ParticipantStatus$json = {
       '5': 9,
       '10': 'passedWarmupIds'
     },
+    {
+      '1': 'first_time_set_ids',
+      '3': 12,
+      '4': 3,
+      '5': 9,
+      '10': 'firstTimeSetIds'
+    },
   ],
   '9': [
     {'1': 4, '2': 5},
@@ -264,8 +290,9 @@ final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     '1wbGV0ZWRTZXRzEjcKC25leHRfdXBfc2V0GAcgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNl'
     'dFIJbmV4dFVwU2V0EkcKDnN0YXRlX3NuYXBzaG90GAogASgLMiAud29ya291dC52MS5Xb3Jrb3'
     'V0U3RhdGVTbmFwc2hvdFINc3RhdGVTbmFwc2hvdBIqChFwYXNzZWRfd2FybXVwX2lkcxgLIAMo'
-    'CVIPcGFzc2VkV2FybXVwSWRzSgQIBBAFSgQICBAJSgQICRAKUg9leGVyY2lzZV9ncm91cHNSCn'
-    'Jlc3RfdW50aWxSDmhhc19hY3RpdmVfc2V0');
+    'CVIPcGFzc2VkV2FybXVwSWRzEisKEmZpcnN0X3RpbWVfc2V0X2lkcxgMIAMoCVIPZmlyc3RUaW'
+    '1lU2V0SWRzSgQIBBAFSgQICBAJSgQICRAKUg9leGVyY2lzZV9ncm91cHNSCnJlc3RfdW50aWxS'
+    'Dmhhc19hY3RpdmVfc2V0');
 
 @$core.Deprecated('Use trainingPartnerDescriptor instead')
 const TrainingPartner$json = {

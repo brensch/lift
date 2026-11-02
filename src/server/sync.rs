@@ -83,6 +83,7 @@ impl SyncService for ServerSyncService {
         let (metadata, extensions, inbound) = request.into_parts();
         let headers = Request::from_parts(metadata, extensions, ());
         let user_id = authed_user_id(&headers, &self.db).await?;
+        let token = session_token(&headers).unwrap_or_default().to_string();
         info!(rpc = "Sync", %user_id, "open");
         // Subscribed before the first send, so nothing between is missed.
         let changes = self.db.subscribe();
@@ -92,6 +93,7 @@ impl SyncService for ServerSyncService {
             let mut stream = Stream {
                 db,
                 user_id,
+                token,
                 tx,
                 pointer: None,
                 last_session: None,
@@ -126,6 +128,9 @@ impl SyncService for ServerSyncService {
 struct Stream {
     db: ServerDb,
     user_id: String,
+    /// The session the stream was opened with: signing out or deleting the
+    /// account ends it, and the stream with it.
+    token: String,
     tx: mpsc::Sender<SyncResult>,
     /// The session the user's pointer named when the session was last sent:
     /// a session's changes concern this stream only when it is that one.
@@ -192,8 +197,17 @@ impl Stream {
             .map_err(|_| Closed)
     }
 
-    /// Events (stored, then acked with the head) or a heartbeat (acked).
+    /// Events (stored, then acked with the head) or a heartbeat (acked),
+    /// while the stream's session lasts.
     async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
+        let signed_in = self
+            .db
+            .validate_auth_session(&self.token)
+            .await
+            .map_err(internal_error)?;
+        if signed_in.as_ref() != Some(&self.user_id) {
+            return Err(Status::unauthenticated("Invalid session token").into());
+        }
         let head = match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
                 let events = unpack(&packed).map_err(core_status)?;
