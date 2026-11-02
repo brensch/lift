@@ -220,6 +220,36 @@ enum PlanReasonKind {
   // This many sets: what the time budget fits, given to the lifts whose
   // muscles are furthest behind this week.
   PLAN_REASON_KIND_SETS_FROM_TIME = 7;
+  // The plan against the lift's last session, what the user sees move:
+  // before/after are the weights (lb), reps_*/sets_* the reps and sets,
+  // and `cause` why. One of these comes first whenever the lift has a
+  // last session to compare with (not after an override or a ramp alone).
+  // Heavier than last time.
+  PLAN_REASON_KIND_WEIGHT_UP = 8;
+  // Lighter than last time.
+  PLAN_REASON_KIND_WEIGHT_DOWN = 9;
+  // The same weight, more reps.
+  PLAN_REASON_KIND_REPS_UP = 10;
+  // The same weight, fewer reps.
+  PLAN_REASON_KIND_REPS_DOWN = 11;
+  // The same weight and reps as last time.
+  PLAN_REASON_KIND_SAME_AS_LAST = 12;
+}
+
+// Why a plan differs from (or matches) the lift's last session.
+enum PlanChangeCause {
+  PLAN_CHANGE_CAUSE_UNSPECIFIED = 0;
+  // Every rep hit last time.
+  PLAN_CHANGE_CAUSE_HIT = 1;
+  // A rep missed last time.
+  PLAN_CHANGE_CAUSE_MISSED = 2;
+  // Last time stopped early: the max held.
+  PLAN_CHANGE_CAUSE_STOPPED_EARLY = 3;
+  // A different number of sets: last time's sets would have kept last
+  // time's numbers (sets_before, sets_after).
+  PLAN_CHANGE_CAUSE_SETS = 4;
+  // Three weeks or more away (days_off): the max cut.
+  PLAN_CHANGE_CAUSE_TIME_OFF = 5;
 }
 
 // One step of a decision, in the order the steps applied.
@@ -244,6 +274,13 @@ message PlanReason {
   int32 budget_minutes = 8;
   MuscleGroup muscle = 9;
   float weekly_sets = 10;
+  // WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
+  // this plan's.
+  PlanChangeCause cause = 11;
+  int32 reps_before = 12;
+  int32 reps_after = 13;
+  int32 sets_before = 14;
+  int32 sets_after = 15;
 }
 
 // What one lift is given in a workout: everything its sets are laid out
@@ -695,7 +732,7 @@ message GetHomeResponse {
   repeated MuscleRecoveryStatus recovery = 6;
   // A stateless suggestion from the rotation: the template whose
   // recovered muscles are furthest below the volume band, ties (within
-  // 20% of the best, or overdue) to the least recently started. Never a
+  // 20% of the best) to the least recently started. Never a
   // gate: any template can be started. Empty when nothing is in rotation.
   string suggested_template_id = 7;
   SuggestionReason suggestion_reason = 13;
@@ -725,9 +762,12 @@ message SuggestionReason {
   // Nothing in rotation was both recovered and behind: the suggestion is
   // the rotation template started least recently.
   bool fallback = 3;
-  // It won on being overdue (not started in 14 days, or never), not on
-  // coming within a fifth of the best score.
-  bool overdue = 4;
+  // Every rotation template's first lift trains a muscle still
+  // recovering: the suggestion is the one whose first lift's muscle
+  // recovers soonest, and this is that muscle.
+  RecoveringMuscle first_lift_recovering = 5;
+  reserved 4;
+  reserved "overdue";
 }
 
 message SuggestionMuscle {
@@ -753,8 +793,7 @@ message RotationCheck {
 
 message RotationWarning {
   RotationWarningKind kind = 1;
-  // GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
-  // least-trained trained muscle.
+  // GAP: every muscle nothing trains.
   repeated MuscleGroup muscles = 2;
   // OVERLAP: the two templates.
   repeated string template_ids = 3;
@@ -769,10 +808,10 @@ enum RotationWarningKind {
   ROTATION_WARNING_KIND_GAP = 1;
   // Two templates sharing over 70% of the smaller one's lifts.
   ROTATION_WARNING_KIND_OVERLAP = 2;
-  // The most-trained muscle gets 3x or more the least-trained one.
-  ROTATION_WARNING_KIND_LOPSIDED = 3;
   // Fewer than two templates in rotation.
   ROTATION_WARNING_KIND_TOO_FEW = 4;
+  reserved 3;
+  reserved "ROTATION_WARNING_KIND_LOPSIDED";
 }
 
 message TemplatePlan {
@@ -792,12 +831,26 @@ message GetExercisePlanResponse {
   ExercisePlan plan = 1;
 }
 
+// A list of lifts planned at now as one workout in the budget, as starting
+// a template of them would plan it: the template editor's rows, saved or
+// not.
+message GetTemplatePlanRequest {
+  repeated Exercise exercises = 1;
+  int32 budget_minutes = 2; // 0 = the default (60)
+}
+message GetTemplatePlanResponse {
+  // template_id empty.
+  TemplatePlan plan = 1;
+}
+
 // Create when id is empty; update when it exists.
 message SaveTemplateRequest {
   WorkoutTemplate template = 1;
-  // Set by the core when the save differs from the library's version of now:
-  // the template becomes the user's own, whatever copy it stored. Without it
-  // (older events) a save unlinks only when it differs from the stored copy.
+  // The template becomes the user's own, whatever copy it stored. Set by
+  // the caller to make a library template its own unchanged (Clone, saved),
+  // and by the core when the save differs from the library's version of
+  // now. Without it a save unlinks only when it differs from the stored
+  // copy.
   bool unlink = 2;
 }
 message SaveTemplateResponse {

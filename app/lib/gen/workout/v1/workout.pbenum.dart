@@ -412,6 +412,30 @@ class PlanReasonKind extends $pb.ProtobufEnum {
       PlanReasonKind._(
           7, _omitEnumNames ? '' : 'PLAN_REASON_KIND_SETS_FROM_TIME');
 
+  /// The plan against the lift's last session, what the user sees move:
+  /// before/after are the weights (lb), reps_*/sets_* the reps and sets,
+  /// and `cause` why. One of these comes first whenever the lift has a
+  /// last session to compare with (not after an override or a ramp alone).
+  /// Heavier than last time.
+  static const PlanReasonKind PLAN_REASON_KIND_WEIGHT_UP =
+      PlanReasonKind._(8, _omitEnumNames ? '' : 'PLAN_REASON_KIND_WEIGHT_UP');
+
+  /// Lighter than last time.
+  static const PlanReasonKind PLAN_REASON_KIND_WEIGHT_DOWN =
+      PlanReasonKind._(9, _omitEnumNames ? '' : 'PLAN_REASON_KIND_WEIGHT_DOWN');
+
+  /// The same weight, more reps.
+  static const PlanReasonKind PLAN_REASON_KIND_REPS_UP =
+      PlanReasonKind._(10, _omitEnumNames ? '' : 'PLAN_REASON_KIND_REPS_UP');
+
+  /// The same weight, fewer reps.
+  static const PlanReasonKind PLAN_REASON_KIND_REPS_DOWN =
+      PlanReasonKind._(11, _omitEnumNames ? '' : 'PLAN_REASON_KIND_REPS_DOWN');
+
+  /// The same weight and reps as last time.
+  static const PlanReasonKind PLAN_REASON_KIND_SAME_AS_LAST = PlanReasonKind._(
+      12, _omitEnumNames ? '' : 'PLAN_REASON_KIND_SAME_AS_LAST');
+
   static const $core.List<PlanReasonKind> values = <PlanReasonKind>[
     PLAN_REASON_KIND_UNSPECIFIED,
     PLAN_REASON_KIND_MAX_UP,
@@ -421,14 +445,64 @@ class PlanReasonKind extends $pb.ProtobufEnum {
     PLAN_REASON_KIND_FIRST_TIME,
     PLAN_REASON_KIND_USER_SET,
     PLAN_REASON_KIND_SETS_FROM_TIME,
+    PLAN_REASON_KIND_WEIGHT_UP,
+    PLAN_REASON_KIND_WEIGHT_DOWN,
+    PLAN_REASON_KIND_REPS_UP,
+    PLAN_REASON_KIND_REPS_DOWN,
+    PLAN_REASON_KIND_SAME_AS_LAST,
   ];
 
   static final $core.List<PlanReasonKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 7);
+      $pb.ProtobufEnum.$_initByValueList(values, 12);
   static PlanReasonKind? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const PlanReasonKind._(super.value, super.name);
+}
+
+/// Why a plan differs from (or matches) the lift's last session.
+class PlanChangeCause extends $pb.ProtobufEnum {
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_UNSPECIFIED =
+      PlanChangeCause._(
+          0, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_UNSPECIFIED');
+
+  /// Every rep hit last time.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_HIT =
+      PlanChangeCause._(1, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_HIT');
+
+  /// A rep missed last time.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_MISSED =
+      PlanChangeCause._(2, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_MISSED');
+
+  /// Last time stopped early: the max held.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_STOPPED_EARLY =
+      PlanChangeCause._(
+          3, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_STOPPED_EARLY');
+
+  /// A different number of sets: last time's sets would have kept last
+  /// time's numbers (sets_before, sets_after).
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_SETS =
+      PlanChangeCause._(4, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_SETS');
+
+  /// Three weeks or more away (days_off): the max cut.
+  static const PlanChangeCause PLAN_CHANGE_CAUSE_TIME_OFF =
+      PlanChangeCause._(5, _omitEnumNames ? '' : 'PLAN_CHANGE_CAUSE_TIME_OFF');
+
+  static const $core.List<PlanChangeCause> values = <PlanChangeCause>[
+    PLAN_CHANGE_CAUSE_UNSPECIFIED,
+    PLAN_CHANGE_CAUSE_HIT,
+    PLAN_CHANGE_CAUSE_MISSED,
+    PLAN_CHANGE_CAUSE_STOPPED_EARLY,
+    PLAN_CHANGE_CAUSE_SETS,
+    PLAN_CHANGE_CAUSE_TIME_OFF,
+  ];
+
+  static final $core.List<PlanChangeCause?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static PlanChangeCause? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const PlanChangeCause._(super.value, super.name);
 }
 
 class WeightChangeCause extends $pb.ProtobufEnum {
@@ -526,11 +600,6 @@ class RotationWarningKind extends $pb.ProtobufEnum {
       RotationWarningKind._(
           2, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_OVERLAP');
 
-  /// The most-trained muscle gets 3x or more the least-trained one.
-  static const RotationWarningKind ROTATION_WARNING_KIND_LOPSIDED =
-      RotationWarningKind._(
-          3, _omitEnumNames ? '' : 'ROTATION_WARNING_KIND_LOPSIDED');
-
   /// Fewer than two templates in rotation.
   static const RotationWarningKind ROTATION_WARNING_KIND_TOO_FEW =
       RotationWarningKind._(
@@ -540,7 +609,6 @@ class RotationWarningKind extends $pb.ProtobufEnum {
     ROTATION_WARNING_KIND_UNSPECIFIED,
     ROTATION_WARNING_KIND_GAP,
     ROTATION_WARNING_KIND_OVERLAP,
-    ROTATION_WARNING_KIND_LOPSIDED,
     ROTATION_WARNING_KIND_TOO_FEW,
   ];
 

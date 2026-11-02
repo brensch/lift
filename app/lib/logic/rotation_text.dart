@@ -25,14 +25,20 @@ String _sentence(String text) =>
     text.isEmpty ? text : text[0].toUpperCase() + text.substring(1);
 
 /// "Chest 2/10 and back 0/10 this week, both rested · quads recovering
-/// (20h)". Empty when there is no reason to give.
+/// (20h)". When every workout opens on a muscle still recovering, that
+/// and nothing else. Empty when there is no reason to give.
 String suggestionLine(SuggestionReason reason) {
   final r = copy.rotation;
+  if (reason.hasFirstLiftRecovering()) {
+    final waiting = reason.firstLiftRecovering;
+    return r.firstLift
+        .replaceAll('{muscle}', _muscle(waiting.muscle))
+        .replaceAll('{hours}', '${waiting.hoursRemaining}');
+  }
   final parts = <String>[];
   if (reason.fallback) {
     parts.add(r.fallback);
   } else {
-    if (reason.overdue) parts.add(r.overdue);
     final behind = reason.behind.take(_shown).toList();
     if (behind.isNotEmpty) {
       final muscles = joinList([
@@ -43,11 +49,13 @@ String suggestionLine(SuggestionReason reason) {
       parts.add(template.replaceAll('{muscles}', muscles));
     }
   }
-  final recovering = reason.recovering.take(_shown).map(
-    (m) => r.recovering
-        .replaceAll('{muscle}', _muscle(m.muscle).toLowerCase())
-        .replaceAll('{hours}', '${m.hoursRemaining}'),
-  );
+  final recovering = reason.recovering
+      .take(_shown)
+      .map(
+        (m) => r.recovering
+            .replaceAll('{muscle}', _muscle(m.muscle).toLowerCase())
+            .replaceAll('{hours}', '${m.hoursRemaining}'),
+      );
   parts.addAll(recovering);
   return _sentence(parts.join(' · '));
 }
@@ -73,10 +81,6 @@ List<String> rotationWarningLines(
               .replaceAll('{b}', name(w.templateIds.last))
               .replaceAll('{shared}', '${w.shared}')
               .replaceAll('{of}', '${w.of}'),
-        RotationWarningKind.ROTATION_WARNING_KIND_LOPSIDED =>
-          r.lopsided
-              .replaceAll('{most}', _muscle(w.muscles.first))
-              .replaceAll('{least}', _muscle(w.muscles.last).toLowerCase()),
         RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW => r.tooFew,
         _ => '',
       },

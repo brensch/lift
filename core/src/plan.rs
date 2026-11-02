@@ -28,6 +28,12 @@
 //! until the next would pass the budget. **Reps and weight** come from the
 //! max (`choose`).
 //!
+//! **Why, against last time.** The first reason compares the plan with the
+//! lift's last session — heavier, lighter, more reps, fewer, the same — and
+//! says why in those terms: every rep hit, a rep missed, stopped early,
+//! time off, or a different number of sets (when last time's sets would
+//! have kept last time's numbers). The max's own steps follow it.
+//!
 //! Everything here is pure. A workout's start records what it decides;
 //! folding the event lays the sets out from that record and never runs it.
 
@@ -41,7 +47,8 @@ use crate::exercise_catalog::{
 use crate::exercise_progress::{session_outcomes, SessionOutcome, SetDone};
 use crate::history::{workout_time, WorkoutRecord};
 use crate::pb::{
-    CompletedSet, Exercise, ExerciseDecision, ExercisePlan, PlanReason, PlanReasonKind, ProposedSet,
+    CompletedSet, Exercise, ExerciseDecision, ExercisePlan, PlanChangeCause, PlanReason,
+    PlanReasonKind, ProposedSet,
 };
 use crate::volume::{muscle_volume_7d, VOLUME_TARGET_LOW};
 use crate::weight_units::AppWeightUnit;
@@ -188,6 +195,22 @@ pub struct Walk {
     pub reason: Option<PlanReason>,
     /// The max after each session, oldest first: (workout id, max).
     pub points: Vec<(String, f32)>,
+    /// The last session's working numbers, which the next plan is compared
+    /// with. None after an override, or when the last session was a ramp
+    /// alone.
+    pub last: Option<LastSession>,
+}
+
+/// What a lift's last session lifted: its heaviest working set's weight
+/// and the reps it was planned for, the working sets planned, and how it
+/// went.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LastSession {
+    pub weight: f32, // lb
+    pub reps: i32,
+    pub sets: i32,
+    /// Hit, Missed or StoppedEarly.
+    pub outcome: PlanChangeCause,
 }
 
 /// Walk a lift's finished sessions (oldest first). The override takes its
@@ -231,6 +254,7 @@ fn apply_override(walk: &mut Walk, o: &Override, bodyweight: bool) {
     walk.last_weight = Some(o.weight);
     walk.last_at = o.at;
     walk.from_override = true;
+    walk.last = None;
 }
 
 /// The most any of `sets` shows, with `extra` reps on each, and the set.
@@ -310,6 +334,73 @@ fn step(walk: &mut Walk, session: &SessionOutcome, bodyweight: bool) {
     walk.last_at = session.at;
     walk.from_override = false;
     walk.points.push((session.workout_id.clone(), after));
+    walk.last = session
+        .sets
+        .iter()
+        .reduce(|best, s| if s.weight > best.weight { s } else { best })
+        .map(|heaviest| LastSession {
+            weight: heaviest.weight,
+            reps: heaviest.target,
+            sets: session.planned_sets.max(session.sets.len() as i32),
+            outcome: if session.stopped_early {
+                PlanChangeCause::StoppedEarly
+            } else if session.all_hit() {
+                PlanChangeCause::Hit
+            } else {
+                PlanChangeCause::Missed
+            },
+        });
+}
+
+/// Two weights the same, give or take a conversion's rounding.
+fn same_weight(a: f32, b: f32) -> bool {
+    (a - b).abs() < 0.05
+}
+
+/// Which way `weight` × `reps` moved from the last session's.
+fn direction(weight: f32, reps: i32, last: &LastSession) -> PlanReasonKind {
+    if same_weight(weight, last.weight) {
+        match reps.cmp(&last.reps) {
+            std::cmp::Ordering::Greater => PlanReasonKind::RepsUp,
+            std::cmp::Ordering::Less => PlanReasonKind::RepsDown,
+            std::cmp::Ordering::Equal => PlanReasonKind::SameAsLast,
+        }
+    } else if weight > last.weight {
+        PlanReasonKind::WeightUp
+    } else {
+        PlanReasonKind::WeightDown
+    }
+}
+
+/// The plan (`d`, with its sets) against the last session: what moved and
+/// why. `kept` is what last time's number of sets would have been given:
+/// when it moves another way than the plan, the sets did it.
+fn versus_last(
+    d: &ExerciseDecision,
+    last: &LastSession,
+    kept: (f32, i32),
+    days_off: Option<i64>,
+) -> PlanReason {
+    let kind = direction(d.weight, d.reps, last);
+    let cause = if days_off.is_some() {
+        PlanChangeCause::TimeOff
+    } else if d.sets != last.sets && direction(kept.0, kept.1, last) != kind {
+        PlanChangeCause::Sets
+    } else {
+        last.outcome
+    };
+    PlanReason {
+        kind: kind as i32,
+        before: last.weight,
+        after: d.weight,
+        cause: cause as i32,
+        reps_before: last.reps,
+        reps_after: d.reps,
+        sets_before: last.sets,
+        sets_after: d.sets,
+        days_off: days_off.unwrap_or(0) as i32,
+        ..Default::default()
+    }
 }
 
 /// What one lift is given with `sets` sets, at `now`: the class's range,
@@ -383,6 +474,11 @@ pub fn plan_lift(
         }
         None => {
             (d.weight, d.reps) = choose(ex, max, last, sets, p.rep_low, p.rep_high, unit);
+            if let Some(previous) = &walk.last {
+                let kept = choose(ex, max, last, previous.sets, p.rep_low, p.rep_high, unit);
+                let off = (factor < 1.0).then_some(days);
+                d.reasons.insert(0, versus_last(&d, previous, kept, off));
+            }
         }
     }
     d
@@ -754,11 +850,13 @@ mod tests {
 
     const LB: AppWeightUnit = AppWeightUnit::Lb;
 
+    /// A set of `reps` at `weight`; a miss was planned for a rep more.
     fn set(weight: f32, reps: i32, hit: bool) -> SetDone {
         SetDone {
             set_id: format!("{weight}x{reps}"),
             weight,
             reps,
+            target: if hit { reps } else { reps + 1 },
             hit,
         }
     }
@@ -769,6 +867,7 @@ mod tests {
             workout_id: id.to_string(),
             started_at: day * DAY - 3600,
             at: day * DAY,
+            planned_sets: sets.len() as i32,
             sets,
             rungs: Vec::new(),
             stopped_early: false,
@@ -818,7 +917,10 @@ mod tests {
         assert!(close(w.max.unwrap(), shown_max(200.0, 7, 1, 3, false)));
         let d = plan_lift(Exercise::Squat, &w, None, None, 3, 2 * DAY, LB);
         assert_eq!((d.weight, d.reps), (200.0, 7), "rule 1: a rep more");
-        assert_eq!(kinds(&d), vec![PlanReasonKind::MaxUp]);
+        assert_eq!(
+            kinds(&d),
+            vec![PlanReasonKind::RepsUp, PlanReasonKind::MaxUp]
+        );
     }
 
     /// Past the top of the range: one step up, as many reps as covered.
@@ -903,9 +1005,15 @@ mod tests {
         let d = plan_lift(Exercise::Squat, &w, None, None, 3, 31 * DAY, LB);
         assert_eq!(
             kinds(&d),
-            vec![PlanReasonKind::MaxUp, PlanReasonKind::TimeOff]
+            vec![
+                PlanReasonKind::WeightDown,
+                PlanReasonKind::MaxUp,
+                PlanReasonKind::TimeOff
+            ]
         );
-        let off = &d.reasons[1];
+        assert_eq!(d.reasons[0].cause, PlanChangeCause::TimeOff as i32);
+        assert_eq!(d.reasons[0].days_off, 30);
+        let off = &d.reasons[2];
         assert_eq!(off.days_off, 30);
         assert!(close(off.after, off.before * 0.9));
         assert!(close(d.max, off.after));
@@ -914,7 +1022,7 @@ mod tests {
             "no last weight: the heaviest covered at 5"
         );
         assert_eq!(
-            plan_lift(Exercise::Squat, &w, None, None, 3, 50 * DAY, LB).reasons[1].after,
+            plan_lift(Exercise::Squat, &w, None, None, 3, 50 * DAY, LB).reasons[2].after,
             w.max.unwrap() * 0.8
         );
         // The walk applies the cut the next session was planned with.
@@ -927,6 +1035,109 @@ mod tests {
             None,
         );
         assert!(back.max.unwrap() < w.max.unwrap());
+    }
+
+    /// The plan against last time, with the weight that moved and why.
+    fn versus(d: &ExerciseDecision) -> (PlanReasonKind, PlanChangeCause) {
+        let r = &d.reasons[0];
+        (
+            PlanReasonKind::try_from(r.kind).unwrap(),
+            PlanChangeCause::try_from(r.cause).unwrap(),
+        )
+    }
+
+    /// Reps missed and the max covers less than the bottom at last time's
+    /// weight: lighter, because of the miss.
+    #[test]
+    fn a_miss_brings_the_weight_down() {
+        let missed = vec![set(200.0, 4, false); 3];
+        let w = walk(Exercise::Squat, &[session("w1", 1, missed)], None);
+        let d = plan_lift(Exercise::Squat, &w, None, None, 3, 2 * DAY, LB);
+        assert_eq!(d.weight, 185.0);
+        assert_eq!(
+            versus(&d),
+            (PlanReasonKind::WeightDown, PlanChangeCause::Missed)
+        );
+        let r = &d.reasons[0];
+        assert_eq!((r.before, r.after), (200.0, 185.0));
+        assert_eq!((r.reps_before, r.reps_after), (5, d.reps));
+        assert_eq!(kinds(&d)[1], PlanReasonKind::MaxFromMiss);
+    }
+
+    /// Every rep hit, but more sets than last time take more than the max
+    /// covers at that weight: lighter, because of the sets. With last
+    /// time's sets it would have been a rep more.
+    #[test]
+    fn more_sets_bring_the_weight_down() {
+        let w = walk(
+            Exercise::Squat,
+            &[session("w1", 1, three(200.0, 5)[..2].to_vec())],
+            None,
+        );
+        let two = plan_lift(Exercise::Squat, &w, None, None, 2, 2 * DAY, LB);
+        assert_eq!((two.weight, two.reps), (200.0, 6));
+        assert_eq!(versus(&two), (PlanReasonKind::RepsUp, PlanChangeCause::Hit));
+        let five = plan_lift(Exercise::Squat, &w, None, None, 5, 2 * DAY, LB);
+        assert!(five.weight < 200.0, "{}", five.weight);
+        assert_eq!(
+            versus(&five),
+            (PlanReasonKind::WeightDown, PlanChangeCause::Sets)
+        );
+        let r = &five.reasons[0];
+        assert_eq!((r.sets_before, r.sets_after), (2, 5));
+        // Never "held" beside a weight that moved: the max step after it
+        // is the hit's.
+        assert_eq!(kinds(&five)[1], PlanReasonKind::MaxUp);
+    }
+
+    /// Every rep hit: a rep more at the same weight, or past the top a
+    /// step up.
+    #[test]
+    fn a_hit_brings_more_reps_or_more_weight() {
+        let w = walk(Exercise::Squat, &[session("w1", 1, three(200.0, 6))], None);
+        let d = plan_lift(Exercise::Squat, &w, None, None, 3, 2 * DAY, LB);
+        assert_eq!(versus(&d), (PlanReasonKind::RepsUp, PlanChangeCause::Hit));
+        assert_eq!((d.reasons[0].reps_before, d.reasons[0].reps_after), (6, 7));
+        let w = walk(Exercise::Squat, &[session("w1", 1, three(200.0, 8))], None);
+        let d = plan_lift(Exercise::Squat, &w, None, None, 3, 2 * DAY, LB);
+        assert_eq!(versus(&d), (PlanReasonKind::WeightUp, PlanChangeCause::Hit));
+        assert_eq!((d.reasons[0].before, d.reasons[0].after), (200.0, 205.0));
+    }
+
+    /// Stopped early: the max held and so do the numbers.
+    #[test]
+    fn stopped_early_keeps_last_times_numbers() {
+        let mut first = session("w1", 1, three(200.0, 6));
+        first.sets[2].hit = false;
+        first.sets[2].reps = 5;
+        first.sets[2].target = 6;
+        let w1 = walk(Exercise::Squat, &[first.clone()], None);
+        let planned = plan_lift(Exercise::Squat, &w1, None, None, 3, 2 * DAY, LB);
+        let mut stopped = session(
+            "w2",
+            3,
+            vec![SetDone {
+                target: planned.reps,
+                ..set(planned.weight, planned.reps, true)
+            }],
+        );
+        stopped.planned_sets = 3;
+        stopped.stopped_early = true;
+        let w = walk(Exercise::Squat, &[first, stopped], None);
+        let d = plan_lift(Exercise::Squat, &w, None, None, 3, 4 * DAY, LB);
+        assert_eq!((d.weight, d.reps), (planned.weight, planned.reps));
+        assert_eq!(
+            versus(&d),
+            (PlanReasonKind::SameAsLast, PlanChangeCause::StoppedEarly)
+        );
+        assert_eq!(kinds(&d)[1], PlanReasonKind::Held);
+    }
+
+    /// No comparison after an override or a lift never done.
+    #[test]
+    fn nothing_to_compare_with() {
+        let d = plan_lift(Exercise::Squat, &Walk::default(), None, None, 3, 0, LB);
+        assert_eq!(kinds(&d), vec![PlanReasonKind::FirstTime]);
     }
 
     /// A lift never done: a ramp from 60% of its starting weight, never under

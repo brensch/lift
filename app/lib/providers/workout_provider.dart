@@ -491,10 +491,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Templates and plans ──
 
-  Future<void> saveTemplate(WorkoutTemplate template) async {
-    await _service.saveTemplate(template);
+  /// Create or update [template]. [unlink] makes a library template the
+  /// user's own, changed or not: Clone, saved.
+  Future<void> saveTemplate(
+    WorkoutTemplate template, {
+    bool unlink = false,
+  }) async {
+    await _service.saveTemplate(template, unlink: unlink);
     await refreshHome();
   }
+
+  /// [exercises] planned as one workout in the budget, exactly as Home plans
+  /// a template of them: the template editor's rows, saved or not.
+  Future<TemplatePlan> planTemplate(List<Exercise> exercises) =>
+      _service.getTemplatePlan(exercises, budgetMinutes: _budgetMinutes);
 
   /// Put [template] in the rotation the suggestion picks from, or make it
   /// a favourite. A library template keeps following the library.
@@ -504,13 +514,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> deleteTemplate(String templateId) async {
     await _service.deleteTemplate(templateId);
     await refreshHome();
-  }
-
-  /// Make a library template the user's own, to edit. Returns it.
-  Future<WorkoutTemplate> cloneTemplate(String templateId) async {
-    final template = await _service.cloneTemplate(templateId);
-    await refreshHome();
-    return template;
   }
 
   Future<void> reorderTemplates(List<String> templateIds) async {

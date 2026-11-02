@@ -1060,11 +1060,43 @@ impl<'a> Runner<'a> {
 
     fn reason_json(&self, ex: Exercise, r: &PlanReason) -> J {
         let kind = reason_kind(r.kind);
+        let versus = matches!(
+            kind,
+            PlanReasonKind::WeightUp
+                | PlanReasonKind::WeightDown
+                | PlanReasonKind::RepsUp
+                | PlanReasonKind::RepsDown
+                | PlanReasonKind::SameAsLast
+        );
+        // Against last time: weights, or for a bodyweight lift its reps.
+        let (before, after) = if versus && is_bodyweight(ex) {
+            (r.reps_before as f32, r.reps_after as f32)
+        } else {
+            (r.before, r.after)
+        };
         let value = |x: f32| match kind {
             PlanReasonKind::SetsFromTime => num(x),
+            _ if versus && !is_bodyweight(ex) => self.w(x),
             _ => self.m(ex, x),
         };
         let mut detail = Vec::new();
+        if versus {
+            let cause = PlanChangeCause::try_from(r.cause).unwrap_or(PlanChangeCause::Unspecified);
+            detail.push(format!(
+                "{}; {}×{} last time, {}×{} now",
+                cause
+                    .as_str_name()
+                    .strip_prefix("PLAN_CHANGE_CAUSE_")
+                    .unwrap_or_default(),
+                r.sets_before,
+                r.reps_before,
+                r.sets_after,
+                r.reps_after
+            ));
+            if r.days_off > 0 {
+                detail.push(format!("{} days off", r.days_off));
+            }
+        }
         match kind {
             PlanReasonKind::TimeOff => detail.push(format!("{} days off", r.days_off)),
             PlanReasonKind::SetsFromTime => detail.push(format!(
@@ -1098,8 +1130,8 @@ impl<'a> Runner<'a> {
         }
         J::Obj(vec![
             ("kind", s(reason_name(r.kind))),
-            ("before", value(r.before)),
-            ("after", value(r.after)),
+            ("before", value(before)),
+            ("after", value(after)),
             ("detail", s(detail.join("; "))),
         ])
     }
@@ -1627,6 +1659,8 @@ struct Candidate {
     behind: Vec<MuscleGroup>,
     /// Days since it was last started (None = never).
     last_days: Option<f32>,
+    /// Its first lift's muscle still recovering: (muscle, hours left).
+    first_recovering: Option<(MuscleGroup, i32)>,
 }
 
 /// One training day: what Home suggested, why, and what the others had.
@@ -1719,6 +1753,12 @@ fn rotation() -> RotationRun {
                         last_days: last_started
                             .get(&t.id)
                             .map(|s| (at - s) as f32 / DAY as f32),
+                        first_recovering: alone.reason.first_lift_recovering.map(|r| {
+                            (
+                                MuscleGroup::try_from(r.muscle).unwrap_or(MuscleGroup::Unspecified),
+                                r.hours_remaining,
+                            )
+                        }),
                     }
                 })
                 .collect();
@@ -1834,10 +1874,30 @@ impl RotationRun {
     }
 
     /// Violations: the same template two training days running while
-    /// another had recovered muscles behind; a rotation template never
-    /// picked; Full Body over its share. Info: a fallback day.
+    /// another had recovered muscles behind; a template picked while its
+    /// first lift's muscle recovered, with another ready; Full Body over its
+    /// share. Info: a fallback day, a rotation template never picked (the
+    /// rotation check's overlap warning covers a template inside another).
     fn audit(&mut self) {
         let mut flags = Vec::new();
+        for day in &self.days {
+            let picked = day.candidates.iter().find(|c| c.id == day.picked);
+            if let Some((m, hours)) = picked.and_then(|c| c.first_recovering) {
+                if day.reason.first_lift_recovering.is_none() {
+                    flags.push(Flag {
+                        severity: Severity::Violation,
+                        kind: "first_lift_recovering",
+                        session: day.n,
+                        exercise: None,
+                        detail: format!(
+                            "{} opens on {} with {hours}h of recovery left",
+                            self.name(&day.picked),
+                            muscle(m as i32)
+                        ),
+                    });
+                }
+            }
+        }
         for pair in self.days.windows(2) {
             let (before, day) = (&pair[0], &pair[1]);
             if before.picked != day.picked {
@@ -1846,7 +1906,7 @@ impl RotationRun {
             let other: Vec<&Candidate> = day
                 .candidates
                 .iter()
-                .filter(|c| c.id != day.picked && c.score > 0.0)
+                .filter(|c| c.id != day.picked && c.score > 0.0 && c.first_recovering.is_none())
                 .collect();
             if !other.is_empty() {
                 flags.push(Flag {
@@ -1869,7 +1929,7 @@ impl RotationRun {
         for id in self.names.keys() {
             if !self.days.iter().any(|d| &d.picked == id) {
                 flags.push(Flag {
-                    severity: Severity::Violation,
+                    severity: Severity::Info,
                     kind: "never_picked",
                     session: 0,
                     exercise: None,
@@ -1921,7 +1981,18 @@ impl RotationRun {
                     ("weekday", s(weekday(d.at))),
                     ("template", s(self.name(&d.picked))),
                     ("fallback", J::Bool(d.reason.fallback)),
-                    ("overdue", J::Bool(d.reason.overdue)),
+                    (
+                        "first_lift_recovering",
+                        d.reason
+                            .first_lift_recovering
+                            .as_ref()
+                            .map_or(J::Null, |r| {
+                                J::Obj(vec![
+                                    ("muscle", s(muscle(r.muscle))),
+                                    ("hours", J::Int(r.hours_remaining as i64)),
+                                ])
+                            }),
+                    ),
                     (
                         "behind",
                         J::Arr(
@@ -1972,6 +2043,15 @@ impl RotationRun {
                                             ),
                                         ),
                                         ("last_days", c.last_days.map_or(J::Null, num)),
+                                        (
+                                            "first_recovering",
+                                            c.first_recovering.map_or(J::Null, |(m, h)| {
+                                                J::Obj(vec![
+                                                    ("muscle", s(muscle(m as i32))),
+                                                    ("hours", J::Int(h as i64)),
+                                                ])
+                                            }),
+                                        ),
                                     ])
                                 })
                                 .collect(),
@@ -2051,8 +2131,9 @@ impl RotationRun {
 }
 
 /// Following the suggestion turns the rotation over: no template twice
-/// running while another had recovered muscles behind, every template
-/// picked within the three weeks, and Full Body no more than 40% of days.
+/// running while another had recovered muscles behind, none opening on a
+/// muscle still recovering while another was ready, and Full Body no more
+/// than 40% of days.
 #[test]
 fn the_rotation_turns_over() {
     let run = rotation();

@@ -128,12 +128,29 @@ class WorkoutServiceWrapper {
     GetHomeResponse.fromBuffer,
   );
 
-  Future<WorkoutTemplate> saveTemplate(WorkoutTemplate template) async =>
-      (await _call(
-        'SaveTemplate',
-        SaveTemplateRequest()..template = template,
-        SaveTemplateResponse.fromBuffer,
-      )).template;
+  /// Create or update [template]; [unlink] makes a library template the
+  /// user's own even when saved unchanged.
+  Future<WorkoutTemplate> saveTemplate(
+    WorkoutTemplate template, {
+    bool unlink = false,
+  }) async => (await _call(
+    'SaveTemplate',
+    SaveTemplateRequest()
+      ..template = template
+      ..unlink = unlink,
+    SaveTemplateResponse.fromBuffer,
+  )).template;
+
+  /// [exercises] planned as one workout in [budgetMinutes], as starting a
+  /// template of them would plan it.
+  Future<TemplatePlan> getTemplatePlan(
+    List<Exercise> exercises, {
+    int budgetMinutes = 0,
+  }) async => (await _call(
+    'GetTemplatePlan',
+    GetTemplatePlanRequest(exercises: exercises, budgetMinutes: budgetMinutes),
+    GetTemplatePlanResponse.fromBuffer,
+  )).plan;
 
   Future<void> deleteTemplate(String templateId) => _call(
     'DeleteTemplate',
@@ -211,15 +228,6 @@ class WorkoutServiceWrapper {
         AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
         AddLibraryTemplatesResponse.fromBuffer,
       )).home;
-
-  /// Make a library template the user's own (same id, so its history
-  /// stays with it). Returns it.
-  Future<WorkoutTemplate> cloneTemplate(String templateId) async =>
-      (await _call(
-        'CloneTemplate',
-        CloneTemplateRequest()..templateId = templateId,
-        CloneTemplateResponse.fromBuffer,
-      )).template;
 
   Future<List<UserSetting>> getSettings() async => (await _call(
     'GetSettings',

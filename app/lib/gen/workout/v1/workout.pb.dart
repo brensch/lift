@@ -614,6 +614,11 @@ class PlanReason extends $pb.GeneratedMessage {
     $core.int? budgetMinutes,
     MuscleGroup? muscle,
     $core.double? weeklySets,
+    PlanChangeCause? cause,
+    $core.int? repsBefore,
+    $core.int? repsAfter,
+    $core.int? setsBefore,
+    $core.int? setsAfter,
   }) {
     final result = create();
     if (kind != null) result.kind = kind;
@@ -626,6 +631,11 @@ class PlanReason extends $pb.GeneratedMessage {
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
     if (muscle != null) result.muscle = muscle;
     if (weeklySets != null) result.weeklySets = weeklySets;
+    if (cause != null) result.cause = cause;
+    if (repsBefore != null) result.repsBefore = repsBefore;
+    if (repsAfter != null) result.repsAfter = repsAfter;
+    if (setsBefore != null) result.setsBefore = setsBefore;
+    if (setsAfter != null) result.setsAfter = setsAfter;
     return result;
   }
 
@@ -654,6 +664,12 @@ class PlanReason extends $pb.GeneratedMessage {
     ..aE<MuscleGroup>(9, _omitFieldNames ? '' : 'muscle',
         enumValues: MuscleGroup.values)
     ..aD(10, _omitFieldNames ? '' : 'weeklySets', fieldType: $pb.PbFieldType.OF)
+    ..aE<PlanChangeCause>(11, _omitFieldNames ? '' : 'cause',
+        enumValues: PlanChangeCause.values)
+    ..aI(12, _omitFieldNames ? '' : 'repsBefore')
+    ..aI(13, _omitFieldNames ? '' : 'repsAfter')
+    ..aI(14, _omitFieldNames ? '' : 'setsBefore')
+    ..aI(15, _omitFieldNames ? '' : 'setsAfter')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -773,6 +789,53 @@ class PlanReason extends $pb.GeneratedMessage {
   $core.bool hasWeeklySets() => $_has(9);
   @$pb.TagNumber(10)
   void clearWeeklySets() => $_clearField(10);
+
+  /// WEIGHT_UP .. SAME_AS_LAST: why, and last time's reps and sets against
+  /// this plan's.
+  @$pb.TagNumber(11)
+  PlanChangeCause get cause => $_getN(10);
+  @$pb.TagNumber(11)
+  set cause(PlanChangeCause value) => $_setField(11, value);
+  @$pb.TagNumber(11)
+  $core.bool hasCause() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearCause() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $core.int get repsBefore => $_getIZ(11);
+  @$pb.TagNumber(12)
+  set repsBefore($core.int value) => $_setSignedInt32(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasRepsBefore() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearRepsBefore() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.int get repsAfter => $_getIZ(12);
+  @$pb.TagNumber(13)
+  set repsAfter($core.int value) => $_setSignedInt32(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasRepsAfter() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearRepsAfter() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.int get setsBefore => $_getIZ(13);
+  @$pb.TagNumber(14)
+  set setsBefore($core.int value) => $_setSignedInt32(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasSetsBefore() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearSetsBefore() => $_clearField(14);
+
+  @$pb.TagNumber(15)
+  $core.int get setsAfter => $_getIZ(14);
+  @$pb.TagNumber(15)
+  set setsAfter($core.int value) => $_setSignedInt32(14, value);
+  @$pb.TagNumber(15)
+  $core.bool hasSetsAfter() => $_has(14);
+  @$pb.TagNumber(15)
+  void clearSetsAfter() => $_clearField(15);
 }
 
 /// What one lift is given in a workout: everything its sets are laid out
@@ -4759,7 +4822,7 @@ class GetHomeResponse extends $pb.GeneratedMessage {
 
   /// A stateless suggestion from the rotation: the template whose
   /// recovered muscles are furthest below the volume band, ties (within
-  /// 20% of the best, or overdue) to the least recently started. Never a
+  /// 20% of the best) to the least recently started. Never a
   /// gate: any template can be started. Empty when nothing is in rotation.
   @$pb.TagNumber(7)
   $core.String get suggestedTemplateId => $_getSZ(4);
@@ -4829,13 +4892,14 @@ class SuggestionReason extends $pb.GeneratedMessage {
     $core.Iterable<SuggestionMuscle>? behind,
     $core.Iterable<RecoveringMuscle>? recovering,
     $core.bool? fallback,
-    $core.bool? overdue,
+    RecoveringMuscle? firstLiftRecovering,
   }) {
     final result = create();
     if (behind != null) result.behind.addAll(behind);
     if (recovering != null) result.recovering.addAll(recovering);
     if (fallback != null) result.fallback = fallback;
-    if (overdue != null) result.overdue = overdue;
+    if (firstLiftRecovering != null)
+      result.firstLiftRecovering = firstLiftRecovering;
     return result;
   }
 
@@ -4857,7 +4921,8 @@ class SuggestionReason extends $pb.GeneratedMessage {
     ..pPM<RecoveringMuscle>(2, _omitFieldNames ? '' : 'recovering',
         subBuilder: RecoveringMuscle.create)
     ..aOB(3, _omitFieldNames ? '' : 'fallback')
-    ..aOB(4, _omitFieldNames ? '' : 'overdue')
+    ..aOM<RecoveringMuscle>(5, _omitFieldNames ? '' : 'firstLiftRecovering',
+        subBuilder: RecoveringMuscle.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -4900,16 +4965,19 @@ class SuggestionReason extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   void clearFallback() => $_clearField(3);
 
-  /// It won on being overdue (not started in 14 days, or never), not on
-  /// coming within a fifth of the best score.
-  @$pb.TagNumber(4)
-  $core.bool get overdue => $_getBF(3);
-  @$pb.TagNumber(4)
-  set overdue($core.bool value) => $_setBool(3, value);
-  @$pb.TagNumber(4)
-  $core.bool hasOverdue() => $_has(3);
-  @$pb.TagNumber(4)
-  void clearOverdue() => $_clearField(4);
+  /// Every rotation template's first lift trains a muscle still
+  /// recovering: the suggestion is the one whose first lift's muscle
+  /// recovers soonest, and this is that muscle.
+  @$pb.TagNumber(5)
+  RecoveringMuscle get firstLiftRecovering => $_getN(3);
+  @$pb.TagNumber(5)
+  set firstLiftRecovering(RecoveringMuscle value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasFirstLiftRecovering() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearFirstLiftRecovering() => $_clearField(5);
+  @$pb.TagNumber(5)
+  RecoveringMuscle ensureFirstLiftRecovering() => $_ensure(3);
 }
 
 class SuggestionMuscle extends $pb.GeneratedMessage {
@@ -5189,8 +5257,7 @@ class RotationWarning extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearKind() => $_clearField(1);
 
-  /// GAP: every muscle nothing trains. LOPSIDED: the most-trained, then the
-  /// least-trained trained muscle.
+  /// GAP: every muscle nothing trains.
   @$pb.TagNumber(2)
   $pb.PbList<MuscleGroup> get muscles => $_getList(1);
 
@@ -5420,6 +5487,132 @@ class GetExercisePlanResponse extends $pb.GeneratedMessage {
   ExercisePlan ensurePlan() => $_ensure(0);
 }
 
+/// A list of lifts planned at now as one workout in the budget, as starting
+/// a template of them would plan it: the template editor's rows, saved or
+/// not.
+class GetTemplatePlanRequest extends $pb.GeneratedMessage {
+  factory GetTemplatePlanRequest({
+    $core.Iterable<Exercise>? exercises,
+    $core.int? budgetMinutes,
+  }) {
+    final result = create();
+    if (exercises != null) result.exercises.addAll(exercises);
+    if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
+    return result;
+  }
+
+  GetTemplatePlanRequest._();
+
+  factory GetTemplatePlanRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetTemplatePlanRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetTemplatePlanRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pc<Exercise>(1, _omitFieldNames ? '' : 'exercises', $pb.PbFieldType.KE,
+        valueOf: Exercise.valueOf,
+        enumValues: Exercise.values,
+        defaultEnumValue: Exercise.EXERCISE_UNSPECIFIED)
+    ..aI(2, _omitFieldNames ? '' : 'budgetMinutes')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTemplatePlanRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTemplatePlanRequest copyWith(
+          void Function(GetTemplatePlanRequest) updates) =>
+      super.copyWith((message) => updates(message as GetTemplatePlanRequest))
+          as GetTemplatePlanRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTemplatePlanRequest create() => GetTemplatePlanRequest._();
+  @$core.override
+  GetTemplatePlanRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetTemplatePlanRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetTemplatePlanRequest>(create);
+  static GetTemplatePlanRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<Exercise> get exercises => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.int get budgetMinutes => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set budgetMinutes($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasBudgetMinutes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearBudgetMinutes() => $_clearField(2);
+}
+
+class GetTemplatePlanResponse extends $pb.GeneratedMessage {
+  factory GetTemplatePlanResponse({
+    TemplatePlan? plan,
+  }) {
+    final result = create();
+    if (plan != null) result.plan = plan;
+    return result;
+  }
+
+  GetTemplatePlanResponse._();
+
+  factory GetTemplatePlanResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetTemplatePlanResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetTemplatePlanResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<TemplatePlan>(1, _omitFieldNames ? '' : 'plan',
+        subBuilder: TemplatePlan.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTemplatePlanResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTemplatePlanResponse copyWith(
+          void Function(GetTemplatePlanResponse) updates) =>
+      super.copyWith((message) => updates(message as GetTemplatePlanResponse))
+          as GetTemplatePlanResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTemplatePlanResponse create() => GetTemplatePlanResponse._();
+  @$core.override
+  GetTemplatePlanResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetTemplatePlanResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetTemplatePlanResponse>(create);
+  static GetTemplatePlanResponse? _defaultInstance;
+
+  /// template_id empty.
+  @$pb.TagNumber(1)
+  TemplatePlan get plan => $_getN(0);
+  @$pb.TagNumber(1)
+  set plan(TemplatePlan value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasPlan() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearPlan() => $_clearField(1);
+  @$pb.TagNumber(1)
+  TemplatePlan ensurePlan() => $_ensure(0);
+}
+
 /// Create when id is empty; update when it exists.
 class SaveTemplateRequest extends $pb.GeneratedMessage {
   factory SaveTemplateRequest({
@@ -5480,9 +5673,11 @@ class SaveTemplateRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   WorkoutTemplate ensureTemplate() => $_ensure(0);
 
-  /// Set by the core when the save differs from the library's version of now:
-  /// the template becomes the user's own, whatever copy it stored. Without it
-  /// (older events) a save unlinks only when it differs from the stored copy.
+  /// The template becomes the user's own, whatever copy it stored. Set by
+  /// the caller to make a library template its own unchanged (Clone, saved),
+  /// and by the core when the save differs from the library's version of
+  /// now. Without it a save unlinks only when it differs from the stored
+  /// copy.
   @$pb.TagNumber(2)
   $core.bool get unlink => $_getBF(1);
   @$pb.TagNumber(2)

@@ -1,5 +1,5 @@
-/// A lift's plan in words: "3×8 @ 185 lb" and why ("Hit every rep. Max up
-/// to 231 lb."), from the decision the core made (core/src/plan.rs). Home,
+/// A lift's plan in words: "3×8 @ 185 lb" and why ("Down to 180 lb: missed
+/// reps last time."), from the decision the core made (core/src/plan.rs). Home,
 /// the template editor, the live workout and the summary all read these, so
 /// they say the same thing.
 library;
@@ -39,10 +39,54 @@ String maxText(double max, WeightUnit unit, {required bool bodyweight}) {
 bool isBodyweightDecision(ExerciseDecision d) =>
     d.weight <= 0 && !d.calibration;
 
+/// The reasons that compare a plan with the lift's last session.
+const _versusKinds = {
+  PlanReasonKind.PLAN_REASON_KIND_WEIGHT_UP,
+  PlanReasonKind.PLAN_REASON_KIND_WEIGHT_DOWN,
+  PlanReasonKind.PLAN_REASON_KIND_REPS_UP,
+  PlanReasonKind.PLAN_REASON_KIND_REPS_DOWN,
+  PlanReasonKind.PLAN_REASON_KIND_SAME_AS_LAST,
+};
+
+bool _isVersus(PlanReason r) => _versusKinds.contains(r.kind);
+
+/// The plan against last time: "Down to 107.5 kg: 4 sets today, 3 last
+/// time."
+String _versusText(PlanReason r, WeightUnit unit) {
+  final c = copy.plan.versus;
+  final reps = (r.repsAfter - r.repsBefore).abs();
+  final change = switch (r.kind) {
+    PlanReasonKind.PLAN_REASON_KIND_WEIGHT_UP => c.weightUp,
+    PlanReasonKind.PLAN_REASON_KIND_WEIGHT_DOWN => c.weightDown,
+    PlanReasonKind.PLAN_REASON_KIND_REPS_UP =>
+      reps == 1 ? c.repsUpOne : c.repsUp,
+    PlanReasonKind.PLAN_REASON_KIND_REPS_DOWN =>
+      reps == 1 ? c.repsDownOne : c.repsDown,
+    _ => c.same,
+  };
+  final why = switch (r.cause) {
+    PlanChangeCause.PLAN_CHANGE_CAUSE_HIT => c.hit,
+    PlanChangeCause.PLAN_CHANGE_CAUSE_MISSED => c.missed,
+    PlanChangeCause.PLAN_CHANGE_CAUSE_STOPPED_EARLY => c.stoppedEarly,
+    PlanChangeCause.PLAN_CHANGE_CAUSE_SETS => c.sets,
+    PlanChangeCause.PLAN_CHANGE_CAUSE_TIME_OFF => c.timeOff,
+    _ => '',
+  };
+  final head = change
+      .replaceAll('{after}', formatWeight(r.after, unit, includeUnit: true))
+      .replaceAll('{n}', '$reps');
+  final tail = why
+      .replaceAll('{sets}', '${r.setsAfter}')
+      .replaceAll('{last}', '${r.setsBefore}')
+      .replaceAll('{days}', '${r.daysOff}');
+  return tail.isEmpty ? '$head.' : '$head: $tail.';
+}
+
 /// One step of a decision in words.
 String reasonText(PlanReason r, WeightUnit unit, {required bool bodyweight}) {
   final c = copy.plan.reasons;
   String max(double v) => maxText(v, unit, bodyweight: bodyweight);
+  if (_isVersus(r)) return _versusText(r, unit);
   switch (r.kind) {
     case PlanReasonKind.PLAN_REASON_KIND_MAX_UP:
       return c.maxUp.replaceAll('{max}', max(r.after));
@@ -75,29 +119,44 @@ String reasonText(PlanReason r, WeightUnit unit, {required bool bodyweight}) {
   }
 }
 
-/// Every step of a decision, in the order they applied.
+/// Whether the plan moved from last time: a "held" max beside it would
+/// read as if nothing changed.
+bool _moved(ExerciseDecision d) => d.reasons.any(
+  (r) => _isVersus(r) && r.kind != PlanReasonKind.PLAN_REASON_KIND_SAME_AS_LAST,
+);
+
+/// Every step of a decision, in the order they applied: the plan against
+/// last time first, then what the max did. A held max is left out when
+/// the weight or reps moved.
 List<String> reasonLines(ExerciseDecision d, WeightUnit unit) {
   final bodyweight = isBodyweightDecision(d);
+  final moved = _moved(d);
   return [
-    for (final r in d.reasons) reasonText(r, unit, bodyweight: bodyweight),
+    for (final r in d.reasons)
+      if (!(moved && r.kind == PlanReasonKind.PLAN_REASON_KIND_HELD))
+        reasonText(r, unit, bodyweight: bodyweight),
   ].where((line) => line.isNotEmpty).toList();
 }
 
-/// The one line that says why the weight is what it is: the last step that
-/// moved the max (time off comes after the session it follows). The sets
-/// step only when there is nothing else.
+/// The one line that says why the weight is what it is: the plan against
+/// last time when there is a last time; otherwise the last step that moved
+/// the max (time off comes after the session it follows); the sets step
+/// only when there is nothing else.
 String reasonShort(ExerciseDecision d, WeightUnit unit) {
   final bodyweight = isBodyweightDecision(d);
+  PlanReason? versus;
   PlanReason? weight;
   PlanReason? sets;
   for (final r in d.reasons) {
-    if (r.kind == PlanReasonKind.PLAN_REASON_KIND_SETS_FROM_TIME) {
+    if (_isVersus(r)) {
+      versus ??= r;
+    } else if (r.kind == PlanReasonKind.PLAN_REASON_KIND_SETS_FROM_TIME) {
       sets = r;
     } else {
       weight = r;
     }
   }
-  final pick = weight ?? sets;
+  final pick = versus ?? weight ?? sets;
   return pick == null ? '' : reasonText(pick, unit, bodyweight: bodyweight);
 }
 

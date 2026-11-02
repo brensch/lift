@@ -82,19 +82,17 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     );
   }
 
-  /// Make a library workout the user's own and open it to edit.
-  Future<void> _clone(WorkoutTemplate have) async {
+  /// Open a library workout in the editor to make it the user's own:
+  /// nothing changes until Save there.
+  void _clone(WorkoutTemplate have) {
     final wp = context.read<WorkoutProvider>();
-    final navigator = Navigator.of(context);
-    final parent = navigator.context;
-    WorkoutTemplate? cloned;
-    await _run(have.id, () async => cloned = await wp.cloneTemplate(have.id));
-    final done = cloned;
-    if (done == null) return;
-    navigator.pop();
-    if (parent.mounted) {
-      await showTemplateEditor(parent, template: done, provider: wp);
-    }
+    Navigator.pop(context);
+    showTemplateEditor(
+      context,
+      template: have,
+      provider: wp,
+      personalise: true,
+    );
   }
 
   void _edit(WorkoutTemplate? template) {

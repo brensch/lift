@@ -277,7 +277,11 @@ impl<'a> Call<'a> {
             .unwrap_or_default();
         if let (Some(existing), Some(saved)) = (self.account.template(&given), &mut req.template) {
             let shown = self.view().resolved(existing);
-            if existing.coupled && shown.name == saved.name && shown.exercises == saved.exercises {
+            if existing.coupled
+                && !req.unlink
+                && shown.name == saved.name
+                && shown.exercises == saved.exercises
+            {
                 // Saving a coupled template as the library has it changes
                 // nothing but, maybe, whether it is in rotation: that is
                 // saved on the stored copy, so it stays coupled.
@@ -590,6 +594,39 @@ impl<'a> View<'a> {
         })
     }
 
+    /// `exercises` planned at now as one workout in `budget_minutes` (0 =
+    /// the default): what starting a template of them would record.
+    pub fn template_plan(&self, exercises: &[i32], budget_minutes: i32) -> TemplatePlan {
+        self.plan_template(
+            &Planner::new(self.account, self.now),
+            exercises,
+            budget_minutes,
+        )
+    }
+
+    fn plan_template(
+        &self,
+        planner: &Planner,
+        values: &[i32],
+        budget_minutes: i32,
+    ) -> TemplatePlan {
+        let decisions = planner.workout(&exercises(values), &[], budget_minutes);
+        TemplatePlan {
+            template_id: String::new(),
+            estimated_seconds: decisions.iter().map(|d| d.estimated_seconds).sum(),
+            plans: decisions.into_iter().map(|d| planner.view(d)).collect(),
+        }
+    }
+
+    pub fn get_template_plan(
+        &self,
+        req: GetTemplatePlanRequest,
+    ) -> Result<GetTemplatePlanResponse, CoreError> {
+        Ok(GetTemplatePlanResponse {
+            plan: Some(self.template_plan(&req.exercises, req.budget_minutes)),
+        })
+    }
+
     pub fn get_home(&self, req: GetHomeRequest) -> Result<GetHomeResponse, CoreError> {
         Ok(self.home(req.budget_minutes))
     }
@@ -655,13 +692,9 @@ impl<'a> View<'a> {
         );
         let template_plans = templates
             .iter()
-            .map(|t| {
-                let decisions = planner.workout(&exercises(&t.exercises), &[], budget);
-                TemplatePlan {
-                    template_id: t.id.clone(),
-                    estimated_seconds: decisions.iter().map(|d| d.estimated_seconds).sum(),
-                    plans: decisions.into_iter().map(|d| planner.view(d)).collect(),
-                }
+            .map(|t| TemplatePlan {
+                template_id: t.id.clone(),
+                ..self.plan_template(&planner, &t.exercises, budget)
             })
             .collect();
 
@@ -783,6 +816,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetStartingWeights" => get_starting_weights,
             "GetHome" => get_home,
             "GetExercisePlan" => get_exercise_plan,
+            "GetTemplatePlan" => get_template_plan,
         }
         plain {
             "GetActiveWorkout" => get_active_workout,

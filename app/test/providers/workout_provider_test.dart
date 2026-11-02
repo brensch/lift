@@ -36,7 +36,11 @@ void main() {
     expect(h.working(squat).map((s) => s.targetWeight).toSet(), {185.0});
     final decision = p.logFor(squat)!.decision;
     expect(h.working(squat).map((s) => s.targetReps).toSet(), {decision.reps});
-    expect(decision.reasons.first.kind, PlanReasonKind.PLAN_REASON_KIND_MAX_UP);
+    // Against last time first, then the max's step.
+    expect(
+      decision.reasons.map((r) => r.kind),
+      contains(PlanReasonKind.PLAN_REASON_KIND_MAX_UP),
+    );
     expect(decision.budgetMinutes, 60);
     expect(h.working(squat).length, decision.sets);
     expect(p.activeProposedSets.first.warmup, isTrue);
@@ -99,8 +103,11 @@ void main() {
     final plan = h.provider.planFor(raise)!;
     expect(plan.lastPerformedAt, greaterThan(started));
     expect(
-      plan.decision.reasons.first.kind,
-      PlanReasonKind.PLAN_REASON_KIND_MAX_UP,
+      plan.decision.reasons.map((r) => r.kind),
+      containsAllInOrder([
+        PlanReasonKind.PLAN_REASON_KIND_REPS_UP,
+        PlanReasonKind.PLAN_REASON_KIND_MAX_UP,
+      ]),
     );
     expect(plan.decision.max, greaterThan(maxBefore), reason: 'every rep hit');
     expect(

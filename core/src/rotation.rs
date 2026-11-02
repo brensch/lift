@@ -20,9 +20,6 @@ pub const SETS_PER_LIFT: f32 = 3.0;
 /// Two templates sharing more than this fraction of the smaller one's
 /// lifts overlap.
 pub const OVERLAP_FRACTION: f32 = 0.7;
-/// The most-trained muscle at this many times the least-trained trained
-/// one is lopsided.
-pub const LOPSIDED_RATIO: f32 = 3.0;
 /// Fewer templates than this in rotation is too few to rotate.
 pub const MIN_ROTATION: usize = 2;
 
@@ -106,36 +103,6 @@ pub fn rotation_check(templates: &[WorkoutTemplate]) -> RotationCheck {
                     ..Default::default()
                 });
             }
-        }
-    }
-
-    // ALL_MUSCLES order breaks ties: the first most-trained, the first
-    // least-trained.
-    let trained: Vec<&MuscleVolume> = volume
-        .iter()
-        .filter(|v| v.completed_sets_7d > 0.0)
-        .collect();
-    let most = trained.iter().copied().reduce(|a, b| {
-        if b.completed_sets_7d > a.completed_sets_7d {
-            b
-        } else {
-            a
-        }
-    });
-    let least = trained.iter().copied().reduce(|a, b| {
-        if b.completed_sets_7d < a.completed_sets_7d {
-            b
-        } else {
-            a
-        }
-    });
-    if let (Some(most), Some(least)) = (most, least) {
-        if most.completed_sets_7d >= LOPSIDED_RATIO * least.completed_sets_7d {
-            warnings.push(RotationWarning {
-                kind: RotationWarningKind::Lopsided as i32,
-                muscles: vec![most.muscle, least.muscle],
-                ..Default::default()
-            });
         }
     }
 
@@ -291,24 +258,5 @@ mod tests {
             &[Exercise::Squat, Exercise::BenchPress, Exercise::CalfRaise],
         );
         assert!(!kinds(&rotation_check(&[big, apart])).contains(&RotationWarningKind::Overlap));
-    }
-
-    /// Quads three times over against triceps from a secondary only.
-    #[test]
-    fn lopsided_names_the_most_and_least_trained() {
-        let check = rotation_check(&[
-            template("a", &[Exercise::Squat, Exercise::LegPress]),
-            template("b", &[Exercise::LegExtension, Exercise::BenchPress]),
-        ]);
-        let lopsided = check
-            .warnings
-            .iter()
-            .find(|w| w.kind == RotationWarningKind::Lopsided as i32)
-            .expect("lopsided");
-        // Quads 9; triceps and shoulders 1.5 (bench's secondaries).
-        assert_eq!(
-            lopsided.muscles,
-            vec![MuscleGroup::Quads as i32, MuscleGroup::Shoulders as i32]
-        );
     }
 }

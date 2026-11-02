@@ -533,7 +533,16 @@ mod the_walk {
             schlift_core::plan::reps_covered(squat.max, 200.0, squat.sets, false),
             "as many reps as the max covers over the planned sets"
         );
-        assert_eq!(kinds(&squat)[0], PlanReasonKind::MaxUp);
+        assert_eq!(kinds(&squat)[1], PlanReasonKind::MaxUp);
+        // Five sets in the hour against last time's three: the rep the hit
+        // earned goes to the extra sets, and the first reason says so.
+        assert_eq!(squat.sets, 5);
+        assert_eq!(kinds(&squat)[0], PlanReasonKind::SameAsLast);
+        assert_eq!(squat.reasons[0].cause, PlanChangeCause::Sets as i32);
+        assert_eq!(
+            (squat.reasons[0].sets_before, squat.reasons[0].sets_after),
+            (3, 5)
+        );
 
         let mut reps = Vec::new();
         for n in 0..3 {
@@ -573,7 +582,7 @@ mod the_walk {
         let before = plan(&app, Exercise::Squat).max;
         import_session(&mut app, Exercise::Squat, 200.0, 7, &[7, 5, 4], NOW - DAY);
         let after = plan(&app, Exercise::Squat);
-        assert_eq!(kinds(&after)[0], PlanReasonKind::MaxFromMiss);
+        assert_eq!(kinds(&after)[1], PlanReasonKind::MaxFromMiss);
         assert!(after.max < before);
         assert!(after.reps < 7 || after.weight < 200.0);
     }
@@ -647,7 +656,9 @@ mod the_walk {
         app.now = ended + DAY;
         let next = plan(&app, Exercise::Squat);
         assert_eq!((next.weight, next.reps), (225.0, 6), "a rep up from it");
-        assert_eq!(kinds(&next)[0], PlanReasonKind::MaxUp);
+        assert_eq!(kinds(&next)[0], PlanReasonKind::RepsUp);
+        assert_eq!(next.reasons[0].cause, PlanChangeCause::Hit as i32);
+        assert_eq!(kinds(&next)[1], PlanReasonKind::MaxUp);
 
         // Reps of 0 removes it.
         app.call()
@@ -676,13 +687,15 @@ mod the_walk {
         assert_eq!(
             kinds(&d),
             vec![
+                PlanReasonKind::WeightDown,
                 PlanReasonKind::MaxUp,
                 PlanReasonKind::TimeOff,
                 PlanReasonKind::SetsFromTime
             ]
         );
-        assert_eq!(d.reasons[1].days_off, 45);
-        assert!((d.max - d.reasons[1].before * 0.8).abs() < 1e-3);
+        assert_eq!(d.reasons[0].cause, PlanChangeCause::TimeOff as i32);
+        assert_eq!(d.reasons[2].days_off, 45);
+        assert!((d.max - d.reasons[2].before * 0.8).abs() < 1e-3);
         assert!(d.weight < 200.0);
     }
 
@@ -808,6 +821,18 @@ mod budget {
                 .into_iter()
                 .find(|p| p.template_id == template.id)
                 .unwrap();
+            // The template editor's plan of the same lifts is Home's.
+            let edited = app
+                .view()
+                .get_template_plan(GetTemplatePlanRequest {
+                    exercises: template.exercises.clone(),
+                    budget_minutes: budget,
+                })
+                .unwrap()
+                .plan
+                .unwrap();
+            assert_eq!(edited.plans, preview.plans, "budget {budget}");
+            assert_eq!(edited.estimated_seconds, preview.estimated_seconds);
             let previewed: Vec<ExerciseDecision> = preview
                 .plans
                 .into_iter()
@@ -1299,7 +1324,7 @@ mod calibration {
         app.now = NOW + DAY;
         let next = plan(&app, Exercise::Squat);
         assert!(!next.calibration, "found: no more ramps");
-        assert_eq!(kinds(&next)[0], PlanReasonKind::MaxUp);
+        assert!(kinds(&next).contains(&PlanReasonKind::MaxUp));
         assert!(
             next.max > 50.0 * (1.0 + 3.0 / 30.0),
             "above what the rung showed"
@@ -1362,7 +1387,8 @@ mod batches {
             })
             .unwrap();
         let after = plan(&app, Exercise::LateralRaise);
-        assert_eq!(kinds(&after)[0], PlanReasonKind::Held);
+        assert_eq!(kinds(&after)[1], PlanReasonKind::Held);
+        assert_eq!(after.reasons[0].cause, PlanChangeCause::StoppedEarly as i32);
         assert_eq!(after.max, before.max);
     }
 
@@ -1725,6 +1751,26 @@ mod library_coupling {
             .find(|t| t.id == template.id)
             .unwrap();
         assert_eq!(shown.exercises, template.exercises, "its own now");
+    }
+
+    /// Clone in the app opens the editor and records nothing until Save:
+    /// the save, unchanged, with `unlink`, makes it the user's own in place.
+    #[test]
+    fn an_unchanged_save_with_unlink_makes_it_their_own() {
+        let mut app = App::new();
+        let template = stronglifts_a(&mut app);
+        let saved = app
+            .call()
+            .save_template(SaveTemplateRequest {
+                template: Some(template.clone()),
+                unlink: true,
+            })
+            .unwrap()
+            .template
+            .unwrap();
+        assert_eq!(saved.id, template.id);
+        assert!(!saved.coupled && saved.library_id.is_empty());
+        assert_eq!(saved.exercises, template.exercises);
     }
 
     /// The library moved on; the user edits the template back to the copy

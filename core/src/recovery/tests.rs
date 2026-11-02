@@ -7,7 +7,8 @@ use crate::pb::{CompletedSet, ProposedSet, Workout};
 
 const DAY: i64 = 24 * HOUR;
 
-/// A workout that completed `exercises` at unix time `at`.
+/// A workout started at unix time `at` that completed `exercises` half an
+/// hour later. Recovery counts from the start.
 fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
     let mut proposed = Vec::new();
     let mut completed = Vec::new();
@@ -28,7 +29,7 @@ fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
             proposed_set_id: id,
             actual_reps: 5,
             actual_weight: 100.0,
-            ended_at: at,
+            ended_at: at + 30 * 60,
             rest_until: 0,
             ..Default::default()
         });
@@ -37,8 +38,8 @@ fn workout(at: i64, exercises: &[Exercise]) -> WorkoutRecord {
         workout: Workout {
             id: format!("w{at}"),
             name: "T".into(),
-            start_time: at - 30 * 60,
-            end_time: at,
+            start_time: at,
+            end_time: at + 30 * 60,
             session_id: String::new(),
             ..Default::default()
         },

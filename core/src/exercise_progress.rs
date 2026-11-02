@@ -19,6 +19,8 @@ pub struct SetDone {
     pub set_id: String,
     pub weight: f32, // lb
     pub reps: i32,
+    /// The reps it was planned for.
+    pub target: i32,
     /// Every target rep done.
     pub hit: bool,
 }
@@ -38,6 +40,9 @@ pub struct SessionOutcome {
     /// (the lift removed, or the workout ended), or a set was missed before
     /// the previous set's rest was over (rushed, not a real miss).
     pub stopped_early: bool,
+    /// The working sets planned for it, done or not: the decision's when
+    /// the workout recorded one.
+    pub planned_sets: i32,
 }
 
 impl SessionOutcome {
@@ -75,6 +80,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
             set_id: proposed.id.clone(),
             weight: completed.actual_weight,
             reps: completed.actual_reps,
+            target: proposed.target_reps,
             hit: proposed.target_reps > 0 && completed.actual_reps >= proposed.target_reps,
         };
         let outcome = out
@@ -86,6 +92,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
                 sets: Vec::new(),
                 rungs: Vec::new(),
                 stopped_early: false,
+                planned_sets: 0,
             });
         if proposed.calibration {
             outcome.rungs.push(set);
@@ -93,6 +100,26 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<i32, SessionOutcome> 
             outcome.stopped_early = true;
         } else {
             outcome.sets.push(set);
+        }
+    }
+    // The sets planned: the decision's, or (history brought in without
+    // one) the working sets laid out.
+    for set in record
+        .proposed_sets
+        .iter()
+        .filter(|s| !s.warmup && !s.calibration && !s.cancelled)
+    {
+        if let Some(outcome) = out.get_mut(&set.exercise) {
+            outcome.planned_sets += 1;
+        }
+    }
+    for decision in record
+        .exercise_logs
+        .iter()
+        .filter_map(|l| l.decision.as_ref())
+    {
+        if let Some(outcome) = out.get_mut(&decision.exercise) {
+            outcome.planned_sets = decision.sets;
         }
     }
     // A working set never done: the lift was removed or the workout ended

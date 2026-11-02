@@ -78,16 +78,16 @@ rotation:
   and: and
   # A muscle that would have counted but isn't ready.
   recovering: "{muscle} recovering ({hours}h)"
-  # Picked for not having been done in two weeks (or ever).
-  overdue: "Not done in a while"
   # Nothing is both rested and behind: the one waiting longest.
   fallback: "Everything's recovering or done. This one's waited longest."
+  # Every workout in rotation opens on a muscle still recovering: the one
+  # whose first lift is back soonest.
+  first_lift: "Every workout starts on something sore. {muscle}'s back first ({hours}h)."
   # The rotation check, at the top of the Edit sheet.
   check_title: One lap of the rotation
   check_body: Sets per muscle, each workout once at three sets a lift.
   gap: "Nothing trains {muscles}."
   overlap: "{a} and {b} share {shared} of {of} lifts."
-  lopsided: "{most} gets three times what {least} gets."
   too_few: "Put two or more workouts in rotation."
 
 # Sign-in screen.
@@ -313,6 +313,22 @@ plan:
     # SETS_FROM_TIME: more than the two every lift gets.
     sets_extra: "{sets} sets. {muscle} is behind this week."
     sets_floor: "{sets} sets. That's what the time fits."
+  # The first line about a lift: this plan against its last session,
+  # "{change}: {why}.". {after} is the weight now, {n} a number of reps.
+  versus:
+    weight_up: "Up to {after}"
+    weight_down: "Down to {after}"
+    reps_up_one: "One more rep"
+    reps_up: "{n} more reps"
+    reps_down_one: "One rep fewer"
+    reps_down: "{n} fewer reps"
+    same: "Same as last time"
+    # Why. {sets} is today's sets, {last} last time's.
+    hit: "every rep last time"
+    missed: "missed reps last time"
+    stopped_early: "stopped early last time"
+    sets: "{sets} sets today, {last} last time"
+    time_off: "{days} days off"
   # Changes to a weight during a workout.
   changes:
     user_adjust: "You changed it: {before} → {after}"

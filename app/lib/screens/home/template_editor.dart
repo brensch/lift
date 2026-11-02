@@ -1,10 +1,13 @@
 /// The template editor, a page of its own: a name, whether it is in the
 /// rotation the suggestion picks from, and an ordered exercise list. That
 /// is the whole thing — sets, reps and weight are planned, each
-/// row shows its next plan, and tapping one sets your own numbers for the
-/// exercise (an override), which apply in every template that contains it.
+/// row shows its next plan (the list planned as one workout in Home's
+/// budget, so it reads what Home's card reads), and tapping one sets your
+/// own numbers for the exercise (an override), which apply in every
+/// template that contains it. Nothing is recorded until Save.
 library;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,17 +25,24 @@ import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
 
+/// Edit [template] (null: a new one). [personalise] is Clone: Save makes a
+/// library template the user's own, changed or not; backing out leaves it
+/// following the library.
 Future<void> showTemplateEditor(
   BuildContext context, {
   required WorkoutTemplate? template,
   required WorkoutProvider provider,
+  bool personalise = false,
 }) {
   return Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<void>(
       settings: const RouteSettings(name: '/template-editor'),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
-        child: _TemplateEditorSheet(template: template),
+        child: _TemplateEditorSheet(
+          template: template,
+          personalise: personalise,
+        ),
       ),
     ),
   );
@@ -40,7 +50,11 @@ Future<void> showTemplateEditor(
 
 class _TemplateEditorSheet extends StatefulWidget {
   final WorkoutTemplate? template;
-  const _TemplateEditorSheet({required this.template});
+  final bool personalise;
+  const _TemplateEditorSheet({
+    required this.template,
+    required this.personalise,
+  });
 
   @override
   State<_TemplateEditorSheet> createState() => _TemplateEditorSheetState();
@@ -52,6 +66,9 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   // A new workout starts as a favourite.
   late bool _inRotation;
   bool _isSaving = false;
+  // The list on screen planned as one workout; null until the first plan.
+  TemplatePlan? _plan;
+  late final WorkoutProvider _provider;
 
   bool get _isNew => widget.template == null;
 
@@ -61,12 +78,48 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     _nameController = TextEditingController(text: widget.template?.name ?? '');
     _exercises = List.of(widget.template?.exercises ?? const <Exercise>[]);
     _inRotation = widget.template?.inRotation ?? false;
+    // A new budget, an override or a finished workout changes the plan.
+    _provider = context.read<WorkoutProvider>()..addListener(_replan);
+    _replan();
   }
 
   @override
   void dispose() {
+    _provider.removeListener(_replan);
     _nameController.dispose();
     super.dispose();
+  }
+
+  /// Plan the list on screen, keeping the answer only if the list has not
+  /// changed since.
+  Future<void> _replan() async {
+    final exercises = List.of(_exercises);
+    if (exercises.isEmpty) {
+      if (mounted) setState(() => _plan = null);
+      return;
+    }
+    try {
+      final plan = await _provider.planTemplate(exercises);
+      if (mounted && listEquals(exercises, _exercises)) {
+        setState(() => _plan = plan);
+      }
+    } catch (e) {
+      debugPrint('Template plan failed: $e');
+    }
+  }
+
+  /// [exercise]'s plan in this list; null until the list is planned.
+  ExercisePlan? _planFor(Exercise exercise) {
+    for (final plan in _plan?.plans ?? const <ExercisePlan>[]) {
+      if (plan.decision.exercise == exercise) return plan;
+    }
+    return null;
+  }
+
+  /// Change the list and plan it again.
+  void _setExercises(List<Exercise> exercises) {
+    setState(() => _exercises = exercises);
+    _replan();
   }
 
   Future<void> _save() async {
@@ -79,7 +132,10 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         ..name = name
         ..inRotation = _inRotation
         ..exercises.addAll(_exercises);
-      await context.read<WorkoutProvider>().saveTemplate(template);
+      await context.read<WorkoutProvider>().saveTemplate(
+        template,
+        unlink: widget.personalise,
+      );
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -98,17 +154,15 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
       plans: context.read<WorkoutProvider>().plans,
       initialSelected: _exercises.toSet(),
       onSave: (selected) {
-        setState(() {
-          // Keep the existing order for retained exercises; append the
-          // newly picked ones in catalog order.
-          _exercises = [
-            ..._exercises.where(selected.contains),
-            for (final info in exerciseCatalog)
-              if (selected.contains(info.exercise) &&
-                  !_exercises.contains(info.exercise))
-                info.exercise,
-          ];
-        });
+        // Keep the existing order for retained exercises; append the newly
+        // picked ones in catalog order.
+        _setExercises([
+          ..._exercises.where(selected.contains),
+          for (final info in exerciseCatalog)
+            if (selected.contains(info.exercise) &&
+                !_exercises.contains(info.exercise))
+              info.exercise,
+        ]);
       },
     );
   }
@@ -116,7 +170,6 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final wp = context.watch<WorkoutProvider>();
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     return Scaffold(
@@ -181,12 +234,12 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                         buildDefaultDragHandles: false,
                         itemCount: _exercises.length,
                         onReorderItem: (oldIndex, newIndex) {
-                          setState(() {
-                            // onReorderItem's newIndex is already adjusted
-                            // for the removed item: no `newIndex -= 1`.
-                            final moved = _exercises.removeAt(oldIndex);
-                            _exercises.insert(newIndex, moved);
-                          });
+                          // onReorderItem's newIndex is already adjusted
+                          // for the removed item: no `newIndex -= 1`.
+                          final next = List.of(_exercises);
+                          final moved = next.removeAt(oldIndex);
+                          next.insert(newIndex, moved);
+                          _setExercises(next);
                         },
                         itemBuilder: (context, index) {
                           final exercise = _exercises[index];
@@ -194,10 +247,11 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                             key: ValueKey(exercise.value),
                             index: index,
                             exercise: exercise,
-                            plan: wp.planFor(exercise),
+                            plan: _planFor(exercise),
                             unit: unit,
-                            onRemove: () =>
-                                setState(() => _exercises.removeAt(index)),
+                            onRemove: () => _setExercises(
+                              List.of(_exercises)..removeAt(index),
+                            ),
                             onTap: () => _editOverride(exercise),
                           );
                         },
@@ -245,10 +299,10 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   Future<void> _editOverride(Exercise exercise) async {
     final wp = context.read<WorkoutProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
-    final plan = wp.planFor(exercise);
+    final plan = _planFor(exercise) ?? wp.planFor(exercise);
     if (plan == null) return;
+    // The override refreshes Home, and the provider's notice plans again.
     await showOverrideSheet(context, plan: plan, unit: unit, provider: wp);
-    if (mounted) setState(() {});
   }
 }
 

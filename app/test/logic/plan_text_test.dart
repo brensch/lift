@@ -17,30 +17,116 @@ void main() {
     );
   });
 
-  test('the short reason is the last step that moved the max', () {
-    final d = ExerciseDecision(
-      weight: 185,
+  test(
+    'with no last time, the short reason is the last step that moved the max',
+    () {
+      final d = ExerciseDecision(
+        weight: 185,
+        reasons: [
+          PlanReason(kind: PlanReasonKind.PLAN_REASON_KIND_MAX_UP, after: 230),
+          PlanReason(
+            kind: PlanReasonKind.PLAN_REASON_KIND_TIME_OFF,
+            after: 207,
+            daysOff: 23,
+          ),
+          PlanReason(
+            kind: PlanReasonKind.PLAN_REASON_KIND_SETS_FROM_TIME,
+            before: 2,
+            after: 2,
+          ),
+        ],
+      );
+      expect(
+        reasonShort(d, lb),
+        copy.plan.reasons.timeOff
+            .replaceAll('{days}', '23')
+            .replaceAll('{max}', '207 lb'),
+      );
+      expect(reasonLines(d, lb), hasLength(3));
+    },
+  );
+
+  PlanReason versus(
+    PlanReasonKind kind,
+    PlanChangeCause cause, {
+    double before = 242.5,
+    double after = 237,
+    int repsBefore = 6,
+    int repsAfter = 6,
+    int setsBefore = 3,
+    int setsAfter = 3,
+  }) => PlanReason(
+    kind: kind,
+    cause: cause,
+    before: before,
+    after: after,
+    repsBefore: repsBefore,
+    repsAfter: repsAfter,
+    setsBefore: setsBefore,
+    setsAfter: setsAfter,
+  );
+
+  test('the short reason is the weight against last time', () {
+    final v = copy.plan.versus;
+    final down = ExerciseDecision(
+      weight: 237,
       reasons: [
-        PlanReason(kind: PlanReasonKind.PLAN_REASON_KIND_MAX_UP, after: 230),
-        PlanReason(
-          kind: PlanReasonKind.PLAN_REASON_KIND_TIME_OFF,
-          after: 207,
-          daysOff: 23,
+        versus(
+          PlanReasonKind.PLAN_REASON_KIND_WEIGHT_DOWN,
+          PlanChangeCause.PLAN_CHANGE_CAUSE_SETS,
+          setsAfter: 4,
+        ),
+        PlanReason(kind: PlanReasonKind.PLAN_REASON_KIND_HELD, after: 300),
+      ],
+    );
+    final head = v.weightDown.replaceAll('{after}', '237 lb');
+    final why = v.sets.replaceAll('{sets}', '4').replaceAll('{last}', '3');
+    expect(reasonShort(down, lb), '$head: $why.');
+    // A held max never sits beside a weight that moved.
+    expect(reasonLines(down, lb), ['$head: $why.']);
+
+    final missed = ExerciseDecision(
+      reasons: [
+        versus(
+          PlanReasonKind.PLAN_REASON_KIND_WEIGHT_DOWN,
+          PlanChangeCause.PLAN_CHANGE_CAUSE_MISSED,
         ),
         PlanReason(
-          kind: PlanReasonKind.PLAN_REASON_KIND_SETS_FROM_TIME,
-          before: 2,
-          after: 2,
+          kind: PlanReasonKind.PLAN_REASON_KIND_MAX_FROM_MISS,
+          after: 280,
         ),
       ],
     );
-    expect(
-      reasonShort(d, lb),
-      copy.plan.reasons.timeOff
-          .replaceAll('{days}', '23')
-          .replaceAll('{max}', '207 lb'),
+    expect(reasonShort(missed, lb), '$head: ${v.missed}.');
+    expect(reasonLines(missed, lb), hasLength(2));
+
+    final more = ExerciseDecision(
+      reasons: [
+        versus(
+          PlanReasonKind.PLAN_REASON_KIND_REPS_UP,
+          PlanChangeCause.PLAN_CHANGE_CAUSE_HIT,
+          after: 242.5,
+          repsAfter: 7,
+        ),
+      ],
     );
-    expect(reasonLines(d, lb), hasLength(3));
+    expect(reasonShort(more, lb), '${v.repsUpOne}: ${v.hit}.');
+
+    final same = ExerciseDecision(
+      reasons: [
+        versus(
+          PlanReasonKind.PLAN_REASON_KIND_SAME_AS_LAST,
+          PlanChangeCause.PLAN_CHANGE_CAUSE_STOPPED_EARLY,
+        ),
+        PlanReason(kind: PlanReasonKind.PLAN_REASON_KIND_HELD, after: 300),
+      ],
+    );
+    expect(reasonShort(same, lb), '${v.same}: ${v.stoppedEarly}.');
+    expect(
+      reasonLines(same, lb),
+      hasLength(2),
+      reason: 'held, and nothing moved',
+    );
   });
 
   test('a bodyweight max is in reps', () {

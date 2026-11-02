@@ -41,14 +41,17 @@ void main() {
       expect(line, startsWith('C'));
     });
 
-    test('overdue and fallback say so', () {
-      final overdue = suggestionLine(
+    test('every first lift recovering, and the fallback, say so', () {
+      final waiting = suggestionLine(
         SuggestionReason(
-          overdue: true,
-          behind: [behind(MuscleGroup.MUSCLE_GROUP_CHEST, 8)],
+          firstLiftRecovering: recovering(MuscleGroup.MUSCLE_GROUP_CHEST, 5),
+          behind: [behind(MuscleGroup.MUSCLE_GROUP_BACK, 8)],
         ),
       );
-      expect(overdue, startsWith(r.overdue));
+      expect(
+        waiting,
+        r.firstLift.replaceAll('{muscle}', 'Chest').replaceAll('{hours}', '5'),
+      );
       final fallback = suggestionLine(
         SuggestionReason(
           fallback: true,
@@ -82,13 +85,6 @@ void main() {
             of: 3,
           ),
           RotationWarning(
-            kind: RotationWarningKind.ROTATION_WARNING_KIND_LOPSIDED,
-            muscles: [
-              MuscleGroup.MUSCLE_GROUP_BACK,
-              MuscleGroup.MUSCLE_GROUP_CALVES,
-            ],
-          ),
-          RotationWarning(
             kind: RotationWarningKind.ROTATION_WARNING_KIND_TOO_FEW,
           ),
         ],
@@ -104,9 +100,6 @@ void main() {
             .replaceAll('{b}', 'StrongLifts A')
             .replaceAll('{shared}', '3')
             .replaceAll('{of}', '3'),
-        r.lopsided
-            .replaceAll('{most}', 'Back')
-            .replaceAll('{least}', 'calves'),
         r.tooFew,
       ]);
     });
