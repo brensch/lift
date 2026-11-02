@@ -264,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   TutorialTarget(
                     id: 'home_add',
                     child: _ActionChip(
-                      icon: AppIcons.lines,
+                      icon: AppIcons.manage,
                       label: copy.library.editButton,
                       selected: false,
                       onTap: _editTemplates,
