@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart';
-import 'package:grpc/grpc.dart';
 import 'package:passkeys/exceptions.dart';
 
 String cleanErrorMessage(dynamic error) {
@@ -16,10 +15,6 @@ String cleanErrorMessage(dynamic error) {
         '',
       ) // Remove trailing details if any
       .trim();
-}
-
-bool isUnauthenticatedError(Object error) {
-  return error is GrpcError && error.code == StatusCode.unauthenticated;
 }
 
 String formatPlatformError(PlatformException error) {

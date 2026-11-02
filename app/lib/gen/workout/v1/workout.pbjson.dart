@@ -1001,35 +1001,6 @@ final $typed_data.Uint8List workoutStateSnapshotDescriptor = $convert.base64Deco
     'Rpbmdfc3RhcnRlZF9hdBgHIAEoA1IQbGlmdGluZ1N0YXJ0ZWRBdEoECAMQBEoECAUQBkoECAYQ'
     'B1IRYWN0aXZlX3N0YXJ0ZWRfYXRSDWxhc3RfcmVzdF9lbmRSDWVmZm9ydF9wcm9tcHQ=');
 
-@$core.Deprecated('Use listWorkoutsRequestDescriptor instead')
-const ListWorkoutsRequest$json = {
-  '1': 'ListWorkoutsRequest',
-};
-
-/// Descriptor for `ListWorkoutsRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listWorkoutsRequestDescriptor =
-    $convert.base64Decode('ChNMaXN0V29ya291dHNSZXF1ZXN0');
-
-@$core.Deprecated('Use listWorkoutsResponseDescriptor instead')
-const ListWorkoutsResponse$json = {
-  '1': 'ListWorkoutsResponse',
-  '2': [
-    {
-      '1': 'workouts',
-      '3': 1,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.Workout',
-      '10': 'workouts'
-    },
-  ],
-};
-
-/// Descriptor for `ListWorkoutsResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List listWorkoutsResponseDescriptor = $convert.base64Decode(
-    'ChRMaXN0V29ya291dHNSZXNwb25zZRIvCgh3b3Jrb3V0cxgBIAMoCzITLndvcmtvdXQudjEuV2'
-    '9ya291dFIId29ya291dHM=');
-
 @$core.Deprecated('Use workoutWithSummaryDescriptor instead')
 const WorkoutWithSummary$json = {
   '1': 'WorkoutWithSummary',

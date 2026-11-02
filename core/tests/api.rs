@@ -609,7 +609,11 @@ mod the_walk {
             .unwrap();
         assert_eq!(home(&mut app).plans, once);
         assert_eq!(
-            app.view().list_workouts().workouts[0].end_time,
+            app.view().list_workout_summaries().workouts[0]
+                .workout
+                .as_ref()
+                .unwrap()
+                .end_time,
             ended,
             "the first end stands"
         );
@@ -1668,9 +1672,13 @@ mod the_log {
             })
             .unwrap();
         assert!(app.view().get_active_workout().workout.is_none());
-        let finished = app.view().list_workouts().workouts;
+        let finished = app.view().list_workout_summaries().workouts;
         assert_eq!(finished.len(), 1);
-        assert_eq!(finished[0].end_time, NOW, "ended at the event's time");
+        assert_eq!(
+            finished[0].workout.as_ref().unwrap().end_time,
+            NOW,
+            "ended at the event's time"
+        );
     }
 }
 

@@ -64,12 +64,6 @@ class WorkoutServiceWrapper {
     return response.hasWorkout() ? response.workout : null;
   }
 
-  Future<List<Workout>> listWorkouts() async => (await _call(
-    'ListWorkouts',
-    ListWorkoutsRequest(),
-    ListWorkoutsResponse.fromBuffer,
-  )).workouts;
-
   Future<List<WorkoutWithSummary>> listWorkoutSummaries() async => (await _call(
     'ListWorkoutSummaries',
     ListWorkoutSummariesRequest(),

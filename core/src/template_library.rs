@@ -185,23 +185,6 @@ pub fn defaults() -> Vec<&'static LibraryTemplate> {
     library().iter().filter(|t| t.is_default).collect()
 }
 
-/// Kept for the one-time flat-workouts migration: name and exercises of
-/// the default entries.
-pub fn default_templates() -> Vec<(String, Vec<Exercise>)> {
-    defaults()
-        .into_iter()
-        .map(|t| {
-            (
-                t.name.clone(),
-                t.exercises
-                    .iter()
-                    .filter_map(|e| Exercise::try_from(*e).ok())
-                    .collect(),
-            )
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

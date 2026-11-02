@@ -365,10 +365,6 @@ final Map<Exercise, String> shortNames = {
   for (final info in exerciseCatalog) info.exercise: info.shortName,
 };
 
-final Map<Exercise, List<BodyPart>> exerciseBodyParts = {
-  for (final info in exerciseCatalog) info.exercise: info.bodyParts,
-};
-
 /// Short display names for the ten muscles, shared by the volume rows, the
 /// template chips and the plan reasons.
 const muscleShortLabels = {

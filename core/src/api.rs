@@ -571,16 +571,6 @@ impl<'a> View<'a> {
         out
     }
 
-    pub fn list_workouts(&self) -> ListWorkoutsResponse {
-        ListWorkoutsResponse {
-            workouts: self
-                .finished()
-                .into_iter()
-                .map(|r| r.workout.clone())
-                .collect(),
-        }
-    }
-
     pub fn list_workout_summaries(&self) -> ListWorkoutSummariesResponse {
         ListWorkoutSummariesResponse {
             workouts: self
@@ -909,7 +899,6 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
         }
         plain {
             "GetActiveWorkout" => get_active_workout,
-            "ListWorkouts" => list_workouts,
             "ListWorkoutSummaries" => list_workout_summaries,
             "GetExerciseProgress" => get_exercise_progress,
             "ListTemplateLibrary" => list_template_library,

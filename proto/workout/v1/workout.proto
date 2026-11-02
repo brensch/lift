@@ -466,12 +466,6 @@ message WorkoutStateSnapshot {
   reserved "active_started_at", "last_rest_end", "effort_prompt";
 }
 
-message ListWorkoutsRequest {}
-
-message ListWorkoutsResponse {
-  repeated Workout workouts = 1;
-}
-
 message WorkoutWithSummary {
   Workout workout = 1;
   WorkoutSummary summary = 2;
