@@ -300,6 +300,12 @@ workout:
   rung_answer_zero_to_one: "0–1"
   rung_answer_two_to_four: "2–4"
   rung_answer_five_plus: "5+"
+  # Under the three answers, after a line with "or" on it: type how much to
+  # add for the next ramp set instead, in your unit, and apply it. The ramp
+  # goes on from there. Placeholders.
+  rung_or: or
+  rung_jump_label: Specific jump
+  rung_jump_apply: Add that
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
   # The dimmed (always-on) watch face counts rest in whole minutes, since it

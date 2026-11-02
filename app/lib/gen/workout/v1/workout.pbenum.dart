@@ -331,7 +331,7 @@ class Exercise extends $pb.ProtobufEnum {
 
 /// How many more reps a calibration rung done in full had left in it. Each
 /// answer counts as a reserve in the rung's shown max (core/src/plan.rs):
-/// 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+/// 0–1 as 0.5, 2–4 as 3, 5+ as 8.
 class RepsLeft extends $pb.ProtobufEnum {
   static const RepsLeft REPS_LEFT_UNSPECIFIED =
       RepsLeft._(0, _omitEnumNames ? '' : 'REPS_LEFT_UNSPECIFIED');

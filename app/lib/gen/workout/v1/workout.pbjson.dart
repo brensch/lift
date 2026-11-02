@@ -432,6 +432,7 @@ const CompletedSet$json = {
       '6': '.workout.v1.RepsLeft',
       '10': 'repsLeft'
     },
+    {'1': 'jump_lb', '3': 13, '4': 1, '5': 2, '10': 'jumpLb'},
   ],
   '9': [
     {'1': 6, '2': 7},
@@ -448,8 +449,8 @@ final $typed_data.Uint8List completedSetDescriptor = $convert.base64Decode(
     'X3JlcHMYBCABKAVSCmFjdHVhbFJlcHMSIwoNYWN0dWFsX3dlaWdodBgFIAEoAlIMYWN0dWFsV2'
     'VpZ2h0EhkKCGVuZGVkX2F0GAcgASgDUgdlbmRlZEF0Eh0KCnJlc3RfdW50aWwYCCABKANSCXJl'
     'c3RVbnRpbBIdCgpzdGFydGVkX2F0GAsgASgDUglzdGFydGVkQXQSMQoJcmVwc19sZWZ0GAwgAS'
-    'gOMhQud29ya291dC52MS5SZXBzTGVmdFIIcmVwc0xlZnRKBAgGEAdKBAgJEApKBAgKEAtSDHJl'
-    'c3Rfc2tpcHBlZFIGZWZmb3J0');
+    'gOMhQud29ya291dC52MS5SZXBzTGVmdFIIcmVwc0xlZnQSFwoHanVtcF9sYhgNIAEoAlIGanVt'
+    'cExiSgQIBhAHSgQICRAKSgQIChALUgxyZXN0X3NraXBwZWRSBmVmZm9ydA==');
 
 @$core.Deprecated('Use planReasonDescriptor instead')
 const PlanReason$json = {
@@ -1358,6 +1359,7 @@ const AnswerRungRequest$json = {
       '6': '.workout.v1.RepsLeft',
       '10': 'repsLeft'
     },
+    {'1': 'jump_lb', '3': 4, '4': 1, '5': 2, '10': 'jumpLb'},
   ],
 };
 
@@ -1365,7 +1367,8 @@ const AnswerRungRequest$json = {
 final $typed_data.Uint8List answerRungRequestDescriptor = $convert.base64Decode(
     'ChFBbnN3ZXJSdW5nUmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQSJgoPcH'
     'JvcG9zZWRfc2V0X2lkGAIgASgJUg1wcm9wb3NlZFNldElkEjEKCXJlcHNfbGVmdBgDIAEoDjIU'
-    'LndvcmtvdXQudjEuUmVwc0xlZnRSCHJlcHNMZWZ0');
+    'LndvcmtvdXQudjEuUmVwc0xlZnRSCHJlcHNMZWZ0EhcKB2p1bXBfbGIYBCABKAJSBmp1bXBMYg'
+    '==');
 
 @$core.Deprecated('Use startSetRequestDescriptor instead')
 const StartSetRequest$json = {

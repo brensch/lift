@@ -1060,7 +1060,7 @@ public final class WorkoutOuterClass {
    * <pre>
    * How many more reps a calibration rung done in full had left in it. Each
    * answer counts as a reserve in the rung's shown max (core/src/plan.rs):
-   * 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+   * 0–1 as 0.5, 2–4 as 3, 5+ as 8.
    * </pre>
    *
    * Protobuf enum {@code workout.v1.RepsLeft}
@@ -5129,6 +5129,18 @@ public final class WorkoutOuterClass {
      * @return The repsLeft.
      */
     workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft();
+
+    /**
+     * <pre>
+     * A calibration rung done in full answered with a specific jump instead
+     * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+     * when not. At most one of reps_left and jump_lb is set.
+     * </pre>
+     *
+     * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+     * @return The jumpLb.
+     */
+    float getJumpLb();
   }
   /**
    * Protobuf type {@code workout.v1.CompletedSet}
@@ -5494,6 +5506,50 @@ public final class WorkoutOuterClass {
     private void clearRepsLeft() {
       
       repsLeft_ = 0;
+    }
+
+    public static final int JUMP_LB_FIELD_NUMBER = 13;
+    private float jumpLb_;
+    /**
+     * <pre>
+     * A calibration rung done in full answered with a specific jump instead
+     * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+     * when not. At most one of reps_left and jump_lb is set.
+     * </pre>
+     *
+     * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+     * @return The jumpLb.
+     */
+    @java.lang.Override
+    public float getJumpLb() {
+      return jumpLb_;
+    }
+    /**
+     * <pre>
+     * A calibration rung done in full answered with a specific jump instead
+     * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+     * when not. At most one of reps_left and jump_lb is set.
+     * </pre>
+     *
+     * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+     * @param value The jumpLb to set.
+     */
+    private void setJumpLb(float value) {
+      
+      jumpLb_ = value;
+    }
+    /**
+     * <pre>
+     * A calibration rung done in full answered with a specific jump instead
+     * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+     * when not. At most one of reps_left and jump_lb is set.
+     * </pre>
+     *
+     * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+     */
+    private void clearJumpLb() {
+      
+      jumpLb_ = 0F;
     }
 
     public static workout.v1.WorkoutOuterClass.CompletedSet parseFrom(
@@ -5964,6 +6020,52 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * A calibration rung done in full answered with a specific jump instead
+       * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+       * when not. At most one of reps_left and jump_lb is set.
+       * </pre>
+       *
+       * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+       * @return The jumpLb.
+       */
+      @java.lang.Override
+      public float getJumpLb() {
+        return instance.getJumpLb();
+      }
+      /**
+       * <pre>
+       * A calibration rung done in full answered with a specific jump instead
+       * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+       * when not. At most one of reps_left and jump_lb is set.
+       * </pre>
+       *
+       * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+       * @param value The jumpLb to set.
+       * @return This builder for chaining.
+       */
+      public Builder setJumpLb(float value) {
+        copyOnWrite();
+        instance.setJumpLb(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * A calibration rung done in full answered with a specific jump instead
+       * (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+       * when not. At most one of reps_left and jump_lb is set.
+       * </pre>
+       *
+       * <code>float jump_lb = 13 [json_name = "jumpLb"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearJumpLb() {
+        copyOnWrite();
+        instance.clearJumpLb();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.CompletedSet)
     }
     @java.lang.Override
@@ -5989,10 +6091,11 @@ public final class WorkoutOuterClass {
               "restUntil_",
               "startedAt_",
               "repsLeft_",
+              "jumpLb_",
             };
             java.lang.String info =
-                "\u0000\t\u0000\u0000\u0001\f\t\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0208" +
-                "\u0004\u0004\u0005\u0001\u0007\u0002\b\u0002\u000b\u0002\f\f";
+                "\u0000\n\u0000\u0000\u0001\r\n\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0208" +
+                "\u0004\u0004\u0005\u0001\u0007\u0002\b\u0002\u000b\u0002\f\f\r\u0001";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -25290,15 +25393,30 @@ public final class WorkoutOuterClass {
      * @return The repsLeft.
      */
     workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft();
+
+    /**
+     * <pre>
+     * pounds, like every stored weight; 0 = not a jump
+     * </pre>
+     *
+     * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+     * @return The jumpLb.
+     */
+    float getJumpLb();
   }
   /**
    * <pre>
    * The answer to "how many more could you have done?" on a calibration rung
    * done in full. 0–1 ends the ramp there: the working sets are laid out from
-   * the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+   * the max the rung shows with that reserve. 2–4 and 5+ re-plan the next
    * rung: the weight the max they imply leaves about one rep in reserve on a
-   * 5-rep set, never less than the usual +10% rung. Applies only to the open
-   * question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+   * 5-rep set, never less than the usual +10% rung. Or a specific jump
+   * (jump_lb): the next rung is the rung's weight plus it, snapped to what
+   * the lift can load (at least one step up); the ramp goes on, and the
+   * rung's max counts the usual one rep in reserve. Exactly one of reps_left
+   * and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
+   * weight. Applies only to the open question
+   * (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
    * </pre>
    *
    * Protobuf type {@code workout.v1.AnswerRungRequest}
@@ -25448,6 +25566,44 @@ public final class WorkoutOuterClass {
       repsLeft_ = 0;
     }
 
+    public static final int JUMP_LB_FIELD_NUMBER = 4;
+    private float jumpLb_;
+    /**
+     * <pre>
+     * pounds, like every stored weight; 0 = not a jump
+     * </pre>
+     *
+     * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+     * @return The jumpLb.
+     */
+    @java.lang.Override
+    public float getJumpLb() {
+      return jumpLb_;
+    }
+    /**
+     * <pre>
+     * pounds, like every stored weight; 0 = not a jump
+     * </pre>
+     *
+     * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+     * @param value The jumpLb to set.
+     */
+    private void setJumpLb(float value) {
+      
+      jumpLb_ = value;
+    }
+    /**
+     * <pre>
+     * pounds, like every stored weight; 0 = not a jump
+     * </pre>
+     *
+     * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+     */
+    private void clearJumpLb() {
+      
+      jumpLb_ = 0F;
+    }
+
     public static workout.v1.WorkoutOuterClass.AnswerRungRequest parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -25533,10 +25689,15 @@ public final class WorkoutOuterClass {
      * <pre>
      * The answer to "how many more could you have done?" on a calibration rung
      * done in full. 0–1 ends the ramp there: the working sets are laid out from
-     * the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+     * the max the rung shows with that reserve. 2–4 and 5+ re-plan the next
      * rung: the weight the max they imply leaves about one rep in reserve on a
-     * 5-rep set, never less than the usual +10% rung. Applies only to the open
-     * question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+     * 5-rep set, never less than the usual +10% rung. Or a specific jump
+     * (jump_lb): the next rung is the rung's weight plus it, snapped to what
+     * the lift can load (at least one step up); the ramp goes on, and the
+     * rung's max counts the usual one rep in reserve. Exactly one of reps_left
+     * and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
+     * weight. Applies only to the open question
+     * (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
      * </pre>
      *
      * Protobuf type {@code workout.v1.AnswerRungRequest}
@@ -25696,6 +25857,46 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * pounds, like every stored weight; 0 = not a jump
+       * </pre>
+       *
+       * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+       * @return The jumpLb.
+       */
+      @java.lang.Override
+      public float getJumpLb() {
+        return instance.getJumpLb();
+      }
+      /**
+       * <pre>
+       * pounds, like every stored weight; 0 = not a jump
+       * </pre>
+       *
+       * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+       * @param value The jumpLb to set.
+       * @return This builder for chaining.
+       */
+      public Builder setJumpLb(float value) {
+        copyOnWrite();
+        instance.setJumpLb(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * pounds, like every stored weight; 0 = not a jump
+       * </pre>
+       *
+       * <code>float jump_lb = 4 [json_name = "jumpLb"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearJumpLb() {
+        copyOnWrite();
+        instance.clearJumpLb();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.AnswerRungRequest)
     }
     @java.lang.Override
@@ -25715,10 +25916,11 @@ public final class WorkoutOuterClass {
               "workoutId_",
               "proposedSetId_",
               "repsLeft_",
+              "jumpLb_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\f";
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\f\u0004\u0001";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

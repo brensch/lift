@@ -179,13 +179,17 @@ message CompletedSet {
   // A calibration rung done in full: the user's answer to "how many more
   // could you have done?" (AnswerRungRequest). Unspecified when unanswered.
   RepsLeft reps_left = 12;
+  // A calibration rung done in full answered with a specific jump instead
+  // (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+  // when not. At most one of reps_left and jump_lb is set.
+  float jump_lb = 13;
   reserved 6, 9, 10;
   reserved "rest_skipped", "effort";
 }
 
 // How many more reps a calibration rung done in full had left in it. Each
 // answer counts as a reserve in the rung's shown max (core/src/plan.rs):
-// 0–1 as 0.5, 2–3 as 2.5, 4+ as 5.
+// 0–1 as 0.5, 2–4 as 3, 5+ as 8.
 enum RepsLeft {
   REPS_LEFT_UNSPECIFIED = 0; // not answered
   REPS_LEFT_ZERO_TO_ONE = 1;
@@ -573,14 +577,20 @@ message SkipWarmupsRequest {
 
 // The answer to "how many more could you have done?" on a calibration rung
 // done in full. 0–1 ends the ramp there: the working sets are laid out from
-// the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+// the max the rung shows with that reserve. 2–4 and 5+ re-plan the next
 // rung: the weight the max they imply leaves about one rep in reserve on a
-// 5-rep set, never less than the usual +10% rung. Applies only to the open
-// question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+// 5-rep set, never less than the usual +10% rung. Or a specific jump
+// (jump_lb): the next rung is the rung's weight plus it, snapped to what
+// the lift can load (at least one step up); the ramp goes on, and the
+// rung's max counts the usual one rep in reserve. Exactly one of reps_left
+// and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
+// weight. Applies only to the open question
+// (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
 message AnswerRungRequest {
   string workout_id = 1;
   string proposed_set_id = 2;
   RepsLeft reps_left = 3;
+  float jump_lb = 4; // pounds, like every stored weight; 0 = not a jump
 }
 
 message StartSetRequest {

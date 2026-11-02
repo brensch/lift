@@ -174,6 +174,26 @@ pub fn answered_calibration_weight(
     snap_down_weight_lb(ex, one_left, unit).max(usual)
 }
 
+/// The rung after one done in full at `weight` answered with a specific
+/// jump of `jump_lb`: `weight + jump_lb` snapped to what the exercise can
+/// load, and at least one step over the rung, so a jump too small to load
+/// still climbs.
+pub fn jumped_calibration_weight(
+    exercise: i32,
+    weight: f32,
+    jump_lb: f32,
+    unit: AppWeightUnit,
+) -> f32 {
+    let Ok(ex) = Exercise::try_from(exercise) else {
+        return weight + jump_lb;
+    };
+    let snapped = snap_weight_lb(ex, weight + jump_lb, unit);
+    if snapped > weight + 1e-3 {
+        return snapped;
+    }
+    snap_weight_lb(ex, weight + progression_increment_lb(ex, unit), unit)
+}
+
 /// The working sets a ramp settles on: the decision's sets, the weight and
 /// reps the found `max` gives (`plan::choose`, no last weight), its rest.
 pub fn working_sets_after_calibration(

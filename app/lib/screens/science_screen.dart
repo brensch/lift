@@ -140,7 +140,9 @@ class ScienceScreen extends StatelessWidget {
                 'I ask how many more you had in you. 0–1 and we\'re done '
                 'there. 2–4, the next set goes up as usual. 5+, it jumps '
                 'about a fifth, to roughly one rep short of what you '
-                'showed. Don\'t answer and it goes up as usual. The set you '
+                'showed. Or type exactly how much to add and the next set '
+                'goes up by that. Don\'t answer and it goes up as usual. '
+                'The set you '
                 'missed, or the one you said 0–1 on, tells me your max, and '
                 'the rest of the workout comes from that. Bodyweight lifts '
                 'start at the bottom of the range.',

@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:schlift/gen/copy.dart';
+import 'package:schlift/gen/workout/v1/settings.pb.dart' show WeightUnit;
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
+import 'package:schlift/logic/weight_units.dart';
 import 'package:schlift/theme/app_theme.dart';
 import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
 
@@ -80,6 +82,81 @@ void main() {
           .repsLeft,
       RepsLeft.REPS_LEFT_FIVE_PLUS,
     );
+  });
+
+  testWidgets('under the answers: a line with "or", a jump and its button', (
+    tester,
+  ) async {
+    await boot(tester);
+    expect(find.text(copy.workout.rungOr), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(RungQuestionDialog),
+        matching: find.byType(Divider),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text(copy.workout.rungJumpLabel), findsOneWidget);
+    expect(find.byKey(RungQuestionDialog.jumpFieldKey), findsOneWidget);
+    expect(find.text('lb'), findsOneWidget, reason: "the user's unit");
+    expect(find.text(copy.workout.rungJumpApply), findsOneWidget);
+  });
+
+  testWidgets('the button is off at nothing, zero or too much', (tester) async {
+    await boot(tester);
+    bool enabled() => tester
+        .widget<OutlinedButton>(find.byKey(RungQuestionDialog.jumpApplyKey))
+        .enabled;
+    expect(enabled(), isFalse, reason: 'empty');
+    final field = find.byKey(RungQuestionDialog.jumpFieldKey);
+    await tester.enterText(field, '0');
+    await tester.pump();
+    expect(enabled(), isFalse, reason: 'zero');
+    await tester.enterText(field, '5000');
+    await tester.pump();
+    expect(enabled(), isFalse, reason: 'over twice the set');
+    await tester.enterText(field, '20');
+    await tester.pump();
+    expect(enabled(), isTrue);
+  });
+
+  testWidgets('a jump applied goes in pounds and the ramp climbs by it', (
+    tester,
+  ) async {
+    final first = await boot(tester);
+    await tester.enterText(find.byKey(RungQuestionDialog.jumpFieldKey), '50');
+    await tester.pump();
+    await tester.tap(find.byKey(RungQuestionDialog.jumpApplyKey));
+    await settle(tester);
+    expect(find.byType(RungQuestionDialog), findsNothing);
+    expect(h.provider.rungQuestionSetId, isEmpty);
+    final done = h.provider.activeCompletedSets.firstWhere(
+      (c) => c.proposedSetId == first.id,
+    );
+    expect(done.jumpLb, 50);
+    expect(done.repsLeft, RepsLeft.REPS_LEFT_UNSPECIFIED);
+    final next = h.provider.doneTargetSet!;
+    expect(next.calibration, isTrue, reason: 'the ramp goes on');
+    expect(next.targetWeight, first.targetWeight + 50);
+  });
+
+  testWidgets('in kilograms the field says kg and sends pounds', (
+    tester,
+  ) async {
+    final first = await boot(tester);
+    await tester.runAsync(
+      () => h.settings.updateWeightUnit(WeightUnit.WEIGHT_UNIT_KG),
+    );
+    await tester.pump();
+    expect(find.text('kg'), findsOneWidget);
+    await tester.enterText(find.byKey(RungQuestionDialog.jumpFieldKey), '10');
+    await tester.pump();
+    await tester.tap(find.byKey(RungQuestionDialog.jumpApplyKey));
+    await settle(tester);
+    final done = h.provider.activeCompletedSets.firstWhere(
+      (c) => c.proposedSetId == first.id,
+    );
+    expect(done.jumpLb, closeTo(kilogramsToPounds(10), 0.01));
   });
 
   testWidgets('dismissed, it stays unanswered', (tester) async {

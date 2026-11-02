@@ -407,12 +407,22 @@ counts as reps in reserve: 0–1 as 0.5, 2–4 as 3, 5+ as 8.
 - 2–4 or 5+ → the pending rung is re-planned: the heaviest loadable weight
   `w` with `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in
   reserve on five), never under the usual rung, `CALIBRATION_STEP`;
+- a specific jump (the field under the three answers, in the user's
+  unit, sent as `AnswerRung.jump_lb` in pounds and kept on the done set as
+  `jump_lb`) → the pending rung is re-planned to the rung's weight plus
+  the jump, snapped to what the lift loads and at least one step up
+  (`planning::jumped_calibration_weight`), `CALIBRATION_STEP`; the ramp
+  goes on;
 - no answer (dismissed) → the usual rung stands.
 
+An answer carries exactly one of `reps_left` and `jump_lb`; both, neither,
+or a jump not over 0 or over twice the rung (`MAX_JUMP_FRACTION`) is a
+no-op, and the phone's button is off for those.
+
 An answer to any other set, or once the question is closed, is a no-op. A
-rung corrected to a miss drops its answer. The walk's ramp max is the
-missed rung's (no reserve) or else the last rung's, with its answer's
-reserve (one rep unanswered).
+rung corrected to a miss drops its answer, jump included. The walk's ramp
+max is the missed rung's (no reserve) or else the last rung's, with its
+answer's reserve (one rep unanswered or jumped).
 
 Tapping a rep off a rung settles it again while what it appended is still
 untouched (`resettle_rung`); undoing a rung takes back what it appended

@@ -57,18 +57,23 @@ A rung done with every rep asks, on the phone, "How many more could you
 have done?" (the watch says "Open phone!" meanwhile). The answer is
 recorded (`AnswerRung`) and counts as reps in reserve in that rung's shown
 max: 0–1 as 0.5, 2–4 as 3, 5+ as 8 (a lot left: it should jump).
+Under the three answers, less prominent, the lifter can type a specific
+jump in their unit instead (`AnswerRung.jump_lb`, pounds, kept on the done
+set; exactly one of the two, the jump over 0 and at most twice the rung).
+A jumped rung counts the usual one rep in reserve.
 
 | Answer | What follows the rung |
 |---|---|
 | 0–1 | the ramp ends: the working sets from `weight × (1 + 5.5/30)`, laid out as after a miss |
 | 2–4, 5+ | the next rung at the heaviest loadable `w` with `w × (1 + 6/30)` ≤ the max the answer shows (a rep in reserve on five), never under the usual +10% |
+| a specific jump `j` | the next rung at the rung's weight + `j`, snapped to what loads (at least one step up); the ramp goes on |
 | none | the usual +10% rung |
 
 With 5 reps, 2–4 shows 1.27× the rung and a rep in reserve on five is
 1.06× it, so 2–4 takes the usual rung; 5+ shows 1.43× and gives about
 1.19×, a fifth heavier. A later miss still settles the ramp as a miss.
 In the walk, the ramp's max is the missed rung's, or else the last
-rung's with its answer's reserve (one rep unanswered).
+rung's with its answer's reserve (one rep unanswered or jumped).
 
 An override from the template editor (a weight and reps, and optionally
 sets) is converted to the max that prescribes it and is the new starting

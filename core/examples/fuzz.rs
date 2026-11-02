@@ -399,25 +399,49 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                             None
                         };
                         if let Some(target) = target {
-                            let reps_left =
+                            // A range, a specific jump (the field under
+                            // them), or now and then a malformed answer: a
+                            // jump out of range, or both at once.
+                            let lifted = after
+                                .completed_sets
+                                .iter()
+                                .rev()
+                                .find(|c| c.proposed_set_id == target)
+                                .map_or(0.0, |c| c.actual_weight);
+                            let range =
                                 [RepsLeft::ZeroToOne, RepsLeft::TwoToFour, RepsLeft::FivePlus]
-                                    [rng.gen_range(0..3)];
+                                    [rng.gen_range(0..3)] as i32;
+                            let (reps_left, jump_lb, valid) = match rng.gen_range(0..10) {
+                                0..=5 => (range, 0.0, true),
+                                6..=8 if lifted > 1.0 => {
+                                    let jump = rng.gen_range(1.0..=lifted * 2.0);
+                                    (0, jump, true)
+                                }
+                                6..=8 => (range, 0.0, true),
+                                _ => match rng.gen_range(0..3) {
+                                    0 => (range, 10.0, false),
+                                    1 => (0, -5.0, false),
+                                    _ => (0, lifted * 2.0 + 50.0, false),
+                                },
+                            };
                             let _ = sim.call(now).append_workout_mutations(
                                 AppendWorkoutMutationsRequest {
                                     mutations: vec![mutation_at(
                                         Mutation::AnswerRung(AnswerRungRequest {
                                             workout_id: workout_id.clone(),
                                             proposed_set_id: target.clone(),
-                                            reps_left: reps_left as i32,
+                                            reps_left,
+                                            jump_lb,
                                         }),
                                         now,
                                     )],
                                 },
                             );
-                            expect = Some(if target == open {
+                            expect = Some(if target == open && valid {
                                 Expectation::Answered {
                                     proposed_set_id: target,
-                                    reps_left: reps_left as i32,
+                                    reps_left,
+                                    jump_lb,
                                 }
                             } else {
                                 Expectation::Unchanged {
@@ -712,6 +736,7 @@ enum Expectation {
     Answered {
         proposed_set_id: String,
         reps_left: i32,
+        jump_lb: f32,
     },
     /// An answer to a set with no open question: a no-op.
     Unchanged { before: Box<GetWorkoutResponse> },
@@ -790,11 +815,13 @@ fn check_expectation(
         Expectation::Answered {
             proposed_set_id,
             reps_left,
+            jump_lb,
         } => {
-            let recorded = state
-                .completed_sets
-                .iter()
-                .any(|c| c.proposed_set_id == *proposed_set_id && c.reps_left == *reps_left);
+            let recorded = state.completed_sets.iter().any(|c| {
+                c.proposed_set_id == *proposed_set_id
+                    && c.reps_left == *reps_left
+                    && c.jump_lb == *jump_lb
+            });
             if !recorded || state.rung_question_set_id == *proposed_set_id {
                 push(
                     "an answer to the open rung question did not land",

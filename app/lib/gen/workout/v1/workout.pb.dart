@@ -471,6 +471,7 @@ class CompletedSet extends $pb.GeneratedMessage {
     $fixnum.Int64? restUntil,
     $fixnum.Int64? startedAt,
     RepsLeft? repsLeft,
+    $core.double? jumpLb,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -482,6 +483,7 @@ class CompletedSet extends $pb.GeneratedMessage {
     if (restUntil != null) result.restUntil = restUntil;
     if (startedAt != null) result.startedAt = startedAt;
     if (repsLeft != null) result.repsLeft = repsLeft;
+    if (jumpLb != null) result.jumpLb = jumpLb;
     return result;
   }
 
@@ -509,6 +511,7 @@ class CompletedSet extends $pb.GeneratedMessage {
     ..aInt64(11, _omitFieldNames ? '' : 'startedAt')
     ..aE<RepsLeft>(12, _omitFieldNames ? '' : 'repsLeft',
         enumValues: RepsLeft.values)
+    ..aD(13, _omitFieldNames ? '' : 'jumpLb', fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -614,6 +617,18 @@ class CompletedSet extends $pb.GeneratedMessage {
   $core.bool hasRepsLeft() => $_has(8);
   @$pb.TagNumber(12)
   void clearRepsLeft() => $_clearField(12);
+
+  /// A calibration rung done in full answered with a specific jump instead
+  /// (AnswerRungRequest.jump_lb): the pounds added for the next rung. 0
+  /// when not. At most one of reps_left and jump_lb is set.
+  @$pb.TagNumber(13)
+  $core.double get jumpLb => $_getN(9);
+  @$pb.TagNumber(13)
+  set jumpLb($core.double value) => $_setFloat(9, value);
+  @$pb.TagNumber(13)
+  $core.bool hasJumpLb() => $_has(9);
+  @$pb.TagNumber(13)
+  void clearJumpLb() => $_clearField(13);
 }
 
 /// One step of a decision, in the order the steps applied.
@@ -3133,20 +3148,27 @@ class SkipWarmupsRequest extends $pb.GeneratedMessage {
 
 /// The answer to "how many more could you have done?" on a calibration rung
 /// done in full. 0–1 ends the ramp there: the working sets are laid out from
-/// the max the rung shows with that reserve. 2–3 and 4+ re-plan the next
+/// the max the rung shows with that reserve. 2–4 and 5+ re-plan the next
 /// rung: the weight the max they imply leaves about one rep in reserve on a
-/// 5-rep set, never less than the usual +10% rung. Applies only to the open
-/// question (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
+/// 5-rep set, never less than the usual +10% rung. Or a specific jump
+/// (jump_lb): the next rung is the rung's weight plus it, snapped to what
+/// the lift can load (at least one step up); the ramp goes on, and the
+/// rung's max counts the usual one rep in reserve. Exactly one of reps_left
+/// and jump_lb is set; jump_lb must be over 0 and at most twice the rung's
+/// weight. Applies only to the open question
+/// (GetWorkoutResponse.rung_question_set_id); otherwise a no-op.
 class AnswerRungRequest extends $pb.GeneratedMessage {
   factory AnswerRungRequest({
     $core.String? workoutId,
     $core.String? proposedSetId,
     RepsLeft? repsLeft,
+    $core.double? jumpLb,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (proposedSetId != null) result.proposedSetId = proposedSetId;
     if (repsLeft != null) result.repsLeft = repsLeft;
+    if (jumpLb != null) result.jumpLb = jumpLb;
     return result;
   }
 
@@ -3167,6 +3189,7 @@ class AnswerRungRequest extends $pb.GeneratedMessage {
     ..aOS(2, _omitFieldNames ? '' : 'proposedSetId')
     ..aE<RepsLeft>(3, _omitFieldNames ? '' : 'repsLeft',
         enumValues: RepsLeft.values)
+    ..aD(4, _omitFieldNames ? '' : 'jumpLb', fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3214,6 +3237,15 @@ class AnswerRungRequest extends $pb.GeneratedMessage {
   $core.bool hasRepsLeft() => $_has(2);
   @$pb.TagNumber(3)
   void clearRepsLeft() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get jumpLb => $_getN(3);
+  @$pb.TagNumber(4)
+  set jumpLb($core.double value) => $_setFloat(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasJumpLb() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearJumpLb() => $_clearField(4);
 }
 
 class StartSetRequest extends $pb.GeneratedMessage {

@@ -713,6 +713,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  /// Answer a ramp set's question with a specific jump instead: the next
+  /// ramp set is that set's weight plus [jumpLb] (pounds), snapped to what
+  /// loads, and the ramp goes on. The core ignores a jump out of range or
+  /// to a question no longer open.
+  Future<void> answerRungJump(String proposedSetId, double jumpLb) async {
+    if (_workout == null) return;
+    await _mutate(
+      _mutation()
+        ..answerRung = (AnswerRungRequest()
+          ..workoutId = _workoutId
+          ..proposedSetId = proposedSetId
+          ..jumpLb = jumpLb),
+    );
+  }
+
   /// Skip [exercise]'s warmups (the warmup row's "Skip"): they're marked
   /// skipped — kept, out of the way, still doable.
   Future<void> skipWarmups(Exercise exercise) async {

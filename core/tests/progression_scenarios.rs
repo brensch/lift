@@ -39,7 +39,7 @@ use schlift_core::exercise_catalog::{
 use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::*;
 use schlift_core::plan::{is_bodyweight, reps_covered, Planner, MAX_SETS, MIN_SETS};
-use schlift_core::weight_units::{pounds_to_kg, AppWeightUnit};
+use schlift_core::weight_units::{kg_to_pounds, pounds_to_kg, AppWeightUnit};
 
 const DAY: i64 = 24 * 3600;
 /// Monday 5 January 2026, 07:00 UTC: the first session of every scenario.
@@ -113,6 +113,19 @@ impl App {
 
 // ── The scripts ──
 
+/// How a scripted lifter answers a full rung's "how many more?".
+#[derive(Clone, Copy, PartialEq)]
+enum Answers {
+    /// Never: the ramp climbs the usual rungs.
+    Never,
+    /// One of the three ranges, truthfully from the true max.
+    Ranges,
+    /// With 2 or more left, a specific jump: what puts the next rung a rep
+    /// in reserve on five at the true max, rounded down to 5 lb or 2.5 kg
+    /// (a range when that rounds to nothing); 0–1 otherwise.
+    Jumps,
+}
+
 /// What the lifter does in one session beyond lifting what it is given.
 #[derive(Clone, Default)]
 struct Session {
@@ -149,9 +162,9 @@ struct Scenario {
     /// The lifter's rest after a working set, as a multiple of what the
     /// app asks for.
     rest_factor: f32,
-    /// The lifter answers "how many more could you have done?" after every
-    /// full rung, truthfully from its true max; otherwise never.
-    answers_rungs: bool,
+    /// How the lifter answers "how many more could you have done?" after
+    /// every full rung.
+    answers: Answers,
     sessions: Vec<Session>,
     /// Templates previewed at these budgets on Home after the last session.
     preview_budgets: Vec<i32>,
@@ -198,7 +211,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.25,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(18, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
@@ -212,7 +225,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.55,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(18, |i, s| {
                 if i % 3 == 2 {
                     short_all_last(s);
@@ -232,7 +245,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(18, |i, s| {
                 if i == 6 {
                     s.gap_days = 28 + 2;
@@ -269,7 +282,7 @@ fn scenarios() -> Vec<Scenario> {
                 _ => 1.0,
             },
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(8, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
@@ -285,7 +298,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(16, |i, s| {
                 if i == 6 {
                     s.overrides = vec![SetOverrideRequest {
@@ -319,7 +332,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.5,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(16, |i, s| {
                 if [4, 8, 12].contains(&i) {
                     s.lower = Some((Exercise::Squat, 3, 0.15));
@@ -339,7 +352,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(16, |i, s| match i {
                 3 => {
                     s.end_after = Some((Exercise::OverheadPress, 1));
@@ -368,7 +381,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(16, |i, s| {
                 s.budget = [30, 45, 60, 90][i % 4];
             }),
@@ -386,7 +399,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.4,
             strength_factor: even,
             rest_factor: 2.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(14, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
@@ -407,8 +420,28 @@ fn scenarios() -> Vec<Scenario> {
                 _ => 1.0,
             },
             rest_factor: 1.0,
-            answers_rungs: true,
+            answers: Answers::Ranges,
             sessions: alternating(4, |_, _| {}),
+            preview_budgets: vec![],
+            preview_library: vec![],
+        },
+        Scenario {
+            id: "first_time_jumps",
+            title: "First time: the ramp, jumped",
+            description: "A kilogram lifter on their first time who, after every rung \
+                          done in full with two or more left, types a specific jump: what \
+                          would leave a rep in reserve on five at their true max. The \
+                          ramp goes on from there; 0–1 ends it.",
+            unit: WeightUnit::Kg,
+            strength: 0.5,
+            strength_factor: |ex| match ex {
+                Exercise::Squat => 1.8,
+                Exercise::BenchPress => 1.3,
+                _ => 1.0,
+            },
+            rest_factor: 1.0,
+            answers: Answers::Jumps,
+            sessions: alternating(3, |_, _| {}),
             preview_budgets: vec![],
             preview_library: vec![],
         },
@@ -421,7 +454,7 @@ fn scenarios() -> Vec<Scenario> {
             strength: 0.35,
             strength_factor: even,
             rest_factor: 1.0,
-            answers_rungs: false,
+            answers: Answers::Never,
             sessions: alternating(16, |i, s| {
                 if i % 4 == 3 {
                     short_all_last(s);
@@ -757,14 +790,33 @@ impl<'a> Runner<'a> {
         self.reps_possible(ex, weight).clamp(1, target)
     }
 
-    /// The most reps the lifter's true max allows at `weight` (Epley).
-    fn reps_possible(&self, ex: Exercise, weight: f32) -> i32 {
+    /// The lifter's true one-rep max for `ex`, in pounds.
+    fn true_max(&self, ex: Exercise) -> f32 {
         let base =
             self.starting.get(&(ex as i32)).copied().unwrap_or_else(|| {
                 schlift_core::exercise_catalog::starting_weight_lb(ex, self.unit())
             });
-        let true_max = base * (self.sc.strength_factor)(ex);
-        (30.0 * (true_max / weight - 1.0) + 1e-3).floor() as i32
+        base * (self.sc.strength_factor)(ex)
+    }
+
+    /// The most reps the lifter's true max allows at `weight` (Epley).
+    fn reps_possible(&self, ex: Exercise, weight: f32) -> i32 {
+        (30.0 * (self.true_max(ex) / weight - 1.0) + 1e-3).floor() as i32
+    }
+
+    /// The specific jump the lifter types after a full rung at `weight`
+    /// (`Answers::Jumps`), in pounds: none with 0–1 left, or when it
+    /// rounds to nothing.
+    fn jump_lb(&self, ex: Exercise, weight: f32, reps: i32) -> Option<f32> {
+        if self.reps_possible(ex, weight) - reps <= 1 {
+            return None;
+        }
+        let target = self.true_max(ex) / (1.0 + 6.0 / 30.0);
+        let jump = match self.unit() {
+            AppWeightUnit::Lb => ((target - weight) / 5.0).floor() * 5.0,
+            AppWeightUnit::Kg => kg_to_pounds((pounds_to_kg(target - weight) / 2.5).floor() * 2.5),
+        };
+        (jump > 0.0).then_some(jump.min(weight * 2.0))
     }
 
     /// What the lifter answers after a full rung of `reps` at `weight`.
@@ -955,16 +1007,23 @@ impl<'a> Runner<'a> {
                 })
             });
             let rest_until = done.completed_set.map_or(t, |c| c.rest_until);
-            if next.calibration && self.sc.answers_rungs {
+            if next.calibration && self.sc.answers != Answers::Never {
                 let asked = self.app.workout(t, &id).rung_question_set_id;
                 if asked == next.id {
-                    let reps_left = self.reps_left(ex, next.target_weight, reps);
+                    let jump = (self.sc.answers == Answers::Jumps)
+                        .then(|| self.jump_lb(ex, next.target_weight, reps))
+                        .flatten();
+                    let reps_left = match jump {
+                        Some(_) => RepsLeft::Unspecified,
+                        None => self.reps_left(ex, next.target_weight, reps),
+                    };
                     self.mutate(
                         t + 5,
                         Mutation::AnswerRung(AnswerRungRequest {
                             workout_id: id.clone(),
                             proposed_set_id: next.id.clone(),
                             reps_left: reps_left as i32,
+                            jump_lb: jump.unwrap_or(0.0),
                         }),
                     );
                 }
@@ -1300,6 +1359,13 @@ impl<'a> Runner<'a> {
             ];
             if kind == "rung" && c.reps_left != RepsLeft::Unspecified as i32 {
                 fields.push(("reps_left", s(reps_left_name(c.reps_left))));
+            }
+            if kind == "rung" && c.jump_lb > 0.0 {
+                let jump = match self.w(c.jump_lb) {
+                    J::Num(x) => format!("+{x} {}", self.unit_name()),
+                    _ => String::new(),
+                };
+                fields.push(("jump", J::Str(jump)));
             }
             sets_json.push(J::Obj(fields));
         }

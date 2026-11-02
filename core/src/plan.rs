@@ -111,8 +111,8 @@ pub fn max_needed(weight: f32, reps: i32, sets: i32, bodyweight: bool) -> f32 {
 /// The reps in reserve a ramp rung's answer to "how many more could you
 /// have done?" counts (`RepsLeft`): 0–1 as 0.5, 2–4 as 3, and 5+ as 8 (a
 /// lot left: it should jump, and on five reps 8 in reserve puts the next
-/// rung about a fifth heavier). None when unanswered: a full rung then
-/// counts the usual 1.
+/// rung about a fifth heavier). None when unanswered or answered with a
+/// specific jump (`jump_lb`): a full rung then counts the usual 1.
 pub fn answered_reserve(reps_left: i32) -> Option<f32> {
     match RepsLeft::try_from(reps_left).ok()? {
         RepsLeft::ZeroToOne => Some(0.5),

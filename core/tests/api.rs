@@ -1446,6 +1446,7 @@ mod calibration {
                 workout_id: set.workout_id.clone(),
                 proposed_set_id: set.id.clone(),
                 reps_left: reps_left as i32,
+                jump_lb: 0.0,
             })
         };
         let state = batch(&mut app, done(&rung1, 5), NOW + 100);
@@ -1486,6 +1487,85 @@ mod calibration {
         app.now = NOW + DAY;
         let next = plan(&app, Exercise::Squat);
         assert!(!next.calibration);
+        assert!(
+            (next.max - ramp_max).abs() < 1e-3,
+            "{} vs {ramp_max}",
+            next.max
+        );
+    }
+
+    /// A specific jump through the batch: the next rung is the rung plus
+    /// it, the ramp goes on, a second answer is ignored, and the walk
+    /// counts the jumped rung's max with the usual rep in reserve. The
+    /// replay (App's drop) rebuilds it.
+    #[test]
+    fn a_jump_climbs_the_ramp_and_the_walk_reads_it() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let rung1 = started.proposed_sets[0].clone();
+        let batch = |app: &mut App, m: Mutation, at: i64| {
+            app.call()
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![mutation_at(m, at)],
+                })
+                .unwrap()
+                .workout_state
+                .unwrap()
+        };
+        let jump = |set: &ProposedSet, reps_left: RepsLeft, jump_lb: f32| {
+            Mutation::AnswerRung(AnswerRungRequest {
+                workout_id: set.workout_id.clone(),
+                proposed_set_id: set.id.clone(),
+                reps_left: reps_left as i32,
+                jump_lb,
+            })
+        };
+        let state = batch(
+            &mut app,
+            Mutation::CompleteSet(CompleteSetRequest {
+                workout_id: rung1.workout_id.clone(),
+                proposed_set_id: rung1.id.clone(),
+                actual_reps: rung1.target_reps,
+                actual_weight: rung1.target_weight,
+                completed_at: 0,
+            }),
+            NOW + 100,
+        );
+        assert_eq!(state.rung_question_set_id, rung1.id);
+        let both = batch(&mut app, jump(&rung1, RepsLeft::FivePlus, 50.0), NOW + 105);
+        assert_eq!(both.rung_question_set_id, rung1.id, "both: ignored");
+        let state = batch(
+            &mut app,
+            jump(&rung1, RepsLeft::Unspecified, 50.0),
+            NOW + 110,
+        );
+        assert!(state.rung_question_set_id.is_empty());
+        let rung2 = &state.proposed_sets[1];
+        assert!(rung2.calibration, "the ramp goes on");
+        assert_eq!(rung2.target_weight, rung1.target_weight + 50.0);
+        let stale = batch(
+            &mut app,
+            jump(&rung1, RepsLeft::Unspecified, 20.0),
+            NOW + 120,
+        );
+        assert_eq!(
+            stale.proposed_sets, state.proposed_sets,
+            "answered: ignored"
+        );
+        batch(
+            &mut app,
+            Mutation::EndWorkout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: NOW + 400,
+            }),
+            NOW + 400,
+        );
+
+        // Ended after the jumped rung: its max, one rep in reserve.
+        let ramp_max = rung1.target_weight * (1.0 + 6.0 / 30.0);
+        app.now = NOW + DAY;
+        let next = plan(&app, Exercise::Squat);
         assert!(
             (next.max - ramp_max).abs() < 1e-3,
             "{} vs {ramp_max}",

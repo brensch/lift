@@ -443,9 +443,11 @@ td.won { font-weight: 700; }
       var done = l.done.map(function (x) {
         var c = 'set' + (x.kind === 'rung' ? ' rung' : '') + (x.hit ? '' : ' miss');
         var label = (x.kind === 'rung' ? 'r' : '') + x.reps + (lift.bodyweight ? '' : '@' + x.weight) +
-          (x.reps_left ? ' (' + x.reps_left + ')' : '');
+          (x.reps_left ? ' (' + x.reps_left + ')' : '') +
+          (x.jump ? ' (' + x.jump + ')' : '');
         var tip = (x.kind === 'rung' ? 'rung ' : 'set ') + x.n + ': ' + x.reps + '/' + x.target_reps + ' reps' + (lift.bodyweight ? '' : ' at ' + x.weight + ' ' + unit) +
-          (x.reps_left ? ', ' + x.reps_left + ' more left in it' : '');
+          (x.reps_left ? ', ' + x.reps_left + ' more left in it' : '') +
+          (x.jump ? ', next set ' + x.jump : '');
         return '<span class="' + c + '" title="' + esc(tip) + '">' + esc(label) + '</span>';
       }).join('');
       if (l.removed) done += '<span class="note">skipped</span>';
