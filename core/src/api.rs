@@ -230,7 +230,8 @@ impl<'a> Call<'a> {
 
     /// Several changes in one go (the watch's intents arrive this way). One
     /// that can't apply — a set already gone, a workout already over — is
-    /// skipped and the rest still apply.
+    /// skipped and the rest still apply. New lifts are planned here, as
+    /// `add_exercises` plans them.
     pub fn append_workout_mutations(
         &mut self,
         req: AppendWorkoutMutationsRequest,
@@ -243,7 +244,12 @@ impl<'a> Call<'a> {
                 .ok_or_else(|| CoreError::InvalidArgument("mutation missing".into()))?;
             workout_id
                 .get_or_insert_with(|| crate::account::mutation_workout_id(&payload).to_string());
-            let _ = self.mutate(payload);
+            let _ = match payload {
+                workout_mutation::Mutation::AddExercises(add) => {
+                    self.add_exercises(add).map(|_| ())
+                }
+                other => self.mutate(other).map(|_| ()),
+            };
             applied.push(mutation.event_id);
         }
         Ok(AppendWorkoutMutationsResponse {

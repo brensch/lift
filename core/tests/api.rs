@@ -1247,6 +1247,32 @@ mod weight_log {
         assert_eq!(changes[2].at, NOW, "the event's time");
         assert_eq!(changes[3].from_set_id, first.id);
     }
+
+    /// The app adds a lift through the batch, as the watch's intents come:
+    /// it is planned there and lands in the workout with its decision.
+    #[test]
+    fn a_lift_added_through_the_batch_is_planned() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let workout_id = started.workout.unwrap().id;
+        let state = apply(
+            &mut app,
+            Mutation::AddExercises(AddExercisesRequest {
+                workout_id,
+                exercises: vec![Exercise::BarbellCurl as i32],
+                ..Default::default()
+            }),
+        );
+        assert!(state
+            .proposed_sets
+            .iter()
+            .any(|s| s.exercise == Exercise::BarbellCurl as i32));
+        assert!(state
+            .exercise_logs
+            .iter()
+            .any(|l| l.decision.as_ref().unwrap().exercise == Exercise::BarbellCurl as i32));
+    }
 }
 
 mod calibration {
