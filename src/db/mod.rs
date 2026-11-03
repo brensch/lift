@@ -1,4 +1,3 @@
-use prost::Message;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
@@ -12,8 +11,10 @@ use crate::time::now_unix;
 mod accounts;
 mod analytics;
 mod auth;
+mod changes;
 mod migrate;
-pub use accounts::{Diverged, Pushed};
+pub use accounts::Pushed;
+pub use changes::{Change, Topic};
 mod session;
 pub use session::JOIN_REQUEST_TTL_SECONDS;
 #[cfg(test)]
@@ -23,25 +24,13 @@ pub use analytics::MAX_STATS_WINDOW_DAYS;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-/// Something a live view may need to redraw for. The Sync stream of every
-/// connected device listens and re-sends what concerns it.
-#[derive(Clone, Debug, PartialEq)]
-pub enum Change {
-    /// A session's members or their progress.
-    Session(String),
-    /// A user's own session membership.
-    Membership(String),
-    /// Requests to join this user.
-    JoinRequests(String),
-}
-
 #[derive(Clone)]
 pub struct ServerDb {
     pub read_pool: Pool<Sqlite>,
     write_pool: Pool<Sqlite>,
     accounts: std::sync::Arc<accounts::AccountCache>,
     join_requests: std::sync::Arc<session::JoinRequests>,
-    changes: tokio::sync::broadcast::Sender<Change>,
+    changes: std::sync::Arc<changes::Changes>,
 }
 
 impl ServerDb {
@@ -69,17 +58,16 @@ impl ServerDb {
             write_pool,
             accounts: Default::default(),
             join_requests: Default::default(),
-            changes: tokio::sync::broadcast::channel(1024).0,
+            changes: Default::default(),
         })
     }
 
-    /// Hear about changes from now on.
-    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<Change> {
-        self.changes.subscribe()
+    /// Hear about the topic's changes from now on.
+    pub fn watch(&self, topic: Topic) -> tokio::sync::broadcast::Receiver<Change> {
+        self.changes.watch(topic)
     }
 
-    fn notify(&self, change: Change) {
-        // No receivers is fine: nobody is watching.
-        let _ = self.changes.send(change);
+    fn notify(&self, topic: Topic, change: Change) {
+        self.changes.notify(topic, change);
     }
 }

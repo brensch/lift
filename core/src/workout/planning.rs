@@ -355,7 +355,7 @@ pub fn apply_add_exercises(
 /// or below a warmup already done.
 pub fn apply_adjust_exercise_weight(
     workout_ref: &mut WorkoutRecord,
-    req: &AdjustExerciseWeightRequest,
+    req: &ExerciseAdjusted,
     unit: AppWeightUnit,
     ids: &mut Ids,
     at: i64,
@@ -470,7 +470,7 @@ pub fn apply_adjust_exercise_weight(
 
 /// A rep target given with the adjust: every working set of the exercise
 /// still to do takes it. Rungs and warmups keep theirs.
-fn apply_target_reps(workout_ref: &mut WorkoutRecord, req: &AdjustExerciseWeightRequest) {
+fn apply_target_reps(workout_ref: &mut WorkoutRecord, req: &ExerciseAdjusted) {
     if req.target_reps <= 0 {
         return;
     }
@@ -485,7 +485,7 @@ fn apply_target_reps(workout_ref: &mut WorkoutRecord, req: &AdjustExerciseWeight
 /// Cancel an exercise's pending sets. Completed sets stay — the work happened.
 pub fn apply_remove_exercise(
     workout_ref: &mut WorkoutRecord,
-    req: &RemoveExerciseRequest,
+    req: &ExerciseRemoved,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
     let done = done_set_ids(&workout_ref.completed_sets);
@@ -503,7 +503,7 @@ pub fn apply_remove_exercise(
 /// unlisted keeps its relative order after them. Stable within a block.
 pub fn apply_reorder_exercises(
     workout_ref: &mut WorkoutRecord,
-    req: &ReorderExercisesRequest,
+    req: &ExercisesReordered,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref, &req.workout_id)?;
     let rank: std::collections::HashMap<i32, usize> = req
@@ -686,7 +686,7 @@ mod plan_op_tests {
     fn adjust(active: &mut WorkoutRecord, exercise: i32, weight: f32) {
         apply_adjust_exercise_weight(
             active,
-            &AdjustExerciseWeightRequest {
+            &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
                 exercise,
                 working_weight: weight,
@@ -719,7 +719,7 @@ mod plan_op_tests {
         });
         apply_adjust_exercise_weight(
             &mut active,
-            &AdjustExerciseWeightRequest {
+            &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
                 exercise: SQUAT,
                 working_weight: 210.0,
@@ -911,7 +911,7 @@ mod plan_op_tests {
         .is_err());
         assert!(apply_adjust_exercise_weight(
             &mut active,
-            &AdjustExerciseWeightRequest {
+            &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
                 exercise: SQUAT,
                 working_weight: 100.0,
@@ -924,7 +924,7 @@ mod plan_op_tests {
         .is_err());
         assert!(apply_remove_exercise(
             &mut active,
-            &RemoveExerciseRequest {
+            &ExerciseRemoved {
                 workout_id: "w1".to_string(),
                 exercise: SQUAT,
             },
@@ -932,7 +932,7 @@ mod plan_op_tests {
         .is_err());
         assert!(apply_reorder_exercises(
             &mut active,
-            &ReorderExercisesRequest {
+            &ExercisesReordered {
                 workout_id: "w1".to_string(),
                 exercises: vec![SQUAT],
             },
@@ -1046,7 +1046,7 @@ mod plan_op_tests {
         }
         apply_remove_exercise(
             &mut active,
-            &RemoveExerciseRequest {
+            &ExerciseRemoved {
                 workout_id: "w1".to_string(),
                 exercise: SQUAT,
             },
@@ -1143,7 +1143,7 @@ mod plan_op_tests {
         complete(&mut active, &first_squat);
         apply_remove_exercise(
             &mut active,
-            &RemoveExerciseRequest {
+            &ExerciseRemoved {
                 workout_id: "w1".to_string(),
                 exercise: SQUAT,
             },
@@ -1180,7 +1180,7 @@ mod plan_op_tests {
         let mut active = workout_with(&[plan(SQUAT, 200.0, false), plan(BENCH, 135.0, false)]);
         apply_reorder_exercises(
             &mut active,
-            &ReorderExercisesRequest {
+            &ExercisesReordered {
                 workout_id: "w1".to_string(),
                 exercises: vec![BENCH, SQUAT],
             },
@@ -1204,7 +1204,7 @@ mod plan_op_tests {
         ]);
         apply_reorder_exercises(
             &mut active,
-            &ReorderExercisesRequest {
+            &ExercisesReordered {
                 workout_id: "w1".to_string(),
                 exercises: vec![3],
             },
@@ -1230,7 +1230,7 @@ mod plan_op_tests {
         .is_err());
         assert!(apply_adjust_exercise_weight(
             &mut active,
-            &AdjustExerciseWeightRequest {
+            &ExerciseAdjusted {
                 workout_id: "other".to_string(),
                 exercise: SQUAT,
                 working_weight: 100.0,
@@ -1243,7 +1243,7 @@ mod plan_op_tests {
         .is_err());
         assert!(apply_remove_exercise(
             &mut active,
-            &RemoveExerciseRequest {
+            &ExerciseRemoved {
                 workout_id: "other".to_string(),
                 exercise: SQUAT,
             },
@@ -1251,7 +1251,7 @@ mod plan_op_tests {
         .is_err());
         assert!(apply_reorder_exercises(
             &mut active,
-            &ReorderExercisesRequest {
+            &ExercisesReordered {
                 workout_id: "other".to_string(),
                 exercises: vec![SQUAT],
             },

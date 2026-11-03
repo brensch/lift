@@ -2201,6 +2201,7 @@ dependencies = [
  "prost-build",
  "rand 0.8.5",
  "serde",
+ "serde_json",
  "serde_yaml",
  "uuid",
  "zstd",
@@ -2235,6 +2236,7 @@ dependencies = [
  "prost",
  "rusqlite",
  "schlift-core",
+ "serde_json",
  "uuid",
 ]
 

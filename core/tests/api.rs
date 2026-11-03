@@ -4,6 +4,7 @@
 
 use schlift_core::account::{Account, CoreError};
 use schlift_core::api::{Call, View};
+use schlift_core::events::{Event, ExercisesAdded, Fact, WorkoutStarted};
 use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::*;
 use uuid::Uuid;
@@ -81,9 +82,6 @@ impl Drop for App {
         if std::thread::panicking() {
             return;
         }
-        let seqs: Vec<i64> = self.log.iter().map(|e| e.seq).collect();
-        let expected: Vec<i64> = (1..=self.log.len() as i64).collect();
-        assert_eq!(seqs, expected, "the log has no gaps");
         assert_eq!(Account::fold(&self.log), self.account, "replay rebuilds it");
     }
 }
@@ -399,7 +397,7 @@ mod home_and_onboarding {
                 ..Default::default()
             })
             .unwrap();
-        let Some(event::Kind::CompleteOnboarding(recorded)) = &app.log[0].kind else {
+        let Fact::Onboarded(recorded) = &app.log[0].fact else {
             panic!("onboarding recorded");
         };
         assert!(recorded
@@ -1183,17 +1181,17 @@ mod recorded {
         };
         assert_ne!(plan(&app, Exercise::Squat), recorded);
         let event = Event {
-            seq: app.account.seq + 1,
+            seq: 0,
             id: Uuid::new_v4().to_string(),
             at: NOW,
-            kind: Some(event::Kind::StartWorkout(StartWorkoutRequest {
+            fact: Fact::WorkoutStarted(WorkoutStarted {
+                started_at: NOW,
                 exercises: vec![Exercise::Squat as i32],
                 decisions: vec![recorded.clone()],
                 ..Default::default()
-            })),
+            }),
         };
         app.account.apply(&event).unwrap();
-        app.account.seq = event.seq;
         app.log.push(event.clone());
 
         let state = app
@@ -1211,20 +1209,20 @@ mod recorded {
         assert_eq!(state.exercise_logs[0].decision, Some(recorded));
     }
 
-    /// A start or an add that names lifts without their decisions (the
-    /// shape of a log from before plans were recorded) is refused, not
-    /// folded into an empty workout.
+    /// A start or an add that names lifts without their decisions is
+    /// refused, not folded into an empty workout.
     #[test]
     fn a_lift_without_its_decision_is_refused() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let event = |kind| Event {
-            seq: 1,
+        let event = |fact| Event {
+            seq: 0,
             id: Uuid::new_v4().to_string(),
             at: NOW,
-            kind: Some(kind),
+            fact,
         };
-        let start = event(event::Kind::StartWorkout(StartWorkoutRequest {
+        let start = event(Fact::WorkoutStarted(WorkoutStarted {
+            started_at: NOW,
             exercises: vec![Exercise::Squat as i32],
             ..Default::default()
         }));
@@ -1241,12 +1239,10 @@ mod recorded {
             })
             .unwrap();
         let add = |exercises: Vec<Exercise>| {
-            event(event::Kind::Workout(WorkoutMutation {
-                mutation: Some(Mutation::AddExercises(AddExercisesRequest {
-                    workout_id: started.id.clone(),
-                    exercises: exercises.into_iter().map(|e| e as i32).collect(),
-                    ..Default::default()
-                })),
+            event(Fact::ExercisesAdded(ExercisesAdded {
+                workout_id: started.id.clone(),
+                exercises: exercises.into_iter().map(|e| e as i32).collect(),
+                ..Default::default()
             }))
         };
         assert!(matches!(
@@ -2056,12 +2052,7 @@ mod lifting {
                 bpm: 120.0,
             })
             .collect();
-        app.call()
-            .append_workout_heart_rate(AppendWorkoutHeartRateRequest {
-                workout_id: started.id.clone(),
-                samples: samples.clone(),
-            })
-            .unwrap();
+        app.call().record_heart_rate(&started.id, &samples).unwrap();
         // A set that does not exist: the change is dropped.
         app.call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {

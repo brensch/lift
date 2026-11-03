@@ -169,7 +169,8 @@ sequenceDiagram
         O->>O: drop batch
     end
     P->>P: dedupe by batch_id and timestamp, buffer
-    P->>K: AppendWorkoutHeartRate (every 5 s, and at the end)
+    P->>K: AppendWorkoutHeartRate (every 5 s, and at the end): gathered
+    K->>K: workout ends: recorded whole, one HeartRateRecorded
 ```
 
 The outbox (`WatchSensorBatchOutbox.swift`, `WearSensorBatchOutbox.kt`) is
@@ -177,10 +178,15 @@ The outbox (`WatchSensorBatchOutbox.swift`, `WearSensorBatchOutbox.kt`) is
 acked. This is why heart-rate data survives a watch app crash mid-workout.
 
 Sample timestamps are Unix **milliseconds** (`HeartRateSample.sampled_at`), while
-most other timestamps in the system are seconds. The phone writes heart rate
-into the account in batches (one `heart_rate` event per batch, not per
-sample); an exported file's `workout_heart_rate_samples` table has a row
-per sample, and the events sync to the server like any other.
+most other timestamps in the system are seconds. The phone hands heart rate
+to its store in 5-second batches, which gathers it in a table of its own
+(`heart_rate`, this device's alone) until the workout ends, then records the
+whole workout's readings as one compact event (`HeartRateRecorded`: the
+first reading's time, the gaps, every bpm), so a workout is one event of
+heart rate, not hundreds. Every reading is kept: the chart, after the
+workout or opened from History, reads them from the account, the event syncs
+like any other, and an exported file's `workout_heart_rate_samples` table has
+a row per sample.
 
 Each `HeartRateSample` carries a `HeartRateAvailability`; the watches mark
 every sample `AVAILABLE`, and only the debug notifications screen reads it.

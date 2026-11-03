@@ -59,12 +59,13 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
 
   Future<void> _loadWorkout() async {
     final grpc = context.read<GrpcClient>();
-    final workoutProvider = context.read<WorkoutProvider>();
     final service = context.read<WorkoutServiceWrapper>();
     final multiplayer = MultiplayerServiceWrapper(grpc);
     try {
       _loadError = null;
       final response = await service.getWorkout(widget.workoutId);
+      // From the account, so a workout opened from History shows it too.
+      final heartRate = await service.getWorkoutHeartRate(widget.workoutId);
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
@@ -73,9 +74,12 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           _proposedSets = List.from(response.proposedSets);
           _completedSets = List.from(response.completedSets);
           _logs = List.from(response.exerciseLogs);
-          _heartRateSamples = workoutProvider.workout?.id == response.workout.id
-              ? workoutProvider.wearHeartRateSamples
-              : const [];
+          _heartRateSamples = [
+            for (final point in heartRate)
+              HeartRateSample()
+                ..sampledAt = point.sampledAt
+                ..bpm = point.bpm,
+          ];
           _isLoading = false;
           _loadError = null;
           _sessionFriends = [];

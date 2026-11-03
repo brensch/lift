@@ -1,8 +1,10 @@
+pub use crate::events::{
+    ExerciseAdjusted, ExerciseRemoved, ExercisesReordered, RungAnswered, SetCompleted, SetEdited,
+    SetStarted, SetUndone, WarmupsSkipped,
+};
 use crate::history::WorkoutRecord;
 pub use crate::pb::{
-    AdjustExerciseWeightRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
-    GetWorkoutResponse, ProposedSet, RemoveExerciseRequest, ReorderExercisesRequest,
-    StartWorkoutResponse, WorkoutStateSnapshot,
+    CompletedSet, GetWorkoutResponse, ProposedSet, StartWorkoutResponse, WorkoutStateSnapshot,
 };
 
 mod planning;

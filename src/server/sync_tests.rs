@@ -1,6 +1,6 @@
-//! Sync end to end: events pushed and folded on the server, the projections
-//! they leave, and the Sync stream carrying one partner's progress to the
-//! other — over a real server on a local port.
+//! Sync end to end: events pushed, placed and folded on the server, and the
+//! Sync stream carrying them to every device and one partner's progress to
+//! the other — over a real server on a local port.
 
 use super::*;
 use schlift::workout::v1::multiplayer_service_client::MultiplayerServiceClient;
@@ -9,6 +9,7 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::sync_service_server::SyncServiceServer;
 use schlift_core::account::Account;
 use schlift_core::api::Call;
+use schlift_core::events::Event;
 use schlift_core::sync::{pack, unpack};
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -60,13 +61,18 @@ impl Phone {
 mod store {
     use super::*;
 
+    /// What the server holds for `u1`, in order.
+    async fn held(db: &ServerDb) -> Vec<Event> {
+        db.events_after("u1", 0, i64::MAX).await.unwrap()
+    }
+
     #[tokio::test]
     async fn pushed_events_fold_into_the_same_account() {
         let db = db().await;
         let mut phone = Phone::new();
         let (started, events) = phone.start_squats(1_000);
         let pushed = db.push_events("u1", events).await.unwrap();
-        assert_eq!(pushed.head, 1);
+        assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [1]);
         assert!(pushed.progressed);
 
         let server = db.read_account("u1", Clone::clone).await.unwrap();
@@ -75,7 +81,7 @@ mod store {
     }
 
     #[tokio::test]
-    async fn a_resent_batch_is_skipped_and_a_gap_waits() {
+    async fn a_resent_batch_is_placed_once() {
         let db = db().await;
         let mut phone = Phone::new();
         let (_, first) = phone.start_squats(1_000);
@@ -89,15 +95,60 @@ mod store {
             })
             .unwrap()
         });
-        // Out of order: the second alone is after a gap, so it waits.
-        let pushed = db.push_events("u1", second.clone()).await.unwrap();
-        assert_eq!((pushed.head, pushed.progressed), (0, false));
-        // The whole outbox again, twice: applied once.
+        assert_eq!(
+            db.push_events("u1", first.clone())
+                .await
+                .unwrap()
+                .stored
+                .len(),
+            1
+        );
+        // The whole outbox again, twice: what's held is skipped.
         let all: Vec<Event> = first.into_iter().chain(second).collect();
-        assert_eq!(db.push_events("u1", all.clone()).await.unwrap().head, 2);
+        let pushed = db.push_events("u1", all.clone()).await.unwrap();
+        assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [2]);
         let again = db.push_events("u1", all).await.unwrap();
-        assert_eq!((again.head, again.progressed), (2, false));
-        assert_eq!(db.events_after("u1", 0).await.unwrap(), phone.log);
+        assert!(again.stored.is_empty() && !again.progressed);
+        let ids: Vec<&str> = phone.log.iter().map(|e| e.id.as_str()).collect();
+        let server = held(&db).await;
+        assert_eq!(
+            server.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
+            ids
+        );
+        assert_eq!(server.iter().map(|e| e.seq).collect::<Vec<_>>(), [1, 2]);
+    }
+
+    #[tokio::test]
+    async fn two_devices_events_are_placed_in_the_order_they_arrive() {
+        let db = db().await;
+        let mut phone = Phone::new();
+        let mut tablet = Phone::new();
+        let (_, started) = phone.start_squats(1_000);
+        let (_, setting) = tablet.write(1_050, |call| {
+            call.update_setting(UpdateSettingRequest {
+                setting: Some(UserSetting {
+                    setting: Some(user_setting::Setting::WeightUnit(WeightUnitConfig {
+                        unit: WeightUnit::Kg as i32,
+                    })),
+                }),
+            })
+            .unwrap()
+        });
+        db.push_events("u1", setting.clone()).await.unwrap();
+        db.push_events("u1", started.clone()).await.unwrap();
+        let server = held(&db).await;
+        assert_eq!(
+            server
+                .iter()
+                .map(|e| (e.seq, e.id.as_str()))
+                .collect::<Vec<_>>(),
+            [(1, setting[0].id.as_str()), (2, started[0].id.as_str())]
+        );
+        assert_eq!(
+            db.read_account("u1", Clone::clone).await.unwrap(),
+            Account::fold(&server),
+            "the server's account is the fold of its order"
+        );
     }
 
     #[tokio::test]
@@ -107,17 +158,18 @@ mod store {
         let (started, events) = phone.start_squats(1_000);
         db.push_events("u1", events).await.unwrap();
         let (_, beats) = phone.write(1_005, |call| {
-            call.append_workout_heart_rate(AppendWorkoutHeartRateRequest {
-                workout_id: started.id.clone(),
-                samples: vec![WorkoutHeartRatePoint {
+            call.record_heart_rate(
+                &started.id,
+                &[WorkoutHeartRatePoint {
                     sampled_at: 1_005_000,
                     bpm: 120.0,
                 }],
-            })
+            )
             .unwrap()
         });
         let pushed = db.push_events("u1", beats).await.unwrap();
-        assert_eq!((pushed.head, pushed.progressed), (2, false));
+        assert_eq!(pushed.stored.len(), 1);
+        assert!(!pushed.progressed);
     }
 
     #[tokio::test]
@@ -129,60 +181,18 @@ mod store {
         db.delete_user_account_and_data("u1").await.unwrap();
         let (_, events) = Phone::new().start_squats(1_000);
         assert!(db.push_events("u1", events).await.is_err());
-        assert!(db.events_after("u1", 0).await.unwrap().is_empty());
+        assert!(held(&db).await.is_empty());
     }
 
     #[tokio::test]
-    async fn a_second_device_with_a_different_log_is_refused() {
-        let db = db().await;
-        let (_, mine) = Phone::new().start_squats(1_000);
-        db.push_events("u1", mine).await.unwrap();
-        let (_, theirs) = Phone::new().start_squats(1_000);
-        let error = db.push_events("u1", theirs).await.err().unwrap();
-        assert!(error.downcast_ref::<crate::db::Diverged>().is_some());
-    }
-
-    #[tokio::test]
-    async fn a_start_without_its_decisions_is_refused() {
-        let db = db().await;
-        let mut phone = Phone::new();
-        let (_, first) = phone.write(1_000, |call| {
-            call.update_setting(UpdateSettingRequest {
-                setting: Some(UserSetting {
-                    setting: Some(user_setting::Setting::WeightUnit(WeightUnitConfig {
-                        unit: WeightUnit::Kg as i32,
-                    })),
-                }),
-            })
-            .unwrap()
-        });
-        db.push_events("u1", first).await.unwrap();
-        // The old shape: the lifts named, nothing decided for them.
-        let old = Event {
-            seq: 2,
-            id: Uuid::new_v4().to_string(),
-            at: 1_100,
-            kind: Some(event::Kind::StartWorkout(StartWorkoutRequest {
-                exercises: vec![Exercise::Squat as i32],
-                ..Default::default()
-            })),
-        };
-        let error = db.push_events("u1", vec![old]).await.err().unwrap();
-        assert!(error.downcast_ref::<crate::db::Diverged>().is_some());
-        assert_eq!(db.events_after("u1", 0).await.unwrap(), phone.log);
-        let server = db.read_account("u1", Clone::clone).await.unwrap();
-        assert_eq!(server, phone.account, "nothing of it was kept");
-    }
-
-    #[tokio::test]
-    async fn the_pull_is_the_whole_log() {
+    async fn events_read_back_as_they_were_pushed() {
         let db = db().await;
         let mut phone = Phone::new();
         let (_, events) = phone.start_squats(1_000);
         db.push_events("u1", events).await.unwrap();
-        let pulled = db.events_after("u1", 0).await.unwrap();
-        assert_eq!(unpack(&pack(pulled.clone())).unwrap(), pulled);
-        assert_eq!(Account::fold(&pulled), phone.account);
+        let server = held(&db).await;
+        assert_eq!(unpack(&pack(&server)).unwrap(), server);
+        assert_eq!(Account::fold(&server), phone.account);
     }
 }
 
@@ -222,8 +232,14 @@ mod stream {
     }
 
     impl Link {
-        async fn open(channel: Channel, token: &str) -> Self {
+        /// A device holding the account up to `after_seq`.
+        async fn open_after(channel: Channel, token: &str, after_seq: i64) -> Self {
             let (up, rx) = mpsc::channel(8);
+            up.send(SyncRequest {
+                kind: Some(sync_request::Kind::AfterSeq(after_seq)),
+            })
+            .await
+            .unwrap();
             let down = SyncServiceClient::new(channel)
                 .sync(authed(token, ReceiverStream::new(rx)))
                 .await
@@ -232,10 +248,14 @@ mod stream {
             Self { up, down }
         }
 
+        async fn open(channel: Channel, token: &str) -> Self {
+            Self::open_after(channel, token, 0).await
+        }
+
         async fn push(&self, events: Vec<Event>) {
             self.up
                 .send(SyncRequest {
-                    kind: Some(sync_request::Kind::Events(pack(events))),
+                    kind: Some(sync_request::Kind::Events(pack(&events))),
                 })
                 .await
                 .unwrap();
@@ -255,10 +275,28 @@ mod stream {
             .expect("it arrives")
         }
 
-        /// The first ack of at least `seq` (earlier acks may still be queued).
-        async fn acked(&mut self, seq: i64) -> i64 {
+        /// Events down until the device holds `seq`: everything it was sent.
+        async fn events_through(&mut self, seq: i64) -> Vec<Event> {
+            let mut events = Vec::new();
+            while events.last().map_or(0, |e: &Event| e.seq) < seq {
+                let packed = self
+                    .next(|kind| match kind {
+                        sync_response::Kind::Events(e) => Some(e.packed),
+                        _ => None,
+                    })
+                    .await;
+                if !packed.is_empty() {
+                    events.extend(unpack(&packed).unwrap());
+                }
+            }
+            events
+        }
+
+        /// The head the server says it holds, in the next message that says.
+        async fn head(&mut self) -> i64 {
             self.next(|kind| match kind {
-                sync_response::Kind::Head(head) if head >= seq => Some(head),
+                sync_response::Kind::Events(e) => Some(e.head),
+                sync_response::Kind::Head(head) => Some(head),
                 _ => None,
             })
             .await
@@ -313,7 +351,7 @@ mod stream {
 
         let mut alice_link = Link::open(channel.clone(), &alice_token).await;
         let mut bob_link = Link::open(channel.clone(), &bob_token).await;
-        assert_eq!(alice_link.acked(0).await, 0, "nothing synced yet");
+        assert_eq!(alice_link.head().await, 0, "nothing synced yet");
         // On connect: the session, Alice in it, not training.
         bob_link
             .session(|s| {
@@ -326,7 +364,11 @@ mod stream {
         let mut phone = Phone::new();
         let (started, events) = phone.start_squats(now_unix());
         alice_link.push(events).await;
-        assert_eq!(alice_link.acked(1).await, 1, "acked");
+        assert_eq!(
+            alice_link.events_through(1).await.len(),
+            1,
+            "her own, placed"
+        );
         let seen = bob_link.session(|s| partner_workout(s).is_some()).await;
         assert_eq!(
             partner_workout(&seen).unwrap().active_workout_id,
@@ -364,7 +406,7 @@ mod stream {
             .unwrap()
         });
         alice_link.push(events).await;
-        assert_eq!(alice_link.acked(3).await, 3);
+        alice_link.events_through(3).await;
         // Alice is out of the session; her row keeps her finished workout.
         alice_link.session(|s| s.session_id.is_empty()).await;
         assert!(db
@@ -392,14 +434,14 @@ mod stream {
             .await
             .unwrap();
         let mut link = Link::open(channel, &token).await;
-        assert_eq!(link.acked(0).await, 0);
+        assert_eq!(link.head().await, 0, "caught up: there's nothing");
         link.up
             .send(SyncRequest {
                 kind: Some(sync_request::Kind::Heartbeat(Heartbeat {})),
             })
             .await
             .unwrap();
-        assert_eq!(link.acked(0).await, 0, "the heartbeat's answer");
+        assert_eq!(link.head().await, 0, "the heartbeat's answer");
     }
 
     /// Deleting the account ends its open streams: a push after it is
@@ -416,7 +458,7 @@ mod stream {
         let mut phone = Phone::new();
         let (_, events) = phone.start_squats(now_unix());
         link.push(events).await;
-        assert_eq!(link.acked(1).await, 1);
+        link.events_through(1).await;
 
         db.delete_user_account_and_data(&dave.id).await.unwrap();
         link.push(phone.log.clone()).await;
@@ -432,7 +474,11 @@ mod stream {
         .await
         .expect("the stream ends");
         assert_eq!(status.code(), tonic::Code::Unauthenticated);
-        assert!(db.events_after(&dave.id, 0).await.unwrap().is_empty());
+        assert!(db
+            .events_after(&dave.id, 0, i64::MAX)
+            .await
+            .unwrap()
+            .is_empty());
     }
 
     /// Signing out ends the stream even when the phone sends nothing more:
@@ -472,6 +518,60 @@ mod stream {
         .await
         .expect("the stream ends");
         assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    /// A device that connects gets everything after what it holds, in
+    /// pieces, and another of the same account's devices hears new events
+    /// as they are placed.
+    #[tokio::test]
+    async fn a_device_catches_up_and_hears_the_others() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (gil, token) = db
+            .get_or_create_user_with_auth_session("gil")
+            .await
+            .unwrap();
+        let mut phone = Phone::new();
+        let (started, first) = phone.start_squats(now_unix());
+        let (_, beats) = phone.write(now_unix(), |call| {
+            for n in 0..1_200 {
+                call.record_heart_rate(
+                    &started.id,
+                    &[WorkoutHeartRatePoint {
+                        sampled_at: n,
+                        bpm: 100.0,
+                    }],
+                )
+                .unwrap();
+            }
+        });
+        db.push_events(&gil.id, [first, beats].concat())
+            .await
+            .unwrap();
+
+        // A fresh install: everything, in pieces, in order.
+        let mut tablet = Link::open(channel.clone(), &token).await;
+        let all = tablet.events_through(1_201).await;
+        assert_eq!(
+            all.iter().map(|e| e.seq).collect::<Vec<_>>(),
+            (1..=1_201).collect::<Vec<_>>()
+        );
+        assert_eq!(Account::fold(&all), phone.account);
+        // A device that holds most of it: only the rest.
+        let mut laptop = Link::open_after(channel, &token, 1_199).await;
+        assert_eq!(laptop.events_through(1_201).await.len(), 2);
+
+        // The phone writes; both other devices hear it.
+        let (_, end) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        db.push_events(&gil.id, end).await.unwrap();
+        assert_eq!(tablet.events_through(1_202).await.len(), 1);
+        assert_eq!(laptop.events_through(1_202).await.len(), 1);
     }
 
     /// The stream needs a signed-in caller.

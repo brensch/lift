@@ -34,6 +34,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             }
         }
     }
+    if version < 2 {
+        let mut tx = pool.begin().await?;
+        v2(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 2")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -268,6 +276,33 @@ async fn v1(tx: &mut Transaction<'_, Sqlite>) -> DbResult<bool> {
     Ok(true)
 }
 
+/// Events as facts, JSON (schlift_core::events), each with its id. Events
+/// from before facts are converted out of band, against a backup, and the
+/// converted database already reads version 2 (see docs/architecture/
+/// local-first.md); this refuses to start on one that wasn't.
+async fn v2(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    let held: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM account_events")
+        .fetch_one(&mut **tx)
+        .await?;
+    if held > 0 {
+        return Err("account_events holds events from before facts: convert them first".into());
+    }
+    sqlx::query(
+        "DROP TABLE account_events;
+         CREATE TABLE account_events (
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             seq INTEGER NOT NULL,
+             id TEXT NOT NULL,
+             event TEXT NOT NULL,
+             PRIMARY KEY (user_id, seq),
+             UNIQUE (user_id, id)
+         );",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 async fn table_exists(tx: &mut Transaction<'_, Sqlite>, table: &str) -> DbResult<bool> {
     let found: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
@@ -331,10 +366,56 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();
+    }
+
+    /// A version 1 database whose events weren't converted to facts is
+    /// refused (the deploy rolls back); one with none gets the new table.
+    #[tokio::test]
+    async fn step_two_needs_the_events_converted() {
+        for (events, starts) in [(true, false), (false, true)] {
+            let dir = temp_dir();
+            let pool = sqlx::SqlitePool::connect(&format!(
+                "sqlite://{}/server.sqlite?mode=rwc",
+                dir.display()
+            ))
+            .await
+            .unwrap();
+            let mut tx = pool.begin().await.unwrap();
+            super::v1(&mut tx).await.unwrap();
+            sqlx::query("PRAGMA user_version = 1")
+                .execute(&mut *tx)
+                .await
+                .unwrap();
+            tx.commit().await.unwrap();
+            if events {
+                sqlx::query(
+                    "INSERT INTO users (id, username, invite_token, created_at, emoji, color_hex)
+                     VALUES ('u', 'u', 'i', 0, '', '')",
+                )
+                .execute(&pool)
+                .await
+                .unwrap();
+                sqlx::query("INSERT INTO account_events VALUES ('u', 1, x'0801')")
+                    .execute(&pool)
+                    .await
+                    .unwrap();
+            }
+            pool.close().await;
+            let opened = ServerDb::new_in_dir(&dir).await;
+            assert_eq!(opened.is_ok(), starts, "events held: {events}");
+            if let Ok(db) = opened {
+                let columns: Vec<String> =
+                    sqlx::query_scalar("SELECT name FROM pragma_table_info('account_events')")
+                        .fetch_all(&db.read_pool)
+                        .await
+                        .unwrap();
+                assert_eq!(columns, ["user_id", "seq", "id", "event"]);
+            }
+        }
     }
 
     #[tokio::test]
@@ -376,14 +457,6 @@ mod tests {
             ),
             (
                 "INSERT INTO passkey_credentials VALUES ('cred-1', 'u1', '{}', 300, NULL)",
-                vec![],
-            ),
-            (
-                "INSERT INTO account_events VALUES ('u1', 1, x'0801')",
-                vec![],
-            ),
-            (
-                "INSERT INTO account_events VALUES ('ghost', 1, x'0801')",
                 vec![],
             ),
             // u1 is in s2 now; s1 was never closed.
@@ -451,12 +524,6 @@ mod tests {
         assert_eq!(
             db.get_credentials_for_user("u1").await.unwrap(),
             vec!["{}".to_string()]
-        );
-        assert_eq!(db.head("u1").await.unwrap(), 1);
-        assert_eq!(
-            db.head("ghost").await.unwrap(),
-            0,
-            "events of nobody are dropped"
         );
         assert_eq!(
             db.get_invite_token("u2").await.unwrap().as_deref(),

@@ -553,16 +553,15 @@ class Scenario {
 
   /// Wait until the app's copy of the account holds everything the server
   /// does — after [peer], signed in as the app's own user, seeded history
-  /// for it. The app pulls what it is missing when the stream next reports
-  /// the server's head (a heartbeat, every few seconds), then reloads.
-  /// Until then a screen can show the account mid-seed.
+  /// for it. The server streams it to the app as it is placed, and the app
+  /// reloads. Until then a screen can show the account mid-seed.
   Future<void> waitForAppToCatchUp(Peer peer, {int seconds = 30}) async {
     final head = await peer.serverSeq();
     for (var i = 0; i < seconds * 2; i++) {
       final core = accountSync.core;
-      final seq = core == null ? 0 : (await core.syncState()).$1;
+      final seq = core == null ? 0 : await core.confirmed();
       if (seq >= head) {
-        // The reload that follows the pull lands a beat later.
+        // The reload that follows lands a beat later.
         await settle(seconds: 2);
         return;
       }

@@ -56,7 +56,7 @@ graph TD
 
 | Module | Owns |
 |---|---|
-| `server/sync.rs` | `SyncService`: the bidirectional `Sync` stream (events up, acks and session down) and `PullEvents` |
+| `server/sync.rs` | `SyncService`: the bidirectional `Sync` stream (a device's events up; every placed event, the head and the session down) |
 | `server/workout.rs` | `WorkoutService`: two reads for the web (`ListWorkoutSummaries`, `GetExerciseProgress`), answered by the core's `View` |
 | `server/settings.rs` | `SettingsService.GetSettings`, the same way |
 | `server/multiplayer.rs` | Sessions, invites, join requests, training partners |
@@ -65,10 +65,11 @@ graph TD
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/analytics.rs` | Page views, admin stats |
 | `db/accounts.rs` | `account_events` and the folded-account cache |
+| `db/changes.rs` | Changes told to the streams they concern, by user or session |
 | `db/session.rs` | `session_members`, invite tokens, join requests (in memory) |
 | `db/migrate.rs` | The schema, one version at a time (`PRAGMA user_version`) |
 | `db/` | All of the server's SQL. The only other SQL is `core/src/projection.rs`, which writes the phone's export. |
-| `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only): plain rising sessions imported with `ImportHistory` (the core's walk works out each lift's max), a live session through the real start |
+| `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only): plain rising sessions imported with `ImportHistory` (`HistoryImported`) (the core's walk works out each lift's max), a live session through the real start |
 
 The rules — the plan, the reducer, volume, summaries — are in
 `core/`; see [local-first.md](local-first.md) and
@@ -76,27 +77,29 @@ The rules — the plan, the reducer, volume, summaries — are in
 
 ## The event store
 
-`account_events(user_id, seq, event)` is every account's log, and the only
-place the server keeps anything the core folds. Nothing about a workout,
-set, template or setting is copied into a table: the server answers from
-the fold. `ServerDb::push_events` (`src/db/accounts.rs`):
+`account_events(user_id, seq, id, event)` is every account's history, in the
+server's order, and the only place the server keeps anything the core
+folds. `event` is the whole event as JSON (`core/src/events.rs`); `id` is
+copied out, unique per account, so a resent event is found. Nothing about a
+workout, set, template or setting is copied into a table: the server answers
+from the fold. `ServerDb::push_events` (`src/db/accounts.rs`) places what a
+device sends:
 
-1. Takes the account's lock. Folded accounts are cached in memory, one
-   `Mutex` each, least recently used dropped past 256 (`CACHED_ACCOUNTS`);
-   a dropped account is refolded from its log when next needed.
-2. Checks the first pushed event it already holds against the stored one. A
-   different id there means another device recorded this account:
-   `account_diverged`, nothing stored.
-3. Skips seqs already held, takes the rest while they carry on from the head
-   without a gap.
-4. Replays each into the fold. An event that doesn't apply still takes its
-   place (it applied on the phone, under the phone's rules) — except a
-   start or an add naming lifts with no recorded decisions, a log the
-   server does not hold: the push is refused (`account_diverged`),
-   nothing is stored and the cached fold is dropped.
-5. Inserts the events in one transaction. If that fails (an account deleted
+1. Takes the account's lock. Folded accounts are cached in memory with their
+   head, one `Mutex` each, least recently used dropped past 256
+   (`CACHED_ACCOUNTS`); a dropped account is refolded from its history when
+   next needed.
+2. Skips events it already holds, by id (a device resends until it hears
+   back), and gives the rest the next seqs after the head, in the order
+   sent.
+3. Replays each into the fold. An event that doesn't apply still takes its
+   place, as it does on every device.
+4. Inserts them in one transaction. If that fails (an account deleted
    mid-push fails on the foreign key), the cached fold is dropped so the next
    read refolds from what was written.
+5. Tells that account's streams the placed events (`Change::Account`), and
+   each sends them down: to the pushing device, its events placed; to the
+   others, events to fold in.
 
 Reads (`read_account`, `read_api`) take the same lock and look at the fold.
 
@@ -122,18 +125,21 @@ Defined in `ServerDb::new_in_dir` (`src/db/mod.rs`).
 - Writes to one account are also serialised by its lock in the fold cache,
   so two pushes for the same account cannot interleave.
 
-### Change broadcast
+### Changes
 
-`ServerDb` carries a `tokio::sync::broadcast` of `Change`
-(`Session(id)`, `Membership(user)`, `JoinRequests(user)`). The session DB
-calls in `src/db/session.rs` publish them; every open Sync stream
-subscribes (`ServerDb::subscribe`) and re-sends what concerns its user.
-In-process only, which is one more reason the backend is single-instance.
+`ServerDb::watch(topic)` (`src/db/changes.rs`) hears the changes that
+concern a `Topic`: a user (`Account(events)`, `Membership`,
+`JoinRequests`) or a session (`Session`). Each topic has its own channel,
+made by its first watcher and dropped once nobody watches, so a change wakes
+only the streams it concerns, however many are open. A Sync stream watches
+its user, and the session its user's pointer names, moving with the
+pointer. In-process only, which is one more reason the backend is
+single-instance.
 
 ### Storage follows authority
 
-What the phone makes is account events: `account_events.event` is a
-protobuf `Event`, stored as it arrived and never interpreted by SQL. What
+What the phone makes is account events: `account_events.event` is the
+event as JSON, stored as placed and never interpreted by SQL. What
 the server owns (users, passkeys, logins, who trained together, telemetry)
 is plain columns, with no proto blobs, and every `user_id` references
 `users(id) ON DELETE CASCADE`. What only matters while the server runs
@@ -156,13 +162,18 @@ memberships closed but the current one; then the old copies of the events
 (the workout tables), the live-status cache, `join_requests` and eight
 tables left from older designs are dropped, and the file is vacuumed.
 
+Step 2 makes `account_events` hold facts: `(user_id, seq, id, event)`, the
+event as JSON. It converts nothing: a database whose events are still the
+requests that made them (proto blobs) is refused, and is converted out of
+band first by folding every account both ways, with the core that wrote it
+and this one, and writing the facts only if each comes out the same.
+
 ## Service surface
 
 ```mermaid
 graph LR
     subgraph "SyncService"
         y1["Sync (bidi stream)"]
-        y2["PullEvents"]
     end
     subgraph "AuthService"
         a1["RegisterStart / RegisterFinish"]
@@ -192,8 +203,8 @@ graph LR
     end
 ```
 
-There are no per-write workout RPCs: every write to an account is an `Event`
-that arrives over `Sync`.
+There are no per-write workout RPCs: every write to an account is an event
+that arrives over `Sync`, and a device catches up over the same stream.
 
 Every RPC except the auth handshake and `ReportAuthFailure` begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
