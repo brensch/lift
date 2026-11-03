@@ -508,25 +508,6 @@ fn require_decisions(
     Ok(())
 }
 
-/// The workouts whose rows an event rewrites. Heart rate is only ever
-/// appended, so it rewrites nothing (see
-/// [crate::projection::heart_rate_statements]).
-pub fn event_workout_ids(event: &Event) -> Vec<String> {
-    match &event.kind {
-        Some(event::Kind::StartWorkout(_)) => vec![event.id.clone()],
-        Some(event::Kind::Workout(WorkoutMutation {
-            mutation: Some(mutation),
-            ..
-        })) => vec![mutation_workout_id(mutation).to_string()],
-        Some(event::Kind::ImportHistory(req)) => req
-            .workouts
-            .iter()
-            .filter_map(|w| w.workout.as_ref().map(|w| w.id.clone()))
-            .collect(),
-        _ => Vec::new(),
-    }
-}
-
 /// The workout a mutation names.
 pub fn mutation_workout_id(mutation: &Mutation) -> &str {
     match mutation {

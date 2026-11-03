@@ -53,18 +53,23 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   never reuse a number or delete a `reserved` line. Changing how an existing
   event folds changes every stored log: the phone and the server must fold the
   same log to the same account.
-- **There is no migration framework for `data/server.sqlite`.** Tables are
-  `CREATE TABLE IF NOT EXISTS` (`SERVER_SCHEMA` in `src/db/mod.rs`, the
-  workout tables in `core/src/projection.rs`); a column or index that comes
-  or goes is listed in `ADDED_COLUMNS`, `DROPPED_COLUMNS` or `DROPPED_INDEXES`
-  beside it, applied at startup.
+- **Storage follows authority.** What the phone makes (training, templates,
+  settings) is only ever account events; the server stores them as they
+  arrive and never copies them into tables. What the server owns (users,
+  passkeys, logins, who trained together, telemetry) is plain columns, no
+  proto blobs. What only matters while the server runs (partners' live
+  status, join requests) is in memory, read from the folded account.
+- **Server schema changes are a new step in `src/db/migrate.rs`**: an
+  `if version < N` block at the end of `migrate`, run once at startup and
+  tracked by `PRAGMA user_version`. Never edit a step that has shipped.
 - **After changing `app/native/src/api/`, run `flutter_rust_bridge_codegen
   generate` in `app/`** and commit the regenerated `app/lib/gen/native/` and
   `app/native/src/frb_generated.rs`.
 - **Dart tests load the host build of the core**: run them with
   `make test-app` (or `cargo build -p schlift_native` first).
-- **A new table with a `user_id` column** must be added to
-  `delete_user_account_and_data` (`src/db/auth.rs`); a test fails if it is not.
+- **A table with a `user_id` column references `users(id) ON DELETE
+  CASCADE`**: deleting the user deletes their rows. A test fails if one does
+  not.
 - **No hard-coded colours, fonts, text sizes, weights or radii in widgets.**
   Read them from the theme (`context.tokens`, the colour scheme); new tokens
   go in `ThemeSpec`, values in `schlift_spec.dart`.

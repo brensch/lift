@@ -1,15 +1,13 @@
 //! Accounts as event logs. Each user's log lives in `account_events`; the
 //! fold of it (`Account`) is kept in memory once read. Pushed events are
-//! stored, folded, and projected into the workout tables in one go.
+//! folded and appended in one go.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
 use schlift::workout::v1::{event, workout_mutation::Mutation, Event, WorkoutMutation};
-use schlift_core::account::{event_workout_ids, Account};
-use schlift_core::history::WorkoutRecord;
-use schlift_core::projection::{heart_rate_statements, workout_statements, Statement, Value};
+use schlift_core::account::Account;
 use tokio::sync::Mutex;
 
 use super::*;
@@ -33,9 +31,6 @@ const CACHED_ACCOUNTS: usize = 256;
 /// The account's log could not be read in (the request that tried was told
 /// why); this request is refused too, and the next one tries again.
 const NOT_LOADED: &str = "account did not load";
-
-/// The account was deleted (or never existed): nothing is stored for it.
-const NO_ACCOUNT: &str = "no such account";
 
 /// A device pushed a log that disagrees with the one the server holds: two
 /// devices recorded the same account. Nothing is merged.
@@ -80,7 +75,7 @@ impl ServerDb {
     /// The user's account slot. On a miss the slot is cached first and
     /// filled after, under its own lock, so the read and fold of one log
     /// holds up only that account.
-    async fn account_lock(&self, user_id: &str) -> DbResult<Slot> {
+    pub(super) async fn account_lock(&self, user_id: &str) -> DbResult<Slot> {
         let mut cache = self.accounts.0.lock().await;
         if let Some((account, used)) = cache.get_mut(user_id) {
             *used = Instant::now();
@@ -114,7 +109,7 @@ impl ServerDb {
     }
 
     /// Drop the user's cached account, if it is still this one.
-    async fn forget_slot(&self, user_id: &str, slot: &Slot) {
+    pub(super) async fn forget_slot(&self, user_id: &str, slot: &Slot) {
         let mut cache = self.accounts.0.lock().await;
         if cache
             .get(user_id)
@@ -151,7 +146,7 @@ impl ServerDb {
     /// The user's events after `after_seq`, in order.
     pub async fn events_after(&self, user_id: &str, after_seq: i64) -> DbResult<Vec<Event>> {
         let rows: Vec<Vec<u8>> = sqlx::query_scalar(
-            "SELECT event_blob FROM account_events WHERE user_id = ? AND seq > ? ORDER BY seq",
+            "SELECT event FROM account_events WHERE user_id = ? AND seq > ? ORDER BY seq",
         )
         .bind(user_id)
         .bind(after_seq)
@@ -166,7 +161,7 @@ impl ServerDb {
     /// must carry on from the head without a gap (anything after a gap is
     /// left for the device to resend from the head it's told). Each is
     /// folded in — one that doesn't apply still takes its place, exactly as
-    /// it did on the phone — and the workouts they touch are projected.
+    /// it did on the phone.
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let lock = self.account_lock(user_id).await?;
         let mut guard = lock.lock().await;
@@ -176,7 +171,7 @@ impl ServerDb {
         if let Some(first) = events.first().filter(|e| e.seq <= head) {
             // The device and the server must agree on what they both hold.
             let held: Option<Vec<u8>> = sqlx::query_scalar(
-                "SELECT event_blob FROM account_events WHERE user_id = ? AND seq = ?",
+                "SELECT event FROM account_events WHERE user_id = ? AND seq = ?",
             )
             .bind(user_id)
             .bind(first.seq)
@@ -205,7 +200,6 @@ impl ServerDb {
             });
         }
 
-        let mut touched = BTreeSet::new();
         let mut ended_workout = None;
         for event in &new {
             if let Some(error) = account.replay(event) {
@@ -222,7 +216,6 @@ impl ServerDb {
                 }
                 tracing::warn!(%user_id, seq = event.seq, %error, "event did not apply");
             }
-            touched.extend(event_workout_ids(event));
             if let Some(event::Kind::Workout(WorkoutMutation {
                 mutation: Some(Mutation::EndWorkout(end)),
                 ..
@@ -232,12 +225,7 @@ impl ServerDb {
             }
         }
 
-        let records: Vec<&WorkoutRecord> = touched
-            .iter()
-            .filter_map(|id| account.workout(id))
-            .collect();
-        let heart_rate = heart_rate_statements(user_id, account, &new);
-        if let Err(error) = self.store_events(user_id, &new, &records, heart_rate).await {
+        if let Err(error) = self.store_events(user_id, &new).await {
             // The fold ran ahead of the store: the slot is emptied, so anyone
             // waiting on it is refused, and the next request refolds from what
             // was actually written.
@@ -255,87 +243,19 @@ impl ServerDb {
         })
     }
 
-    /// Store new events, rewrite the projections of the workouts they
-    /// touched and add the heart-rate rows they bring, in one transaction.
-    async fn store_events(
-        &self,
-        user_id: &str,
-        events: &[Event],
-        workouts: &[&WorkoutRecord],
-        heart_rate: Vec<Statement>,
-    ) -> DbResult<()> {
-        let session_id = self.get_user_current_session(user_id).await?;
+    /// Append new events in one transaction. The account must still exist:
+    /// a push that races its deletion fails on the foreign key.
+    async fn store_events(&self, user_id: &str, events: &[Event]) -> DbResult<()> {
         let mut tx = self.write_pool.begin().await?;
-        // Checked in the write itself, so a push that races the account's
-        // deletion either lands before it (and is deleted with it) or not at all.
-        let exists: Option<i64> =
-            sqlx::query_scalar("SELECT 1 FROM users_current WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_optional(&mut *tx)
-                .await?;
-        if exists.is_none() {
-            return Err(NO_ACCOUNT.into());
-        }
         for event in events {
-            sqlx::query("INSERT INTO account_events (user_id, seq, event_blob) VALUES (?, ?, ?)")
+            sqlx::query("INSERT INTO account_events (user_id, seq, event) VALUES (?, ?, ?)")
                 .bind(user_id)
                 .bind(event.seq)
                 .bind(event.encode_to_vec())
                 .execute(&mut *tx)
                 .await?;
         }
-        for record in workouts {
-            let workout = &record.workout;
-            // The phone records the session once it hears of it; until then
-            // a workout keeps the one it was first seen in.
-            let existing: Option<String> =
-                sqlx::query_scalar("SELECT session_id FROM workouts WHERE id = ? AND user_id = ?")
-                    .bind(&workout.id)
-                    .bind(user_id)
-                    .fetch_optional(&mut *tx)
-                    .await?;
-            let session = if workout.session_id.is_empty() {
-                existing.unwrap_or_else(|| {
-                    if workout.end_time > 0 {
-                        String::new()
-                    } else {
-                        session_id.clone().unwrap_or_default()
-                    }
-                })
-            } else {
-                workout.session_id.clone()
-            };
-            for statement in workout_statements(user_id, record, &session) {
-                execute(statement, &mut tx).await?;
-            }
-        }
-        for statement in heart_rate {
-            execute(statement, &mut tx).await?;
-        }
         tx.commit().await?;
         Ok(())
     }
-
-    /// Forget a user's account (after deleting their data).
-    pub(super) async fn forget_account(&self, user_id: &str) {
-        self.accounts.0.lock().await.remove(user_id);
-    }
-}
-
-/// Run one projection statement in `tx`.
-async fn execute(
-    statement: Statement,
-    tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-) -> DbResult<()> {
-    let mut query = sqlx::query(statement.sql);
-    for value in statement.params {
-        query = match value {
-            Value::Int(v) => query.bind(v),
-            Value::Real(v) => query.bind(v),
-            Value::Text(v) => query.bind(v),
-            Value::Blob(v) => query.bind(v),
-        };
-    }
-    query.execute(&mut **tx).await?;
-    Ok(())
 }

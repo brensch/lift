@@ -129,14 +129,21 @@ confirm it trips.
 
 - `src/server/sync_tests.rs` — over a real server on a local port: pushed
   events fold into the same account, a resent batch is skipped and a gap
-  waits, a second device's different log is refused, a start without its
-  decisions is refused, workouts are projected, a database from before a
-  projected column gets it, the pull is the whole log, a partner's progress arrives on the stream, a
-  heartbeat is answered, a stranger is turned away.
+  waits, heart rate alone is not progress, a push after the account is
+  deleted stores nothing, a second device's different log is refused, a
+  start without its decisions is refused, the pull is the whole log, a
+  partner's progress arrives on the stream, a heartbeat is answered, a
+  signed-out stream is sent nothing more, a stranger is turned away.
 - `src/server/multiplayer_tests.rs` — the session roster and
   training-together history through the real handlers.
-- `src/db/auth.rs` — account deletion clears every table with a `user_id`
-  column (discovered from the schema, so a new table can't be missed).
+- `src/db/auth.rs` — every table with a `user_id` column references
+  `users(id) ON DELETE CASCADE` (discovered from the schema, so a new table
+  can't be missed), deleting an account leaves nothing of it and touches no
+  one else, logins are stored hashed and expired ones cleared.
+- `src/db/migrate.rs` — a fresh database starts at the latest version, and a
+  database from before versions is converted (users out of their blob,
+  admins, live logins hashed, dead ones and orphaned events dropped, stale
+  session memberships closed, the old tables gone).
 - `src/server/auth.rs` — the `test-auth` gate on `TestLogin`, both branches.
 - `src/demo_seed.rs` — the demo users seed (`test-auth`), and the walk over
   their history rises.

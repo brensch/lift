@@ -264,7 +264,7 @@ sequenceDiagram
     N->>N: Call::start_workout: exercises (the template's),<br/>Planner::workout → decisions
     N->>A: record Event{start_workout + decisions}
     A->>A: apply: lay out each decision<br/>(warmup ladder, working sets, or a rung),<br/>start each lift's log, set active_workout_id
-    N->>N: store event + projected rows
+    N->>N: append the event to the file
     A-->>App: StartWorkoutResponse (sets, exercise_logs)
 ```
 
@@ -514,8 +514,7 @@ sequenceDiagram
     App->>S: the EndWorkout event
     S->>S: replay → the same account
     alt caller in a session
-        S->>S: refresh participant status (final workout)
-        S->>S: clear_user_current_session
+        S->>S: end_session (left_at stamped,<br/>still on show)
     end
 ```
 
@@ -527,9 +526,11 @@ changes no plan.
 The summary shows, per lift, what was planned and why, the weight changes,
 and the max after the session (the walk through it).
 
-On the server, the participant status is rebuilt with the just-ended
-workout before the user leaves the session, so partners keep seeing the
-finished workout rather than an empty slot.
+On the server, ending stamps the member's `left_at` but leaves their
+`active_at`, so they stay on show until they go idle. Their status is read
+from their account each time a partner's view is sent: with no workout
+under way it is the last one to end since they joined, so partners keep
+seeing the finished workout rather than an empty slot.
 
 ## Crash recovery
 

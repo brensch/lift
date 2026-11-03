@@ -60,19 +60,20 @@ Rests are compressed (a set every few seconds rather than every few minutes),
 so a client generates far more writes than a person does. 1000 load clients
 is a heavier write load than several thousand real people training at once.
 
-## Where it stood when it was written
+## Numbers
 
-On the dev machine (16 cores), with the storage design of v0.14.1:
+On the dev machine (16 cores), committed as the baselines:
 
-| | smoke (40) | scale (1000) |
+| | smoke (40 clients) | scale (1000 clients) |
 |---|---|---|
-| Accounts matching | 40 / 40 | 589 / 589 finished |
-| Push acknowledged, p50 / p95 | 4.7 / 21.6 ms | 7.8 / 21.6 **s** |
-| Server CPU per event | 3.3 ms | 4.9 ms |
-| Database for the run | 7 MB | 101 MB |
+| Accounts matching the server | 40 / 40 | 1000 / 1000 |
+| Push acknowledged, p50 / p95 / p99 | 1.8 / 3.1 / 4.2 ms | 1.9 / 4.3 / 10.9 ms |
+| Website read (`ListWorkoutSummaries`), p95 | 1.5 ms | 1.7 ms |
+| Server CPU per event | 1.8 ms | 1.8 ms |
+| Server memory, peak | 24 MB | 87 MB |
 
-At 1000 clients the server saturates: each push rewrites the workout's
-readable tables and partners' cached status in one transaction on the single
-write connection, pushes queue past the pool's 30 s acquire timeout, and 411
-clients lost their Sync stream. That write path is what the storage redesign
-removes.
+Before storage followed authority (v0.14.1), the same server rewrote each
+workout's readable tables and partners' cached status on every push, in one
+transaction on the single write connection. It passed smoke, but at 1000
+clients pushes queued past the pool's 30 s acquire timeout: p95 push
+acknowledgement was 21.6 s and 411 clients lost their Sync stream.

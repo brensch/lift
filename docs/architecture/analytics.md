@@ -19,7 +19,7 @@ flowchart LR
     W[web /admin] -- "GetStats (admin only)" --> AD[AdminService]
     AD --> PV
     AD --> AA
-    AD --> ADM[(admins)]
+    AD --> ADM[(users.admin_since)]
 ```
 
 ## Page views
@@ -105,7 +105,8 @@ by the new user's id and is removed with the account.
 which, like `authed_user_id`, is called explicitly at the top of the handler.
 `GetAdminStatus` only tells the website whether to show the "Stats" link.
 
-Admins are granted **by username but stored by user id**:
+Admins are granted **by username but stored by user id**: `admin add` sets
+`users.admin_since` on the account holding the name.
 
 ```sh
 # on the host, from the service's working directory, as the service user
@@ -120,20 +121,23 @@ tests both:
 
 - `admin add` fails for a name nobody holds. A grant can never sit waiting for
   whoever registers that name first.
-- Deleting an account deletes its `admins` row. The freed username can be
-  re-registered, but the new account has a new user id and no rights.
+- Deleting an account deletes its row, and the grant with it. The freed
+  username can be re-registered, but the new account has a new user id and
+  no rights.
 
-Usernames themselves cannot collide or be changed: `users_current.username_ci`
-is `UNIQUE` on the trimmed, lowercased name, and no RPC renames a user.
+Usernames themselves cannot collide or be changed: `users.username` is the
+trimmed name, `UNIQUE COLLATE NOCASE` (SQLite's NOCASE folds ASCII letters
+only), and no RPC renames a user.
 
 `/admin?user=<name>` opens directly on that user's trail.
 
 ## Retention and deletion
 
 Nothing expires: analytics rows are kept until the account is deleted, which is
-what the privacy policy promises. `page_views` and `admins` are covered by
-`delete_user_account_and_data` and by its discover-every-`user_id`-table test;
-a successful registration's `auth_attempts` row goes with the account too.
+what the privacy policy promises. `page_views.user_id` references
+`users(id) ON DELETE CASCADE`, so deleting the account deletes its views (a
+test checks every `user_id` table cascades); `delete_user_account_and_data`
+also deletes a successful registration's `auth_attempts` row.
 Attempts that never became an account carry no username and stay.
 
 `GetStats` aggregates at most `MAX_STATS_WINDOW_DAYS` (365) at a time. That is a

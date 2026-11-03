@@ -160,7 +160,7 @@ mod session_history_tests {
         .unwrap();
 
         svc.db
-            .age_session_participant(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
+            .age_session_member(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
             .await
             .unwrap();
 
@@ -204,7 +204,7 @@ mod session_history_tests {
             .unwrap()
             .unwrap();
         svc.db
-            .age_session_participant(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
+            .age_session_member(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
             .await
             .unwrap();
 
@@ -434,10 +434,7 @@ mod session_history_tests {
             .into_inner()
             .request_id;
         svc.db
-            .age_join_request(
-                &request_id,
-                super::multiplayer::JOIN_REQUEST_TTL_SECONDS + 1,
-            )
+            .age_join_request(&request_id, crate::db::JOIN_REQUEST_TTL_SECONDS + 1)
             .await
             .unwrap();
         assert_eq!(
