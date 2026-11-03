@@ -9,7 +9,7 @@ graph TD
     B --> C["Invariant fuzzer<br/>core/examples/fuzz.rs — randomised sequences"]
     B --> D["Server + store tests<br/>sync, multiplayer, deletion, the phone's file"]
     B --> E["Dart tests<br/>providers against the host build of the core"]
-    D --> F["E2E scenarios<br/>emulator + backend + API peers"]
+    D --> F["E2E scenarios<br/>headless Linux app + backend + API peers"]
 ```
 
 ```bash
@@ -17,7 +17,7 @@ cargo test --workspace --all-targets   # core + server
 make test-app                          # host build of app/native, then flutter test
 make fuzz-api                          # randomised sequences, random seed
 make fuzz-api-ci                       # the fixed-seed run CI uses
-make e2e                               # emulator scenarios
+make e2e                               # e2e scenarios, side by side
 ```
 
 ## Core unit tests — the engine
@@ -175,12 +175,13 @@ does it, and so does CI before `flutter test`.
 
 ## E2E scenarios
 
-`make e2e` runs the real app on an emulator against a local backend
+`make e2e` runs the real app, built once for Linux and run headless, many
+scenarios at once, against a local backend
 ([`docs/testing/e2e-scenarios.md`](../testing/e2e-scenarios.md)). Partners are
 *API peers* (`app/integration_test/support/api.dart`) that act like phones:
 each has its own in-memory core, records events on it and pushes them over
-`Sync`. A peer logged in as the app's own user only reads — one phone
-records an account, and the server refuses a second.
+`Sync`. A peer logged in as the app's own user only reads, so what the app
+shows is the app's own doing.
 
 ## Where coverage is thin
 

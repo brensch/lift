@@ -34,21 +34,14 @@ store-backend-stop:
 		fi; \
 	'
 
-# store-capture: emulator up (dark mode, animations off) → seeded backend →
-# drive app/integration_test/store_shots_test.dart → raw PNGs land in
-# $(STORE_RAW_DIR). Commit them; CI frames and uploads.
+# store-capture: seeded backend → app/integration_test/store_shots_test.dart,
+# headless at the phone's size → raw PNGs land in $(STORE_RAW_DIR). Commit
+# them; CI frames and uploads.
 store-capture:
-	$(MAKE) android-emulator-start
-	$(MAKE) android-emulator-wait
-	$(MAKE) android-emulator-unlock
-	$(ADB) -s $(ANDROID_SERIAL) shell cmd uimode night yes
-	$(ADB) -s $(ANDROID_SERIAL) shell settings put global window_animation_scale 0
-	$(ADB) -s $(ANDROID_SERIAL) shell settings put global transition_animation_scale 0
-	$(ADB) -s $(ANDROID_SERIAL) shell settings put global animator_duration_scale 0
 	$(MAKE) store-backend-start
-	ADB="$(ADB)" DEVICE="$(ANDROID_SERIAL)" bash scripts/run_e2e.sh store_shots; rc=$$?; \
+	FLUTTER="$(FLUTTER)" XVFB="$(XVFB)" bash scripts/run_e2e.sh store_shots; rc=$$?; \
 		$(MAKE) store-backend-stop; \
-		[ $$rc -eq 0 ] || { echo "capture failed — see app/test_screenshots/store_shots.drive.log"; exit $$rc; }
+		[ $$rc -eq 0 ] || { echo "capture failed — see app/test_screenshots/store_shots.log"; exit $$rc; }
 	@mkdir -p "$(STORE_RAW_DIR)"
 	@rm -f "$(STORE_RAW_DIR)"/store_*.png
 	@cp app/test_screenshots/store_[0-9]*.png "$(STORE_RAW_DIR)"/

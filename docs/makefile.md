@@ -137,7 +137,7 @@ in [`android_dev.md`](android_dev.md).
 
 | Target | |
 |---|---|
-| `make e2e` | `e2e-up` + `e2e-run` (`SCENARIO=<name>` for one). Report at `app/test_screenshots/report.html`. See [`testing/e2e-scenarios.md`](testing/e2e-scenarios.md). |
+| `make e2e` | `e2e-up` + `e2e-run` (`SCENARIO=<name>` for one, `E2E_JOBS` at once). Every scenario in one Linux binary, run side by side on Xvfb. Report at `app/test_screenshots/report.html`. See [`testing/e2e-scenarios.md`](testing/e2e-scenarios.md). |
 | `make loadtest` | Lightweight clients running the phone's core sign up, train and sync against a fresh release server; every account is checked against the server's copy. `LOAD_PROFILE=scale` for 1000 clients, `LOAD_ARGS` for more flags. See [`testing/load.md`](testing/load.md). |
 | `make store-capture`, `store-frame`, `store-check`, `store-backend-start`, `store-backend-stop` | Store screenshots and listing checks. |
 

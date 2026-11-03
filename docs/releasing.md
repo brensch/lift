@@ -374,15 +374,16 @@ it.
 ### Refresh the screenshots
 
 ```bash
-make store-capture      # emulator + seeded backend → store/screenshots/raw/store_NN.png
+make store-capture      # seeded backend → store/screenshots/raw/store_NN.png
 make store-frame        # optional: render the framed slides locally to store/screenshots/out/
 ```
 
-`store-capture` boots the `lift_api34` emulator (dark mode, animations off),
-starts a throwaway backend on `:50051` with dev login and the seeded `demo`
+`store-capture` starts a throwaway backend on `:50051` with dev login and the seeded `demo`
 account (`SEED_DEMO_USER=demo`; nine weeks of progressing history, compiled
-only with `--features test-auth`, see `src/demo_seed.rs`), then drives
-`app/integration_test/store_shots_test.dart`, which takes one shot per slide.
+only with `--features test-auth`, see `src/demo_seed.rs`), then runs
+`app/integration_test/store_shots_test.dart` headless on Linux at the
+phone's size (1080 × 2337 at 420 dpi, as the e2e scenarios do), which takes
+one shot per slide.
 Add, remove or reorder slides there and in `listing.yaml` together. Commit the
 new PNGs.
 

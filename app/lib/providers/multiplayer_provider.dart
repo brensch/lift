@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fluttertoast/fluttertoast.dart' show ToastGravity;
+import '../services/toast.dart';
 
 import '../gen/workout/v1/group.pb.dart';
 import '../services/grpc_client.dart';
@@ -181,7 +182,7 @@ class MultiplayerProvider extends ChangeNotifier {
       await _service.joinViaInvite(token);
       _syncEnabled = true;
       await checkForSession();
-      Fluttertoast.showToast(
+      showToast(
         msg: "JOINED GROUP",
         backgroundColor: schliftSpec.success,
         textColor: schliftSpec.onPrimary,
