@@ -86,15 +86,21 @@ baselines:
 | | smoke (40 clients) | scale (1000 clients) |
 |---|---|---|
 | Accounts matching the server | 40 / 40 | 1000 / 1000 |
-| Push placed and back, p50 / p95 / p99 | 2.1 / 3.8 / 5.9 ms | 2.2 / 4.8 / 14.7 ms |
-| Website read (`ListWorkoutSummaries`), p95 | 1.9 ms | 2.2 ms |
-| Server CPU, whole run (per event) | 3.4 s (2.4 ms) | 102 s (2.4 ms) |
-| Server memory, peak | 24 MB | 71 MB |
+| Push placed and back, p50 / p95 / p99 | 1.8 / 2.6 / 3.7 ms | 1.9 / 17 / 74 ms |
+| Website read (`ListWorkoutSummaries`), p95 | 1.7 ms | 12 ms |
+| Server CPU, whole run (per event) | 2.2 s (1.5 ms) | 57 s (1.3 ms) |
+| Server memory, peak | 26 MB | 64 MB |
 
-A workout's heart rate is one event, recorded when it ends, so a run has
-far fewer events than before; compare runs by the CPU of the whole run as
-well as per event. The same scale run before events were facts took 123 s
-of CPU over 69,550 events.
+A workout's heart rate is one event, recorded when it ends, so compare runs
+by the CPU of the whole run as well as per event. The same scale run before
+events were facts took 123 s of CPU over 69,550 events.
+
+`long` with 300 clients, each with a year of history (1.8 million events,
+1.8 GB on disk): every account matches; pushes 2.3 / 58 ms (p50 / p95);
+the website's read of a year-old account, folded on request, 51 / 156 ms;
+server memory at most 324 MB, during setup; 222 s of CPU. With a 256-account
+cache the server held 686 MB for the same; without one, but still folding
+partners' status on the server for every set, pushes took 27 s at p95.
 
 Before storage followed authority (v0.14.1), the same server rewrote each
 workout's readable tables and partners' cached status on every push, in one
