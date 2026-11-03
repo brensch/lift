@@ -88,7 +88,9 @@ jobs:
   # Python, shell, Kotlin, Swift and protobuf: no toolchain to set up beyond
   # the pinned binaries, so this always runs and takes well under a minute.
   lint:
-    runs-on: ubuntu-latest
+    # The pinned linters are prebuilt binaries (swiftlint links libxml2.so.2,
+    # which Ubuntu 26.04 no longer ships), so the OS is pinned with them.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
