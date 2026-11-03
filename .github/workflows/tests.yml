@@ -59,6 +59,7 @@ jobs:
               - 'src/**'
               - 'core/**'
               - 'app/native/**'
+              - 'loadtest/**'
               - 'templates/library.yaml'
               - 'proto/**'
               - 'testdata/**'
@@ -141,6 +142,16 @@ jobs:
       # nothing else does, such as the demo seed; keep it building.
       - name: Check the test-auth build
         run: cargo check --bin schlift --features test-auth
+
+      # Forty clients running the phone's core sign up with passkeys, train
+      # and sync against a real server; every account must match the
+      # server's copy and nothing may error. Timing is not compared here
+      # (shared runners are too noisy): that is make loadtest's baseline.
+      - name: Load test (smoke, correctness)
+        run: |
+          cargo build -p schlift --bin schlift
+          cargo build -p schlift-load
+          ./target/debug/schlift-load --profile smoke --server-bin target/debug/schlift
 
   # Randomised API sequences through the core, checking state invariants
   # after every mutation and that every log replays to the same account.

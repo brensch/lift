@@ -1,0 +1,78 @@
+# Load testing
+
+`make loadtest` starts a fresh release server and runs lightweight clients
+against it. Each client is the real phone stack minus the UI: the phone's own
+core (`schlift_native`'s `Store`), signing up and in with a software passkey,
+syncing the way `app/lib/services/account_sync.dart` does. The code is in
+`loadtest/`.
+
+## What a client does
+
+1. **Signs up** with a real WebAuthn ceremony (`webauthn-authenticator-rs`'s
+   software passkey), then **signs in** again with it.
+2. **Onboards** through the core, then opens the Sync stream and pushes.
+3. Some clients **train in groups of three**: the first shares its invite token,
+   the others join through it, so session updates fan out.
+4. **Trains** until the run ends: a workout from home's suggestion, each set
+   started and done with a tap each, the calibration ramp's question answered,
+   heart rate every few seconds, ended when the plan runs out. Every write
+   pushes what the server hasn't acknowledged; between pushes it heartbeats.
+   After each workout it asks for what the website shows (`ListWorkoutSummaries`),
+   which the server answers from its own fold.
+5. **Drains**: waits until the server acknowledges everything, then hangs up.
+
+Each client sends `x-forwarded-for` with its own address, since the server
+limits passkey ceremonies per address and every load client is really
+127.0.0.1.
+
+## What a run checks
+
+- **Every account matches**: each client's event log is pulled back from the
+  server and must be the same events, in order. This is exact, so it is the
+  check that catches sync bugs at scale.
+- **Nothing errors**: any failed call, dropped stream or stopped client fails
+  the run.
+- **Not clearly slower than a baseline**, when `loadtest/baseline-<profile>.json`
+  exists. The run fails if an operation's p95 is up by half plus 5 ms, or the
+  server's CPU per event or peak memory is up by half.
+
+The report, with p50/p95/p99/max per operation and the server's CPU, memory
+and database size, is written to `.tmp/loadtest/report-<profile>.json`. To
+make a run the new baseline, copy its report over the baseline file.
+
+## Profiles
+
+| Profile | Clients | Run | Use |
+|---|---|---|---|
+| `smoke` | 40 | about a minute | before a push; CI runs it on debug builds for correctness only |
+| `scale` | 1000 | about four minutes | before a release, and after anything on the sync or storage path |
+
+`LOAD_ARGS` adds flags: `--clients`, `--seconds`, or `--server <url>` to aim at
+a server that is already running (no CPU or memory figures then).
+
+```sh
+make loadtest
+make loadtest LOAD_PROFILE=scale
+make loadtest LOAD_ARGS="--clients 3000 --seconds 300"
+```
+
+Rests are compressed (a set every few seconds rather than every few minutes),
+so a client generates far more writes than a person does. 1000 load clients
+is a heavier write load than several thousand real people training at once.
+
+## Where it stood when it was written
+
+On the dev machine (16 cores), with the storage design of v0.14.1:
+
+| | smoke (40) | scale (1000) |
+|---|---|---|
+| Accounts matching | 40 / 40 | 589 / 589 finished |
+| Push acknowledged, p50 / p95 | 4.7 / 21.6 ms | 7.8 / 21.6 **s** |
+| Server CPU per event | 3.3 ms | 4.9 ms |
+| Database for the run | 7 MB | 101 MB |
+
+At 1000 clients the server saturates: each push rewrites the workout's
+readable tables and partners' cached status in one transaction on the single
+write connection, pushes queue past the pool's 30 s acquire timeout, and 411
+clients lost their Sync stream. That write path is what the storage redesign
+removes.
