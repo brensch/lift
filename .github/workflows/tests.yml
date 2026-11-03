@@ -318,8 +318,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The app draws with OpenGL: Mesa's EGL, GLES and software drivers.
       - name: Install Xvfb and the app's runtime libraries
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libgles2 libgl1-mesa-dri
 
       - name: Download the binaries
         uses: actions/download-artifact@v4
