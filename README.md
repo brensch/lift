@@ -29,5 +29,5 @@ testing tracks; a `prod-v*` tag promotes to production.
 
 More: [`docs/architecture/`](docs/architecture/) (how it works),
 [`docs/makefile.md`](docs/makefile.md) (every target),
-[`docs/releasing.md`](docs/releasing.md) (shipping), [`CLAUDE.md`](CLAUDE.md)
+[`docs/releasing.md`](docs/releasing.md) (shipping), [`AGENTS.md`](AGENTS.md)
 (rules that are easy to get wrong).
