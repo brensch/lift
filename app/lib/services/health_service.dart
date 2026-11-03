@@ -30,13 +30,11 @@ class HealthService {
   static Future<HeartRateZoneProfile?>? _cachedZoneProfileFuture;
   static bool _healthPermissionRequestInFlight = false;
 
-  /// Set true by the e2e harness before the app launches. When true, the
-  /// permission request no-ops: on the emulator it opens the native Health
-  /// Connect sheet, which pauses the Flutter surface and hangs an
-  /// integration_test. Health isn't under test there, so suppressing the
-  /// prompt is safe. Always false in production.
-  @visibleForTesting
-  static bool suppressPermissionPrompts = false;
+  /// Health lives only on the phones (Health Connect, Apple Health). On any
+  /// other platform — the desktop build the e2e scenarios run — every read
+  /// and write here does nothing.
+  static bool get _available =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   /// Requests every Health permission the app uses, in a SINGLE system sheet.
   ///
@@ -50,7 +48,7 @@ class HealthService {
   /// again: every read/write simply attempts the operation and silently
   /// no-ops if the user declined.
   static Future<void> requestWorkoutHealthPermissions() async {
-    if (suppressPermissionPrompts) return;
+    if (!_available) return;
     // Another request is mid-flight; don't stack a competing sheet.
     if (_healthPermissionRequestInFlight) return;
     _healthPermissionRequestInFlight = true;
@@ -103,6 +101,7 @@ class HealthService {
   /// The most recent body weight in Health, or null when there is none or
   /// the WEIGHT read was never granted. Never prompts.
   static Future<double?> readLatestBodyWeightKg() async {
+    if (!_available) return null;
     try {
       AppLogger.instance.info('Health', 'readLatestBodyWeightKg', {
         'phase': 'start',
@@ -196,6 +195,7 @@ class HealthService {
     required String title,
     required double bodyWeightKg,
   }) async {
+    if (!_available) return false;
     debugPrint('Health: writeCompletedWorkout called');
 
     final health = Health();
@@ -240,7 +240,7 @@ class HealthService {
     required String workoutId,
     required List<HeartRateSample> samples,
   }) async {
-    if (samples.isEmpty) return;
+    if (samples.isEmpty || !_available) return;
 
     final health = Health();
     await health.configure();
@@ -260,8 +260,10 @@ class HealthService {
     }
   }
 
-  static Future<HeartRateZoneProfile?> readHeartRateZoneProfile() =>
-      _cachedZoneProfileFuture ??= _readHeartRateZoneProfileImpl();
+  static Future<HeartRateZoneProfile?> readHeartRateZoneProfile() async {
+    if (!_available) return null;
+    return _cachedZoneProfileFuture ??= _readHeartRateZoneProfileImpl();
+  }
 
   /// Never prompts: without the resting HR / birth date reads it returns null.
   static Future<HeartRateZoneProfile?> _readHeartRateZoneProfileImpl() async {

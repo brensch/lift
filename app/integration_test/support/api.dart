@@ -5,10 +5,10 @@
 //     their own in-memory core, their events pushed over Sync. The app under
 //     test sees them exactly as it would see real phones.
 //
-// One phone records an account: a peer logged in as the app's own user only
-// reads (writing too would be a second phone, which the server refuses).
+// A peer logged in as the app's own user only reads, so what the app shows is
+// the app's own doing.
 //
-// On the emulator, 127.0.0.1:50051 reaches the host backend via `adb reverse`.
+// The backend is at 127.0.0.1:50051, as for the app.
 
 import 'dart:async';
 

@@ -18,7 +18,7 @@ void main() {
       s.expectVisible(copy.login.devLogin);
       await s.shot(
         'Cold start — login screen',
-        note: 'The real app on the emulator, connected to the backend.',
+        note: 'The real app, connected to the backend.',
       );
 
       final username = 'e2e_onboard_${DateTime.now().millisecondsSinceEpoch}';
