@@ -8,8 +8,8 @@ built, it is called out explicitly under "Not implemented".
 |---|---|
 | [overview.md](overview.md) | System map, components, a write end to end, deployment |
 | [local-first.md](local-first.md) | The account on the phone: events, the fold, the core's API, sync |
-| [backend.md](backend.md) | Rust module layout, the event store, DB access model, RPC surface |
-| [data-model.md](data-model.md) | The event log, the projected tables, the server schema |
+| [backend.md](backend.md) | Rust module layout, the event store, DB access model, schema changes, RPC surface |
+| [data-model.md](data-model.md) | The event log, what an export contains, the server schema and its migrations |
 | [workout-lifecycle.md](workout-lifecycle.md) | Template → planned at the start → completed: the estimated max, the time budget, decisions and their reasons, the set state machine, the weight log |
 | [multiplayer.md](multiplayer.md) | Sessions, invites, participant status over the Sync stream |
 | [app.md](app.md) | Flutter layer boundaries, providers, the core on the phone |

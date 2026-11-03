@@ -1,0 +1,173 @@
+{
+  "profile": "smoke",
+  "settings": {
+    "clients": 40,
+    "ramp": 5.0,
+    "hold": 40.0,
+    "idle": 3.0,
+    "set_every": 2.0,
+    "heartbeat": 5.0,
+    "max_sets": 12,
+    "grouped": 0.3,
+    "connections": 8
+  },
+  "elapsed_seconds": 45.136527857,
+  "clients_finished": 40,
+  "client_errors": {},
+  "events": 2049,
+  "events_per_second": 45.39560522890843,
+  "accounts_matching": 40,
+  "accounts_differing": [],
+  "server": {
+    "cpu_seconds": 3.66,
+    "rss_max_mb": 24.0,
+    "db_mb": 4.804088
+  },
+  "server_cpu_ms_per_event": 1.7862371888726207,
+  "ops": {
+    "auth.login_finish": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 1.666,
+      "p95_ms": 3.207,
+      "p99_ms": 3.303,
+      "max_ms": 3.303
+    },
+    "auth.login_start": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 1.173,
+      "p95_ms": 1.434,
+      "p99_ms": 1.82,
+      "max_ms": 1.82
+    },
+    "auth.register_finish": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 2.365,
+      "p95_ms": 3.037,
+      "p99_ms": 3.915,
+      "max_ms": 3.915
+    },
+    "auth.register_start": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 1.336,
+      "p95_ms": 1.668,
+      "p99_ms": 1.747,
+      "max_ms": 1.747
+    },
+    "core.end_workout": {
+      "count": 80,
+      "errors": {},
+      "p50_ms": 0.037,
+      "p95_ms": 0.111,
+      "p99_ms": 0.199,
+      "max_ms": 0.199
+    },
+    "core.get_home": {
+      "count": 80,
+      "errors": {},
+      "p50_ms": 0.133,
+      "p95_ms": 0.231,
+      "p99_ms": 0.316,
+      "max_ms": 0.316
+    },
+    "core.heart_rate": {
+      "count": 661,
+      "errors": {},
+      "p50_ms": 0.045,
+      "p95_ms": 0.09,
+      "p99_ms": 0.12,
+      "max_ms": 0.258
+    },
+    "core.mutate": {
+      "count": 1188,
+      "errors": {},
+      "p50_ms": 0.043,
+      "p95_ms": 0.164,
+      "p99_ms": 0.235,
+      "max_ms": 0.338
+    },
+    "core.onboard": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 0.069,
+      "p95_ms": 0.097,
+      "p99_ms": 0.133,
+      "max_ms": 0.133
+    },
+    "core.start_workout": {
+      "count": 80,
+      "errors": {},
+      "p50_ms": 0.064,
+      "p95_ms": 0.103,
+      "p99_ms": 0.12,
+      "max_ms": 0.12
+    },
+    "passkey.create": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 0.213,
+      "p95_ms": 0.269,
+      "p99_ms": 1.346,
+      "max_ms": 1.346
+    },
+    "passkey.sign": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 0.12,
+      "p95_ms": 0.179,
+      "p99_ms": 0.196,
+      "max_ms": 0.196
+    },
+    "rpc.get_invite_token": {
+      "count": 4,
+      "errors": {},
+      "p50_ms": 0.68,
+      "p95_ms": 1.541,
+      "p99_ms": 1.541,
+      "max_ms": 1.541
+    },
+    "rpc.join_via_invite": {
+      "count": 8,
+      "errors": {},
+      "p50_ms": 2.053,
+      "p95_ms": 4.795,
+      "p99_ms": 4.795,
+      "max_ms": 4.795
+    },
+    "rpc.list_workout_summaries": {
+      "count": 80,
+      "errors": {},
+      "p50_ms": 1.116,
+      "p95_ms": 1.474,
+      "p99_ms": 12.183,
+      "max_ms": 12.183
+    },
+    "sync.open": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 0.472,
+      "p95_ms": 0.606,
+      "p99_ms": 0.744,
+      "max_ms": 0.744
+    },
+    "sync.push_acked": {
+      "count": 2049,
+      "errors": {},
+      "p50_ms": 1.801,
+      "p95_ms": 3.107,
+      "p99_ms": 4.179,
+      "max_ms": 12.295
+    },
+    "sync.session_update": {
+      "count": 439,
+      "errors": {},
+      "p50_ms": 0.001,
+      "p95_ms": 0.001,
+      "p99_ms": 0.001,
+      "max_ms": 0.001
+    }
+  }
+}

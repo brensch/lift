@@ -179,8 +179,8 @@ acked. This is why heart-rate data survives a watch app crash mid-workout.
 Sample timestamps are Unix **milliseconds** (`HeartRateSample.sampled_at`), while
 most other timestamps in the system are seconds. The phone writes heart rate
 into the account in batches (one `heart_rate` event per batch, not per
-sample); the projected `workout_heart_rate_samples` table has a row per
-sample, and the events sync to the server like any other.
+sample); an exported file's `workout_heart_rate_samples` table has a row
+per sample, and the events sync to the server like any other.
 
 Each `HeartRateSample` carries a `HeartRateAvailability`; the watches mark
 every sample `AVAILABLE`, and only the debug notifications screen reads it.

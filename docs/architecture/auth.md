@@ -13,9 +13,9 @@ graph TD
     AS --> rc["reg_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> ac["auth_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> db["ServerDb"]
-    db --> pc[("passkey_credentials")]
-    db --> se[("auth_sessions")]
-    db --> uc[("users_current")]
+    db --> pc[("passkeys")]
+    db --> se[("logins")]
+    db --> uc[("users")]
 ```
 
 Configuration comes from environment variables, read once at construction:
@@ -111,24 +111,31 @@ serve both. The signature counter is written back on every successful login —
 ```mermaid
 graph LR
     login["LoginFinish"] --> tok["create_auth_session<br/>random token"]
-    tok --> row[("auth_sessions<br/>token PK, user_id, expires_at")]
+    tok -->|"SHA-256"| row[("logins<br/>token_hash PK, user_id, expires_at")]
     req["Every authed RPC"] --> chk["authed_user_id()"]
-    chk --> row
+    chk -->|"SHA-256 of the bearer token"| row
     row -->|"valid + unexpired"| ok["user_id"]
     row -->|"otherwise"| err["Status::unauthenticated"]
 ```
 
 The token is a bearer token in gRPC metadata, attached client-side by
-`AuthInterceptor` (`app/lib/services/grpc_client.dart`).
+`AuthInterceptor` (`app/lib/services/grpc_client.dart`). The server stores
+only its SHA-256 (`token_hash`, `src/db/migrate.rs`), so the table never
+holds a token that would let someone in; the token itself exists only on the
+phone and in the response that hands it over. Creating a login deletes every
+expired one.
 
 `authed_user_id` is called **explicitly at the top of each handler** — there is
 no interceptor or middleware enforcing it. A new handler that omits the call is
 unauthenticated, and nothing will flag that. Copy an existing handler when adding
 one.
 
-`Logout` deletes the row. `DeleteAccount` deletes the user and all their data
-(`delete_user_account_and_data`, `src/db/auth.rs`), including the account's
-event log, and drops the server's cached fold of it.
+`Logout` deletes the row. `DeleteAccount` deletes the user's row
+(`delete_user_account_and_data`, `src/db/auth.rs`); every table with a
+`user_id` references `users(id) ON DELETE CASCADE`, so the account's event
+log, passkeys, logins, session memberships and page views go with it. It
+also deletes the registration's `auth_attempts` row and drops the server's
+cached fold of the account and any join requests to or from it.
 
 ## The account and the server session
 

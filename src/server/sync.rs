@@ -244,26 +244,14 @@ impl Stream {
         else {
             return Ok(());
         };
-        refresh_participant_for_user(
-            &self.db,
-            &self.user_id,
-            &session_id,
-            pushed.ended_workout.as_deref(),
-        )
-        .await?;
-        if pushed.ended_workout.is_some() {
+        let done = if pushed.ended_workout.is_some() {
             // Ending is leaving: the final state stays on show to the others
-            // (until it goes idle), and the roster records the leave.
-            self.db
-                .clear_user_current_session(&self.user_id)
-                .await
-                .map_err(internal_error)?;
-            self.db
-                .mark_session_member_left(&session_id, &self.user_id)
-                .await
-                .map_err(internal_error)?;
-        }
-        Ok(())
+            // until it goes idle.
+            self.db.end_session(&session_id, &self.user_id).await
+        } else {
+            self.db.touch_session(&session_id, &self.user_id).await
+        };
+        done.map_err(internal_error)
     }
 
     async fn changed(&mut self, change: &Change) -> ServerResult<Result<(), Closed>> {

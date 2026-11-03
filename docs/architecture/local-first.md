@@ -12,12 +12,13 @@ graph LR
     UI[Flutter screens] --> P[providers]
     P -->|method + proto bytes| N[app/native: Store]
     N --> C[core: Account, apply, api]
-    N --> F[(account file: events, readable tables)]
+    N --> F[(account file: events, meta, library)]
+    N -.->|export| X[(exported file: events + readable tables)]
   end
   N -->|outbox| S[AccountSync: Sync stream]
   S <-->|events up, acks + session down| SV[server: Sync]
   SV --> C2[core: same crate]
-  SV --> DB[(account_events + workout tables)]
+  SV --> DB[(account_events)]
   SV --> W[web: read-only RPCs]
 ```
 
@@ -120,16 +121,18 @@ stored.
 
 ## On the server
 
-- `account_events` is the log. `src/db/accounts.rs` folds it (cached in
-  memory, least recently used dropped past 256 accounts) and on every push
-  rewrites the workout tables (`core/src/projection.rs`) for the workouts the
-  events touched — the SQL that analytics and multiplayer history read.
+- `account_events` is the log, and the only place the server keeps the
+  account: it appends what is pushed and folds it in memory
+  (`src/db/accounts.rs`; least recently used dropped past 256 accounts,
+  refolded from the log when next needed). No workout, set or template is
+  copied into a table.
 - The workout reads the web makes (`WorkoutService`, `SettingsService`) are
   answered by the core's `View` over the fold — the same code as the phone.
-- Multiplayer: after a push, the caller's participant status is rebuilt from
-  their fold and stored; the change is broadcast in-process to every Sync
-  stream whose session it is. A pushed EndWorkout takes the caller out of
-  their session. Membership, invites and join requests stay server-side
+- Multiplayer: a push other than heart rate marks the caller active in
+  their session, and the change is broadcast in-process to every Sync
+  stream whose session it is; each sends its partners' status, read from
+  their folds then (`participant_status`). A pushed EndWorkout takes the
+  caller out of their session, their result still on show. Membership, invites and join requests stay server-side
   RPCs: they need the network anyway.
 - A workout's session is recorded on it by the phone (`SetWorkoutSession`)
   when the stream reports one, so "trained with" works from the account.

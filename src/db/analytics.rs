@@ -122,10 +122,11 @@ impl ServerDb {
     // ── Admins ──
 
     pub async fn is_admin(&self, user_id: &str) -> DbResult<bool> {
-        let found: Option<i64> = sqlx::query_scalar("SELECT 1 FROM admins WHERE user_id = ?")
-            .bind(user_id)
-            .fetch_optional(&self.read_pool)
-            .await?;
+        let found: Option<i64> =
+            sqlx::query_scalar("SELECT 1 FROM users WHERE id = ? AND admin_since IS NOT NULL")
+                .bind(user_id)
+                .fetch_optional(&self.read_pool)
+                .await?;
         Ok(found.is_some())
     }
 
@@ -136,9 +137,9 @@ impl ServerDb {
         let Some(user) = self.get_user_by_name(username).await? else {
             return Ok(None);
         };
-        sqlx::query("INSERT OR IGNORE INTO admins (user_id, granted_at) VALUES (?, ?)")
-            .bind(&user.id)
+        sqlx::query("UPDATE users SET admin_since = COALESCE(admin_since, ?) WHERE id = ?")
             .bind(now_unix())
+            .bind(&user.id)
             .execute(&self.write_pool)
             .await?;
         Ok(Some(user.id))
@@ -149,25 +150,26 @@ impl ServerDb {
         let Some(user) = self.get_user_by_name(username).await? else {
             return Ok(false);
         };
-        let result = sqlx::query("DELETE FROM admins WHERE user_id = ?")
-            .bind(&user.id)
-            .execute(&self.write_pool)
-            .await?;
+        let result = sqlx::query(
+            "UPDATE users SET admin_since = NULL WHERE id = ? AND admin_since IS NOT NULL",
+        )
+        .bind(&user.id)
+        .execute(&self.write_pool)
+        .await?;
         Ok(result.rows_affected() > 0)
     }
 
     /// (username, user_id, granted_at)
     pub async fn list_admins(&self) -> DbResult<Vec<(String, String, i64)>> {
         let rows = sqlx::query(
-            "SELECT u.username_ci, a.user_id, a.granted_at
-             FROM admins a JOIN users_current u ON u.user_id = a.user_id
-             ORDER BY a.granted_at",
+            "SELECT username, id, admin_since FROM users
+             WHERE admin_since IS NOT NULL ORDER BY admin_since",
         )
         .fetch_all(&self.read_pool)
         .await?;
         Ok(rows
             .into_iter()
-            .map(|r| (r.get("username_ci"), r.get("user_id"), r.get("granted_at")))
+            .map(|r| (r.get("username"), r.get("id"), r.get("admin_since")))
             .collect())
     }
 
@@ -253,8 +255,8 @@ impl ServerDb {
 
     pub async fn user_activity(&self, since_ms: i64) -> DbResult<Vec<UserActivity>> {
         let rows = sqlx::query(
-            "SELECT u.username_ci AS username, COUNT(*) AS views, MAX(p.entered_at_ms) AS last_seen_ms
-             FROM page_views p JOIN users_current u ON u.user_id = p.user_id
+            "SELECT u.username, COUNT(*) AS views, MAX(p.entered_at_ms) AS last_seen_ms
+             FROM page_views p JOIN users u ON u.id = p.user_id
              WHERE p.entered_at_ms >= ?
              GROUP BY p.user_id ORDER BY last_seen_ms DESC LIMIT 200",
         )
@@ -295,7 +297,7 @@ impl ServerDb {
     }
 
     pub async fn total_users(&self) -> DbResult<i64> {
-        Ok(sqlx::query_scalar("SELECT COUNT(*) FROM users_current")
+        Ok(sqlx::query_scalar("SELECT COUNT(*) FROM users")
             .fetch_one(&self.read_pool)
             .await?)
     }

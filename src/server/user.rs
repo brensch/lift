@@ -50,7 +50,11 @@ impl UserService for ServerUserService {
             .await
             .map_err(internal_error)?
         {
-            refresh_participant_for_user(&self.db, &user_id, &session_id, None).await?;
+            // Their partners see the new profile.
+            self.db
+                .touch_session(&session_id, &user_id)
+                .await
+                .map_err(internal_error)?;
         }
 
         Ok(Response::new(UpdateMyProfileResponse { user: Some(user) }))

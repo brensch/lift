@@ -1,31 +1,37 @@
 # Multiplayer Sessions
 
 Two or more lifters share a *session* so each can see what the others are doing
-and whose turn it is. A session is server state: membership, plus each
-member's status built from their synced account. It is the one part of the
-app that needs the network. Offline, you drop out of view and nothing else
-breaks.
+and whose turn it is. A session is server state: membership is stored, and
+each member's status is read from their synced account whenever it is sent.
+It is the one part of the app that needs the network. Offline, you drop out
+of view and nothing else breaks.
 
 ## The invariant
 
-`user_current_session(user_id PRIMARY KEY, session_id)` is the single
-source of truth for "is this user in a group right now?". Because `user_id` is
-the primary key, a user is structurally incapable of being in two sessions.
+`session_members(session_id, user_id, joined_at, left_at, active_at)` is the
+single source of truth for "is this user in a group right now?". The
+user's current session is their row with `left_at = 0`, and a partial unique
+index on `user_id WHERE left_at = 0` makes a second one impossible.
+`active_at` is their last activity there (joining, or a synced write other
+than heart rate); a member is on show to the others while it is younger
+than `SESSION_IDLE_SECONDS` (3 h), and leaving zeroes it.
 
 Everything else is derived:
 
 ```mermaid
 graph TD
-    ucs["user_current_session<br/><b>source of truth</b>"]
-    ucs -.->|"rebuilt from the fold<br/>after every push"| spc["session_participants_current<br/>participant_blob"]
-    ucs -.->|"sent down the Sync stream"| ph["the phone"]
-    ph -.->|"SetWorkoutSession event"| ws["workouts.session_id<br/>(on the account)"]
-    ucs -.->|"recorded on join"| sm["session_members<br/>durable roster"]
+    sm["session_members<br/><b>source of truth</b>"]
+    sm -.->|"read from the fold<br/>each time a view is sent"| ps["participant status<br/>(memory only)"]
+    sm -.->|"sent down the Sync stream"| ph["the phone"]
+    ph -.->|"SetWorkoutSession event"| ws["workout.session_id<br/>(on the account)"]
+    sm -.->|"rows kept after leaving"| tp["training partners<br/>and rosters"]
 
-    style ucs fill:#2d5a2d,color:#fff
+    style sm fill:#2d5a2d,color:#fff
 ```
 
-If those disagree, `user_current_session` wins.
+A member's status (`participant_status`, `src/server/support.rs`) is never
+stored: it is their workout under way, or else the last one to end since
+they joined, as their own app shows it, read from their folded account.
 
 ## Transitions
 
@@ -33,19 +39,22 @@ If those disagree, `user_current_session` wins.
 stateDiagram-v2
     [*] --> Solo
     Solo --> InSession: JoinViaInvite / RespondJoinRequest(accept)<br/>(both users gathered into one session)
-    InSession --> InSession: events pushed over Sync<br/>(caller's status rebuilt from the fold)
-    InSession --> Solo: LeaveCurrentSession<br/>(row deleted, live status pruned, left_at stamped)
-    InSession --> Solo: EndWorkout pushed<br/>(final status kept, then row deleted)
+    InSession --> InSession: events pushed over Sync<br/>(active_at stamped)
+    InSession --> Solo: LeaveCurrentSession<br/>(left_at stamped, active_at zeroed, off show)
+    InSession --> Solo: EndWorkout pushed<br/>(left_at stamped, still on show)
+    InSession --> Solo: idle SESSION_IDLE_SECONDS<br/>(out and off show)
     note right of Solo
-        After EndWorkout the last status is
-        retained so partners keep seeing your result.
+        After EndWorkout the final status
+        stays on show until it goes idle,
+        so partners keep seeing your result.
     end note
 ```
 
 | Transition | Where |
 |---|---|
 | `JoinViaInvite`, `RespondJoinRequest`, `LeaveCurrentSession` | `src/server/multiplayer.rs` |
-| Status refresh and leaving on `EndWorkout` | `after_push` in `src/server/sync.rs` |
+| Activity and leaving on `EndWorkout` | `after_push` in `src/server/sync.rs` |
+| Rows and the idle cut-off | `src/db/session.rs` |
 | Status from the account | `participant_status` in `src/server/support.rs` |
 
 ## Joining
@@ -58,16 +67,13 @@ sequenceDiagram
     participant DB
 
     A->>S: GetMyInviteToken
-    S->>DB: users_current.invite_token
+    S->>DB: users.invite_token
     S-->>A: token
     Note over A,B: shared out of band (QR / link)
 
     B->>S: JoinViaInvite(token)
     S->>S: gather_into_session(Alice, Bob)<br/>(global join lock)
-    S->>DB: upsert user_current_session for both
-    S->>DB: session_members for both
-    S->>DB: stamp both active workouts' projected session_id
-    S->>DB: both participant statuses, from their folds
+    S->>DB: join_session for both<br/>(any other open row left, this one active now)
     S-->>B: session_id
     Note over S: Change::Membership / Session<br/>→ every affected Sync stream
 ```
@@ -79,10 +85,9 @@ one if they have none, so one host pulling in several people forms one
 group. The joiner leaves any other session first.
 
 Joining mid-workout attaches the in-progress workout to the session: the
-server stamps its projected row at once, and the phone records it on the
-account with a `SetWorkoutSession` event when the stream reports the session
-(`recordSession`, wired in `app/lib/main.dart`). That is what "trained with"
-on the summary reads.
+phone records it on the account with a `SetWorkoutSession` event when the
+stream reports the session (`recordSession`, wired in `app/lib/main.dart`).
+That is what "trained with" on the summary reads.
 
 ## Session state comes down the Sync stream
 
@@ -98,9 +103,10 @@ sequenceDiagram
 
     B->>S: Sync: events (a set done)
     S->>S: push_events → fold
-    S->>S: refresh Bob's participant status
+    S->>S: touch_session (Bob active now)
     S-->>B: head (ack)
     Note over S: Change::Session(id)
+    S->>S: Bob's status from his fold
     S-->>A: GetCurrentSessionResponse (whole)
 ```
 
@@ -125,20 +131,23 @@ with `GetCurrentSession` rather than waiting for the stream.
 `RequestJoinPartner` asks someone you have trained with before
 (`have_trained_together`) to train together; they see it on their stream
 and answer with `RespondJoinRequest`. A request expires from view after two
-minutes (`JOIN_REQUEST_TTL_SECONDS`) and is deleted once answered.
+minutes (`JOIN_REQUEST_TTL_SECONDS`) and is deleted once answered. Requests
+live in memory only (`JoinRequests`, `src/db/session.rs`): a restart drops
+at most a question someone asks again.
 
 ## Training partners
 
-`session_members` is never deleted: it records who trained together and backs
+`session_members` rows are kept after a member leaves (deleted only with the
+account): they record who trained together and back
 `GetTrainingPartners` (the FRIENDS list, for one-tap re-pairing) and
-`have_trained_together`.
+`have_trained_together`, and the historical rosters of `GetSessionRosters`.
 
 ## Failure modes to know
 
-- **A partner who goes offline keeps their last status.** It is refreshed
-  only when their events arrive; there is no staleness marker.
-- **Sessions are never garbage collected.** `session_participants_current`
-  rows stay after a workout ends (by design, so the result stays on show)
-  and `session_members` grows forever.
+- **A partner who goes offline keeps their last status** until they go
+  idle: it reflects only the events that have arrived; there is no
+  staleness marker.
+- **`session_members` grows forever.** Its rows are the record of who
+  trained together; only deleting an account removes them.
 - **The broadcast is in-process.** A second backend instance would not hear
   the first one's changes.

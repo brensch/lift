@@ -3,26 +3,24 @@ use std::collections::HashMap;
 
 // ── Multiplayer Service ──
 //
-// Session membership invariant: `user_current_session(user_id PK, session_id)` is the
-// single source of truth for "is this user in a group right now?". Everything else
-// (workouts.session_id, session_participants_current) is derived/historical cache.
+// Who is in which session is session_members (db/session.rs): one row per
+// (session, user), the user's current session being the row with left_at 0.
+// Where a member is up to is never stored: it is read from their synced
+// account whenever a partner's view is sent (support.rs participant_status).
 //
 // Transitions:
-//   - JoinViaInvite: upsert both users' rows, refresh both participant blobs.
-//   - A workout's first synced events: its projected row is stamped with the
-//     caller's current session (db/accounts.rs).
-//   - Any synced event other than heart rate: refresh the caller's blob (sync.rs).
-//   - A synced EndWorkout: refresh the caller's final blob, then delete the
-//     caller's row and stamp left_at (sync.rs): ending is leaving.
-//   - Idle: a member whose blob hasn't been refreshed for SESSION_IDLE_SECONDS
-//     (db/session.rs) is out — their pointer reads as none and their blob is
-//     no longer shown — so a join that never started doesn't linger.
-//   - LeaveCurrentSession: delete caller's row, prune their live blob so peers stop
-//     seeing them, and stamp left_at on the durable session_members roster.
+//   - JoinViaInvite / RespondJoinRequest: both users join the anchor's session
+//     (or a new one); any other session they were in is left.
+//   - Any synced event other than heart rate: the member is active (sync.rs).
+//   - A synced EndWorkout: ending is leaving; their final state stays on show
+//     until it goes idle (sync.rs).
+//   - Idle: a member inactive for SESSION_IDLE_SECONDS is out and off show,
+//     so a join that never started doesn't linger.
+//   - LeaveCurrentSession: out and off show at once.
 //
-// Durable history: session_members(session_id, user_id, first_joined_at, left_at) is
-// never deleted — it records who trained together and backs GetTrainingPartners
-// and the prior-pairing check in RequestJoinPartner.
+// The rows are never deleted (except with the account): they record who
+// trained together, for GetTrainingPartners, rosters and the prior-pairing
+// check in RequestJoinPartner.
 
 /// Serialises the JoinViaInvite read-decide-write so two people joining the same
 /// inviter at once can't each read "no session yet", mint separate sessions, and
@@ -37,51 +35,6 @@ pub struct ServerMultiplayerService {
 }
 
 impl ServerMultiplayerService {
-    /// Place `user_id` into `session_id` (upsert) and refresh their participant blob so
-    /// peers see them at once (the change goes out on their Sync streams).
-    async fn place_user_in_session(&self, user_id: &str, session_id: &str) -> ServerResult<()> {
-        self.db
-            .set_user_current_session(user_id, session_id)
-            .await
-            .map_err(internal_error)?;
-        // Durable roster: record that this user was in this session (survives leave).
-        self.db
-            .upsert_session_member(session_id, user_id)
-            .await
-            .map_err(internal_error)?;
-        let active_workout_id = self
-            .db
-            .read_account(user_id, |account| account.active_workout_id.clone())
-            .await
-            .map_err(internal_error)?;
-        let active_workout_id = Some(active_workout_id).filter(|id| !id.is_empty());
-        refresh_participant_for_user(&self.db, user_id, session_id, active_workout_id.as_deref())
-            .await
-    }
-
-    /// If `user_id` is currently in a session other than `target`, cleanly leave
-    /// it (prune the live blob + stamp left_at) so its roster doesn't strand them.
-    async fn leave_other_session(&self, user_id: &str, target: &str) -> ServerResult<()> {
-        if let Some(current) = self
-            .db
-            .get_user_session_pointer(user_id)
-            .await
-            .map_err(internal_error)?
-        {
-            if current != target {
-                self.db
-                    .prune_session_participant(&current, user_id)
-                    .await
-                    .map_err(internal_error)?;
-                self.db
-                    .mark_session_member_left(&current, user_id)
-                    .await
-                    .map_err(internal_error)?;
-            }
-        }
-        Ok(())
-    }
-
     /// The single session-placement path for both invite-accept and
     /// request-accept: `joiner` joins `anchor`'s session, creating one if the
     /// anchor has none, and leaving whatever session `joiner` was in. Because
@@ -97,11 +50,13 @@ impl ServerMultiplayerService {
             .await
             .map_err(internal_error)?
             .unwrap_or_else(|| Uuid::new_v4().to_string());
-        // An idle anchor starts afresh: their old session gets their leave.
-        self.leave_other_session(anchor, &session_id).await?;
-        self.leave_other_session(joiner, &session_id).await?;
-        self.place_user_in_session(anchor, &session_id).await?;
-        self.place_user_in_session(joiner, &session_id).await?;
+        // An idle anchor starts afresh: joining leaves their old session.
+        for user in [anchor, joiner] {
+            self.db
+                .join_session(&session_id, user)
+                .await
+                .map_err(internal_error)?;
+        }
         Ok(session_id)
     }
 }
@@ -168,10 +123,9 @@ impl MultiplayerService for ServerMultiplayerService {
         let caller_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
         info!(rpc = "GetSessionRosters", %caller_id, sessions = req.session_ids.len(), "request");
-        // Historical rosters: read from the durable session_members table, not
-        // the live participant cache (which is pruned when members leave), so
-        // they survive everyone leaving. Identity only, and only for sessions
-        // the caller was in.
+        // Historical rosters: every member a session ever had, so they survive
+        // everyone leaving. Identity only, and only for sessions the caller
+        // was in.
         let mut sessions = self
             .db
             .list_session_partner_ids(&caller_id)
@@ -207,26 +161,14 @@ impl MultiplayerService for ServerMultiplayerService {
     ) -> Result<Response<LeaveCurrentSessionResponse>, Status> {
         let caller_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "LeaveCurrentSession", %caller_id, "request");
-        // Capture which session we're leaving before clearing the live pointer, so
-        // we can prune the live cache and stamp the durable roster.
-        let session_id = self
+        if let Some(session_id) = self
             .db
             .get_user_session_pointer(&caller_id)
             .await
-            .map_err(internal_error)?;
-        self.db
-            .clear_user_current_session(&caller_id)
-            .await
-            .map_err(internal_error)?;
-        if let Some(session_id) = session_id {
-            // Remove our live snapshot so remaining members stop seeing us as
-            // present (the stale-peer bug), and mark the durable roster row left.
+            .map_err(internal_error)?
+        {
             self.db
-                .prune_session_participant(&session_id, &caller_id)
-                .await
-                .map_err(internal_error)?;
-            self.db
-                .mark_session_member_left(&session_id, &caller_id)
+                .leave_session(&session_id, &caller_id)
                 .await
                 .map_err(internal_error)?;
         }
@@ -315,7 +257,10 @@ impl MultiplayerService for ServerMultiplayerService {
         }
         let (from_id, to_id) = self
             .db
-            .get_join_request(&req.request_id, now_unix() - JOIN_REQUEST_TTL_SECONDS)
+            .get_join_request(
+                &req.request_id,
+                now_unix() - crate::db::JOIN_REQUEST_TTL_SECONDS,
+            )
             .await
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("request not found or already handled"))?;
@@ -356,11 +301,19 @@ pub(super) async fn current_session(
     if session_id.is_empty() {
         return Ok(GetCurrentSessionResponse::default());
     }
-    let mut participants = db
-        .get_session_participants(&session_id)
+    let mut participants = Vec::new();
+    for (member, joined_at) in db
+        .session_members_on_show(&session_id)
         .await
-        .map_err(internal_error)?;
-    participants.retain(|p| p.user.as_ref().map(|u| u.id.as_str()) != Some(user_id));
+        .map_err(internal_error)?
+    {
+        if member == user_id {
+            continue;
+        }
+        if let Some(status) = participant_status(db, &member, joined_at).await? {
+            participants.push(status);
+        }
+    }
     Ok(GetCurrentSessionResponse {
         session_id: session_id.clone(),
         session_status: Some(SessionStatus { participants }),
@@ -373,7 +326,7 @@ pub(super) async fn join_requests(
     db: &ServerDb,
     user_id: &str,
 ) -> ServerResult<GetJoinRequestsResponse> {
-    let since = now_unix() - JOIN_REQUEST_TTL_SECONDS;
+    let since = now_unix() - crate::db::JOIN_REQUEST_TTL_SECONDS;
     let rows = db
         .list_incoming_join_requests(user_id, since)
         .await
@@ -390,6 +343,3 @@ pub(super) async fn join_requests(
     }
     Ok(GetJoinRequestsResponse { requests })
 }
-
-/// How long a request to join stays answerable.
-pub(super) const JOIN_REQUEST_TTL_SECONDS: i64 = 120;
