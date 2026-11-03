@@ -1,0 +1,25 @@
+[package]
+name = "schlift-load"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Load test: lightweight clients that run the phone's own core (schlift_native)
+# against a real server. See docs/testing/load.md.
+
+[dependencies]
+schlift = { path = ".." }
+schlift-core = { path = "../core" }
+schlift_native = { path = "../app/native" }
+tonic = "0.12.3"
+prost = "0.13.4"
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "time", "process", "sync", "net", "io-util", "fs"] }
+tokio-stream = "0.1.17"
+webauthn-authenticator-rs = { version = "0.5", default-features = false, features = ["softpasskey"] }
+webauthn-rs-proto = "0.5"
+url = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hdrhistogram = "7"
+clap = { version = "4.5", features = ["derive"] }
+rand = "0.8"

@@ -110,3 +110,4 @@ include make/release.mk
 include make/proto.mk
 include make/e2e.mk
 include make/lint.mk
+include make/loadtest.mk
