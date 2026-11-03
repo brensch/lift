@@ -66,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1671628949;
+  int get rustContentHash => -1299212684;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -80,11 +80,6 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 abstract class RustLibApi extends BaseApi {
   Future<(String, String)> crateApiAccountFileOwner({required String path});
 
-  Future<void> crateApiAcked({
-    required int handle,
-    required PlatformInt64 head,
-  });
-
   Future<Uint8List> crateApiCall({
     required int handle,
     required String method,
@@ -92,6 +87,8 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<void> crateApiCloseAccount({required int handle});
+
+  Future<PlatformInt64> crateApiConfirmed({required int handle});
 
   Future<void> crateApiExportAccount({
     required int handle,
@@ -106,20 +103,22 @@ abstract class RustLibApi extends BaseApi {
     required String name,
   });
 
-  Future<(Uint8List, PlatformInt64)> crateApiOutbox({required int handle});
+  Future<(Uint8List, PlatformInt64)> crateApiOutbox({
+    required int handle,
+    required PlatformInt64 after,
+  });
 
-  Future<PlatformInt64> crateApiRestore({
+  Future<PlatformInt64> crateApiPendingCount({required int handle});
+
+  Future<bool> crateApiReceive({
     required int handle,
     required List<int> packed,
+    required PlatformInt64 head,
   });
 
   Future<bool> crateApiSetLibrary({
     required int handle,
     required List<int> packed,
-  });
-
-  Future<(PlatformInt64, PlatformInt64)> crateApiSyncState({
-    required int handle,
   });
 }
 
@@ -160,38 +159,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "account_file_owner", argNames: ["path"]);
 
   @override
-  Future<void> crateApiAcked({
-    required int handle,
-    required PlatformInt64 head,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_32(handle, serializer);
-          sse_encode_i_64(head, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 2,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiAckedConstMeta,
-        argValues: [handle, head],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiAckedConstMeta =>
-      const TaskConstMeta(debugName: "acked", argNames: ["handle", "head"]);
-
-  @override
   Future<Uint8List> crateApiCall({
     required int handle,
     required String method,
@@ -207,7 +174,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 2,
             port: port_,
           );
         },
@@ -237,7 +204,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 3,
             port: port_,
           );
         },
@@ -254,6 +221,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiCloseAccountConstMeta =>
       const TaskConstMeta(debugName: "close_account", argNames: ["handle"]);
+
+  @override
+  Future<PlatformInt64> crateApiConfirmed({required int handle}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(handle, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiConfirmedConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiConfirmedConstMeta =>
+      const TaskConstMeta(debugName: "confirmed", argNames: ["handle"]);
 
   @override
   Future<void> crateApiExportAccount({
@@ -353,12 +348,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<(Uint8List, PlatformInt64)> crateApiOutbox({required int handle}) {
+  Future<(Uint8List, PlatformInt64)> crateApiOutbox({
+    required int handle,
+    required PlatformInt64 after,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_32(handle, serializer);
+          sse_encode_i_64(after, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -371,26 +370,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiOutboxConstMeta,
-        argValues: [handle],
+        argValues: [handle, after],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiOutboxConstMeta =>
-      const TaskConstMeta(debugName: "outbox", argNames: ["handle"]);
+      const TaskConstMeta(debugName: "outbox", argNames: ["handle", "after"]);
 
   @override
-  Future<PlatformInt64> crateApiRestore({
-    required int handle,
-    required List<int> packed,
-  }) {
+  Future<PlatformInt64> crateApiPendingCount({required int handle}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_u_32(handle, serializer);
-          sse_encode_list_prim_u_8_loose(packed, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -402,15 +397,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_i_64,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiRestoreConstMeta,
-        argValues: [handle, packed],
+        constMeta: kCrateApiPendingCountConstMeta,
+        argValues: [handle],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiRestoreConstMeta =>
-      const TaskConstMeta(debugName: "restore", argNames: ["handle", "packed"]);
+  TaskConstMeta get kCrateApiPendingCountConstMeta =>
+      const TaskConstMeta(debugName: "pending_count", argNames: ["handle"]);
+
+  @override
+  Future<bool> crateApiReceive({
+    required int handle,
+    required List<int> packed,
+    required PlatformInt64 head,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(handle, serializer);
+          sse_encode_list_prim_u_8_loose(packed, serializer);
+          sse_encode_i_64(head, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiReceiveConstMeta,
+        argValues: [handle, packed, head],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiReceiveConstMeta => const TaskConstMeta(
+    debugName: "receive",
+    argNames: ["handle", "packed", "head"],
+  );
 
   @override
   Future<bool> crateApiSetLibrary({
@@ -426,7 +457,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 11,
             port: port_,
           );
         },
@@ -445,36 +476,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     debugName: "set_library",
     argNames: ["handle", "packed"],
   );
-
-  @override
-  Future<(PlatformInt64, PlatformInt64)> crateApiSyncState({
-    required int handle,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_32(handle, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 11,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_record_i_64_i_64,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiSyncStateConstMeta,
-        argValues: [handle],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSyncStateConstMeta =>
-      const TaskConstMeta(debugName: "sync_state", argNames: ["handle"]);
 
   @protected
   String dco_decode_String(dynamic raw) {
@@ -504,16 +505,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
-  }
-
-  @protected
-  (PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 2) {
-      throw Exception('Expected 2 elements, got ${arr.length}');
-    }
-    return (dco_decode_i_64(arr[0]), dco_decode_i_64(arr[1]));
   }
 
   @protected
@@ -587,16 +578,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
-  }
-
-  @protected
-  (PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_field0 = sse_decode_i_64(deserializer);
-    var var_field1 = sse_decode_i_64(deserializer);
-    return (var_field0, var_field1);
   }
 
   @protected
@@ -680,16 +661,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
-  }
-
-  @protected
-  void sse_encode_record_i_64_i_64(
-    (PlatformInt64, PlatformInt64) self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_64(self.$1, serializer);
-    sse_encode_i_64(self.$2, serializer);
   }
 
   @protected

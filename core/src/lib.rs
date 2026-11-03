@@ -8,6 +8,7 @@ pub mod pb {
 
 pub mod account;
 pub mod api;
+pub mod events;
 pub mod exercise_catalog;
 pub mod exercise_progress;
 pub mod history;

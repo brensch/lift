@@ -126,9 +126,6 @@ class SettingsScreen extends StatelessWidget {
 
   /// Where the server's copy of the account is up to.
   static String _syncLabel(AccountSync sync) {
-    if (sync.diverged) {
-      return 'Stopped: the server has a different history for this account';
-    }
     final waiting = sync.unsynced;
     if (sync.connected) {
       return waiting == 0 ? 'Up to date' : 'Sending $waiting changes';

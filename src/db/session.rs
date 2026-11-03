@@ -81,10 +81,10 @@ impl ServerDb {
         .await?;
         tx.commit().await?;
         if let Some(left) = left {
-            self.notify(Change::Session(left));
+            self.notify(Topic::Session(left), Change::Session);
         }
-        self.notify(Change::Membership(user_id.to_string()));
-        self.notify(Change::Session(session_id.to_string()));
+        self.notify(Topic::User(user_id.to_string()), Change::Membership);
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
         Ok(())
     }
 
@@ -98,7 +98,7 @@ impl ServerDb {
         .bind(user_id)
         .execute(&self.write_pool)
         .await?;
-        self.notify(Change::Session(session_id.to_string()));
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
         Ok(())
     }
 
@@ -123,8 +123,8 @@ impl ServerDb {
         .bind(user_id)
         .execute(&self.write_pool)
         .await?;
-        self.notify(Change::Membership(user_id.to_string()));
-        self.notify(Change::Session(session_id.to_string()));
+        self.notify(Topic::User(user_id.to_string()), Change::Membership);
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
         Ok(())
     }
 
@@ -293,7 +293,7 @@ impl ServerDb {
             },
         );
         drop(requests);
-        self.notify(Change::JoinRequests(to.to_string()));
+        self.notify(Topic::User(to.to_string()), Change::JoinRequests);
         Ok(())
     }
 
@@ -332,7 +332,7 @@ impl ServerDb {
     pub async fn delete_join_request(&self, request_id: &str) -> DbResult<()> {
         let removed = self.join_requests.lock().remove(request_id);
         if let Some(request) = removed {
-            self.notify(Change::JoinRequests(request.to));
+            self.notify(Topic::User(request.to), Change::JoinRequests);
         }
         Ok(())
     }

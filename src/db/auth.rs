@@ -417,7 +417,8 @@ mod tests {
         db.create_auth_session(u).await.unwrap();
         db.join_session(&format!("{u}-session"), u).await.unwrap();
         for sql in [
-            "INSERT INTO account_events (user_id, seq, event) VALUES (?, 1, x'')",
+            r#"INSERT INTO account_events (user_id, seq, id, event)
+               VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"TemplateDeleted":{"template_id":"t"}}')"#,
             "INSERT INTO page_views (user_id, app_session_id, seq, page, entered_at_ms)
              VALUES (?, 's', 1, 'home', 1)",
         ] {

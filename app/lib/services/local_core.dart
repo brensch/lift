@@ -91,24 +91,25 @@ class LocalCore {
   static bool _isRead(String method) =>
       method.startsWith('Get') || method.startsWith('List');
 
-  /// What the server hasn't acknowledged, packed; and its last seq.
-  Future<(List<int>, int)> outbox() async {
-    final (packed, last) = await native.outbox(handle: _handle);
+  /// The last seq this file holds: where the server picks up.
+  Future<int> confirmed() => native.confirmed(handle: _handle);
+
+  /// What this phone recorded that the server hasn't placed, after the
+  /// pending event numbered [after] (the last one this stream sent): packed
+  /// (empty when there's nothing), and the number of the last.
+  Future<(List<int>, int)> outbox(int after) async {
+    final (packed, last) = await native.outbox(handle: _handle, after: after);
     return (packed, last);
   }
 
-  Future<void> acked(int head) => native.acked(handle: _handle, head: head);
+  /// How many events wait for the server.
+  Future<int> pendingCount() => native.pendingCount(handle: _handle);
 
-  /// The account's seq and the last one the server acknowledged.
-  Future<(int, int)> syncState() async {
-    final (seq, acked) = await native.syncState(handle: _handle);
-    return (seq, acked);
-  }
-
-  /// Events pulled from the server, appended after this file's own.
-  Future<int> restore(List<int> packed) async {
+  /// Events from the server (packed), in its order, and the last seq it
+  /// holds. Returns whether the account changed under the app.
+  Future<bool> receive(List<int> packed, int head) async {
     try {
-      return await native.restore(handle: _handle, packed: packed);
+      return await native.receive(handle: _handle, packed: packed, head: head);
     } catch (e) {
       throw CoreException.from(e);
     }

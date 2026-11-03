@@ -140,17 +140,23 @@ confirm it trips.
   `users(id) ON DELETE CASCADE` (discovered from the schema, so a new table
   can't be missed), deleting an account leaves nothing of it and touches no
   one else, logins are stored hashed and expired ones cleared.
-- `src/db/migrate.rs` — a fresh database starts at the latest version, and a
+- `src/db/migrate.rs` — a fresh database starts at the latest version, a
   database from before versions is converted (users out of their blob,
   admins, live logins hashed, dead ones and orphaned events dropped, stale
-  session memberships closed, the old tables gone).
+  session memberships closed, the old tables gone), and step two refuses
+  events not yet converted to facts.
+- `core/tests/stored_events.rs` — one of every fact, as stored
+  (`core/tests/testdata/stored_events.json`), still reads and writes back
+  the same: no field renamed or removed. A new fact must be added there.
 - `src/server/auth.rs` — the `test-auth` gate on `TestLogin`, both branches.
 - `src/demo_seed.rs` — the demo users seed (`test-auth`), and the walk over
   their history rises.
 - `app/native/src/store.rs` — the phone's file: a reopened file is the same
-  account, someone else's file is refused, the outbox is what the server
-  hasn't acked, a fresh install restores from the server's log, an export
-  opens as the same account.
+  account, someone else's file is refused, its own events leave `pending`
+  once placed, another device's go first and its own replay after, what the
+  server lacks is offered again, heart rate is gathered and recorded once
+  when the workout ends, a file from before facts drops its events
+  for the server to resend, an export opens as the same account.
 
 ## Dart tests — against the real core
 

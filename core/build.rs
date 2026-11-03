@@ -2,16 +2,25 @@
 // pointing them at these types).
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=../proto");
-    prost_build::compile_protos(
-        &[
-            "../proto/workout/v1/workout.proto",
-            "../proto/workout/v1/group.proto",
-            "../proto/workout/v1/auth.proto",
-            "../proto/workout/v1/settings.proto",
-            "../proto/workout/v1/analytics.proto",
-            "../proto/workout/v1/account.proto",
-        ],
-        &["../proto"],
-    )?;
+    prost_build::Config::new()
+        // The shared domain types (a decision, a template, a set) are carried
+        // inside stored events, which are JSON (src/events.rs). Missing
+        // fields take their defaults, so an older event still reads.
+        .message_attribute(
+            ".",
+            "#[derive(serde::Serialize, serde::Deserialize)] #[serde(default)]",
+        )
+        .enum_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .compile_protos(
+            &[
+                "../proto/workout/v1/workout.proto",
+                "../proto/workout/v1/group.proto",
+                "../proto/workout/v1/auth.proto",
+                "../proto/workout/v1/settings.proto",
+                "../proto/workout/v1/analytics.proto",
+                "../proto/workout/v1/account.proto",
+            ],
+            &["../proto"],
+        )?;
     Ok(())
 }

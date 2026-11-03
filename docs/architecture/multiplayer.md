@@ -102,18 +102,19 @@ sequenceDiagram
     participant A as Alice's phone
 
     B->>S: Sync: events (a set done)
-    S->>S: push_events → fold
+    S->>S: push_events → place, fold
+    S-->>B: Events (his set, placed)
     S->>S: touch_session (Bob active now)
-    S-->>B: head (ack)
-    Note over S: Change::Session(id)
+    Note over S: Topic::Session(id) told
     S->>S: Bob's status from his fold
     S-->>A: GetCurrentSessionResponse (whole)
 ```
 
 The server sends the session (whole, never a diff):
 
-- when a `Change` concerning the caller is broadcast (`ServerDb::subscribe`):
-  their membership, a session they are in, requests to join them;
+- when a change concerning the caller is told (`ServerDb::watch`, by user
+  and by the session their pointer names): their membership, a session they
+  are in, requests to join them;
 - on connect, and re-checked every 20 s (`RESEND_EVERY`) as a backstop for a
   missed notification. A view identical to the last one sent is not sent
   again.
@@ -149,5 +150,5 @@ account): they record who trained together and back
   staleness marker.
 - **`session_members` grows forever.** Its rows are the record of who
   trained together; only deleting an account removes them.
-- **The broadcast is in-process.** A second backend instance would not hear
+- **Changes are told in process.** A second backend instance would not hear
   the first one's changes.

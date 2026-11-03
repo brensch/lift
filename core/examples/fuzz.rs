@@ -24,11 +24,12 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use schlift_core::account::Account;
 use schlift_core::api::{Call, View};
+use schlift_core::events::Event;
 use schlift_core::pb::{
     workout_mutation::Mutation, AddExercisesRequest, AdjustExerciseWeightRequest,
     AnswerRungRequest, AppendWorkoutMutationsRequest, ApplyLibraryPlanRequest,
     CompleteOnboardingRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
-    EditCompletedSetRequest, EndWorkoutRequest, Event, Exercise, ExerciseDecision, ExercisePlan,
+    EditCompletedSetRequest, EndWorkoutRequest, Exercise, ExerciseDecision, ExercisePlan,
     GetHomeRequest, GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
     ReorderExercisesRequest, RepsLeft, SetOverrideRequest, SkipWarmupsRequest, StartSetRequest,
     StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutState,

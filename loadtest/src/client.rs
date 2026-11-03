@@ -15,11 +15,12 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::workout_mutation::Mutation;
 use schlift::workout::v1::workout_service_client::WorkoutServiceClient;
 use schlift::workout::v1::*;
+use schlift_core::events::Event;
 use schlift_native::store::Store;
 use std::collections::VecDeque;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::{mpsc, watch};
 use tokio_stream::wrappers::ReceiverStream;
@@ -60,11 +61,14 @@ pub struct Client {
     passkey: WebauthnAuthenticator<SoftPasskey>,
     store: Option<Store>,
     up: Option<mpsc::Sender<SyncRequest>>,
-    head: watch::Receiver<i64>,
-    head_tx: watch::Sender<i64>,
+    /// What the server sends, handed over by the stream's reader.
+    down: Option<mpsc::Receiver<SyncResponse>>,
+    /// The last pending event this stream sent (`Store::pending_after`).
     sent_up_to: i64,
-    /// Pushes awaiting the head that acknowledges them: (last seq, sent).
-    in_flight: Arc<Mutex<VecDeque<(i64, Instant)>>>,
+    /// The last head the server reported.
+    head: i64,
+    /// Pushes waiting to come back placed: (last event's id, when sent).
+    in_flight: VecDeque<(String, Instant)>,
     lost: Arc<AtomicBool>,
 }
 
@@ -76,7 +80,6 @@ impl Client {
         metrics: Arc<Metrics>,
         profile: Profile,
     ) -> Self {
-        let (head_tx, head) = watch::channel(0);
         Client {
             username: format!("load-{run}-{n}"),
             ip: format!("10.{}.{}.{}", (n >> 16) & 255, (n >> 8) & 255, n & 255),
@@ -87,10 +90,10 @@ impl Client {
             passkey: WebauthnAuthenticator::new(SoftPasskey::new(true)),
             store: None,
             up: None,
-            head,
-            head_tx,
+            down: None,
             sent_up_to: 0,
-            in_flight: Arc::default(),
+            head: 0,
+            in_flight: VecDeque::new(),
             lost: Arc::default(),
         }
     }
@@ -116,7 +119,7 @@ impl Client {
             self.web_reads().await?;
         }
         self.drain().await?;
-        let events = self.store()?.events_after(0)?;
+        let events = self.store()?.events()?;
         Ok(Outcome {
             username: self.username,
             token: self.token,
@@ -264,9 +267,16 @@ impl Client {
 
     // --- Sync, as account_sync.dart does it ---
 
+    /// Open the stream: it starts with what this client holds.
     async fn dial(&mut self) -> Result<(), String> {
         let metrics = self.metrics.clone();
         let (up, rx) = mpsc::channel::<SyncRequest>(64);
+        let confirmed = self.store()?.confirmed()?;
+        up.send(SyncRequest {
+            kind: Some(sync_request::Kind::AfterSeq(confirmed)),
+        })
+        .await
+        .map_err(|_| "sync stream closed".to_string())?;
         let mut sync = SyncServiceClient::new(self.channel.clone());
         let mut down = metrics
             .time(
@@ -275,30 +285,17 @@ impl Client {
             )
             .await?
             .into_inner();
-        let (head, in_flight, lost) = (
-            self.head_tx.clone(),
-            self.in_flight.clone(),
-            self.lost.clone(),
-        );
+        let (to_client, from_server) = mpsc::channel(256);
+        let lost = self.lost.clone();
         lost.store(false, Ordering::SeqCst);
         tokio::spawn(async move {
             loop {
                 match down.message().await {
-                    Ok(Some(SyncResponse { kind: Some(kind) })) => match kind {
-                        sync_response::Kind::Head(h) => {
-                            head.send_replace(h);
-                            let mut in_flight = in_flight.lock().expect("in-flight lock");
-                            while in_flight.front().is_some_and(|(seq, _)| *seq <= h) {
-                                let (_, sent) = in_flight.pop_front().expect("front");
-                                metrics.record("sync.push_acked", sent.elapsed());
-                            }
+                    Ok(Some(message)) => {
+                        if to_client.send(message).await.is_err() {
+                            break;
                         }
-                        sync_response::Kind::Session(_) => {
-                            metrics.record("sync.session_update", Duration::ZERO)
-                        }
-                        _ => {}
-                    },
-                    Ok(Some(_)) => {}
+                    }
                     Ok(None) => break,
                     Err(status) => {
                         metrics.error("sync.stream", status.code());
@@ -309,32 +306,69 @@ impl Client {
             lost.store(true, Ordering::SeqCst);
         });
         self.up = Some(up);
+        self.down = Some(from_server);
         self.sent_up_to = 0;
         Ok(())
     }
 
-    /// Send what the server hasn't acknowledged and this stream hasn't sent.
+    /// Fold in what the server sent: events placed (this client's own coming
+    /// back, or a resend), or anything else, which is only counted.
+    fn heard(&mut self, message: SyncResponse) -> Result<(), String> {
+        match message.kind {
+            Some(sync_response::Kind::Events(events)) => {
+                let metrics = self.metrics.clone();
+                let placed = if events.packed.is_empty() {
+                    Vec::new()
+                } else {
+                    schlift_core::sync::unpack(&events.packed).map_err(|e| e.to_string())?
+                };
+                self.head = events.head;
+                let store = self.store()?;
+                metrics.time_sync("core.receive", || store.receive(placed, events.head))?;
+                let pending: Vec<String> = store.pending()?.into_iter().map(|e| e.id).collect();
+                while self
+                    .in_flight
+                    .front()
+                    .is_some_and(|(last, _)| !pending.contains(last))
+                {
+                    let (_, sent) = self.in_flight.pop_front().expect("front");
+                    self.metrics.record("sync.push_acked", sent.elapsed());
+                }
+            }
+            Some(sync_response::Kind::Session(_)) => {
+                self.metrics.record("sync.session_update", Duration::ZERO)
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    /// Everything the server has sent so far, folded in.
+    fn hear_all(&mut self) -> Result<(), String> {
+        while let Some(message) = self.down.as_mut().and_then(|down| down.try_recv().ok()) {
+            self.heard(message)?;
+        }
+        Ok(())
+    }
+
+    /// Send what this client recorded that this stream hasn't sent.
     async fn push(&mut self) -> Result<(), String> {
         if self.lost.load(Ordering::SeqCst) {
             self.metrics.record("sync.redial", Duration::ZERO);
             self.up = None;
             self.dial().await?;
         }
-        let acked = *self.head.borrow();
-        let sent_up_to = self.sent_up_to;
-        let store = self.store()?;
-        store.set_acked(acked)?;
-        if store.seq() <= sent_up_to.max(acked) {
+        self.hear_all()?;
+        let after = self.sent_up_to;
+        let (events, last) = self.store()?.pending_after(after)?;
+        let Some(last_id) = events.last().map(|e| e.id.clone()) else {
             return Ok(());
-        }
-        let events = store.events_after(acked)?;
-        let last = events.last().map_or(acked, |e| e.seq);
-        let packed = schlift_core::sync::pack(events);
-        self.in_flight
-            .lock()
-            .expect("in-flight lock")
-            .push_back((last, Instant::now()));
-        self.send(sync_request::Kind::Events(packed)).await?;
+        };
+        self.in_flight.push_back((last_id, Instant::now()));
+        self.send(sync_request::Kind::Events(schlift_core::sync::pack(
+            &events,
+        )))
+        .await?;
         self.sent_up_to = last;
         Ok(())
     }
@@ -347,7 +381,8 @@ impl Client {
     }
 
     /// Wait `total`, heartbeating as the app does and, while training,
-    /// sending heart rate. True if asked to stop.
+    /// sending heart rate; what the server sends meanwhile is folded in as
+    /// it arrives. True if asked to stop.
     async fn pause(
         &mut self,
         total: Duration,
@@ -360,10 +395,18 @@ impl Client {
             if left.is_zero() {
                 return Ok(false);
             }
-            let step = left.min(self.profile.heartbeat);
-            tokio::select! {
-                _ = tokio::time::sleep(step) => {}
-                _ = stop.changed() => return Ok(true),
+            let wake = Instant::now() + left.min(self.profile.heartbeat);
+            let message = {
+                let down = self.down.as_mut().ok_or("not connected")?;
+                tokio::select! {
+                    _ = tokio::time::sleep_until(wake.into()) => None,
+                    _ = stop.changed() => return Ok(true),
+                    message = down.recv() => message,
+                }
+            };
+            if let Some(message) = message {
+                self.heard(message)?;
+                continue;
             }
             if let Some(workout_id) = training {
                 self.heart_rate(workout_id).await?;
@@ -374,19 +417,30 @@ impl Client {
         }
     }
 
-    /// Wait until the server holds every event, then hang up.
+    /// Wait until the server has placed everything, then hang up.
     async fn drain(&mut self) -> Result<(), String> {
         self.push().await?;
-        let seq = self.store()?.seq();
         let deadline = Instant::now() + Duration::from_secs(60);
-        while *self.head.borrow() < seq {
+        loop {
+            self.hear_all()?;
+            let store = self.store()?;
+            if store.pending_count()? == 0 && store.confirmed()? >= self.head {
+                break;
+            }
             if Instant::now() > deadline {
                 self.metrics
-                    .error("sync.drain", "server never acknowledged");
+                    .error("sync.drain", "server never placed everything");
                 return Err("sync.drain timed out".into());
             }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-            self.push().await?;
+            if self.lost.load(Ordering::SeqCst) {
+                self.push().await?;
+            }
+            let down = self.down.as_mut().ok_or("not connected")?;
+            if let Ok(Some(message)) =
+                tokio::time::timeout(Duration::from_millis(200), down.recv()).await
+            {
+                self.heard(message)?;
+            }
         }
         self.up = None;
         Ok(())
