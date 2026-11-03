@@ -25,7 +25,6 @@ graph TD
     subgraph core["core/ — the domain"]
         acc["account.rs<br/>Account, apply, fold"]
         api["api.rs<br/>View / Call"]
-        proj["projection.rs<br/>SQL tables"]
         rules["plan.rs, workout/,<br/>exercise_progress.rs, volume.rs, …"]
     end
 
@@ -34,6 +33,7 @@ graph TD
         dauth["auth.rs"]
         dses["session.rs"]
         dan["analytics.rs"]
+        dmig["migrate.rs<br/>schema, user_version"]
     end
 
     authst["auth.rs<br/>AuthState — WebAuthn"]
@@ -44,7 +44,6 @@ graph TD
     w --> api
     su --> dacc
     dacc --> acc
-    dacc --> proj
     acc --> rules
     api --> acc
     au --> authst
@@ -65,8 +64,10 @@ graph TD
 | `server/user.rs` | `GetUser`, `UpdateMyProfile` |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/analytics.rs` | Page views, admin stats |
-| `db/accounts.rs` | `account_events`, the folded-account cache, projecting pushed workouts |
-| `db/` | All SQL. No SQL exists outside this directory and `core/src/projection.rs`. |
+| `db/accounts.rs` | `account_events` and the folded-account cache |
+| `db/session.rs` | `session_members`, invite tokens, join requests (in memory) |
+| `db/migrate.rs` | The schema, one version at a time (`PRAGMA user_version`) |
+| `db/` | All of the server's SQL. The only other SQL is `core/src/projection.rs`, which writes the phone's export. |
 | `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only): plain rising sessions imported with `ImportHistory` (the core's walk works out each lift's max), a live session through the real start |
 
 The rules — the plan, the reducer, volume, summaries — are in
@@ -75,12 +76,14 @@ The rules — the plan, the reducer, volume, summaries — are in
 
 ## The event store
 
-`account_events(user_id, seq, event_blob)` is every account's log.
-`ServerDb::push_events` (`src/db/accounts.rs`):
+`account_events(user_id, seq, event)` is every account's log, and the only
+place the server keeps anything the core folds. Nothing about a workout,
+set, template or setting is copied into a table: the server answers from
+the fold. `ServerDb::push_events` (`src/db/accounts.rs`):
 
 1. Takes the account's lock. Folded accounts are cached in memory, one
-   `Mutex` each, least recently used dropped past 256; a dropped account is
-   refolded from its log when next needed.
+   `Mutex` each, least recently used dropped past 256 (`CACHED_ACCOUNTS`);
+   a dropped account is refolded from its log when next needed.
 2. Checks the first pushed event it already holds against the stored one. A
    different id there means another device recorded this account:
    `account_diverged`, nothing stored.
@@ -91,9 +94,9 @@ The rules — the plan, the reducer, volume, summaries — are in
    start or an add naming lifts with no recorded decisions, a log the
    server does not hold: the push is refused (`account_diverged`),
    nothing is stored and the cached fold is dropped.
-5. In one transaction: inserts the events and rewrites the projected rows
-   (`core/src/projection.rs`) of every workout they touched. If that fails,
-   the cached fold is dropped so the next read refolds from what was written.
+5. Inserts the events in one transaction. If that fails (an account deleted
+   mid-push fails on the foreign key), the cached fold is dropped so the next
+   read refolds from what was written.
 
 Reads (`read_account`, `read_api`) take the same lock and look at the fold.
 
@@ -127,26 +130,31 @@ calls in `src/db/session.rs` publish them; every open Sync stream
 subscribes (`ServerDb::subscribe`) and re-sends what concerns its user.
 In-process only, which is one more reason the backend is single-instance.
 
-### Blob columns
+### Storage follows authority
 
-`users_current.user_blob`, `session_participants_current.participant_blob`
-and `account_events.event_blob` are protobuf. The scalar columns beside them
-exist to index and filter; the blob is the truth.
-
-> **Consequence:** adding a proto field is transparent, but you cannot query on
-> it until you also promote it to a real column.
+What the phone makes is account events: `account_events.event` is a
+protobuf `Event`, stored as it arrived and never interpreted by SQL. What
+the server owns (users, passkeys, logins, who trained together, telemetry)
+is plain columns, with no proto blobs, and every `user_id` references
+`users(id) ON DELETE CASCADE`. What only matters while the server runs
+(partners' live status, join requests) is in memory. See
+[data-model.md](data-model.md#server-tables).
 
 ### Schema changes
 
-There is no migration framework. `SERVER_SCHEMA` (`src/db/mod.rs`) and
-`core::projection::WORKOUT_SCHEMA` are `CREATE TABLE IF NOT EXISTS` blocks
-run at startup. A column added to a projected table that already exists in
-production goes in `ADDED_COLUMNS` (`src/db/mod.rs`): added at startup when
-`pragma_table_info` says it is missing. Columns the projections do not
-write stay, with their defaults.
+`src/db/migrate.rs` holds the schema, one version at a time. `PRAGMA
+user_version` is the version a database is at; `migrate` runs every step
+past it, in order, each in its own transaction, at startup (from
+`ServerDb::new_in_dir`). A schema change is a new `if version < N` block at
+the end; a step that has shipped is never edited.
 
-The projected workout tables can always be rebuilt: they are rewritten from
-the fold, and the log is the truth.
+Step 1 creates the schema in an empty database, or converts one from before
+versions (it has `users_current`): users out of their proto blob into
+columns (admins onto the row), live login tokens hashed, passkeys and page
+views copied, events copied byte for byte, each user's open session
+memberships closed but the current one; then the old copies of the events
+(the workout tables), the live-status cache, `join_requests` and eight
+tables left from older designs are dropped, and the file is vacuumed.
 
 ## Service surface
 
@@ -189,7 +197,7 @@ that arrives over `Sync`.
 
 Every RPC except the auth handshake and `ReportAuthFailure` begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
-`auth_sessions`. There is no middleware doing this — it is called explicitly in
+`logins` (by the token's SHA-256). There is no middleware doing this — it is called explicitly in
 each handler, so **a new handler that forgets the call is unauthenticated**.
 `Sync` authenticates on the stream's headers before reading anything.
 
@@ -216,14 +224,19 @@ and message before unwinding.
 ## Tests
 
 - `src/server/sync_tests.rs` — over a real server on a local port: events
-  pushed and folded, the projections they leave, divergence and a start
-  without decisions refused, an old table brought up to date, and the Sync
-  stream carrying one partner's progress to the other.
+  pushed and folded, a resent batch skipped and a gap waited out, divergence
+  and a start without decisions refused, a push after deletion storing
+  nothing, the pull being the whole log, and the Sync stream carrying one
+  partner's progress to the other.
+- `src/db/migrate.rs` — a fresh database starts at the latest version, and
+  one from before versions is converted.
 - `src/demo_seed.rs` — both demo users seed, and the walk over their
   history rises.
 - `src/server/multiplayer_tests.rs` — session roster and training-together
   history through the real handlers.
-- `src/db/auth.rs` — account deletion covers every table with a `user_id`.
+- `src/db/auth.rs` — logins are stored hashed; every table with a
+  `user_id` cascades from `users`, and deleting an account leaves nothing of
+  it.
 
 The domain's own tests are in `core/`; see [testing.md](testing.md). Run
 everything with `cargo test --workspace --all-targets`.

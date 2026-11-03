@@ -20,6 +20,7 @@ webauthn-rs = { version = "0.5", features = ["conditional-ui"] }
 serde_json = "1"
 url = "2"
 base64 = "0.22"
+sha2 = "0.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 

@@ -98,8 +98,8 @@ pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> Se
 }
 
 /// The admin gate. Like `authed_user_id` this is not middleware: every admin
-/// handler calls it at the top. Admins are stored by user id (see the
-/// `admins` table), so a re-registered username never inherits the grant.
+/// handler calls it at the top. Being an admin is on the user's row
+/// (`users.admin_since`), so a re-registered username never inherits it.
 pub(super) async fn authed_admin_id<T>(
     request: &Request<T>,
     db: &ServerDb,
@@ -159,30 +159,38 @@ pub(super) fn as_seen_by_others(mut user: User) -> User {
     user
 }
 
-/// Where a user is up to, as their session partners see it: the workout under
-/// way (or, with `workout_id`, that one — a just-finished workout stays on
-/// show) as the user's own app shows it, from their synced account.
-async fn participant_status(
+/// Where a member is up to, as their session partners see it, from their
+/// synced account: the workout under way, or else the last one to end since
+/// they joined (a just-finished workout stays on show), as their own app
+/// shows it. None if the member's account is gone.
+pub(super) async fn participant_status(
     db: &ServerDb,
     user_id: &str,
-    workout_id: Option<&str>,
-) -> ServerResult<ParticipantStatus> {
-    let user = db
-        .get_user(user_id)
-        .await
-        .map_err(internal_error)?
-        .ok_or_else(|| Status::not_found("User not found"))?;
+    joined_at: i64,
+) -> ServerResult<Option<ParticipantStatus>> {
+    let Some(user) = db.get_user(user_id).await.map_err(internal_error)? else {
+        return Ok(None);
+    };
     let now = now_unix();
     let workout = db
         .read_account(user_id, |account| {
-            let id =
-                workout_id.or_else(|| account.active_workout().map(|r| r.workout.id.as_str()))?;
-            View::new(account, now).workout_response(id).ok()
+            let id = match account.active_workout() {
+                Some(active) => active.workout.id.clone(),
+                None => account
+                    .workouts
+                    .iter()
+                    .filter(|r| r.workout.end_time >= joined_at)
+                    .max_by_key(|r| r.workout.end_time)?
+                    .workout
+                    .id
+                    .clone(),
+            };
+            View::new(account, now).workout_response(&id).ok()
         })
         .await
         .map_err(internal_error)?;
     let user = Some(as_seen_by_others(user));
-    Ok(match workout {
+    Ok(Some(match workout {
         Some(resp) => ParticipantStatus {
             user,
             active_workout_id: resp
@@ -202,20 +210,7 @@ async fn participant_status(
             user,
             ..Default::default()
         },
-    })
-}
-
-/// Write an updated participant snapshot for `user_id` into session `session_id`.
-pub(super) async fn refresh_participant_for_user(
-    db: &ServerDb,
-    user_id: &str,
-    session_id: &str,
-    workout_id: Option<&str>,
-) -> ServerResult<()> {
-    let participant = participant_status(db, user_id, workout_id).await?;
-    db.upsert_session_participant(session_id, user_id, &participant)
-        .await
-        .map_err(internal_error)
+    }))
 }
 
 #[cfg(test)]

@@ -30,9 +30,12 @@ struct Args {
     /// Clients, overriding the profile.
     #[arg(long)]
     clients: Option<usize>,
-    /// Seconds of load after the ramp, overriding the profile.
+    /// Seconds each client trains, overriding the profile.
     #[arg(long)]
     seconds: Option<u64>,
+    /// Connections to the server, overriding the profile.
+    #[arg(long)]
+    connections: Option<usize>,
     /// Test a server that is already running instead of starting one.
     #[arg(long)]
     server: Option<String>,
@@ -52,7 +55,8 @@ pub struct Profile {
     /// Clients start spread over this.
     #[serde(with = "secs")]
     pub ramp: Duration,
-    /// Load after the ramp.
+    /// How long each client trains, from its own start: the run winds down
+    /// over the ramp as it wound up.
     #[serde(with = "secs")]
     pub hold: Duration,
     /// Between workouts.
@@ -142,6 +146,9 @@ async fn main() {
     if let Some(seconds) = args.seconds {
         profile.hold = Duration::from_secs(seconds);
     }
+    if let Some(connections) = args.connections {
+        profile.connections = connections;
+    }
     match run(&args, profile).await {
         Ok(passed) => std::process::exit(if passed { 0 } else { 1 }),
         Err(error) => {
@@ -185,7 +192,6 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     );
 
     let metrics = Arc::new(Metrics::default());
-    let (stop_tx, stop) = watch::channel(false);
     let started = Instant::now();
     let mut clients = tokio::task::JoinSet::new();
     let mut leader: Option<watch::Sender<Option<String>>> = None;
@@ -209,12 +215,21 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
             metrics.clone(),
             profile,
         );
-        let stop = stop.clone();
-        clients.spawn(async move { client.run(role, stop).await });
+        // Each client trains for the hold from its own start, so the run
+        // winds down as it wound up, not all at one instant.
+        let (stop_tx, stop) = watch::channel(false);
+        let hold = profile.hold;
+        clients.spawn(async move {
+            let timer = tokio::spawn(async move {
+                tokio::time::sleep(hold).await;
+                stop_tx.send_replace(true);
+            });
+            let outcome = client.run(role, stop).await;
+            timer.abort();
+            outcome
+        });
         tokio::time::sleep(profile.ramp / profile.clients.max(1) as u32).await;
     }
-    tokio::time::sleep(profile.hold).await;
-    stop_tx.send_replace(true);
 
     let mut outcomes: Vec<Outcome> = Vec::new();
     let mut client_errors: BTreeMap<String, usize> = BTreeMap::new();

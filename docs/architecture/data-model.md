@@ -2,14 +2,15 @@
 
 An account is a log of events; everything else about it is derived. The log
 lives in two SQLite files — the account file on the phone and
-`data/server.sqlite` on the server — and both derive readable tables from it
-with the same statements (`core/src/projection.rs`). See
-[local-first.md](local-first.md) for how the log is made and synced.
+`data/server.sqlite` on the server — and both fold it in memory with the same
+core. Readable tables exist only in an exported file
+(`core/src/projection.rs`). See [local-first.md](local-first.md) for how the
+log is made and synced.
 
 ```mermaid
 graph LR
     log["Event log<br/>(the truth)"] -->|"Account::fold"| acc["Account<br/>in memory"]
-    acc -->|"projection.rs"| tables["Readable tables<br/>workouts, sets, heart rate,<br/>exercise decisions, templates"]
+    acc -->|"projection.rs<br/>(export only)"| tables["Exported file<br/>workouts, sets, heart rate,<br/>exercise decisions, templates"]
 ```
 
 ## The event log
@@ -18,10 +19,10 @@ graph LR
 |---|---|---|
 | Phone | `events(seq PK, id, at, event_blob)` | `id` and `at` copied out so the file is readable |
 | Phone | `meta(key PK, value)` | Whose account (user id, name) and the last seq the server acknowledged |
-| Server | `account_events(user_id, seq, event_blob)`, PK `(user_id, seq)` | Every account's log |
+| Server | `account_events(user_id, seq, event)`, PK `(user_id, seq)` | Every account's log, stored as it arrived |
 
-`event_blob` is an `Event` (`proto/workout/v1/account.proto`): `seq`, `id`,
-`at` and one `kind` — `start_workout` (with each lift's recorded
+`event_blob` (`event` on the server) is an `Event`
+(`proto/workout/v1/account.proto`): `seq`, `id`, `at` and one `kind` — `start_workout` (with each lift's recorded
 decision), `workout` (a `WorkoutMutation`: complete/edit/delete a set,
 start a set, skip warmups, add/adjust/remove/reorder exercises, set the
 session, end), `heart_rate`, `save_template`, `delete_template`,
@@ -43,12 +44,16 @@ it was laid out from and every weight change since), and the active
 workout's id. Nothing else is kept: each lift's estimated max is walked
 from the workouts whenever a plan is made (`core/src/plan.rs`). The
 account is never stored whole; the phone holds it in memory while the
-account is open, the server caches recently used ones.
+account is open, the server caches the 256 most recently used
+(`CACHED_ACCOUNTS`, `src/db/accounts.rs`) and refolds any other from its log.
 
-## Projected tables
+## Exported tables
 
-Rewritten from the fold as events land, so they can be dropped and rebuilt
-at any time. Nothing reads them back into the account.
+An exported account file (`Store::export`, `app/native/src/store.rs`) has
+the log and, beside it, the account as plain tables, written from the fold
+into the empty file so it reads as everything the app knows. Nothing reads
+them back into the account, and no live file holds them: not the phone's,
+not the server's.
 
 ```mermaid
 erDiagram
@@ -111,11 +116,9 @@ erDiagram
     }
 ```
 
-`WORKOUT_SCHEMA` (above) is on the server, where the owner's analytics read
-it, and in a phone's export. `ACCOUNT_SCHEMA` (`workout_templates`) is in the
-export only, so an exported file reads as everything the app knows; the
-server keeps those in the fold. The phone's live file holds only `meta`,
-`events` and `library`.
+`WORKOUT_SCHEMA` (above) and `ACCOUNT_SCHEMA` (`workout_templates`) are
+what an export contains. The phone's live file holds only `meta`, `events`
+and `library`; the server's holds only `account_events` for the account.
 
 - **`end_time = 0` means in progress.** There is no status column;
   zero-as-null is the convention.
@@ -129,10 +132,8 @@ server keeps those in the fold. The phone's live file holds only `meta`,
 - **`proposed_sets.cancelled`** is a soft delete (an exercise removed
   mid-workout), so ordering and history stay stable. `skipped` marks warmups
   skipped with "Skip".
-- **`workouts.session_id`** on the server is the session the phone recorded
-  on the workout (`SetWorkoutSession`); until it has, a workout keeps the
-  session it was first seen in, or one it was joined to since
-  (`store_events` in `src/db/accounts.rs`).
+- **`workouts.session_id`** is the session the phone recorded on the
+  workout (`SetWorkoutSession`); `''` if it never joined one.
 
 ### Template library
 
@@ -197,67 +198,94 @@ the first sync, the copy built into the app stands in.
 - The website's `/routines` page is rendered from the same YAML at build
   time (`web/scripts/sync-content.mjs`), not from an RPC.
 
-## Server-only tables
+## Server tables
 
-`SERVER_SCHEMA` (`src/db/mod.rs`), created at startup alongside
-`WORKOUT_SCHEMA`.
+What the server owns, as plain columns: who people are, how they sign in,
+who trained together, and telemetry. The schema is `src/db/migrate.rs`, one
+version at a time (see [backend.md](backend.md#schema-changes)).
 
 ```mermaid
 erDiagram
-    users_current ||--o{ passkey_credentials : "registers"
-    users_current ||--o{ auth_sessions : "holds"
-    users_current ||--o| user_current_session : "in at most one"
-    user_current_session }o--|| session_participants_current : "session"
+    users ||--o{ passkeys : "registers"
+    users ||--o{ logins : "holds"
+    users ||--o{ account_events : "logs"
+    users ||--o{ session_members : "trains in"
+    users ||--o{ page_views : "visits"
 
-    users_current {
-        TEXT user_id PK
-        BLOB user_blob "proto User"
-        TEXT username_ci UK
+    users {
+        TEXT id PK
+        TEXT username UK "COLLATE NOCASE"
         TEXT invite_token UK
-    }
-    passkey_credentials {
-        TEXT credential_id PK
-        TEXT user_id
-        TEXT credential_json "webauthn-rs Passkey"
         INTEGER created_at
-        TEXT created_at_ip
+        TEXT emoji
+        TEXT color_hex
+        REAL body_weight_kg
+        INTEGER admin_since "NULL = not an admin"
     }
-    auth_sessions {
-        TEXT token PK
-        TEXT user_id
+    passkeys {
+        TEXT credential_id PK
+        TEXT user_id FK
+        TEXT passkey_json "webauthn-rs Passkey"
+        INTEGER created_at
+        TEXT created_ip
+    }
+    logins {
+        TEXT token_hash PK "SHA-256 of the token"
+        TEXT user_id FK
         INTEGER expires_at
     }
-    user_current_session {
-        TEXT user_id PK "source of truth"
-        TEXT session_id
+    account_events {
+        TEXT user_id PK, FK
+        INTEGER seq PK
+        BLOB event "proto Event"
     }
-    session_participants_current {
+    session_members {
         TEXT session_id PK
-        TEXT user_id PK
-        BLOB participant_blob "proto ParticipantStatus"
-        INTEGER updated_at
+        TEXT user_id PK, FK
+        INTEGER joined_at
+        INTEGER left_at "0 = in it now"
+        INTEGER active_at "last activity; 0 = off show"
+    }
+    page_views {
+        TEXT user_id PK, FK
+        TEXT app_session_id PK
+        INTEGER seq PK
+        TEXT page
+        INTEGER entered_at_ms
+        INTEGER duration_ms
+    }
+    auth_attempts {
+        TEXT attempt_id PK "user id or challenge id"
+        TEXT kind
+        INTEGER started_at
+        INTEGER finished_at
+        TEXT outcome
+        TEXT reason
     }
 ```
 
 | Table | Purpose |
 |---|---|
-| `users_current` | One row per user: the `User` proto, the case-folded name, the invite token |
-| `auth_sessions`, `passkey_credentials` | See [auth.md](auth.md) |
-| `user_current_session` | Which session a user is in now; `user_id` PK, so at most one. See [multiplayer.md](multiplayer.md) |
-| `session_participants_current` | Each member's live status, rebuilt from their fold after every push |
-| `session_members` | Durable roster: every `(session, user)` that ever joined, never deleted. Backs training partners and the prior-pairing check on a join request |
-| `join_requests` | Pending "train together" asks, deleted once answered |
+| `users` | One row per user: profile, the invite token, and `admin_since` (set by `schlift admin add`). `username` is unique ignoring case. See [analytics.md](analytics.md#admins-and-the-stats-page) |
+| `passkeys`, `logins` | See [auth.md](auth.md). A login is stored as its token's SHA-256, never the token |
+| `account_events` | Every account's log. See [above](#the-event-log) |
+| `session_members` | Every `(session, user)` that joined. The current session is the row with `left_at = 0`, at most one per user (a partial unique index). See [multiplayer.md](multiplayer.md) |
 | `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. See [analytics.md](analytics.md) |
-| `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username |
-| `admins` | Who may call `AdminService.GetStats`. Keyed by `user_id`, never by name |
+| `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username, no `user_id` |
 
-`_current` means one row per key holding the latest value, overwritten in
-place.
+Not stored, only in memory:
+
+- **Partners' live status**: built from the member's folded account each time
+  a partner's view is sent (`participant_status`, `src/server/support.rs`).
+- **Join requests**: `JoinRequests` in `src/db/session.rs`, answerable for two
+  minutes.
 
 ## Referential integrity
 
-There are **no `FOREIGN KEY` constraints**. Relationships in the diagrams are
-logical. Account deletion is done by hand in `delete_user_account_and_data`
-(`src/db/auth.rs`): a table keyed by `user_id` must be added there, or
-deletion orphans rows. A test discovers every table with a `user_id` column
-and fails if one is missed.
+Every table with a `user_id` column references `users(id) ON DELETE
+CASCADE`. Deleting an account (`delete_user_account_and_data`,
+`src/db/auth.rs`) is `DELETE FROM users WHERE id = ?` plus the account's
+registration row in `auth_attempts` (keyed by the user id it created); the
+cascade takes the events, passkeys, logins, session memberships and page
+views. A test discovers every table with a `user_id` column and fails if one
+does not cascade.

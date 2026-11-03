@@ -51,14 +51,14 @@ account, so a watch works whenever the phone is reachable, network or not.
 core/               The domain, pure Rust (no IO): shared by phone and server
   src/account.rs    Account, Event, apply, fold
   src/api.rs        The app's RPCs answered from an Account (View / Call)
-  src/projection.rs The account as SQL tables (phone file, server analytics)
+  src/projection.rs The account as SQL tables, for an exported file
   src/workout/      Workout planning + state reduction
   src/exercise_catalog.rs, exercise_progress.rs, volume.rs, …
   tests/api.rs      The API end to end
   examples/fuzz.rs  The invariant fuzzer
 src/                Rust backend
   server/           gRPC handlers, one module per service
-  db/               SQLite access: auth, sessions, the event store
+  db/               SQLite access: auth, sessions, the event store, migrations
 app/                Flutter app
   native/           The core's host shim: account file, flutter_rust_bridge API
   rust_builder/     cargokit: builds app/native into the app
@@ -118,13 +118,13 @@ sequenceDiagram
     P->>N: call("AppendWorkoutMutations", bytes)
     N->>C: Call::append_workout_mutations
     C->>C: record Event (apply through the reducer)
-    N->>N: write event + projected rows to the file
+    N->>N: append the event to the file
     C-->>P: GetWorkoutResponse (the new state)
     P->>P: notifyListeners()
     Note over P: on screen; no network involved
     N-->>Y: writes stream fires
     Y->>S: SyncRequest{events: outbox, zstd}
-    S->>S: push_events: store, fold, project
+    S->>S: push_events: fold, store
     S-->>Y: head (ack)
     Y->>N: acked(head) — outbox shrinks
 ```
