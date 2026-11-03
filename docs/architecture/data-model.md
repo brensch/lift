@@ -49,9 +49,8 @@ it was laid out from and every weight change since), and the active
 workout's id. Nothing else is kept: each lift's estimated max is walked
 from the workouts whenever a plan is made (`core/src/plan.rs`). The
 account is never stored whole; the phone holds it in memory while the
-account is open, the server caches the 256 most recently used
-(`CACHED_ACCOUNTS`, `src/db/accounts.rs`) and refolds any other from its
-history.
+account is open, and the server folds it from its history only when the
+website asks, keeping nothing.
 
 ## Exported tables
 
@@ -251,7 +250,7 @@ erDiagram
         TEXT user_id PK, FK
         INTEGER joined_at
         INTEGER left_at "0 = in it now"
-        INTEGER active_at "last activity; 0 = off show"
+        INTEGER ended_at "left by ending a workout; 0 = not"
     }
     page_views {
         TEXT user_id PK, FK
@@ -282,8 +281,8 @@ erDiagram
 
 Not stored, only in memory:
 
-- **Partners' live status**: built from the member's folded account each time
-  a partner's view is sent (`participant_status`, `src/server/support.rs`).
+- **Which stream watches whom**: each Sync stream watches its own account,
+  its session, and its partners' accounts (`src/db/changes.rs`).
 - **Join requests**: `JoinRequests` in `src/db/session.rs`, answerable for two
   minutes.
 

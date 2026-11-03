@@ -4,6 +4,7 @@
 //! the first, with the second applied on top. The readable tables
 //! (`schlift_core::projection`) are written only into an export.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use prost::Message;
@@ -65,6 +66,9 @@ CREATE TABLE IF NOT EXISTS heart_rate (
 /// in another form) has them dropped: they come back from the server.
 const FORMAT: i64 = 1;
 
+/// The most events in one push.
+pub const PUSH_EVENTS: i64 = 500;
+
 /// A store error, as the app shows it: `code: message`, where code is
 /// invalid_argument, not_found, failed_precondition or storage.
 pub type StoreResult<T> = Result<T, String>;
@@ -78,6 +82,9 @@ pub struct Store {
     user_id: String,
     account: Account,
     library: Vec<LibraryTemplate>,
+    /// Session partners' workouts, as the events the server forwarded:
+    /// folded for what they're up to, held only while the app runs.
+    partners: HashMap<String, Vec<Event>>,
 }
 
 impl Store {
@@ -135,6 +142,7 @@ impl Store {
             user_id: user_id.to_string(),
             account: Account::default(),
             library: schlift_core::template_library::library().to_vec(),
+            partners: HashMap::new(),
         };
         let saved: Option<Vec<u8>> = store
             .conn
@@ -298,6 +306,42 @@ impl Store {
         Ok(())
     }
 
+    /// A session partner's workout events from the server: their workout so
+    /// far (`whole`, replacing what was held) or more of it. One already
+    /// held is skipped.
+    pub fn receive_partner(&mut self, partner: &str, events: Vec<Event>, whole: bool) {
+        let held = self.partners.entry(partner.to_string()).or_default();
+        if whole {
+            held.clear();
+        }
+        for event in events {
+            if !held.iter().any(|e| e.id == event.id) {
+                held.push(event);
+            }
+        }
+    }
+
+    /// Where a partner is up to, folded from their events (see
+    /// `schlift_core::session::partner_status`), as proto bytes; None once
+    /// they're off show.
+    pub fn partner_status(
+        &self,
+        partner: &str,
+        joined_at: i64,
+        ended_at: i64,
+        now: i64,
+    ) -> Option<Vec<u8>> {
+        let held = self.partners.get(partner).map_or(&[][..], Vec::as_slice);
+        schlift_core::session::partner_status(held, joined_at, ended_at, now)
+            .map(|status| status.encode_to_vec())
+    }
+
+    /// Drop the partners no longer in the session.
+    pub fn keep_partners(&mut self, partners: &[String]) {
+        self.partners
+            .retain(|partner, _| partners.contains(partner));
+    }
+
     /// The last seq this file holds: where the server picks up.
     pub fn confirmed(&self) -> StoreResult<i64> {
         self.conn
@@ -315,15 +359,17 @@ impl Store {
         self.read("SELECT event FROM pending ORDER BY n")
     }
 
-    /// The pending events after the one numbered `after` (a stream's last
-    /// sent), and the number of the last: what a stream hasn't sent yet.
+    /// Up to `PUSH_EVENTS` pending events after the one numbered `after` (a
+    /// stream's last sent), and the number of the last: the next push. A
+    /// long time offline goes up in pieces, each well inside what the
+    /// server takes in one message.
     pub fn pending_after(&self, after: i64) -> StoreResult<(Vec<Event>, i64)> {
         let mut query = self
             .conn
-            .prepare_cached("SELECT n, event FROM pending WHERE n > ? ORDER BY n")
+            .prepare_cached("SELECT n, event FROM pending WHERE n > ? ORDER BY n LIMIT ?")
             .map_err(storage)?;
         let rows = query
-            .query_map([after], |r| {
+            .query_map([after, PUSH_EVENTS], |r| {
                 Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
             })
             .map_err(storage)?
@@ -831,6 +877,30 @@ mod tests {
         store
             .call("GetHome", &GetHomeRequest::default().encode_to_vec(), 2_030)
             .unwrap();
+    }
+
+    #[test]
+    fn a_long_outbox_goes_up_in_pieces() {
+        let mut store = Store::open(&temp("pieces"), U1, "").unwrap();
+        let setting = schlift_core::pb::UpdateSettingRequest {
+            setting: Some(schlift_core::pb::UserSetting {
+                setting: Some(schlift_core::pb::user_setting::Setting::WeightUnit(
+                    schlift_core::pb::WeightUnitConfig {
+                        unit: WeightUnit::Kg as i32,
+                    },
+                )),
+            }),
+        }
+        .encode_to_vec();
+        let recorded = PUSH_EVENTS as usize + 20;
+        for n in 0..recorded {
+            store.call("UpdateSetting", &setting, n as i64).unwrap();
+        }
+        let (first, last) = store.pending_after(0).unwrap();
+        assert_eq!(first.len(), PUSH_EVENTS as usize);
+        let (rest, end) = store.pending_after(last).unwrap();
+        assert_eq!(rest.len(), 20);
+        assert!(store.pending_after(end).unwrap().0.is_empty());
     }
 
     #[test]

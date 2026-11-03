@@ -64,6 +64,44 @@ Future<bool> receive({
   head: head,
 );
 
+/// A session partner's workout events (packed) from the server: their
+/// workout so far when `whole`, else more of it.
+Future<void> receivePartner({
+  required int handle,
+  required String partner,
+  required List<int> packed,
+  required bool whole,
+}) => RustLib.instance.api.crateApiReceivePartner(
+  handle: handle,
+  partner: partner,
+  packed: packed,
+  whole: whole,
+);
+
+/// Where a partner is up to now (a ParticipantStatus, without who they are),
+/// given when they joined and ended from the session; None once they're off
+/// show.
+Future<Uint8List?> partnerStatus({
+  required int handle,
+  required String partner,
+  required PlatformInt64 joinedAt,
+  required PlatformInt64 endedAt,
+}) => RustLib.instance.api.crateApiPartnerStatus(
+  handle: handle,
+  partner: partner,
+  joinedAt: joinedAt,
+  endedAt: endedAt,
+);
+
+/// Forget the partners not in `partners`: the session's members now.
+Future<void> keepPartners({
+  required int handle,
+  required List<String> partners,
+}) => RustLib.instance.api.crateApiKeepPartners(
+  handle: handle,
+  partners: partners,
+);
+
 /// The template library the server sent (a packed
 /// ListTemplateLibraryResponse). Returns whether it changed.
 Future<bool> setLibrary({required int handle, required List<int> packed}) =>

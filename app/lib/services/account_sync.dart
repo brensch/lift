@@ -58,9 +58,12 @@ class AccountSync extends ChangeNotifier
 
   // ── What the stream brings down ──
 
-  GetCurrentSessionResponse _session = GetCurrentSessionResponse();
+  Session _session = Session();
   GetJoinRequestsResponse _joinRequests = GetJoinRequestsResponse();
-  GetCurrentSessionResponse get session => _session;
+
+  /// Who else is in the caller's session. Where each is up to is
+  /// [partnerStatus], from their events.
+  Session get session => _session;
   GetJoinRequestsResponse get joinRequests => _joinRequests;
 
   /// The stream is up and the server answered within [_silenceLimit].
@@ -160,7 +163,7 @@ class AccountSync extends ChangeNotifier
     _core?.close();
     _core = null;
     if (_ready.isCompleted) _ready = Completer<LocalCore>();
-    _session = GetCurrentSessionResponse();
+    _session = Session();
     _joinRequests = GetJoinRequestsResponse();
     _unsynced = 0;
     notifyListeners();
@@ -216,6 +219,18 @@ class AccountSync extends ChangeNotifier
         break;
       case SyncResponse_Kind.session:
         _session = message.session;
+        await _core?.keepPartners([
+          for (final member in _session.members) member.user.id,
+        ]);
+        notifyListeners();
+      case SyncResponse_Kind.partnerEvents:
+        // A partner's workout as events: this phone's core folds them.
+        final partner = message.partnerEvents;
+        await _core?.receivePartner(
+          partner.userId,
+          partner.packed,
+          whole: partner.whole,
+        );
         notifyListeners();
       case SyncResponse_Kind.joinRequests:
         _joinRequests = message.joinRequests;
@@ -252,12 +267,18 @@ class AccountSync extends ChangeNotifier
     await _push();
   }
 
+  /// Where [member] is up to, folded on this phone from their workout's
+  /// events; null once they're off show.
+  Future<ParticipantStatus?> partnerStatus(SessionMember member) async =>
+      await _core?.partnerStatus(member);
+
   /// Called after the server changed what the account shows (another
   /// device's events, or a new template library): what's on screen may
   /// have changed.
   VoidCallback? onCaughtUp;
 
-  /// Send what this phone recorded that hasn't been sent on this stream.
+  /// Send what this phone recorded that hasn't been sent on this stream, in
+  /// pieces (the store hands out at most a few hundred events at a time).
   Future<void> _push() async {
     final core = _core;
     final up = _up;
@@ -268,13 +289,15 @@ class AccountSync extends ChangeNotifier
       return;
     }
     await _refreshUnsynced();
-    final after = _sentUpTo;
-    if (after == null) return;
-    final (packed, last) = await core.outbox(after);
-    // Another push may have sent them meanwhile.
-    if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
-    _sentUpTo = last;
-    up.add(SyncRequest(events: packed));
+    while (true) {
+      final after = _sentUpTo;
+      if (after == null) return;
+      final (packed, last) = await core.outbox(after);
+      // Another push may have sent them meanwhile.
+      if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
+      _sentUpTo = last;
+      up.add(SyncRequest(events: packed));
+    }
   }
 
   Future<void> _refreshUnsynced() async {

@@ -17,8 +17,6 @@ pub use accounts::Pushed;
 pub use changes::{Change, Topic};
 mod session;
 pub use session::JOIN_REQUEST_TTL_SECONDS;
-#[cfg(test)]
-pub use session::SESSION_IDLE_SECONDS;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
 
@@ -28,7 +26,6 @@ pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 pub struct ServerDb {
     pub read_pool: Pool<Sqlite>,
     write_pool: Pool<Sqlite>,
-    accounts: std::sync::Arc<accounts::AccountCache>,
     join_requests: std::sync::Arc<session::JoinRequests>,
     changes: std::sync::Arc<changes::Changes>,
 }
@@ -56,7 +53,6 @@ impl ServerDb {
         Ok(Self {
             read_pool,
             write_pool,
-            accounts: Default::default(),
             join_requests: Default::default(),
             changes: Default::default(),
         })

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart' show ToastGravity;
 import '../services/toast.dart';
@@ -14,16 +15,17 @@ import '../theme/schlift_spec.dart';
 
 /// The caller's multiplayer session and the requests to join them.
 ///
-/// Membership lives on the server (`user_current_session`); the Sync stream
-/// ([AccountSync]) pushes the session, whole, whenever anyone in it does
-/// anything, and the requests whenever they change. This provider only
-/// reflects them, and makes the online-only calls (join, leave, ask).
+/// Membership lives on the server; the Sync stream ([AccountSync]) brings
+/// who is in the session whenever that changes, and each partner's workout
+/// as events, which this phone's core folds into where they're up to. This
+/// provider only reflects them, and makes the online-only calls (join,
+/// leave, ask).
 class MultiplayerProvider extends ChangeNotifier {
   final MultiplayerServiceWrapper _service;
   final AccountSync? _feed;
 
   String? _sessionId;
-  SessionStatus? _sessionStatus;
+  List<ParticipantStatus> _participants = const [];
   String? _myInviteToken;
   bool _isLoading = false;
   bool _disposed = false;
@@ -36,8 +38,9 @@ class MultiplayerProvider extends ChangeNotifier {
   }
 
   String? get sessionId => _sessionId;
-  SessionStatus? get sessionStatus => _sessionStatus;
-  List<ParticipantStatus> get participants => sessionStatus?.participants ?? [];
+
+  /// The partners on show, each as their workout's events fold.
+  List<ParticipantStatus> get participants => _participants;
   bool get isInSession => sessionId != null;
   bool get isLoading => _isLoading;
   String? get myInviteToken => _myInviteToken;
@@ -48,12 +51,20 @@ class MultiplayerProvider extends ChangeNotifier {
   List<JoinRequest> _incomingRequests = [];
   List<JoinRequest> get incomingRequests => _incomingRequests;
 
+  /// How long a request to join can be answered (the server's
+  /// JOIN_REQUEST_TTL_SECONDS): an older one is not shown.
+  static const _requestsLast = Duration(seconds: 120);
+
   /// The stream brought something down.
   void _heard() {
     final feed = _feed;
     if (feed == null || !_syncEnabled) return;
-    _apply(feed.session);
-    final requests = feed.joinRequests.requests;
+    unawaited(_refresh(feed));
+    final since =
+        DateTime.now().subtract(_requestsLast).millisecondsSinceEpoch ~/ 1000;
+    final requests = feed.joinRequests.requests
+        .where((r) => r.createdAt.toInt() >= since)
+        .toList();
     final changed =
         requests.map((r) => r.requestId).join(',') !=
         _incomingRequests.map((r) => r.requestId).join(',');
@@ -61,14 +72,31 @@ class MultiplayerProvider extends ChangeNotifier {
     if (changed && !_disposed) notifyListeners();
   }
 
-  void _apply(GetCurrentSessionResponse response) {
-    final id = response.sessionId.isEmpty || !response.hasSessionStatus()
-        ? null
-        : response.sessionId;
-    final status = id == null ? null : response.sessionStatus;
-    if (id == _sessionId && status == _sessionStatus) return;
+  int _refreshes = 0;
+
+  /// The session as the stream last brought it, each partner's status
+  /// folded from their events (null ones are off show).
+  Future<void> _refresh(AccountSync feed) async {
+    final refresh = ++_refreshes;
+    final session = feed.session;
+    final participants = <ParticipantStatus>[];
+    for (final member in session.members) {
+      final status = await feed.partnerStatus(member);
+      if (status != null) participants.add(status..user = member.user);
+    }
+    if (refresh != _refreshes || _disposed) return;
+    final id = session.sessionId.isEmpty ? null : session.sessionId;
+    if (id == _sessionId && listEquals(participants, _participants)) return;
     _sessionId = id;
-    _sessionStatus = status;
+    _participants = participants;
+    notifyListeners();
+  }
+
+  void _clearSession() {
+    _refreshes++;
+    if (_sessionId == null && _participants.isEmpty) return;
+    _sessionId = null;
+    _participants = const [];
     if (!_disposed) notifyListeners();
   }
 
@@ -113,7 +141,6 @@ class MultiplayerProvider extends ChangeNotifier {
         .where((r) => r.requestId != requestId)
         .toList();
     if (!_disposed) notifyListeners();
-    if (accept) await checkForSession();
   }
 
   void startSync() {
@@ -122,17 +149,6 @@ class MultiplayerProvider extends ChangeNotifier {
     _syncEnabled = true;
     unawaited(_ensureInviteToken());
     _heard();
-  }
-
-  /// Ask for the session now, rather than waiting for the stream (straight
-  /// after joining).
-  Future<void> checkForSession() async {
-    if (_disposed) return;
-    try {
-      _apply(await _service.getCurrentSession());
-    } catch (_) {
-      // The stream brings it anyway.
-    }
   }
 
   bool _inviteTokenRetryScheduled = false;
@@ -181,7 +197,6 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       await _service.joinViaInvite(token);
       _syncEnabled = true;
-      await checkForSession();
       showToast(
         msg: "JOINED GROUP",
         backgroundColor: schliftSpec.success,
@@ -211,7 +226,7 @@ class MultiplayerProvider extends ChangeNotifier {
         'error': e.toString(),
       });
     }
-    _apply(GetCurrentSessionResponse());
+    _clearSession();
   }
 
   String _extractToken(String input) {
@@ -226,7 +241,7 @@ class MultiplayerProvider extends ChangeNotifier {
 
   void clear() {
     _syncEnabled = false;
-    _apply(GetCurrentSessionResponse());
+    _clearSession();
     _myInviteToken = null;
   }
 

@@ -296,7 +296,11 @@ async fn v2(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
              event TEXT NOT NULL,
              PRIMARY KEY (user_id, seq),
              UNIQUE (user_id, id)
-         );",
+         );
+         -- Membership is written on joining, leaving and ending a workout,
+         -- never per set: who is active is read from their events.
+         ALTER TABLE session_members DROP COLUMN active_at;
+         ALTER TABLE session_members ADD COLUMN ended_at INTEGER NOT NULL DEFAULT 0;",
     )
     .execute(&mut **tx)
     .await?;
@@ -530,7 +534,7 @@ mod tests {
             Some("invite-2")
         );
         assert_eq!(
-            db.get_user_current_session("u1").await.unwrap().as_deref(),
+            db.get_user_session_pointer("u1").await.unwrap().as_deref(),
             Some("s2")
         );
         assert!(

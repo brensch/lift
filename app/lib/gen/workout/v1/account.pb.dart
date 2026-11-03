@@ -346,22 +346,32 @@ class Heartbeat extends $pb.GeneratedMessage {
   static Heartbeat? _defaultInstance;
 }
 
-enum SyncResponse_Kind { head, session, joinRequests, library, events, notSet }
+enum SyncResponse_Kind {
+  head,
+  joinRequests,
+  library,
+  events,
+  session,
+  partnerEvents,
+  notSet
+}
 
 class SyncResponse extends $pb.GeneratedMessage {
   factory SyncResponse({
     $fixnum.Int64? head,
-    $2.GetCurrentSessionResponse? session,
     $2.GetJoinRequestsResponse? joinRequests,
     $1.ListTemplateLibraryResponse? library,
     Events? events,
+    $2.Session? session,
+    PartnerEvents? partnerEvents,
   }) {
     final result = create();
     if (head != null) result.head = head;
-    if (session != null) result.session = session;
     if (joinRequests != null) result.joinRequests = joinRequests;
     if (library != null) result.library = library;
     if (events != null) result.events = events;
+    if (session != null) result.session = session;
+    if (partnerEvents != null) result.partnerEvents = partnerEvents;
     return result;
   }
 
@@ -377,25 +387,28 @@ class SyncResponse extends $pb.GeneratedMessage {
   static const $core.Map<$core.int, SyncResponse_Kind> _SyncResponse_KindByTag =
       {
     1: SyncResponse_Kind.head,
-    2: SyncResponse_Kind.session,
     3: SyncResponse_Kind.joinRequests,
     4: SyncResponse_Kind.library,
     5: SyncResponse_Kind.events,
+    6: SyncResponse_Kind.session,
+    7: SyncResponse_Kind.partnerEvents,
     0: SyncResponse_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'SyncResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2, 3, 4, 5])
+    ..oo(0, [1, 3, 4, 5, 6, 7])
     ..aInt64(1, _omitFieldNames ? '' : 'head')
-    ..aOM<$2.GetCurrentSessionResponse>(2, _omitFieldNames ? '' : 'session',
-        subBuilder: $2.GetCurrentSessionResponse.create)
     ..aOM<$2.GetJoinRequestsResponse>(3, _omitFieldNames ? '' : 'joinRequests',
         subBuilder: $2.GetJoinRequestsResponse.create)
     ..aOM<$1.ListTemplateLibraryResponse>(4, _omitFieldNames ? '' : 'library',
         subBuilder: $1.ListTemplateLibraryResponse.create)
     ..aOM<Events>(5, _omitFieldNames ? '' : 'events', subBuilder: Events.create)
+    ..aOM<$2.Session>(6, _omitFieldNames ? '' : 'session',
+        subBuilder: $2.Session.create)
+    ..aOM<PartnerEvents>(7, _omitFieldNames ? '' : 'partnerEvents',
+        subBuilder: PartnerEvents.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -418,16 +431,18 @@ class SyncResponse extends $pb.GeneratedMessage {
   static SyncResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
+  @$pb.TagNumber(6)
+  @$pb.TagNumber(7)
   SyncResponse_Kind whichKind() => _SyncResponse_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
   @$pb.TagNumber(5)
+  @$pb.TagNumber(6)
+  @$pb.TagNumber(7)
   void clearKind() => $_clearField($_whichOneof(0));
 
   /// The last seq the server holds: the answer to a heartbeat.
@@ -440,55 +455,150 @@ class SyncResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearHead() => $_clearField(1);
 
-  /// The caller's session, whole: who's in it and where each is up to.
-  /// Empty session_id when not in one.
-  @$pb.TagNumber(2)
-  $2.GetCurrentSessionResponse get session => $_getN(1);
-  @$pb.TagNumber(2)
-  set session($2.GetCurrentSessionResponse value) => $_setField(2, value);
-  @$pb.TagNumber(2)
-  $core.bool hasSession() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearSession() => $_clearField(2);
-  @$pb.TagNumber(2)
-  $2.GetCurrentSessionResponse ensureSession() => $_ensure(1);
-
   /// Requests to join the caller, whole.
   @$pb.TagNumber(3)
-  $2.GetJoinRequestsResponse get joinRequests => $_getN(2);
+  $2.GetJoinRequestsResponse get joinRequests => $_getN(1);
   @$pb.TagNumber(3)
   set joinRequests($2.GetJoinRequestsResponse value) => $_setField(3, value);
   @$pb.TagNumber(3)
-  $core.bool hasJoinRequests() => $_has(2);
+  $core.bool hasJoinRequests() => $_has(1);
   @$pb.TagNumber(3)
   void clearJoinRequests() => $_clearField(3);
   @$pb.TagNumber(3)
-  $2.GetJoinRequestsResponse ensureJoinRequests() => $_ensure(2);
+  $2.GetJoinRequestsResponse ensureJoinRequests() => $_ensure(1);
 
   /// The template library as the server has it: what coupled templates
   /// follow. Sent on connect.
   @$pb.TagNumber(4)
-  $1.ListTemplateLibraryResponse get library => $_getN(3);
+  $1.ListTemplateLibraryResponse get library => $_getN(2);
   @$pb.TagNumber(4)
   set library($1.ListTemplateLibraryResponse value) => $_setField(4, value);
   @$pb.TagNumber(4)
-  $core.bool hasLibrary() => $_has(3);
+  $core.bool hasLibrary() => $_has(2);
   @$pb.TagNumber(4)
   void clearLibrary() => $_clearField(4);
   @$pb.TagNumber(4)
-  $1.ListTemplateLibraryResponse ensureLibrary() => $_ensure(3);
+  $1.ListTemplateLibraryResponse ensureLibrary() => $_ensure(2);
 
   /// Events in the server's order, each with its seq.
   @$pb.TagNumber(5)
-  Events get events => $_getN(4);
+  Events get events => $_getN(3);
   @$pb.TagNumber(5)
   set events(Events value) => $_setField(5, value);
   @$pb.TagNumber(5)
-  $core.bool hasEvents() => $_has(4);
+  $core.bool hasEvents() => $_has(3);
   @$pb.TagNumber(5)
   void clearEvents() => $_clearField(5);
   @$pb.TagNumber(5)
-  Events ensureEvents() => $_ensure(4);
+  Events ensureEvents() => $_ensure(3);
+
+  /// The caller's session, whole: who else is in it. Empty session_id
+  /// when not in one.
+  @$pb.TagNumber(6)
+  $2.Session get session => $_getN(4);
+  @$pb.TagNumber(6)
+  set session($2.Session value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSession() => $_has(4);
+  @$pb.TagNumber(6)
+  void clearSession() => $_clearField(6);
+  @$pb.TagNumber(6)
+  $2.Session ensureSession() => $_ensure(4);
+
+  /// A session partner's workout, as events.
+  @$pb.TagNumber(7)
+  PartnerEvents get partnerEvents => $_getN(5);
+  @$pb.TagNumber(7)
+  set partnerEvents(PartnerEvents value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPartnerEvents() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearPartnerEvents() => $_clearField(7);
+  @$pb.TagNumber(7)
+  PartnerEvents ensurePartnerEvents() => $_ensure(5);
+}
+
+class PartnerEvents extends $pb.GeneratedMessage {
+  factory PartnerEvents({
+    $core.String? userId,
+    $core.List<$core.int>? packed,
+    $core.bool? whole,
+  }) {
+    final result = create();
+    if (userId != null) result.userId = userId;
+    if (packed != null) result.packed = packed;
+    if (whole != null) result.whole = whole;
+    return result;
+  }
+
+  PartnerEvents._();
+
+  factory PartnerEvents.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PartnerEvents.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PartnerEvents',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'userId')
+    ..a<$core.List<$core.int>>(
+        2, _omitFieldNames ? '' : 'packed', $pb.PbFieldType.OY)
+    ..aOB(3, _omitFieldNames ? '' : 'whole')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PartnerEvents clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PartnerEvents copyWith(void Function(PartnerEvents) updates) =>
+      super.copyWith((message) => updates(message as PartnerEvents))
+          as PartnerEvents;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PartnerEvents create() => PartnerEvents._();
+  @$core.override
+  PartnerEvents createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PartnerEvents getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PartnerEvents>(create);
+  static PartnerEvents? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get userId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set userId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUserId() => $_clearField(1);
+
+  /// A zstd-compressed JSON array of the events of their workout: its start,
+  /// its sets, its end. Never their heart rate, templates or anything else.
+  @$pb.TagNumber(2)
+  $core.List<$core.int> get packed => $_getN(1);
+  @$pb.TagNumber(2)
+  set packed($core.List<$core.int> value) => $_setBytes(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPacked() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPacked() => $_clearField(2);
+
+  /// Their workout so far, replacing whatever came before; otherwise more of
+  /// it, as they record it.
+  @$pb.TagNumber(3)
+  $core.bool get whole => $_getBF(2);
+  @$pb.TagNumber(3)
+  set whole($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasWhole() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWhole() => $_clearField(3);
 }
 
 class Events extends $pb.GeneratedMessage {

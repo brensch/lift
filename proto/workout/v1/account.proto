@@ -38,9 +38,12 @@ message ImportedWorkout {
 // every event after it, then each new one as it is stored, from whichever
 // device, in the server's order. Up go the phone's own events as it records
 // them, without a place; the server gives each one (once: an event it already
-// holds, by id, is skipped) and sends it back down with the others. While in
-// a session, down also come the partners' status, whole, on connect and on
-// every change, so a dropped message is healed by the next.
+// holds, by id, is skipped) and sends it back down with the others.
+//
+// While in a session, down also come who is in it (whole, on connect and on
+// every change) and each partner's workout as events: the workout so far on
+// connect or when they join, then each event as they record it. The phone
+// folds them; the server keeps nothing of it but who is in which session.
 
 service SyncService {
   rpc Sync(stream SyncRequest) returns (stream SyncResponse);
@@ -68,15 +71,28 @@ message SyncResponse {
     Events events = 5;
     // The last seq the server holds: the answer to a heartbeat.
     int64 head = 1;
-    // The caller's session, whole: who's in it and where each is up to.
-    // Empty session_id when not in one.
-    GetCurrentSessionResponse session = 2;
+    // The caller's session, whole: who else is in it. Empty session_id
+    // when not in one.
+    Session session = 6;
+    // A session partner's workout, as events.
+    PartnerEvents partner_events = 7;
     // Requests to join the caller, whole.
     GetJoinRequestsResponse join_requests = 3;
     // The template library as the server has it: what coupled templates
     // follow. Sent on connect.
     ListTemplateLibraryResponse library = 4;
   }
+  reserved 2;
+}
+
+message PartnerEvents {
+  string user_id = 1;
+  // A zstd-compressed JSON array of the events of their workout: its start,
+  // its sets, its end. Never their heart rate, templates or anything else.
+  bytes packed = 2;
+  // Their workout so far, replacing whatever came before; otherwise more of
+  // it, as they record it.
+  bool whole = 3;
 }
 
 message Events {

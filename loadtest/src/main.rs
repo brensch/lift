@@ -74,6 +74,12 @@ pub struct Profile {
     pub grouped: f64,
     /// Connections to the server, shared by the clients (as Caddy does).
     pub connections: usize,
+    /// Weeks of training each client restores before it starts (generated
+    /// by schlift_testkit, as a phone would have recorded them): accounts
+    /// the size real ones grow to.
+    pub history_weeks: u32,
+    /// Clients that only keep the app open, synced, without training.
+    pub watchers: f64,
 }
 
 impl Profile {
@@ -88,6 +94,8 @@ impl Profile {
             max_sets: 12,
             grouped: 0.3,
             connections: 8,
+            history_weeks: 0,
+            watchers: 0.0,
         };
         match name {
             "smoke" => Some(smoke),
@@ -98,6 +106,20 @@ impl Profile {
                 idle: Duration::from_secs(10),
                 set_every: Duration::from_secs(5),
                 connections: 32,
+                ..smoke
+            }),
+            // Accounts a year old, and half the clients only watching:
+            // more accounts than the server keeps folded, each refolded
+            // from a year of history when it is needed again.
+            "long" => Some(Profile {
+                clients: 400,
+                ramp: Duration::from_secs(60),
+                hold: Duration::from_secs(120),
+                idle: Duration::from_secs(10),
+                set_every: Duration::from_secs(5),
+                connections: 32,
+                history_weeks: 52,
+                watchers: 0.5,
                 ..smoke
             }),
             _ => None,
@@ -195,9 +217,51 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     let metrics = Arc::new(Metrics::default());
     let started = Instant::now();
     let mut clients = tokio::task::JoinSet::new();
+    // Set up: every account signs up, restores its history and connects
+    // before anything is measured as load, a few dozen at a time.
+    let mut client_errors: BTreeMap<String, usize> = BTreeMap::new();
+    let gate = Arc::new(tokio::sync::Semaphore::new(64));
+    let mut preparing = tokio::task::JoinSet::new();
+    for n in 0..profile.clients {
+        // Watchers are spread through the run, not bunched at one end.
+        let watcher = (n as f64 * profile.watchers).fract() + profile.watchers >= 1.0;
+        let mut client = Client::new(
+            n,
+            watcher,
+            &run_id,
+            channels[n % channels.len()].clone(),
+            metrics.clone(),
+            profile,
+        );
+        let gate = gate.clone();
+        preparing.spawn(async move {
+            let _turn = gate.acquire_owned().await;
+            client.prepare().await.map(|()| (n, client))
+        });
+    }
+    let mut ready: Vec<Option<Client>> = (0..profile.clients).map(|_| None).collect();
+    while let Some(joined) = preparing.join_next().await {
+        match joined {
+            Ok(Ok((n, client))) => ready[n] = Some(client),
+            Ok(Err(error)) => *client_errors.entry(error).or_default() += 1,
+            Err(error) => *client_errors.entry(error.to_string()).or_default() += 1,
+        }
+    }
+    println!(
+        "{} accounts set up in {:.0?}{}",
+        ready.iter().flatten().count(),
+        started.elapsed(),
+        match profile.history_weeks {
+            0 => String::new(),
+            weeks => format!(", each with {weeks} weeks of history"),
+        }
+    );
+
+    // The run proper, timed from here.
+    let started = Instant::now();
     let mut leader: Option<watch::Sender<Option<String>>> = None;
     let grouped = (profile.clients as f64 * profile.grouped) as usize;
-    for n in 0..profile.clients {
+    for (n, client) in ready.into_iter().enumerate() {
         let role = if n < grouped {
             if n % 3 == 0 {
                 let (share, _) = watch::channel(None);
@@ -209,13 +273,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
         } else {
             Role::Solo
         };
-        let client = Client::new(
-            n,
-            &run_id,
-            channels[n % channels.len()].clone(),
-            metrics.clone(),
-            profile,
-        );
+        let Some(client) = client else { continue };
         // Each client trains for the hold from its own start, so the run
         // winds down as it wound up, not all at one instant.
         let (stop_tx, stop) = watch::channel(false);
@@ -233,7 +291,6 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     }
 
     let mut outcomes: Vec<Outcome> = Vec::new();
-    let mut client_errors: BTreeMap<String, usize> = BTreeMap::new();
     while let Some(joined) = clients.join_next().await {
         match joined {
             Ok(Ok(outcome)) => outcomes.push(outcome),

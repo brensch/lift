@@ -168,12 +168,21 @@ const SyncResponse$json = {
     {'1': 'head', '3': 1, '4': 1, '5': 3, '9': 0, '10': 'head'},
     {
       '1': 'session',
-      '3': 2,
+      '3': 6,
       '4': 1,
       '5': 11,
-      '6': '.workout.v1.GetCurrentSessionResponse',
+      '6': '.workout.v1.Session',
       '9': 0,
       '10': 'session'
+    },
+    {
+      '1': 'partner_events',
+      '3': 7,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.PartnerEvents',
+      '9': 0,
+      '10': 'partnerEvents'
     },
     {
       '1': 'join_requests',
@@ -197,16 +206,35 @@ const SyncResponse$json = {
   '8': [
     {'1': 'kind'},
   ],
+  '9': [
+    {'1': 2, '2': 3},
+  ],
 };
 
 /// Descriptor for `SyncResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List syncResponseDescriptor = $convert.base64Decode(
     'CgxTeW5jUmVzcG9uc2USLAoGZXZlbnRzGAUgASgLMhIud29ya291dC52MS5FdmVudHNIAFIGZX'
-    'ZlbnRzEhQKBGhlYWQYASABKANIAFIEaGVhZBJBCgdzZXNzaW9uGAIgASgLMiUud29ya291dC52'
-    'MS5HZXRDdXJyZW50U2Vzc2lvblJlc3BvbnNlSABSB3Nlc3Npb24SSgoNam9pbl9yZXF1ZXN0cx'
-    'gDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIAFIMam9pblJlcXVl'
-    'c3RzEkMKB2xpYnJhcnkYBCABKAsyJy53b3Jrb3V0LnYxLkxpc3RUZW1wbGF0ZUxpYnJhcnlSZX'
-    'Nwb25zZUgAUgdsaWJyYXJ5QgYKBGtpbmQ=');
+    'ZlbnRzEhQKBGhlYWQYASABKANIAFIEaGVhZBIvCgdzZXNzaW9uGAYgASgLMhMud29ya291dC52'
+    'MS5TZXNzaW9uSABSB3Nlc3Npb24SQgoOcGFydG5lcl9ldmVudHMYByABKAsyGS53b3Jrb3V0Ln'
+    'YxLlBhcnRuZXJFdmVudHNIAFINcGFydG5lckV2ZW50cxJKCg1qb2luX3JlcXVlc3RzGAMgASgL'
+    'MiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAUgxqb2luUmVxdWVzdHMSQw'
+    'oHbGlicmFyeRgEIAEoCzInLndvcmtvdXQudjEuTGlzdFRlbXBsYXRlTGlicmFyeVJlc3BvbnNl'
+    'SABSB2xpYnJhcnlCBgoEa2luZEoECAIQAw==');
+
+@$core.Deprecated('Use partnerEventsDescriptor instead')
+const PartnerEvents$json = {
+  '1': 'PartnerEvents',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'packed', '3': 2, '4': 1, '5': 12, '10': 'packed'},
+    {'1': 'whole', '3': 3, '4': 1, '5': 8, '10': 'whole'},
+  ],
+};
+
+/// Descriptor for `PartnerEvents`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List partnerEventsDescriptor = $convert.base64Decode(
+    'Cg1QYXJ0bmVyRXZlbnRzEhcKB3VzZXJfaWQYASABKAlSBnVzZXJJZBIWCgZwYWNrZWQYAiABKA'
+    'xSBnBhY2tlZBIUCgV3aG9sZRgDIAEoCFIFd2hvbGU=');
 
 @$core.Deprecated('Use eventsDescriptor instead')
 const Events$json = {

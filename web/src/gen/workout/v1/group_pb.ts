@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/group.proto.
  */
 export const file_workout_v1_group: GenFile = /*@__PURE__*/
-  fileDesc("ChZ3b3Jrb3V0L3YxL2dyb3VwLnByb3RvEgp3b3Jrb3V0LnYxIiwKFEpvaW5WaWFJbnZpdGVSZXF1ZXN0EhQKDGludml0ZV90b2tlbhgBIAEoCSIrChVKb2luVmlhSW52aXRlUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCSIZChdHZXRNeUludml0ZVRva2VuUmVxdWVzdCIwChhHZXRNeUludml0ZVRva2VuUmVzcG9uc2USFAoMaW52aXRlX3Rva2VuGAEgASgJIhwKGkxlYXZlQ3VycmVudFNlc3Npb25SZXF1ZXN0Ih0KG0xlYXZlQ3VycmVudFNlc3Npb25SZXNwb25zZSIaChhHZXRDdXJyZW50U2Vzc2lvblJlcXVlc3QiLwoYR2V0U2Vzc2lvblJvc3RlcnNSZXF1ZXN0EhMKC3Nlc3Npb25faWRzGAEgAygJIkcKGUdldFNlc3Npb25Sb3N0ZXJzUmVzcG9uc2USKgoHcm9zdGVycxgBIAMoCzIZLndvcmtvdXQudjEuU2Vzc2lvblJvc3RlciJHCg1TZXNzaW9uUm9zdGVyEhIKCnNlc3Npb25faWQYASABKAkSIgoIcGFydG5lcnMYAiADKAsyEC53b3Jrb3V0LnYxLlVzZXIiYgoZR2V0Q3VycmVudFNlc3Npb25SZXNwb25zZRISCgpzZXNzaW9uX2lkGAEgASgJEjEKDnNlc3Npb25fc3RhdHVzGAIgASgLMhkud29ya291dC52MS5TZXNzaW9uU3RhdHVzIrsBCg1TZXNzaW9uU3RhdHVzEjMKDHBhcnRpY2lwYW50cxgCIAMoCzIdLndvcmtvdXQudjEuUGFydGljaXBhbnRTdGF0dXNKBAgBEAJKBAgDEARKBAgEEAVKBAgFEAZKBAgGEAdSCnNlc3Npb25faWRSD25leHRfdXBfdXNlcl9pZFILbmV4dF91cF9zZXRSEm5leHRfdXBfcmVzdF91bnRpbFIZY3VycmVudGx5X2xpZnRpbmdfdXNlcl9pZCK7AwoRUGFydGljaXBhbnRTdGF0dXMSHgoEdXNlchgBIAEoCzIQLndvcmtvdXQudjEuVXNlchIZChFhY3RpdmVfd29ya291dF9pZBgCIAEoCRIrCg5hY3RpdmVfd29ya291dBgDIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAUgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgGIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EiwKC25leHRfdXBfc2V0GAcgASgLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBI4Cg5zdGF0ZV9zbmFwc2hvdBgKIAEoCzIgLndvcmtvdXQudjEuV29ya291dFN0YXRlU25hcHNob3QSGQoRcGFzc2VkX3dhcm11cF9pZHMYCyADKAkSGgoSZmlyc3RfdGltZV9zZXRfaWRzGAwgAygJSgQIBBAFSgQICBAJSgQICRAKUg9leGVyY2lzZV9ncm91cHNSCnJlc3RfdW50aWxSDmhhc19hY3RpdmVfc2V0ImUKD1RyYWluaW5nUGFydG5lchIeCgR1c2VyGAEgASgLMhAud29ya291dC52MS5Vc2VyEhkKEXNlc3Npb25zX3RvZ2V0aGVyGAIgASgFEhcKD2xhc3RfdHJhaW5lZF9hdBgDIAEoAyIcChpHZXRUcmFpbmluZ1BhcnRuZXJzUmVxdWVzdCJMChtHZXRUcmFpbmluZ1BhcnRuZXJzUmVzcG9uc2USLQoIcGFydG5lcnMYASADKAsyGy53b3Jrb3V0LnYxLlRyYWluaW5nUGFydG5lciI0ChlSZXF1ZXN0Sm9pblBhcnRuZXJSZXF1ZXN0EhcKD3BhcnRuZXJfdXNlcl9pZBgBIAEoCSIwChpSZXF1ZXN0Sm9pblBhcnRuZXJSZXNwb25zZRISCgpyZXF1ZXN0X2lkGAEgASgJIloKC0pvaW5SZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSIwoJZnJvbV91c2VyGAIgASgLMhAud29ya291dC52MS5Vc2VyEhIKCmNyZWF0ZWRfYXQYAyABKAMiGAoWR2V0Sm9pblJlcXVlc3RzUmVxdWVzdCJEChdHZXRKb2luUmVxdWVzdHNSZXNwb25zZRIpCghyZXF1ZXN0cxgBIAMoCzIXLndvcmtvdXQudjEuSm9pblJlcXVlc3QiPwoZUmVzcG9uZEpvaW5SZXF1ZXN0UmVxdWVzdBISCgpyZXF1ZXN0X2lkGAEgASgJEg4KBmFjY2VwdBgCIAEoCCIwChpSZXNwb25kSm9pblJlcXVlc3RSZXNwb25zZRISCgpzZXNzaW9uX2lkGAEgASgJMoMHChJNdWx0aXBsYXllclNlcnZpY2USVAoNSm9pblZpYUludml0ZRIgLndvcmtvdXQudjEuSm9pblZpYUludml0ZVJlcXVlc3QaIS53b3Jrb3V0LnYxLkpvaW5WaWFJbnZpdGVSZXNwb25zZRJdChBHZXRNeUludml0ZVRva2VuEiMud29ya291dC52MS5HZXRNeUludml0ZVRva2VuUmVxdWVzdBokLndvcmtvdXQudjEuR2V0TXlJbnZpdGVUb2tlblJlc3BvbnNlEmAKEUdldEN1cnJlbnRTZXNzaW9uEiQud29ya291dC52MS5HZXRDdXJyZW50U2Vzc2lvblJlcXVlc3QaJS53b3Jrb3V0LnYxLkdldEN1cnJlbnRTZXNzaW9uUmVzcG9uc2USZgoTTGVhdmVDdXJyZW50U2Vzc2lvbhImLndvcmtvdXQudjEuTGVhdmVDdXJyZW50U2Vzc2lvblJlcXVlc3QaJy53b3Jrb3V0LnYxLkxlYXZlQ3VycmVudFNlc3Npb25SZXNwb25zZRJgChFHZXRTZXNzaW9uUm9zdGVycxIkLndvcmtvdXQudjEuR2V0U2Vzc2lvblJvc3RlcnNSZXF1ZXN0GiUud29ya291dC52MS5HZXRTZXNzaW9uUm9zdGVyc1Jlc3BvbnNlEmYKE0dldFRyYWluaW5nUGFydG5lcnMSJi53b3Jrb3V0LnYxLkdldFRyYWluaW5nUGFydG5lcnNSZXF1ZXN0Gicud29ya291dC52MS5HZXRUcmFpbmluZ1BhcnRuZXJzUmVzcG9uc2USYwoSUmVxdWVzdEpvaW5QYXJ0bmVyEiUud29ya291dC52MS5SZXF1ZXN0Sm9pblBhcnRuZXJSZXF1ZXN0GiYud29ya291dC52MS5SZXF1ZXN0Sm9pblBhcnRuZXJSZXNwb25zZRJaCg9HZXRKb2luUmVxdWVzdHMSIi53b3Jrb3V0LnYxLkdldEpvaW5SZXF1ZXN0c1JlcXVlc3QaIy53b3Jrb3V0LnYxLkdldEpvaW5SZXF1ZXN0c1Jlc3BvbnNlEmMKElJlc3BvbmRKb2luUmVxdWVzdBIlLndvcmtvdXQudjEuUmVzcG9uZEpvaW5SZXF1ZXN0UmVxdWVzdBomLndvcmtvdXQudjEuUmVzcG9uZEpvaW5SZXF1ZXN0UmVzcG9uc2ViBnByb3RvMw", [file_workout_v1_workout]);
+  fileDesc("ChZ3b3Jrb3V0L3YxL2dyb3VwLnByb3RvEgp3b3Jrb3V0LnYxIiwKFEpvaW5WaWFJbnZpdGVSZXF1ZXN0EhQKDGludml0ZV90b2tlbhgBIAEoCSIrChVKb2luVmlhSW52aXRlUmVzcG9uc2USEgoKc2Vzc2lvbl9pZBgBIAEoCSIZChdHZXRNeUludml0ZVRva2VuUmVxdWVzdCIwChhHZXRNeUludml0ZVRva2VuUmVzcG9uc2USFAoMaW52aXRlX3Rva2VuGAEgASgJIhwKGkxlYXZlQ3VycmVudFNlc3Npb25SZXF1ZXN0Ih0KG0xlYXZlQ3VycmVudFNlc3Npb25SZXNwb25zZSIvChhHZXRTZXNzaW9uUm9zdGVyc1JlcXVlc3QSEwoLc2Vzc2lvbl9pZHMYASADKAkiRwoZR2V0U2Vzc2lvblJvc3RlcnNSZXNwb25zZRIqCgdyb3N0ZXJzGAEgAygLMhkud29ya291dC52MS5TZXNzaW9uUm9zdGVyIkcKDVNlc3Npb25Sb3N0ZXISEgoKc2Vzc2lvbl9pZBgBIAEoCRIiCghwYXJ0bmVycxgCIAMoCzIQLndvcmtvdXQudjEuVXNlciJJCgdTZXNzaW9uEhIKCnNlc3Npb25faWQYASABKAkSKgoHbWVtYmVycxgCIAMoCzIZLndvcmtvdXQudjEuU2Vzc2lvbk1lbWJlciJUCg1TZXNzaW9uTWVtYmVyEh4KBHVzZXIYASABKAsyEC53b3Jrb3V0LnYxLlVzZXISEQoJam9pbmVkX2F0GAIgASgDEhAKCGVuZGVkX2F0GAMgASgDIrsDChFQYXJ0aWNpcGFudFN0YXR1cxIeCgR1c2VyGAEgASgLMhAud29ya291dC52MS5Vc2VyEhkKEWFjdGl2ZV93b3Jrb3V0X2lkGAIgASgJEisKDmFjdGl2ZV93b3Jrb3V0GAMgASgLMhMud29ya291dC52MS5Xb3Jrb3V0Ei4KDXByb3Bvc2VkX3NldHMYBSADKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0EjAKDmNvbXBsZXRlZF9zZXRzGAYgAygLMhgud29ya291dC52MS5Db21wbGV0ZWRTZXQSLAoLbmV4dF91cF9zZXQYByABKAsyFy53b3Jrb3V0LnYxLlByb3Bvc2VkU2V0EjgKDnN0YXRlX3NuYXBzaG90GAogASgLMiAud29ya291dC52MS5Xb3Jrb3V0U3RhdGVTbmFwc2hvdBIZChFwYXNzZWRfd2FybXVwX2lkcxgLIAMoCRIaChJmaXJzdF90aW1lX3NldF9pZHMYDCADKAlKBAgEEAVKBAgIEAlKBAgJEApSD2V4ZXJjaXNlX2dyb3Vwc1IKcmVzdF91bnRpbFIOaGFzX2FjdGl2ZV9zZXQiZQoPVHJhaW5pbmdQYXJ0bmVyEh4KBHVzZXIYASABKAsyEC53b3Jrb3V0LnYxLlVzZXISGQoRc2Vzc2lvbnNfdG9nZXRoZXIYAiABKAUSFwoPbGFzdF90cmFpbmVkX2F0GAMgASgDIhwKGkdldFRyYWluaW5nUGFydG5lcnNSZXF1ZXN0IkwKG0dldFRyYWluaW5nUGFydG5lcnNSZXNwb25zZRItCghwYXJ0bmVycxgBIAMoCzIbLndvcmtvdXQudjEuVHJhaW5pbmdQYXJ0bmVyIjQKGVJlcXVlc3RKb2luUGFydG5lclJlcXVlc3QSFwoPcGFydG5lcl91c2VyX2lkGAEgASgJIjAKGlJlcXVlc3RKb2luUGFydG5lclJlc3BvbnNlEhIKCnJlcXVlc3RfaWQYASABKAkiWgoLSm9pblJlcXVlc3QSEgoKcmVxdWVzdF9pZBgBIAEoCRIjCglmcm9tX3VzZXIYAiABKAsyEC53b3Jrb3V0LnYxLlVzZXISEgoKY3JlYXRlZF9hdBgDIAEoAyIYChZHZXRKb2luUmVxdWVzdHNSZXF1ZXN0IkQKF0dldEpvaW5SZXF1ZXN0c1Jlc3BvbnNlEikKCHJlcXVlc3RzGAEgAygLMhcud29ya291dC52MS5Kb2luUmVxdWVzdCI/ChlSZXNwb25kSm9pblJlcXVlc3RSZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSDgoGYWNjZXB0GAIgASgIIjAKGlJlc3BvbmRKb2luUmVxdWVzdFJlc3BvbnNlEhIKCnNlc3Npb25faWQYASABKAkyoQYKEk11bHRpcGxheWVyU2VydmljZRJUCg1Kb2luVmlhSW52aXRlEiAud29ya291dC52MS5Kb2luVmlhSW52aXRlUmVxdWVzdBohLndvcmtvdXQudjEuSm9pblZpYUludml0ZVJlc3BvbnNlEl0KEEdldE15SW52aXRlVG9rZW4SIy53b3Jrb3V0LnYxLkdldE15SW52aXRlVG9rZW5SZXF1ZXN0GiQud29ya291dC52MS5HZXRNeUludml0ZVRva2VuUmVzcG9uc2USZgoTTGVhdmVDdXJyZW50U2Vzc2lvbhImLndvcmtvdXQudjEuTGVhdmVDdXJyZW50U2Vzc2lvblJlcXVlc3QaJy53b3Jrb3V0LnYxLkxlYXZlQ3VycmVudFNlc3Npb25SZXNwb25zZRJgChFHZXRTZXNzaW9uUm9zdGVycxIkLndvcmtvdXQudjEuR2V0U2Vzc2lvblJvc3RlcnNSZXF1ZXN0GiUud29ya291dC52MS5HZXRTZXNzaW9uUm9zdGVyc1Jlc3BvbnNlEmYKE0dldFRyYWluaW5nUGFydG5lcnMSJi53b3Jrb3V0LnYxLkdldFRyYWluaW5nUGFydG5lcnNSZXF1ZXN0Gicud29ya291dC52MS5HZXRUcmFpbmluZ1BhcnRuZXJzUmVzcG9uc2USYwoSUmVxdWVzdEpvaW5QYXJ0bmVyEiUud29ya291dC52MS5SZXF1ZXN0Sm9pblBhcnRuZXJSZXF1ZXN0GiYud29ya291dC52MS5SZXF1ZXN0Sm9pblBhcnRuZXJSZXNwb25zZRJaCg9HZXRKb2luUmVxdWVzdHMSIi53b3Jrb3V0LnYxLkdldEpvaW5SZXF1ZXN0c1JlcXVlc3QaIy53b3Jrb3V0LnYxLkdldEpvaW5SZXF1ZXN0c1Jlc3BvbnNlEmMKElJlc3BvbmRKb2luUmVxdWVzdBIlLndvcmtvdXQudjEuUmVzcG9uZEpvaW5SZXF1ZXN0UmVxdWVzdBomLndvcmtvdXQudjEuUmVzcG9uZEpvaW5SZXF1ZXN0UmVzcG9uc2ViBnByb3RvMw", [file_workout_v1_workout]);
 
 /**
  * @generated from message workout.v1.JoinViaInviteRequest
@@ -107,19 +107,6 @@ export const LeaveCurrentSessionResponseSchema: GenMessage<LeaveCurrentSessionRe
   messageDesc(file_workout_v1_group, 5);
 
 /**
- * @generated from message workout.v1.GetCurrentSessionRequest
- */
-export type GetCurrentSessionRequest = Message<"workout.v1.GetCurrentSessionRequest"> & {
-};
-
-/**
- * Describes the message workout.v1.GetCurrentSessionRequest.
- * Use `create(GetCurrentSessionRequestSchema)` to create a new message.
- */
-export const GetCurrentSessionRequestSchema: GenMessage<GetCurrentSessionRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 6);
-
-/**
  * @generated from message workout.v1.GetSessionRostersRequest
  */
 export type GetSessionRostersRequest = Message<"workout.v1.GetSessionRostersRequest"> & {
@@ -134,7 +121,7 @@ export type GetSessionRostersRequest = Message<"workout.v1.GetSessionRostersRequ
  * Use `create(GetSessionRostersRequestSchema)` to create a new message.
  */
 export const GetSessionRostersRequestSchema: GenMessage<GetSessionRostersRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 7);
+  messageDesc(file_workout_v1_group, 6);
 
 /**
  * One roster per asked session the caller was in, in the order asked; a
@@ -154,7 +141,7 @@ export type GetSessionRostersResponse = Message<"workout.v1.GetSessionRostersRes
  * Use `create(GetSessionRostersResponseSchema)` to create a new message.
  */
 export const GetSessionRostersResponseSchema: GenMessage<GetSessionRostersResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 8);
+  messageDesc(file_workout_v1_group, 7);
 
 /**
  * Everyone but the caller who was ever in a session, in the order they
@@ -179,50 +166,71 @@ export type SessionRoster = Message<"workout.v1.SessionRoster"> & {
  * Use `create(SessionRosterSchema)` to create a new message.
  */
 export const SessionRosterSchema: GenMessage<SessionRoster> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 9);
+  messageDesc(file_workout_v1_group, 8);
 
 /**
- * @generated from message workout.v1.GetCurrentSessionResponse
+ * The caller's session as the server knows it: who else is in it. Where
+ * each is up to is not here: their workout's events come down the Sync
+ * stream (PartnerEvents, account.proto) and the phone folds them. Empty
+ * session_id when the caller is in none.
+ *
+ * @generated from message workout.v1.Session
  */
-export type GetCurrentSessionResponse = Message<"workout.v1.GetCurrentSessionResponse"> & {
+export type Session = Message<"workout.v1.Session"> & {
   /**
    * @generated from field: string session_id = 1;
    */
   sessionId: string;
 
   /**
-   * populated if session_id is present
-   *
-   * @generated from field: workout.v1.SessionStatus session_status = 2;
+   * @generated from field: repeated workout.v1.SessionMember members = 2;
    */
-  sessionStatus?: SessionStatus | undefined;
+  members: SessionMember[];
 };
 
 /**
- * Describes the message workout.v1.GetCurrentSessionResponse.
- * Use `create(GetCurrentSessionResponseSchema)` to create a new message.
+ * Describes the message workout.v1.Session.
+ * Use `create(SessionSchema)` to create a new message.
  */
-export const GetCurrentSessionResponseSchema: GenMessage<GetCurrentSessionResponse> = /*@__PURE__*/
+export const SessionSchema: GenMessage<Session> = /*@__PURE__*/
+  messageDesc(file_workout_v1_group, 9);
+
+/**
+ * @generated from message workout.v1.SessionMember
+ */
+export type SessionMember = Message<"workout.v1.SessionMember"> & {
+  /**
+   * @generated from field: workout.v1.User user = 1;
+   */
+  user?: User | undefined;
+
+  /**
+   * unix seconds
+   *
+   * @generated from field: int64 joined_at = 2;
+   */
+  joinedAt: bigint;
+
+  /**
+   * When they ended their workout, which took them out of the session; 0
+   * while they're in it. A finished workout stays on show a while.
+   *
+   * @generated from field: int64 ended_at = 3;
+   */
+  endedAt: bigint;
+};
+
+/**
+ * Describes the message workout.v1.SessionMember.
+ * Use `create(SessionMemberSchema)` to create a new message.
+ */
+export const SessionMemberSchema: GenMessage<SessionMember> = /*@__PURE__*/
   messageDesc(file_workout_v1_group, 10);
 
 /**
- * @generated from message workout.v1.SessionStatus
- */
-export type SessionStatus = Message<"workout.v1.SessionStatus"> & {
-  /**
-   * @generated from field: repeated workout.v1.ParticipantStatus participants = 2;
-   */
-  participants: ParticipantStatus[];
-};
-
-/**
- * Describes the message workout.v1.SessionStatus.
- * Use `create(SessionStatusSchema)` to create a new message.
- */
-export const SessionStatusSchema: GenMessage<SessionStatus> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 11);
-
-/**
+ * A session partner's workout as the caller's own core folds it from their
+ * events: the workout under way, or the last one to end since they joined.
+ *
  * @generated from message workout.v1.ParticipantStatus
  */
 export type ParticipantStatus = Message<"workout.v1.ParticipantStatus"> & {
@@ -285,7 +293,7 @@ export type ParticipantStatus = Message<"workout.v1.ParticipantStatus"> & {
  * Use `create(ParticipantStatusSchema)` to create a new message.
  */
 export const ParticipantStatusSchema: GenMessage<ParticipantStatus> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 12);
+  messageDesc(file_workout_v1_group, 11);
 
 /**
  * Someone the caller has shared at least one session with.
@@ -318,7 +326,7 @@ export type TrainingPartner = Message<"workout.v1.TrainingPartner"> & {
  * Use `create(TrainingPartnerSchema)` to create a new message.
  */
 export const TrainingPartnerSchema: GenMessage<TrainingPartner> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 13);
+  messageDesc(file_workout_v1_group, 12);
 
 /**
  * @generated from message workout.v1.GetTrainingPartnersRequest
@@ -331,7 +339,7 @@ export type GetTrainingPartnersRequest = Message<"workout.v1.GetTrainingPartners
  * Use `create(GetTrainingPartnersRequestSchema)` to create a new message.
  */
 export const GetTrainingPartnersRequestSchema: GenMessage<GetTrainingPartnersRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 14);
+  messageDesc(file_workout_v1_group, 13);
 
 /**
  * @generated from message workout.v1.GetTrainingPartnersResponse
@@ -348,7 +356,7 @@ export type GetTrainingPartnersResponse = Message<"workout.v1.GetTrainingPartner
  * Use `create(GetTrainingPartnersResponseSchema)` to create a new message.
  */
 export const GetTrainingPartnersResponseSchema: GenMessage<GetTrainingPartnersResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 15);
+  messageDesc(file_workout_v1_group, 14);
 
 /**
  * @generated from message workout.v1.RequestJoinPartnerRequest
@@ -365,7 +373,7 @@ export type RequestJoinPartnerRequest = Message<"workout.v1.RequestJoinPartnerRe
  * Use `create(RequestJoinPartnerRequestSchema)` to create a new message.
  */
 export const RequestJoinPartnerRequestSchema: GenMessage<RequestJoinPartnerRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 16);
+  messageDesc(file_workout_v1_group, 15);
 
 /**
  * @generated from message workout.v1.RequestJoinPartnerResponse
@@ -382,7 +390,7 @@ export type RequestJoinPartnerResponse = Message<"workout.v1.RequestJoinPartnerR
  * Use `create(RequestJoinPartnerResponseSchema)` to create a new message.
  */
 export const RequestJoinPartnerResponseSchema: GenMessage<RequestJoinPartnerResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 17);
+  messageDesc(file_workout_v1_group, 16);
 
 /**
  * A pending "train together" request, shown to the recipient.
@@ -413,7 +421,7 @@ export type JoinRequest = Message<"workout.v1.JoinRequest"> & {
  * Use `create(JoinRequestSchema)` to create a new message.
  */
 export const JoinRequestSchema: GenMessage<JoinRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 18);
+  messageDesc(file_workout_v1_group, 17);
 
 /**
  * @generated from message workout.v1.GetJoinRequestsRequest
@@ -426,7 +434,7 @@ export type GetJoinRequestsRequest = Message<"workout.v1.GetJoinRequestsRequest"
  * Use `create(GetJoinRequestsRequestSchema)` to create a new message.
  */
 export const GetJoinRequestsRequestSchema: GenMessage<GetJoinRequestsRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 19);
+  messageDesc(file_workout_v1_group, 18);
 
 /**
  * @generated from message workout.v1.GetJoinRequestsResponse
@@ -443,7 +451,7 @@ export type GetJoinRequestsResponse = Message<"workout.v1.GetJoinRequestsRespons
  * Use `create(GetJoinRequestsResponseSchema)` to create a new message.
  */
 export const GetJoinRequestsResponseSchema: GenMessage<GetJoinRequestsResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 20);
+  messageDesc(file_workout_v1_group, 19);
 
 /**
  * @generated from message workout.v1.RespondJoinRequestRequest
@@ -465,7 +473,7 @@ export type RespondJoinRequestRequest = Message<"workout.v1.RespondJoinRequestRe
  * Use `create(RespondJoinRequestRequestSchema)` to create a new message.
  */
 export const RespondJoinRequestRequestSchema: GenMessage<RespondJoinRequestRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 21);
+  messageDesc(file_workout_v1_group, 20);
 
 /**
  * @generated from message workout.v1.RespondJoinRequestResponse
@@ -484,7 +492,7 @@ export type RespondJoinRequestResponse = Message<"workout.v1.RespondJoinRequestR
  * Use `create(RespondJoinRequestResponseSchema)` to create a new message.
  */
 export const RespondJoinRequestResponseSchema: GenMessage<RespondJoinRequestResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_group, 22);
+  messageDesc(file_workout_v1_group, 21);
 
 /**
  * @generated from service workout.v1.MultiplayerService
@@ -515,21 +523,9 @@ export const MultiplayerService: GenService<{
     output: typeof GetMyInviteTokenResponseSchema;
   },
   /**
-   * Get the caller's current group session. Reads user_current_session — membership is
-   * independent of whether the caller has an active workout. The Sync stream
-   * (account.proto) pushes the same thing whenever it changes.
-   *
-   * @generated from rpc workout.v1.MultiplayerService.GetCurrentSession
-   */
-  getCurrentSession: {
-    methodKind: "unary";
-    input: typeof GetCurrentSessionRequestSchema;
-    output: typeof GetCurrentSessionResponseSchema;
-  },
-  /**
-   * Manually leave the caller's current session. Clears the caller's session pointer,
-   * removes their live participant blob so peers stop seeing them, and stamps left_at on
-   * the durable roster.
+   * Leave the caller's current session: out of it, and off show to the
+   * others, at once. The Sync stream (account.proto) carries the session
+   * itself: who is in it, and where each is up to.
    *
    * @generated from rpc workout.v1.MultiplayerService.LeaveCurrentSession
    */

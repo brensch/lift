@@ -63,8 +63,10 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   settings) is only ever account events; the server places and stores them
   and never copies them into tables. What the server owns (users,
   passkeys, logins, who trained together, telemetry) is plain columns, no
-  proto blobs. What only matters while the server runs (partners' live
-  status, join requests) is in memory, read from the folded account.
+  proto blobs. What only matters while the server runs (join requests,
+  which stream watches whom) is in memory. The server holds no folded
+  account and computes no live state: partners' status is folded on each
+  phone from the workout events the server routes to it.
 - **Server schema changes are a new step in `src/db/migrate.rs`**: an
   `if version < N` block at the end of `migrate`, run once at startup and
   tracked by `PRAGMA user_version`. Never edit a step that has shipped.

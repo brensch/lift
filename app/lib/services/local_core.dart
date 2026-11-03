@@ -12,6 +12,7 @@ import 'package:protobuf/protobuf.dart';
 
 import '../gen/native/api.dart' as native;
 import '../gen/native/frb_generated.dart';
+import '../gen/workout/v1/group.pb.dart';
 
 /// A write or read the core refused: `code` is invalid_argument, not_found,
 /// failed_precondition or storage.
@@ -110,6 +111,51 @@ class LocalCore {
   Future<bool> receive(List<int> packed, int head) async {
     try {
       return await native.receive(handle: _handle, packed: packed, head: head);
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
+  /// A session partner's workout events (packed) from the server: their
+  /// workout so far when [whole], else more of it. Held only while the app
+  /// runs.
+  Future<void> receivePartner(
+    String partner,
+    List<int> packed, {
+    required bool whole,
+  }) async {
+    try {
+      await native.receivePartner(
+        handle: _handle,
+        partner: partner,
+        packed: packed,
+        whole: whole,
+      );
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
+  /// Where a session partner is up to, folded by this phone's core from
+  /// their events; null once they're off show. Who they are is not in it.
+  Future<ParticipantStatus?> partnerStatus(SessionMember member) async {
+    try {
+      final status = await native.partnerStatus(
+        handle: _handle,
+        partner: member.user.id,
+        joinedAt: member.joinedAt.toInt(),
+        endedAt: member.endedAt.toInt(),
+      );
+      return status == null ? null : ParticipantStatus.fromBuffer(status);
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
+  /// Forget the partners not in [partners]: the session's members now.
+  Future<void> keepPartners(List<String> partners) async {
+    try {
+      await native.keepPartners(handle: _handle, partners: partners);
     } catch (e) {
       throw CoreException.from(e);
     }
