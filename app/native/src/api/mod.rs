@@ -74,6 +74,47 @@ pub fn receive(handle: u32, packed: Vec<u8>, head: i64) -> StoreResult<bool> {
     with_store(handle, |store| store.receive(events, head))
 }
 
+/// A session partner's workout events (packed) from the server: their
+/// workout so far when `whole`, else more of it.
+pub fn receive_partner(
+    handle: u32,
+    partner: String,
+    packed: Vec<u8>,
+    whole: bool,
+) -> StoreResult<()> {
+    let events = if packed.is_empty() {
+        Vec::new()
+    } else {
+        unpack(&packed).map_err(|e| format!("invalid_argument: {e}"))?
+    };
+    with_store(handle, |store| {
+        store.receive_partner(&partner, events, whole);
+        Ok(())
+    })
+}
+
+/// Where a partner is up to now (a ParticipantStatus, without who they are),
+/// given when they joined and ended from the session; None once they're off
+/// show.
+pub fn partner_status(
+    handle: u32,
+    partner: String,
+    joined_at: i64,
+    ended_at: i64,
+) -> StoreResult<Option<Vec<u8>>> {
+    with_store(handle, |store| {
+        Ok(store.partner_status(&partner, joined_at, ended_at, now_unix()))
+    })
+}
+
+/// Forget the partners not in `partners`: the session's members now.
+pub fn keep_partners(handle: u32, partners: Vec<String>) -> StoreResult<()> {
+    with_store(handle, |store| {
+        store.keep_partners(&partners);
+        Ok(())
+    })
+}
+
 /// The template library the server sent (a packed
 /// ListTemplateLibraryResponse). Returns whether it changed.
 pub fn set_library(handle: u32, packed: Vec<u8>) -> StoreResult<bool> {

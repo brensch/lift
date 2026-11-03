@@ -7,6 +7,7 @@ use crate::pb::{
     CompletedSet, ExerciseDecision, ExerciseLog, ProposedSet, WeightChange, WeightChangeCause,
     Workout, WorkoutHeartRatePoint,
 };
+use crate::weight_units::AppWeightUnit;
 
 /// A workout's full state: the row, its ordered flat set list (there is no
 /// group structure — "the sets for one exercise" is derived wherever it's
@@ -19,6 +20,10 @@ pub struct WorkoutRecord {
     pub completed_sets: Vec<CompletedSet>,
     pub heart_rate: Vec<WorkoutHeartRatePoint>,
     pub exercise_logs: Vec<ExerciseLog>,
+    /// The unit it was planned in, which every snap and step in it rounds
+    /// in: the workout's own, so it folds the same with or without the rest
+    /// of the account.
+    pub unit: AppWeightUnit,
 }
 
 impl WorkoutRecord {
@@ -44,6 +49,7 @@ impl WorkoutRecord {
             completed_sets: self.completed_sets.clone(),
             heart_rate: Vec::new(),
             exercise_logs: self.exercise_logs.clone(),
+            unit: self.unit,
         }
     }
 

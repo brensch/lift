@@ -29,7 +29,7 @@ graph TD
     end
 
     subgraph data["src/db/ — ServerDb"]
-        dacc["accounts.rs<br/>event store + fold cache"]
+        dacc["accounts.rs<br/>event store"]
         dauth["auth.rs"]
         dses["session.rs"]
         dan["analytics.rs"]
@@ -64,7 +64,7 @@ graph TD
 | `server/user.rs` | `GetUser`, `UpdateMyProfile` |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/analytics.rs` | Page views, admin stats |
-| `db/accounts.rs` | `account_events` and the folded-account cache |
+| `db/accounts.rs` | `account_events`: placing pushes, reading history, folding on request |
 | `db/changes.rs` | Changes told to the streams they concern, by user or session |
 | `db/session.rs` | `session_members`, invite tokens, join requests (in memory) |
 | `db/migrate.rs` | The schema, one version at a time (`PRAGMA user_version`) |
@@ -82,26 +82,23 @@ server's order, and the only place the server keeps anything the core
 folds. `event` is the whole event as JSON (`core/src/events.rs`); `id` is
 copied out, unique per account, so a resent event is found. Nothing about a
 workout, set, template or setting is copied into a table: the server answers
-from the fold. `ServerDb::push_events` (`src/db/accounts.rs`) places what a
-device sends:
+by folding the history when asked. Nothing of an account is kept in memory.
+`ServerDb::push_events` (`src/db/accounts.rs`) places what a device sends,
+folding nothing, in one transaction on the one write connection — so pushes
+are placed one at a time, each after the last:
 
-1. Takes the account's lock. Folded accounts are cached in memory with their
-   head, one `Mutex` each, least recently used dropped past 256
-   (`CACHED_ACCOUNTS`); a dropped account is refolded from its history when
-   next needed.
-2. Skips events it already holds, by id (a device resends until it hears
-   back), and gives the rest the next seqs after the head, in the order
-   sent.
-3. Replays each into the fold. An event that doesn't apply still takes its
-   place, as it does on every device.
-4. Inserts them in one transaction. If that fails (an account deleted
-   mid-push fails on the foreign key), the cached fold is dropped so the next
-   read refolds from what was written.
-5. Tells that account's streams the placed events (`Change::Account`), and
-   each sends them down: to the pushing device, its events placed; to the
-   others, events to fold in.
+1. Skips events it already holds, by id (a device resends until it hears
+   back).
+2. Reads the head and gives the rest the next seqs, in the order sent.
+3. Inserts them. One racing the account's deletion fails on the foreign key.
+4. Tells that account's streams the placed events (`Change::Account`): to
+   the pushing device its events come back placed; its other devices fold
+   them in; its session partners' streams forward the workout ones.
 
-Reads (`read_account`, `read_api`) take the same lock and look at the fold.
+Reads (`read_account`, `read_api`: the website's) fold the account from its
+history, without heart rate (`Account::fold_without_heart_rate`), answer,
+and keep nothing. Partners' live status is never computed here: each phone
+folds it (see [multiplayer.md](multiplayer.md)).
 
 ## Database access model
 
@@ -122,8 +119,6 @@ Defined in `ServerDb::new_in_dir` (`src/db/mod.rs`).
 
 - **Writes serialise** through the single write connection.
 - **Reads run concurrently** (16 connections) and, under WAL, never block writes.
-- Writes to one account are also serialised by its lock in the fold cache,
-  so two pushes for the same account cannot interleave.
 
 ### Changes
 
@@ -143,7 +138,8 @@ event as JSON, stored as placed and never interpreted by SQL. What
 the server owns (users, passkeys, logins, who trained together, telemetry)
 is plain columns, with no proto blobs, and every `user_id` references
 `users(id) ON DELETE CASCADE`. What only matters while the server runs
-(partners' live status, join requests) is in memory. See
+(join requests, which stream watches whom) is in memory. Partners' live
+status is not on the server at all. See
 [data-model.md](data-model.md#server-tables).
 
 ### Schema changes

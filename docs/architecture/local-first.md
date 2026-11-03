@@ -129,9 +129,10 @@ order of an account's events; the phone records without waiting for it.
   is skipped) is given the next seq, folded and stored, and sent down every
   stream of that account, the pusher's included.
 - **Down:** those events, from whichever device, in the server's order; the
-  head, answering a heartbeat; and, whole each time, the caller's session
-  and requests to join them — on connect, on every change, and re-checked
-  every 20 s (sent only when different from the last).
+  head, answering a heartbeat; whole each time, on connect and on every
+  change, who is in the caller's session and the requests to join them;
+  and each session partner's workout as events, folded on this phone
+  ([multiplayer.md](multiplayer.md)).
 - **Phone:** `Store::receive` takes the events in order. Its own leave
   `pending`; when another device's arrive, the account is refolded, theirs
   then whatever is still pending on top. Two phones on one account both
@@ -150,20 +151,20 @@ bad wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
 
 - `account_events` is the history, `(user_id, seq, id, event)` with the
   event as JSON, and the only place the server keeps the account: it
-  places and appends what is pushed and keeps the fold in memory with its
-  head (`src/db/accounts.rs`; least recently used dropped past 256
-  accounts, refolded from the history when next needed). No workout, set or
-  template is copied into a table.
+  places and appends what is pushed, folding nothing (`src/db/accounts.rs`).
+  No workout, set or template is copied into a table, and nothing of an
+  account is held in memory.
 - The workout reads the web makes (`WorkoutService`, `SettingsService`) are
-  answered by the core's `View` over the fold — the same code as the phone.
+  answered by the core's `View` over the account folded from its history
+  then — the same code as the phone.
 - Changes are told only to the streams they concern (`src/db/changes.rs`):
   an account's new events, membership and join requests to that user's
   streams, a session's to its members' — however many are connected, a
   stream wakes only for its own.
-- Multiplayer: a push other than heart rate marks the caller active in
-  their session, which tells that session's streams; each sends its
-  partners' status, read from their folds then (`participant_status`). A pushed EndWorkout takes the
-  caller out of their session, their result still on show. Membership, invites and join requests stay server-side
-  RPCs: they need the network anyway.
+- Multiplayer: the server routes each member's workout events to the
+  others' streams and keeps only who is in which session; every phone
+  folds its partners' status itself. A pushed EndWorkout takes the caller
+  out of their session, their result still on show. Membership, invites
+  and join requests stay server-side RPCs: they need the network anyway.
 - A workout's session is recorded on it by the phone (`SetWorkoutSession`)
   when the stream reports one, so "trained with" works from the account.

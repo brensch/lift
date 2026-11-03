@@ -148,6 +148,19 @@ confirm it trips.
 - `core/tests/stored_events.rs` — one of every fact, as stored
   (`core/tests/testdata/stored_events.json`), still reads and writes back
   the same: no field renamed or removed. A new fact must be added there.
+- `testkit/tests/golden.rs` — twelve weeks of a seeded lifter's training, as
+  stored (`testkit/tests/testdata/golden_events.json.zst`), still fold to
+  the same account, read as the app reads it (home, workouts, progress,
+  settings: `golden_views.json`). `GOLDEN=views` rewrites the views to
+  review a deliberate change in the diff. The lifter (`schlift_testkit`)
+  trains through the phone's own store; the load test's clients use it too.
+- `core/src/session.rs` — a session partner's phone, holding only their
+  workout's events, sees exactly what their own screen shows (in pounds and
+  kilos); only workout facts are shared; a partner goes off show after
+  ending or going idle.
+- `src/server/sync_tests.rs` (`stream`) — a partner's sets reach the others
+  as events as they happen; one who opens the app mid-workout gets the
+  workout so far; heart rate and the rest of an account never leave it.
 - `src/server/auth.rs` — the `test-auth` gate on `TestLogin`, both branches.
 - `src/demo_seed.rs` — the demo users seed (`test-auth`), and the walk over
   their history rises.

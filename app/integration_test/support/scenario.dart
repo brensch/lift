@@ -369,6 +369,15 @@ class Scenario {
   /// Open the multiplayer sheet from the header.
   Future<void> openMultiplayer() => tap(find.byTooltip('Multiplayer'));
 
+  /// Poll until [finder] finds something.
+  Future<bool> waitFor(Finder finder, {int seconds = 8}) async {
+    for (var i = 0; i < seconds * 2; i++) {
+      if (finder.evaluate().isNotEmpty) return true;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
   /// Poll until [text] appears (backend round-trips resolve asynchronously).
   Future<bool> waitForText(String text, {int seconds = 8}) async {
     for (var i = 0; i < seconds * 2; i++) {

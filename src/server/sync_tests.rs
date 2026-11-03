@@ -73,10 +73,16 @@ mod store {
         let (started, events) = phone.start_squats(1_000);
         let pushed = db.push_events("u1", events).await.unwrap();
         assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [1]);
-        assert!(pushed.progressed);
 
         let server = db.read_account("u1", Clone::clone).await.unwrap();
-        assert_eq!(server, phone.account, "the server folds what the phone did");
+        let without_heart_rate = Account {
+            without_heart_rate: true,
+            ..phone.account.clone()
+        };
+        assert_eq!(
+            server, without_heart_rate,
+            "the server folds what the phone did"
+        );
         assert_eq!(server.active_workout_id, started.id);
     }
 
@@ -108,7 +114,7 @@ mod store {
         let pushed = db.push_events("u1", all.clone()).await.unwrap();
         assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [2]);
         let again = db.push_events("u1", all).await.unwrap();
-        assert!(again.stored.is_empty() && !again.progressed);
+        assert!(again.stored.is_empty());
         let ids: Vec<&str> = phone.log.iter().map(|e| e.id.as_str()).collect();
         let server = held(&db).await;
         assert_eq!(
@@ -146,30 +152,9 @@ mod store {
         );
         assert_eq!(
             db.read_account("u1", Clone::clone).await.unwrap(),
-            Account::fold(&server),
+            Account::fold_without_heart_rate(&server),
             "the server's account is the fold of its order"
         );
-    }
-
-    #[tokio::test]
-    async fn heart_rate_alone_is_not_progress() {
-        let db = db().await;
-        let mut phone = Phone::new();
-        let (started, events) = phone.start_squats(1_000);
-        db.push_events("u1", events).await.unwrap();
-        let (_, beats) = phone.write(1_005, |call| {
-            call.record_heart_rate(
-                &started.id,
-                &[WorkoutHeartRatePoint {
-                    sampled_at: 1_005_000,
-                    bpm: 120.0,
-                }],
-            )
-            .unwrap()
-        });
-        let pushed = db.push_events("u1", beats).await.unwrap();
-        assert_eq!(pushed.stored.len(), 1);
-        assert!(!pushed.progressed);
     }
 
     #[tokio::test]
@@ -303,29 +288,51 @@ mod stream {
         }
 
         /// The next session view that satisfies `want`.
-        async fn session(
-            &mut self,
-            mut want: impl FnMut(&GetCurrentSessionResponse) -> bool,
-        ) -> GetCurrentSessionResponse {
+        async fn session(&mut self, mut want: impl FnMut(&Session) -> bool) -> Session {
             self.next(|kind| match kind {
                 sync_response::Kind::Session(session) if want(&session) => Some(session),
                 _ => None,
             })
             .await
         }
+
+        /// A partner as this phone folds them, once it satisfies `want`:
+        /// their workout's events, as they come (`held`, kept across calls).
+        async fn partner(
+            &mut self,
+            partner: &str,
+            held: &mut Vec<Event>,
+            mut want: impl FnMut(&ParticipantStatus) -> bool,
+        ) -> ParticipantStatus {
+            loop {
+                let status = schlift_core::session::partner_status(held, 0, 0, now_unix());
+                if let Some(status) = status.filter(|s| want(s)) {
+                    return status;
+                }
+                let (whole, events) = self
+                    .next(|kind| match kind {
+                        sync_response::Kind::PartnerEvents(p) if p.user_id == partner => {
+                            Some((p.whole, unpack(&p.packed).unwrap()))
+                        }
+                        _ => None,
+                    })
+                    .await;
+                if whole {
+                    held.clear();
+                }
+                for event in events {
+                    if !held.iter().any(|e| e.id == event.id) {
+                        held.push(event);
+                    }
+                }
+            }
+        }
     }
 
-    fn partner_workout(session: &GetCurrentSessionResponse) -> Option<&ParticipantStatus> {
-        session
-            .session_status
-            .as_ref()
-            .and_then(|s| s.participants.first())
-            .filter(|p| p.active_workout.is_some())
-    }
-
-    /// Alice and Bob train together: Alice's sets reach Bob as she does
-    /// them, and her ending the workout leaves her finished state on show
-    /// and takes her out of the session.
+    /// Alice and Bob train together: Alice's sets reach Bob as events as she
+    /// does them, and his own core folds them; her ending the workout leaves
+    /// her finished workout on show and takes her out of the session. The
+    /// server holds none of it.
     #[tokio::test]
     async fn a_partners_progress_arrives_as_it_happens() {
         let db = db().await;
@@ -353,13 +360,10 @@ mod stream {
         let mut bob_link = Link::open(channel.clone(), &bob_token).await;
         assert_eq!(alice_link.head().await, 0, "nothing synced yet");
         // On connect: the session, Alice in it, not training.
-        bob_link
-            .session(|s| {
-                s.session_status
-                    .as_ref()
-                    .is_some_and(|s| s.participants.len() == 1)
-            })
-            .await;
+        bob_link.session(|s| s.members.len() == 1).await;
+        let mut alices = Vec::new();
+        let idle = bob_link.partner(&alice.id, &mut alices, |_| true).await;
+        assert!(idle.active_workout.is_none());
 
         let mut phone = Phone::new();
         let (started, events) = phone.start_squats(now_unix());
@@ -369,10 +373,11 @@ mod stream {
             1,
             "her own, placed"
         );
-        let seen = bob_link.session(|s| partner_workout(s).is_some()).await;
+        let seen = bob_link
+            .partner(&alice.id, &mut alices, |p| p.active_workout.is_some())
+            .await;
         assert_eq!(
-            partner_workout(&seen).unwrap().active_workout_id,
-            started.id,
+            seen.active_workout_id, started.id,
             "Bob sees Alice's workout"
         );
 
@@ -394,9 +399,13 @@ mod stream {
             .unwrap()
         });
         alice_link.push(events).await;
-        bob_link
-            .session(|s| partner_workout(s).is_some_and(|p| p.completed_sets.len() == 1))
+        let seen = bob_link
+            .partner(&alice.id, &mut alices, |p| p.completed_sets.len() == 1)
             .await;
+        assert_eq!(
+            seen,
+            schlift_core::session::partner_status(&alices, 0, 0, now_unix()).unwrap()
+        );
 
         let (_, events) = phone.write(now_unix(), |call| {
             call.end_workout(EndWorkoutRequest {
@@ -407,20 +416,113 @@ mod stream {
         });
         alice_link.push(events).await;
         alice_link.events_through(3).await;
-        // Alice is out of the session; her row keeps her finished workout.
+        // Alice is out of the session.
         alice_link.session(|s| s.session_id.is_empty()).await;
         assert!(db
             .get_user_current_session(&alice.id)
             .await
             .unwrap()
             .is_none());
-        // Bob still sees her, finished: her last state stays on show.
+        // Bob still has her finished workout, and her, ended.
         bob_link
-            .session(|s| {
-                partner_workout(s)
-                    .is_some_and(|p| p.active_workout.as_ref().is_some_and(|w| w.end_time != 0))
+            .partner(&alice.id, &mut alices, |p| {
+                p.active_workout.as_ref().is_some_and(|w| w.end_time != 0)
             })
             .await;
+        let roster = bob_link
+            .session(|s| s.members.first().is_some_and(|m| m.ended_at > 0))
+            .await;
+        assert_eq!(roster.members.len(), 1);
+    }
+
+    /// Bob opens the app once Alice is mid-workout: he gets her workout so
+    /// far, then each event as she records it — only what happens in it,
+    /// never her heart rate or anything else of her account.
+    #[tokio::test]
+    async fn a_late_partner_gets_the_workout_so_far_and_only_the_workout() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (alice, _) = db
+            .get_or_create_user_with_auth_session("alice")
+            .await
+            .unwrap();
+        let (_, bob_token) = db
+            .get_or_create_user_with_auth_session("bob")
+            .await
+            .unwrap();
+        let invite = db.get_invite_token(&alice.id).await.unwrap().unwrap();
+        MultiplayerServiceClient::new(channel.clone())
+            .join_via_invite(authed(
+                &bob_token,
+                JoinViaInviteRequest {
+                    invite_token: invite,
+                },
+            ))
+            .await
+            .unwrap();
+
+        let mut phone = Phone::new();
+        let (started, mut events) = phone.start_squats(now_unix());
+        let set = started.proposed_sets[0].clone();
+        let (_, done) = phone.write(now_unix(), |call| {
+            call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                mutations: vec![WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::CompleteSet(
+                        CompleteSetRequest {
+                            workout_id: started.id.clone(),
+                            proposed_set_id: set.id.clone(),
+                            actual_reps: 8,
+                            actual_weight: 0.0,
+                            completed_at: now_unix(),
+                        },
+                    )),
+                }],
+            })
+            .unwrap()
+        });
+        events.extend(done);
+        db.push_events(&alice.id, events).await.unwrap();
+
+        let mut bob_link = Link::open(channel.clone(), &bob_token).await;
+        let mut alices = Vec::new();
+        let seen = bob_link
+            .partner(&alice.id, &mut alices, |p| p.completed_sets.len() == 1)
+            .await;
+        assert_eq!(seen.active_workout_id, started.id);
+
+        // Her heart rate is hers: it never reaches Bob.
+        let (_, beats) = phone.write(now_unix(), |call| {
+            call.record_heart_rate(
+                &started.id,
+                &[WorkoutHeartRatePoint {
+                    sampled_at: now_unix() * 1000,
+                    bpm: 120.0,
+                }],
+            )
+            .unwrap()
+        });
+        let (_, ended) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        db.push_events(&alice.id, [beats, ended].concat())
+            .await
+            .unwrap();
+        bob_link
+            .partner(&alice.id, &mut alices, |p| {
+                p.active_workout.as_ref().is_some_and(|w| w.end_time != 0)
+            })
+            .await;
+        assert!(
+            alices
+                .iter()
+                .all(|e| schlift_core::session::shared_with_partners(&e.fact)),
+            "only her workout reached Bob"
+        );
+        assert_eq!(alices.len(), 3, "the start, the set, the end");
     }
 
     /// A heartbeat is answered with the head, so the phone knows the link

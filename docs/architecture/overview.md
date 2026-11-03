@@ -180,7 +180,8 @@ iOS artifacts. The version comes from the tag; `app/pubspec.yaml` stays a
 The architecture assumes a small user base:
 
 - One SQLite file, one write connection. All writes serialise.
-- Folded accounts are cached in process memory (at most 256), so the backend
-  is single-instance. So are in-flight WebAuthn challenges.
+- No account is held in memory: the website's reads fold one from its
+  history when asked. In-flight WebAuthn challenges and join requests are
+  in memory, so the backend is single-instance.
 - New events and multiplayer updates go out over each phone's Sync stream,
   told in process to the streams they concern; no external queue.

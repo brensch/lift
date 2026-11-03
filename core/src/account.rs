@@ -60,17 +60,32 @@ pub struct Account {
     pub workouts: Vec<WorkoutRecord>,
     /// The workout under way, or empty.
     pub active_workout_id: String,
+    /// Heart-rate readings are left out: the server never reads them (the
+    /// phone shows them), and they are most of what an account holds.
+    pub without_heart_rate: bool,
 }
 
 impl Account {
     /// The account after `events`, in order. An event that can't apply
     /// (made by a different version of these rules) changes nothing.
     pub fn fold<'a>(events: impl IntoIterator<Item = &'a Event>) -> Self {
-        let mut account = Self::default();
-        for event in events {
-            account.replay(event);
+        Self::default().folding(events)
+    }
+
+    /// The same, without heart-rate readings: the server's account.
+    pub fn fold_without_heart_rate<'a>(events: impl IntoIterator<Item = &'a Event>) -> Self {
+        Self {
+            without_heart_rate: true,
+            ..Self::default()
         }
-        account
+        .folding(events)
+    }
+
+    fn folding<'a>(mut self, events: impl IntoIterator<Item = &'a Event>) -> Self {
+        for event in events {
+            self.replay(event);
+        }
+        self
     }
 
     /// Fold in one event already in the log: it takes its place whether or
@@ -89,7 +104,11 @@ impl Account {
                 let samples = recorded
                     .samples()
                     .ok_or_else(|| invalid("heart rate's gaps and bpms don't match"))?;
-                self.workout_mut(&recorded.workout_id)?.heart_rate = samples;
+                let without = self.without_heart_rate;
+                let workout = self.workout_mut(&recorded.workout_id)?;
+                if !without {
+                    workout.heart_rate = samples;
+                }
             }
             Fact::TemplateSaved(saved) => {
                 let mut template = saved.template.clone();
@@ -200,34 +219,27 @@ impl Account {
 
     // ── Writes ──
 
-    /// A start: the workout, named after its template (or the request), its
-    /// sets laid out from the decisions recorded on the event.
+    /// A start: the workout, with the name and unit it started with, its
+    /// sets laid out from the decisions recorded on the event. Nothing else
+    /// of the account is read.
     fn start_workout(
         &mut self,
         req: &WorkoutStarted,
         workout_id: &str,
         ids: &mut Ids,
     ) -> Result<(), CoreError> {
-        let name = if !req.name.is_empty() {
-            req.name.clone()
-        } else if req.template_id.is_empty() {
-            "Workout".to_string()
-        } else {
-            self.template(&req.template_id)
-                .ok_or_else(|| CoreError::NotFound("Template not found".into()))?
-                .name
-                .clone()
-        };
         let workout = Workout {
             id: workout_id.to_string(),
-            name,
+            name: req.name.clone(),
             start_time: req.started_at,
             template_id: req.template_id.clone(),
             ..Default::default()
         };
         let mut record = WorkoutRecord::new(workout, Vec::new(), Vec::new());
+        let unit = unit_from_proto(req.unit);
+        record.unit = unit;
         require_decisions(&record, &req.exercises, &req.decisions)?;
-        reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, self.unit(), ids)?;
+        reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, unit, ids)?;
         self.workouts.push(record);
         self.active_workout_id = workout_id.to_string();
         Ok(())
@@ -235,19 +247,19 @@ impl Account {
 
     /// One change to a workout, through the reducer. The workout is changed
     /// on a copy (without its heart rate) and put back, heart rate moved
-    /// over, only if the whole change applied.
-    /// Apply a fact about one workout to it.
+    /// over, only if the whole change applied. It rounds in the workout's
+    /// own unit.
     fn change_workout(&mut self, fact: &Fact, at: i64, ids: &mut Ids) -> Result<(), CoreError> {
         let workout_id = fact
             .workout_id()
             .ok_or_else(|| invalid("not a fact about a workout"))?;
-        let unit = self.unit();
         let index = self
             .workouts
             .iter()
             .position(|r| r.workout.id == workout_id)
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))?;
         let mut record = self.workouts[index].without_heart_rate();
+        let unit = record.unit;
         match fact {
             Fact::SetCompleted(completed) => {
                 reducer::apply_complete_set_to_active(&mut record, completed, unit, ids)?;
@@ -422,8 +434,13 @@ impl Account {
                 workout,
                 proposed_sets: imported.proposed_sets.clone(),
                 completed_sets: imported.completed_sets.clone(),
-                heart_rate: imported.heart_rate.clone(),
+                heart_rate: if self.without_heart_rate {
+                    Vec::new()
+                } else {
+                    imported.heart_rate.clone()
+                },
                 exercise_logs: imported.exercise_logs.clone(),
+                unit: self.unit(),
             });
         }
         self.workouts.sort_by_key(|r| r.workout.start_time);

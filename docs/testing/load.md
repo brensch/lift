@@ -8,20 +8,32 @@ syncing the way `app/lib/services/account_sync.dart` does. The code is in
 
 ## What a client does
 
+Every client is set up before anything is measured, a few dozen at a time:
+
 1. **Signs up** with a real WebAuthn ceremony (`webauthn-authenticator-rs`'s
    software passkey), then **signs in** again with it.
-2. **Onboards** through the core, then opens the Sync stream (saying what it
-   holds, as the phone does) and pushes.
-3. Some clients **train in groups of three**: the first shares its invite token,
-   the others join through it, so session updates fan out.
-4. **Trains** until the run ends: a workout from home's suggestion, each set
+2. **Onboards** through the core and, in a profile with `history_weeks`,
+   **records that many weeks of training** first (`schlift_testkit`: a
+   seeded lifter training through the phone's own store, three workouts a
+   week) — an account the size real ones grow to.
+3. **Opens the Sync stream** (saying what it holds, as the phone does) and
+   sends everything, in pieces, until the server has placed it all
+   (`sync.restore`).
+
+Then the run proper, timed from here:
+4. Some clients **train in groups of three**: the first shares its invite token,
+   the others join through it, so each one's workout events go to the other
+   two, folded there (`core.partner`).
+5. **Watchers** (a profile's `watchers` share) only keep the app open:
+   connected, heartbeating, never training.
+6. The rest **train** until the run ends: a workout from home's suggestion, each set
    started and done with a tap each, the calibration ramp's question answered,
    heart rate every few seconds, ended when the plan runs out. Every write
    pushes what is still pending, and the server's placed events come back
    down into the client's `Store`; between pushes it heartbeats.
    After each workout it asks for what the website shows (`ListWorkoutSummaries`),
    which the server answers from its own fold.
-5. **Drains**: waits until nothing is pending and it holds the server's head,
+7. **Drains**: waits until nothing is pending and it holds the server's head,
    then hangs up.
 
 Each client sends `x-forwarded-for` with its own address, since the server
@@ -50,6 +62,7 @@ make a run the new baseline, copy its report over the baseline file.
 |---|---|---|---|
 | `smoke` | 40 | about a minute | before a push; CI runs it on debug builds for correctness only |
 | `scale` | 1000 | about four minutes | before a release, and after anything on the sync or storage path |
+| `long` | 400, each with 52 weeks of history, half only watching | about ten minutes | after anything that reads accounts: the server holds none in memory, so this is what a year-old account costs it |
 
 `LOAD_ARGS` adds flags: `--clients`, `--seconds`, `--connections`, or
 `--server <url>` to aim at a server that is already running (no CPU or memory

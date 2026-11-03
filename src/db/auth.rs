@@ -139,10 +139,8 @@ impl ServerDb {
     /// The account and everything it owns: the cascade takes its events,
     /// logins, passkeys, sessions and page views.
     pub async fn delete_user_account_and_data(&self, user_id: &str) -> DbResult<()> {
-        // Held across the delete, so a push already under way either lands
-        // before it (and goes with it) or finds no account.
-        let slot = self.account_lock(user_id).await?;
-        let mut account = slot.lock().await;
+        // On the one write connection: a push already under way lands
+        // before it (and goes with it), one after finds no account.
         let mut tx = self.write_pool.begin().await?;
         sqlx::query("DELETE FROM users WHERE id = ?")
             .bind(user_id)
@@ -154,9 +152,6 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
-        *account = None;
-        drop(account);
-        self.forget_slot(user_id, &slot).await;
         self.forget_join_requests(user_id);
         Ok(())
     }

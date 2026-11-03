@@ -111,11 +111,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             auth_state: auth_state.clone(),
         },
     )))
-    .add_service(tonic_web::enable(SyncServiceServer::new(
-        ServerSyncService {
+    .add_service(tonic_web::enable(
+        SyncServiceServer::new(ServerSyncService {
             db: server_db.clone(),
-        },
-    )))
+        })
+        // A push may unpack to schlift_core::sync's limit; packed, it is
+        // smaller still. (Phones push in pieces well under this.)
+        .max_decoding_message_size(16 << 20),
+    ))
     .add_service(tonic_web::enable(SettingsServiceServer::new(
         ServerSettingsService {
             db: server_db.clone(),

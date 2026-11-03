@@ -2217,6 +2217,7 @@ dependencies = [
  "rand 0.8.5",
  "schlift",
  "schlift-core",
+ "schlift-testkit",
  "schlift_native",
  "serde",
  "serde_json",
@@ -2226,6 +2227,18 @@ dependencies = [
  "url",
  "webauthn-authenticator-rs",
  "webauthn-rs-proto",
+]
+
+[[package]]
+name = "schlift-testkit"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "rand 0.8.5",
+ "schlift-core",
+ "schlift_native",
+ "serde_json",
+ "zstd",
 ]
 
 [[package]]

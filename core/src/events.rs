@@ -81,12 +81,16 @@ impl Fact {
 // values, as numbers. Times are unix seconds unless named otherwise.
 
 /// A workout began, its id the event's: each lift's decision, planned when
-/// it started and in its budget.
+/// it started and in its budget. Everything it needs to fold is in its own
+/// events — its name and unit too — so a session partner's phone folds it
+/// from those alone.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
 pub struct WorkoutStarted {
-    /// Empty: the template's name, or "Workout" without one.
+    /// The template's name then, or "Workout" without one.
     pub name: String,
+    /// The unit it was planned in (`crate::pb::WeightUnit`).
+    pub unit: i32,
     pub started_at: i64,
     pub template_id: String,
     pub exercises: Vec<i32>,

@@ -303,45 +303,6 @@ class LeaveCurrentSessionResponse extends $pb.GeneratedMessage {
   static LeaveCurrentSessionResponse? _defaultInstance;
 }
 
-class GetCurrentSessionRequest extends $pb.GeneratedMessage {
-  factory GetCurrentSessionRequest() => create();
-
-  GetCurrentSessionRequest._();
-
-  factory GetCurrentSessionRequest.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory GetCurrentSessionRequest.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetCurrentSessionRequest',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetCurrentSessionRequest clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetCurrentSessionRequest copyWith(
-          void Function(GetCurrentSessionRequest) updates) =>
-      super.copyWith((message) => updates(message as GetCurrentSessionRequest))
-          as GetCurrentSessionRequest;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static GetCurrentSessionRequest create() => GetCurrentSessionRequest._();
-  @$core.override
-  GetCurrentSessionRequest createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static GetCurrentSessionRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetCurrentSessionRequest>(create);
-  static GetCurrentSessionRequest? _defaultInstance;
-}
-
 class GetSessionRostersRequest extends $pb.GeneratedMessage {
   factory GetSessionRostersRequest({
     $core.Iterable<$core.String>? sessionIds,
@@ -506,54 +467,56 @@ class SessionRoster extends $pb.GeneratedMessage {
   $pb.PbList<$1.User> get partners => $_getList(1);
 }
 
-class GetCurrentSessionResponse extends $pb.GeneratedMessage {
-  factory GetCurrentSessionResponse({
+/// The caller's session as the server knows it: who else is in it. Where
+/// each is up to is not here: their workout's events come down the Sync
+/// stream (PartnerEvents, account.proto) and the phone folds them. Empty
+/// session_id when the caller is in none.
+class Session extends $pb.GeneratedMessage {
+  factory Session({
     $core.String? sessionId,
-    SessionStatus? sessionStatus,
+    $core.Iterable<SessionMember>? members,
   }) {
     final result = create();
     if (sessionId != null) result.sessionId = sessionId;
-    if (sessionStatus != null) result.sessionStatus = sessionStatus;
+    if (members != null) result.members.addAll(members);
     return result;
   }
 
-  GetCurrentSessionResponse._();
+  Session._();
 
-  factory GetCurrentSessionResponse.fromBuffer($core.List<$core.int> data,
+  factory Session.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory GetCurrentSessionResponse.fromJson($core.String json,
+  factory Session.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'GetCurrentSessionResponse',
+      _omitMessageNames ? '' : 'Session',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sessionId')
-    ..aOM<SessionStatus>(2, _omitFieldNames ? '' : 'sessionStatus',
-        subBuilder: SessionStatus.create)
+    ..pPM<SessionMember>(2, _omitFieldNames ? '' : 'members',
+        subBuilder: SessionMember.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetCurrentSessionResponse clone() => deepCopy();
+  Session clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetCurrentSessionResponse copyWith(
-          void Function(GetCurrentSessionResponse) updates) =>
-      super.copyWith((message) => updates(message as GetCurrentSessionResponse))
-          as GetCurrentSessionResponse;
+  Session copyWith(void Function(Session) updates) =>
+      super.copyWith((message) => updates(message as Session)) as Session;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static GetCurrentSessionResponse create() => GetCurrentSessionResponse._();
+  static Session create() => Session._();
   @$core.override
-  GetCurrentSessionResponse createEmptyInstance() => create();
+  Session createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static GetCurrentSessionResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<GetCurrentSessionResponse>(create);
-  static GetCurrentSessionResponse? _defaultInstance;
+  static Session getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Session>(create);
+  static Session? _defaultInstance;
 
   @$pb.TagNumber(1)
   $core.String get sessionId => $_getSZ(0);
@@ -565,66 +528,93 @@ class GetCurrentSessionResponse extends $pb.GeneratedMessage {
   void clearSessionId() => $_clearField(1);
 
   @$pb.TagNumber(2)
-  SessionStatus get sessionStatus => $_getN(1);
-  @$pb.TagNumber(2)
-  set sessionStatus(SessionStatus value) => $_setField(2, value);
-  @$pb.TagNumber(2)
-  $core.bool hasSessionStatus() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearSessionStatus() => $_clearField(2);
-  @$pb.TagNumber(2)
-  SessionStatus ensureSessionStatus() => $_ensure(1);
+  $pb.PbList<SessionMember> get members => $_getList(1);
 }
 
-class SessionStatus extends $pb.GeneratedMessage {
-  factory SessionStatus({
-    $core.Iterable<ParticipantStatus>? participants,
+class SessionMember extends $pb.GeneratedMessage {
+  factory SessionMember({
+    $1.User? user,
+    $fixnum.Int64? joinedAt,
+    $fixnum.Int64? endedAt,
   }) {
     final result = create();
-    if (participants != null) result.participants.addAll(participants);
+    if (user != null) result.user = user;
+    if (joinedAt != null) result.joinedAt = joinedAt;
+    if (endedAt != null) result.endedAt = endedAt;
     return result;
   }
 
-  SessionStatus._();
+  SessionMember._();
 
-  factory SessionStatus.fromBuffer($core.List<$core.int> data,
+  factory SessionMember.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory SessionStatus.fromJson($core.String json,
+  factory SessionMember.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'SessionStatus',
+      _omitMessageNames ? '' : 'SessionMember',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..pPM<ParticipantStatus>(2, _omitFieldNames ? '' : 'participants',
-        subBuilder: ParticipantStatus.create)
+    ..aOM<$1.User>(1, _omitFieldNames ? '' : 'user', subBuilder: $1.User.create)
+    ..aInt64(2, _omitFieldNames ? '' : 'joinedAt')
+    ..aInt64(3, _omitFieldNames ? '' : 'endedAt')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SessionStatus clone() => deepCopy();
+  SessionMember clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SessionStatus copyWith(void Function(SessionStatus) updates) =>
-      super.copyWith((message) => updates(message as SessionStatus))
-          as SessionStatus;
+  SessionMember copyWith(void Function(SessionMember) updates) =>
+      super.copyWith((message) => updates(message as SessionMember))
+          as SessionMember;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static SessionStatus create() => SessionStatus._();
+  static SessionMember create() => SessionMember._();
   @$core.override
-  SessionStatus createEmptyInstance() => create();
+  SessionMember createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static SessionStatus getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<SessionStatus>(create);
-  static SessionStatus? _defaultInstance;
+  static SessionMember getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SessionMember>(create);
+  static SessionMember? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.User get user => $_getN(0);
+  @$pb.TagNumber(1)
+  set user($1.User value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUser() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUser() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $1.User ensureUser() => $_ensure(0);
 
   @$pb.TagNumber(2)
-  $pb.PbList<ParticipantStatus> get participants => $_getList(0);
+  $fixnum.Int64 get joinedAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set joinedAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasJoinedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearJoinedAt() => $_clearField(2);
+
+  /// When they ended their workout, which took them out of the session; 0
+  /// while they're in it. A finished workout stays on show a while.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get endedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set endedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasEndedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEndedAt() => $_clearField(3);
 }
 
+/// A session partner's workout as the caller's own core folds it from their
+/// events: the workout under way, or the last one to end since they joined.
 class ParticipantStatus extends $pb.GeneratedMessage {
   factory ParticipantStatus({
     $1.User? user,

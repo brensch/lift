@@ -132,7 +132,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         auth.profileEmoji,
       );
     }
-    if (mp.isInSession && mp.sessionStatus != null) {
+    if (mp.isInSession) {
       for (final participant in mp.participants) {
         sessionLedgerProposed.addAll(participant.proposedSets);
         sessionLedgerCompleted.addAll(participant.completedSets);

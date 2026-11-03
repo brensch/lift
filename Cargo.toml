@@ -31,4 +31,4 @@ test-auth = []
 tonic-build = "0.12.3"
 
 [workspace]
-members = ["core", "app/native", "loadtest"]
+members = ["core", "app/native", "loadtest", "testkit"]

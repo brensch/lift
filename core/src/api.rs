@@ -122,8 +122,12 @@ impl<'a> Call<'a> {
             &[],
             req.budget_minutes,
         );
+        if req.name.is_empty() {
+            req.name = "Workout".to_string();
+        }
         let id = self.record(Fact::WorkoutStarted(WorkoutStarted {
             name: req.name,
+            unit: self.account.unit().to_proto(),
             started_at,
             template_id: req.template_id,
             exercises: req.exercises,
