@@ -5,17 +5,18 @@ use std::collections::HashMap;
 //
 // Who is in which session is session_members (db/session.rs): one row per
 // (session, user), the user's current session being the row with left_at 0.
-// Where a member is up to is never stored: it is read from their synced
-// account whenever a partner's view is sent (support.rs participant_status).
+// Where a member is up to is never stored or computed here: each partner's
+// phone folds their workout's events, which the Sync stream forwards
+// (sync.rs, schlift_core::session).
 //
-// Transitions:
+// Transitions, each one write:
 //   - JoinViaInvite / RespondJoinRequest: both users join the anchor's session
 //     (or a new one); any other session they were in is left.
-//   - Any synced event other than heart rate: the member is active (sync.rs).
-//   - A synced EndWorkout: ending is leaving; their final state stays on show
-//     until it goes idle (sync.rs).
-//   - Idle: a member inactive for SESSION_IDLE_SECONDS is out and off show,
-//     so a join that never started doesn't linger.
+//   - A synced EndWorkout: ending is leaving; their workout stays on show a
+//     while (sync.rs).
+//   - Idle: a member who has recorded nothing for SHOWN_FOR_SECONDS is out
+//     (read from their events, never written), so a join that never started
+//     doesn't linger.
 //   - LeaveCurrentSession: out and off show at once.
 //
 // The rows are never deleted (except with the account): they record who
@@ -105,15 +106,6 @@ impl MultiplayerService for ServerMultiplayerService {
             .map_err(internal_error)?
             .ok_or_else(|| Status::not_found("User not found"))?;
         Ok(Response::new(GetMyInviteTokenResponse { invite_token }))
-    }
-
-    async fn get_current_session(
-        &self,
-        request: Request<GetCurrentSessionRequest>,
-    ) -> Result<Response<GetCurrentSessionResponse>, Status> {
-        let caller_id = authed_user_id(&request, &self.db).await?;
-        info!(rpc = "GetCurrentSession", %caller_id, "request");
-        Ok(Response::new(current_session(&self.db, &caller_id).await?))
     }
 
     async fn get_session_rosters(
@@ -287,36 +279,37 @@ impl MultiplayerService for ServerMultiplayerService {
     }
 }
 
-/// The caller's current session as they see it: everyone else in it and
-/// where each is up to. Empty when not in one.
-pub(super) async fn current_session(
-    db: &ServerDb,
-    user_id: &str,
-) -> ServerResult<GetCurrentSessionResponse> {
-    let session_id = db
+/// The caller's current session as they see it: who else is in it. Where
+/// each is up to the stream sends as their workout's events. Empty when not
+/// in one.
+pub(super) async fn current_session(db: &ServerDb, user_id: &str) -> ServerResult<Session> {
+    let Some(session_id) = db
         .get_user_current_session(user_id)
         .await
         .map_err(internal_error)?
-        .unwrap_or_default();
-    if session_id.is_empty() {
-        return Ok(GetCurrentSessionResponse::default());
-    }
-    let mut participants = Vec::new();
-    for (member, joined_at) in db
-        .session_members_on_show(&session_id)
+    else {
+        return Ok(Session::default());
+    };
+    let mut members = Vec::new();
+    for (member, joined_at, ended_at) in db
+        .session_roster(&session_id)
         .await
         .map_err(internal_error)?
     {
         if member == user_id {
             continue;
         }
-        if let Some(status) = participant_status(db, &member, joined_at).await? {
-            participants.push(status);
+        if let Some(user) = db.get_user(&member).await.map_err(internal_error)? {
+            members.push(SessionMember {
+                user: Some(as_seen_by_others(user)),
+                joined_at,
+                ended_at,
+            });
         }
     }
-    Ok(GetCurrentSessionResponse {
-        session_id: session_id.clone(),
-        session_status: Some(SessionStatus { participants }),
+    Ok(Session {
+        session_id,
+        members,
     })
 }
 

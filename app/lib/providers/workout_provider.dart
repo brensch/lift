@@ -3,7 +3,8 @@ import 'dart:collection';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fluttertoast/fluttertoast.dart' show Toast, ToastGravity;
+import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
@@ -885,7 +886,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         final storeName = Platform.isAndroid
             ? 'Health Connect'
             : 'Apple Health';
-        Fluttertoast.showToast(
+        showToast(
           msg: 'Successfully uploaded to $storeName',
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
@@ -895,7 +896,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
     } catch (e, st) {
       debugPrint('Health: write failed: $e\n$st');
-      Fluttertoast.showToast(
+      showToast(
         msg: 'Failed to sync workout to Health Connect',
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,

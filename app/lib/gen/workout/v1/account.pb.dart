@@ -15,343 +15,10 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'group.pb.dart' as $3;
-import 'settings.pb.dart' as $2;
+import 'group.pb.dart' as $2;
 import 'workout.pb.dart' as $1;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
-
-enum Event_Kind {
-  startWorkout,
-  workout,
-  heartRate,
-  saveTemplate,
-  deleteTemplate,
-  reorderTemplates,
-  addLibraryTemplates,
-  completeOnboarding,
-  updateSetting,
-  importHistory,
-  cloneTemplate,
-  setOverride,
-  notSet
-}
-
-class Event extends $pb.GeneratedMessage {
-  factory Event({
-    $fixnum.Int64? seq,
-    $core.String? id,
-    $fixnum.Int64? at,
-    $1.StartWorkoutRequest? startWorkout,
-    $1.WorkoutMutation? workout,
-    $1.AppendWorkoutHeartRateRequest? heartRate,
-    $1.SaveTemplateRequest? saveTemplate,
-    $1.DeleteTemplateRequest? deleteTemplate,
-    $1.ReorderTemplatesRequest? reorderTemplates,
-    $1.AddLibraryTemplatesRequest? addLibraryTemplates,
-    $1.CompleteOnboardingRequest? completeOnboarding,
-    $2.UpdateSettingRequest? updateSetting,
-    ImportHistory? importHistory,
-    $1.CloneTemplateRequest? cloneTemplate,
-    $1.SetOverrideRequest? setOverride,
-  }) {
-    final result = create();
-    if (seq != null) result.seq = seq;
-    if (id != null) result.id = id;
-    if (at != null) result.at = at;
-    if (startWorkout != null) result.startWorkout = startWorkout;
-    if (workout != null) result.workout = workout;
-    if (heartRate != null) result.heartRate = heartRate;
-    if (saveTemplate != null) result.saveTemplate = saveTemplate;
-    if (deleteTemplate != null) result.deleteTemplate = deleteTemplate;
-    if (reorderTemplates != null) result.reorderTemplates = reorderTemplates;
-    if (addLibraryTemplates != null)
-      result.addLibraryTemplates = addLibraryTemplates;
-    if (completeOnboarding != null)
-      result.completeOnboarding = completeOnboarding;
-    if (updateSetting != null) result.updateSetting = updateSetting;
-    if (importHistory != null) result.importHistory = importHistory;
-    if (cloneTemplate != null) result.cloneTemplate = cloneTemplate;
-    if (setOverride != null) result.setOverride = setOverride;
-    return result;
-  }
-
-  Event._();
-
-  factory Event.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory Event.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static const $core.Map<$core.int, Event_Kind> _Event_KindByTag = {
-    10: Event_Kind.startWorkout,
-    11: Event_Kind.workout,
-    12: Event_Kind.heartRate,
-    13: Event_Kind.saveTemplate,
-    14: Event_Kind.deleteTemplate,
-    15: Event_Kind.reorderTemplates,
-    16: Event_Kind.addLibraryTemplates,
-    18: Event_Kind.completeOnboarding,
-    19: Event_Kind.updateSetting,
-    21: Event_Kind.importHistory,
-    22: Event_Kind.cloneTemplate,
-    23: Event_Kind.setOverride,
-    0: Event_Kind.notSet
-  };
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'Event',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..oo(0, [10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23])
-    ..aInt64(1, _omitFieldNames ? '' : 'seq')
-    ..aOS(2, _omitFieldNames ? '' : 'id')
-    ..aInt64(3, _omitFieldNames ? '' : 'at')
-    ..aOM<$1.StartWorkoutRequest>(10, _omitFieldNames ? '' : 'startWorkout',
-        subBuilder: $1.StartWorkoutRequest.create)
-    ..aOM<$1.WorkoutMutation>(11, _omitFieldNames ? '' : 'workout',
-        subBuilder: $1.WorkoutMutation.create)
-    ..aOM<$1.AppendWorkoutHeartRateRequest>(
-        12, _omitFieldNames ? '' : 'heartRate',
-        subBuilder: $1.AppendWorkoutHeartRateRequest.create)
-    ..aOM<$1.SaveTemplateRequest>(13, _omitFieldNames ? '' : 'saveTemplate',
-        subBuilder: $1.SaveTemplateRequest.create)
-    ..aOM<$1.DeleteTemplateRequest>(14, _omitFieldNames ? '' : 'deleteTemplate',
-        subBuilder: $1.DeleteTemplateRequest.create)
-    ..aOM<$1.ReorderTemplatesRequest>(
-        15, _omitFieldNames ? '' : 'reorderTemplates',
-        subBuilder: $1.ReorderTemplatesRequest.create)
-    ..aOM<$1.AddLibraryTemplatesRequest>(
-        16, _omitFieldNames ? '' : 'addLibraryTemplates',
-        subBuilder: $1.AddLibraryTemplatesRequest.create)
-    ..aOM<$1.CompleteOnboardingRequest>(
-        18, _omitFieldNames ? '' : 'completeOnboarding',
-        subBuilder: $1.CompleteOnboardingRequest.create)
-    ..aOM<$2.UpdateSettingRequest>(19, _omitFieldNames ? '' : 'updateSetting',
-        subBuilder: $2.UpdateSettingRequest.create)
-    ..aOM<ImportHistory>(21, _omitFieldNames ? '' : 'importHistory',
-        subBuilder: ImportHistory.create)
-    ..aOM<$1.CloneTemplateRequest>(22, _omitFieldNames ? '' : 'cloneTemplate',
-        subBuilder: $1.CloneTemplateRequest.create)
-    ..aOM<$1.SetOverrideRequest>(23, _omitFieldNames ? '' : 'setOverride',
-        subBuilder: $1.SetOverrideRequest.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Event clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  Event copyWith(void Function(Event) updates) =>
-      super.copyWith((message) => updates(message as Event)) as Event;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static Event create() => Event._();
-  @$core.override
-  Event createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static Event getDefault() =>
-      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Event>(create);
-  static Event? _defaultInstance;
-
-  @$pb.TagNumber(10)
-  @$pb.TagNumber(11)
-  @$pb.TagNumber(12)
-  @$pb.TagNumber(13)
-  @$pb.TagNumber(14)
-  @$pb.TagNumber(15)
-  @$pb.TagNumber(16)
-  @$pb.TagNumber(18)
-  @$pb.TagNumber(19)
-  @$pb.TagNumber(21)
-  @$pb.TagNumber(22)
-  @$pb.TagNumber(23)
-  Event_Kind whichKind() => _Event_KindByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(10)
-  @$pb.TagNumber(11)
-  @$pb.TagNumber(12)
-  @$pb.TagNumber(13)
-  @$pb.TagNumber(14)
-  @$pb.TagNumber(15)
-  @$pb.TagNumber(16)
-  @$pb.TagNumber(18)
-  @$pb.TagNumber(19)
-  @$pb.TagNumber(21)
-  @$pb.TagNumber(22)
-  @$pb.TagNumber(23)
-  void clearKind() => $_clearField($_whichOneof(0));
-
-  /// Position in the account's log: 1, 2, 3…, no gaps.
-  @$pb.TagNumber(1)
-  $fixnum.Int64 get seq => $_getI64(0);
-  @$pb.TagNumber(1)
-  set seq($fixnum.Int64 value) => $_setInt64(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasSeq() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearSeq() => $_clearField(1);
-
-  /// Random, made by the device. Every id the event creates (a workout, a set,
-  /// a template) is derived from it, so a replay makes the same ids.
-  @$pb.TagNumber(2)
-  $core.String get id => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set id($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasId() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearId() => $_clearField(2);
-
-  /// Unix seconds on the device's clock when the write was made. The fold
-  /// never reads a clock of its own.
-  @$pb.TagNumber(3)
-  $fixnum.Int64 get at => $_getI64(2);
-  @$pb.TagNumber(3)
-  set at($fixnum.Int64 value) => $_setInt64(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasAt() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearAt() => $_clearField(3);
-
-  @$pb.TagNumber(10)
-  $1.StartWorkoutRequest get startWorkout => $_getN(3);
-  @$pb.TagNumber(10)
-  set startWorkout($1.StartWorkoutRequest value) => $_setField(10, value);
-  @$pb.TagNumber(10)
-  $core.bool hasStartWorkout() => $_has(3);
-  @$pb.TagNumber(10)
-  void clearStartWorkout() => $_clearField(10);
-  @$pb.TagNumber(10)
-  $1.StartWorkoutRequest ensureStartWorkout() => $_ensure(3);
-
-  /// Everything done to a workout once it's started, ending included.
-  @$pb.TagNumber(11)
-  $1.WorkoutMutation get workout => $_getN(4);
-  @$pb.TagNumber(11)
-  set workout($1.WorkoutMutation value) => $_setField(11, value);
-  @$pb.TagNumber(11)
-  $core.bool hasWorkout() => $_has(4);
-  @$pb.TagNumber(11)
-  void clearWorkout() => $_clearField(11);
-  @$pb.TagNumber(11)
-  $1.WorkoutMutation ensureWorkout() => $_ensure(4);
-
-  @$pb.TagNumber(12)
-  $1.AppendWorkoutHeartRateRequest get heartRate => $_getN(5);
-  @$pb.TagNumber(12)
-  set heartRate($1.AppendWorkoutHeartRateRequest value) =>
-      $_setField(12, value);
-  @$pb.TagNumber(12)
-  $core.bool hasHeartRate() => $_has(5);
-  @$pb.TagNumber(12)
-  void clearHeartRate() => $_clearField(12);
-  @$pb.TagNumber(12)
-  $1.AppendWorkoutHeartRateRequest ensureHeartRate() => $_ensure(5);
-
-  @$pb.TagNumber(13)
-  $1.SaveTemplateRequest get saveTemplate => $_getN(6);
-  @$pb.TagNumber(13)
-  set saveTemplate($1.SaveTemplateRequest value) => $_setField(13, value);
-  @$pb.TagNumber(13)
-  $core.bool hasSaveTemplate() => $_has(6);
-  @$pb.TagNumber(13)
-  void clearSaveTemplate() => $_clearField(13);
-  @$pb.TagNumber(13)
-  $1.SaveTemplateRequest ensureSaveTemplate() => $_ensure(6);
-
-  @$pb.TagNumber(14)
-  $1.DeleteTemplateRequest get deleteTemplate => $_getN(7);
-  @$pb.TagNumber(14)
-  set deleteTemplate($1.DeleteTemplateRequest value) => $_setField(14, value);
-  @$pb.TagNumber(14)
-  $core.bool hasDeleteTemplate() => $_has(7);
-  @$pb.TagNumber(14)
-  void clearDeleteTemplate() => $_clearField(14);
-  @$pb.TagNumber(14)
-  $1.DeleteTemplateRequest ensureDeleteTemplate() => $_ensure(7);
-
-  @$pb.TagNumber(15)
-  $1.ReorderTemplatesRequest get reorderTemplates => $_getN(8);
-  @$pb.TagNumber(15)
-  set reorderTemplates($1.ReorderTemplatesRequest value) =>
-      $_setField(15, value);
-  @$pb.TagNumber(15)
-  $core.bool hasReorderTemplates() => $_has(8);
-  @$pb.TagNumber(15)
-  void clearReorderTemplates() => $_clearField(15);
-  @$pb.TagNumber(15)
-  $1.ReorderTemplatesRequest ensureReorderTemplates() => $_ensure(8);
-
-  @$pb.TagNumber(16)
-  $1.AddLibraryTemplatesRequest get addLibraryTemplates => $_getN(9);
-  @$pb.TagNumber(16)
-  set addLibraryTemplates($1.AddLibraryTemplatesRequest value) =>
-      $_setField(16, value);
-  @$pb.TagNumber(16)
-  $core.bool hasAddLibraryTemplates() => $_has(9);
-  @$pb.TagNumber(16)
-  void clearAddLibraryTemplates() => $_clearField(16);
-  @$pb.TagNumber(16)
-  $1.AddLibraryTemplatesRequest ensureAddLibraryTemplates() => $_ensure(9);
-
-  @$pb.TagNumber(18)
-  $1.CompleteOnboardingRequest get completeOnboarding => $_getN(10);
-  @$pb.TagNumber(18)
-  set completeOnboarding($1.CompleteOnboardingRequest value) =>
-      $_setField(18, value);
-  @$pb.TagNumber(18)
-  $core.bool hasCompleteOnboarding() => $_has(10);
-  @$pb.TagNumber(18)
-  void clearCompleteOnboarding() => $_clearField(18);
-  @$pb.TagNumber(18)
-  $1.CompleteOnboardingRequest ensureCompleteOnboarding() => $_ensure(10);
-
-  @$pb.TagNumber(19)
-  $2.UpdateSettingRequest get updateSetting => $_getN(11);
-  @$pb.TagNumber(19)
-  set updateSetting($2.UpdateSettingRequest value) => $_setField(19, value);
-  @$pb.TagNumber(19)
-  $core.bool hasUpdateSetting() => $_has(11);
-  @$pb.TagNumber(19)
-  void clearUpdateSetting() => $_clearField(19);
-  @$pb.TagNumber(19)
-  $2.UpdateSettingRequest ensureUpdateSetting() => $_ensure(11);
-
-  @$pb.TagNumber(21)
-  ImportHistory get importHistory => $_getN(12);
-  @$pb.TagNumber(21)
-  set importHistory(ImportHistory value) => $_setField(21, value);
-  @$pb.TagNumber(21)
-  $core.bool hasImportHistory() => $_has(12);
-  @$pb.TagNumber(21)
-  void clearImportHistory() => $_clearField(21);
-  @$pb.TagNumber(21)
-  ImportHistory ensureImportHistory() => $_ensure(12);
-
-  @$pb.TagNumber(22)
-  $1.CloneTemplateRequest get cloneTemplate => $_getN(13);
-  @$pb.TagNumber(22)
-  set cloneTemplate($1.CloneTemplateRequest value) => $_setField(22, value);
-  @$pb.TagNumber(22)
-  $core.bool hasCloneTemplate() => $_has(13);
-  @$pb.TagNumber(22)
-  void clearCloneTemplate() => $_clearField(22);
-  @$pb.TagNumber(22)
-  $1.CloneTemplateRequest ensureCloneTemplate() => $_ensure(13);
-
-  @$pb.TagNumber(23)
-  $1.SetOverrideRequest get setOverride => $_getN(14);
-  @$pb.TagNumber(23)
-  set setOverride($1.SetOverrideRequest value) => $_setField(23, value);
-  @$pb.TagNumber(23)
-  $core.bool hasSetOverride() => $_has(14);
-  @$pb.TagNumber(23)
-  void clearSetOverride() => $_clearField(23);
-  @$pb.TagNumber(23)
-  $1.SetOverrideRequest ensureSetOverride() => $_ensure(14);
-}
 
 /// History brought in from elsewhere, as it was: finished workouts, and the
 /// starting weights of lifts never done. Plans read the workouts like any
@@ -537,16 +204,18 @@ class ImportedWorkout extends $pb.GeneratedMessage {
   $pb.PbList<$1.ExerciseLog> get exerciseLogs => $_getList(4);
 }
 
-enum SyncRequest_Kind { events, heartbeat, notSet }
+enum SyncRequest_Kind { heartbeat, afterSeq, events, notSet }
 
 class SyncRequest extends $pb.GeneratedMessage {
   factory SyncRequest({
-    $core.List<$core.int>? events,
     Heartbeat? heartbeat,
+    $fixnum.Int64? afterSeq,
+    $core.List<$core.int>? events,
   }) {
     final result = create();
-    if (events != null) result.events = events;
     if (heartbeat != null) result.heartbeat = heartbeat;
+    if (afterSeq != null) result.afterSeq = afterSeq;
+    if (events != null) result.events = events;
     return result;
   }
 
@@ -560,19 +229,21 @@ class SyncRequest extends $pb.GeneratedMessage {
       create()..mergeFromJson(json, registry);
 
   static const $core.Map<$core.int, SyncRequest_Kind> _SyncRequest_KindByTag = {
-    1: SyncRequest_Kind.events,
     2: SyncRequest_Kind.heartbeat,
+    3: SyncRequest_Kind.afterSeq,
+    4: SyncRequest_Kind.events,
     0: SyncRequest_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'SyncRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2])
-    ..a<$core.List<$core.int>>(
-        1, _omitFieldNames ? '' : 'events', $pb.PbFieldType.OY)
+    ..oo(0, [2, 3, 4])
     ..aOM<Heartbeat>(2, _omitFieldNames ? '' : 'heartbeat',
         subBuilder: Heartbeat.create)
+    ..aInt64(3, _omitFieldNames ? '' : 'afterSeq')
+    ..a<$core.List<$core.int>>(
+        4, _omitFieldNames ? '' : 'events', $pb.PbFieldType.OY)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -594,36 +265,48 @@ class SyncRequest extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<SyncRequest>(create);
   static SyncRequest? _defaultInstance;
 
-  @$pb.TagNumber(1)
   @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
   SyncRequest_Kind whichKind() => _SyncRequest_KindByTag[$_whichOneof(0)]!;
-  @$pb.TagNumber(1)
   @$pb.TagNumber(2)
+  @$pb.TagNumber(3)
+  @$pb.TagNumber(4)
   void clearKind() => $_clearField($_whichOneof(0));
 
-  /// zstd-compressed EventBatch: the outbox, oldest first. Idempotent by
-  /// seq — events the server already holds are skipped.
-  @$pb.TagNumber(1)
-  $core.List<$core.int> get events => $_getN(0);
-  @$pb.TagNumber(1)
-  set events($core.List<$core.int> value) => $_setBytes(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasEvents() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearEvents() => $_clearField(1);
-
-  /// Keeps the stream (and the proxies on the way) awake; answered by an
-  /// ack, so a dead link shows within a heartbeat.
+  /// Keeps the stream (and the proxies on the way) awake; answered with the
+  /// head, so a dead link shows within a heartbeat.
   @$pb.TagNumber(2)
-  Heartbeat get heartbeat => $_getN(1);
+  Heartbeat get heartbeat => $_getN(0);
   @$pb.TagNumber(2)
   set heartbeat(Heartbeat value) => $_setField(2, value);
   @$pb.TagNumber(2)
-  $core.bool hasHeartbeat() => $_has(1);
+  $core.bool hasHeartbeat() => $_has(0);
   @$pb.TagNumber(2)
   void clearHeartbeat() => $_clearField(2);
   @$pb.TagNumber(2)
-  Heartbeat ensureHeartbeat() => $_ensure(1);
+  Heartbeat ensureHeartbeat() => $_ensure(0);
+
+  /// First, and only first: the last seq the device holds, 0 for none.
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get afterSeq => $_getI64(1);
+  @$pb.TagNumber(3)
+  set afterSeq($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAfterSeq() => $_has(1);
+  @$pb.TagNumber(3)
+  void clearAfterSeq() => $_clearField(3);
+
+  /// The device's own events not yet given a place, oldest first: a
+  /// zstd-compressed JSON array.
+  @$pb.TagNumber(4)
+  $core.List<$core.int> get events => $_getN(2);
+  @$pb.TagNumber(4)
+  set events($core.List<$core.int> value) => $_setBytes(2, value);
+  @$pb.TagNumber(4)
+  $core.bool hasEvents() => $_has(2);
+  @$pb.TagNumber(4)
+  void clearEvents() => $_clearField(4);
 }
 
 class Heartbeat extends $pb.GeneratedMessage {
@@ -663,20 +346,32 @@ class Heartbeat extends $pb.GeneratedMessage {
   static Heartbeat? _defaultInstance;
 }
 
-enum SyncResponse_Kind { head, session, joinRequests, library, notSet }
+enum SyncResponse_Kind {
+  head,
+  joinRequests,
+  library,
+  events,
+  session,
+  partnerEvents,
+  notSet
+}
 
 class SyncResponse extends $pb.GeneratedMessage {
   factory SyncResponse({
     $fixnum.Int64? head,
-    $3.GetCurrentSessionResponse? session,
-    $3.GetJoinRequestsResponse? joinRequests,
+    $2.GetJoinRequestsResponse? joinRequests,
     $1.ListTemplateLibraryResponse? library,
+    Events? events,
+    $2.Session? session,
+    PartnerEvents? partnerEvents,
   }) {
     final result = create();
     if (head != null) result.head = head;
-    if (session != null) result.session = session;
     if (joinRequests != null) result.joinRequests = joinRequests;
     if (library != null) result.library = library;
+    if (events != null) result.events = events;
+    if (session != null) result.session = session;
+    if (partnerEvents != null) result.partnerEvents = partnerEvents;
     return result;
   }
 
@@ -692,23 +387,28 @@ class SyncResponse extends $pb.GeneratedMessage {
   static const $core.Map<$core.int, SyncResponse_Kind> _SyncResponse_KindByTag =
       {
     1: SyncResponse_Kind.head,
-    2: SyncResponse_Kind.session,
     3: SyncResponse_Kind.joinRequests,
     4: SyncResponse_Kind.library,
+    5: SyncResponse_Kind.events,
+    6: SyncResponse_Kind.session,
+    7: SyncResponse_Kind.partnerEvents,
     0: SyncResponse_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'SyncResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 2, 3, 4])
+    ..oo(0, [1, 3, 4, 5, 6, 7])
     ..aInt64(1, _omitFieldNames ? '' : 'head')
-    ..aOM<$3.GetCurrentSessionResponse>(2, _omitFieldNames ? '' : 'session',
-        subBuilder: $3.GetCurrentSessionResponse.create)
-    ..aOM<$3.GetJoinRequestsResponse>(3, _omitFieldNames ? '' : 'joinRequests',
-        subBuilder: $3.GetJoinRequestsResponse.create)
+    ..aOM<$2.GetJoinRequestsResponse>(3, _omitFieldNames ? '' : 'joinRequests',
+        subBuilder: $2.GetJoinRequestsResponse.create)
     ..aOM<$1.ListTemplateLibraryResponse>(4, _omitFieldNames ? '' : 'library',
         subBuilder: $1.ListTemplateLibraryResponse.create)
+    ..aOM<Events>(5, _omitFieldNames ? '' : 'events', subBuilder: Events.create)
+    ..aOM<$2.Session>(6, _omitFieldNames ? '' : 'session',
+        subBuilder: $2.Session.create)
+    ..aOM<PartnerEvents>(7, _omitFieldNames ? '' : 'partnerEvents',
+        subBuilder: PartnerEvents.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -731,17 +431,21 @@ class SyncResponse extends $pb.GeneratedMessage {
   static SyncResponse? _defaultInstance;
 
   @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
+  @$pb.TagNumber(5)
+  @$pb.TagNumber(6)
+  @$pb.TagNumber(7)
   SyncResponse_Kind whichKind() => _SyncResponse_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
-  @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
+  @$pb.TagNumber(5)
+  @$pb.TagNumber(6)
+  @$pb.TagNumber(7)
   void clearKind() => $_clearField($_whichOneof(0));
 
-  /// The last seq the server holds for this account.
+  /// The last seq the server holds: the answer to a heartbeat.
   @$pb.TagNumber(1)
   $fixnum.Int64 get head => $_getI64(0);
   @$pb.TagNumber(1)
@@ -751,200 +455,218 @@ class SyncResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   void clearHead() => $_clearField(1);
 
-  /// The caller's session, whole: who's in it and where each is up to.
-  /// Empty session_id when not in one. Sent on connect and on every change.
-  @$pb.TagNumber(2)
-  $3.GetCurrentSessionResponse get session => $_getN(1);
-  @$pb.TagNumber(2)
-  set session($3.GetCurrentSessionResponse value) => $_setField(2, value);
-  @$pb.TagNumber(2)
-  $core.bool hasSession() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearSession() => $_clearField(2);
-  @$pb.TagNumber(2)
-  $3.GetCurrentSessionResponse ensureSession() => $_ensure(1);
-
-  /// Requests to join the caller, whole. Sent on connect and on every change.
+  /// Requests to join the caller, whole.
   @$pb.TagNumber(3)
-  $3.GetJoinRequestsResponse get joinRequests => $_getN(2);
+  $2.GetJoinRequestsResponse get joinRequests => $_getN(1);
   @$pb.TagNumber(3)
-  set joinRequests($3.GetJoinRequestsResponse value) => $_setField(3, value);
+  set joinRequests($2.GetJoinRequestsResponse value) => $_setField(3, value);
   @$pb.TagNumber(3)
-  $core.bool hasJoinRequests() => $_has(2);
+  $core.bool hasJoinRequests() => $_has(1);
   @$pb.TagNumber(3)
   void clearJoinRequests() => $_clearField(3);
   @$pb.TagNumber(3)
-  $3.GetJoinRequestsResponse ensureJoinRequests() => $_ensure(2);
+  $2.GetJoinRequestsResponse ensureJoinRequests() => $_ensure(1);
 
   /// The template library as the server has it: what coupled templates
   /// follow. Sent on connect.
   @$pb.TagNumber(4)
-  $1.ListTemplateLibraryResponse get library => $_getN(3);
+  $1.ListTemplateLibraryResponse get library => $_getN(2);
   @$pb.TagNumber(4)
   set library($1.ListTemplateLibraryResponse value) => $_setField(4, value);
   @$pb.TagNumber(4)
-  $core.bool hasLibrary() => $_has(3);
+  $core.bool hasLibrary() => $_has(2);
   @$pb.TagNumber(4)
   void clearLibrary() => $_clearField(4);
   @$pb.TagNumber(4)
-  $1.ListTemplateLibraryResponse ensureLibrary() => $_ensure(3);
+  $1.ListTemplateLibraryResponse ensureLibrary() => $_ensure(2);
+
+  /// Events in the server's order, each with its seq.
+  @$pb.TagNumber(5)
+  Events get events => $_getN(3);
+  @$pb.TagNumber(5)
+  set events(Events value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasEvents() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearEvents() => $_clearField(5);
+  @$pb.TagNumber(5)
+  Events ensureEvents() => $_ensure(3);
+
+  /// The caller's session, whole: who else is in it. Empty session_id
+  /// when not in one.
+  @$pb.TagNumber(6)
+  $2.Session get session => $_getN(4);
+  @$pb.TagNumber(6)
+  set session($2.Session value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSession() => $_has(4);
+  @$pb.TagNumber(6)
+  void clearSession() => $_clearField(6);
+  @$pb.TagNumber(6)
+  $2.Session ensureSession() => $_ensure(4);
+
+  /// A session partner's workout, as events.
+  @$pb.TagNumber(7)
+  PartnerEvents get partnerEvents => $_getN(5);
+  @$pb.TagNumber(7)
+  set partnerEvents(PartnerEvents value) => $_setField(7, value);
+  @$pb.TagNumber(7)
+  $core.bool hasPartnerEvents() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearPartnerEvents() => $_clearField(7);
+  @$pb.TagNumber(7)
+  PartnerEvents ensurePartnerEvents() => $_ensure(5);
 }
 
-class PullEventsRequest extends $pb.GeneratedMessage {
-  factory PullEventsRequest({
-    $fixnum.Int64? afterSeq,
+class PartnerEvents extends $pb.GeneratedMessage {
+  factory PartnerEvents({
+    $core.String? userId,
+    $core.List<$core.int>? packed,
+    $core.bool? whole,
   }) {
     final result = create();
-    if (afterSeq != null) result.afterSeq = afterSeq;
+    if (userId != null) result.userId = userId;
+    if (packed != null) result.packed = packed;
+    if (whole != null) result.whole = whole;
     return result;
   }
 
-  PullEventsRequest._();
+  PartnerEvents._();
 
-  factory PullEventsRequest.fromBuffer($core.List<$core.int> data,
+  factory PartnerEvents.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory PullEventsRequest.fromJson($core.String json,
+  factory PartnerEvents.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'PullEventsRequest',
+      _omitMessageNames ? '' : 'PartnerEvents',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aInt64(1, _omitFieldNames ? '' : 'afterSeq')
+    ..aOS(1, _omitFieldNames ? '' : 'userId')
+    ..a<$core.List<$core.int>>(
+        2, _omitFieldNames ? '' : 'packed', $pb.PbFieldType.OY)
+    ..aOB(3, _omitFieldNames ? '' : 'whole')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullEventsRequest clone() => deepCopy();
+  PartnerEvents clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullEventsRequest copyWith(void Function(PullEventsRequest) updates) =>
-      super.copyWith((message) => updates(message as PullEventsRequest))
-          as PullEventsRequest;
+  PartnerEvents copyWith(void Function(PartnerEvents) updates) =>
+      super.copyWith((message) => updates(message as PartnerEvents))
+          as PartnerEvents;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static PullEventsRequest create() => PullEventsRequest._();
+  static PartnerEvents create() => PartnerEvents._();
   @$core.override
-  PullEventsRequest createEmptyInstance() => create();
+  PartnerEvents createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static PullEventsRequest getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<PullEventsRequest>(create);
-  static PullEventsRequest? _defaultInstance;
+  static PartnerEvents getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PartnerEvents>(create);
+  static PartnerEvents? _defaultInstance;
 
   @$pb.TagNumber(1)
-  $fixnum.Int64 get afterSeq => $_getI64(0);
+  $core.String get userId => $_getSZ(0);
   @$pb.TagNumber(1)
-  set afterSeq($fixnum.Int64 value) => $_setInt64(0, value);
+  set userId($core.String value) => $_setString(0, value);
   @$pb.TagNumber(1)
-  $core.bool hasAfterSeq() => $_has(0);
+  $core.bool hasUserId() => $_has(0);
   @$pb.TagNumber(1)
-  void clearAfterSeq() => $_clearField(1);
+  void clearUserId() => $_clearField(1);
+
+  /// A zstd-compressed JSON array of the events of their workout: its start,
+  /// its sets, its end. Never their heart rate, templates or anything else.
+  @$pb.TagNumber(2)
+  $core.List<$core.int> get packed => $_getN(1);
+  @$pb.TagNumber(2)
+  set packed($core.List<$core.int> value) => $_setBytes(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPacked() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPacked() => $_clearField(2);
+
+  /// Their workout so far, replacing whatever came before; otherwise more of
+  /// it, as they record it.
+  @$pb.TagNumber(3)
+  $core.bool get whole => $_getBF(2);
+  @$pb.TagNumber(3)
+  set whole($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasWhole() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearWhole() => $_clearField(3);
 }
 
-class PullEventsResponse extends $pb.GeneratedMessage {
-  factory PullEventsResponse({
-    $core.List<$core.int>? events,
+class Events extends $pb.GeneratedMessage {
+  factory Events({
+    $core.List<$core.int>? packed,
+    $fixnum.Int64? head,
   }) {
     final result = create();
-    if (events != null) result.events = events;
+    if (packed != null) result.packed = packed;
+    if (head != null) result.head = head;
     return result;
   }
 
-  PullEventsResponse._();
+  Events._();
 
-  factory PullEventsResponse.fromBuffer($core.List<$core.int> data,
+  factory Events.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
-  factory PullEventsResponse.fromJson($core.String json,
+  factory Events.fromJson($core.String json,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'PullEventsResponse',
+      _omitMessageNames ? '' : 'Events',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..a<$core.List<$core.int>>(
-        1, _omitFieldNames ? '' : 'events', $pb.PbFieldType.OY)
+        1, _omitFieldNames ? '' : 'packed', $pb.PbFieldType.OY)
+    ..aInt64(2, _omitFieldNames ? '' : 'head')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullEventsResponse clone() => deepCopy();
+  Events clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullEventsResponse copyWith(void Function(PullEventsResponse) updates) =>
-      super.copyWith((message) => updates(message as PullEventsResponse))
-          as PullEventsResponse;
+  Events copyWith(void Function(Events) updates) =>
+      super.copyWith((message) => updates(message as Events)) as Events;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
 
   @$core.pragma('dart2js:noInline')
-  static PullEventsResponse create() => PullEventsResponse._();
+  static Events create() => Events._();
   @$core.override
-  PullEventsResponse createEmptyInstance() => create();
+  Events createEmptyInstance() => create();
   @$core.pragma('dart2js:noInline')
-  static PullEventsResponse getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<PullEventsResponse>(create);
-  static PullEventsResponse? _defaultInstance;
+  static Events getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<Events>(create);
+  static Events? _defaultInstance;
 
-  /// zstd-compressed EventBatch.
+  /// A zstd-compressed JSON array.
   @$pb.TagNumber(1)
-  $core.List<$core.int> get events => $_getN(0);
+  $core.List<$core.int> get packed => $_getN(0);
   @$pb.TagNumber(1)
-  set events($core.List<$core.int> value) => $_setBytes(0, value);
+  set packed($core.List<$core.int> value) => $_setBytes(0, value);
   @$pb.TagNumber(1)
-  $core.bool hasEvents() => $_has(0);
+  $core.bool hasPacked() => $_has(0);
   @$pb.TagNumber(1)
-  void clearEvents() => $_clearField(1);
-}
+  void clearPacked() => $_clearField(1);
 
-class EventBatch extends $pb.GeneratedMessage {
-  factory EventBatch({
-    $core.Iterable<Event>? events,
-  }) {
-    final result = create();
-    if (events != null) result.events.addAll(events);
-    return result;
-  }
-
-  EventBatch._();
-
-  factory EventBatch.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory EventBatch.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'EventBatch',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..pPM<Event>(1, _omitFieldNames ? '' : 'events', subBuilder: Event.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  EventBatch clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  EventBatch copyWith(void Function(EventBatch) updates) =>
-      super.copyWith((message) => updates(message as EventBatch)) as EventBatch;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static EventBatch create() => EventBatch._();
-  @$core.override
-  EventBatch createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static EventBatch getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<EventBatch>(create);
-  static EventBatch? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $pb.PbList<Event> get events => $_getList(0);
+  /// The last seq the server holds: a device that has it has caught up.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get head => $_getI64(1);
+  @$pb.TagNumber(2)
+  set head($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasHead() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearHead() => $_clearField(2);
 }
 
 const $core.bool _omitFieldNames =

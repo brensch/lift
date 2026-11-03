@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """Build an auditable HTML report from e2e scenario runs.
 
-The step log rides the test's stdout: each `Scenario.report()` prints one
-`E2E|...` line per step, which `flutter drive` echoes into its log. That is the
-one channel that survives a run (integration_test won't deliver screenshots AND
-reportData together, and `flutter drive` wipes app files on teardown). This
-script parses those lines out of the drive logs and pairs them with the PNGs
-`onScreenshot` wrote to app/test_screenshots/.
+The step log rides each scenario's stdout: `Scenario.report()` prints one
+`E2E|...` line per step, and scripts/run_e2e.sh writes the output to
+app/test_screenshots/<name>.log. This script parses those lines out of the
+logs and pairs them with the PNGs the scenarios wrote beside them.
 
 Usage:
-  scripts/build_e2e_report.py app/test_screenshots/*.drive.log
-  # (or pass no args to scan app/test_screenshots/*.drive.log)
+  scripts/build_e2e_report.py app/test_screenshots/*.log
+  # (or pass no args to scan app/test_screenshots/*.log)
 
 Output:
   app/test_screenshots/report.html
@@ -111,9 +109,7 @@ def _section(name, steps) -> str:
 
 def main(argv) -> int:
     # Skip hidden files.
-    paths = argv[1:] or sorted(
-        str(p) for p in SHOTS.glob("*.drive.log") if not p.name.startswith(".")
-    )
+    paths = argv[1:] or sorted(str(p) for p in SHOTS.glob("*.log") if not p.name.startswith("."))
     scenarios = parse_logs(paths) if paths else {}
     sections = [_section(n, s) for n, s in scenarios.items()]
 
@@ -152,7 +148,7 @@ def main(argv) -> int:
 <body>
   <header>
     <h1>Lift — end-to-end scenarios</h1>
-    <p>{len(sections)} scenario(s), captured on the Android emulator against the real backend.</p>
+    <p>{len(sections)} scenario(s), captured headless on Linux against the real backend.</p>
   </header>
   <main>{"".join(sections) if sections else "<p class=note>No scenarios captured.</p>"}</main>
 </body></html>""")

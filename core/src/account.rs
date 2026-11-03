@@ -4,12 +4,12 @@
 
 use std::collections::BTreeMap;
 
+use crate::events::{Event, Fact, HistoryImported, Onboarded, OverrideSet, WorkoutStarted};
 use crate::history::WorkoutRecord;
 use crate::ids::Ids;
 use crate::pb::{
-    event, user_setting, workout_mutation::Mutation, CompleteOnboardingRequest, Event, Exercise,
-    ExerciseDecision, ImportHistory, LibraryTemplate, SetOverrideRequest, StartWorkoutRequest,
-    UserSetting, WeightUnit, WeightUnitConfig, Workout, WorkoutMutation, WorkoutTemplate,
+    user_setting, Exercise, ExerciseDecision, LibraryTemplate, UserSetting, WeightUnit,
+    WeightUnitConfig, Workout, WorkoutTemplate,
 };
 use crate::plan::Override;
 use crate::weight_units::{unit_from_proto, AppWeightUnit};
@@ -47,8 +47,6 @@ fn invalid(message: impl Into<String>) -> CoreError {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Account {
-    /// The last event folded in; the next one is `seq + 1`.
-    pub seq: i64,
     /// At most one per kind.
     pub settings: Vec<UserSetting>,
     /// In the user's order.
@@ -62,53 +60,63 @@ pub struct Account {
     pub workouts: Vec<WorkoutRecord>,
     /// The workout under way, or empty.
     pub active_workout_id: String,
+    /// Heart-rate readings are left out: the server never reads them (the
+    /// phone shows them), and they are most of what an account holds.
+    pub without_heart_rate: bool,
 }
 
 impl Account {
     /// The account after `events`, in order. An event that can't apply
     /// (made by a different version of these rules) changes nothing.
     pub fn fold<'a>(events: impl IntoIterator<Item = &'a Event>) -> Self {
-        let mut account = Self::default();
-        for event in events {
-            account.replay(event);
+        Self::default().folding(events)
+    }
+
+    /// The same, without heart-rate readings: the server's account.
+    pub fn fold_without_heart_rate<'a>(events: impl IntoIterator<Item = &'a Event>) -> Self {
+        Self {
+            without_heart_rate: true,
+            ..Self::default()
         }
-        account
+        .folding(events)
+    }
+
+    fn folding<'a>(mut self, events: impl IntoIterator<Item = &'a Event>) -> Self {
+        for event in events {
+            self.replay(event);
+        }
+        self
     }
 
     /// Fold in one event already in the log: it takes its place whether or
     /// not it applies. Returns why it didn't, if it didn't.
     pub fn replay(&mut self, event: &Event) -> Option<CoreError> {
-        let error = self.apply(event).err();
-        self.seq = self.seq.max(event.seq);
-        error
+        self.apply(event).err()
     }
 
     /// Apply a new event: all of it, or (on an error) none of it.
     pub fn apply(&mut self, event: &Event) -> Result<(), CoreError> {
         let mut ids = Ids::new(&event.id);
         let at = event.at;
-        let kind = event
-            .kind
-            .as_ref()
-            .ok_or_else(|| invalid("event has no kind"))?;
-        match kind {
-            event::Kind::StartWorkout(req) => self.start_workout(req, &event.id, at, &mut ids)?,
-            event::Kind::Workout(mutation) => self.mutate_workout(mutation, at, &mut ids)?,
-            event::Kind::HeartRate(req) => {
-                self.workout_mut(&req.workout_id)?
-                    .heart_rate
-                    .extend(req.samples.iter().cloned());
+        match &event.fact {
+            Fact::WorkoutStarted(started) => self.start_workout(started, &event.id, &mut ids)?,
+            Fact::HeartRateRecorded(recorded) => {
+                let samples = recorded
+                    .samples()
+                    .ok_or_else(|| invalid("heart rate's gaps and bpms don't match"))?;
+                let without = self.without_heart_rate;
+                let workout = self.workout_mut(&recorded.workout_id)?;
+                if !without {
+                    workout.heart_rate = samples;
+                }
             }
-            event::Kind::SaveTemplate(req) => {
-                let mut template = req
-                    .template
-                    .clone()
-                    .ok_or_else(|| invalid("template is required"))?;
+            Fact::TemplateSaved(saved) => {
+                let mut template = saved.template.clone();
                 // A library template stays coupled only while it is saved
                 // unchanged; a real change makes it the user's own. New
                 // templates are always the user's own.
                 let keeps = self.template(&template.id).filter(|t| {
-                    !req.unlink
+                    !saved.unlink
                         && t.coupled
                         && t.name == template.name
                         && t.exercises == template.exercises
@@ -130,61 +138,41 @@ impl Account {
                     .unwrap_or_default();
                 self.save_template(template, at, &mut ids)?;
             }
-            event::Kind::CloneTemplate(req) => {
-                let template = self
-                    .templates
-                    .iter_mut()
-                    .find(|t| t.id == req.template_id)
-                    .ok_or_else(|| CoreError::NotFound("Template not found".into()))?;
-                template.coupled = false;
-                template.library_id.clear();
-                if !req.name.trim().is_empty() {
-                    template.name = req.name.clone();
-                }
-                if !req.exercises.is_empty() {
-                    template.exercises = req.exercises.clone();
-                }
-                template.updated_at = at;
+            Fact::TemplateDeleted(deleted) => {
+                self.templates.retain(|t| t.id != deleted.template_id);
             }
-            event::Kind::DeleteTemplate(req) => {
-                self.templates.retain(|t| t.id != req.template_id);
-            }
-            event::Kind::ReorderTemplates(req) => {
-                if req.rotation_count.is_some_and(|n| n < 0) {
+            Fact::TemplatesReordered(reordered) => {
+                if reordered.rotation_count.is_some_and(|n| n < 0) {
                     return Err(invalid("rotation_count is negative"));
                 }
-                for (order, id) in req.template_ids.iter().enumerate() {
+                for (order, id) in reordered.template_ids.iter().enumerate() {
                     if let Some(t) = self.templates.iter_mut().find(|t| &t.id == id) {
                         t.order = order as i32;
-                        if let Some(n) = req.rotation_count {
+                        if let Some(n) = reordered.rotation_count {
                             t.in_rotation = (order as i32) < n;
                         }
                     }
                 }
                 self.sort_templates();
             }
-            event::Kind::AddLibraryTemplates(req) => {
-                for entry in library_entries(&req.entries, &req.library_ids)? {
+            Fact::LibraryTemplatesAdded(added) => {
+                for entry in &added.entries {
                     if self.templates.iter().any(|t| t.library_id == entry.id) {
                         continue; // already in the user's list
                     }
-                    // Added later, a library template is a reserve
-                    // unless the event says otherwise.
-                    self.save_template(library_copy(&entry, req.in_rotation), at, &mut ids)?;
+                    self.save_template(library_copy(entry, added.in_rotation), at, &mut ids)?;
                 }
             }
-            event::Kind::SetOverride(req) => self.set_override(req, at)?,
-            event::Kind::CompleteOnboarding(req) => self.complete_onboarding(req, at, &mut ids)?,
-            event::Kind::UpdateSetting(req) => {
-                let setting = req
-                    .setting
-                    .clone()
-                    .ok_or_else(|| invalid("setting is required"))?;
+            Fact::OverrideSet(set) => self.set_override(set, at)?,
+            Fact::Onboarded(onboarded) => self.complete_onboarding(onboarded, at, &mut ids)?,
+            Fact::SettingUpdated(updated) => {
+                let setting = updated.setting.clone();
                 let kind = setting_kind(&setting).ok_or_else(|| invalid("setting is empty"))?;
                 self.settings.retain(|s| setting_kind(s) != Some(kind));
                 self.settings.push(setting);
             }
-            event::Kind::ImportHistory(req) => self.import(req),
+            Fact::HistoryImported(imported) => self.import(imported),
+            workout_fact => self.change_workout(workout_fact, at, &mut ids)?,
         }
         Ok(())
     }
@@ -231,40 +219,27 @@ impl Account {
 
     // ── Writes ──
 
-    /// A start: the workout, named after its template (or the request), its
-    /// sets laid out from the decisions recorded on the event.
+    /// A start: the workout, with the name and unit it started with, its
+    /// sets laid out from the decisions recorded on the event. Nothing else
+    /// of the account is read.
     fn start_workout(
         &mut self,
-        req: &StartWorkoutRequest,
+        req: &WorkoutStarted,
         workout_id: &str,
-        at: i64,
         ids: &mut Ids,
     ) -> Result<(), CoreError> {
-        let started_at = if req.started_at > 0 {
-            req.started_at
-        } else {
-            at
-        };
-        let name = if !req.name.is_empty() {
-            req.name.clone()
-        } else if req.template_id.is_empty() {
-            "Workout".to_string()
-        } else {
-            self.template(&req.template_id)
-                .ok_or_else(|| CoreError::NotFound("Template not found".into()))?
-                .name
-                .clone()
-        };
         let workout = Workout {
             id: workout_id.to_string(),
-            name,
-            start_time: started_at,
+            name: req.name.clone(),
+            start_time: req.started_at,
             template_id: req.template_id.clone(),
             ..Default::default()
         };
         let mut record = WorkoutRecord::new(workout, Vec::new(), Vec::new());
+        let unit = unit_from_proto(req.unit);
+        record.unit = unit;
         require_decisions(&record, &req.exercises, &req.decisions)?;
-        reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, self.unit(), ids)?;
+        reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, unit, ids)?;
         self.workouts.push(record);
         self.active_workout_id = workout_id.to_string();
         Ok(())
@@ -272,80 +247,76 @@ impl Account {
 
     /// One change to a workout, through the reducer. The workout is changed
     /// on a copy (without its heart rate) and put back, heart rate moved
-    /// over, only if the whole change applied.
-    fn mutate_workout(
-        &mut self,
-        mutation: &WorkoutMutation,
-        at: i64,
-        ids: &mut Ids,
-    ) -> Result<(), CoreError> {
-        let payload = mutation
-            .mutation
-            .as_ref()
-            .ok_or_else(|| invalid("mutation missing"))?;
-        let unit = self.unit();
+    /// over, only if the whole change applied. It rounds in the workout's
+    /// own unit.
+    fn change_workout(&mut self, fact: &Fact, at: i64, ids: &mut Ids) -> Result<(), CoreError> {
+        let workout_id = fact
+            .workout_id()
+            .ok_or_else(|| invalid("not a fact about a workout"))?;
         let index = self
             .workouts
             .iter()
-            .position(|r| r.workout.id == mutation_workout_id(payload))
+            .position(|r| r.workout.id == workout_id)
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))?;
         let mut record = self.workouts[index].without_heart_rate();
-        match payload {
-            Mutation::CompleteSet(req) => {
-                let mut req = req.clone();
-                if req.completed_at <= 0 {
-                    req.completed_at = at;
-                }
-                reducer::apply_complete_set_to_active(&mut record, &req, unit, ids)?;
+        let unit = record.unit;
+        match fact {
+            Fact::SetCompleted(completed) => {
+                reducer::apply_complete_set_to_active(&mut record, completed, unit, ids)?;
                 // The target may be one the resolution just appended (a
                 // rung's `{done_id}:0`), so it is checked after applying.
                 if !record
                     .completed_sets
                     .iter()
-                    .any(|c| c.proposed_set_id == req.proposed_set_id)
+                    .any(|c| c.proposed_set_id == completed.proposed_set_id)
                 {
                     return Err(CoreError::FailedPrecondition(
                         "Proposed set not found".into(),
                     ));
                 }
             }
-            Mutation::StartSet(req) => reducer::apply_start_set_to_active(&mut record, req, at)?,
-            Mutation::SkipWarmups(req) => reducer::apply_skip_warmups_to_active(&mut record, req)?,
-            Mutation::AnswerRung(req) => {
-                reducer::apply_answer_rung_to_active(&mut record, req, unit, at)?
+            Fact::SetStarted(started) => reducer::apply_start_set_to_active(&mut record, started)?,
+            Fact::WarmupsSkipped(skipped) => {
+                reducer::apply_skip_warmups_to_active(&mut record, skipped)?
             }
-            Mutation::DeleteCompletedSet(req) => {
-                reducer::apply_delete_completed_set_to_active(&mut record, req)?
+            Fact::RungAnswered(answered) => {
+                reducer::apply_answer_rung_to_active(&mut record, answered, unit, at)?
             }
-            Mutation::EndWorkout(req) => {
+            Fact::SetUndone(undone) => {
+                reducer::apply_delete_completed_set_to_active(&mut record, undone)?
+            }
+            Fact::WorkoutEnded(ended) => {
                 // Ending twice changes nothing.
                 if record.workout.end_time > 0 {
                     return Ok(());
                 }
-                record.workout.end_time = if req.ended_at > 0 { req.ended_at } else { at };
+                record.workout.end_time = ended.ended_at;
                 if self.active_workout_id == record.workout.id {
                     self.active_workout_id.clear();
                 }
             }
-            Mutation::AddExercises(req) => {
-                require_decisions(&record, &req.exercises, &req.decisions)?;
+            Fact::ExercisesAdded(added) => {
+                require_decisions(&record, &added.exercises, &added.decisions)?;
                 reducer::apply_add_exercises(
                     &mut record,
-                    &req.workout_id,
-                    &req.decisions,
+                    &added.workout_id,
+                    &added.decisions,
                     unit,
                     ids,
                 )?
             }
-            Mutation::AdjustExerciseWeight(req) => {
-                reducer::apply_adjust_exercise_weight(&mut record, req, unit, ids, at)?
+            Fact::ExerciseAdjusted(adjusted) => {
+                reducer::apply_adjust_exercise_weight(&mut record, adjusted, unit, ids, at)?
             }
-            Mutation::RemoveExercise(req) => reducer::apply_remove_exercise(&mut record, req)?,
-            Mutation::ReorderExercises(req) => reducer::apply_reorder_exercises(&mut record, req)?,
-            Mutation::EditCompletedSet(req) => {
-                reducer::apply_edit_completed_set_to_active(&mut record, req, unit, at)?
+            Fact::ExerciseRemoved(removed) => reducer::apply_remove_exercise(&mut record, removed)?,
+            Fact::ExercisesReordered(reordered) => {
+                reducer::apply_reorder_exercises(&mut record, reordered)?
             }
-            Mutation::SetSession(req) => record.workout.session_id = req.session_id.clone(),
+            Fact::SetEdited(edited) => {
+                reducer::apply_edit_completed_set_to_active(&mut record, edited, unit, at)?
+            }
+            Fact::SessionSet(set) => record.workout.session_id = set.session_id.clone(),
+            _ => return Err(invalid("not a fact about a workout")),
         }
         record.heart_rate = std::mem::take(&mut self.workouts[index].heart_rate);
         self.workouts[index] = record;
@@ -393,7 +364,7 @@ impl Account {
 
     /// The user's own weight and reps (and maybe sets) for a lift, replacing
     /// any before; reps of 0 removes it.
-    fn set_override(&mut self, req: &SetOverrideRequest, at: i64) -> Result<(), CoreError> {
+    fn set_override(&mut self, req: &OverrideSet, at: i64) -> Result<(), CoreError> {
         Exercise::try_from(req.exercise)
             .ok()
             .filter(|ex| *ex != Exercise::Unspecified)
@@ -425,18 +396,10 @@ impl Account {
     /// ticked (the defaults when none are named).
     fn complete_onboarding(
         &mut self,
-        req: &CompleteOnboardingRequest,
+        req: &Onboarded,
         at: i64,
         ids: &mut Ids,
     ) -> Result<(), CoreError> {
-        let entries = if req.library_entries.is_empty() && req.library_ids.is_empty() {
-            crate::template_library::defaults()
-                .into_iter()
-                .cloned()
-                .collect()
-        } else {
-            library_entries(&req.library_entries, &req.library_ids)?
-        };
         if req.unit != WeightUnit::Unspecified as i32 {
             self.settings
                 .retain(|s| setting_kind(s) != Some(SettingKind::WeightUnit));
@@ -453,13 +416,13 @@ impl Account {
             self.starting_weights.insert(w.exercise, w.weight_lb);
         }
         // The workouts picked at onboarding are the rotation.
-        for entry in entries {
-            self.save_template(library_copy(&entry, true), at, ids)?;
+        for entry in &req.library_entries {
+            self.save_template(library_copy(entry, true), at, ids)?;
         }
         Ok(())
     }
 
-    fn import(&mut self, req: &ImportHistory) {
+    fn import(&mut self, req: &HistoryImported) {
         for imported in &req.workouts {
             let Some(workout) = imported.workout.clone() else {
                 continue;
@@ -471,8 +434,13 @@ impl Account {
                 workout,
                 proposed_sets: imported.proposed_sets.clone(),
                 completed_sets: imported.completed_sets.clone(),
-                heart_rate: imported.heart_rate.clone(),
+                heart_rate: if self.without_heart_rate {
+                    Vec::new()
+                } else {
+                    imported.heart_rate.clone()
+                },
                 exercise_logs: imported.exercise_logs.clone(),
+                unit: self.unit(),
             });
         }
         self.workouts.sort_by_key(|r| r.workout.start_time);
@@ -508,24 +476,6 @@ fn require_decisions(
     Ok(())
 }
 
-/// The workout a mutation names.
-pub fn mutation_workout_id(mutation: &Mutation) -> &str {
-    match mutation {
-        Mutation::CompleteSet(m) => &m.workout_id,
-        Mutation::DeleteCompletedSet(m) => &m.workout_id,
-        Mutation::EndWorkout(m) => &m.workout_id,
-        Mutation::AddExercises(m) => &m.workout_id,
-        Mutation::AdjustExerciseWeight(m) => &m.workout_id,
-        Mutation::RemoveExercise(m) => &m.workout_id,
-        Mutation::ReorderExercises(m) => &m.workout_id,
-        Mutation::EditCompletedSet(m) => &m.workout_id,
-        Mutation::StartSet(m) => &m.workout_id,
-        Mutation::SkipWarmups(m) => &m.workout_id,
-        Mutation::AnswerRung(m) => &m.workout_id,
-        Mutation::SetSession(m) => &m.workout_id,
-    }
-}
-
 #[derive(Clone, Copy, PartialEq)]
 enum SettingKind {
     PlateColors,
@@ -538,24 +488,6 @@ fn setting_kind(setting: &UserSetting) -> Option<SettingKind> {
         Some(user_setting::Setting::WeightUnit(_)) => Some(SettingKind::WeightUnit),
         None => None,
     }
-}
-
-/// The entries an event adds: as recorded on it, or (events from before
-/// they were) looked up by id in the library built in.
-fn library_entries(
-    recorded: &[LibraryTemplate],
-    ids: &[String],
-) -> Result<Vec<LibraryTemplate>, CoreError> {
-    if !recorded.is_empty() {
-        return Ok(recorded.to_vec());
-    }
-    ids.iter()
-        .map(|id| {
-            crate::template_library::find(id)
-                .cloned()
-                .ok_or_else(|| invalid(format!("unknown library template {id:?}")))
-        })
-        .collect()
 }
 
 /// A library entry in the user's list: a new template (empty id, given one

@@ -1,14 +1,18 @@
-// The scenario orchestrator: drives the real app on the emulator with expressive
-// actions, captures a screenshot per step, and records a structured step log
-// (titles, notes, and API-state assertions) that the host driver turns into an
-// auditable HTML report.
+// The scenario orchestrator: drives the real app with expressive actions,
+// captures a screenshot per step, and records a structured step log (titles,
+// notes, and API-state assertions) that scripts/build_e2e_report.py turns into
+// an auditable HTML report.
 //
 // Runs on integration_test's live binding, so real gRPC round-trips and real
-// timers resolve naturally — no fake-async workarounds.
+// timers resolve naturally — no fake-async workarounds. scripts/run_e2e.sh
+// builds every scenario into one Linux binary and runs many at once.
 
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:provider/provider.dart';
@@ -18,24 +22,63 @@ import 'package:schlift/providers/sound_provider.dart';
 import 'package:schlift/providers/workout_provider.dart';
 import 'package:schlift/screens/workout/set_circle.dart';
 import 'package:schlift/services/account_sync.dart';
-import 'package:schlift/services/health_service.dart';
 import 'package:schlift/services/notification_service.dart';
 import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
 
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'api.dart';
-import 'package:schlift/theme/app_icons.dart';
 
-/// The rest-over sound, muted. The emulator has no audio device worth the
-/// name, and playing a clip through it (every early Start, every rest end) is
-/// one of the things that has brought the WSL2 emulator down mid-run. Sound
-/// is not under test here; the scenario swaps this in after each pump.
+/// The rest-over sound, muted: a headless run has no audio device, and sound
+/// is not under test here. The scenario swaps this in after each pump.
 class _SilentSoundProvider extends SoundProvider {
   @override
   Future<void> playCurrentSound() async {}
 
   @override
   Future<void> playPreview(String preset) async {}
+}
+
+/// The phone every scenario runs as: a Pixel's app surface, 1080 × 2337 at
+/// 420 dpi, its status bar 128 pixels deep, so layouts and screenshots (store
+/// slides included) match it.
+const _phonePixels = Size(1080, 2337);
+const _phonePixelRatio = 2.625;
+const _statusBarPixels = 128.0;
+
+/// Where screenshots are written: `E2E_OUT`, else app/test_screenshots.
+final _shotsDir = Platform.environment['E2E_OUT'] ?? 'test_screenshots';
+
+/// The app, inside a boundary a screenshot is taken from.
+final _app = GlobalKey();
+
+/// Pump the real app at the phone's size, ready to be screenshot.
+Future<void> pumpApp(
+  IntegrationTestWidgetsFlutterBinding binding,
+  WidgetTester tester,
+) async {
+  await binding.setSurfaceSize(_phonePixels / _phonePixelRatio);
+  // In the view's own pixels, which on the desktop are not the phone's.
+  final statusBar = FakeViewPadding(
+    top: _statusBarPixels / _phonePixelRatio * tester.view.devicePixelRatio,
+  );
+  tester.view
+    ..padding = statusBar
+    ..viewPadding = statusBar;
+  await tester.pumpWidget(
+    RepaintBoundary(key: _app, child: const SchliftApp()),
+  );
+}
+
+/// The app as it is on screen now, written to `<base>.png`.
+Future<void> screenshot(String base) async {
+  final boundary =
+      _app.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  final image = await boundary.toImage(pixelRatio: _phonePixelRatio);
+  final png = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  File('$_shotsDir/$base.png')
+    ..parent.createSync(recursive: true)
+    ..writeAsBytesSync(png!.buffer.asUint8List());
 }
 
 class _Step {
@@ -62,26 +105,15 @@ class Scenario {
 
   // ── Lifecycle ──
 
-  /// Pump the real app. It reaches the backend at localhost:50051 (adb reverse).
-  /// Pump the real app. [suppressHealth] keeps the native Health Connect sheet
-  /// from appearing (the default — it would hang the test); a health-focused
-  /// scenario can pass false when the permissions are pre-granted via adb so the
-  /// app can actually exercise the Health Connect write path.
-  Future<void> launch({bool suppressHealth = true}) async {
-    // Suppress the native Health Connect permission sheet — it would pause the
-    // Flutter surface and hang the test. Health isn't under test here.
-    HealthService.suppressPermissionPrompts = suppressHealth;
+  /// Pump the real app. It reaches the backend at localhost:50051.
+  Future<void> launch() async {
     // Mirror main()'s pre-runApp setup that pumpWidget bypasses: tz + plugin
     // init, without which scheduling a rest notification (on set completion)
     // throws a timezone LateInitializationError. init() asks for nothing, and
     // PermissionsService.load() is deliberately not called, so the
     // permissions screen and its native dialogs never appear.
     await NotificationService.init();
-    // Convert the surface to an image BEFORE the app renders. Doing it after the
-    // login animation starts hangs (it waits for a stable frame that never
-    // arrives). Once converted, every takeScreenshot captures the live surface.
-    await binding.convertFlutterSurfaceToImage();
-    await tester.pumpWidget(const SchliftApp());
+    await pumpApp(binding, tester);
     await settle();
     _muteRestSound();
   }
@@ -100,7 +132,8 @@ class Scenario {
   /// a cold restart. Crash recovery should re-fetch server state (e.g. an active
   /// workout) on the way back up.
   Future<void> relaunch() async {
-    await tester.pumpWidget(const SchliftApp());
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(binding, tester);
     await settle(seconds: 4);
     _muteRestSound();
   }
@@ -170,7 +203,7 @@ class Scenario {
     }
     try {
       final base = '${name}_FAILURE';
-      await binding.takeScreenshot(base);
+      await screenshot(base);
       _steps.add(
         _Step(
           _n,
@@ -236,7 +269,7 @@ class Scenario {
     await tester.pump(const Duration(milliseconds: 300));
     final base = '${name}_${_n.toString().padLeft(2, '0')}';
     _progress('shot $base: $title');
-    await binding.takeScreenshot(base);
+    await screenshot(base);
     _steps.add(_Step(_n, title, shot: '$base.png', note: note, kind: 'ui'));
     _n++;
   }
@@ -261,8 +294,8 @@ class Scenario {
     }
   }
 
-  /// One line on logcat per action, so the drive log says how far a scenario
-  /// got even when the emulator dies before the step log is printed.
+  /// One line in the log per action, so it says how far a scenario got even
+  /// when the app dies before the step log is printed.
   void _progress(String what) => debugPrint('E2E> $name: $what');
 
   Future<void> tap(Finder f, {String? shot}) async {
@@ -336,6 +369,15 @@ class Scenario {
   /// Open the multiplayer sheet from the header.
   Future<void> openMultiplayer() => tap(find.byTooltip('Multiplayer'));
 
+  /// Poll until [finder] finds something.
+  Future<bool> waitFor(Finder finder, {int seconds = 8}) async {
+    for (var i = 0; i < seconds * 2; i++) {
+      if (finder.evaluate().isNotEmpty) return true;
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
   /// Poll until [text] appears (backend round-trips resolve asynchronously).
   Future<bool> waitForText(String text, {int seconds = 8}) async {
     for (var i = 0; i < seconds * 2; i++) {
@@ -358,23 +400,8 @@ class Scenario {
   /// brand-new account lands on onboarding; a returning one on home (or
   /// straight into its live workout).
   Future<void> devLogin(String username) async {
-    // Wait for the login screen — a freshly-booted emulator's first app launch
-    // can render slower than launch()'s settle window.
-    if (!await waitForText(copy.login.devLogin, seconds: 15)) {
-      // Not on login: a previous scenario's session survived on the device
-      // (flutter drive only uninstalls the app on a clean teardown, and an
-      // emulator crash skips that). Sign it out and carry on.
-      final menu = find.byIcon(AppIcons.menu);
-      if (menu.evaluate().isEmpty) {
-        throw StateError(
-          'expected the login screen or a signed-in app; on screen: '
-          '${visibleTexts().join(" | ")}',
-        );
-      }
-      await tap(menu);
-      await tapText('Logout');
-      await mustSee(copy.login.devLogin, seconds: 10);
-    }
+    // Every scenario starts on a fresh home directory: signed out.
+    await mustSee(copy.login.devLogin, seconds: 15);
     final field = find.widgetWithText(TextField, copy.login.devUsername);
     final target = field.evaluate().isNotEmpty ? field : find.byType(TextField);
     await typeInto(target, username);
@@ -553,16 +580,15 @@ class Scenario {
 
   /// Wait until the app's copy of the account holds everything the server
   /// does — after [peer], signed in as the app's own user, seeded history
-  /// for it. The app pulls what it is missing when the stream next reports
-  /// the server's head (a heartbeat, every few seconds), then reloads.
-  /// Until then a screen can show the account mid-seed.
+  /// for it. The server streams it to the app as it is placed, and the app
+  /// reloads. Until then a screen can show the account mid-seed.
   Future<void> waitForAppToCatchUp(Peer peer, {int seconds = 30}) async {
     final head = await peer.serverSeq();
     for (var i = 0; i < seconds * 2; i++) {
       final core = accountSync.core;
-      final seq = core == null ? 0 : (await core.syncState()).$1;
+      final seq = core == null ? 0 : await core.confirmed();
       if (seq >= head) {
-        // The reload that follows the pull lands a beat later.
+        // The reload that follows lands a beat later.
         await settle(seconds: 2);
         return;
       }

@@ -67,17 +67,6 @@ class MultiplayerServiceWrapper {
     return response.sessionId;
   }
 
-  Future<GetCurrentSessionResponse> getCurrentSession() async {
-    return await retryReadAfterReconnect(
-      operation: 'GetCurrentSession',
-      resetChannel: _client.resetChannel,
-      rpc: () => _client.multiplayerService.getCurrentSession(
-        GetCurrentSessionRequest(),
-        options: _defaultCallOptions,
-      ),
-    );
-  }
-
   /// Who else was in each of [sessionIds] the caller was in, in one call.
   Future<List<SessionRoster>> getSessionRosters(
     Iterable<String> sessionIds,

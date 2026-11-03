@@ -8,6 +8,7 @@ use std::collections::{BTreeSet, HashMap};
 use prost::Message;
 
 use crate::account::{follows, Account, CoreError};
+use crate::events::*;
 use crate::exercise_catalog::all_exercises;
 use crate::history::{done_set_ids, WorkoutRecord};
 use crate::ids::derived_id;
@@ -70,29 +71,27 @@ impl<'a> Call<'a> {
             .collect()
     }
 
-    /// Record one event: applied to the account and kept, or (on an error)
-    /// neither. Returns the event's id.
-    fn record(&mut self, kind: event::Kind) -> Result<String, CoreError> {
+    /// Record one fact: applied to the account and kept, or (on an error)
+    /// neither. Returns the event's id. It has no place in the account's
+    /// history until the server gives it one.
+    fn record(&mut self, fact: Fact) -> Result<String, CoreError> {
         let id = match self.events.len() {
             0 => self.event_id.clone(),
             n => derived_id(&self.event_id, n),
         };
         let event = Event {
-            seq: self.account.seq + 1,
+            seq: 0,
             id: id.clone(),
             at: self.now,
-            kind: Some(kind),
+            fact,
         };
         self.account.apply(&event)?;
-        self.account.seq = event.seq;
         self.events.push(event);
         Ok(id)
     }
 
     fn mutate(&mut self, mutation: workout_mutation::Mutation) -> Result<String, CoreError> {
-        self.record(event::Kind::Workout(WorkoutMutation {
-            mutation: Some(mutation),
-        }))
+        self.record(workout_fact(mutation, self.now))
     }
 
     // ── Workouts ──
@@ -123,7 +122,18 @@ impl<'a> Call<'a> {
             &[],
             req.budget_minutes,
         );
-        let id = self.record(event::Kind::StartWorkout(req))?;
+        if req.name.is_empty() {
+            req.name = "Workout".to_string();
+        }
+        let id = self.record(Fact::WorkoutStarted(WorkoutStarted {
+            name: req.name,
+            unit: self.account.unit().to_proto(),
+            started_at,
+            template_id: req.template_id,
+            exercises: req.exercises,
+            budget_minutes: req.budget_minutes,
+            decisions: req.decisions,
+        }))?;
         Ok(start_workout_response_from_active(
             self.view().workout(&id)?,
             self.now,
@@ -163,7 +173,11 @@ impl<'a> Call<'a> {
             .filter(|ex| planned.iter().all(|d| d.exercise != *ex as i32))
             .collect();
         req.decisions = Planner::new(self.account, self.now).workout(&added, &planned, budget);
-        self.mutate(workout_mutation::Mutation::AddExercises(req))
+        self.record(Fact::ExercisesAdded(ExercisesAdded {
+            workout_id: req.workout_id,
+            exercises: req.exercises,
+            decisions: req.decisions,
+        }))
     }
 
     /// Several changes in one go (the watch's intents arrive this way). One
@@ -179,11 +193,17 @@ impl<'a> Call<'a> {
             let payload = mutation
                 .mutation
                 .ok_or_else(|| CoreError::InvalidArgument("mutation missing".into()))?;
-            workout_id
-                .get_or_insert_with(|| crate::account::mutation_workout_id(&payload).to_string());
             let _ = match payload {
-                workout_mutation::Mutation::AddExercises(add) => self.add_exercises(add),
-                other => self.mutate(other),
+                workout_mutation::Mutation::AddExercises(add) => {
+                    workout_id.get_or_insert_with(|| add.workout_id.clone());
+                    self.add_exercises(add)
+                }
+                other => {
+                    let fact = workout_fact(other, self.now);
+                    workout_id
+                        .get_or_insert_with(|| fact.workout_id().unwrap_or_default().to_string());
+                    self.record(fact)
+                }
             };
         }
         Ok(AppendWorkoutMutationsResponse {
@@ -194,12 +214,18 @@ impl<'a> Call<'a> {
         })
     }
 
-    pub fn append_workout_heart_rate(
+    /// A finished workout's heart rate, whole, as one event. Not an RPC: the
+    /// phone gathers readings while the workout runs and records them once
+    /// it has ended (`app/native`'s store).
+    pub fn record_heart_rate(
         &mut self,
-        req: AppendWorkoutHeartRateRequest,
-    ) -> Result<AppendWorkoutHeartRateResponse, CoreError> {
-        self.record(event::Kind::HeartRate(req))?;
-        Ok(AppendWorkoutHeartRateResponse {})
+        workout_id: &str,
+        samples: &[WorkoutHeartRatePoint],
+    ) -> Result<(), CoreError> {
+        self.record(Fact::HeartRateRecorded(HeartRateRecorded::new(
+            workout_id, samples,
+        )))?;
+        Ok(())
     }
 
     // ── Home, templates, overrides ──
@@ -237,7 +263,13 @@ impl<'a> Call<'a> {
                 req.unlink = existing.coupled;
             }
         }
-        let event_id = self.record(event::Kind::SaveTemplate(req))?;
+        let template = req
+            .template
+            .ok_or_else(|| CoreError::InvalidArgument("template is required".into()))?;
+        let event_id = self.record(Fact::TemplateSaved(TemplateSaved {
+            template,
+            unlink: req.unlink,
+        }))?;
         // A new template takes the event's first derived id.
         let id = if given.is_empty() {
             derived_id(&event_id, 0)
@@ -253,7 +285,9 @@ impl<'a> Call<'a> {
         &mut self,
         req: DeleteTemplateRequest,
     ) -> Result<DeleteTemplateResponse, CoreError> {
-        self.record(event::Kind::DeleteTemplate(req))?;
+        self.record(Fact::TemplateDeleted(TemplateDeleted {
+            template_id: req.template_id,
+        }))?;
         Ok(DeleteTemplateResponse {})
     }
 
@@ -261,7 +295,10 @@ impl<'a> Call<'a> {
         &mut self,
         req: ReorderTemplatesRequest,
     ) -> Result<ReorderTemplatesResponse, CoreError> {
-        self.record(event::Kind::ReorderTemplates(req))?;
+        self.record(Fact::TemplatesReordered(TemplatesReordered {
+            template_ids: req.template_ids,
+            rotation_count: req.rotation_count,
+        }))?;
         Ok(ReorderTemplatesResponse {})
     }
 
@@ -270,7 +307,12 @@ impl<'a> Call<'a> {
         req: SetOverrideRequest,
     ) -> Result<SetOverrideResponse, CoreError> {
         let exercise = req.exercise();
-        self.record(event::Kind::SetOverride(req))?;
+        self.record(Fact::OverrideSet(OverrideSet {
+            exercise: req.exercise,
+            weight: req.weight,
+            reps: req.reps,
+            sets: req.sets,
+        }))?;
         Ok(SetOverrideResponse {
             plan: Some(self.view().exercise_plan(exercise, 0)),
         })
@@ -294,7 +336,12 @@ impl<'a> Call<'a> {
             .strength
             .map(|strength| exercise_weights(strength, unit))
             .unwrap_or_default();
-        self.record(event::Kind::CompleteOnboarding(req))?;
+        self.record(Fact::Onboarded(Onboarded {
+            unit: req.unit,
+            library_entries: req.library_entries,
+            strength: req.strength,
+            starting_weights: req.starting_weights,
+        }))?;
         Ok(CompleteOnboardingResponse {})
     }
 
@@ -306,9 +353,12 @@ impl<'a> Call<'a> {
         // from it) is not added again: no duplicates.
         req.library_ids
             .retain(|id| !self.account.has_library_entry(id));
-        req.entries = self.library_entries(&req.library_ids)?;
-        if !req.entries.is_empty() {
-            self.record(event::Kind::AddLibraryTemplates(req))?;
+        let entries = self.library_entries(&req.library_ids)?;
+        if !entries.is_empty() {
+            self.record(Fact::LibraryTemplatesAdded(LibraryTemplatesAdded {
+                entries,
+                in_rotation: req.in_rotation,
+            }))?;
         }
         Ok(AddLibraryTemplatesResponse {})
     }
@@ -333,13 +383,10 @@ impl<'a> Call<'a> {
             .collect();
         if !missing.is_empty() {
             let entries = self.library_entries(&missing)?;
-            self.record(event::Kind::AddLibraryTemplates(
-                AddLibraryTemplatesRequest {
-                    library_ids: missing,
-                    entries,
-                    in_rotation: false,
-                },
-            ))?;
+            self.record(Fact::LibraryTemplatesAdded(LibraryTemplatesAdded {
+                entries,
+                in_rotation: false,
+            }))?;
         }
         let templates = &self.account.templates;
         let mut rotation: Vec<String> = Vec::with_capacity(plan.library_ids.len());
@@ -366,7 +413,7 @@ impl<'a> Call<'a> {
             .filter(|t| !rotation.contains(&t.id))
             .map(|t| t.id.clone());
         let template_ids: Vec<String> = rotation.iter().cloned().chain(rest).collect();
-        self.record(event::Kind::ReorderTemplates(ReorderTemplatesRequest {
+        self.record(Fact::TemplatesReordered(TemplatesReordered {
             template_ids,
             rotation_count: Some(rotation.len() as i32),
         }))?;
@@ -378,7 +425,10 @@ impl<'a> Call<'a> {
         &mut self,
         req: ImportHistory,
     ) -> Result<ImportHistoryResponse, CoreError> {
-        self.record(event::Kind::ImportHistory(req))?;
+        self.record(Fact::HistoryImported(HistoryImported {
+            workouts: req.workouts,
+            starting_weights: req.starting_weights,
+        }))?;
         Ok(ImportHistoryResponse {})
     }
 
@@ -388,8 +438,79 @@ impl<'a> Call<'a> {
         &mut self,
         req: UpdateSettingRequest,
     ) -> Result<UpdateSettingResponse, CoreError> {
-        self.record(event::Kind::UpdateSetting(req))?;
+        let setting = req
+            .setting
+            .ok_or_else(|| CoreError::InvalidArgument("setting is required".into()))?;
+        self.record(Fact::SettingUpdated(SettingUpdated { setting }))?;
         Ok(UpdateSettingResponse {})
+    }
+}
+
+/// A change to a workout as the fact it records, its times decided: a time
+/// of 0 is `now`. New lifts are planned by the caller first.
+fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
+    use workout_mutation::Mutation as M;
+    let or_now = |at: i64| if at > 0 { at } else { now };
+    match mutation {
+        M::StartSet(r) => Fact::SetStarted(SetStarted {
+            workout_id: r.workout_id,
+            proposed_set_id: r.proposed_set_id,
+            started_at: or_now(r.started_at),
+        }),
+        M::CompleteSet(r) => Fact::SetCompleted(SetCompleted {
+            workout_id: r.workout_id,
+            proposed_set_id: r.proposed_set_id,
+            actual_reps: r.actual_reps,
+            actual_weight: r.actual_weight,
+            completed_at: or_now(r.completed_at),
+        }),
+        M::EditCompletedSet(r) => Fact::SetEdited(SetEdited {
+            workout_id: r.workout_id,
+            completed_set_id: r.completed_set_id,
+            actual_reps: r.actual_reps,
+            actual_weight: r.actual_weight,
+        }),
+        M::DeleteCompletedSet(r) => Fact::SetUndone(SetUndone {
+            workout_id: r.workout_id,
+            completed_set_id: r.completed_set_id,
+        }),
+        M::AnswerRung(r) => Fact::RungAnswered(RungAnswered {
+            workout_id: r.workout_id,
+            proposed_set_id: r.proposed_set_id,
+            reps_left: r.reps_left,
+            jump_lb: r.jump_lb,
+        }),
+        M::SkipWarmups(r) => Fact::WarmupsSkipped(WarmupsSkipped {
+            workout_id: r.workout_id,
+            exercise: r.exercise,
+        }),
+        M::AddExercises(r) => Fact::ExercisesAdded(ExercisesAdded {
+            workout_id: r.workout_id,
+            exercises: r.exercises,
+            decisions: r.decisions,
+        }),
+        M::AdjustExerciseWeight(r) => Fact::ExerciseAdjusted(ExerciseAdjusted {
+            workout_id: r.workout_id,
+            exercise: r.exercise,
+            working_weight: r.working_weight,
+            target_reps: r.target_reps,
+        }),
+        M::RemoveExercise(r) => Fact::ExerciseRemoved(ExerciseRemoved {
+            workout_id: r.workout_id,
+            exercise: r.exercise,
+        }),
+        M::ReorderExercises(r) => Fact::ExercisesReordered(ExercisesReordered {
+            workout_id: r.workout_id,
+            exercises: r.exercises,
+        }),
+        M::SetSession(r) => Fact::SessionSet(SessionSet {
+            workout_id: r.workout_id,
+            session_id: r.session_id,
+        }),
+        M::EndWorkout(r) => Fact::WorkoutEnded(WorkoutEnded {
+            workout_id: r.workout_id,
+            ended_at: or_now(r.ended_at),
+        }),
     }
 }
 
@@ -521,7 +642,7 @@ impl<'a> View<'a> {
             .into_iter()
             .filter_map(|reps_left| {
                 let mut answered = record.without_heart_rate();
-                let req = AnswerRungRequest {
+                let req = RungAnswered {
                     workout_id: record.workout.id.clone(),
                     proposed_set_id: set_id.to_string(),
                     reps_left: reps_left as i32,
@@ -871,7 +992,6 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "StartWorkout" => start_workout,
             "EndWorkout" => end_workout,
             "AppendWorkoutMutations" => append_workout_mutations,
-            "AppendWorkoutHeartRate" => append_workout_heart_rate,
             "SaveTemplate" => save_template,
             "DeleteTemplate" => delete_template,
             "ReorderTemplates" => reorder_templates,

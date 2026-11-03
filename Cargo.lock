@@ -2201,6 +2201,7 @@ dependencies = [
  "prost-build",
  "rand 0.8.5",
  "serde",
+ "serde_json",
  "serde_yaml",
  "uuid",
  "zstd",
@@ -2216,6 +2217,7 @@ dependencies = [
  "rand 0.8.5",
  "schlift",
  "schlift-core",
+ "schlift-testkit",
  "schlift_native",
  "serde",
  "serde_json",
@@ -2228,6 +2230,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "schlift-testkit"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "rand 0.8.5",
+ "schlift-core",
+ "schlift_native",
+ "serde_json",
+ "zstd",
+]
+
+[[package]]
 name = "schlift_native"
 version = "0.1.0"
 dependencies = [
@@ -2235,6 +2249,7 @@ dependencies = [
  "prost",
  "rusqlite",
  "schlift-core",
+ "serde_json",
  "uuid",
 ]
 

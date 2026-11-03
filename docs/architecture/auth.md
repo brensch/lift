@@ -134,8 +134,8 @@ one.
 (`delete_user_account_and_data`, `src/db/auth.rs`); every table with a
 `user_id` references `users(id) ON DELETE CASCADE`, so the account's event
 log, passkeys, logins, session memberships and page views go with it. It
-also deletes the registration's `auth_attempts` row and drops the server's
-cached fold of the account and any join requests to or from it.
+also deletes the registration's `auth_attempts` row and drops any join
+requests to or from it.
 
 ## The account and the server session
 

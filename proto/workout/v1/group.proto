@@ -15,14 +15,9 @@ service MultiplayerService {
   // caller has none yet, one is generated.
   rpc GetMyInviteToken(GetMyInviteTokenRequest) returns (GetMyInviteTokenResponse);
 
-  // Get the caller's current group session. Reads user_current_session — membership is
-  // independent of whether the caller has an active workout. The Sync stream
-  // (account.proto) pushes the same thing whenever it changes.
-  rpc GetCurrentSession(GetCurrentSessionRequest) returns (GetCurrentSessionResponse);
-
-  // Manually leave the caller's current session. Clears the caller's session pointer,
-  // removes their live participant blob so peers stop seeing them, and stamps left_at on
-  // the durable roster.
+  // Leave the caller's current session: out of it, and off show to the
+  // others, at once. The Sync stream (account.proto) carries the session
+  // itself: who is in it, and where each is up to.
   rpc LeaveCurrentSession(LeaveCurrentSessionRequest) returns (LeaveCurrentSessionResponse);
 
   // Who else was in each of the given past sessions, in one call: History
@@ -64,8 +59,6 @@ message GetMyInviteTokenResponse {
 message LeaveCurrentSessionRequest {}
 message LeaveCurrentSessionResponse {}
 
-message GetCurrentSessionRequest {}
-
 message GetSessionRostersRequest {
   repeated string session_ids = 1;
 }
@@ -83,17 +76,25 @@ message SessionRoster {
   repeated User partners = 2;
 }
 
-message GetCurrentSessionResponse {
+// The caller's session as the server knows it: who else is in it. Where
+// each is up to is not here: their workout's events come down the Sync
+// stream (PartnerEvents, account.proto) and the phone folds them. Empty
+// session_id when the caller is in none.
+message Session {
   string session_id = 1;
-  SessionStatus session_status = 2; // populated if session_id is present
+  repeated SessionMember members = 2;
 }
 
-message SessionStatus {
-  repeated ParticipantStatus participants = 2;
-  reserved 1, 3, 4, 5, 6;
-  reserved "session_id", "next_up_user_id", "next_up_set", "next_up_rest_until", "currently_lifting_user_id";
+message SessionMember {
+  User user = 1;
+  int64 joined_at = 2; // unix seconds
+  // When they ended their workout, which took them out of the session; 0
+  // while they're in it. A finished workout stays on show a while.
+  int64 ended_at = 3;
 }
 
+// A session partner's workout as the caller's own core folds it from their
+// events: the workout under way, or the last one to end since they joined.
 message ParticipantStatus {
   User user = 1;
 

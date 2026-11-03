@@ -1,13 +1,15 @@
 /// The signed-in account: its file on this phone, and the Sync stream that
-/// keeps the server's copy level with it.
+/// keeps it level with the server's.
 ///
-/// Everything works with no connection; the stream only carries the account
-/// up (as events, acknowledged by seq) and the session down. It is the fast
-/// path, never the record: an event leaves the outbox only when the server
-/// acknowledges it, and is sent again after any reconnect. A heartbeat every
-/// few seconds, answered by the server, catches a link that died quietly
-/// (half-open wifi) within [_silenceLimit]; the stream is then dropped and
-/// dialled again, with backoff (to 10 s) while the server stays out of reach.
+/// Everything works with no connection. The stream opens with the last seq
+/// this phone holds and the server sends the rest; up go the events recorded
+/// here, which come back down placed in the server's order with any another
+/// device made (the core folds them in: `LocalCore.receive`). An event stays
+/// pending until it comes back, and is sent again after any reconnect. A
+/// heartbeat every few seconds, answered by the server, catches a link that
+/// died quietly (half-open wifi) within [_silenceLimit]; the stream is then
+/// dropped and dialled again, with backoff (to 10 s) while the server stays
+/// out of reach.
 library;
 
 import 'dart:async';
@@ -50,28 +52,27 @@ class AccountSync extends ChangeNotifier
   /// The open account, or null before sign-in.
   LocalCore? get core => _core;
 
-  /// The open account is usable: on this phone already, or restored.
+  /// The open account is usable: on this phone already, or caught up from
+  /// the server.
   bool get isReady => _ready.isCompleted;
 
   // ── What the stream brings down ──
 
-  GetCurrentSessionResponse _session = GetCurrentSessionResponse();
+  Session _session = Session();
   GetJoinRequestsResponse _joinRequests = GetJoinRequestsResponse();
-  GetCurrentSessionResponse get session => _session;
+
+  /// Who else is in the caller's session. Where each is up to is
+  /// [partnerStatus], from their events.
+  Session get session => _session;
   GetJoinRequestsResponse get joinRequests => _joinRequests;
 
   /// The stream is up and the server answered within [_silenceLimit].
   bool get connected => _connected;
   bool _connected = false;
 
-  /// Events recorded here that the server doesn't have yet.
+  /// Events recorded here that the server hasn't placed yet.
   int get unsynced => _unsynced;
   int _unsynced = 0;
-
-  /// The server holds a different history for this account (another phone
-  /// recorded it). Nothing is pushed until it's resolved.
-  bool get diverged => _diverged;
-  bool _diverged = false;
 
   // ── The stream ──
 
@@ -80,7 +81,10 @@ class AccountSync extends ChangeNotifier
   Timer? _heartbeat;
   Timer? _redial;
   DateTime _lastHeard = DateTime.now();
-  int _sentUpTo = 0;
+
+  /// The last pending event sent on this stream; null until the stream has
+  /// opened (said what this phone holds), before which nothing goes up.
+  int? _sentUpTo;
   int _failures = 0;
 
   /// Bumped on every hang-up, so a dropped stream's late callbacks are
@@ -94,8 +98,10 @@ class AccountSync extends ChangeNotifier
     return File('${accounts.path}/$userId.sqlite');
   }
 
-  /// The account file for [userId] ([name]), restored from the server when
-  /// this phone has nothing for it yet.
+  /// The account file for [userId] ([name]). One with nothing in it yet (a
+  /// fresh install, or a reinstall of an account that exists) isn't usable
+  /// until the stream has brought the server's history (see [ready]), so
+  /// this phone carries on from it rather than starting one of its own.
   Future<void> signIn(String userId, String name) async {
     if (_userId == userId) return;
     await signOut();
@@ -108,44 +114,11 @@ class AccountSync extends ChangeNotifier
     }
     _core = core;
     _writesSub = core.writes.listen((_) => unawaited(_push()));
-    final (seq, _) = await core.syncState();
-    if (seq == 0 && !await _restoreFromServer(core, userId)) return;
+    final fresh = await core.confirmed() == 0 && await core.pendingCount() == 0;
     if (_userId != userId) return;
-    _ready.complete(core);
+    if (!fresh) _ready.complete(core);
     await _refreshUnsynced();
     _dial();
-  }
-
-  /// A fresh install (or a reinstall) of an account that already exists:
-  /// the server's log first, so this phone carries on from it rather than
-  /// starting a history of its own. Retried until it gets through; the
-  /// account isn't usable before (see [ready]). False when it never will:
-  /// the user signed out, or the server turned the session down.
-  Future<bool> _restoreFromServer(LocalCore core, String userId) async {
-    var wait = const Duration(seconds: 1);
-    while (_userId == userId) {
-      try {
-        final pulled = await _grpc.syncService.pullEvents(
-          PullEventsRequest(),
-          options: CallOptions(timeout: const Duration(seconds: 30)),
-        );
-        final seq = await core.restore(pulled.events);
-        AppLogger.instance.info(_tag, 'restored', {'seq': seq});
-        return true;
-      } catch (e) {
-        if (e is GrpcError && e.code == StatusCode.unauthenticated) {
-          AppLogger.instance.warn(_tag, 'restore refused: session lapsed');
-          onSessionRejected?.call();
-          return false;
-        }
-        AppLogger.instance.warn(_tag, 'restore failed, retrying', {
-          'error': e.toString(),
-        });
-        await Future<void>.delayed(wait);
-        wait = wait * 2 > _maxBackoff ? _maxBackoff : wait * 2;
-      }
-    }
-    return false;
   }
 
   /// Put the account file at [path] (an export) on this phone, replacing
@@ -190,23 +163,32 @@ class AccountSync extends ChangeNotifier
     _core?.close();
     _core = null;
     if (_ready.isCompleted) _ready = Completer<LocalCore>();
-    _session = GetCurrentSessionResponse();
+    _session = Session();
     _joinRequests = GetJoinRequestsResponse();
-    _diverged = false;
     _unsynced = 0;
     notifyListeners();
   }
 
   void _dial() {
-    if (_core == null || _diverged || _up != null) return;
+    final core = _core;
+    if (core == null || _up != null) return;
     _redial?.cancel();
     final up = StreamController<SyncRequest>();
     _up = up;
-    _sentUpTo = 0;
+    _sentUpTo = null;
     _lastHeard = DateTime.now();
+    final generation = _generation;
+    // The stream opens with what this phone holds; the server sends the rest.
+    unawaited(
+      core.confirmed().then((confirmed) {
+        if (generation != _generation || up.isClosed) return;
+        up.add(SyncRequest(afterSeq: Int64(confirmed)));
+        _sentUpTo = 0;
+        unawaited(_push());
+      }),
+    );
     final down = _grpc.syncService.sync(up.stream);
     _down = down;
-    final generation = _generation;
     down.listen(
       (message) {
         if (generation == _generation) unawaited(_heard(message));
@@ -220,7 +202,6 @@ class AccountSync extends ChangeNotifier
       cancelOnError: true,
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) => _beat());
-    unawaited(_push());
   }
 
   Future<void> _heard(SyncResponse message) async {
@@ -231,14 +212,25 @@ class AccountSync extends ChangeNotifier
       notifyListeners();
     }
     switch (message.whichKind()) {
+      case SyncResponse_Kind.events:
+        await _received(message.events);
       case SyncResponse_Kind.head:
-        await _catchUp(message.head.toInt());
-        await _core?.acked(message.head.toInt());
-        await _refreshUnsynced();
-        // More may have been written while the last batch was in flight.
-        await _push();
+        // The answer to a heartbeat: the link is alive.
+        break;
       case SyncResponse_Kind.session:
         _session = message.session;
+        await _core?.keepPartners([
+          for (final member in _session.members) member.user.id,
+        ]);
+        notifyListeners();
+      case SyncResponse_Kind.partnerEvents:
+        // A partner's workout as events: this phone's core folds them.
+        final partner = message.partnerEvents;
+        await _core?.receivePartner(
+          partner.userId,
+          partner.packed,
+          whole: partner.whole,
+        );
         notifyListeners();
       case SyncResponse_Kind.joinRequests:
         _joinRequests = message.joinRequests;
@@ -253,30 +245,40 @@ class AccountSync extends ChangeNotifier
     }
   }
 
-  /// The server holds events this file doesn't (it was restored from an
-  /// older export): pull them in after this file's own.
-  Future<void> _catchUp(int head) async {
+  /// Events placed by the server: this phone's own coming back, or another
+  /// device's. A file that had nothing becomes usable once it has caught up.
+  Future<void> _received(Events events) async {
     final core = _core;
     if (core == null) return;
-    final (seq, _) = await core.syncState();
-    if (head <= seq) return;
+    final head = events.head.toInt();
     try {
-      final pulled = await _grpc.syncService.pullEvents(
-        PullEventsRequest(afterSeq: Int64(seq)),
-      );
-      await core.restore(pulled.events);
-      onCaughtUp?.call();
+      if (await core.receive(events.packed, head)) onCaughtUp?.call();
     } catch (e) {
-      AppLogger.instance.warn(_tag, 'catch-up failed', {'error': e.toString()});
+      AppLogger.instance.warn(_tag, 'events refused', {'error': e.toString()});
+      _lost(e);
+      return;
     }
+    await _refreshUnsynced();
+    if (!_ready.isCompleted && await core.confirmed() >= head) {
+      _ready.complete(core);
+      notifyListeners();
+    }
+    // The server may lack some of this file: offered again.
+    await _push();
   }
 
-  /// Called after the server changed what the account shows (events folded
-  /// in, or a new template library): what's on screen may have changed.
+  /// Where [member] is up to, folded on this phone from their workout's
+  /// events; null once they're off show.
+  Future<ParticipantStatus?> partnerStatus(SessionMember member) async =>
+      await _core?.partnerStatus(member);
+
+  /// Called after the server changed what the account shows (another
+  /// device's events, or a new template library): what's on screen may
+  /// have changed.
   VoidCallback? onCaughtUp;
 
-  /// Send what the server hasn't acknowledged and hasn't been sent on this
-  /// stream yet.
+  /// Send what this phone recorded that hasn't been sent on this stream, in
+  /// pieces (the store hands out at most a few hundred events at a time).
   Future<void> _push() async {
     final core = _core;
     final up = _up;
@@ -286,18 +288,22 @@ class AccountSync extends ChangeNotifier
       _dial();
       return;
     }
-    final (packed, last) = await core.outbox();
     await _refreshUnsynced();
-    if (last <= _sentUpTo || up.isClosed) return;
-    _sentUpTo = last;
-    up.add(SyncRequest(events: packed));
+    while (true) {
+      final after = _sentUpTo;
+      if (after == null) return;
+      final (packed, last) = await core.outbox(after);
+      // Another push may have sent them meanwhile.
+      if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
+      _sentUpTo = last;
+      up.add(SyncRequest(events: packed));
+    }
   }
 
   Future<void> _refreshUnsynced() async {
     final core = _core;
     if (core == null) return;
-    final (seq, acked) = await core.syncState();
-    final unsynced = seq - acked;
+    final unsynced = await core.pendingCount();
     if (unsynced != _unsynced) {
       _unsynced = unsynced;
       notifyListeners();
@@ -319,12 +325,7 @@ class AccountSync extends ChangeNotifier
 
   void _lost(Object? error, {bool resetChannel = false}) {
     if (_up == null) return;
-    if (error is GrpcError &&
-        error.code == StatusCode.failedPrecondition &&
-        (error.message ?? '').contains('account_diverged')) {
-      _diverged = true;
-      AppLogger.instance.error(_tag, 'diverged from the server');
-    } else if (error is GrpcError && error.code == StatusCode.unauthenticated) {
+    if (error is GrpcError && error.code == StatusCode.unauthenticated) {
       // The session lapsed: nothing to dial until the user signs in again.
       _hangUp();
       onSessionRejected?.call();
@@ -335,7 +336,7 @@ class AccountSync extends ChangeNotifier
     if (resetChannel) _grpc.resetChannel();
     _connected = false;
     notifyListeners();
-    if (_diverged || _core == null) return;
+    if (_core == null) return;
     _failures++;
     final seconds = 1 << (_failures - 1).clamp(0, 5);
     final wait = Duration(seconds: seconds) > _maxBackoff

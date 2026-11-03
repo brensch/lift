@@ -24,12 +24,13 @@ use crate::db::{DbResult, ServerDb};
 use crate::time::now_unix;
 use schlift::workout::v1::{
     workout_mutation, AddLibraryTemplatesRequest, AppendWorkoutMutationsRequest,
-    CompleteSetRequest, CompletedSet, Event, Exercise, ExerciseDecision, ExerciseLog,
-    ExerciseWeight, ImportHistory, ImportedWorkout, ProposedSet, StartSetRequest,
-    StartWorkoutRequest, Workout, WorkoutMutation,
+    CompleteSetRequest, CompletedSet, Exercise, ExerciseDecision, ExerciseLog, ExerciseWeight,
+    ImportHistory, ImportedWorkout, ProposedSet, StartSetRequest, StartWorkoutRequest, Workout,
+    WorkoutMutation,
 };
 use schlift_core::account::Account;
 use schlift_core::api::Call;
+use schlift_core::events::Event;
 use schlift_core::exercise_catalog::{progression_increment_lb, rules, snap_weight_lb};
 use schlift_core::onboarding::starting_weights_for_strength;
 use schlift_core::plan::{is_bodyweight, max_needed};

@@ -1,4 +1,4 @@
-// Store screenshot capture. Drives the real app on the emulator against a
+// Store screenshot capture. Drives the real app against a
 // backend seeded with the `demo` account (SEED_DEMO_USER=demo) and takes one
 // raw screenshot per store slide. Not a test of behaviour — it is the capture
 // half of `make store-capture`; framing and upload happen in

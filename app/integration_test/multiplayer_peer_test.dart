@@ -1,7 +1,7 @@
 // Scenario: an API-driven peer joins the app user's session, and the real app
 // reflects it. This is "Model B" — one real app instance, plus a peer that acts
 // purely through the backend. The app can't tell the peer from another phone, so
-// this faithfully exercises the multiplayer path with a single emulator.
+// this faithfully exercises the multiplayer path with a single app.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';

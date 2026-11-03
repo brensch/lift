@@ -52,19 +52,9 @@ class MultiplayerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getMyInviteToken, request, options: options);
   }
 
-  /// Get the caller's current group session. Reads user_current_session — membership is
-  /// independent of whether the caller has an active workout. The Sync stream
-  /// (account.proto) pushes the same thing whenever it changes.
-  $grpc.ResponseFuture<$0.GetCurrentSessionResponse> getCurrentSession(
-    $0.GetCurrentSessionRequest request, {
-    $grpc.CallOptions? options,
-  }) {
-    return $createUnaryCall(_$getCurrentSession, request, options: options);
-  }
-
-  /// Manually leave the caller's current session. Clears the caller's session pointer,
-  /// removes their live participant blob so peers stop seeing them, and stamps left_at on
-  /// the durable roster.
+  /// Leave the caller's current session: out of it, and off show to the
+  /// others, at once. The Sync stream (account.proto) carries the session
+  /// itself: who is in it, and where each is up to.
   $grpc.ResponseFuture<$0.LeaveCurrentSessionResponse> leaveCurrentSession(
     $0.LeaveCurrentSessionRequest request, {
     $grpc.CallOptions? options,
@@ -131,11 +121,6 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/GetMyInviteToken',
       ($0.GetMyInviteTokenRequest value) => value.writeToBuffer(),
       $0.GetMyInviteTokenResponse.fromBuffer);
-  static final _$getCurrentSession = $grpc.ClientMethod<
-          $0.GetCurrentSessionRequest, $0.GetCurrentSessionResponse>(
-      '/workout.v1.MultiplayerService/GetCurrentSession',
-      ($0.GetCurrentSessionRequest value) => value.writeToBuffer(),
-      $0.GetCurrentSessionResponse.fromBuffer);
   static final _$leaveCurrentSession = $grpc.ClientMethod<
           $0.LeaveCurrentSessionRequest, $0.LeaveCurrentSessionResponse>(
       '/workout.v1.MultiplayerService/LeaveCurrentSession',
@@ -191,15 +176,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetMyInviteTokenRequest.fromBuffer(value),
         ($0.GetMyInviteTokenResponse value) => value.writeToBuffer()));
-    $addMethod($grpc.ServiceMethod<$0.GetCurrentSessionRequest,
-            $0.GetCurrentSessionResponse>(
-        'GetCurrentSession',
-        getCurrentSession_Pre,
-        false,
-        false,
-        ($core.List<$core.int> value) =>
-            $0.GetCurrentSessionRequest.fromBuffer(value),
-        ($0.GetCurrentSessionResponse value) => value.writeToBuffer()));
     $addMethod($grpc.ServiceMethod<$0.LeaveCurrentSessionRequest,
             $0.LeaveCurrentSessionResponse>(
         'LeaveCurrentSession',
@@ -273,15 +249,6 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetMyInviteTokenResponse> getMyInviteToken(
       $grpc.ServiceCall call, $0.GetMyInviteTokenRequest request);
-
-  $async.Future<$0.GetCurrentSessionResponse> getCurrentSession_Pre(
-      $grpc.ServiceCall $call,
-      $async.Future<$0.GetCurrentSessionRequest> $request) async {
-    return getCurrentSession($call, await $request);
-  }
-
-  $async.Future<$0.GetCurrentSessionResponse> getCurrentSession(
-      $grpc.ServiceCall call, $0.GetCurrentSessionRequest request);
 
   $async.Future<$0.LeaveCurrentSessionResponse> leaveCurrentSession_Pre(
       $grpc.ServiceCall $call,

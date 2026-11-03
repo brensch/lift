@@ -1,10 +1,7 @@
 use super::*;
 use crate::history::done_set_ids;
 use crate::ids::{derived_id, Ids};
-use crate::pb::{
-    AnswerRungRequest, EditCompletedSetRequest, RepsLeft, SkipWarmupsRequest, StartSetRequest,
-    WeightChange, WeightChangeCause, Workout,
-};
+use crate::pb::{RepsLeft, WeightChange, WeightChangeCause, Workout};
 use crate::progress::{compute_next_up_set, is_done};
 use crate::weight_units::AppWeightUnit;
 
@@ -194,7 +191,7 @@ pub fn start_workout_response_from_active(
 /// (`is_passed_warmup`), and doing one later still records it.
 pub fn apply_skip_warmups_to_active(
     workout_ref: &mut WorkoutRecord,
-    req: &SkipWarmupsRequest,
+    req: &WarmupsSkipped,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
@@ -215,8 +212,7 @@ pub fn apply_skip_warmups_to_active(
 /// no-op.
 pub fn apply_start_set_to_active(
     workout_ref: &mut WorkoutRecord,
-    req: &StartSetRequest,
-    now: i64,
+    req: &SetStarted,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
@@ -233,11 +229,7 @@ pub fn apply_start_set_to_active(
         return Ok(());
     }
     workout_ref.workout.lifting_set_id = req.proposed_set_id.clone();
-    workout_ref.workout.lifting_started_at = if req.started_at > 0 {
-        req.started_at
-    } else {
-        now
-    };
+    workout_ref.workout.lifting_started_at = req.started_at;
     Ok(())
 }
 
@@ -245,7 +237,7 @@ pub fn apply_start_set_to_active(
 /// appends the next rung or the working sets, in [unit].
 pub fn apply_complete_set_to_active(
     workout_ref: &mut WorkoutRecord,
-    req: &CompleteSetRequest,
+    req: &SetCompleted,
     unit: AppWeightUnit,
     ids: &mut Ids,
 ) -> Result<(), WorkoutError> {
@@ -324,7 +316,7 @@ fn rest_seconds_after(proposed: &ProposedSet, is_final: bool) -> i64 {
 /// fixed is logged at `at` (a CORRECTION). An unknown set is a no-op.
 pub fn apply_edit_completed_set_to_active(
     workout_ref: &mut WorkoutRecord,
-    req: &EditCompletedSetRequest,
+    req: &SetEdited,
     unit: AppWeightUnit,
     at: i64,
 ) -> Result<(), WorkoutError> {
@@ -501,7 +493,7 @@ pub fn rung_question(workout_ref: &WorkoutRecord) -> Option<String> {
 /// to any other set is a no-op.
 pub fn apply_answer_rung_to_active(
     workout_ref: &mut WorkoutRecord,
-    req: &AnswerRungRequest,
+    req: &RungAnswered,
     unit: AppWeightUnit,
     at: i64,
 ) -> Result<(), WorkoutError> {
@@ -767,7 +759,7 @@ fn heaviest_full_rung(
 
 pub fn apply_delete_completed_set_to_active(
     workout_ref: &mut WorkoutRecord,
-    req: &DeleteCompletedSetRequest,
+    req: &SetUndone,
 ) -> Result<(), WorkoutError> {
     if workout_ref.workout.id != req.workout_id {
         return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
@@ -852,7 +844,7 @@ mod tests {
             .unwrap_or(0.0);
         apply_complete_set_to_active(
             active,
-            &CompleteSetRequest {
+            &SetCompleted {
                 workout_id: "w1".to_string(),
                 proposed_set_id: set_id.to_string(),
                 actual_reps: reps,
@@ -868,12 +860,11 @@ mod tests {
     fn start(active: &mut WorkoutRecord, set_id: &str, at: i64) {
         apply_start_set_to_active(
             active,
-            &StartSetRequest {
+            &SetStarted {
                 workout_id: "w1".to_string(),
                 proposed_set_id: set_id.to_string(),
                 started_at: at,
             },
-            at,
         )
         .unwrap();
     }
@@ -963,7 +954,7 @@ mod tests {
         let mut active = active_with(vec![proposed("s1", 0, false)]);
         let err = apply_complete_set_to_active(
             &mut active,
-            &CompleteSetRequest {
+            &SetCompleted {
                 workout_id: "other".to_string(),
                 proposed_set_id: "s1".to_string(),
                 actual_reps: 5,
@@ -1075,7 +1066,7 @@ mod tests {
         complete(&mut active, "w1", 5, 2_000);
         apply_skip_warmups_to_active(
             &mut active,
-            &SkipWarmupsRequest {
+            &WarmupsSkipped {
                 workout_id: "w1".to_string(),
                 exercise: 1,
             },
@@ -1129,7 +1120,7 @@ mod tests {
 
         apply_delete_completed_set_to_active(
             &mut active,
-            &DeleteCompletedSetRequest {
+            &SetUndone {
                 workout_id: "w1".to_string(),
                 completed_set_id: completed_id,
             },
@@ -1266,7 +1257,7 @@ mod tests {
     fn edit(active: &mut WorkoutRecord, completed_id: &str, reps: i32, weight: f32) {
         apply_edit_completed_set_to_active(
             active,
-            &EditCompletedSetRequest {
+            &SetEdited {
                 workout_id: "w1".to_string(),
                 completed_set_id: completed_id.to_string(),
                 actual_reps: reps,
@@ -1378,7 +1369,7 @@ mod tests {
     fn adjust(active: &mut WorkoutRecord, exercise: i32, weight: f32) {
         apply_adjust_exercise_weight(
             active,
-            &AdjustExerciseWeightRequest {
+            &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
                 exercise,
                 working_weight: weight,
@@ -1904,7 +1895,7 @@ mod tests {
         let done = done_id(&active, "c1");
         apply_delete_completed_set_to_active(
             &mut active,
-            &DeleteCompletedSetRequest {
+            &SetUndone {
                 workout_id: "w1".to_string(),
                 completed_set_id: done,
             },
@@ -1936,7 +1927,7 @@ mod tests {
     ) {
         apply_answer_rung_to_active(
             active,
-            &AnswerRungRequest {
+            &RungAnswered {
                 workout_id: "w1".to_string(),
                 proposed_set_id: set_id.to_string(),
                 reps_left: reps_left as i32,

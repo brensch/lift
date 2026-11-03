@@ -4,11 +4,9 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { GetCurrentSessionResponse, GetJoinRequestsResponse } from "./group_pb";
+import type { GetJoinRequestsResponse, Session } from "./group_pb";
 import { file_workout_v1_group } from "./group_pb";
-import type { UpdateSettingRequest } from "./settings_pb";
-import { file_workout_v1_settings } from "./settings_pb";
-import type { AddLibraryTemplatesRequest, AppendWorkoutHeartRateRequest, CloneTemplateRequest, CompletedSet, CompleteOnboardingRequest, DeleteTemplateRequest, ExerciseLog, ExerciseWeight, ListTemplateLibraryResponse, ProposedSet, ReorderTemplatesRequest, SaveTemplateRequest, SetOverrideRequest, StartWorkoutRequest, Workout, WorkoutHeartRatePoint, WorkoutMutation } from "./workout_pb";
+import type { CompletedSet, ExerciseLog, ExerciseWeight, ListTemplateLibraryResponse, ProposedSet, Workout, WorkoutHeartRatePoint } from "./workout_pb";
 import { file_workout_v1_workout } from "./workout_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -16,121 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/account.proto.
  */
 export const file_workout_v1_account: GenFile = /*@__PURE__*/
-  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEixgYKBUV2ZW50EgsKA3NlcRgBIAEoAxIKCgJpZBgCIAEoCRIKCgJhdBgDIAEoAxI4Cg1zdGFydF93b3Jrb3V0GAogASgLMh8ud29ya291dC52MS5TdGFydFdvcmtvdXRSZXF1ZXN0SAASLgoHd29ya291dBgLIAEoCzIbLndvcmtvdXQudjEuV29ya291dE11dGF0aW9uSAASPwoKaGVhcnRfcmF0ZRgMIAEoCzIpLndvcmtvdXQudjEuQXBwZW5kV29ya291dEhlYXJ0UmF0ZVJlcXVlc3RIABI4Cg1zYXZlX3RlbXBsYXRlGA0gASgLMh8ud29ya291dC52MS5TYXZlVGVtcGxhdGVSZXF1ZXN0SAASPAoPZGVsZXRlX3RlbXBsYXRlGA4gASgLMiEud29ya291dC52MS5EZWxldGVUZW1wbGF0ZVJlcXVlc3RIABJAChFyZW9yZGVyX3RlbXBsYXRlcxgPIAEoCzIjLndvcmtvdXQudjEuUmVvcmRlclRlbXBsYXRlc1JlcXVlc3RIABJHChVhZGRfbGlicmFyeV90ZW1wbGF0ZXMYECABKAsyJi53b3Jrb3V0LnYxLkFkZExpYnJhcnlUZW1wbGF0ZXNSZXF1ZXN0SAASRAoTY29tcGxldGVfb25ib2FyZGluZxgSIAEoCzIlLndvcmtvdXQudjEuQ29tcGxldGVPbmJvYXJkaW5nUmVxdWVzdEgAEjoKDnVwZGF0ZV9zZXR0aW5nGBMgASgLMiAud29ya291dC52MS5VcGRhdGVTZXR0aW5nUmVxdWVzdEgAEjMKDmltcG9ydF9oaXN0b3J5GBUgASgLMhkud29ya291dC52MS5JbXBvcnRIaXN0b3J5SAASOgoOY2xvbmVfdGVtcGxhdGUYFiABKAsyIC53b3Jrb3V0LnYxLkNsb25lVGVtcGxhdGVSZXF1ZXN0SAASNgoMc2V0X292ZXJyaWRlGBcgASgLMh4ud29ya291dC52MS5TZXRPdmVycmlkZVJlcXVlc3RIAEIGCgRraW5kSgQIERASSgQIFBAVUhRzZXRfZXhlcmNpc2VfdHJhY2tlclIVZGlzbWlzc191c2VyX21lc3NhZ2VzIoQBCg1JbXBvcnRIaXN0b3J5Ei0KCHdvcmtvdXRzGAEgAygLMhsud29ya291dC52MS5JbXBvcnRlZFdvcmtvdXQSNAoQc3RhcnRpbmdfd2VpZ2h0cxgDIAMoCzIaLndvcmtvdXQudjEuRXhlcmNpc2VXZWlnaHRKBAgCEANSCHRyYWNrZXJzIhcKFUltcG9ydEhpc3RvcnlSZXNwb25zZSKAAgoPSW1wb3J0ZWRXb3Jrb3V0EiQKB3dvcmtvdXQYASABKAsyEy53b3Jrb3V0LnYxLldvcmtvdXQSLgoNcHJvcG9zZWRfc2V0cxgCIAMoCzIXLndvcmtvdXQudjEuUHJvcG9zZWRTZXQSMAoOY29tcGxldGVkX3NldHMYAyADKAsyGC53b3Jrb3V0LnYxLkNvbXBsZXRlZFNldBI1CgpoZWFydF9yYXRlGAQgAygLMiEud29ya291dC52MS5Xb3Jrb3V0SGVhcnRSYXRlUG9pbnQSLgoNZXhlcmNpc2VfbG9ncxgFIAMoCzIXLndvcmtvdXQudjEuRXhlcmNpc2VMb2ciUwoLU3luY1JlcXVlc3QSEAoGZXZlbnRzGAEgASgMSAASKgoJaGVhcnRiZWF0GAIgASgLMhUud29ya291dC52MS5IZWFydGJlYXRIAEIGCgRraW5kIgsKCUhlYXJ0YmVhdCLaAQoMU3luY1Jlc3BvbnNlEg4KBGhlYWQYASABKANIABI4CgdzZXNzaW9uGAIgASgLMiUud29ya291dC52MS5HZXRDdXJyZW50U2Vzc2lvblJlc3BvbnNlSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIABI6CgdsaWJyYXJ5GAQgASgLMicud29ya291dC52MS5MaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2VIAEIGCgRraW5kIiYKEVB1bGxFdmVudHNSZXF1ZXN0EhEKCWFmdGVyX3NlcRgBIAEoAyIkChJQdWxsRXZlbnRzUmVzcG9uc2USDgoGZXZlbnRzGAEgASgMIi8KCkV2ZW50QmF0Y2gSIQoGZXZlbnRzGAEgAygLMhEud29ya291dC52MS5FdmVudDKZAQoLU3luY1NlcnZpY2USPQoEU3luYxIXLndvcmtvdXQudjEuU3luY1JlcXVlc3QaGC53b3Jrb3V0LnYxLlN5bmNSZXNwb25zZSgBMAESSwoKUHVsbEV2ZW50cxIdLndvcmtvdXQudjEuUHVsbEV2ZW50c1JlcXVlc3QaHi53b3Jrb3V0LnYxLlB1bGxFdmVudHNSZXNwb25zZWIGcHJvdG8z", [file_workout_v1_group, file_workout_v1_settings, file_workout_v1_workout]);
-
-/**
- * @generated from message workout.v1.Event
- */
-export type Event = Message<"workout.v1.Event"> & {
-  /**
-   * Position in the account's log: 1, 2, 3…, no gaps.
-   *
-   * @generated from field: int64 seq = 1;
-   */
-  seq: bigint;
-
-  /**
-   * Random, made by the device. Every id the event creates (a workout, a set,
-   * a template) is derived from it, so a replay makes the same ids.
-   *
-   * @generated from field: string id = 2;
-   */
-  id: string;
-
-  /**
-   * Unix seconds on the device's clock when the write was made. The fold
-   * never reads a clock of its own.
-   *
-   * @generated from field: int64 at = 3;
-   */
-  at: bigint;
-
-  /**
-   * @generated from oneof workout.v1.Event.kind
-   */
-  kind: {
-    /**
-     * @generated from field: workout.v1.StartWorkoutRequest start_workout = 10;
-     */
-    value: StartWorkoutRequest;
-    case: "startWorkout";
-  } | {
-    /**
-     * Everything done to a workout once it's started, ending included.
-     *
-     * @generated from field: workout.v1.WorkoutMutation workout = 11;
-     */
-    value: WorkoutMutation;
-    case: "workout";
-  } | {
-    /**
-     * @generated from field: workout.v1.AppendWorkoutHeartRateRequest heart_rate = 12;
-     */
-    value: AppendWorkoutHeartRateRequest;
-    case: "heartRate";
-  } | {
-    /**
-     * @generated from field: workout.v1.SaveTemplateRequest save_template = 13;
-     */
-    value: SaveTemplateRequest;
-    case: "saveTemplate";
-  } | {
-    /**
-     * @generated from field: workout.v1.DeleteTemplateRequest delete_template = 14;
-     */
-    value: DeleteTemplateRequest;
-    case: "deleteTemplate";
-  } | {
-    /**
-     * @generated from field: workout.v1.ReorderTemplatesRequest reorder_templates = 15;
-     */
-    value: ReorderTemplatesRequest;
-    case: "reorderTemplates";
-  } | {
-    /**
-     * @generated from field: workout.v1.AddLibraryTemplatesRequest add_library_templates = 16;
-     */
-    value: AddLibraryTemplatesRequest;
-    case: "addLibraryTemplates";
-  } | {
-    /**
-     * @generated from field: workout.v1.CompleteOnboardingRequest complete_onboarding = 18;
-     */
-    value: CompleteOnboardingRequest;
-    case: "completeOnboarding";
-  } | {
-    /**
-     * @generated from field: workout.v1.UpdateSettingRequest update_setting = 19;
-     */
-    value: UpdateSettingRequest;
-    case: "updateSetting";
-  } | {
-    /**
-     * @generated from field: workout.v1.ImportHistory import_history = 21;
-     */
-    value: ImportHistory;
-    case: "importHistory";
-  } | {
-    /**
-     * @generated from field: workout.v1.CloneTemplateRequest clone_template = 22;
-     */
-    value: CloneTemplateRequest;
-    case: "cloneTemplate";
-  } | {
-    /**
-     * @generated from field: workout.v1.SetOverrideRequest set_override = 23;
-     */
-    value: SetOverrideRequest;
-    case: "setOverride";
-  } | { case: undefined; value?: undefined };
-};
-
-/**
- * Describes the message workout.v1.Event.
- * Use `create(EventSchema)` to create a new message.
- */
-export const EventSchema: GenMessage<Event> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 0);
+  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEihAEKDUltcG9ydEhpc3RvcnkSLQoId29ya291dHMYASADKAsyGy53b3Jrb3V0LnYxLkltcG9ydGVkV29ya291dBI0ChBzdGFydGluZ193ZWlnaHRzGAMgAygLMhoud29ya291dC52MS5FeGVyY2lzZVdlaWdodEoECAIQA1IIdHJhY2tlcnMiFwoVSW1wb3J0SGlzdG9yeVJlc3BvbnNlIoACCg9JbXBvcnRlZFdvcmtvdXQSJAoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgDIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EjUKCmhlYXJ0X3JhdGUYBCADKAsyIS53b3Jrb3V0LnYxLldvcmtvdXRIZWFydFJhdGVQb2ludBIuCg1leGVyY2lzZV9sb2dzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZUxvZyJuCgtTeW5jUmVxdWVzdBITCglhZnRlcl9zZXEYAyABKANIABIQCgZldmVudHMYBCABKAxIABIqCgloZWFydGJlYXQYAiABKAsyFS53b3Jrb3V0LnYxLkhlYXJ0YmVhdEgAQgYKBGtpbmRKBAgBEAIiCwoJSGVhcnRiZWF0IqkCCgxTeW5jUmVzcG9uc2USJAoGZXZlbnRzGAUgASgLMhIud29ya291dC52MS5FdmVudHNIABIOCgRoZWFkGAEgASgDSAASJgoHc2Vzc2lvbhgGIAEoCzITLndvcmtvdXQudjEuU2Vzc2lvbkgAEjMKDnBhcnRuZXJfZXZlbnRzGAcgASgLMhkud29ya291dC52MS5QYXJ0bmVyRXZlbnRzSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIABI6CgdsaWJyYXJ5GAQgASgLMicud29ya291dC52MS5MaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2VIAEIGCgRraW5kSgQIAhADIj8KDVBhcnRuZXJFdmVudHMSDwoHdXNlcl9pZBgBIAEoCRIOCgZwYWNrZWQYAiABKAwSDQoFd2hvbGUYAyABKAgiJgoGRXZlbnRzEg4KBnBhY2tlZBgBIAEoDBIMCgRoZWFkGAIgASgDMkwKC1N5bmNTZXJ2aWNlEj0KBFN5bmMSFy53b3Jrb3V0LnYxLlN5bmNSZXF1ZXN0Ghgud29ya291dC52MS5TeW5jUmVzcG9uc2UoATABYgZwcm90bzM", [file_workout_v1_group, file_workout_v1_workout]);
 
 /**
  * History brought in from elsewhere, as it was: finished workouts, and the
@@ -156,7 +40,7 @@ export type ImportHistory = Message<"workout.v1.ImportHistory"> & {
  * Use `create(ImportHistorySchema)` to create a new message.
  */
 export const ImportHistorySchema: GenMessage<ImportHistory> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 1);
+  messageDesc(file_workout_v1_account, 0);
 
 /**
  * @generated from message workout.v1.ImportHistoryResponse
@@ -169,7 +53,7 @@ export type ImportHistoryResponse = Message<"workout.v1.ImportHistoryResponse"> 
  * Use `create(ImportHistoryResponseSchema)` to create a new message.
  */
 export const ImportHistoryResponseSchema: GenMessage<ImportHistoryResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 2);
+  messageDesc(file_workout_v1_account, 1);
 
 /**
  * A finished workout with everything recorded in it.
@@ -208,7 +92,7 @@ export type ImportedWorkout = Message<"workout.v1.ImportedWorkout"> & {
  * Use `create(ImportedWorkoutSchema)` to create a new message.
  */
 export const ImportedWorkoutSchema: GenMessage<ImportedWorkout> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 3);
+  messageDesc(file_workout_v1_account, 2);
 
 /**
  * @generated from message workout.v1.SyncRequest
@@ -219,17 +103,25 @@ export type SyncRequest = Message<"workout.v1.SyncRequest"> & {
    */
   kind: {
     /**
-     * zstd-compressed EventBatch: the outbox, oldest first. Idempotent by
-     * seq — events the server already holds are skipped.
+     * First, and only first: the last seq the device holds, 0 for none.
      *
-     * @generated from field: bytes events = 1;
+     * @generated from field: int64 after_seq = 3;
+     */
+    value: bigint;
+    case: "afterSeq";
+  } | {
+    /**
+     * The device's own events not yet given a place, oldest first: a
+     * zstd-compressed JSON array.
+     *
+     * @generated from field: bytes events = 4;
      */
     value: Uint8Array;
     case: "events";
   } | {
     /**
-     * Keeps the stream (and the proxies on the way) awake; answered by an
-     * ack, so a dead link shows within a heartbeat.
+     * Keeps the stream (and the proxies on the way) awake; answered with the
+     * head, so a dead link shows within a heartbeat.
      *
      * @generated from field: workout.v1.Heartbeat heartbeat = 2;
      */
@@ -243,7 +135,7 @@ export type SyncRequest = Message<"workout.v1.SyncRequest"> & {
  * Use `create(SyncRequestSchema)` to create a new message.
  */
 export const SyncRequestSchema: GenMessage<SyncRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 4);
+  messageDesc(file_workout_v1_account, 3);
 
 /**
  * @generated from message workout.v1.Heartbeat
@@ -256,7 +148,7 @@ export type Heartbeat = Message<"workout.v1.Heartbeat"> & {
  * Use `create(HeartbeatSchema)` to create a new message.
  */
 export const HeartbeatSchema: GenMessage<Heartbeat> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 5);
+  messageDesc(file_workout_v1_account, 4);
 
 /**
  * @generated from message workout.v1.SyncResponse
@@ -267,7 +159,15 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
    */
   kind: {
     /**
-     * The last seq the server holds for this account.
+     * Events in the server's order, each with its seq.
+     *
+     * @generated from field: workout.v1.Events events = 5;
+     */
+    value: Events;
+    case: "events";
+  } | {
+    /**
+     * The last seq the server holds: the answer to a heartbeat.
      *
      * @generated from field: int64 head = 1;
      */
@@ -275,16 +175,24 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
     case: "head";
   } | {
     /**
-     * The caller's session, whole: who's in it and where each is up to.
-     * Empty session_id when not in one. Sent on connect and on every change.
+     * The caller's session, whole: who else is in it. Empty session_id
+     * when not in one.
      *
-     * @generated from field: workout.v1.GetCurrentSessionResponse session = 2;
+     * @generated from field: workout.v1.Session session = 6;
      */
-    value: GetCurrentSessionResponse;
+    value: Session;
     case: "session";
   } | {
     /**
-     * Requests to join the caller, whole. Sent on connect and on every change.
+     * A session partner's workout, as events.
+     *
+     * @generated from field: workout.v1.PartnerEvents partner_events = 7;
+     */
+    value: PartnerEvents;
+    case: "partnerEvents";
+  } | {
+    /**
+     * Requests to join the caller, whole.
      *
      * @generated from field: workout.v1.GetJoinRequestsResponse join_requests = 3;
      */
@@ -307,60 +215,66 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
  * Use `create(SyncResponseSchema)` to create a new message.
  */
 export const SyncResponseSchema: GenMessage<SyncResponse> = /*@__PURE__*/
+  messageDesc(file_workout_v1_account, 5);
+
+/**
+ * @generated from message workout.v1.PartnerEvents
+ */
+export type PartnerEvents = Message<"workout.v1.PartnerEvents"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * A zstd-compressed JSON array of the events of their workout: its start,
+   * its sets, its end. Never their heart rate, templates or anything else.
+   *
+   * @generated from field: bytes packed = 2;
+   */
+  packed: Uint8Array;
+
+  /**
+   * Their workout so far, replacing whatever came before; otherwise more of
+   * it, as they record it.
+   *
+   * @generated from field: bool whole = 3;
+   */
+  whole: boolean;
+};
+
+/**
+ * Describes the message workout.v1.PartnerEvents.
+ * Use `create(PartnerEventsSchema)` to create a new message.
+ */
+export const PartnerEventsSchema: GenMessage<PartnerEvents> = /*@__PURE__*/
   messageDesc(file_workout_v1_account, 6);
 
 /**
- * @generated from message workout.v1.PullEventsRequest
+ * @generated from message workout.v1.Events
  */
-export type PullEventsRequest = Message<"workout.v1.PullEventsRequest"> & {
+export type Events = Message<"workout.v1.Events"> & {
   /**
-   * @generated from field: int64 after_seq = 1;
-   */
-  afterSeq: bigint;
-};
-
-/**
- * Describes the message workout.v1.PullEventsRequest.
- * Use `create(PullEventsRequestSchema)` to create a new message.
- */
-export const PullEventsRequestSchema: GenMessage<PullEventsRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 7);
-
-/**
- * @generated from message workout.v1.PullEventsResponse
- */
-export type PullEventsResponse = Message<"workout.v1.PullEventsResponse"> & {
-  /**
-   * zstd-compressed EventBatch.
+   * A zstd-compressed JSON array.
    *
-   * @generated from field: bytes events = 1;
+   * @generated from field: bytes packed = 1;
    */
-  events: Uint8Array;
-};
+  packed: Uint8Array;
 
-/**
- * Describes the message workout.v1.PullEventsResponse.
- * Use `create(PullEventsResponseSchema)` to create a new message.
- */
-export const PullEventsResponseSchema: GenMessage<PullEventsResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 8);
-
-/**
- * @generated from message workout.v1.EventBatch
- */
-export type EventBatch = Message<"workout.v1.EventBatch"> & {
   /**
-   * @generated from field: repeated workout.v1.Event events = 1;
+   * The last seq the server holds: a device that has it has caught up.
+   *
+   * @generated from field: int64 head = 2;
    */
-  events: Event[];
+  head: bigint;
 };
 
 /**
- * Describes the message workout.v1.EventBatch.
- * Use `create(EventBatchSchema)` to create a new message.
+ * Describes the message workout.v1.Events.
+ * Use `create(EventsSchema)` to create a new message.
  */
-export const EventBatchSchema: GenMessage<EventBatch> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 9);
+export const EventsSchema: GenMessage<Events> = /*@__PURE__*/
+  messageDesc(file_workout_v1_account, 7);
 
 /**
  * @generated from service workout.v1.SyncService
@@ -373,16 +287,6 @@ export const SyncService: GenService<{
     methodKind: "bidi_streaming";
     input: typeof SyncRequestSchema;
     output: typeof SyncResponseSchema;
-  },
-  /**
-   * Every event of the caller's account after `after_seq`: a fresh install.
-   *
-   * @generated from rpc workout.v1.SyncService.PullEvents
-   */
-  pullEvents: {
-    methodKind: "unary";
-    input: typeof PullEventsRequestSchema;
-    output: typeof PullEventsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_workout_v1_account, 0);

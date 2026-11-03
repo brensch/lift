@@ -526,11 +526,11 @@ changes no plan.
 The summary shows, per lift, what was planned and why, the weight changes,
 and the max after the session (the walk through it).
 
-On the server, ending stamps the member's `left_at` but leaves their
-`active_at`, so they stay on show until they go idle. Their status is read
-from their account each time a partner's view is sent: with no workout
-under way it is the last one to end since they joined, so partners keep
-seeing the finished workout rather than an empty slot.
+On the server, ending stamps the member's `left_at` and `ended_at`, so they
+stay on show a while (`SHOWN_FOR_SECONDS`). Partners' phones fold their
+status from their workout's events: with no workout under way it is the
+last one to end since they joined, so partners keep seeing the finished
+workout rather than an empty slot.
 
 ## Crash recovery
 

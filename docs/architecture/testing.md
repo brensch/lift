@@ -9,7 +9,7 @@ graph TD
     B --> C["Invariant fuzzer<br/>core/examples/fuzz.rs — randomised sequences"]
     B --> D["Server + store tests<br/>sync, multiplayer, deletion, the phone's file"]
     B --> E["Dart tests<br/>providers against the host build of the core"]
-    D --> F["E2E scenarios<br/>emulator + backend + API peers"]
+    D --> F["E2E scenarios<br/>headless Linux app + backend + API peers"]
 ```
 
 ```bash
@@ -17,7 +17,7 @@ cargo test --workspace --all-targets   # core + server
 make test-app                          # host build of app/native, then flutter test
 make fuzz-api                          # randomised sequences, random seed
 make fuzz-api-ci                       # the fixed-seed run CI uses
-make e2e                               # emulator scenarios
+make e2e                               # e2e scenarios, side by side
 ```
 
 ## Core unit tests — the engine
@@ -140,17 +140,36 @@ confirm it trips.
   `users(id) ON DELETE CASCADE` (discovered from the schema, so a new table
   can't be missed), deleting an account leaves nothing of it and touches no
   one else, logins are stored hashed and expired ones cleared.
-- `src/db/migrate.rs` — a fresh database starts at the latest version, and a
+- `src/db/migrate.rs` — a fresh database starts at the latest version, a
   database from before versions is converted (users out of their blob,
   admins, live logins hashed, dead ones and orphaned events dropped, stale
-  session memberships closed, the old tables gone).
+  session memberships closed, the old tables gone), and step two refuses
+  events not yet converted to facts.
+- `core/tests/stored_events.rs` — one of every fact, as stored
+  (`core/tests/testdata/stored_events.json`), still reads and writes back
+  the same: no field renamed or removed. A new fact must be added there.
+- `testkit/tests/golden.rs` — twelve weeks of a seeded lifter's training, as
+  stored (`testkit/tests/testdata/golden_events.json.zst`), still fold to
+  the same account, read as the app reads it (home, workouts, progress,
+  settings: `golden_views.json`). `GOLDEN=views` rewrites the views to
+  review a deliberate change in the diff. The lifter (`schlift_testkit`)
+  trains through the phone's own store; the load test's clients use it too.
+- `core/src/session.rs` — a session partner's phone, holding only their
+  workout's events, sees exactly what their own screen shows (in pounds and
+  kilos); only workout facts are shared; a partner goes off show after
+  ending or going idle.
+- `src/server/sync_tests.rs` (`stream`) — a partner's sets reach the others
+  as events as they happen; one who opens the app mid-workout gets the
+  workout so far; heart rate and the rest of an account never leave it.
 - `src/server/auth.rs` — the `test-auth` gate on `TestLogin`, both branches.
 - `src/demo_seed.rs` — the demo users seed (`test-auth`), and the walk over
   their history rises.
 - `app/native/src/store.rs` — the phone's file: a reopened file is the same
-  account, someone else's file is refused, the outbox is what the server
-  hasn't acked, a fresh install restores from the server's log, an export
-  opens as the same account.
+  account, someone else's file is refused, its own events leave `pending`
+  once placed, another device's go first and its own replay after, what the
+  server lacks is offered again, heart rate is gathered and recorded once
+  when the workout ends, a file from before facts drops its events
+  for the server to resend, an export opens as the same account.
 
 ## Dart tests — against the real core
 
@@ -169,12 +188,13 @@ does it, and so does CI before `flutter test`.
 
 ## E2E scenarios
 
-`make e2e` runs the real app on an emulator against a local backend
+`make e2e` runs the real app, built once for Linux and run headless, many
+scenarios at once, against a local backend
 ([`docs/testing/e2e-scenarios.md`](../testing/e2e-scenarios.md)). Partners are
 *API peers* (`app/integration_test/support/api.dart`) that act like phones:
 each has its own in-memory core, records events on it and pushes them over
-`Sync`. A peer logged in as the app's own user only reads — one phone
-records an account, and the server refuses a second.
+`Sync`. A peer logged in as the app's own user only reads, so what the app
+shows is the app's own doing.
 
 ## Where coverage is thin
 
