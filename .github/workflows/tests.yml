@@ -179,7 +179,8 @@ jobs:
 
       - name: Load test (${{ matrix.profile }}, correctness)
         run: |
-          cargo build --release -p schlift --bin schlift -p schlift-load
+          cargo build --release -p schlift --bin schlift
+          cargo build --release -p schlift-load
           ./target/release/schlift-load --profile ${{ matrix.profile }} ${{ matrix.args }}
 
   # Randomised API sequences through the core, checking state invariants
