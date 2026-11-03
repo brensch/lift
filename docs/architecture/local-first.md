@@ -12,11 +12,11 @@ graph LR
     UI[Flutter screens] --> P[providers]
     P -->|method + proto bytes| N[app/native: Store]
     N --> C[core: Account, apply, api]
-    N --> F[(account file: events, meta, library)]
+    N --> F[(account file: events, pending, meta, library)]
     N -.->|export| X[(exported file: events + readable tables)]
   end
-  N -->|outbox| S[AccountSync: Sync stream]
-  S <-->|events up, acks + session down| SV[server: Sync]
+  N -->|pending| S[AccountSync: Sync stream]
+  S <-->|its events up, everyone's placed events + session down| SV[server: Sync]
   SV --> C2[core: same crate]
   SV --> DB[(account_events)]
   SV --> W[web: read-only RPCs]
@@ -24,28 +24,41 @@ graph LR
 
 ## The account is a fold of events
 
-`core/src/account.rs`. Every write the app makes is an `Event`
-(`proto/workout/v1/account.proto`): start a workout, a set done, a template
-saved, a setting changed. An event carries:
+`core/src/account.rs`. Every write the app makes records an `Event`
+(`core/src/events.rs`): a workout started, a set done, a template saved, a
+setting changed. An event is a fact, stored and synced as JSON:
 
-- `seq` — its place in the account's log: 1, 2, 3…, no gaps. One phone
-  records an account, so its numbering is the order. There is no merging.
-- `id` — random, made by the phone. Every id the event creates (the workout,
-  its sets, a template) is derived from it (`core/src/ids.rs`).
-- `at` — the phone's clock when it happened. The fold never reads a clock.
+```json
+{"seq":12,"id":"9b1c…","at":1793680431,"SetCompleted":{"workout_id":"…","proposed_set_id":"…","actual_reps":5,"actual_weight":135.0,"completed_at":1793680431}}
+```
 
-An event records what the rules decided when it was made, not just what
-was asked: a `StartWorkout` carries every lift's decision (sets, reps,
-weight, the max and the reasons), a `CompleteOnboarding` the starting
-weights, an `AddLibraryTemplates` the library entries. The fold lays those
-out; it never plans and never consults the library, so a change to the
-rules changes nothing already recorded.
+- `seq` — its place in the account's history, given by the server: 1, 2,
+  3…, no gaps. 0 while it is only on the device that recorded it.
+- `id` — random, made by the device. Every id the event creates (the
+  workout, its sets, a template) is derived from it (`core/src/ids.rs`).
+- `at` — the device's clock when it happened. The fold never reads a clock.
+- the fact — one of the `Fact` variants, named by its key.
+
+A fact is what the rules decided, never the request that led to it:
+`WorkoutStarted` carries every lift's decision (sets, reps, weight, the max
+and the reasons), `Onboarded` the starting weights and the library entries
+as they were, every time is filled in. The fold lays those out; it never
+plans and never consults the library, so a change to the rules, or to the
+app's requests, changes nothing already recorded. The protos are only the
+API: facts hold proto messages (a template, a decision) but are not
+messages themselves.
+
+Facts are only ever added to. A field may be added (old events take its
+default); one renamed or removed — in a fact, or in a proto message a fact
+holds — would stop stored events reading, and `core/tests/stored_events.rs`
+fails on it: it reads `core/tests/testdata/stored_events.json`, one of every
+fact as an earlier core wrote it, and needs a new fact added there.
 
 So `Account::fold(events)` is deterministic: the phone and the server build
-the same account from the same log, ids and times included. Every test in
-`core/tests/api.rs` and every user in the fuzzer (`core/examples/fuzz.rs`)
-checks that replaying the recorded log rebuilds exactly the account the calls
-left behind.
+the same account from the same history, ids and times included. Every test
+in `core/tests/api.rs` and every user in the fuzzer (`core/examples/fuzz.rs`)
+checks that replaying the recorded events rebuilds exactly the account the
+calls left behind.
 
 `Account::apply` changes the account by one event, all of it or (on an error)
 none of it. `Account::replay` folds in an event already in the log: it takes
@@ -54,7 +67,7 @@ no-op, never a gap). A start or an add that names a lift without its
 recorded decision is refused, so a log without decisions can't fold into
 empty workouts.
 
-`ImportHistory` brings history in as it was: finished workouts with their
+`HistoryImported` brings history in as it was: finished workouts with their
 sets, and the starting weights of lifts never done. The plan walks
 imported workouts like any others. It is how the tutorial and the demo
 accounts are seeded, and how existing accounts were brought into this
@@ -64,9 +77,9 @@ log's shape.
 
 `core/src/api.rs` answers the app's RPCs from an `Account`, with the existing
 request and response protos. `View` is every read (home, a workout, history,
-progress, settings); `Call` adds the writes, each of which records one event
-(a batch of workout mutations records one each) and answers from the account
-after it. `api::call(call, "StartWorkout", bytes)` dispatches by gRPC method
+progress, settings); `Call` adds the writes, each of which decides its fact,
+records it as one event (a batch of workout mutations records one each) and
+answers from the account after it. `api::call(call, "StartWorkout", bytes)` dispatches by gRPC method
 name, so the app keeps its generated types and only the transport changed.
 
 ## On the phone
@@ -75,9 +88,17 @@ name, so the app keeps its generated types and only the transport changed.
   (`app/rust_builder`) and bridged by flutter_rust_bridge (generated Dart in
   `app/lib/gen/native`, regenerate with `flutter_rust_bridge_codegen
   generate` in `app/`). Its `Store` keeps the account in memory and the file
-  on disk: `events` (the log), `meta` (whose account, what the server has
-  acknowledged) and `library` (the template library the server last sent).
-  A write is in the file before the app is answered.
+  on disk: `events` (the history the server has placed, by seq),
+  `pending` (this device's events it hasn't placed yet, in the order they
+  were recorded), `meta` (whose account) and `library` (the template library
+  the server last sent). The account is the history folded, with what's
+  pending on top. A write is in the file before the app is answered.
+- Heart rate is gathered in the file's own `heart_rate` table while a
+  workout runs, and recorded once it ends: one `HeartRateRecorded` with
+  every reading, compact (the first time, the gaps, the bpms). It is most of
+  what an account holds, so a workout is one such event, not hundreds.
+- A file from before facts (`PRAGMA user_version` below the store's
+  `FORMAT`) has its events dropped on opening: the server sends them again.
 - The account is the user's: Settings → Export writes the log with the
   readable tables of `core/src/projection.rs` beside it (every workout, set
   and lift's decision as plain tables). Only an export has those tables.
@@ -95,44 +116,55 @@ name, so the app keeps its generated types and only the transport changed.
 ## Sync
 
 `AccountSync` (`app/lib/services/account_sync.dart`) holds one bidirectional
-stream open while the app can (`SyncService.Sync`):
+stream open while the app can (`SyncService.Sync`). The server decides the
+order of an account's events; the phone records without waiting for it.
 
-- **Up:** the outbox — every event after the last one the server
-  acknowledged — packed with zstd (`core/src/sync.rs`), sent after each write
-  and on every (re)connect.
-- **Down:** the head the server holds (the ack), and, whole each time, the
-  caller's session and requests to join them — on connect, on every change,
-  and re-checked every 20 s (sent only when different from the last).
+- **Open:** the phone says the last seq it holds (`after_seq`) and the
+  server sends every event after it, in chunks of 500, then its head. A
+  phone that holds everything still hears the head, so it knows it has
+  caught up. A fresh install opens for use only once it has.
+- **Up:** the pending events — packed as zstd JSON (`core/src/sync.rs`),
+  sent after each write and on every (re)connect.
+- **Server:** each pushed event it doesn't already hold (by id: a resend
+  is skipped) is given the next seq, folded and stored, and sent down every
+  stream of that account, the pusher's included.
+- **Down:** those events, from whichever device, in the server's order; the
+  head, answering a heartbeat; whole each time, on connect and on every
+  change, who is in the caller's session and the requests to join them;
+  and each session partner's workout as events, folded on this phone
+  ([multiplayer.md](multiplayer.md)).
+- **Phone:** `Store::receive` takes the events in order. Its own leave
+  `pending`; when another device's arrive, the account is refolded, theirs
+  then whatever is still pending on top. Two phones on one account both
+  keep everything, in the order the server gave it. If the server holds
+  less than the phone (an older export opened), what it lacks goes back to
+  `pending` and is placed again.
 
-The stream is only the fast path. An event leaves the outbox when the server
-acknowledges its seq, and is sent again after any reconnect; the server skips
-seqs it already holds. Every down message is whole, so a dropped one is healed
+The stream is only the fast path. A pending event is resent after any
+reconnect until it comes back placed, and every down message is either
+events after the last the phone holds or whole, so a dropped one is healed
 by the next. The phone heartbeats every 5 s and redials (fresh channel,
-backoff to 10 s) when nothing has come back for 15 s — a half-open link on bad
-wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
-
-A fresh install pulls the account's log first (`PullEvents`) and only then
-opens for use, so it carries on the server's history rather than starting
-one of its own. If a phone ever pushes a log that disagrees with the server's
-on a seq both hold (two phones recorded the account), the server refuses it
-(`account_diverged`); nothing is merged. A push carrying a start or an add
-without its decisions is refused the same way, and nothing of it is
-stored.
+backoff to 10 s) when nothing has come back for 15 s — a half-open link on
+bad wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
 
 ## On the server
 
-- `account_events` is the log, and the only place the server keeps the
-  account: it appends what is pushed and folds it in memory
-  (`src/db/accounts.rs`; least recently used dropped past 256 accounts,
-  refolded from the log when next needed). No workout, set or template is
-  copied into a table.
+- `account_events` is the history, `(user_id, seq, id, event)` with the
+  event as JSON, and the only place the server keeps the account: it
+  places and appends what is pushed, folding nothing (`src/db/accounts.rs`).
+  No workout, set or template is copied into a table, and nothing of an
+  account is held in memory.
 - The workout reads the web makes (`WorkoutService`, `SettingsService`) are
-  answered by the core's `View` over the fold — the same code as the phone.
-- Multiplayer: a push other than heart rate marks the caller active in
-  their session, and the change is broadcast in-process to every Sync
-  stream whose session it is; each sends its partners' status, read from
-  their folds then (`participant_status`). A pushed EndWorkout takes the
-  caller out of their session, their result still on show. Membership, invites and join requests stay server-side
-  RPCs: they need the network anyway.
+  answered by the core's `View` over the account folded from its history
+  then — the same code as the phone.
+- Changes are told only to the streams they concern (`src/db/changes.rs`):
+  an account's new events, membership and join requests to that user's
+  streams, a session's to its members' — however many are connected, a
+  stream wakes only for its own.
+- Multiplayer: the server routes each member's workout events to the
+  others' streams and keeps only who is in which session; every phone
+  folds its partners' status itself. A pushed EndWorkout takes the caller
+  out of their session, their result still on show. Membership, invites
+  and join requests stay server-side RPCs: they need the network anyway.
 - A workout's session is recorded on it by the phone (`SetWorkoutSession`)
   when the stream reports one, so "trained with" works from the account.

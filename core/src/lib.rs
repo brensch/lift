@@ -8,6 +8,7 @@ pub mod pb {
 
 pub mod account;
 pub mod api;
+pub mod events;
 pub mod exercise_catalog;
 pub mod exercise_progress;
 pub mod history;
@@ -18,6 +19,7 @@ pub mod progress;
 pub mod projection;
 pub mod recovery;
 pub mod rotation;
+pub mod session;
 pub mod sync;
 pub mod template_library;
 pub mod volume;

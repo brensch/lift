@@ -9,160 +9,186 @@
     "heartbeat": 5.0,
     "max_sets": 12,
     "grouped": 0.3,
-    "connections": 8
+    "connections": 8,
+    "history_weeks": 0,
+    "watchers": 0.0
   },
-  "elapsed_seconds": 45.136527857,
+  "elapsed_seconds": 44.938613637,
   "clients_finished": 40,
   "client_errors": {},
-  "events": 2049,
-  "events_per_second": 45.39560522890843,
+  "events": 1441,
+  "events_per_second": 32.06596473224442,
   "accounts_matching": 40,
   "accounts_differing": [],
   "server": {
-    "cpu_seconds": 3.66,
-    "rss_max_mb": 24.0,
-    "db_mb": 4.804088
+    "cpu_seconds": 2.22,
+    "rss_max_mb": 25.5,
+    "db_mb": 5.181016
   },
-  "server_cpu_ms_per_event": 1.7862371888726207,
+  "server_cpu_ms_per_event": 1.5405968077723804,
   "ops": {
     "auth.login_finish": {
       "count": 40,
       "errors": {},
-      "p50_ms": 1.666,
-      "p95_ms": 3.207,
-      "p99_ms": 3.303,
-      "max_ms": 3.303
+      "p50_ms": 50.335,
+      "p95_ms": 54.463,
+      "p99_ms": 54.751,
+      "max_ms": 54.751
     },
     "auth.login_start": {
       "count": 40,
       "errors": {},
-      "p50_ms": 1.173,
-      "p95_ms": 1.434,
-      "p99_ms": 1.82,
-      "max_ms": 1.82
+      "p50_ms": 21.567,
+      "p95_ms": 21.951,
+      "p99_ms": 22.111,
+      "max_ms": 22.111
     },
     "auth.register_finish": {
       "count": 40,
       "errors": {},
-      "p50_ms": 2.365,
-      "p95_ms": 3.037,
-      "p99_ms": 3.915,
-      "max_ms": 3.915
+      "p50_ms": 56.959,
+      "p95_ms": 58.687,
+      "p99_ms": 60.127,
+      "max_ms": 60.127
     },
     "auth.register_start": {
       "count": 40,
       "errors": {},
-      "p50_ms": 1.336,
-      "p95_ms": 1.668,
-      "p99_ms": 1.747,
-      "max_ms": 1.747
+      "p50_ms": 14.191,
+      "p95_ms": 23.839,
+      "p99_ms": 25.215,
+      "max_ms": 25.215
     },
     "core.end_workout": {
       "count": 80,
       "errors": {},
-      "p50_ms": 0.037,
-      "p95_ms": 0.111,
-      "p99_ms": 0.199,
-      "max_ms": 0.199
+      "p50_ms": 0.083,
+      "p95_ms": 0.182,
+      "p99_ms": 0.348,
+      "max_ms": 0.348
     },
     "core.get_home": {
       "count": 80,
       "errors": {},
-      "p50_ms": 0.133,
-      "p95_ms": 0.231,
-      "p99_ms": 0.316,
-      "max_ms": 0.316
+      "p50_ms": 0.14,
+      "p95_ms": 0.235,
+      "p99_ms": 0.394,
+      "max_ms": 0.394
     },
     "core.heart_rate": {
-      "count": 661,
+      "count": 646,
       "errors": {},
-      "p50_ms": 0.045,
-      "p95_ms": 0.09,
-      "p99_ms": 0.12,
-      "max_ms": 0.258
+      "p50_ms": 0.032,
+      "p95_ms": 0.058,
+      "p99_ms": 0.089,
+      "max_ms": 0.161
     },
     "core.mutate": {
-      "count": 1188,
+      "count": 1161,
       "errors": {},
-      "p50_ms": 0.043,
-      "p95_ms": 0.164,
-      "p99_ms": 0.235,
-      "max_ms": 0.338
+      "p50_ms": 0.059,
+      "p95_ms": 0.161,
+      "p99_ms": 0.25,
+      "max_ms": 0.563
     },
     "core.onboard": {
       "count": 40,
       "errors": {},
-      "p50_ms": 0.069,
-      "p95_ms": 0.097,
-      "p99_ms": 0.133,
-      "max_ms": 0.133
+      "p50_ms": 0.061,
+      "p95_ms": 0.122,
+      "p99_ms": 0.24,
+      "max_ms": 0.24
+    },
+    "core.partner": {
+      "count": 539,
+      "errors": {},
+      "p50_ms": 0.108,
+      "p95_ms": 0.23,
+      "p99_ms": 0.295,
+      "max_ms": 0.406
+    },
+    "core.receive": {
+      "count": 1401,
+      "errors": {},
+      "p50_ms": 0.067,
+      "p95_ms": 0.131,
+      "p99_ms": 0.161,
+      "max_ms": 0.321
     },
     "core.start_workout": {
       "count": 80,
       "errors": {},
-      "p50_ms": 0.064,
-      "p95_ms": 0.103,
-      "p99_ms": 0.12,
-      "max_ms": 0.12
+      "p50_ms": 0.066,
+      "p95_ms": 0.098,
+      "p99_ms": 0.236,
+      "max_ms": 0.236
     },
     "passkey.create": {
       "count": 40,
       "errors": {},
-      "p50_ms": 0.213,
-      "p95_ms": 0.269,
-      "p99_ms": 1.346,
-      "max_ms": 1.346
+      "p50_ms": 0.102,
+      "p95_ms": 0.32,
+      "p99_ms": 4.107,
+      "max_ms": 4.107
     },
     "passkey.sign": {
       "count": 40,
       "errors": {},
-      "p50_ms": 0.12,
-      "p95_ms": 0.179,
-      "p99_ms": 0.196,
-      "max_ms": 0.196
+      "p50_ms": 0.079,
+      "p95_ms": 0.094,
+      "p99_ms": 0.21,
+      "max_ms": 0.21
     },
     "rpc.get_invite_token": {
       "count": 4,
       "errors": {},
-      "p50_ms": 0.68,
-      "p95_ms": 1.541,
-      "p99_ms": 1.541,
-      "max_ms": 1.541
+      "p50_ms": 0.99,
+      "p95_ms": 1.065,
+      "p99_ms": 1.065,
+      "max_ms": 1.065
     },
     "rpc.join_via_invite": {
       "count": 8,
       "errors": {},
-      "p50_ms": 2.053,
-      "p95_ms": 4.795,
-      "p99_ms": 4.795,
-      "max_ms": 4.795
+      "p50_ms": 2.441,
+      "p95_ms": 2.793,
+      "p99_ms": 2.793,
+      "max_ms": 2.793
     },
     "rpc.list_workout_summaries": {
       "count": 80,
       "errors": {},
-      "p50_ms": 1.116,
-      "p95_ms": 1.474,
-      "p99_ms": 12.183,
-      "max_ms": 12.183
+      "p50_ms": 1.312,
+      "p95_ms": 1.729,
+      "p99_ms": 1.865,
+      "max_ms": 1.865
     },
     "sync.open": {
       "count": 40,
       "errors": {},
-      "p50_ms": 0.472,
-      "p95_ms": 0.606,
-      "p99_ms": 0.744,
-      "max_ms": 0.744
+      "p50_ms": 0.596,
+      "p95_ms": 1.102,
+      "p99_ms": 1.444,
+      "max_ms": 1.444
     },
     "sync.push_acked": {
-      "count": 2049,
+      "count": 1321,
       "errors": {},
-      "p50_ms": 1.801,
-      "p95_ms": 3.107,
-      "p99_ms": 4.179,
-      "max_ms": 12.295
+      "p50_ms": 1.833,
+      "p95_ms": 2.587,
+      "p99_ms": 3.699,
+      "max_ms": 11.119
+    },
+    "sync.restore": {
+      "count": 40,
+      "errors": {},
+      "p50_ms": 25.135,
+      "p95_ms": 33.375,
+      "p99_ms": 34.079,
+      "max_ms": 34.079
     },
     "sync.session_update": {
-      "count": 439,
+      "count": 84,
       "errors": {},
       "p50_ms": 0.001,
       "p95_ms": 0.001,

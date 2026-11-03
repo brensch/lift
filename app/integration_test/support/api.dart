@@ -5,10 +5,10 @@
 //     their own in-memory core, their events pushed over Sync. The app under
 //     test sees them exactly as it would see real phones.
 //
-// One phone records an account: a peer logged in as the app's own user only
-// reads (writing too would be a second phone, which the server refuses).
+// A peer logged in as the app's own user only reads, so what the app shows is
+// the app's own doing.
 //
-// On the emulator, 127.0.0.1:50051 reaches the host backend via `adb reverse`.
+// The backend is at 127.0.0.1:50051, as for the app.
 
 import 'dart:async';
 
@@ -74,29 +74,40 @@ class Peer {
 
   CallOptions get _opts => _api._authed(token);
 
-  /// This peer's copy of the account, level with the server's.
-  Future<LocalCore> _pulled() async {
+  /// This peer's copy of the account, level with the server's: one sync,
+  /// as the app's stream does it. It opens with what this peer holds and the
+  /// server sends the rest; what it recorded goes up and comes back placed.
+  /// Done once it holds everything the server does and nothing waits.
+  Future<LocalCore> _synced() async {
     final core = _core ??= await LocalCore.memory(userId);
-    final (seq, _) = await core.syncState();
-    final pulled = await _api.sync.pullEvents(
-      PullEventsRequest(afterSeq: Int64(seq)),
-      options: _opts,
-    );
-    await core.restore(pulled.events);
+    final up = StreamController<SyncRequest>();
+    final down = _api.sync.sync(up.stream, options: _opts);
+    up.add(SyncRequest(afterSeq: Int64(await core.confirmed())));
+    final (packed, _) = await core.outbox(0);
+    if (packed.isNotEmpty) up.add(SyncRequest(events: packed));
+    await for (final message in down) {
+      if (!message.hasEvents()) continue;
+      final head = message.events.head.toInt();
+      await core.receive(message.events.packed, head);
+      if (await core.pendingCount() == 0 && await core.confirmed() >= head) {
+        break;
+      }
+    }
+    await up.close();
     return core;
   }
 
   /// The last seq of the account's log as the server holds it.
-  Future<int> serverSeq() async => (await (await _pulled()).syncState()).$1;
+  Future<int> serverSeq() async => (await _synced()).confirmed();
 
   Future<T> _read<T extends GeneratedMessage>(
     String method,
     GeneratedMessage request,
     T Function(List<int>) parse,
-  ) async => (await _pulled()).call(method, request, parse);
+  ) async => (await _synced()).call(method, request, parse);
 
   /// A write, as this peer's phone would make it: recorded on its core,
-  /// then pushed and acknowledged.
+  /// then synced until the server has placed it.
   Future<T> _write<T extends GeneratedMessage>(
     String method,
     GeneratedMessage request,
@@ -107,23 +118,10 @@ class Peer {
         'one phone records an account: $username is the app under test',
       );
     }
-    final core = await _pulled();
+    final core = await _synced();
     final response = await core.call(method, request, parse);
-    await _push(core);
+    await _synced();
     return response;
-  }
-
-  Future<void> _push(LocalCore core) async {
-    final (packed, last) = await core.outbox();
-    if (last == 0) return;
-    final up = StreamController<SyncRequest>();
-    final down = _api.sync.sync(up.stream, options: _opts);
-    up.add(SyncRequest(events: packed));
-    await for (final message in down) {
-      if (message.hasHead() && message.head.toInt() >= last) break;
-    }
-    await core.acked(last);
-    await up.close();
   }
 
   Future<String> inviteToken() async {

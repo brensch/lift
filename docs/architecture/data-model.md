@@ -17,21 +17,26 @@ graph LR
 
 | Where | Table | |
 |---|---|---|
-| Phone | `events(seq PK, id, at, event_blob)` | `id` and `at` copied out so the file is readable |
-| Phone | `meta(key PK, value)` | Whose account (user id, name) and the last seq the server acknowledged |
-| Server | `account_events(user_id, seq, event)`, PK `(user_id, seq)` | Every account's log, stored as it arrived |
+| Phone | `events(seq PK, id UNIQUE, event)` | The history the server has placed, in its order |
+| Phone | `pending(n PK, id UNIQUE, event)` | Events recorded here that the server hasn't placed yet, oldest first |
+| Phone | `meta(key PK, value)` | Whose account (user id, name) |
+| Phone | `heart_rate(workout_id, sampled_at, bpm)` | Heart rate of a workout under way, never synced: recorded as one `HeartRateRecorded` when it ends |
+| Server | `account_events(user_id, seq, id, event)`, PK `(user_id, seq)`, `UNIQUE (user_id, id)` | Every account's history, as placed |
 
-`event_blob` (`event` on the server) is an `Event`
-(`proto/workout/v1/account.proto`): `seq`, `id`, `at` and one `kind` — `start_workout` (with each lift's recorded
-decision), `workout` (a `WorkoutMutation`: complete/edit/delete a set,
-start a set, skip warmups, add/adjust/remove/reorder exercises, set the
-session, end), `heart_rate`, `save_template`, `delete_template`,
-`reorder_templates`, `add_library_templates`, `clone_template`,
-`set_override`, `complete_onboarding`, `update_setting`, `import_history`.
+`event` is an `Event` as JSON (`core/src/events.rs`): `seq`, `id`, `at` and
+one fact — `WorkoutStarted` (with each lift's decision), `SetStarted`,
+`SetCompleted`, `SetEdited`, `SetUndone`, `RungAnswered`, `WarmupsSkipped`,
+`ExercisesAdded`, `ExerciseAdjusted`, `ExerciseRemoved`,
+`ExercisesReordered`, `SessionSet`, `WorkoutEnded`, `HeartRateRecorded`,
+`TemplateSaved`, `TemplateDeleted`, `TemplatesReordered`,
+`LibraryTemplatesAdded`, `Onboarded`, `SettingUpdated`, `HistoryImported`,
+`OverrideSet`.
 
-`seq` runs 1, 2, 3… with no gaps. Ids the event creates (the workout, its
-sets, a template) derive from the event's `id` (`core/src/ids.rs`), so a
-replay rebuilds them exactly.
+`seq` runs 1, 2, 3… with no gaps, given by the server; a pending event has
+none yet. Ids the event creates (the workout, its sets, a template) derive
+from the event's `id` (`core/src/ids.rs`), so a replay rebuilds them
+exactly. Facts are only added to, never renamed: see
+[local-first.md](local-first.md#the-account-is-a-fold-of-events).
 
 ## The account
 
@@ -44,8 +49,8 @@ it was laid out from and every weight change since), and the active
 workout's id. Nothing else is kept: each lift's estimated max is walked
 from the workouts whenever a plan is made (`core/src/plan.rs`). The
 account is never stored whole; the phone holds it in memory while the
-account is open, the server caches the 256 most recently used
-(`CACHED_ACCOUNTS`, `src/db/accounts.rs`) and refolds any other from its log.
+account is open, and the server folds it from its history only when the
+website asks, keeping nothing.
 
 ## Exported tables
 
@@ -117,8 +122,8 @@ erDiagram
 ```
 
 `WORKOUT_SCHEMA` (above) and `ACCOUNT_SCHEMA` (`workout_templates`) are
-what an export contains. The phone's live file holds only `meta`, `events`
-and `library`; the server's holds only `account_events` for the account.
+what an export contains. The phone's live file holds only `meta`, `events`,
+`pending` and `library`; the server's holds only `account_events` for the account.
 
 - **`end_time = 0` means in progress.** There is no status column;
   zero-as-null is the convention.
@@ -237,14 +242,15 @@ erDiagram
     account_events {
         TEXT user_id PK, FK
         INTEGER seq PK
-        BLOB event "proto Event"
+        TEXT id "unique per user"
+        TEXT event "Event as JSON"
     }
     session_members {
         TEXT session_id PK
         TEXT user_id PK, FK
         INTEGER joined_at
         INTEGER left_at "0 = in it now"
-        INTEGER active_at "last activity; 0 = off show"
+        INTEGER ended_at "left by ending a workout; 0 = not"
     }
     page_views {
         TEXT user_id PK, FK
@@ -275,8 +281,8 @@ erDiagram
 
 Not stored, only in memory:
 
-- **Partners' live status**: built from the member's folded account each time
-  a partner's view is sent (`participant_status`, `src/server/support.rs`).
+- **Which stream watches whom**: each Sync stream watches its own account,
+  its session, and its partners' accounts (`src/db/changes.rs`).
 - **Join requests**: `JoinRequests` in `src/db/session.rs`, answerable for two
   minutes.
 

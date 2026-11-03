@@ -12,6 +12,7 @@ import 'package:protobuf/protobuf.dart';
 
 import '../gen/native/api.dart' as native;
 import '../gen/native/frb_generated.dart';
+import '../gen/workout/v1/group.pb.dart';
 
 /// A write or read the core refused: `code` is invalid_argument, not_found,
 /// failed_precondition or storage.
@@ -91,24 +92,70 @@ class LocalCore {
   static bool _isRead(String method) =>
       method.startsWith('Get') || method.startsWith('List');
 
-  /// What the server hasn't acknowledged, packed; and its last seq.
-  Future<(List<int>, int)> outbox() async {
-    final (packed, last) = await native.outbox(handle: _handle);
+  /// The last seq this file holds: where the server picks up.
+  Future<int> confirmed() => native.confirmed(handle: _handle);
+
+  /// What this phone recorded that the server hasn't placed, after the
+  /// pending event numbered [after] (the last one this stream sent): packed
+  /// (empty when there's nothing), and the number of the last.
+  Future<(List<int>, int)> outbox(int after) async {
+    final (packed, last) = await native.outbox(handle: _handle, after: after);
     return (packed, last);
   }
 
-  Future<void> acked(int head) => native.acked(handle: _handle, head: head);
+  /// How many events wait for the server.
+  Future<int> pendingCount() => native.pendingCount(handle: _handle);
 
-  /// The account's seq and the last one the server acknowledged.
-  Future<(int, int)> syncState() async {
-    final (seq, acked) = await native.syncState(handle: _handle);
-    return (seq, acked);
+  /// Events from the server (packed), in its order, and the last seq it
+  /// holds. Returns whether the account changed under the app.
+  Future<bool> receive(List<int> packed, int head) async {
+    try {
+      return await native.receive(handle: _handle, packed: packed, head: head);
+    } catch (e) {
+      throw CoreException.from(e);
+    }
   }
 
-  /// Events pulled from the server, appended after this file's own.
-  Future<int> restore(List<int> packed) async {
+  /// A session partner's workout events (packed) from the server: their
+  /// workout so far when [whole], else more of it. Held only while the app
+  /// runs.
+  Future<void> receivePartner(
+    String partner,
+    List<int> packed, {
+    required bool whole,
+  }) async {
     try {
-      return await native.restore(handle: _handle, packed: packed);
+      await native.receivePartner(
+        handle: _handle,
+        partner: partner,
+        packed: packed,
+        whole: whole,
+      );
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
+  /// Where a session partner is up to, folded by this phone's core from
+  /// their events; null once they're off show. Who they are is not in it.
+  Future<ParticipantStatus?> partnerStatus(SessionMember member) async {
+    try {
+      final status = await native.partnerStatus(
+        handle: _handle,
+        partner: member.user.id,
+        joinedAt: member.joinedAt.toInt(),
+        endedAt: member.endedAt.toInt(),
+      );
+      return status == null ? null : ParticipantStatus.fromBuffer(status);
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
+  /// Forget the partners not in [partners]: the session's members now.
+  Future<void> keepPartners(List<String> partners) async {
+    try {
+      await native.keepPartners(handle: _handle, partners: partners);
     } catch (e) {
       throw CoreException.from(e);
     }

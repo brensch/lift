@@ -35,24 +35,72 @@ Future<Uint8List> call({
   request: request,
 );
 
-/// The events the server hasn't acknowledged, packed for the Sync stream,
-/// and the seq of the last one (0 when there are none).
-Future<(Uint8List, PlatformInt64)> outbox({required int handle}) =>
-    RustLib.instance.api.crateApiOutbox(handle: handle);
+/// The last seq the file holds: what the Sync stream opens with.
+Future<PlatformInt64> confirmed({required int handle}) =>
+    RustLib.instance.api.crateApiConfirmed(handle: handle);
 
-/// The server holds everything up to `head`.
-Future<void> acked({required int handle, required PlatformInt64 head}) =>
-    RustLib.instance.api.crateApiAcked(handle: handle, head: head);
+/// What this device recorded that the server hasn't placed, after the
+/// pending event numbered `after` (the last one this stream sent): packed
+/// for the Sync stream (empty when there's nothing), and the number of the
+/// last. Numbers only grow, so a stream sends each event once.
+Future<(Uint8List, PlatformInt64)> outbox({
+  required int handle,
+  required PlatformInt64 after,
+}) => RustLib.instance.api.crateApiOutbox(handle: handle, after: after);
 
-/// The account's seq and the last one the server acknowledged.
-Future<(PlatformInt64, PlatformInt64)> syncState({required int handle}) =>
-    RustLib.instance.api.crateApiSyncState(handle: handle);
+/// How many events this device recorded that the server hasn't placed.
+Future<PlatformInt64> pendingCount({required int handle}) =>
+    RustLib.instance.api.crateApiPendingCount(handle: handle);
 
-/// Events pulled from the server (packed), appended after this file's own.
-Future<PlatformInt64> restore({
+/// Events from the server (packed), in its order, and the last seq it
+/// holds. Returns whether the account changed under the app.
+Future<bool> receive({
   required int handle,
   required List<int> packed,
-}) => RustLib.instance.api.crateApiRestore(handle: handle, packed: packed);
+  required PlatformInt64 head,
+}) => RustLib.instance.api.crateApiReceive(
+  handle: handle,
+  packed: packed,
+  head: head,
+);
+
+/// A session partner's workout events (packed) from the server: their
+/// workout so far when `whole`, else more of it.
+Future<void> receivePartner({
+  required int handle,
+  required String partner,
+  required List<int> packed,
+  required bool whole,
+}) => RustLib.instance.api.crateApiReceivePartner(
+  handle: handle,
+  partner: partner,
+  packed: packed,
+  whole: whole,
+);
+
+/// Where a partner is up to now (a ParticipantStatus, without who they are),
+/// given when they joined and ended from the session; None once they're off
+/// show.
+Future<Uint8List?> partnerStatus({
+  required int handle,
+  required String partner,
+  required PlatformInt64 joinedAt,
+  required PlatformInt64 endedAt,
+}) => RustLib.instance.api.crateApiPartnerStatus(
+  handle: handle,
+  partner: partner,
+  joinedAt: joinedAt,
+  endedAt: endedAt,
+);
+
+/// Forget the partners not in `partners`: the session's members now.
+Future<void> keepPartners({
+  required int handle,
+  required List<String> partners,
+}) => RustLib.instance.api.crateApiKeepPartners(
+  handle: handle,
+  partners: partners,
+);
 
 /// The template library the server sent (a packed
 /// ListTemplateLibraryResponse). Returns whether it changed.

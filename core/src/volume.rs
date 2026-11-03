@@ -275,6 +275,7 @@ mod tests {
             completed_sets: completed,
             heart_rate: Vec::new(),
             exercise_logs: Vec::new(),
+            ..Default::default()
         }
     }
 

@@ -109,7 +109,6 @@ class LoggingInterceptor extends ClientInterceptor {
   static const _tag = 'gRPC';
   // Frequent calls — log at debug to avoid noise.
   static const _debugOnlyMethods = {
-    '/workout.v1.MultiplayerService/GetCurrentSession',
     '/workout.v1.AnalyticsService/RecordPageViews',
   };
 

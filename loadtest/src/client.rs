@@ -15,11 +15,13 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::workout_mutation::Mutation;
 use schlift::workout::v1::workout_service_client::WorkoutServiceClient;
 use schlift::workout::v1::*;
+use schlift_core::events::Event;
 use schlift_native::store::Store;
+use schlift_testkit::{Lifter, Move};
 use std::collections::VecDeque;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::{mpsc, watch};
 use tokio_stream::wrappers::ReceiverStream;
@@ -50,6 +52,10 @@ pub struct Outcome {
 
 pub struct Client {
     username: String,
+    /// Only keeps the app open: never trains.
+    watcher: bool,
+    /// How this client trains, from its number: a run trains the same way.
+    lifter: Lifter,
     /// Stands in for the client's address: the server limits passkey
     /// ceremonies per address, and every load client is really 127.0.0.1.
     ip: String,
@@ -60,25 +66,30 @@ pub struct Client {
     passkey: WebauthnAuthenticator<SoftPasskey>,
     store: Option<Store>,
     up: Option<mpsc::Sender<SyncRequest>>,
-    head: watch::Receiver<i64>,
-    head_tx: watch::Sender<i64>,
+    /// What the server sends, handed over by the stream's reader.
+    down: Option<mpsc::Receiver<SyncResponse>>,
+    /// The last pending event this stream sent (`Store::pending_after`).
     sent_up_to: i64,
-    /// Pushes awaiting the head that acknowledges them: (last seq, sent).
-    in_flight: Arc<Mutex<VecDeque<(i64, Instant)>>>,
+    /// The last head the server reported.
+    head: i64,
+    /// Pushes waiting to come back placed: (last event's id, when sent).
+    in_flight: VecDeque<(String, Instant)>,
     lost: Arc<AtomicBool>,
 }
 
 impl Client {
     pub fn new(
         n: usize,
+        watcher: bool,
         run: &str,
         channel: Channel,
         metrics: Arc<Metrics>,
         profile: Profile,
     ) -> Self {
-        let (head_tx, head) = watch::channel(0);
         Client {
             username: format!("load-{run}-{n}"),
+            watcher,
+            lifter: Lifter::new(n as u64),
             ip: format!("10.{}.{}.{}", (n >> 16) & 255, (n >> 8) & 255, n & 255),
             token: String::new(),
             channel,
@@ -87,27 +98,39 @@ impl Client {
             passkey: WebauthnAuthenticator::new(SoftPasskey::new(true)),
             store: None,
             up: None,
-            head,
-            head_tx,
+            down: None,
             sent_up_to: 0,
-            in_flight: Arc::default(),
+            head: 0,
+            in_flight: VecDeque::new(),
             lost: Arc::default(),
         }
     }
 
-    /// Sign up, onboard, train until `stop`, then sync everything.
+    /// Sign up, onboard, restore the profile's history and connect: an
+    /// account as it stands before the load being measured.
+    pub async fn prepare(&mut self) -> Result<(), String> {
+        self.sign_up().await?;
+        self.sign_in().await?;
+        self.onboard().await?;
+        self.restore_history()?;
+        self.dial().await?;
+        self.settle("sync.restore").await
+    }
+
+    /// Join the client's group, train (or only watch) until `stop`, then
+    /// sync everything.
     pub async fn run(
         mut self,
         role: Role,
         mut stop: watch::Receiver<bool>,
     ) -> Result<Outcome, String> {
-        self.sign_up().await?;
-        self.sign_in().await?;
-        self.onboard().await?;
-        self.dial().await?;
-        self.push().await?;
         self.group(role).await?;
         while !*stop.borrow() {
+            if self.watcher {
+                self.pause(Duration::from_secs(3_600), None, &mut stop)
+                    .await?;
+                break;
+            }
             let idle = self.jitter(self.profile.idle);
             if self.pause(idle, None, &mut stop).await? {
                 break;
@@ -116,7 +139,7 @@ impl Client {
             self.web_reads().await?;
         }
         self.drain().await?;
-        let events = self.store()?.events_after(0)?;
+        let events = self.store()?.events()?;
         Ok(Outcome {
             username: self.username,
             token: self.token,
@@ -264,9 +287,16 @@ impl Client {
 
     // --- Sync, as account_sync.dart does it ---
 
+    /// Open the stream: it starts with what this client holds.
     async fn dial(&mut self) -> Result<(), String> {
         let metrics = self.metrics.clone();
         let (up, rx) = mpsc::channel::<SyncRequest>(64);
+        let confirmed = self.store()?.confirmed()?;
+        up.send(SyncRequest {
+            kind: Some(sync_request::Kind::AfterSeq(confirmed)),
+        })
+        .await
+        .map_err(|_| "sync stream closed".to_string())?;
         let mut sync = SyncServiceClient::new(self.channel.clone());
         let mut down = metrics
             .time(
@@ -275,30 +305,17 @@ impl Client {
             )
             .await?
             .into_inner();
-        let (head, in_flight, lost) = (
-            self.head_tx.clone(),
-            self.in_flight.clone(),
-            self.lost.clone(),
-        );
+        let (to_client, from_server) = mpsc::channel(256);
+        let lost = self.lost.clone();
         lost.store(false, Ordering::SeqCst);
         tokio::spawn(async move {
             loop {
                 match down.message().await {
-                    Ok(Some(SyncResponse { kind: Some(kind) })) => match kind {
-                        sync_response::Kind::Head(h) => {
-                            head.send_replace(h);
-                            let mut in_flight = in_flight.lock().expect("in-flight lock");
-                            while in_flight.front().is_some_and(|(seq, _)| *seq <= h) {
-                                let (_, sent) = in_flight.pop_front().expect("front");
-                                metrics.record("sync.push_acked", sent.elapsed());
-                            }
+                    Ok(Some(message)) => {
+                        if to_client.send(message).await.is_err() {
+                            break;
                         }
-                        sync_response::Kind::Session(_) => {
-                            metrics.record("sync.session_update", Duration::ZERO)
-                        }
-                        _ => {}
-                    },
-                    Ok(Some(_)) => {}
+                    }
                     Ok(None) => break,
                     Err(status) => {
                         metrics.error("sync.stream", status.code());
@@ -309,32 +326,82 @@ impl Client {
             lost.store(true, Ordering::SeqCst);
         });
         self.up = Some(up);
+        self.down = Some(from_server);
         self.sent_up_to = 0;
         Ok(())
     }
 
-    /// Send what the server hasn't acknowledged and this stream hasn't sent.
+    /// Fold in what the server sent: events placed (this client's own coming
+    /// back, or a resend), or anything else, which is only counted.
+    fn heard(&mut self, message: SyncResponse) -> Result<(), String> {
+        match message.kind {
+            Some(sync_response::Kind::Events(events)) => {
+                let metrics = self.metrics.clone();
+                let placed = if events.packed.is_empty() {
+                    Vec::new()
+                } else {
+                    schlift_core::sync::unpack(&events.packed).map_err(|e| e.to_string())?
+                };
+                self.head = events.head;
+                let ids: Vec<String> = placed.iter().map(|e| e.id.clone()).collect();
+                let store = self.store()?;
+                metrics.time_sync("core.receive", || store.receive(placed, events.head))?;
+                // A push is back once its last event is.
+                while self
+                    .in_flight
+                    .front()
+                    .is_some_and(|(last, _)| ids.contains(last))
+                {
+                    let (_, sent) = self.in_flight.pop_front().expect("front");
+                    self.metrics.record("sync.push_acked", sent.elapsed());
+                }
+            }
+            Some(sync_response::Kind::Session(_)) => {
+                self.metrics.record("sync.session_update", Duration::ZERO)
+            }
+            // A partner's workout, folded here as the phone does.
+            Some(sync_response::Kind::PartnerEvents(partner)) => {
+                let events =
+                    schlift_core::sync::unpack(&partner.packed).map_err(|e| e.to_string())?;
+                let metrics = self.metrics.clone();
+                let store = self.store()?;
+                metrics.time_sync("core.partner", || {
+                    store.receive_partner(&partner.user_id, events, partner.whole);
+                    store.partner_status(&partner.user_id, 0, 0, now_unix());
+                    Ok::<_, String>(())
+                })?;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    /// Everything the server has sent so far, folded in.
+    fn hear_all(&mut self) -> Result<(), String> {
+        while let Some(message) = self.down.as_mut().and_then(|down| down.try_recv().ok()) {
+            self.heard(message)?;
+        }
+        Ok(())
+    }
+
+    /// Send what this client recorded that this stream hasn't sent.
     async fn push(&mut self) -> Result<(), String> {
         if self.lost.load(Ordering::SeqCst) {
             self.metrics.record("sync.redial", Duration::ZERO);
             self.up = None;
             self.dial().await?;
         }
-        let acked = *self.head.borrow();
-        let sent_up_to = self.sent_up_to;
-        let store = self.store()?;
-        store.set_acked(acked)?;
-        if store.seq() <= sent_up_to.max(acked) {
+        self.hear_all()?;
+        let after = self.sent_up_to;
+        let (events, last) = self.store()?.pending_after(after)?;
+        let Some(last_id) = events.last().map(|e| e.id.clone()) else {
             return Ok(());
-        }
-        let events = store.events_after(acked)?;
-        let last = events.last().map_or(acked, |e| e.seq);
-        let packed = schlift_core::sync::pack(events);
-        self.in_flight
-            .lock()
-            .expect("in-flight lock")
-            .push_back((last, Instant::now()));
-        self.send(sync_request::Kind::Events(packed)).await?;
+        };
+        self.in_flight.push_back((last_id, Instant::now()));
+        self.send(sync_request::Kind::Events(schlift_core::sync::pack(
+            &events,
+        )))
+        .await?;
         self.sent_up_to = last;
         Ok(())
     }
@@ -347,7 +414,8 @@ impl Client {
     }
 
     /// Wait `total`, heartbeating as the app does and, while training,
-    /// sending heart rate. True if asked to stop.
+    /// sending heart rate; what the server sends meanwhile is folded in as
+    /// it arrives. True if asked to stop.
     async fn pause(
         &mut self,
         total: Duration,
@@ -360,10 +428,18 @@ impl Client {
             if left.is_zero() {
                 return Ok(false);
             }
-            let step = left.min(self.profile.heartbeat);
-            tokio::select! {
-                _ = tokio::time::sleep(step) => {}
-                _ = stop.changed() => return Ok(true),
+            let wake = Instant::now() + left.min(self.profile.heartbeat);
+            let message = {
+                let down = self.down.as_mut().ok_or("not connected")?;
+                tokio::select! {
+                    _ = tokio::time::sleep_until(wake.into()) => None,
+                    _ = stop.changed() => return Ok(true),
+                    message = down.recv() => message,
+                }
+            };
+            if let Some(message) = message {
+                self.heard(message)?;
+                continue;
             }
             if let Some(workout_id) = training {
                 self.heart_rate(workout_id).await?;
@@ -374,21 +450,80 @@ impl Client {
         }
     }
 
-    /// Wait until the server holds every event, then hang up.
+    /// A year (or the profile's weeks) of training recorded on this phone
+    /// before it first syncs, as a restored phone would hold.
+    fn restore_history(&mut self) -> Result<(), String> {
+        let weeks = self.profile.history_weeks;
+        if weeks == 0 {
+            return Ok(());
+        }
+        let metrics = self.metrics.clone();
+        let store = self.store.as_mut().ok_or("no account open")?;
+        let lifter = &mut self.lifter;
+        metrics.time_sync("core.history", || {
+            schlift_testkit::history(store, lifter, weeks, 3, now_unix() - 86_400)
+        })?;
+        Ok(())
+    }
+
+    /// Send everything recorded, piece by piece, and wait until the server
+    /// has placed it all; how long that took is `op`. Nothing to send is
+    /// nothing timed.
+    async fn settle(&mut self, op: &'static str) -> Result<(), String> {
+        if self.store()?.pending_count()? == 0 {
+            return Ok(());
+        }
+        let started = Instant::now();
+        self.send_all().await?;
+        // Timed here as a whole, not as pushes.
+        self.in_flight.clear();
+        self.wait_until_placed().await?;
+        self.metrics.record(op, started.elapsed());
+        Ok(())
+    }
+
+    /// Every piece this stream hasn't sent.
+    async fn send_all(&mut self) -> Result<(), String> {
+        loop {
+            let sent = self.sent_up_to;
+            self.push().await?;
+            if self.sent_up_to == sent {
+                return Ok(());
+            }
+        }
+    }
+
+    /// Wait until the server has placed everything, then hang up.
     async fn drain(&mut self) -> Result<(), String> {
-        self.push().await?;
-        let seq = self.store()?.seq();
-        let deadline = Instant::now() + Duration::from_secs(60);
-        while *self.head.borrow() < seq {
+        self.send_all().await?;
+        self.wait_until_placed().await?;
+        self.up = None;
+        Ok(())
+    }
+
+    async fn wait_until_placed(&mut self) -> Result<(), String> {
+        let deadline = Instant::now() + Duration::from_secs(120);
+        loop {
+            self.hear_all()?;
+            let store = self.store()?;
+            if store.pending_count()? == 0 && store.confirmed()? >= self.head {
+                break;
+            }
             if Instant::now() > deadline {
                 self.metrics
-                    .error("sync.drain", "server never acknowledged");
+                    .error("sync.drain", "server never placed everything");
                 return Err("sync.drain timed out".into());
             }
-            tokio::time::sleep(Duration::from_millis(200)).await;
-            self.push().await?;
+            if self.lost.load(Ordering::SeqCst) {
+                self.push().await?;
+            }
+            let down = self.down.as_mut().ok_or("not connected")?;
+            if let Ok(Some(message)) =
+                tokio::time::timeout(Duration::from_millis(200), down.recv()).await
+            {
+                self.heard(message)?;
+            }
         }
-        self.up = None;
         Ok(())
     }
 
@@ -476,31 +611,16 @@ impl Client {
             if self.pause(rest, Some(&id), stop).await? {
                 break;
             }
-            if !state.rung_question_set_id.is_empty() {
-                let reps_left = rand::thread_rng().gen_range(1..=3);
-                state = self.mutate(Mutation::AnswerRung(AnswerRungRequest {
-                    workout_id: id.clone(),
-                    proposed_set_id: state.rung_question_set_id.clone(),
-                    reps_left,
-                    jump_lb: 0.0,
-                }))?;
-            } else if let Some(set) = state.next_up_set.clone() {
-                self.mutate(Mutation::StartSet(StartSetRequest {
-                    workout_id: id.clone(),
-                    proposed_set_id: set.id.clone(),
-                    started_at: 0,
-                }))?;
-                self.push().await?;
-                let missed = i32::from(rand::thread_rng().gen_bool(0.15));
-                state = self.mutate(Mutation::CompleteSet(CompleteSetRequest {
-                    workout_id: id.clone(),
-                    proposed_set_id: set.id,
-                    actual_reps: (set.target_reps - missed).max(0),
-                    actual_weight: set.target_weight,
-                    completed_at: 0,
-                }))?;
-            } else {
-                break;
+            match self.lifter.next_move(&id, &state) {
+                Move::AnswerRung(answer) => {
+                    state = self.mutate(Mutation::AnswerRung(answer))?;
+                }
+                Move::Lift(begin, done) => {
+                    self.mutate(Mutation::StartSet(begin))?;
+                    self.push().await?;
+                    state = self.mutate(Mutation::CompleteSet(done))?;
+                }
+                Move::End => break,
             }
             self.push().await?;
         }
@@ -515,18 +635,10 @@ impl Client {
         self.push().await
     }
 
-    /// Five one-second samples, as the watch batches them.
+    /// A few seconds of the watch's readings, as it batches them.
     async fn heart_rate(&mut self, workout_id: &str) -> Result<(), String> {
         let now_ms = now_unix() * 1000;
-        let samples = {
-            let mut rng = rand::thread_rng();
-            (0..5)
-                .map(|i| WorkoutHeartRatePoint {
-                    sampled_at: now_ms - (4 - i) * 1000,
-                    bpm: rng.gen_range(90.0..170.0),
-                })
-                .collect()
-        };
+        let samples = self.lifter.heart_rate(now_ms - 4_000, now_ms);
         let _: AppendWorkoutHeartRateResponse = self.core(
             "AppendWorkoutHeartRate",
             "core.heart_rate",

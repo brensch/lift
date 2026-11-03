@@ -49,7 +49,8 @@ account, so a watch works whenever the phone is reachable, network or not.
 
 ```
 core/               The domain, pure Rust (no IO): shared by phone and server
-  src/account.rs    Account, Event, apply, fold
+  src/events.rs     Event and Fact: what is stored and synced
+  src/account.rs    Account, apply, fold
   src/api.rs        The app's RPCs answered from an Account (View / Call)
   src/projection.rs The account as SQL tables, for an exported file
   src/workout/      Workout planning + state reduction
@@ -117,16 +118,16 @@ sequenceDiagram
     U->>P: tap "done, 5 reps"
     P->>N: call("AppendWorkoutMutations", bytes)
     N->>C: Call::append_workout_mutations
-    C->>C: record Event (apply through the reducer)
-    N->>N: append the event to the file
+    C->>C: decide the fact, record the Event (apply through the reducer)
+    N->>N: append the event to pending
     C-->>P: GetWorkoutResponse (the new state)
     P->>P: notifyListeners()
     Note over P: on screen; no network involved
     N-->>Y: writes stream fires
-    Y->>S: SyncRequest{events: outbox, zstd}
-    S->>S: push_events: fold, store
-    S-->>Y: head (ack)
-    Y->>N: acked(head) — outbox shrinks
+    Y->>S: SyncRequest{events: pending, zstd JSON}
+    S->>S: push_events: place, fold, store
+    S-->>Y: Events{the placed events, head}
+    Y->>N: receive — they leave pending
 ```
 
 The answer the app shows is the core's answer, computed on the phone. Sync
@@ -179,7 +180,8 @@ iOS artifacts. The version comes from the tag; `app/pubspec.yaml` stays a
 The architecture assumes a small user base:
 
 - One SQLite file, one write connection. All writes serialise.
-- Folded accounts are cached in process memory (at most 256), so the backend
-  is single-instance. So are in-flight WebAuthn challenges.
-- Multiplayer updates go out over each phone's Sync stream from an
-  in-process broadcast; no external queue.
+- No account is held in memory: the website's reads fold one from its
+  history when asked. In-flight WebAuthn challenges and join requests are
+  in memory, so the backend is single-instance.
+- New events and multiplayer updates go out over each phone's Sync stream,
+  told in process to the streams they concern; no external queue.

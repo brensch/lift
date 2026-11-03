@@ -33,6 +33,7 @@ use std::collections::HashMap;
 
 use schlift_core::account::{Account, CoreError};
 use schlift_core::api::{Call, View};
+use schlift_core::events::Event;
 use schlift_core::exercise_catalog::{
     lift_class, progression_increment_lb, snap_weight_lb, LiftClass,
 };

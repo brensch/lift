@@ -1,12 +1,21 @@
 const LB_TO_KG: f32 = 0.453_592_37;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum AppWeightUnit {
+    #[default]
     Lb,
     Kg,
 }
 
 impl AppWeightUnit {
+    /// As `crate::pb::WeightUnit`.
+    pub fn to_proto(self) -> i32 {
+        match self {
+            Self::Lb => crate::pb::WeightUnit::Lb as i32,
+            Self::Kg => crate::pb::WeightUnit::Kg as i32,
+        }
+    }
+
     /// A stored pound weight in this unit.
     pub fn from_lb(self, weight_lb: f32) -> f32 {
         match self {

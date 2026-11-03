@@ -143,15 +143,45 @@ jobs:
       - name: Check the test-auth build
         run: cargo check --bin schlift --features test-auth
 
-      # Forty clients running the phone's core sign up with passkeys, train
-      # and sync against a real server; every account must match the
-      # server's copy and nothing may error. Timing is not compared here
-      # (shared runners are too noisy): that is make loadtest's baseline.
-      - name: Load test (smoke, correctness)
+  # Clients running the phone's core sign up with passkeys, train and sync
+  # against a real server; every account must match the server's copy and
+  # nothing may error. smoke trains; long gives each account a year of
+  # history first, half of them only watching. Timing is not compared here
+  # (shared runners are too noisy): that is make loadtest's baseline.
+  load:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: smoke
+            args: ""
+          - profile: long
+            args: "--clients 24"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache cargo (release profile)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: rust-release
+
+      - name: Load test (${{ matrix.profile }}, correctness)
         run: |
-          cargo build -p schlift --bin schlift
-          cargo build -p schlift-load
-          ./target/debug/schlift-load --profile smoke --server-bin target/debug/schlift
+          cargo build --release -p schlift --bin schlift
+          cargo build --release -p schlift-load
+          ./target/release/schlift-load --profile ${{ matrix.profile }} ${{ matrix.args }}
 
   # Randomised API sequences through the core, checking state invariants
   # after every mutation and that every log replays to the same account.
@@ -253,3 +283,124 @@ jobs:
       - name: Build
         working-directory: web
         run: npm run build
+
+  # The e2e scenarios: the real app against a real backend. Built once into
+  # one Linux binary (every scenario in it), then the same binary runs in
+  # six jobs at once, each a share of the scenarios side by side on
+  # Xvfb (scripts/run_e2e.sh; docs/testing/e2e-scenarios.md). The report job
+  # merges every shard's screenshots and logs into one report.html.
+  e2e-build:
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true' || needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install the Linux build tools
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache cargo (e2e)
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: rust-e2e
+
+      - name: Build the backend (dev login)
+        run: cargo build --bin schlift --features test-auth
+
+      - name: Build every scenario into one binary
+        run: |
+          (cd app && flutter pub get)
+          scripts/run_e2e.sh --build-only
+
+      - name: Upload the binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-binaries
+          path: |
+            app/build/linux/x64/debug/bundle
+            target/debug/schlift
+          retention-days: 1
+
+  e2e:
+    needs: e2e-build
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The app draws with OpenGL: Mesa's EGL, GLES and software drivers.
+      - name: Install Xvfb and the app's runtime libraries
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libegl1 libgles2 libgl1-mesa-dri
+
+      - name: Download the binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-binaries
+
+      - name: Start the backend
+        run: |
+          chmod +x target/debug/schlift app/build/linux/x64/debug/bundle/schlift
+          mkdir -p .tmp/e2e-backend
+          DATA_DIR=.tmp/e2e-backend RUST_LOG=warn \
+            WEBAUTHN_RP_ID=localhost WEBAUTHN_RP_ORIGIN=http://localhost:5173 \
+            target/debug/schlift > .tmp/e2e-backend.log 2>&1 &
+          for _ in $(seq 60); do curl -fsS http://127.0.0.1:50051/api/health && exit 0; sleep 1; done
+          cat .tmp/e2e-backend.log; exit 1
+
+      - name: Run this shard's scenarios
+        run: scripts/run_e2e.sh --no-build --shard ${{ matrix.shard }}/6
+
+      - name: Upload screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-shard-${{ matrix.shard }}
+          path: |
+            app/test_screenshots/*.png
+            app/test_screenshots/*.log
+          retention-days: 7
+
+  e2e-report:
+    needs: e2e
+    if: always() && needs.e2e.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download every shard
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-shard-*
+          path: app/test_screenshots
+          merge-multiple: true
+
+      - name: Build the report
+        run: python3 scripts/build_e2e_report.py
+
+      - name: Upload the report
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: app/test_screenshots/report.html
+          retention-days: 14

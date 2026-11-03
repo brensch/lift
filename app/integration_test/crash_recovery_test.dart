@@ -5,6 +5,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:schlift/screens/workout/workout_screen.dart';
 
 import 'support/scenario.dart';
 
@@ -28,9 +29,11 @@ void main() {
       // Cold restart.
       await s.relaunch();
 
-      // The app should recover into the live workout, not back to home. The
-      // "End workout" link under the exercise list is only on the live screen.
-      final recovered = await s.waitForText('End workout', seconds: 12);
+      // The app should recover into the live workout, not back to home.
+      final recovered = await s.waitFor(
+        find.byType(WorkoutScreen),
+        seconds: 12,
+      );
       await s.shot(
         'After restart',
         note: recovered

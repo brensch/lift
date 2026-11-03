@@ -43,22 +43,30 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   there is no middleware. The deliberate exception is `report_auth_failure`
   (besides the passkey handshake) — do not copy it.
 - **Account state lives in the core, not the server or Dart.** A new write
-  is a new `Event` kind in `proto/workout/v1/account.proto`, a branch in
-  `Account::apply` (`core/src/account.rs`) and a method in `core/src/api.rs`;
-  never a new server RPC or a rule in a provider. An event must fold
-  deterministically: no clock, no randomness, ids from the event's id.
+  is a new `Fact` in `core/src/events.rs`, a branch in `Account::apply`
+  (`core/src/account.rs`) and a method in `core/src/api.rs` that decides it;
+  never a new server RPC or a rule in a provider. A fact is what was
+  decided (times filled in, plans and library entries as they were), never
+  the request; it must fold deterministically: no clock, no randomness, ids
+  from the event's id.
   See [`docs/architecture/local-first.md`](docs/architecture/local-first.md).
-- **Stored event logs decode with the protos.** Removing a field from a proto
-  message means adding its number and name to that message's `reserved`;
-  never reuse a number or delete a `reserved` line. Changing how an existing
-  event folds changes every stored log: the phone and the server must fold the
-  same log to the same account.
+- **Stored events are JSON and are only ever added to.** Never rename or
+  remove a field of a fact, or of a proto message a fact holds (a template,
+  a decision, a workout): stored events would stop reading.
+  `core/tests/stored_events.rs` fails on it, and a new fact goes in its
+  `testdata/stored_events.json`. Changing how an existing fact folds changes
+  every stored account: the phone and the server must fold the same events
+  to the same account. In the protos, a removed field's number and name go
+  in that message's `reserved`; never reuse a number or delete a
+  `reserved` line.
 - **Storage follows authority.** What the phone makes (training, templates,
-  settings) is only ever account events; the server stores them as they
-  arrive and never copies them into tables. What the server owns (users,
+  settings) is only ever account events; the server places and stores them
+  and never copies them into tables. What the server owns (users,
   passkeys, logins, who trained together, telemetry) is plain columns, no
-  proto blobs. What only matters while the server runs (partners' live
-  status, join requests) is in memory, read from the folded account.
+  proto blobs. What only matters while the server runs (join requests,
+  which stream watches whom) is in memory. The server holds no folded
+  account and computes no live state: partners' status is folded on each
+  phone from the workout events the server routes to it.
 - **Server schema changes are a new step in `src/db/migrate.rs`**: an
   `if version < N` block at the end of `migrate`, run once at startup and
   tracked by `PRAGMA user_version`. Never edit a step that has shipped.

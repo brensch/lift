@@ -1,8 +1,8 @@
 # End-to-end scenarios
 
 A single framework for exercising real user journeys against the real stack:
-the actual Flutter app running on an Android emulator, talking to a real backend
-over gRPC. Every step captures a full-resolution screenshot and a structured log
+the actual Flutter app, built for Linux and run headless at a phone's size,
+talking to a real backend over gRPC. Every step captures a full-resolution screenshot and a structured log
 entry, and the run produces an auditable HTML report.
 
 It drives the app exactly as a person would, so what you see in the report
@@ -11,8 +11,11 @@ is what a user would see.
 ## Why this shape
 
 - **Real app, real backend.** Scenarios run under Flutter's `integration_test`
-  binding via `flutter drive`, on the emulator. Real gRPC round-trips, timers and
-  animations resolve naturally — no fake-async, no mocked services.
+  binding, inside the app. Real gRPC round-trips, timers and animations
+  resolve naturally — no fake-async, no mocked services.
+- **Built once, run many at once.** Every scenario is compiled into one Linux
+  binary; each runs as its own process of it, with its own home directory,
+  on a headless X server, side by side. No emulator, no build per scenario.
 - **Multiplayer without a second phone.** A scenario is *also* a gRPC client. It
   can log in additional users ("API peers") that act like phones: each records
   events on its own in-memory core and pushes them over `Sync`. The real app
@@ -24,37 +27,28 @@ is what a user would see.
 
 ```mermaid
 flowchart LR
-  subgraph Host
-    D[flutter drive<br/>test_driver/integration_test.dart]
-    R[scripts/build_e2e_report.py]
-    H[test_screenshots/report.html]
-  end
-  subgraph Emulator
-    A[Real Schlift app]
-    S[Scenario<br/>integration_test/*_test.dart]
-  end
-  B[(Backend<br/>--features test-auth)]
-
-  D -->|installs & runs| S
-  S -->|taps, types, screenshots| A
-  A -->|gRPC| B
-  S -->|API peers: login, join, log sets| B
-  S -->|screenshots| D
-  S -->|E2E&#124; step log on stdout| D
-  D --> R --> H
+  E[build/e2e/main.dart<br/>every scenario] -->|flutter build linux, once| X[one binary]
+  X -->|E2E_SCENARIO=a| A[app + scenario a]
+  X -->|E2E_SCENARIO=b| B2[app + scenario b]
+  X -->|…| C[…]
+  A & B2 & C -->|gRPC| B[(Backend<br/>--features test-auth)]
+  A & B2 & C -->|screenshots + E2E&#124; log| R[scripts/build_e2e_report.py]
+  R --> H[test_screenshots/report.html]
 ```
 
 ## Running
 
 ```bash
-make e2e                      # bring up backend+emulator, run every scenario, build report
+make e2e                      # backend up, every scenario, the report
 make e2e SCENARIO=multiplayer # only scenarios whose filename contains "multiplayer"
-make e2e-up                   # just bring up backend + emulator + adb reverse
-make e2e-run                  # run scenarios (world already up)
+make e2e-up                   # just the backend
+make e2e-run                  # run scenarios (backend already up)
+make e2e-run E2E_JOBS=4       # how many run at once (default: half the cores)
 ```
 
 The report lands at `app/test_screenshots/report.html` (screenshots are embedded,
-so it's a single self-contained file).
+so it's a single self-contained file); each scenario's output is
+`app/test_screenshots/<name>.log`.
 
 ## The scenarios
 
@@ -71,7 +65,7 @@ ladder seed a session through the API first.
 
 | File | What it proves |
 | --- | --- |
-| `smoke_test.dart` | The app boots on the emulator, reaches the backend, shows login. |
+| `smoke_test.dart` | The app boots, reaches the backend, shows login. |
 | `login_tabs_test.dart` | The NEW USER and SIGN IN tabs render their copy. |
 | `solo_onboarding_test.dart` | A new user dev-logs in and is routed to onboarding. |
 | `solo_onboarding_full_test.dart` | The whole onboarding flow (marker → unit → strength → bodyweight → templates) → home with START. |
@@ -93,21 +87,16 @@ ladder seed a session through the API first.
 | `settings_shot_test.dart` | Captures the Settings screen. |
 | `store_shots_test.dart` | The store slides (home, progress, detail, history, a working set ready, resting, the Heart tab, the completed screen). The capture half of `make store-capture`; on the unseeded e2e backend it onboards `demo` / `demo-live` and seeds a thin history over the API so the same script runs. |
 
-## Native permission dialogs
+## Phone-only plugins
 
-Some app paths request OS permissions through native dialogs (Health Connect,
-notifications, exact alarms). A native dialog pauses the Flutter surface, which
-hangs an integration_test — it can only drive the Flutter view, not system UI.
-Scenarios avoid them by opting out of the prompts before launch, via small,
-production-safe seams:
-
-- The permissions screen (and the notification, Health and exact-alarm
-  prompts behind its button) only appears after `PermissionsService.load()`,
-  which `main()` calls and `Scenario.launch()` does not.
-- `HealthService.suppressPermissionPrompts = true` — makes the Health request
-  a no-op, in case a test does reach it. Default false in production.
-
-`Scenario.launch()` handles both, so scenarios never touch them directly.
+The app is built for Linux here, where some phone plugins don't exist: the
+health store (Health Connect, Apple Health), toasts, passkeys, the watch
+bridge, the QR scanner. The app treats each as absent off the phones —
+`HealthService` reads and writes nothing, `showToast` shows nothing, the
+watch bridge is a no-op — so nothing a scenario does reaches a missing
+plugin. Dev login replaces passkeys. The permissions screen only appears
+after `PermissionsService.load()`, which `main()` calls and
+`Scenario.launch()` does not.
 
 ## Writing a scenario
 
@@ -131,7 +120,7 @@ Key `Scenario` methods:
 
 | Method | Purpose |
 | --- | --- |
-| `launch()` | Convert the surface (required before capture) and pump the app. |
+| `launch()` | Pump the app at the phone's size (1080 × 2337 at 420 dpi), ready to screenshot. |
 | `devLogin(name)` | Dev-login; a new account lands on onboarding, a returning one on home. |
 | `completeOnboarding()` | Walk onboarding with the defaults, skip the tutorial, land on home. No-op for a returning user. |
 | `skipTutorial()` | Dismiss the first-run walkthrough if it is showing. |
@@ -165,8 +154,8 @@ final aliceToken = /* login as the app user via api to fetch their token */;
 await bob.joinViaInvite(await alice.inviteToken());  // pull the app user into a session
 ```
 
-One phone records an account, so a peer logged in as the app's own user only
-reads: once it adopts the app's workout (`adoptActiveWorkout`) a write
+A peer logged in as the app's own user only reads, so what the app shows is
+the app's own doing: once it adopts the app's workout (`adoptActiveWorkout`) a write
 throws. Reads pull the account's log into the peer's core and answer from it,
 exactly as a reinstalled phone would.
 
@@ -187,16 +176,16 @@ seeded session leaves the lift performed and the user's next session gets
 the warmup ladder; `hasPerformed(exercise)` (from the lift's plan) tells
 you which world you are in.
 
-## How the report survives the run
+## Screenshots and the report
 
-`integration_test` will deliver **either** screenshots (via `onScreenshot`) **or**
-`reportData` back to the driver — never both in one run. And `flutter drive`
-uninstalls the app on teardown, wiping any file the app wrote. So the step log
-rides the one channel that always survives: **stdout**. `Scenario.report()`
-prints one short `E2E|...` line per step; `flutter drive` echoes those into its
-log; `run_e2e.sh` tees each scenario's output to `test_screenshots/<name>.drive.log`;
-and `build_e2e_report.py` parses the `E2E|` lines and pairs them with the PNGs
-that `onScreenshot` wrote.
+A screenshot is taken inside the app: `Scenario.shot` renders the app's root
+boundary to a PNG at the phone's pixel ratio and writes it to `E2E_OUT`
+(`app/test_screenshots/`), so it needs nothing from the display and is the
+same size as a phone's. The step log is printed: `Scenario.report()` prints
+one short `E2E|...` line per step, `run_e2e.sh` writes each scenario's output
+to `test_screenshots/<name>.log`, and `build_e2e_report.py` parses the `E2E|`
+lines and pairs them with the PNGs. The binary exits 0 when its scenario
+passed, 1 when it failed.
 
 ## Files
 
@@ -205,51 +194,20 @@ that `onScreenshot` wrote.
 | `app/integration_test/*_test.dart` | Scenarios. |
 | `app/integration_test/support/scenario.dart` | The `Scenario` orchestrator. |
 | `app/integration_test/support/api.dart` | gRPC `Api` + `Peer` (API peers). |
-| `app/test_driver/integration_test.dart` | Host driver — writes screenshots. |
-| `scripts/run_e2e.sh` | Runs scenarios, tees logs, builds the report. |
+| `scripts/run_e2e.sh` | Writes the one entry point, builds it, runs the scenarios side by side, builds the report. |
 | `scripts/build_e2e_report.py` | Parses `E2E|` lines + PNGs → `report.html`. |
 | `make/e2e.mk` | `make e2e` / `e2e-up` / `e2e-run`. |
 
 ## Prerequisites
 
-- Android SDK + an `emulator-5554` AVD (`make android-phone-avd-create`).
+- Flutter's Linux build tools (`clang`, `cmake`, `ninja-build`,
+  `libgtk-3-dev`) and Xvfb (`apt install xvfb`; `XVFB=` names another).
 - The backend builds with the `test-auth` feature (dev login). `make e2e-up`
   starts it via `agent-backend-start`.
 - Bundled offline fonts (`app/assets/google_fonts/`) so text renders without a
   network font fetch.
 
-## Emulator stability
-
-Under WSL2 the headless emulator's default renderer (`-gpu swiftshader_indirect`
-in the Makefile) segfaults in its RenderThread while the app renders —
-within seconds on the login screen with emulator 37.2.x, and reliably before
-`solo_workout_full` gets through a workout. `run_e2e.sh` reports that as
-`FLAKE`, not a test failure. `-gpu guest` is no escape: the API 34 image
-does not support it and the emulator silently falls back to SwiftShader.
-What ran the whole suite was the host GL path, which under WSL2 resolves to
-Mesa llvmpipe (software, but not SwiftShader):
-
-```bash
-make e2e-up \
-  ANDROID_EMULATOR_HEADLESS_ARGS="-no-window -no-audio -no-boot-anim -gpu host -camera-back none -camera-front none" \
-  ANDROID_EMULATOR_EXTRA_ARGS="-feature -Vulkan"
-for k in window_animation_scale transition_animation_scale animator_duration_scale; do
-  adb -s emulator-5554 shell settings put global $k 0
-done
-adb -s emulator-5554 shell settings put system haptic_feedback_enabled 0
-```
-
-(`.tmp/agent-android/logs/lift_api34.log` says which renderer it got:
-look for `Graphics Adapter`.) Software rendering is slow — the first launch
-after install takes a few seconds to paint — so gates poll rather than
-assume. If the emulator still dies on a heavily loaded host, re-run the
-flaked scenarios with `make e2e-run SCENARIO="<name> <name>"` after
-`make e2e-up`; the report builder merges every scenario's latest log. After
-a crash the app is not uninstalled, so the next launch comes up signed in as
-the previous scenario's user: `devLogin` signs that session out, and
-`adb uninstall com.brensch.schlift.debug` before the re-run is cleaner.
-
-The harness also mutes the rest-over sound (`Scenario` swaps in a silent
-`SoundProvider` after each pump) and the drive log carries one `E2E> …` line
-per tap and screenshot, so a run that dies before the step log is printed
-still says how far it got.
+Each scenario gets `E2E_TIMEOUT` seconds (default 300). The harness mutes the
+rest-over sound (`Scenario` swaps in a silent `SoundProvider` after each pump),
+and each log carries one `E2E> …` line per tap and screenshot, so a run that
+dies before the step log is printed still says how far it got.

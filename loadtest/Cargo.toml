@@ -11,6 +11,7 @@ publish = false
 schlift = { path = ".." }
 schlift-core = { path = "../core" }
 schlift_native = { path = "../app/native" }
+schlift-testkit = { path = "../testkit" }
 tonic = "0.12.3"
 prost = "0.13.4"
 tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "time", "process", "sync", "net", "io-util", "fs"] }

@@ -2,42 +2,13 @@ syntax = "proto3";
 package workout.v1;
 
 import "workout/v1/group.proto";
-import "workout/v1/settings.proto";
 import "workout/v1/workout.proto";
 
-// ─── The account as a log of events ──────────────────────────────────────────
+// ─── The account ─────────────────────────────────────────────────────────────
 //
-// One device records an account. Every write it makes is an Event, numbered
-// 1, 2, 3… by that device; the account is the fold of its events, by the same
-// core on the phone and on the server. See docs/architecture/local-first.md.
-
-message Event {
-  // Position in the account's log: 1, 2, 3…, no gaps.
-  int64 seq = 1;
-  // Random, made by the device. Every id the event creates (a workout, a set,
-  // a template) is derived from it, so a replay makes the same ids.
-  string id = 2;
-  // Unix seconds on the device's clock when the write was made. The fold
-  // never reads a clock of its own.
-  int64 at = 3;
-  oneof kind {
-    StartWorkoutRequest start_workout = 10;
-    // Everything done to a workout once it's started, ending included.
-    WorkoutMutation workout = 11;
-    AppendWorkoutHeartRateRequest heart_rate = 12;
-    SaveTemplateRequest save_template = 13;
-    DeleteTemplateRequest delete_template = 14;
-    ReorderTemplatesRequest reorder_templates = 15;
-    AddLibraryTemplatesRequest add_library_templates = 16;
-    CompleteOnboardingRequest complete_onboarding = 18;
-    UpdateSettingRequest update_setting = 19;
-    ImportHistory import_history = 21;
-    CloneTemplateRequest clone_template = 22;
-    SetOverrideRequest set_override = 23;
-  }
-  reserved 17, 20;
-  reserved "set_exercise_tracker", "dismiss_user_messages";
-}
+// An account is a log of events, stored and synced as JSON, not as these
+// messages (core/src/events.rs; docs/architecture/local-first.md). The
+// messages here are only what crosses the wire.
 
 // History brought in from elsewhere, as it was: finished workouts, and the
 // starting weights of lifts never done. Plans read the workouts like any
@@ -62,56 +33,71 @@ message ImportedWorkout {
 
 // ─── Sync ────────────────────────────────────────────────────────────────────
 //
-// The phone holds one Sync stream open while it can. Up it go events as they
-// are recorded; down come acks and, while in a session, the partners' status.
-// The stream is only the fast path: an event leaves the phone's outbox when
-// its seq is acked, and is resent after a reconnect otherwise; a session
-// update is always the whole session, sent again on every (re)connect, so a
-// dropped message is healed by the next.
+// The phone holds one Sync stream open while it can. It opens by saying how
+// much of its account's history it holds, and the server sends the rest:
+// every event after it, then each new one as it is stored, from whichever
+// device, in the server's order. Up go the phone's own events as it records
+// them, without a place; the server gives each one (once: an event it already
+// holds, by id, is skipped) and sends it back down with the others.
+//
+// While in a session, down also come who is in it (whole, on connect and on
+// every change) and each partner's workout as events: the workout so far on
+// connect or when they join, then each event as they record it. The phone
+// folds them; the server keeps nothing of it but who is in which session.
 
 service SyncService {
   rpc Sync(stream SyncRequest) returns (stream SyncResponse);
-  // Every event of the caller's account after `after_seq`: a fresh install.
-  rpc PullEvents(PullEventsRequest) returns (PullEventsResponse);
 }
 
 message SyncRequest {
   oneof kind {
-    // zstd-compressed EventBatch: the outbox, oldest first. Idempotent by
-    // seq — events the server already holds are skipped.
-    bytes events = 1;
-    // Keeps the stream (and the proxies on the way) awake; answered by an
-    // ack, so a dead link shows within a heartbeat.
+    // First, and only first: the last seq the device holds, 0 for none.
+    int64 after_seq = 3;
+    // The device's own events not yet given a place, oldest first: a
+    // zstd-compressed JSON array.
+    bytes events = 4;
+    // Keeps the stream (and the proxies on the way) awake; answered with the
+    // head, so a dead link shows within a heartbeat.
     Heartbeat heartbeat = 2;
   }
+  reserved 1;
 }
 
 message Heartbeat {}
 
 message SyncResponse {
   oneof kind {
-    // The last seq the server holds for this account.
+    // Events in the server's order, each with its seq.
+    Events events = 5;
+    // The last seq the server holds: the answer to a heartbeat.
     int64 head = 1;
-    // The caller's session, whole: who's in it and where each is up to.
-    // Empty session_id when not in one. Sent on connect and on every change.
-    GetCurrentSessionResponse session = 2;
-    // Requests to join the caller, whole. Sent on connect and on every change.
+    // The caller's session, whole: who else is in it. Empty session_id
+    // when not in one.
+    Session session = 6;
+    // A session partner's workout, as events.
+    PartnerEvents partner_events = 7;
+    // Requests to join the caller, whole.
     GetJoinRequestsResponse join_requests = 3;
     // The template library as the server has it: what coupled templates
     // follow. Sent on connect.
     ListTemplateLibraryResponse library = 4;
   }
+  reserved 2;
 }
 
-message PullEventsRequest {
-  int64 after_seq = 1;
+message PartnerEvents {
+  string user_id = 1;
+  // A zstd-compressed JSON array of the events of their workout: its start,
+  // its sets, its end. Never their heart rate, templates or anything else.
+  bytes packed = 2;
+  // Their workout so far, replacing whatever came before; otherwise more of
+  // it, as they record it.
+  bool whole = 3;
 }
 
-message PullEventsResponse {
-  // zstd-compressed EventBatch.
-  bytes events = 1;
-}
-
-message EventBatch {
-  repeated Event events = 1;
+message Events {
+  // A zstd-compressed JSON array.
+  bytes packed = 1;
+  // The last seq the server holds: a device that has it has caught up.
+  int64 head = 2;
 }

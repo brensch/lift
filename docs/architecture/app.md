@@ -56,7 +56,8 @@ graph LR
 
 - `LocalCore` (`services/local_core.dart`) is the Dart doorway to the core:
   `call(method, request, parse)` sends proto bytes and parses the answer,
-  plus `outbox` / `acked` / `restore` / `export` for sync and files. Errors
+  plus `confirmed` / `outbox` / `receive` / `pendingCount` / `export` for
+  sync and files. Errors
   come back as `CoreException` with a code (`invalid_argument`, `not_found`,
   `failed_precondition`, `storage`).
 - `app/native` keeps open accounts in a registry keyed by an integer
@@ -122,7 +123,8 @@ one mutation, `EndWorkout`, …) and the response is the new state. There is
 no optimistic layer, no mutation queue and no copy of the reducer: the core
 answers in-process, offline or not. The provider keeps the derived view
 (exercise blocks), the rest timer and its sound, lifecycle observation,
-heart-rate batching (written to the account every 5 s) and the wearable
+heart-rate batching (handed to the store every 5 s, recorded in the
+account once the workout ends) and the wearable
 snapshot. When a rest runs out it asks the core again rather than deriving
 the next state itself.
 

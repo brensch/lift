@@ -2,11 +2,7 @@ use super::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-/// How long a group member can go without doing anything (no synced
-/// write other than heart rate) before they're out of it. A workout writes
-/// every set, so only an abandoned session or a join that never started gets
-/// this old.
-pub const SESSION_IDLE_SECONDS: i64 = 3 * 3600;
+use schlift_core::session::SHOWN_FOR_SECONDS;
 
 /// How long a request to join stays answerable.
 pub const JOIN_REQUEST_TTL_SECONDS: i64 = 120;
@@ -53,13 +49,13 @@ impl ServerDb {
 
     // ── Sessions ──
 
-    /// Put the user in `session_id`, active from now. A session they were in
-    /// before is left, and they're off show there.
+    /// Put the user in `session_id`. A session they were in before is left,
+    /// and they're off show there.
     pub async fn join_session(&self, session_id: &str, user_id: &str) -> DbResult<()> {
         let now = now_unix();
         let mut tx = self.write_pool.begin().await?;
         let left: Option<String> = sqlx::query_scalar(
-            "UPDATE session_members SET left_at = ?, active_at = 0
+            "UPDATE session_members SET left_at = ?, ended_at = 0
              WHERE user_id = ? AND left_at = 0 AND session_id != ?
              RETURNING session_id",
         )
@@ -69,75 +65,64 @@ impl ServerDb {
         .fetch_optional(&mut *tx)
         .await?;
         sqlx::query(
-            "INSERT INTO session_members (session_id, user_id, joined_at, left_at, active_at)
-             VALUES (?, ?, ?, 0, ?)
-             ON CONFLICT (session_id, user_id) DO UPDATE SET left_at = 0, active_at = excluded.active_at",
+            "INSERT INTO session_members (session_id, user_id, joined_at, left_at)
+             VALUES (?, ?, ?, 0)
+             ON CONFLICT (session_id, user_id) DO UPDATE SET left_at = 0, ended_at = 0",
         )
         .bind(session_id)
         .bind(user_id)
-        .bind(now)
         .bind(now)
         .execute(&mut *tx)
         .await?;
         tx.commit().await?;
         if let Some(left) = left {
-            self.notify(Change::Session(left));
+            self.notify(Topic::Session(left), Change::Session);
         }
-        self.notify(Change::Membership(user_id.to_string()));
-        self.notify(Change::Session(session_id.to_string()));
-        Ok(())
-    }
-
-    /// The user did something in the session: they stay in it, on show.
-    pub async fn touch_session(&self, session_id: &str, user_id: &str) -> DbResult<()> {
-        sqlx::query(
-            "UPDATE session_members SET active_at = ? WHERE session_id = ? AND user_id = ?",
-        )
-        .bind(now_unix())
-        .bind(session_id)
-        .bind(user_id)
-        .execute(&self.write_pool)
-        .await?;
-        self.notify(Change::Session(session_id.to_string()));
+        self.notify(Topic::User(user_id.to_string()), Change::Membership);
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
         Ok(())
     }
 
     /// The user's workout ended: they're out of the session, their final
-    /// state on show to the others until it goes idle.
+    /// state on show to the others a while (`SHOWN_FOR_SECONDS`).
     pub async fn end_session(&self, session_id: &str, user_id: &str) -> DbResult<()> {
-        self.stamp_left(session_id, user_id, "left_at = ?").await
+        self.stamp_left(session_id, user_id, "left_at = ?1, ended_at = ?1")
+            .await
     }
 
     /// The user left the session: out of it and off show at once.
     pub async fn leave_session(&self, session_id: &str, user_id: &str) -> DbResult<()> {
-        self.stamp_left(session_id, user_id, "left_at = ?, active_at = 0")
-            .await
+        self.stamp_left(session_id, user_id, "left_at = ?1").await
     }
 
     async fn stamp_left(&self, session_id: &str, user_id: &str, set: &str) -> DbResult<()> {
         sqlx::query(&format!(
-            "UPDATE session_members SET {set} WHERE session_id = ? AND user_id = ? AND left_at = 0"
+            "UPDATE session_members SET {set}
+             WHERE session_id = ?2 AND user_id = ?3 AND left_at = 0"
         ))
         .bind(now_unix())
         .bind(session_id)
         .bind(user_id)
         .execute(&self.write_pool)
         .await?;
-        self.notify(Change::Membership(user_id.to_string()));
-        self.notify(Change::Session(session_id.to_string()));
+        self.notify(Topic::User(user_id.to_string()), Change::Membership);
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
         Ok(())
     }
 
-    /// The session the user is in and has been active in within
-    /// [`SESSION_IDLE_SECONDS`]. Someone who joined and never started, or
-    /// walked off without ending, drops out on their own.
+    /// The session the user is in and has done something in (joined it, or
+    /// recorded anything) within `SHOWN_FOR_SECONDS`. Someone who joined and
+    /// never started, or walked off without ending, drops out on their own.
     pub async fn get_user_current_session(&self, user_id: &str) -> DbResult<Option<String>> {
         let session = sqlx::query_scalar(
-            "SELECT session_id FROM session_members
-             WHERE user_id = ? AND left_at = 0 AND active_at > ?",
+            "SELECT m.session_id FROM session_members m
+             WHERE m.user_id = ?1 AND m.left_at = 0
+               AND MAX(m.joined_at, COALESCE(
+                     (SELECT e.event ->> '$.at' FROM account_events e
+                      WHERE e.user_id = ?1 ORDER BY e.seq DESC LIMIT 1), 0)) > ?2",
         )
         .bind(user_id)
-        .bind(now_unix() - SESSION_IDLE_SECONDS)
+        .bind(now_unix() - SHOWN_FOR_SECONDS)
         .fetch_optional(&self.read_pool)
         .await?;
         Ok(session)
@@ -154,21 +139,23 @@ impl ServerDb {
         Ok(session)
     }
 
-    /// The members on show in a session, most recently active first, with
-    /// when each joined: those still in it, and those whose workout ended,
-    /// until they go idle.
-    pub async fn session_members_on_show(&self, session_id: &str) -> DbResult<Vec<(String, i64)>> {
+    /// Who is on show in a session, first to join first: (user, joined_at,
+    /// ended_at). Those in it, and those whose workout ended it for them
+    /// within `SHOWN_FOR_SECONDS`. Whether each has gone idle, their phones
+    /// work out from what they last recorded.
+    pub async fn session_roster(&self, session_id: &str) -> DbResult<Vec<(String, i64, i64)>> {
         let rows = sqlx::query(
-            "SELECT user_id, joined_at FROM session_members
-             WHERE session_id = ? AND active_at > ? ORDER BY active_at DESC",
+            "SELECT user_id, joined_at, ended_at FROM session_members
+             WHERE session_id = ? AND (left_at = 0 OR ended_at > ?)
+             ORDER BY joined_at",
         )
         .bind(session_id)
-        .bind(now_unix() - SESSION_IDLE_SECONDS)
+        .bind(now_unix() - SHOWN_FOR_SECONDS)
         .fetch_all(&self.read_pool)
         .await?;
         Ok(rows
             .into_iter()
-            .map(|r| (r.get("user_id"), r.get("joined_at")))
+            .map(|r| (r.get("user_id"), r.get("joined_at"), r.get("ended_at")))
             .collect())
     }
 
@@ -185,10 +172,16 @@ impl ServerDb {
         Ok(left)
     }
 
-    /// Push a member's last activity [seconds] into the past: idle tests.
+    /// Something about a session's members changed that isn't their
+    /// membership (a profile): its streams send it again.
+    pub fn session_changed(&self, session_id: &str) {
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
+    }
+
+    /// Push a member's joining [seconds] into the past: idle tests.
     #[cfg(test)]
     pub async fn age_session_member(&self, user_id: &str, seconds: i64) -> DbResult<()> {
-        sqlx::query("UPDATE session_members SET active_at = active_at - ? WHERE user_id = ?")
+        sqlx::query("UPDATE session_members SET joined_at = joined_at - ? WHERE user_id = ?")
             .bind(seconds)
             .bind(user_id)
             .execute(&self.write_pool)
@@ -293,7 +286,7 @@ impl ServerDb {
             },
         );
         drop(requests);
-        self.notify(Change::JoinRequests(to.to_string()));
+        self.notify(Topic::User(to.to_string()), Change::JoinRequests);
         Ok(())
     }
 
@@ -332,7 +325,7 @@ impl ServerDb {
     pub async fn delete_join_request(&self, request_id: &str) -> DbResult<()> {
         let removed = self.join_requests.lock().remove(request_id);
         if let Some(request) = removed {
-            self.notify(Change::JoinRequests(request.to));
+            self.notify(Topic::User(request.to), Change::JoinRequests);
         }
         Ok(())
     }

@@ -29,11 +29,11 @@ mod session_history_tests {
         (u.id, token)
     }
 
-    fn has_participant(status: &SessionStatus, user_id: &str) -> bool {
-        status
-            .participants
+    fn has_member(session: &Session, user_id: &str) -> bool {
+        session
+            .members
             .iter()
-            .any(|p| p.user.as_ref().map(|u| u.id.as_str()) == Some(user_id))
+            .any(|m| m.user.as_ref().map(|u| u.id.as_str()) == Some(user_id))
     }
 
     /// Leaving prunes the departed member from the LIVE view (the stale-peer bug),
@@ -55,13 +55,9 @@ mod session_history_tests {
         .unwrap();
 
         // Alice sees Bob live.
-        let sess = svc
-            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
+        let sess = current_session(&svc.db, &alice_id).await.unwrap();
         assert!(
-            has_participant(sess.session_status.as_ref().unwrap(), &bob_id),
+            has_member(&sess, &bob_id),
             "alice should see bob in the live session"
         );
 
@@ -71,17 +67,11 @@ mod session_history_tests {
             .unwrap();
 
         // Live view no longer shows Bob.
-        let sess2 = svc
-            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
-        if let Some(status) = sess2.session_status {
-            assert!(
-                !has_participant(&status, &bob_id),
-                "bob must be pruned from the live view after leaving"
-            );
-        }
+        let sess2 = current_session(&svc.db, &alice_id).await.unwrap();
+        assert!(
+            !has_member(&sess2, &bob_id),
+            "bob must be pruned from the live view after leaving"
+        );
 
         // Historical roster survives leaving: GetSessionRosters (which backs a
         // past workout's "friends worked out with") still lists bob, even though
@@ -142,12 +132,13 @@ mod session_history_tests {
         assert_eq!(bob_partners[0].user.as_ref().unwrap().id, alice_id);
     }
 
-    /// A member who does nothing for SESSION_IDLE_SECONDS is out on their
-    /// own: the others stop seeing them, and they're no longer in a group.
+    /// A member who does nothing for SHOWN_FOR_SECONDS is out on their own:
+    /// they're no longer in a group. (The others' phones stop showing them,
+    /// from what they last recorded: schlift_core::session.)
     #[tokio::test]
     async fn an_idle_member_drops_out() {
         let svc = setup().await;
-        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (alice_id, _) = user(&svc, "alice").await;
         let (bob_id, bob_tok) = user(&svc, "bob").await;
         let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
         svc.join_via_invite(authed(
@@ -160,24 +151,16 @@ mod session_history_tests {
         .unwrap();
 
         svc.db
-            .age_session_member(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
+            .age_session_member(&bob_id, schlift_core::session::SHOWN_FOR_SECONDS + 1)
             .await
             .unwrap();
 
-        let alice_view = svc
-            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
+        let alice_view = current_session(&svc.db, &alice_id).await.unwrap();
         assert!(
-            !has_participant(alice_view.session_status.as_ref().unwrap(), &bob_id),
-            "alice no longer sees idle bob"
+            has_member(&alice_view, &bob_id),
+            "alice's roster still lists bob: her phone stops showing him"
         );
-        let bob_view = svc
-            .get_current_session(authed(&bob_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
+        let bob_view = current_session(&svc.db, &bob_id).await.unwrap();
         assert!(bob_view.session_id.is_empty(), "bob is in no group");
     }
 
@@ -204,7 +187,7 @@ mod session_history_tests {
             .unwrap()
             .unwrap();
         svc.db
-            .age_session_member(&bob_id, crate::db::SESSION_IDLE_SECONDS + 1)
+            .age_session_member(&bob_id, schlift_core::session::SHOWN_FOR_SECONDS + 1)
             .await
             .unwrap();
 
@@ -464,7 +447,7 @@ mod session_history_tests {
     #[tokio::test]
     async fn two_people_joining_one_inviter_land_in_the_same_session() {
         let svc = setup().await;
-        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (alice_id, _) = user(&svc, "alice").await;
         let (bob_id, bob_tok) = user(&svc, "bob").await;
         let (carol_id, carol_tok) = user(&svc, "carol").await;
         let invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
@@ -488,14 +471,9 @@ mod session_history_tests {
         r2.unwrap();
 
         // Alice sees both of them in her single session.
-        let sess = svc
-            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
-        let status = sess.session_status.as_ref().unwrap();
-        assert!(has_participant(status, &bob_id), "alice should see bob");
-        assert!(has_participant(status, &carol_id), "alice should see carol");
+        let sess = current_session(&svc.db, &alice_id).await.unwrap();
+        assert!(has_member(&sess, &bob_id), "alice should see bob");
+        assert!(has_member(&sess, &carol_id), "alice should see carol");
 
         // And all three share one session id.
         let a = svc.db.get_user_current_session(&alice_id).await.unwrap();
@@ -569,14 +547,9 @@ mod session_history_tests {
             "all three in one session: {a:?} {b:?} {c:?}"
         );
 
-        let sess = svc
-            .get_current_session(authed(&alice_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
-        let status = sess.session_status.as_ref().unwrap();
-        assert!(has_participant(status, &bob_id), "alice should see bob");
-        assert!(has_participant(status, &carol_id), "alice should see carol");
+        let sess = current_session(&svc.db, &alice_id).await.unwrap();
+        assert!(has_member(&sess, &bob_id), "alice should see bob");
+        assert!(has_member(&sess, &carol_id), "alice should see carol");
     }
 
     /// Someone's body weight is theirs alone: partners see them without it.
@@ -584,7 +557,7 @@ mod session_history_tests {
     async fn partners_do_not_see_body_weight() {
         let svc = setup().await;
         let (alice_id, _) = user(&svc, "alice").await;
-        let (_, bob_tok) = user(&svc, "bob").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
         svc.db
             .update_user_profile(&alice_id, "", "", 82.5)
             .await
@@ -599,16 +572,11 @@ mod session_history_tests {
         .await
         .unwrap();
 
-        let sess = svc
-            .get_current_session(authed(&bob_tok, GetCurrentSessionRequest {}))
-            .await
-            .unwrap()
-            .into_inner();
-        let status = sess.session_status.unwrap();
-        let alice = status
-            .participants
+        let sess = current_session(&svc.db, &bob_id).await.unwrap();
+        let alice = sess
+            .members
             .iter()
-            .filter_map(|p| p.user.as_ref())
+            .filter_map(|m| m.user.as_ref())
             .find(|u| u.id == alice_id)
             .expect("bob sees alice");
         assert_eq!(alice.body_weight_kg, 0.0);
