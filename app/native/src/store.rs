@@ -775,7 +775,20 @@ mod tests {
         );
     }
 
+    /// The workout's start, in ms: test readings are counted from it.
+    fn start_ms(store: &Store, workout_id: &str) -> i64 {
+        store
+            .account
+            .workout(workout_id)
+            .unwrap()
+            .workout
+            .start_time
+            * 1000
+    }
+
+    /// Readings at `at` ms after the workout's start.
     fn heart_rate(store: &mut Store, workout_id: &str, at: &[i64], now: i64) {
+        let base = start_ms(store, workout_id);
         store
             .call(
                 "AppendWorkoutHeartRate",
@@ -783,8 +796,8 @@ mod tests {
                     workout_id: workout_id.to_string(),
                     samples: at
                         .iter()
-                        .map(|&sampled_at| WorkoutHeartRatePoint {
-                            sampled_at,
+                        .map(|&after| WorkoutHeartRatePoint {
+                            sampled_at: base + after,
                             bpm: 120.0,
                         })
                         .collect(),
@@ -809,7 +822,9 @@ mod tests {
             .unwrap();
     }
 
+    /// The readings shown, in ms after the workout's start.
     fn shown_heart_rate(store: &mut Store, workout_id: &str) -> Vec<i64> {
+        let base = start_ms(store, workout_id);
         let answer = store
             .call(
                 "GetWorkoutHeartRate",
@@ -824,7 +839,7 @@ mod tests {
             .unwrap()
             .samples
             .iter()
-            .map(|s| s.sampled_at)
+            .map(|s| s.sampled_at - base)
             .collect()
     }
 
