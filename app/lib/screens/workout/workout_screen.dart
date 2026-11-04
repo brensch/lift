@@ -16,6 +16,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../widgets/set_log.dart';
+import '../../widgets/common/quiet_link.dart';
+import '../../widgets/dialogs/discard_workout_dialog.dart';
 import '../../widgets/dialogs/end_workout_dialog.dart';
 import '../../widgets/dialogs/weight_adjust_sheet.dart';
 import '../../widgets/exercise_picker.dart';
@@ -311,33 +313,22 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                     divider,
                   ],
 
-                  // End workout: a rare, one-way action, so a quiet link
-                  // rather than a full-width button.
+                  // End or throw away: rare, one-way actions, so quiet links
+                  // rather than full-width buttons.
                   if (!isEnded)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                      child: Center(
-                        child: TextButton(
-                          onPressed: () => endWorkout(context),
-                          style: TextButton.styleFrom(
-                            foregroundColor: colorScheme.onSurface.withValues(
-                              alpha: 0.5,
-                            ),
-                            minimumSize: const Size(0, 34),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
+                      child: Column(
+                        children: [
+                          QuietLink(
+                            label: copy.workout.endWorkout,
+                            onPressed: () => endWorkout(context),
                           ),
-                          child: Text(
-                            copy.workout.endWorkout,
-                            style: TextStyle(
-                              fontWeight: context.tokens.weight.bold,
-                              fontSize: context.tokens.size.body,
-                              letterSpacing: 0.2,
-                            ),
+                          QuietLink(
+                            label: copy.workout.discardWorkout,
+                            onPressed: () => _discard(context, wp),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                 ],
@@ -413,6 +404,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     );
     if (confirmed != true || !context.mounted) return;
     unawaited(wp.removeExercise(block.exercise));
+  }
+
+  /// Throw the workout away, once the person confirms: home is on screen.
+  Future<void> _discard(BuildContext context, WorkoutProvider wp) async {
+    if (!await confirmDiscardWorkout(context)) return;
+    await wp.discardWorkout();
   }
 
   void _showAddExercise(BuildContext context, WorkoutProvider wp) {

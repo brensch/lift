@@ -54,6 +54,16 @@ holds — would stop stored events reading, and `core/tests/stored_events.rs`
 fails on it: it reads `core/tests/testdata/stored_events.json`, one of every
 fact as an earlier core wrote it, and needs a new fact added there.
 
+A new kind of fact is safe for older apps: one they don't know is kept as it
+came (`Fact::Unknown`) and folds as nothing, so they carry on syncing and
+fold it once updated. Before anything depends on the new kind — before the
+server or a tool writes one into accounts — require the app that knows it
+(`MIN_APP_VERSION`).
+
+`WorkoutDiscarded` throws a workout away, under way or finished: the fold
+removes it, so it is gone from history, plans and maxes as if it never
+happened, while its events stay in the log.
+
 So `Account::fold(events)` is deterministic: the phone and the server build
 the same account from the same history, ids and times included. Every test
 in `core/tests/api.rs` and every user in the fuzzer (`core/examples/fuzz.rs`)

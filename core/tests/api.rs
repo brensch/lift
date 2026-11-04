@@ -2772,3 +2772,42 @@ mod rotation {
         assert!(rotation.contains(&after.suggested_template_id.as_str()));
     }
 }
+
+/// Discarding a workout, under way or finished, leaves the account as if it
+/// never happened: no workout under way, nothing in history, and the log
+/// still replays to the same account.
+#[test]
+fn a_discarded_workout_is_gone() {
+    let mut app = App::new();
+    let kept = start(&mut app, &[Exercise::Squat]);
+    let end = finish(&mut app, &kept, |s| s.target_reps, NOW);
+    app.call()
+        .end_workout(EndWorkoutRequest {
+            workout_id: kept.id.clone(),
+            ended_at: end,
+        })
+        .unwrap();
+    let tested = start(&mut app, &[Exercise::BenchPress]);
+    app.call()
+        .discard_workout(DiscardWorkoutRequest {
+            workout_id: tested.id.clone(),
+        })
+        .unwrap();
+    assert!(app.view().get_active_workout().workout.is_none());
+    let finished = app.view().list_workout_summaries().workouts;
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].workout.as_ref().unwrap().id, kept.id);
+
+    app.call()
+        .discard_workout(DiscardWorkoutRequest {
+            workout_id: kept.id.clone(),
+        })
+        .unwrap();
+    assert!(app.view().list_workout_summaries().workouts.is_empty());
+    assert!(app
+        .call()
+        .discard_workout(DiscardWorkoutRequest {
+            workout_id: kept.id.clone(),
+        })
+        .is_err());
+}

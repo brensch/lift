@@ -140,6 +140,17 @@ impl<'a> Call<'a> {
         ))
     }
 
+    /// Throw a workout away: it is gone from the account.
+    pub fn discard_workout(
+        &mut self,
+        req: DiscardWorkoutRequest,
+    ) -> Result<DiscardWorkoutResponse, CoreError> {
+        self.record(Fact::WorkoutDiscarded(WorkoutDiscarded {
+            workout_id: req.workout_id,
+        }))?;
+        Ok(DiscardWorkoutResponse {})
+    }
+
     pub fn end_workout(&mut self, req: EndWorkoutRequest) -> Result<EndWorkoutResponse, CoreError> {
         let id = req.workout_id.clone();
         self.mutate(workout_mutation::Mutation::EndWorkout(req))?;
@@ -991,6 +1002,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
         writes {
             "StartWorkout" => start_workout,
             "EndWorkout" => end_workout,
+            "DiscardWorkout" => discard_workout,
             "AppendWorkoutMutations" => append_workout_mutations,
             "SaveTemplate" => save_template,
             "DeleteTemplate" => delete_template,

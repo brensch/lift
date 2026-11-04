@@ -272,6 +272,14 @@ workout:
   # A partner who is in your group but hasn't started a workout yet.
   choosing: Choosing workout
   end_workout: End workout
+  # Throwing a workout away: the quiet link under a live workout's exercises
+  # and at the foot of a finished one's summary, and the prompt it asks.
+  # Placeholders.
+  discard_workout: Discard workout
+  discard_title: Discard this workout?
+  discard_body: It's gone from your history and your plans, as if it never happened. This can't be undone.
+  discard_confirm: Discard
+  discard_cancel: Keep it
   set_line: Set {n} of {m}
   warmup_line: Warmup {n} of {m}
   warmup_label: WARMUP
