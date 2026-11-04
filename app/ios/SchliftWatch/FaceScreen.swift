@@ -112,6 +112,8 @@ struct FaceScreen: View {
                 Spacer(minLength: 0)
             }
         }
+        // Rows and lines run to the screen's sides; the text keeps its own padding.
+        .ignoresSafeArea(edges: .horizontal)
         .background(colors.ground.ignoresSafeArea())
     }
 
