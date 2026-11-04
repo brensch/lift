@@ -34,6 +34,8 @@ struct PlateScreen: View {
                 Spacer(minLength: 0)
             }
         }
+        // The lines and the white run to the screen's sides.
+        .ignoresSafeArea(edges: .horizontal)
         .background(WatchPalette.ground.ignoresSafeArea())
     }
 
