@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The phone app's fonts, registered via Info.plist UIAppFonts: Space Grotesk for
-/// words, Space Mono for numbers.
-private let bodyFont = "SpaceGrotesk-Variable"
+/// The phone app's fonts, registered via Info.plist UIAppFonts (the files sit at the
+/// bundle's root): Space Grotesk for words, Space Mono for numbers. Space Grotesk is a
+/// variable font, so it goes by its family name and takes its weight from `.weight`.
+private let bodyFont = "Space Grotesk"
 
 func textFontName(size: CGFloat, weight: Font.Weight = .medium) -> Font {
     .custom(bodyFont, size: size).weight(weight)

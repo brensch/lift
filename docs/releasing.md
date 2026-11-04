@@ -326,7 +326,7 @@ API, from two committed sources:
   the listing has. Screenshot captions live here too.
 - **`store/screenshots/raw/`** — raw captures: `store_NN.png` phone slides
   (1080×2337, dark mode), `wear_*.png` Wear OS captures (454×454, round),
-  `apple_watch_*.png` Apple Watch images (396×484: the Wear face on black).
+  `apple_watch_*.png` Apple Watch captures (396×484, from the simulator).
   A slide with `device: watch` frames a Wear capture as a watch on a
   phone-sized image.
 
@@ -387,27 +387,37 @@ one shot per slide.
 Add, remove or reorder slides there and in `listing.yaml` together. Commit the
 new PNGs.
 
-Watch captures need no phone. The debug watch app has a receiver
-(`app/android/wear/src/debug/.../DebugSnapshotReceiver.kt`, never in a
-release build) that takes a `WearWorkoutSnapshot` over adb, plus a heart
-rate, since an emulator has no sensor:
+Watch captures need no phone. Both debug watch apps take a
+`WearWorkoutSnapshot` as the phone would send it, plus a heart rate (a
+simulator or emulator has no sensor), through a hook that is never in a
+release build: on Wear OS a broadcast receiver
+(`app/android/wear/src/debug/.../DebugSnapshotReceiver.kt`), on the Apple
+Watch the launch environment (`PhoneConnector.applyDebugLaunch`, and
+`SCHLIFT_PLATES=1` opens the plate screen). `scripts/capture_watch_screenshots.py`
+holds the store scenes (lifting, resting, the plates), sets their times from
+now and shoots each one.
+
+Wear OS, on this machine:
 
 ```bash
 make android-wear-emulator-start            # lift_wear_api34, 454×454 round
+(cd app/android && ./gradlew :wear:assembleDebug)
 adb -s <watch> install -r app/build/wear/outputs/apk/debug/wear-debug.apk
-adb -s <watch> shell am start -n com.brensch.schlift.debug/com.brensch.schlift.wear.MainActivity
-B64=$(protoc --proto_path=proto --encode=workout.v1.WearWorkoutSnapshot \
-  workout/v1/wearable.proto < snapshot.txtpb | base64 -w0)
-adb -s <watch> shell am broadcast \
-  -n com.brensch.schlift.debug/com.brensch.schlift.wear.DebugSnapshotReceiver \
-  --es snapshot "$B64" --ef bpm 141
-adb -s <watch> exec-out screencap -p > store/screenshots/raw/wear_01_active_set.png
+ADB=adb python3 scripts/capture_watch_screenshots.py wear --serial <watch>
 ```
 
-`snapshot.txtpb` is a text-format snapshot (state, circles, `you_card`).
-Send `bpm` again just before the screenshot while lifting: the emulator's
-sensor reads 0 once a set starts. The Apple Watch images are the same
-captures scaled to 396 wide and centred on a black 396×484.
+Apple Watch, on a macOS runner (Swift does not build here): Actions →
+**Watch Screenshots** → *Run workflow*. It builds the debug watch app for a
+watchOS simulator (Apple Watch Series 9 45mm, 396×484, the size
+`store_listing_app_store.py` uploads), shoots the same scenes and uploads
+them as the `apple-watch-screenshots` artifact:
+
+```bash
+gh workflow run watch-screenshots.yml
+gh run download <run id> --name apple-watch-screenshots --dir store/screenshots/raw
+```
+
+Commit the new PNGs.
 
 ### Render and review
 

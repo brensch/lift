@@ -28,10 +28,14 @@ import os
 import plistlib
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BPM = 141
+# Seconds from an Apple Watch launch to its screenshot: fonts, the first layout and
+# the plate sheet's slide in.
+SETTLE = 6
 WEAR_ACTIVITY = "com.brensch.schlift.debug/com.brensch.schlift.wear.MainActivity"
 WEAR_RECEIVER = "com.brensch.schlift.debug/com.brensch.schlift.wear.DebugSnapshotReceiver"
 # The weight on the 454 px round Wear face: a tap there opens the plates.
@@ -60,8 +64,10 @@ def circles(states: list[str], reps: int) -> str:
     )
 
 
-def bench(state: str, label: str, circle_states: list[str], now: int, **times: int) -> str:
-    """Bench Press, set 2 of 4: 135 lb for 8, 27 minutes in."""
+def bench(
+    state: str, label: str, set_no: int, circle_states: list[str], now: int, **times: int
+) -> str:
+    """Bench Press, set `set_no` of 4: 135 lb for 8, 27 minutes in."""
     fields = "\n".join(f"{k}: {v}" for k, v in times.items())
     return f"""workout_id: "store"
 emitted_at: {now * 1000}
@@ -72,9 +78,9 @@ workout_start_time: {now - 27 * 60}
 you_card {{
   state_label: "{label}"
   yapping_label: "Yapping"
-  display_set {{ id: "s2" exercise: EXERCISE_BENCH_PRESS target_reps: 8 target_weight: 135 }}
+  display_set {{ id: "s{set_no}" exercise: EXERCISE_BENCH_PRESS target_reps: 8 target_weight: 135 }}
   exercise_name: "Bench Press"
-  set_line: "Set 2 of 4"
+  set_line: "Set {set_no} of 4"
   set_text: "135 lb {TIMES} 8"
   weight_text: "135"
   unit_text: "lb"
@@ -113,14 +119,16 @@ actions {{ type: WEAR_ACTION_TYPE_END_WORKOUT label: "End workout" }}
 {AMBIENT}"""
 
 
-def scenes(now: int) -> list[tuple[str, str, bool]]:
-    """(name, snapshot text, plates open), in listing order."""
+def scenes() -> list[tuple[str, Callable[[int], str], bool]]:
+    """(name, snapshot text from now, plates open), in listing order. Each is made
+    when it is shown, so its timers read as written here."""
     return [
         (
             "01_active_set",
-            bench(
+            lambda now: bench(
                 "LIFTING",
                 "Lifting",
+                2,
                 ["FULL", "LIFTING", "PENDING", "PENDING"],
                 now,
                 lifting_started_at=now - 21,
@@ -129,9 +137,10 @@ def scenes(now: int) -> list[tuple[str, str, bool]]:
         ),
         (
             "02_rest_timer",
-            bench(
+            lambda now: bench(
                 "RESTING",
                 "Resting",
+                3,
                 ["FULL", "FULL", "NEXT", "PENDING"],
                 now,
                 rest_until=now + 102,
@@ -139,7 +148,7 @@ def scenes(now: int) -> list[tuple[str, str, bool]]:
             ),
             False,
         ),
-        ("03_plates", squat_plates(now), True),
+        ("03_plates", squat_plates, True),
     ]
 
 
@@ -161,15 +170,15 @@ def encode(text: str) -> str:
 def capture_apple(udid: str, app: Path, out: Path) -> None:
     bundle = plistlib.loads((app / "Info.plist").read_bytes())["CFBundleIdentifier"]
     subprocess.run(["xcrun", "simctl", "install", udid, str(app)], check=True)
-    for name, text, open_plates in scenes(int(time.time())):
+    for name, snapshot, open_plates in scenes():
         subprocess.run(["xcrun", "simctl", "terminate", udid, bundle], check=False)
         env = dict(os.environ)
-        env["SIMCTL_CHILD_SCHLIFT_SNAPSHOT"] = encode(text)
+        # The watch counts on its wall clock: times from when the screenshot is taken.
+        env["SIMCTL_CHILD_SCHLIFT_SNAPSHOT"] = encode(snapshot(int(time.time()) + SETTLE))
         env["SIMCTL_CHILD_SCHLIFT_BPM"] = str(BPM)
         env["SIMCTL_CHILD_SCHLIFT_PLATES"] = "1" if open_plates else "0"
         subprocess.run(["xcrun", "simctl", "launch", udid, bundle], env=env, check=True)
-        # Fonts, the first layout and the plate sheet's slide in.
-        time.sleep(6)
+        time.sleep(SETTLE)
         path = out / f"apple_watch_{name}.png"
         subprocess.run(["xcrun", "simctl", "io", udid, "screenshot", str(path)], check=True)
         print(f"wrote {path}")
@@ -177,10 +186,12 @@ def capture_apple(udid: str, app: Path, out: Path) -> None:
 
 def capture_wear(serial: str, out: Path) -> None:
     adb = [os.environ.get("ADB", "adb"), "-s", serial]
-    for name, text, open_plates in scenes(int(time.time())):
+    for name, snapshot, open_plates in scenes():
         subprocess.run([*adb, "shell", "am", "force-stop", "com.brensch.schlift.debug"], check=True)
         subprocess.run([*adb, "shell", "am", "start", "-n", WEAR_ACTIVITY], check=True)
         time.sleep(3)
+        # Wear counts on from the snapshot's emitted_at, so now is the moment.
+        text = snapshot(int(time.time()))
         # Sent twice: the emulator's sensor reads 0 once a set starts.
         for _ in range(2):
             subprocess.run(

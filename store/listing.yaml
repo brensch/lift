@@ -127,6 +127,7 @@ screenshots:
 wear_screenshots:
   - file: wear_01_active_set.png
   - file: wear_02_rest_timer.png
+  - file: wear_03_plates.png
 apple_watch_screenshots:
   - file: apple_watch_01_active_set.png
   - file: apple_watch_02_rest_timer.png
