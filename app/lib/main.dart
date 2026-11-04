@@ -43,6 +43,7 @@ import 'screens/debug_logs_screen.dart';
 import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/your_data_screen.dart';
 import 'screens/plate_colors_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
@@ -65,6 +66,8 @@ final int serverPort = int.parse(_serverPortValue);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // The log file: what's logged meanwhile waits for it.
+  unawaited(AppLogger.instance.attach());
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await NotificationService.init();
   await PermissionsService.instance.load();
@@ -338,13 +341,16 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             ),
             GoRoute(
               path: '/progress',
-              builder: (_, __) => const ProgressScreen(),
+              builder: (_, __) => const BackToHome(child: ProgressScreen()),
             ),
             GoRoute(
               path: '/history',
-              builder: (_, __) => const HistoryScreen(),
+              builder: (_, __) => const BackToHome(child: HistoryScreen()),
             ),
-            GoRoute(path: '/learn', builder: (_, __) => const LearnScreen()),
+            GoRoute(
+              path: '/learn',
+              builder: (_, __) => const BackToHome(child: LearnScreen()),
+            ),
             GoRoute(
               path: '/exercise/:ex',
               builder: (_, state) {
@@ -381,7 +387,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             ),
             GoRoute(
               path: '/settings',
-              builder: (_, __) => const SettingsScreen(),
+              builder: (_, __) => const BackToHome(child: SettingsScreen()),
             ),
             GoRoute(
               path: '/settings/profile-marker',
@@ -390,6 +396,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/settings/plate-colors',
               builder: (_, __) => const PlateColorsScreen(),
+            ),
+            GoRoute(
+              path: '/settings/data',
+              builder: (_, __) => const YourDataScreen(),
             ),
           ],
         ),
@@ -424,6 +434,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     AppLogger.instance.info('App', 'lifecycle', {'state': state.name});
+    // The app may not come back: what's logged goes to the file now.
+    if (state == AppLifecycleState.paused) {
+      unawaited(AppLogger.instance.flush());
+    }
     if (state == AppLifecycleState.resumed) {
       // Force a fresh HTTP/2 connection on resume. Mobile networks silently
       // kill idle connections; without this, every gRPC call hangs until it

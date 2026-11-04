@@ -10,6 +10,7 @@ const schliftSpec = ThemeSpec(
   background: Color(0xFFDBDAD2),
   panel: Color(0xFFEDECE5),
   surfaceHigh: Color(0xFFCAC9C0),
+  headingBand: Color(0xFFCAC9C0),
   text: Color(0xFF111111),
   muted: Color(0xFF4A4A44),
   primary: Color(0xFFFF4F00),

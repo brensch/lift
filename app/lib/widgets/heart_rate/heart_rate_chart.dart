@@ -22,6 +22,14 @@ class HeartRateChart extends StatefulWidget {
   final WorkoutStateSnapshot? stateSnapshot;
   final bool followLiveClock;
 
+  /// The side margins of the plot, its legend and the zones; the figures
+  /// (avg, max, min) run edge to edge in a grid.
+  final double inset;
+
+  /// Whether the figures' grid draws its own bottom line when nothing
+  /// follows it; off where the section's hairline already ends it there.
+  final bool closeGrid;
+
   const HeartRateChart({
     super.key,
     required this.heartRateSamples,
@@ -30,6 +38,8 @@ class HeartRateChart extends StatefulWidget {
     required this.now,
     this.stateSnapshot,
     this.followLiveClock = true,
+    this.inset = 0,
+    this.closeGrid = true,
   });
 
   // Standard fallback when a personalized max HR isn't available.
@@ -254,30 +264,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final caption = TextStyle(fontSize: context.tokens.size.caption);
     final leftAxisWidth =
         _labelSize(context, '${maxY.round()}', caption).width + _axisGap + 2;
-    final rightAxisWidth =
-        zones
-            .map(
-              (z) => _labelSize(
-                context,
-                z.name,
-                caption.copyWith(fontWeight: context.tokens.weight.bold),
-              ).width,
-            )
-            .fold(0.0, max) +
-        _axisGap +
-        2;
     final bottomAxisHeight =
         _labelSize(context, formatElapsedHms(maxX.round()), caption).height + 8;
-    // A zone's name only where its band is tall enough to hold it: thin
-    // bands side by side would stack their names on each other.
-    final zoneLabelHeight = _labelSize(
-      context,
-      'Z5',
-      caption.copyWith(fontWeight: context.tokens.weight.bold),
-    ).height;
-    final pxPerBpm = (320 - bottomAxisHeight) / max(1.0, maxY - minY);
-    bool zoneLabelFits(HeartRateZone z) =>
-        (z.high - z.low) * pxPerBpm >= zoneLabelHeight;
     // Colour the single line by HR zone with a vertical stepped gradient
     // (one series) instead of emitting a separate series per point pair.
     final gradient = zoneGradient(zones, maxY, context.tokens.heartZones);
@@ -367,120 +355,92 @@ class _HeartRateChartState extends State<HeartRateChart> {
       ],
     );
 
+    final side = EdgeInsets.symmetric(horizontal: widget.inset);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // A finished workout has no "now" to read a current BPM from.
-        if (widget.followLiveClock) header,
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 320,
-          child: LayoutBuilder(
-            builder: (context, constraints) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onScaleStart: (details) {
-                _gestureStartWindowStartSec = minX;
-                _gestureStartWindowSpanSec = maxX - minX;
-                _gestureStartLocalFocalX = details.localFocalPoint.dx;
-              },
-              onScaleUpdate: (details) {
-                final width = constraints.maxWidth;
-                final startStart = _gestureStartWindowStartSec;
-                final startSpan = _gestureStartWindowSpanSec;
-                final startFocalX = _gestureStartLocalFocalX;
-                if (width <= 0 ||
-                    startStart == null ||
-                    startSpan == null ||
-                    startFocalX == null) {
-                  return;
-                }
-
-                final clampedScale = details.scale.clamp(0.5, 4.0);
-                var newSpan = (startSpan / clampedScale).clamp(
-                  _minWindowSeconds,
-                  _maxWindowSeconds,
-                );
-
-                final startFrac = (startFocalX / width).clamp(0.0, 1.0);
-                final currFrac = (details.localFocalPoint.dx / width).clamp(
-                  0.0,
-                  1.0,
-                );
-                final focalTimeAtStart = startStart + startSpan * startFrac;
-                var newStart = focalTimeAtStart - newSpan * currFrac;
-
-                final clamped = _clampViewport(
-                  startSec: newStart,
-                  spanSec: newSpan,
-                  domainMaxX: domainMaxX,
-                );
-                setState(() {
-                  _hasManualViewport = true;
-                  if (widget.followLiveClock) {
-                    _isLiveViewport = false;
+        // A finished workout has no "now" to read a current BPM from: the
+        // plot starts at the top.
+        if (widget.followLiveClock) ...[
+          Padding(padding: side, child: header),
+          const SizedBox(height: 8),
+        ],
+        Padding(
+          padding: side,
+          child: SizedBox(
+            height: 320,
+            child: LayoutBuilder(
+              builder: (context, constraints) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onScaleStart: (details) {
+                  _gestureStartWindowStartSec = minX;
+                  _gestureStartWindowSpanSec = maxX - minX;
+                  _gestureStartLocalFocalX = details.localFocalPoint.dx;
+                },
+                onScaleUpdate: (details) {
+                  final width = constraints.maxWidth;
+                  final startStart = _gestureStartWindowStartSec;
+                  final startSpan = _gestureStartWindowSpanSec;
+                  final startFocalX = _gestureStartLocalFocalX;
+                  if (width <= 0 ||
+                      startStart == null ||
+                      startSpan == null ||
+                      startFocalX == null) {
+                    return;
                   }
-                  _manualWindowStartSec = clamped.startSec;
-                  _manualWindowSpanSec = clamped.spanSec;
-                });
-              },
-              child: LineChart(
-                LineChartData(
-                  minX: minX,
-                  maxX: maxX,
-                  minY: minY,
-                  maxY: maxY,
-                  clipData: const FlClipData.all(),
-                  lineTouchData: const LineTouchData(enabled: false),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: leftAxisWidth,
-                        interval: 10,
-                        minIncluded: false,
-                        maxIncluded: false,
-                        getTitlesWidget: (value, meta) {
-                          final bpm = value.round();
-                          final boundaryValues = <int>{
-                            0,
-                            ...zones.map((z) => z.low),
-                            ...zones.map((z) => z.high),
-                          };
-                          if (boundaryValues.contains(bpm)) {
-                            return SideTitleWidget(
-                              meta: meta,
-                              space: _axisGap,
-                              fitInside: SideTitleFitInsideData.fromTitleMeta(
-                                meta,
-                              ),
-                              child: Text(
-                                '$bpm',
-                                maxLines: 1,
-                                softWrap: false,
-                                style: TextStyle(
-                                  fontSize: context.tokens.size.caption,
-                                  color: colorScheme.onSurface.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                    rightTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: rightAxisWidth,
-                        interval: 5,
-                        minIncluded: false,
-                        maxIncluded: false,
-                        getTitlesWidget: (value, meta) {
-                          for (final z in zones) {
-                            final mid = (z.low + z.high) / 2.0;
-                            if ((value - mid).abs() < 1 && zoneLabelFits(z)) {
+
+                  final clampedScale = details.scale.clamp(0.5, 4.0);
+                  var newSpan = (startSpan / clampedScale).clamp(
+                    _minWindowSeconds,
+                    _maxWindowSeconds,
+                  );
+
+                  final startFrac = (startFocalX / width).clamp(0.0, 1.0);
+                  final currFrac = (details.localFocalPoint.dx / width).clamp(
+                    0.0,
+                    1.0,
+                  );
+                  final focalTimeAtStart = startStart + startSpan * startFrac;
+                  var newStart = focalTimeAtStart - newSpan * currFrac;
+
+                  final clamped = _clampViewport(
+                    startSec: newStart,
+                    spanSec: newSpan,
+                    domainMaxX: domainMaxX,
+                  );
+                  setState(() {
+                    _hasManualViewport = true;
+                    if (widget.followLiveClock) {
+                      _isLiveViewport = false;
+                    }
+                    _manualWindowStartSec = clamped.startSec;
+                    _manualWindowSpanSec = clamped.spanSec;
+                  });
+                },
+                child: LineChart(
+                  LineChartData(
+                    minX: minX,
+                    maxX: maxX,
+                    minY: minY,
+                    maxY: maxY,
+                    clipData: const FlClipData.all(),
+                    lineTouchData: const LineTouchData(enabled: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: leftAxisWidth,
+                          interval: 10,
+                          minIncluded: false,
+                          maxIncluded: false,
+                          getTitlesWidget: (value, meta) {
+                            final bpm = value.round();
+                            final boundaryValues = <int>{
+                              0,
+                              ...zones.map((z) => z.low),
+                              ...zones.map((z) => z.high),
+                            };
+                            if (boundaryValues.contains(bpm)) {
                               return SideTitleWidget(
                                 meta: meta,
                                 space: _axisGap,
@@ -488,133 +448,144 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                   meta,
                                 ),
                                 child: Text(
-                                  z.name,
+                                  '$bpm',
                                   maxLines: 1,
                                   softWrap: false,
                                   style: TextStyle(
                                     fontSize: context.tokens.size.caption,
-                                    fontWeight: context.tokens.weight.bold,
                                     color: colorScheme.onSurface.withValues(
-                                      alpha: 0.35,
+                                      alpha: 0.4,
                                     ),
                                   ),
                                 ),
                               );
                             }
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: bottomAxisHeight,
-                        interval: bottomInterval,
-                        // The window's own ends aren't on
-                        // the interval; their labels would
-                        // land on the neighbours'.
-                        minIncluded: false,
-                        maxIncluded: false,
-                        getTitlesWidget: (value, meta) {
-                          if (value < 0 || value > maxX + 0.5) {
                             return const SizedBox.shrink();
-                          }
-                          return SideTitleWidget(
-                            meta: meta,
-                            space: 6,
-                            fitInside: SideTitleFitInsideData.fromTitleMeta(
-                              meta,
-                            ),
-                            child: Text(
-                              formatElapsedHms(value.round()),
-                              maxLines: 1,
-                              softWrap: false,
-                              style: TextStyle(
-                                fontSize: context.tokens.size.caption,
-                                color: colorScheme.onSurface.withValues(
-                                  alpha: 0.45,
+                          },
+                        ),
+                      ),
+                      // The line's colour says the zone: no names beside it.
+                      rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: bottomAxisHeight,
+                          interval: bottomInterval,
+                          // The window's own ends aren't on
+                          // the interval; their labels would
+                          // land on the neighbours'.
+                          minIncluded: false,
+                          maxIncluded: false,
+                          getTitlesWidget: (value, meta) {
+                            if (value < 0 || value > maxX + 0.5) {
+                              return const SizedBox.shrink();
+                            }
+                            return SideTitleWidget(
+                              meta: meta,
+                              space: 6,
+                              fitInside: SideTitleFitInsideData.fromTitleMeta(
+                                meta,
+                              ),
+                              child: Text(
+                                formatElapsedHms(value.round()),
+                                maxLines: 1,
+                                softWrap: false,
+                                style: TextStyle(
+                                  fontSize: context.tokens.size.caption,
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: 0.45,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                  gridData: const FlGridData(show: false),
-                  borderData: FlBorderData(show: false),
-                  rangeAnnotations: RangeAnnotations(
-                    horizontalRangeAnnotations: const [],
-                    verticalRangeAnnotations: restBands,
-                  ),
-                  extraLinesData: ExtraLinesData(
-                    verticalLines: [
-                      VerticalLine(
-                        x: nowSec,
-                        color: colorScheme.primary.withValues(alpha: 0.35),
-                        strokeWidth: 1,
-                        dashArray: [4, 4],
+                    gridData: const FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
+                    rangeAnnotations: RangeAnnotations(
+                      horizontalRangeAnnotations: const [],
+                      verticalRangeAnnotations: restBands,
+                    ),
+                    extraLinesData: ExtraLinesData(
+                      verticalLines: [
+                        VerticalLine(
+                          x: nowSec,
+                          color: colorScheme.primary.withValues(alpha: 0.35),
+                          strokeWidth: 1,
+                          dashArray: [4, 4],
+                        ),
+                      ],
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: spots,
+                        isCurved: true,
+                        curveSmoothness: 0.2,
+                        gradient: gradient,
+                        barWidth: 2.0,
+                        dotData: const FlDotData(show: false),
+                        belowBarData: BarAreaData(show: false),
                       ),
                     ],
                   ),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      curveSmoothness: 0.2,
-                      gradient: gradient,
-                      barWidth: 2.0,
-                      dotData: const FlDotData(show: false),
-                      belowBarData: BarAreaData(show: false),
-                    ),
-                  ],
-                ),
-                duration: Duration.zero,
-                transformationConfig: const FlTransformationConfig(
-                  scaleAxis: FlScaleAxis.none,
+                  duration: Duration.zero,
+                  transformationConfig: const FlTransformationConfig(
+                    scaleAxis: FlScaleAxis.none,
+                  ),
                 ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 4,
-                children: [
-                  HeartRateLegendItem(
-                    label: copy.workout.lifting,
-                    color: context.tokens.lifting,
-                  ),
-                  HeartRateLegendItem(
-                    label: copy.workout.resting,
-                    color: context.tokens.resting,
-                  ),
-                  HeartRateLegendItem(
-                    label: copy.workout.yapping,
-                    color: context.tokens.yapping,
-                  ),
-                ],
+        Padding(
+          padding: side,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 4,
+                  children: [
+                    HeartRateLegendItem(
+                      label: copy.workout.lifting,
+                      color: context.tokens.lifting,
+                    ),
+                    HeartRateLegendItem(
+                      label: copy.workout.resting,
+                      color: context.tokens.resting,
+                    ),
+                    HeartRateLegendItem(
+                      label: copy.workout.yapping,
+                      color: context.tokens.yapping,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            if (widget.followLiveClock) ...[
-              const SizedBox(width: 8),
-              _buildLiveWindowButton(context, label: '5m', spanSec: 300),
-              const SizedBox(width: 6),
-              _buildLiveWindowButton(context, label: '10m', spanSec: 600),
+              if (widget.followLiveClock) ...[
+                const SizedBox(width: 8),
+                _buildLiveWindowButton(context, label: '5m', spanSec: 300),
+                const SizedBox(width: 6),
+                _buildLiveWindowButton(context, label: '10m', spanSec: 600),
+              ],
             ],
-          ],
+          ),
         ),
-        const SizedBox(height: 18),
-        ZoneSummary(samples: heartRateSamples, zones: zones),
+        const SizedBox(height: 14),
+        ZoneSummary(
+          samples: heartRateSamples,
+          zones: zones,
+          inset: widget.inset,
+          closeGrid: widget.closeGrid,
+        ),
       ],
     );
   }

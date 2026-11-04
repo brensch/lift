@@ -190,13 +190,15 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           ),
         ),
         body: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+          // A pixel on top: room for the Session band's top line.
+          padding: const EdgeInsets.only(top: 1, bottom: 24),
           children: [
             FlatSection(
               label: 'Session',
               bleed: true,
+              flushTop: true,
               flushBottom: true,
-              child: _MetricGrid(
+              child: FlatMetricGrid(
                 metrics: [
                   ('Duration', summary.durationLabel, null),
                   ('Volume', summary.volumeLabel, null),
@@ -223,28 +225,22 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               FlatSection(
                 label: 'Heart',
                 bleed: true,
-                // Edge to edge, as the workout's Heart tab draws it.
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: HeartRateChart(
-                    heartRateSamples: _heartRateSamples,
-                    completedSets: ownCompletedSets,
-                    workoutStartTime: workout.startTime,
-                    now: chartNow,
-                    followLiveClock: false,
-                  ),
+                flushTop: true,
+                flushBottom: true,
+                // The plot nearly edge to edge; its figures' grid all of it,
+                // ending the section.
+                child: HeartRateChart(
+                  heartRateSamples: _heartRateSamples,
+                  completedSets: ownCompletedSets,
+                  workoutStartTime: workout.startTime,
+                  now: chartNow,
+                  followLiveClock: false,
+                  inset: 8,
+                  closeGrid: false,
                 ),
               ),
             FlatSection(label: 'Trained with', child: _buildFriends(context)),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: context.tokens.hairline),
-                ),
-              ),
-              child: const SectionLabel('Exercises'),
-            ),
+            const FlatHeading('Exercises'),
             for (final exercise in summary.exerciseSummaries)
               _ExerciseSummaryRow(
                 exercise: exercise,
@@ -360,85 +356,6 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     } else {
       context.go('/');
     }
-  }
-}
-
-/// The session's numbers as a full-width grid: three to a row, cells split
-/// by hairlines, a state's total labelled in its colour.
-class _MetricGrid extends StatelessWidget {
-  final List<(String, String, Color?)> metrics;
-
-  const _MetricGrid({required this.metrics});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    Widget cell((String, String, Color?) m, {required bool last}) => Expanded(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 12, 12),
-        decoration: BoxDecoration(
-          border: Border(
-            right: last ? BorderSide.none : BorderSide(color: t.hairline),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              m.$1.toUpperCase(),
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.small,
-                  fontWeight: t.weight.bold,
-                  letterSpacing: 1,
-                  color: m.$3 ?? t.muted,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                m.$2,
-                maxLines: 1,
-                style: t.mono(
-                  TextStyle(
-                    fontSize: t.size.titleLg,
-                    fontWeight: t.weight.bold,
-                    color: t.text,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    final rows = <Widget>[];
-    for (var i = 0; i < metrics.length; i += 3) {
-      final row = metrics.sublist(i, (i + 3).clamp(0, metrics.length));
-      rows.add(
-        Container(
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: t.hairline)),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var j = 0; j < 3; j++)
-                  j < row.length
-                      ? cell(row[j], last: j == 2)
-                      : const Expanded(child: SizedBox()),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    return Column(children: rows);
   }
 }
 

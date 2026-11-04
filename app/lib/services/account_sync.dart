@@ -126,6 +126,7 @@ class AccountSync extends ChangeNotifier
   /// While an account is open only its own file is accepted; it's reopened
   /// from the file.
   Future<(String, String)> importFile(String path) async {
+    path = await _unzipped(path);
     final (owner, name) = await LocalCore.fileOwner(path);
     final open = _userId;
     if (open != null && open != owner) {
@@ -140,8 +141,9 @@ class AccountSync extends ChangeNotifier
     return (owner, name);
   }
 
-  /// The whole account as one SQLite file in the temp directory, named for
-  /// [label] and today: the export.
+  /// The whole account as one SQLite file, gzipped, in the temp directory,
+  /// named for [label] and today: the export. Years of heart rate make the
+  /// file large; gzipped it's a fraction, small enough to send.
   Future<File> export(String label) async {
     final core = await ready;
     final dir = await getTemporaryDirectory();
@@ -151,7 +153,21 @@ class AccountSync extends ChangeNotifier
       '${dir.path}/schlift-${safe.isEmpty ? 'account' : safe}-$day.sqlite',
     );
     await core.export(file.path);
-    return file;
+    final zipped = File('${file.path}.gz');
+    await file.openRead().transform(gzip.encoder).pipe(zipped.openWrite());
+    await file.delete();
+    return zipped;
+  }
+
+  /// [path] as a plain SQLite file: a gzipped export is unzipped beside the
+  /// others in the temp directory first.
+  static Future<String> _unzipped(String path) async {
+    final head = await File(path).openRead(0, 2).expand((b) => b).toList();
+    if (head.length < 2 || head[0] != 0x1f || head[1] != 0x8b) return path;
+    final dir = await getTemporaryDirectory();
+    final out = File('${dir.path}/schlift-import.sqlite');
+    await File(path).openRead().transform(gzip.decoder).pipe(out.openWrite());
+    return out.path;
   }
 
   Future<void> signOut() async {
@@ -238,7 +254,7 @@ class AccountSync extends ChangeNotifier
       case SyncResponse_Kind.library:
         // What coupled templates follow; a change shows on home.
         if (await _core?.setLibrary(message.library.writeToBuffer()) ?? false) {
-          onCaughtUp?.call();
+          _changed();
         }
       case SyncResponse_Kind.notSet:
         break;
@@ -252,7 +268,7 @@ class AccountSync extends ChangeNotifier
     if (core == null) return;
     final head = events.head.toInt();
     try {
-      if (await core.receive(events.packed, head)) onCaughtUp?.call();
+      if (await core.receive(events.packed, head)) _changed();
     } catch (e) {
       AppLogger.instance.warn(_tag, 'events refused', {'error': e.toString()});
       _lost(e);
@@ -276,6 +292,17 @@ class AccountSync extends ChangeNotifier
   /// device's events, or a new template library): what's on screen may
   /// have changed.
   VoidCallback? onCaughtUp;
+
+  /// Moves each time the server changes what the account shows: a screen
+  /// that read the account reads it again when it does.
+  int get revision => _revision;
+  int _revision = 0;
+
+  void _changed() {
+    _revision++;
+    notifyListeners();
+    onCaughtUp?.call();
+  }
 
   /// Send what this phone recorded that hasn't been sent on this stream, in
   /// pieces (the store hands out at most a few hundred events at a time).

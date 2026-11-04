@@ -9,6 +9,7 @@ import '../logic/exercises.dart';
 import '../logic/utils.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
+import '../services/account_sync.dart';
 import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
@@ -31,20 +32,23 @@ class _ProgressScreenState extends State<ProgressScreen> {
   DateTime _since = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isLoading = true;
 
-  // Time-scale filter for the charts. null = all time.
-  static const _windows = <({String label, int? days})>[
-    (label: '1M', days: 31),
-    (label: '3M', days: 92),
-    (label: '6M', days: 183),
-    (label: '1Y', days: 365),
-    (label: 'All', days: null),
-  ];
-  int _windowIdx = _windows.length - 1; // default: All
+  // Another device's changes (or a seeded history) arriving while this is
+  // open: read the account again.
+  late final AccountSync _sync = context.read<AccountSync>();
+  late int _revision = _sync.revision;
+
+  void _onSync() {
+    if (_sync.revision == _revision) return;
+    _revision = _sync.revision;
+    _loadData();
+  }
+
+  int _windowIdx = 0; // default: All, the first
 
   /// Filter each series to the selected window, dropping exercises with nothing
   /// in range. Getters (current/best/max/gain) then read the windowed points.
   List<_ExerciseProgress> _windowed(List<_ExerciseProgress> all) {
-    final days = _windows[_windowIdx].days;
+    final days = chartWindows[_windowIdx].days;
     if (days == null) return all;
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final out = <_ExerciseProgress>[];
@@ -55,6 +59,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         _ExerciseProgress(
           exercise: s.exercise,
           points: pts,
+          history: s.points,
           colorIndex: s.colorIndex,
         ),
       );
@@ -65,7 +70,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   void initState() {
     super.initState();
+    _sync.addListener(_onSync);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _sync.removeListener(_onSync);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -130,6 +142,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
 
     final shown = _windowed(_series!);
+    // One span for every chart: the window, or for all time from the
+    // first lift shown.
+    final (:from, :to) = chartSpan(
+      _windowIdx,
+      shown.isEmpty
+          ? null
+          : shown
+                .map((s) => s.points.first.date)
+                .reduce((a, b) => a.isBefore(b) ? a : b),
+    );
 
     return scaffold(
       ListView(
@@ -145,7 +167,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ),
           ),
           FlatTabs(
-            labels: [for (final w in _windows) w.label],
+            labels: [for (final w in chartWindows) w.label],
             selected: _windowIdx,
             onSelect: (i) => setState(() => _windowIdx = i),
           ),
@@ -154,7 +176,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               padding: const EdgeInsets.only(top: 40),
               child: Center(
                 child: Text(
-                  'No lifts in the last ${_windows[_windowIdx].label}.',
+                  'No lifts in the last ${chartWindows[_windowIdx].label}.',
                   style: TextStyle(
                     color: cs.tertiary,
                     fontSize: context.tokens.size.body,
@@ -163,7 +185,17 @@ class _ProgressScreenState extends State<ProgressScreen> {
               ),
             )
           else
-            for (final s in shown) _ExerciseCard(series: s, unit: unit, cs: cs),
+            for (final s in shown)
+              // Keyed: a span that drops a lift doesn't hand its chart to
+              // the next one.
+              _ExerciseCard(
+                key: ValueKey(s.exercise),
+                series: s,
+                unit: unit,
+                cs: cs,
+                from: from,
+                to: to,
+              ),
         ],
       ),
     );
@@ -215,10 +247,17 @@ class _ExerciseCard extends StatelessWidget {
   final _ExerciseProgress series;
   final WeightUnit unit;
   final ColorScheme cs;
+
+  /// The span every card's chart covers, so their dates line up.
+  final DateTime from;
+  final DateTime to;
   const _ExerciseCard({
+    super.key,
     required this.series,
     required this.unit,
     required this.cs,
+    required this.from,
+    required this.to,
   });
 
   @override
@@ -292,24 +331,8 @@ class _ExerciseCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: SizedBox(
-                      height: 40,
-                      child: series.points.length >= 2
-                          ? _Chart(
-                              series: series,
-                              unit: unit,
-                              cs: cs,
-                              compact: true,
-                            )
-                          : Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                '1 session',
-                                style: TextStyle(
-                                  color: cs.tertiary,
-                                  fontSize: context.tokens.size.small,
-                                ),
-                              ),
-                            ),
+                      height: 56,
+                      child: _Chart(series: series, from: from, to: to),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -375,88 +398,64 @@ class _ExerciseCard extends StatelessWidget {
   );
 }
 
+/// One exercise's top weights, a dot each, placed by date between [from] and [to], the
+/// same span for every card, with dates along the bottom. The card's InkWell
+/// owns the tap.
 class _Chart extends StatelessWidget {
   final _ExerciseProgress series;
-  final WeightUnit unit;
-  final ColorScheme cs;
+  final DateTime from;
+  final DateTime to;
+  const _Chart({required this.series, required this.from, required this.to});
 
-  /// Compact strips axes, grid, labels and touch — a bare inline sparkline for
-  /// the slim card row. The card's InkWell owns the tap.
-  final bool compact;
-  const _Chart({
-    required this.series,
-    required this.unit,
-    required this.cs,
-    this.compact = false,
-  });
+  /// Days since the epoch: the x axis, the same for every span and card.
+  static double _x(DateTime d) =>
+      d.millisecondsSinceEpoch / Duration.millisecondsPerDay;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = series.colorIn(context.tokens);
+    // The span's points fit the y axis; every session is plotted, so a new
+    // span pans and zooms the same dots rather than morphing them.
     final pts = series.points;
+    final all = series.history;
+    // A dot a session: the gaps between them are the time off.
     final spots = [
-      for (var i = 0; i < pts.length; i++) FlSpot(i.toDouble(), pts[i].weight),
+      for (var i = 0; i < all.length; i++)
+        ScatterSpot(
+          _x(all[i].date),
+          all[i].weight,
+          dotPainter: FlDotCirclePainter(
+            radius: i == all.length - 1 ? 3.5 : 2,
+            color: color,
+            strokeWidth: 0,
+          ),
+        ),
     ];
+    final minX = _x(from);
+    final maxX = _x(to);
+    final span = maxX - minX;
     final minW = pts.map((p) => p.weight).reduce((a, b) => a < b ? a : b);
     final maxW = pts.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
     final pad = ((maxW - minW) * 0.25).clamp(2.0, double.infinity);
+    final withYear = span > 330;
 
-    if (compact) {
-      return LineChart(
-        LineChartData(
-          minY: minW - pad,
-          maxY: maxW + pad,
-          gridData: const FlGridData(show: false),
-          titlesData: const FlTitlesData(show: false),
-          borderData: FlBorderData(show: false),
-          lineTouchData: const LineTouchData(enabled: false),
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              curveSmoothness: 0.2,
-              color: series.colorIn(context.tokens),
-              barWidth: 2.5,
-              dotData: FlDotData(
-                show: true,
-                checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
-                getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
-                  radius: 3,
-                  color: series.colorIn(context.tokens),
-                  strokeWidth: 0,
-                  strokeColor: series.colorIn(context.tokens),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return LineChart(
-      LineChartData(
+    return ScatterChart(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
+      ScatterChartData(
+        scatterSpots: spots,
+        minX: minX,
+        maxX: maxX,
+        // The dates count from the left edge: one there, mid-span, the right.
+        baselineX: minX,
+        clipData: const FlClipData.all(),
         minY: minW - pad,
         maxY: maxW + pad,
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: ((maxW - minW) / 2).clamp(1, double.infinity),
-          getDrawingHorizontalLine: (v) =>
-              FlLine(color: cs.outline.withValues(alpha: 0.15), strokeWidth: 1),
-        ),
+        gridData: const FlGridData(show: false),
         titlesData: FlTitlesData(
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 34,
-              interval: ((maxW - minW) / 2).clamp(1, double.infinity),
-              getTitlesWidget: (v, meta) => Text(
-                formatWeight(v, unit),
-                style: TextStyle(
-                  fontSize: context.tokens.size.caption,
-                  color: cs.tertiary,
-                ),
-              ),
-            ),
+          leftTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
           ),
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
@@ -467,61 +466,32 @@ class _Chart extends StatelessWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 20,
-              interval: (pts.length - 1).toDouble().clamp(1, double.infinity),
-              getTitlesWidget: (v, meta) {
-                final i = v.round();
-                if (i != 0 && i != pts.length - 1) return const SizedBox();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    shortDate(pts[i].date),
-                    style: TextStyle(
-                      fontSize: context.tokens.size.caption,
-                      color: cs.tertiary,
+              reservedSize: 16,
+              interval: span / 2,
+              getTitlesWidget: (v, meta) => SideTitleWidget(
+                meta: meta,
+                space: 2,
+                fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                child: Text(
+                  axisDate(
+                    DateTime.fromMillisecondsSinceEpoch(
+                      (v * Duration.millisecondsPerDay).round(),
                     ),
+                    withYear: withYear,
                   ),
-                );
-              },
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.caption,
+                    color: cs.tertiary,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
         borderData: FlBorderData(show: false),
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (_) => cs.inverseSurface,
-            getTooltipItems: (spots) => spots.map((s) {
-              final p = pts[s.x.round()];
-              return LineTooltipItem(
-                '${formatWeight(p.weight, unit, includeUnit: true)}\n${shortDate(p.date)}',
-                TextStyle(
-                  color: cs.onInverseSurface,
-                  fontWeight: context.tokens.weight.bold,
-                  fontSize: context.tokens.size.small,
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            curveSmoothness: 0.2,
-            color: series.colorIn(context.tokens),
-            barWidth: 3,
-            dotData: FlDotData(
-              show: true,
-              checkToShowDot: (spot, bar) => spot.x == spots.length - 1,
-              getDotPainter: (spot, pct, bar, i) => FlDotCirclePainter(
-                radius: 4,
-                color: series.colorIn(context.tokens),
-                strokeWidth: 2,
-                strokeColor: cs.surface,
-              ),
-            ),
-          ),
-        ],
+        scatterTouchData: ScatterTouchData(enabled: false),
       ),
     );
   }
@@ -570,13 +540,17 @@ class _ExerciseProgress {
   final Exercise exercise;
   final List<_Point> points;
 
+  /// Every session of the lift, whatever the span: what the chart plots.
+  final List<_Point> history;
+
   /// Index into the theme's series palette, so the colour follows the theme.
   final int colorIndex;
   _ExerciseProgress({
     required this.exercise,
     required this.points,
+    List<_Point>? history,
     required this.colorIndex,
-  });
+  }) : history = history ?? points;
 
   Color colorIn(ThemeSpec tokens) =>
       tokens.series[colorIndex % tokens.series.length];

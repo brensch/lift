@@ -143,6 +143,42 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     return transports.map((t) => labels[t] ?? t).join(', ');
   }
 
+  /// One passkey as a full-width row: its name, how it signs in and when
+  /// it was added (and from where), and a delete (never the last one).
+  Widget _passkeyRow(BuildContext context, int i) {
+    final pk = _passkeys![i];
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDeleting = _deletingId == pk.credentialId;
+    final canDelete = _passkeys!.length > 1 && _deletingId == null;
+    final details = [
+      if (pk.transports.isNotEmpty) _formatTransports(pk.transports),
+      if (pk.createdAt > 0) 'Added ${_formatDate(pk.createdAt.toInt())}',
+      if (pk.hasCreatedAtIp()) pk.createdAtIp,
+    ].join(' · ');
+    return FlatRow(
+      icon: AppIcons.key,
+      label: pk.name.isNotEmpty ? pk.name : 'Passkey ${i + 1}',
+      subtitle: details.isEmpty ? null : details,
+      trailing: IconButton(
+        onPressed: canDelete ? () => _deletePasskey(pk.credentialId) : null,
+        visualDensity: VisualDensity.compact,
+        icon: isDeleting
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                AppIcons.delete,
+                size: 20,
+                color: canDelete
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.onSurface.withValues(alpha: 0.2),
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -154,41 +190,38 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
           : RefreshIndicator(
               onRefresh: _loadPasskeys,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                // A pixel on top: room for the heading band's top line.
+                padding: const EdgeInsets.only(top: 1, bottom: 24),
                 children: [
                   if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: colorScheme.error.withValues(alpha: 0.1),
-                          borderRadius: context.tokens.brSm,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: context.tokens.hairline),
                         ),
-                        child: Text(
-                          _error!,
-                          style: TextStyle(
-                            color: colorScheme.error,
-                            fontSize: context.tokens.size.body,
-                          ),
+                      ),
+                      child: Text(
+                        _error!,
+                        style: TextStyle(
+                          color: colorScheme.error,
+                          fontSize: context.tokens.size.body,
                         ),
                       ),
                     ),
-                  // Add passkey button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _openAddPasskey,
-                      icon: const Icon(AppIcons.add, size: 18),
-                      label: const Text('Add Passkey'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Passkey list
+                  const FlatHeading('Your passkeys'),
                   if (_passkeys == null || _passkeys!.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: context.tokens.hairline),
+                        ),
+                      ),
+                      child: Center(
                         child: Text(
                           'No passkeys found',
                           style: TextStyle(color: colorScheme.onSurfaceVariant),
@@ -196,125 +229,13 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                       ),
                     )
                   else
-                    ...List.generate(_passkeys!.length, (i) {
-                      final pk = _passkeys![i];
-                      final isDeleting = _deletingId == pk.credentialId;
-                      final canDelete =
-                          _passkeys!.length > 1 && _deletingId == null;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest,
-                            borderRadius: context.tokens.brSm,
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  AppIcons.key,
-                                  size: 18,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          pk.name.isNotEmpty
-                                              ? pk.name
-                                              : 'Passkey ${i + 1}',
-                                          style: TextStyle(
-                                            fontWeight:
-                                                context.tokens.weight.bold,
-                                            fontSize: context.tokens.size.body,
-                                          ),
-                                        ),
-                                        if (pk.hasCreatedAtIp()) ...[
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 5,
-                                              vertical: 1,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: colorScheme.onSurface
-                                                  .withValues(alpha: 0.08),
-                                              borderRadius: context.tokens.brXs,
-                                            ),
-                                            child: Text(
-                                              pk.createdAtIp,
-                                              style: context.tokens.mono(
-                                                TextStyle(
-                                                  fontSize: context
-                                                      .tokens
-                                                      .size
-                                                      .caption,
-                                                  color: colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      [
-                                        if (pk.transports.isNotEmpty)
-                                          _formatTransports(pk.transports),
-                                        if (pk.createdAt > 0)
-                                          'Added ${_formatDate(pk.createdAt.toInt())}',
-                                      ].join(' · '),
-                                      style: TextStyle(
-                                        fontSize: context.tokens.size.small,
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: canDelete
-                                    ? () => _deletePasskey(pk.credentialId)
-                                    : null,
-                                icon: isDeleting
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Icon(
-                                        AppIcons.delete,
-                                        size: 20,
-                                        color: canDelete
-                                            ? colorScheme.onSurfaceVariant
-                                            : colorScheme.onSurface.withValues(
-                                                alpha: 0.2,
-                                              ),
-                                      ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
+                    for (var i = 0; i < _passkeys!.length; i++)
+                      _passkeyRow(context, i),
+                  FlatRow(
+                    icon: AppIcons.add,
+                    label: 'Add passkey',
+                    onTap: _openAddPasskey,
+                  ),
                 ],
               ),
             ),
