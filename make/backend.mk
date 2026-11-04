@@ -1,7 +1,7 @@
 # Backend: run, agent background instance, the fuzz harness.
 # Split from the top-level Makefile; variables live there.
 
-.PHONY: run-backend run-backend-release run-backend-scratch agent-backend-start agent-backend-stop \
+.PHONY: run-backend run-backend-release run-backend-scratch seed-workouts agent-backend-start agent-backend-stop \
 	fuzz-api fuzz-api-ci progression-explorer check
 
 STOP_LOCAL_BACKENDS = pkill -f "[t]arget/(debug|release)/schlift" || true
@@ -24,6 +24,20 @@ run-backend-scratch:
 	@$(STOP_LOCAL_BACKENDS)
 	@rm -rf "$(SCRATCH_BACKEND_DATA_DIR)" && mkdir -p "$(SCRATCH_BACKEND_DATA_DIR)"
 	DATA_DIR="$(SCRATCH_BACKEND_DATA_DIR)" $(BACKEND_DEV_ENV) cargo run --bin schlift --features test-auth
+
+# Test workouts for any account on a running dev backend (it needs dev
+# login, so never production): a seeded lifter's WEEKS of history through
+# the phone's own core, ending yesterday, at irregular days and times in
+# this machine's timezone, time off included (weeks away, breaks of a month
+# or two), added as history imports. A phone signed in as that user gets
+# them live. The same SEED makes the same workouts. Each run adds them
+# again; REPLACE=1 first discards what earlier imports brought in.
+#   make seed-workouts ACCOUNT=ya [WEEKS=16] [PER_WEEK=3] [SEED=1] [REPLACE=1]
+seed-workouts:
+	@test -n "$(ACCOUNT)" || { echo "usage: make seed-workouts ACCOUNT=<name> [WEEKS=16] [PER_WEEK=3] [SEED=1] [REPLACE=1]"; exit 1; }
+	cargo run -q -p schlift-load --bin seed -- --user "$(ACCOUNT)" \
+		--weeks $(or $(WEEKS),16) --per-week $(or $(PER_WEEK),3) --seed $(or $(SEED),1) \
+		--utc-offset "$$(date +%z)" $(if $(REPLACE),--replace)
 
 agent-backend-start:
 	@bash -ec '\

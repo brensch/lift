@@ -13,6 +13,26 @@ import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
 import 'wordmark.dart';
 
+/// A page the menu opens (Progress, History, Learn, Settings): Android's
+/// back goes home rather than out of the app. On the page itself, inside
+/// the shell's navigator, since the router asks that navigator's routes
+/// first; [MainLayout]'s own scope only tells Android that back is the
+/// app's (the drawer closing reports the shell's say on it last).
+class BackToHome extends StatelessWidget {
+  final Widget child;
+
+  const BackToHome({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop) context.go('/');
+    },
+    child: child,
+  );
+}
+
 class MainLayout extends StatelessWidget {
   final Widget child;
   final String currentPath;
@@ -40,7 +60,8 @@ class MainLayout extends StatelessWidget {
         path == '/passkeys/add' ||
         path == '/sound-settings' ||
         path == '/debug-notifications' ||
-        path == '/settings/plate-colors';
+        path == '/settings/plate-colors' ||
+        path == '/settings/data';
 
     final isTopLevelMenuPage =
         currentPath == '/' ||

@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import '../widgets/common/flat.dart';
+import '../widgets/common/quiet_link.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -8,7 +9,6 @@ import 'package:provider/provider.dart';
 
 import '../services/wearable_bridge_service.dart';
 import '../theme/theme_spec.dart';
-import '../theme/app_icons.dart';
 
 const _gitHash = String.fromEnvironment('GIT_HASH', defaultValue: 'dev');
 
@@ -74,11 +74,12 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: PageTitle('Build Info')),
+      appBar: AppBar(title: PageTitle('Build info')),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              // A pixel on top: room for the first heading band's top line.
+              padding: const EdgeInsets.only(top: 1, bottom: 24),
               children: [
                 _Section(
                   title: 'App',
@@ -90,9 +91,7 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
                     'Server': _serverInfo,
                   },
                 ),
-                const SizedBox(height: 16),
                 _Section(title: 'Device', entries: _deviceInfo),
-                const SizedBox(height: 16),
                 _Section(
                   title: 'Watch',
                   entries: {
@@ -103,11 +102,10 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
                     },
                   },
                 ),
-                const SizedBox(height: 24),
-                Center(
-                  child: TextButton.icon(
-                    icon: const Icon(AppIcons.copy, size: 16),
-                    label: const Text('Copy to clipboard'),
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: QuietLink(
+                    label: 'Copy to clipboard',
                     onPressed: () {
                       final buf = StringBuffer();
                       buf.writeln(
@@ -144,6 +142,8 @@ class _BuildInfoScreenState extends State<BuildInfoScreen> {
   }
 }
 
+/// A section: its heading band, then a full-width row a fact, the name on
+/// the left and the value on the right.
 class _Section extends StatelessWidget {
   final String title;
   final Map<String, String> entries;
@@ -152,57 +152,41 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final t = context.tokens;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontWeight: context.tokens.weight.heavy,
-            fontSize: context.tokens.size.body,
-            letterSpacing: -0.3,
-            color: cs.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: context.tokens.brMd,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            children: entries.entries.map((e) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Text(
-                      e.key,
-                      style: TextStyle(
-                        fontSize: context.tokens.size.body,
-                        color: cs.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const Spacer(),
-                    Flexible(
-                      child: Text(
-                        e.value,
-                        style: TextStyle(
-                          fontSize: context.tokens.size.body,
-                          fontWeight: context.tokens.weight.bold,
-                        ),
-                        textAlign: TextAlign.end,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+        FlatHeading(title),
+        for (final e in entries.entries)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: t.hairline)),
+            ),
+            child: Row(
+              children: [
+                Text(
+                  e.key,
+                  style: TextStyle(fontSize: t.size.body, color: t.muted),
                 ),
-              );
-            }).toList(),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    e.value,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.mono(
+                      TextStyle(
+                        fontSize: t.size.body,
+                        fontWeight: t.weight.bold,
+                        color: t.text,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

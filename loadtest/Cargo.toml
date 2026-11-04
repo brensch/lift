@@ -7,6 +7,11 @@ publish = false
 # Load test: lightweight clients that run the phone's own core (schlift_native)
 # against a real server. See docs/testing/load.md.
 
+# `make seed-workouts`: test workouts for an account on a dev backend.
+[[bin]]
+name = "seed"
+path = "src/seed.rs"
+
 [dependencies]
 schlift = { path = ".." }
 schlift-core = { path = "../core" }

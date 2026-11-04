@@ -35,8 +35,9 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
-/// One full-width block of a page: an optional [label], the [child] in the
-/// page margins, and a hairline under it that runs edge to edge.
+/// One full-width block of a page: an optional [label] as a heading band,
+/// the [child] in the page margins, and a hairline under it that runs edge
+/// to edge.
 class FlatSection extends StatelessWidget {
   final String? label;
   final Widget child;
@@ -49,12 +50,16 @@ class FlatSection extends StatelessWidget {
   /// it) rather than sitting above a margin.
   final bool flushBottom;
 
+  /// The child starts right under the [label]'s band, for the same reason.
+  final bool flushTop;
+
   const FlatSection({
     super.key,
     this.label,
     required this.child,
     this.bleed = false,
     this.flushBottom = false,
+    this.flushTop = false,
   });
 
   static const double margin = 16;
@@ -66,22 +71,20 @@ class FlatSection extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: t.hairline)),
       ),
-      child: Padding(
-        padding: EdgeInsets.only(top: 14, bottom: flushBottom ? 0 : 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (label != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(margin, 0, margin, 10),
-                child: SectionLabel(label!),
-              ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: bleed ? 0 : margin),
-              child: child,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (label != null) FlatHeading(label!),
+          Padding(
+            padding: EdgeInsets.only(
+              top: flushTop ? 0 : 14,
+              bottom: flushBottom ? 0 : 14,
+              left: bleed ? 0 : margin,
+              right: bleed ? 0 : margin,
             ),
-          ],
-        ),
+            child: child,
+          ),
+        ],
       ),
     );
   }
@@ -218,8 +221,9 @@ class FlatRow extends StatelessWidget {
   }
 }
 
-/// A section heading over full-width rows: the label in the margin, a
-/// hairline under it.
+/// A section heading over full-width rows: the label in the margin, on a
+/// darker band than the rows with a hairline above and below, so headings
+/// and content tell apart.
 class FlatHeading extends StatelessWidget {
   final String text;
 
@@ -227,12 +231,29 @@ class FlatHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.tokens.hairline)),
-      ),
-      child: SectionLabel(text),
+    final t = context.tokens;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 9),
+          decoration: BoxDecoration(
+            color: t.headingBand,
+            border: Border(bottom: BorderSide(color: t.hairline)),
+          ),
+          child: SectionLabel(text),
+        ),
+        // The top line a pixel up, over the hairline that ends the row
+        // above, so the two read as one line rather than a doubled one.
+        Positioned(
+          top: -1,
+          left: 0,
+          right: 0,
+          height: 1,
+          child: ColoredBox(color: t.hairline),
+        ),
+      ],
     );
   }
 }
@@ -287,4 +308,101 @@ class PageTitle extends StatelessWidget {
     // The app bar's title style, so a sheet's title matches a page's.
     style: Theme.of(context).appBarTheme.titleTextStyle,
   );
+}
+
+/// Figures in a full-width grid, three to a row: each a label (in its
+/// colour, or muted) over its value, the cells split by hairlines that meet
+/// the lines above and below.
+class FlatMetricGrid extends StatelessWidget {
+  final List<(String, String, Color?)> metrics;
+
+  /// Lines along the grid's top and bottom; off where a heading band's
+  /// line (or a section's) already runs there.
+  final bool topLine;
+  final bool bottomLine;
+
+  const FlatMetricGrid({
+    super.key,
+    required this.metrics,
+    this.topLine = false,
+    this.bottomLine = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget cell((String, String, Color?) m, {required bool last}) => Expanded(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 12),
+        decoration: BoxDecoration(
+          border: Border(
+            right: last ? BorderSide.none : BorderSide(color: t.hairline),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              m.$1.toUpperCase(),
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.small,
+                  fontWeight: t.weight.bold,
+                  letterSpacing: 1,
+                  color: m.$3 ?? t.muted,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                m.$2,
+                maxLines: 1,
+                style: t.mono(
+                  TextStyle(
+                    fontSize: t.size.titleLg,
+                    fontWeight: t.weight.bold,
+                    color: t.text,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final rows = <Widget>[];
+    for (var i = 0; i < metrics.length; i += 3) {
+      final row = metrics.sublist(i, (i + 3).clamp(0, metrics.length));
+      rows.add(
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: i == 0 && !topLine
+                  ? BorderSide.none
+                  : BorderSide(color: t.hairline),
+              bottom: i + 3 >= metrics.length && bottomLine
+                  ? BorderSide(color: t.hairline)
+                  : BorderSide.none,
+            ),
+          ),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var j = 0; j < 3; j++)
+                  j < row.length
+                      ? cell(row[j], last: j == 2)
+                      : const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Column(children: rows);
+  }
 }

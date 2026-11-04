@@ -9,12 +9,25 @@ import 'package:flutter/material.dart';
 import '../../gen/workout/v1/wearable.pb.dart';
 import 'models.dart';
 import '../../theme/theme_spec.dart';
+import '../common/flat.dart';
 
 class ZoneSummary extends StatelessWidget {
   final List<HeartRateSample> samples;
   final List<HeartRateZone> zones;
 
-  const ZoneSummary({super.key, required this.samples, required this.zones});
+  /// The side margins of the zones; the figures' grid runs edge to edge.
+  final double inset;
+
+  /// Whether the grid draws its bottom line when no zones follow it.
+  final bool closeGrid;
+
+  const ZoneSummary({
+    super.key,
+    required this.samples,
+    required this.zones,
+    this.inset = 0,
+    this.closeGrid = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,118 +53,91 @@ class ZoneSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            StatTile(label: 'AVG', value: avg.round().toString()),
-            StatTile(label: 'MAX', value: maxBpm.round().toString()),
-            StatTile(label: 'MIN', value: minBpm.round().toString()),
+        FlatMetricGrid(
+          topLine: true,
+          bottomLine: totalSec > 0 || closeGrid,
+          metrics: [
+            ('Avg', avg.round().toString(), null),
+            ('Max', maxBpm.round().toString(), null),
+            ('Min', minBpm.round().toString(), null),
           ],
         ),
-        if (totalSec > 0) ...[
-          const SizedBox(height: 20),
-          Text(
-            'TIME IN ZONE',
-            style: TextStyle(
-              fontSize: context.tokens.size.small,
-              fontWeight: context.tokens.weight.bold,
-              letterSpacing: 1.5,
-              color: colorScheme.tertiary,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: context.tokens.brXs,
-            child: SizedBox(
-              height: 12,
-              child: Row(
-                children: [
-                  for (final z in zones)
-                    Expanded(
-                      flex: (zoneSeconds[z.name] ?? 0).round(),
-                      child: Container(
-                        color: zoneColorByName(
-                          z.name,
-                          context.tokens.heartZones,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 14,
-            runSpacing: 6,
-            children: [
-              for (final z in zones)
-                if ((zoneSeconds[z.name] ?? 0) >= 1)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: zoneColorByName(
-                            z.name,
-                            context.tokens.heartZones,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '${z.name}  ${formatElapsedHms((zoneSeconds[z.name] ?? 0).round())}',
-                        style: TextStyle(
-                          fontSize: context.tokens.size.small,
-                          fontWeight: context.tokens.weight.bold,
-                          color: colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
+        if (totalSec > 0)
+          Padding(
+            padding: EdgeInsets.fromLTRB(inset, 20, inset, closeGrid ? 0 : 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TIME IN ZONE',
+                  style: TextStyle(
+                    fontSize: context.tokens.size.small,
+                    fontWeight: context.tokens.weight.bold,
+                    letterSpacing: 1.5,
+                    color: colorScheme.tertiary,
                   ),
-            ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: context.tokens.brXs,
+                  child: SizedBox(
+                    height: 12,
+                    child: Row(
+                      children: [
+                        for (final z in zones)
+                          Expanded(
+                            flex: (zoneSeconds[z.name] ?? 0).round(),
+                            child: Container(
+                              color: zoneColorByName(
+                                z.name,
+                                context.tokens.heartZones,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  children: [
+                    for (final z in zones)
+                      if ((zoneSeconds[z.name] ?? 0) >= 1)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: zoneColorByName(
+                                  z.name,
+                                  context.tokens.heartZones,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '${z.name}  ${formatElapsedHms((zoneSeconds[z.name] ?? 0).round())}',
+                              style: TextStyle(
+                                fontSize: context.tokens.size.small,
+                                fontWeight: context.tokens.weight.bold,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
       ],
-    );
-  }
-}
-
-class StatTile extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const StatTile({super.key, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: context.tokens.size.titleLg,
-              fontWeight: context.tokens.weight.heavy,
-              letterSpacing: -0.5,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: context.tokens.size.small,
-              fontWeight: context.tokens.weight.bold,
-              letterSpacing: 0.8,
-              color: colorScheme.tertiary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

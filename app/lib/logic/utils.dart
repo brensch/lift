@@ -66,21 +66,69 @@ String _passkeyError(String code, String? message, [Object? details]) {
   return 'Passkey error ($code): $messageText$detailText';
 }
 
+const _months = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const _monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
 /// "Oct 3": a day as the charts and plan reasons show it.
-String shortDate(DateTime d) {
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[d.month - 1]} ${d.day}';
+String shortDate(DateTime d) => '${_months[d.month - 1]} ${d.day}';
+
+/// "Oct 3", or "Oct 3, 2024" outside this year.
+String dayDate(DateTime d) =>
+    d.year == DateTime.now().year ? shortDate(d) : '${shortDate(d)}, ${d.year}';
+
+/// "October 2026": a month heading.
+String monthYear(DateTime d) => '${_monthNames[d.month - 1]} ${d.year}';
+
+/// A chart's date label: "Oct 3", or "Oct '25" on an axis spanning a year.
+String axisDate(DateTime d, {required bool withYear}) => withYear
+    ? "${_months[d.month - 1]} '${(d.year % 100).toString().padLeft(2, '0')}"
+    : shortDate(d);
+
+/// The spans a progress chart can show, longest first; null days is all
+/// of it.
+const chartWindows = <({String label, int? days})>[
+  (label: 'All', days: null),
+  (label: '1Y', days: 365),
+  (label: '6M', days: 183),
+  (label: '3M', days: 92),
+  (label: '1M', days: 31),
+];
+
+/// The span a chart covers for `window` (an index into [chartWindows]):
+/// that long before now, or for all time from `first`. Never under a day.
+({DateTime from, DateTime to}) chartSpan(int window, DateTime? first) {
+  final to = DateTime.now();
+  final days = chartWindows[window].days;
+  var from = days != null ? to.subtract(Duration(days: days)) : (first ?? to);
+  if (to.difference(from) < const Duration(days: 1)) {
+    from = to.subtract(const Duration(days: 1));
+  }
+  return (from: from, to: to);
 }

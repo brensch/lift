@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
-import '../providers/workout_provider.dart';
-import 'package:file_selector/file_selector.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../services/account_sync.dart';
-import '../services/error_modal_service.dart';
 import '../services/grpc_client.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
@@ -43,7 +40,8 @@ class SettingsScreen extends StatelessWidget {
         title: PageTitle('Settings'),
       ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        // A pixel on top: room for the first heading band's top line.
+        padding: const EdgeInsets.only(top: 1, bottom: 24),
         children: [
           const FlatHeading('You'),
           FlatRow(
@@ -77,15 +75,9 @@ class SettingsScreen extends StatelessWidget {
           ),
           FlatRow(
             icon: AppIcons.download,
-            label: 'Export your data',
-            subtitle: 'Everything, as one SQLite file',
-            onTap: () => _export(context, auth),
-          ),
-          FlatRow(
-            icon: AppIcons.upload,
-            label: 'Import a file',
-            subtitle: 'Bring back an export of this account',
-            onTap: () => _import(context),
+            label: copy.yourData.settingsRow,
+            subtitle: copy.yourData.settingsRowSub,
+            onTap: () => context.push('/settings/data'),
           ),
           FlatRow(
             icon: AppIcons.key,
@@ -133,55 +125,6 @@ class SettingsScreen extends StatelessWidget {
     return waiting == 0
         ? 'Offline, nothing waiting'
         : 'Offline, $waiting changes waiting';
-  }
-
-  Future<void> _export(BuildContext context, AuthProvider auth) async {
-    final sync = context.read<AccountSync>();
-    try {
-      final file = await sync.export(auth.username ?? '');
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
-    } catch (e) {
-      ErrorModalService.showError('EXPORT FAILED: $e');
-    }
-  }
-
-  /// Replace this phone's copy of the account with an exported file.
-  Future<void> _import(BuildContext context) async {
-    final sync = context.read<AccountSync>();
-    final workouts = context.read<WorkoutProvider>();
-    final settings = context.read<SettingsProvider>();
-    final userId = context.read<AuthProvider>().userId;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Import a file?'),
-        content: const Text(
-          "This phone's copy of your account is replaced by the file. "
-          'Anything the server already has comes back when it syncs.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Import'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || userId == null) return;
-    // A document picker only: no photo library, so no purpose string.
-    final path = (await openFile())?.path;
-    if (path == null) return;
-    try {
-      await sync.importFile(path);
-      await settings.load();
-      await workouts.loadActiveWorkout(userId);
-    } catch (e) {
-      ErrorModalService.showError('IMPORT FAILED: $e');
-    }
   }
 
   /// Open one of the full-screen reading pages over everything.

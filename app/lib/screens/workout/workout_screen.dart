@@ -349,14 +349,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               else if (hasHeartRate)
                 ListView(
                   physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
                   children: [
+                    // The figures' grid edge to edge, the rest in margins.
                     HeartRateChart(
                       heartRateSamples: wp.wearHeartRateSamples,
                       completedSets: wp.completedSets,
                       workoutStartTime: workout.startTime,
                       now: wp.now,
                       stateSnapshot: wp.stateSnapshot,
+                      inset: 16,
                     ),
                   ],
                 )
