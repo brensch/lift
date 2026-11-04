@@ -172,6 +172,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             partners: _partners[item.workout.sessionId] ?? const [],
             unit: unit,
             cs: cs,
+            onDiscarded: _load,
           );
         },
       ),
@@ -214,11 +215,15 @@ class _HistoryCard extends StatelessWidget {
   final List<String> partners;
   final WeightUnit unit;
   final ColorScheme cs;
+
+  /// The workout was thrown away from its summary: the list reloads.
+  final VoidCallback onDiscarded;
   const _HistoryCard({
     required this.item,
     required this.partners,
     required this.unit,
     required this.cs,
+    required this.onDiscarded,
   });
 
   @override
@@ -242,9 +247,13 @@ class _HistoryCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => context.push(
-          '/workout/${item.workout.id}/completed?isHistory=true',
-        ),
+        onTap: () async {
+          // A workout thrown away from its summary leaves the list.
+          final discarded = await context.push<bool>(
+            '/workout/${item.workout.id}/completed?isHistory=true',
+          );
+          if (discarded == true) onDiscarded();
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(

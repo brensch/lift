@@ -172,6 +172,24 @@ impl Account {
                 self.settings.push(setting);
             }
             Fact::HistoryImported(imported) => self.import(imported),
+            Fact::WorkoutDiscarded(discarded) => {
+                let index = self
+                    .workouts
+                    .iter()
+                    .position(|r| r.workout.id == discarded.workout_id)
+                    .ok_or_else(|| CoreError::NotFound("Workout not found".into()))?;
+                self.workouts.remove(index);
+                if self.active_workout_id == discarded.workout_id {
+                    self.active_workout_id.clear();
+                }
+            }
+            // Recorded by a newer app: it folds once this one is updated.
+            Fact::Unknown(unknown) => {
+                return Err(invalid(format!(
+                    "{} is not known to this version",
+                    unknown.name
+                )))
+            }
             workout_fact => self.change_workout(workout_fact, at, &mut ids)?,
         }
         Ok(())

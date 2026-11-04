@@ -56,7 +56,9 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   `core/tests/stored_events.rs` fails on it, and a new fact goes in its
   `testdata/stored_events.json`. Changing how an existing fact folds changes
   every stored account: the phone and the server must fold the same events
-  to the same account. In the protos, a removed field's number and name go
+  to the same account. An older app keeps a fact it doesn't know and folds it
+  as nothing; nothing may write a new kind into accounts until the app that
+  knows it is required (`MIN_APP_VERSION`). In the protos, a removed field's number and name go
   in that message's `reserved`; never reuse a number or delete a
   `reserved` line.
 - **Storage follows authority.** What the phone makes (training, templates,

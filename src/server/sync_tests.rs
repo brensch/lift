@@ -525,6 +525,44 @@ mod stream {
         assert_eq!(alices.len(), 3, "the start, the set, the end");
     }
 
+    /// Throwing the workout under way away takes its owner out of the
+    /// session at once, with nothing left on show.
+    #[tokio::test]
+    async fn discarding_the_workout_leaves_the_session() {
+        let db = db().await;
+        let (alice, _) = db
+            .get_or_create_user_with_auth_session("alice")
+            .await
+            .unwrap();
+        let (bob, _) = db
+            .get_or_create_user_with_auth_session("bob")
+            .await
+            .unwrap();
+        db.join_session("s", &alice.id).await.unwrap();
+        db.join_session("s", &bob.id).await.unwrap();
+        let channel = serve(db.clone()).await;
+        let token = db.create_auth_session(&alice.id).await.unwrap();
+        let mut link = Link::open(channel, &token).await;
+        let mut phone = Phone::new();
+        let (started, events) = phone.start_squats(now_unix());
+        link.push(events).await;
+        link.events_through(1).await;
+        let (_, gone) = phone.write(now_unix(), |call| {
+            call.discard_workout(DiscardWorkoutRequest {
+                workout_id: started.id.clone(),
+            })
+            .unwrap()
+        });
+        link.push(gone).await;
+        link.events_through(2).await;
+        link.session(|s| s.session_id.is_empty()).await;
+        let roster = db.session_roster("s").await.unwrap();
+        assert!(
+            roster.iter().all(|(user, _, _)| *user != alice.id),
+            "she is off show: {roster:?}"
+        );
+    }
+
     /// A heartbeat is answered with the head, so the phone knows the link
     /// is alive.
     #[tokio::test]

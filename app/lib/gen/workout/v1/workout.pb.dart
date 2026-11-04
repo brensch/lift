@@ -3609,6 +3609,102 @@ class EndWorkoutRequest extends $pb.GeneratedMessage {
   void clearEndedAt() => $_clearField(2);
 }
 
+/// Throw a workout away, under way or finished: it is gone from the account
+/// (history, plans, maxes) as if it never happened.
+class DiscardWorkoutRequest extends $pb.GeneratedMessage {
+  factory DiscardWorkoutRequest({
+    $core.String? workoutId,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    return result;
+  }
+
+  DiscardWorkoutRequest._();
+
+  factory DiscardWorkoutRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DiscardWorkoutRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DiscardWorkoutRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiscardWorkoutRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiscardWorkoutRequest copyWith(
+          void Function(DiscardWorkoutRequest) updates) =>
+      super.copyWith((message) => updates(message as DiscardWorkoutRequest))
+          as DiscardWorkoutRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DiscardWorkoutRequest create() => DiscardWorkoutRequest._();
+  @$core.override
+  DiscardWorkoutRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DiscardWorkoutRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DiscardWorkoutRequest>(create);
+  static DiscardWorkoutRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+}
+
+class DiscardWorkoutResponse extends $pb.GeneratedMessage {
+  factory DiscardWorkoutResponse() => create();
+
+  DiscardWorkoutResponse._();
+
+  factory DiscardWorkoutResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DiscardWorkoutResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DiscardWorkoutResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiscardWorkoutResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DiscardWorkoutResponse copyWith(
+          void Function(DiscardWorkoutResponse) updates) =>
+      super.copyWith((message) => updates(message as DiscardWorkoutResponse))
+          as DiscardWorkoutResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DiscardWorkoutResponse create() => DiscardWorkoutResponse._();
+  @$core.override
+  DiscardWorkoutResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DiscardWorkoutResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DiscardWorkoutResponse>(create);
+  static DiscardWorkoutResponse? _defaultInstance;
+}
+
 class EndWorkoutResponse extends $pb.GeneratedMessage {
   factory EndWorkoutResponse({
     Workout? workout,

@@ -17,6 +17,9 @@ import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
+import '../services/error_modal_service.dart';
+import '../widgets/common/quiet_link.dart';
+import '../widgets/dialogs/discard_workout_dialog.dart';
 import '../widgets/heart_rate/heart_rate_chart.dart';
 import '../widgets/set_log.dart';
 import '../theme/theme_spec.dart';
@@ -252,10 +255,39 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
               proposedSets: ownProposedSets,
               completedSets: ownCompletedSets,
             ),
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: QuietLink(
+                label: copy.workout.discardWorkout,
+                onPressed: _discard,
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Throw the workout away, once the person confirms, and go back: it is
+  /// gone from history.
+  Future<void> _discard() async {
+    if (!await confirmDiscardWorkout(context) || !mounted) return;
+    final service = context.read<WorkoutServiceWrapper>();
+    final wp = context.read<WorkoutProvider>();
+    try {
+      await service.discardWorkout(widget.workoutId);
+    } catch (e) {
+      if (mounted) ErrorModalService.showError(cleanErrorMessage(e));
+      return;
+    }
+    if (wp.workout?.id == widget.workoutId) await wp.dismissEndedWorkout();
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop(true);
+    } else {
+      context.go('/');
+    }
   }
 
   ExerciseLog? _logFor(Exercise exercise) {
