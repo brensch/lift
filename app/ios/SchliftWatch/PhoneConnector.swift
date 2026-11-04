@@ -52,6 +52,9 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
             session.delegate = self
             session.activate()
         }
+        #if DEBUG
+            applyDebugLaunch()
+        #endif
     }
 
     deinit {
@@ -313,3 +316,28 @@ enum WatchPaths {
     static let wearToPhoneClockSync = "/schlift/wear/clock_sync"
     static let wearToPhoneSnapshotRequest = "/schlift/wear/snapshot_request"
 }
+
+#if DEBUG
+    /// Debug builds only: a snapshot and heart rate from the launch environment, as the
+    /// phone would send them, so the face can be shown (and screenshotted for the stores)
+    /// on a simulator with no phone paired. `scripts/capture_watch_screenshots.py` sets
+    /// them through `simctl launch`:
+    ///
+    ///     SIMCTL_CHILD_SCHLIFT_SNAPSHOT=<base64 WearWorkoutSnapshot>
+    ///     SIMCTL_CHILD_SCHLIFT_BPM=141
+    ///     SIMCTL_CHILD_SCHLIFT_PLATES=1   (opens the plate screen; see FaceScreen)
+    extension PhoneConnector {
+        func applyDebugLaunch() {
+            let env = ProcessInfo.processInfo.environment
+            if let bpm = env["SCHLIFT_BPM"].flatMap(Double.init) {
+                latestBpm = bpm
+            }
+            guard let encoded = env["SCHLIFT_SNAPSHOT"],
+                  let data = Data(base64Encoded: encoded),
+                  let snapshot = try? Workout_V1_WearWorkoutSnapshot(serializedBytes: data)
+            else { return }
+            // Straight to the face: no HealthKit session for a snapshot no phone sent.
+            self.snapshot = snapshot
+        }
+    }
+#endif
