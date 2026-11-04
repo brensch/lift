@@ -310,11 +310,15 @@ class PageTitle extends StatelessWidget {
   );
 }
 
-/// Figures in a full-width grid, three to a row: each a label (in its
-/// colour, or muted) over its value, the cells split by hairlines that meet
-/// the lines above and below.
+/// Figures in a full-width grid, [columns] to a row: each a label (in its
+/// colour, or muted) over its value, and under that its note if it has one,
+/// the cells split by hairlines that meet the lines above and below.
 class FlatMetricGrid extends StatelessWidget {
   final List<(String, String, Color?)> metrics;
+
+  /// A line under each metric's value, by position; null for none.
+  final List<String?>? notes;
+  final int columns;
 
   /// Lines along the grid's top and bottom; off where a heading band's
   /// line (or a section's) already runs there.
@@ -324,6 +328,8 @@ class FlatMetricGrid extends StatelessWidget {
   const FlatMetricGrid({
     super.key,
     required this.metrics,
+    this.notes,
+    this.columns = 3,
     this.topLine = false,
     this.bottomLine = false,
   });
@@ -331,7 +337,11 @@ class FlatMetricGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    Widget cell((String, String, Color?) m, {required bool last}) => Expanded(
+    Widget cell(
+      (String, String, Color?) m,
+      String? note, {
+      required bool last,
+    }) => Expanded(
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 12, 12),
         decoration: BoxDecoration(
@@ -369,14 +379,19 @@ class FlatMetricGrid extends StatelessWidget {
                 ),
               ),
             ),
+            if (note != null)
+              Text(
+                note,
+                style: TextStyle(fontSize: t.size.small, color: t.muted),
+              ),
           ],
         ),
       ),
     );
 
     final rows = <Widget>[];
-    for (var i = 0; i < metrics.length; i += 3) {
-      final row = metrics.sublist(i, (i + 3).clamp(0, metrics.length));
+    for (var i = 0; i < metrics.length; i += columns) {
+      final end = (i + columns).clamp(0, metrics.length);
       rows.add(
         Container(
           decoration: BoxDecoration(
@@ -384,7 +399,7 @@ class FlatMetricGrid extends StatelessWidget {
               top: i == 0 && !topLine
                   ? BorderSide.none
                   : BorderSide(color: t.hairline),
-              bottom: i + 3 >= metrics.length && bottomLine
+              bottom: i + columns >= metrics.length && bottomLine
                   ? BorderSide(color: t.hairline)
                   : BorderSide.none,
             ),
@@ -393,9 +408,9 @@ class FlatMetricGrid extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var j = 0; j < 3; j++)
-                  j < row.length
-                      ? cell(row[j], last: j == 2)
+                for (var j = i; j < i + columns; j++)
+                  j < end
+                      ? cell(metrics[j], notes?[j], last: j == i + columns - 1)
                       : const Expanded(child: SizedBox()),
               ],
             ),

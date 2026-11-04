@@ -10,6 +10,7 @@
 // with less behind them. The real captures come from `make store-capture`.
 //
 // Slides are numbered by shot order; captions live in store/listing.yaml.
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fixnum/fixnum.dart';
@@ -20,6 +21,7 @@ import 'package:provider/provider.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 import 'package:schlift/providers/workout_provider.dart';
+import 'package:schlift/widgets/plate_visualization.dart';
 
 import 'support/api.dart';
 import 'support/scenario.dart';
@@ -186,6 +188,17 @@ void main() {
         sinceMs: DateTime.now().millisecondsSinceEpoch - 20000,
       );
       await s.shot('Heart rate');
+
+      // 08 — the plate calculator, for a weight that loads a few sizes
+      // (the live set is a warmup on the bare bar).
+      unawaited(
+        showPlateBreakdownDialog(
+          tester.element(find.byType(Scaffold).first),
+          weightLb: 255,
+        ),
+      );
+      await s.settle(seconds: 2);
+      await s.shot('Plate calculator');
     });
   });
 }

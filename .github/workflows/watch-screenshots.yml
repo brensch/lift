@@ -1,0 +1,95 @@
+name: Watch Screenshots
+
+# The App Store's Apple Watch screenshots, from the real watch app: the debug
+# SchliftWatch build on a watchOS simulator, shown each store scene by
+# scripts/capture_watch_screenshots.py. Download the artifact into
+# store/screenshots/raw/ and commit it; see docs/releasing.md.
+
+on:
+  # TEMPORARY while the workflow is built on its branch; removed before merging.
+  push:
+    branches: [watch-store-shots]
+  workflow_dispatch:
+    inputs:
+      device:
+        description: "Simulator device type; its screen size must be one the App Store takes (store_listing_app_store.py)"
+        required: true
+        type: string
+        default: "Apple Watch Series 9 (45mm)"
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install build tools
+        run: brew install buf swift-protobuf protobuf
+
+      - name: Use CocoaPods for plugins (disable Swift Package Manager)
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Install Flutter dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Generate Swift protobuf files
+        run: make proto-swift
+
+      - name: Install CocoaPods dependencies
+        working-directory: app/ios
+        run: pod install
+
+      - name: Create and boot the watch simulator
+        env:
+          DEVICE: ${{ inputs.device || 'Apple Watch Series 9 (45mm)' }}
+        run: |
+          runtime="$(xcrun simctl list runtimes watchOS -j |
+            python3 -c 'import json, sys; r = [x for x in json.load(sys.stdin)["runtimes"] if x["isAvailable"]]; print(r[-1]["identifier"])')"
+          device_type="$(xcrun simctl list devicetypes -j |
+            python3 -c 'import json, os, sys; print(next(d["identifier"] for d in json.load(sys.stdin)["devicetypes"] if d["name"] == os.environ["DEVICE"]))')"
+          udid="$(xcrun simctl create store-watch "$device_type" "$runtime")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl status_bar "$udid" override --time 9:41 || true
+          echo "UDID=$udid" >> "$GITHUB_ENV"
+
+      - name: Build the debug watch app for the simulator
+        working-directory: app/ios
+        run: |
+          xcodebuild build \
+            -workspace Runner.xcworkspace \
+            -scheme SchliftWatch \
+            -configuration Debug \
+            -destination "id=$UDID" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture
+        run: |
+          app="$(find "$RUNNER_TEMP/dd/Build/Products" -name SchliftWatch.app -type d | head -1)"
+          mkdir -p "$RUNNER_TEMP/shots"
+          python3 scripts/capture_watch_screenshots.py apple \
+            --udid "$UDID" --app "$app" --out "$RUNNER_TEMP/shots"
+          for f in "$RUNNER_TEMP"/shots/*.png; do
+            echo "$(basename "$f"): $(sips -g pixelWidth -g pixelHeight "$f" | awk '/pixel/ { printf "%s ", $2 }')"
+          done
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: apple-watch-screenshots
+          path: ${{ runner.temp }}/shots/*.png
+          if-no-files-found: error

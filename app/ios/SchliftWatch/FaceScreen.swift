@@ -14,7 +14,7 @@ struct FaceScreen: View {
     let snapshot: Workout_V1_WearWorkoutSnapshot
     let now: Date
 
-    @State private var showPlates = false
+    @State private var showPlates = debugShowsPlates
 
     private var card: Workout_V1_WearStatusCard {
         snapshot.youCard
@@ -330,3 +330,11 @@ extension FaceScreen {
         Rectangle().fill(color).frame(height: 1)
     }
 }
+
+// Debug builds only: open on the plate screen when launched with SCHLIFT_PLATES=1, for
+// the store screenshots (see `PhoneConnector.applyDebugLaunch`).
+#if DEBUG
+    private let debugShowsPlates = ProcessInfo.processInfo.environment["SCHLIFT_PLATES"] == "1"
+#else
+    private let debugShowsPlates = false
+#endif
