@@ -2046,9 +2046,10 @@ mod lifting {
     fn heart_rate_stays_through_set_changes() {
         let mut app = App::new();
         let started = start(&mut app, &[Exercise::Squat]);
+        let start_ms = started.workout.as_ref().unwrap().start_time * 1000;
         let samples: Vec<WorkoutHeartRatePoint> = (0..3)
             .map(|i| WorkoutHeartRatePoint {
-                sampled_at: 1_000 + i,
+                sampled_at: start_ms + 1_000 + i,
                 bpm: 120.0,
             })
             .collect();
@@ -2810,4 +2811,117 @@ fn a_discarded_workout_is_gone() {
             workout_id: kept.id.clone(),
         })
         .is_err());
+}
+
+/// One set of `started` done at `at`; returns it as recorded.
+fn one_set(app: &mut App, started: &StartWorkoutResponse, at: i64) -> CompletedSet {
+    let set = started.next_up_set.clone().unwrap();
+    let state = app
+        .call()
+        .append_workout_mutations(AppendWorkoutMutationsRequest {
+            mutations: vec![mutation(Mutation::CompleteSet(CompleteSetRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: set.id.clone(),
+                actual_reps: set.target_reps,
+                actual_weight: set.target_weight,
+                completed_at: at,
+            }))],
+        })
+        .unwrap()
+        .workout_state
+        .unwrap();
+    state
+        .completed_sets
+        .into_iter()
+        .find(|c| c.proposed_set_id == set.id)
+        .unwrap()
+}
+
+fn end(app: &mut App, id: &str, at: i64) -> i64 {
+    app.call()
+        .end_workout(EndWorkoutRequest {
+            workout_id: id.to_string(),
+            ended_at: at,
+        })
+        .unwrap()
+        .workout
+        .unwrap()
+        .end_time
+}
+
+/// A workout left running ends where the training did: its last set's end
+/// plus that set's rest, at most five minutes. One ended sooner keeps its
+/// time; one with nothing done ends when asked. The start always counts.
+#[test]
+fn a_workout_left_running_ends_after_its_last_set() {
+    let mut app = App::new();
+    let started = start(&mut app, &[Exercise::Squat]);
+    let done = one_set(&mut app, &started, NOW + 120);
+    let rest = (done.rest_until - done.ended_at).min(300);
+    assert!(rest > 0);
+    let ended = end(&mut app, &started.id, NOW + 3 * 3600);
+    assert_eq!(ended, done.ended_at + rest);
+    let workout = app
+        .view()
+        .list_workout_summaries()
+        .workouts
+        .remove(0)
+        .workout
+        .unwrap();
+    assert_eq!(workout.start_time, started.workout.unwrap().start_time);
+
+    let mut app = App::new();
+    let started = start(&mut app, &[Exercise::Squat]);
+    let done = one_set(&mut app, &started, NOW + 120);
+    assert_eq!(
+        end(&mut app, &started.id, done.ended_at + 30),
+        done.ended_at + 30
+    );
+
+    let mut app = App::new();
+    let started = start(&mut app, &[Exercise::Squat]);
+    assert_eq!(end(&mut app, &started.id, NOW + 3 * 3600), NOW + 3 * 3600);
+}
+
+/// Heart rate past the end is left out, and moving the end earlier takes
+/// the readings after it with it. Only an ended workout's end moves.
+#[test]
+fn heart_rate_stays_within_the_workout() {
+    let mut app = App::new();
+    let started = start(&mut app, &[Exercise::Squat]);
+    let start_ms = started.workout.as_ref().unwrap().start_time * 1000;
+    assert!(app.call().move_workout_end(&started.id, NOW).is_err());
+    let done = one_set(&mut app, &started, NOW + 120);
+    let ended = end(&mut app, &started.id, NOW + 3 * 3600);
+    let at = |ms: i64| WorkoutHeartRatePoint {
+        sampled_at: ms,
+        bpm: 120.0,
+    };
+    app.call()
+        .record_heart_rate(
+            &started.id,
+            &[
+                at(start_ms - 5_000),
+                at(start_ms + 1_000),
+                at(done.ended_at * 1000),
+                at(ended * 1000 + 60_000),
+            ],
+        )
+        .unwrap();
+    let samples = |app: &mut App| {
+        app.view()
+            .get_workout_heart_rate(GetWorkoutHeartRateRequest {
+                workout_id: started.id.clone(),
+            })
+            .unwrap()
+            .samples
+            .len()
+    };
+    assert_eq!(samples(&mut app), 2, "only those within the workout");
+    app.call().move_workout_end(&started.id, NOW + 60).unwrap();
+    assert_eq!(
+        samples(&mut app),
+        1,
+        "the end moved, the later reading with it"
+    );
 }

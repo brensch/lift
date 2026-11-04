@@ -334,6 +334,16 @@ impl Account {
                 reducer::apply_edit_completed_set_to_active(&mut record, edited, unit, at)?
             }
             Fact::SessionSet(set) => record.workout.session_id = set.session_id.clone(),
+            Fact::WorkoutEndMoved(moved) => {
+                if record.workout.end_time == 0 {
+                    return Err(invalid("the workout has not ended"));
+                }
+                record.workout.end_time = moved.ended_at;
+                let end_ms = moved.ended_at * 1000;
+                self.workouts[index]
+                    .heart_rate
+                    .retain(|s| s.sampled_at <= end_ms);
+            }
             _ => return Err(invalid("not a fact about a workout")),
         }
         record.heart_rate = std::mem::take(&mut self.workouts[index].heart_rate);

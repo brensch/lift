@@ -519,7 +519,19 @@ sequenceDiagram
 ```
 
 Ending changes nothing but the workout's end: the session becomes part of
-the history the next plan walks. An `EndWorkout` on a workout that already
+the history the next plan walks. The end is decided when it is recorded
+(`trimmed_end`, `core/src/api.rs`): when End was tapped, but no later than
+the last set's end plus that set's rest, five minutes at most
+(`END_AFTER_LAST_SET_SECONDS`). A workout left running after the training
+stops where the training did; one with no set done ends when End was
+tapped. The start always counts, from the tap on Start. Heart rate outside
+the workout, before its start or after its end, is left out when it is
+recorded.
+
+A workout's end can be moved earlier afterwards (`WorkoutEndMoved`, not
+an RPC: a correction, for one left running long before ending existed),
+and a workout thrown away (`WorkoutDiscarded`, "Discard workout" in the app,
+under way or from its summary) is gone from the account. An `EndWorkout` on a workout that already
 has an `end_time` changes nothing; the fuzzer checks that a re-fired end
 changes no plan.
 
