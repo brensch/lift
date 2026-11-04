@@ -71,7 +71,6 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final wp = context.watch<WorkoutProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
     return ValueListenableBuilder<DateTime>(
       valueListenable: wp.clock,
       builder: (context, now, _) {
@@ -96,7 +95,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: PageTitle('Debug: Notifications'),
+            title: PageTitle('Debug'),
             actions: [
               IconButton(
                 icon: const Icon(AppIcons.refresh),
@@ -105,9 +104,10 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
             ],
           ),
           body: ListView(
-            padding: const EdgeInsets.all(16),
+            // A pixel on top: room for the first heading band's top line.
+            padding: const EdgeInsets.only(top: 1, bottom: 24),
             children: [
-              _section('Bottom Bar State', [
+              _section('Bottom bar', [
                 _row('state', () {
                   final snapshot = wp.stateSnapshot;
                   final state = snapshot?.state;
@@ -130,9 +130,8 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                 }()),
                 _row('restSecondsRemaining', '${wp.restSecondsRemaining}'),
                 _row('now (unix)', '$nowUnix'),
-              ], colorScheme),
-              const SizedBox(height: 16),
-              _section('Watch Clock Sync', [
+              ]),
+              _section('Watch clock sync', [
                 _row(
                   'delta',
                   _watchClockSync == null
@@ -165,9 +164,8 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                           ),
                         ),
                 ),
-              ], colorScheme),
-              const SizedBox(height: 16),
-              _section('Wear Heart Rate (Last 60s)', [
+              ]),
+              _section('Watch heart rate · last 60 s', [
                 _row('sampleCount', '${hr60s.length}'),
                 _row(
                   'latestBpm',
@@ -185,25 +183,13 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                   'avgBpm',
                   avgBpm != null ? avgBpm.toStringAsFixed(1) : 'n/a',
                 ),
-                const Divider(height: 1),
                 _hrTable(hr60s, nowMs),
-              ], colorScheme),
-              const SizedBox(height: 16),
-              _section('Pending OS Notifications (${_pending.length})', [
+              ]),
+              _section('Pending notifications · ${_pending.length}', [
                 if (_pending.isEmpty) ...[
                   _row('', 'None'),
-                  Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Text(
-                      'NOTE: "None" here means no future notifications are scheduled. '
-                      'If a notification fires now, it was likely already in the OS '
-                      'delivery pipeline or was just moved from "Pending" to "Active".',
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        fontStyle: FontStyle.italic,
-                        color: context.tokens.muted,
-                      ),
-                    ),
+                  _note(
+                    'NOTE: "None" here means no future notifications are scheduled. If a notification fires now, it was likely already in the OS delivery pipeline or was just moved from "Pending" to "Active".',
                   ),
                 ] else
                   for (final n in _pending)
@@ -218,21 +204,15 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                       }
                       return '${n.title}: ${n.body}';
                     }()),
-              ], colorScheme),
-              const SizedBox(height: 16),
-              _section(
-                'Active (Delivered) Notifications (${_active.length})',
-                [
-                  if (_active.isEmpty)
-                    _row('', 'None')
-                  else
-                    for (final n in _active)
-                      _row('id=${n.id}', '${n.title}: ${n.body}'),
-                ],
-                colorScheme,
-              ),
-              const SizedBox(height: 16),
-              _section('Completed Sets (${wp.completedSets.length})', [
+              ]),
+              _section('Delivered notifications · ${_active.length}', [
+                if (_active.isEmpty)
+                  _row('', 'None')
+                else
+                  for (final n in _active)
+                    _row('id=${n.id}', '${n.title}: ${n.body}'),
+              ]),
+              _section('Completed sets · ${wp.completedSets.length}', [
                 for (final c in wp.completedSets.reversed) ...[
                   _row(
                     'set ${c.proposedSetId.substring(0, 8)}...',
@@ -241,7 +221,7 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
                         'ended=${c.endedAt.toInt() > 0 ? "yes" : "no"}',
                   ),
                 ],
-              ], colorScheme),
+              ]),
             ],
           ),
         );
@@ -249,57 +229,41 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
     );
   }
 
-  Widget _section(
-    String title,
-    List<Widget> children,
-    ColorScheme colorScheme,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: context.tokens.size.bodyLg,
-            fontWeight: context.tokens.weight.heavy,
-            color: colorScheme.primary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: context.tokens.brSm,
-            border: Border.all(
-              color: colorScheme.outline.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Column(children: children),
-        ),
-      ],
-    );
-  }
+  /// A section: its heading band, then its rows.
+  Widget _section(String title, List<Widget> children) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [FlatHeading(title), ...children],
+  );
 
+  /// One fact as a full-width row: what, and its value, in the mono face.
   Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.hairline)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (label.isNotEmpty) ...[
             Text(
               label,
-              style: TextStyle(
-                fontWeight: context.tokens.weight.bold,
-                fontSize: context.tokens.size.body,
-              ),
+              style: TextStyle(fontSize: t.size.body, color: t.muted),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 16),
           ],
           Expanded(
             child: Text(
               value,
-              style: TextStyle(fontSize: context.tokens.size.body),
+              textAlign: label.isEmpty ? TextAlign.start : TextAlign.end,
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.body,
+                  fontWeight: t.weight.bold,
+                  color: t.text,
+                ),
+              ),
             ),
           ),
         ],
@@ -307,33 +271,47 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
     );
   }
 
+  /// A muted aside under a section's rows.
+  Widget _note(String text) {
+    final t = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.hairline)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: t.size.small, color: t.muted),
+      ),
+    );
+  }
+
   Widget _hrTable(List<HeartRateSample> samples, int nowMs) {
     if (samples.isEmpty) {
-      return _row('', 'No samples in the last 60s');
+      return _row('', 'No samples in the last 60 s');
     }
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 520),
-        child: Column(
-          children: [
-            _tableHeader(),
-            const Divider(height: 1),
-            for (final s in samples.take(120))
-              _tableRow(
-                time: _fmtTime(
-                  DateTime.fromMillisecondsSinceEpoch(s.sampledAt.toInt()),
-                ),
-                ageSec: ((nowMs - s.sampledAt.toInt()) / 1000)
-                    .clamp(0, 9999)
-                    .toStringAsFixed(1),
-                bpm: s.bpm.toStringAsFixed(1),
-                availability: s.availability.value.toString(),
-              ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _tableRow(
+          time: 'Time',
+          ageSec: 'Age s',
+          bpm: 'BPM',
+          availability: 'Avail',
+          heading: true,
         ),
-      ),
+        for (final s in samples.take(120))
+          _tableRow(
+            time: _fmtTime(
+              DateTime.fromMillisecondsSinceEpoch(s.sampledAt.toInt()),
+            ),
+            ageSec: ((nowMs - s.sampledAt.toInt()) / 1000)
+                .clamp(0, 9999)
+                .toStringAsFixed(1),
+            bpm: s.bpm.toStringAsFixed(1),
+            availability: s.availability.value.toString(),
+          ),
+      ],
     );
   }
 
@@ -344,94 +322,37 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
     return '$hh:$mm:$ss';
   }
 
-  Widget _tableHeader() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 90,
-            child: Text(
-              'Time',
-              style: TextStyle(
-                fontWeight: context.tokens.weight.bold,
-                fontSize: context.tokens.size.small,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 70,
-            child: Text(
-              'Age(s)',
-              style: TextStyle(
-                fontWeight: context.tokens.weight.bold,
-                fontSize: context.tokens.size.small,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 70,
-            child: Text(
-              'BPM',
-              style: TextStyle(
-                fontWeight: context.tokens.weight.bold,
-                fontSize: context.tokens.size.small,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 100,
-            child: Text(
-              'Avail',
-              style: TextStyle(
-                fontWeight: context.tokens.weight.bold,
-                fontSize: context.tokens.size.small,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  /// A sample as a full-width row of four columns; [heading], their names.
   Widget _tableRow({
     required String time,
     required String ageSec,
     required String bpm,
     required String availability,
+    bool heading = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    final t = context.tokens;
+    final style = t.mono(
+      TextStyle(
+        fontSize: t.size.small,
+        fontWeight: heading ? t.weight.bold : t.weight.regular,
+        color: heading ? t.muted : t.text,
+      ),
+    );
+    Widget cell(String text, int flex) => Expanded(
+      flex: flex,
+      child: Text(text, style: style),
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.hairline)),
+      ),
       child: Row(
         children: [
-          SizedBox(
-            width: 90,
-            child: Text(
-              time,
-              style: TextStyle(fontSize: context.tokens.size.small),
-            ),
-          ),
-          SizedBox(
-            width: 70,
-            child: Text(
-              ageSec,
-              style: TextStyle(fontSize: context.tokens.size.small),
-            ),
-          ),
-          SizedBox(
-            width: 70,
-            child: Text(
-              bpm,
-              style: TextStyle(fontSize: context.tokens.size.small),
-            ),
-          ),
-          SizedBox(
-            width: 100,
-            child: Text(
-              availability,
-              style: TextStyle(fontSize: context.tokens.size.small),
-            ),
-          ),
+          cell(time, 3),
+          cell(ageSec, 2),
+          cell(bpm, 2),
+          cell(availability, 2),
         ],
       ),
     );

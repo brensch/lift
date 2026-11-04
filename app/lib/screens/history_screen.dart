@@ -11,6 +11,7 @@ import '../gen/workout/v1/group.pb.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
+import '../services/account_sync.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
 import '../theme/theme_spec.dart';
@@ -30,10 +31,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Map<String, List<String>> _partners = const {};
   bool _isLoading = true;
 
+  // Another device's changes (or a seeded history) arriving while this is
+  // open: read the account again.
+  late final AccountSync _sync = context.read<AccountSync>();
+  late int _revision = _sync.revision;
+
+  void _onSync() {
+    if (_sync.revision == _revision) return;
+    _revision = _sync.revision;
+    _load();
+  }
+
   @override
   void initState() {
     super.initState();
+    _sync.addListener(_onSync);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _sync.removeListener(_onSync);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -155,17 +174,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
           final row = rows[index - 1];
-          if (row is String) {
-            return Container(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: context.tokens.hairline),
-                ),
-              ),
-              child: SectionLabel(row),
-            );
-          }
+          if (row is String) return FlatHeading(row);
           final item = row as _HistoryItem;
           return _HistoryCard(
             item: item,
@@ -255,56 +264,68 @@ class _HistoryCard extends StatelessWidget {
           if (discarded == true) onDiscarded();
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: context.tokens.hairline)),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _DateBadge(date: date, cs: cs),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$title$more',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.heavy,
-                        fontSize: context.tokens.size.bodyLg,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_relativeDay(date)} · ${_formatDuration(item.duration)}',
-                      style: TextStyle(
-                        color: cs.tertiary,
-                        fontSize: context.tokens.size.small,
-                      ),
-                    ),
-                    if (details.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        details,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.tokens.mono(
-                          TextStyle(
-                            fontSize: context.tokens.size.small,
-                            fontWeight: context.tokens.weight.bold,
-                            color: cs.onSurface,
+          // The date fills the row's height, split from the rest by one
+          // vertical hairline.
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DateBadge(date: date, cs: cs),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 16, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '$title$more',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: context.tokens.weight.heavy,
+                                  fontSize: context.tokens.size.bodyLg,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_relativeDay(date)} · ${_formatDuration(item.duration)}',
+                                style: TextStyle(
+                                  color: cs.tertiary,
+                                  fontSize: context.tokens.size.small,
+                                ),
+                              ),
+                              if (details.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  details,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.tokens.mono(
+                                    TextStyle(
+                                      fontSize: context.tokens.size.small,
+                                      fontWeight: context.tokens.weight.bold,
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        Icon(AppIcons.forward, color: cs.tertiary),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              Icon(AppIcons.forward, color: cs.tertiary),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -347,10 +368,14 @@ class _DateBadge extends StatelessWidget {
       'NOV',
       'DEC',
     ];
+    // As wide as the row is tall: a square cell, the vertical hairline on
+    // its right the only line around it.
     return Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(border: Border.all(color: cs.outline)),
+      width: 84,
+      constraints: const BoxConstraints(minHeight: 84),
+      decoration: BoxDecoration(
+        border: Border(right: BorderSide(color: context.tokens.hairline)),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -358,7 +383,7 @@ class _DateBadge extends StatelessWidget {
             months[date.month - 1],
             style: TextStyle(
               color: cs.primary,
-              fontSize: context.tokens.size.caption,
+              fontSize: context.tokens.size.small,
               fontWeight: context.tokens.weight.heavy,
               letterSpacing: 0.5,
             ),
@@ -366,7 +391,7 @@ class _DateBadge extends StatelessWidget {
           Text(
             '${date.day}',
             style: TextStyle(
-              fontSize: context.tokens.size.title,
+              fontSize: context.tokens.size.headline,
               fontWeight: context.tokens.weight.heavy,
               height: 1,
             ),

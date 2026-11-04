@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
@@ -41,7 +42,6 @@ class SetLog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final proposedById = <String, ProposedSet>{
       for (final p in proposedSets) p.id: p,
@@ -57,30 +57,38 @@ class SetLog extends StatelessWidget {
     // Whose set only matters with more than one person's sets in the log.
     final hasOwners = done.map((c) => c.workoutId).toSet().length > 1;
 
-    // The rest before each set: from the previous done set of the same
-    // workout to this one's start (or its finish, if it was never started).
-    final restBefore = <String, int>{};
-    final oldestFirst = done.reversed.toList();
-    final lastEnd = <String, int>{};
-    for (final c in oldestFirst) {
-      final prev = lastEnd[c.workoutId];
-      final began = c.startedAt.toInt() > 0
-          ? c.startedAt.toInt()
-          : c.endedAt.toInt();
-      if (prev != null && began > prev) restBefore[c.id] = began - prev;
-      lastEnd[c.workoutId] = c.endedAt.toInt();
+    // The gap before each set, from the previous done set of the same
+    // workout to this one's start (or its finish, if it was never started):
+    // resting until that set's rest ran out, yapping after it, as the heart
+    // chart's bands split it.
+    final gapBefore = <String, ({int rest, int yap})>{};
+    final previous = <String, CompletedSet>{};
+    for (final c in done.reversed) {
+      final prev = previous[c.workoutId];
+      if (prev != null) {
+        final ended = prev.endedAt.toInt();
+        final began = c.startedAt.toInt() > 0
+            ? c.startedAt.toInt()
+            : c.endedAt.toInt();
+        final restUntil = prev.restUntil.toInt() > ended
+            ? prev.restUntil.toInt()
+            : began;
+        final restEnd = restUntil < began ? restUntil : began;
+        final rest = restEnd - ended;
+        final yap = began - restEnd;
+        if (rest > 0 || yap > 0) {
+          gapBefore[c.id] = (rest: rest > 0 ? rest : 0, yap: yap);
+        }
+      }
+      previous[c.workoutId] = c;
     }
 
-    final heading = Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: t.hairline)),
-      ),
-      child: SectionLabel('Completed sets · ${done.length}'),
-    );
+    final heading = FlatHeading('Completed sets · ${done.length}');
 
+    // Newest first: each set, then the gap before it (the yap, then the
+    // rest), then the set before.
     final rows = [
-      for (final c in done)
+      for (final c in done) ...[
         _LogRow(
           completed: c,
           proposed: proposedById[c.proposedSetId],
@@ -89,7 +97,6 @@ class SetLog extends StatelessWidget {
           ownerEmoji: hasOwners
               ? (workoutOwnerEmojis?[c.workoutId] ?? '')
               : null,
-          restBefore: restBefore[c.id],
           onDelete:
               onDelete != null &&
                   (deletableWorkoutId == null ||
@@ -97,6 +104,9 @@ class SetLog extends StatelessWidget {
               ? () => _delete(context, c)
               : null,
         ),
+        if (gapBefore[c.id] case final gap?)
+          _GapRow(rest: gap.rest, yap: gap.yap),
+      ],
     ];
 
     if (!stickyHeader) {
@@ -193,8 +203,6 @@ class _LogRow extends StatelessWidget {
   /// Whose set, in a session; null when it's only ever yours.
   final String? ownerEmoji;
 
-  /// Seconds from the set before to this one, if there was one.
-  final int? restBefore;
   final VoidCallback? onDelete;
 
   const _LogRow({
@@ -203,7 +211,6 @@ class _LogRow extends StatelessWidget {
     required this.plan,
     required this.unit,
     required this.ownerEmoji,
-    required this.restBefore,
     required this.onDelete,
   });
 
@@ -218,7 +225,6 @@ class _LogRow extends StatelessWidget {
       completed.endedAt.toInt() * 1000,
     );
     String two(int n) => n.toString().padLeft(2, '0');
-    final rest = restBefore;
 
     final line = proposed == null ? '' : setLineFor(proposed, plan);
     final weight = formatWeight(completed.actualWeight.toDouble(), unit);
@@ -230,34 +236,20 @@ class _LogRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // When, and the rest before it.
+          // When it finished; the gap before it has rows of its own.
           SizedBox(
             width: 50,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${two(finished.hour)}:${two(finished.minute)}',
-                  style: t.mono(
-                    TextStyle(
-                      fontSize: t.size.small,
-                      fontWeight: t.weight.bold,
-                      color: t.text,
-                    ),
-                  ),
+            child: Text(
+              '${two(finished.hour)}:${two(finished.minute)}',
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.small,
+                  fontWeight: t.weight.bold,
+                  color: t.text,
                 ),
-                if (rest != null)
-                  Text(
-                    '+${formatRestClock(rest)}',
-                    style: t.mono(
-                      TextStyle(fontSize: t.size.caption, color: t.muted),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          _MiniCircle(reps: reps, target: target, warmup: warmup),
           if (ownerEmoji != null) ...[
             const SizedBox(width: 8),
             SizedBox(
@@ -292,6 +284,7 @@ class _LogRow extends StatelessWidget {
               ],
             ),
           ),
+          // The weight, then the reps once: in the set's circle.
           Text.rich(
             TextSpan(
               children: [
@@ -300,7 +293,7 @@ class _LogRow extends StatelessWidget {
                   text: ' ${weightUnitSuffix(unit)} ',
                   style: TextStyle(fontSize: t.size.caption, color: t.muted),
                 ),
-                TextSpan(text: '× $reps'),
+                const TextSpan(text: '×'),
               ],
             ),
             style: t.mono(
@@ -311,6 +304,8 @@ class _LogRow extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 8),
+          _MiniCircle(reps: reps, target: target, warmup: warmup),
           SizedBox(
             width: 40,
             child: onDelete == null
@@ -327,6 +322,146 @@ class _LogRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The stretch between two sets, as one thin row: resting (the set
+/// before's rest running) then yapping (rest over, the next set not begun),
+/// each as wide as its share of the time, its text in the heart chart's
+/// colour, a hairline between them.
+class _GapRow extends StatelessWidget {
+  final int rest;
+  final int yap;
+
+  const _GapRow({required this.rest, required this.yap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    Widget part(int seconds, String label, Color color, bool leading) =>
+        _GapPart(
+          seconds: seconds,
+          label: label,
+          color: color,
+          leading: leading,
+        );
+    final resting = part(rest, copy.workout.resting, t.resting, true);
+    final yapping = part(yap, copy.workout.yapping, t.yapping, rest <= 0);
+    return Container(
+      height: 24,
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: t.hairline)),
+      ),
+      child: rest <= 0 || yap <= 0
+          ? (rest > 0 ? resting : yapping)
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                // Split by time, but neither part narrower than its words.
+                final total = constraints.maxWidth - 1;
+                final restLeast = _GapPart.least(
+                  context,
+                  rest,
+                  copy.workout.resting,
+                  leading: true,
+                );
+                final yapLeast = _GapPart.least(
+                  context,
+                  yap,
+                  copy.workout.yapping,
+                  leading: false,
+                );
+                var restWidth = total * rest / (rest + yap);
+                if (restLeast + yapLeast <= total) {
+                  restWidth = restWidth.clamp(restLeast, total - yapLeast);
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: restWidth, child: resting),
+                    VerticalDivider(width: 1, thickness: 1, color: t.hairline),
+                    Expanded(child: yapping),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+}
+
+/// One part of a gap: its time and what it was, as much of that as fits.
+class _GapPart extends StatelessWidget {
+  final int seconds;
+  final String label;
+  final Color color;
+
+  /// First in its row: its text lines up with the sets' times.
+  final bool leading;
+
+  const _GapPart({
+    required this.seconds,
+    required this.label,
+    required this.color,
+    required this.leading,
+  });
+
+  static TextStyle _style(BuildContext context, Color? color) {
+    final t = context.tokens;
+    return t.mono(
+      TextStyle(
+        fontSize: t.size.caption,
+        fontWeight: t.weight.bold,
+        letterSpacing: 0.5,
+        color: color,
+      ),
+    );
+  }
+
+  static String _full(int seconds, String label) =>
+      '${formatRestClock(seconds)}  ${label.toUpperCase()}';
+
+  static double _start(bool leading) => leading ? 16 : 8;
+
+  static double _width(BuildContext context, String text) => (TextPainter(
+    text: TextSpan(text: text, style: _style(context, null)),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout()).width;
+
+  /// The width a part needs to show its time and label whole.
+  static double least(
+    BuildContext context,
+    int seconds,
+    String label, {
+    required bool leading,
+  }) => _start(leading) + _width(context, _full(seconds, label)) + 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = _style(context, color);
+    final time = formatRestClock(seconds);
+    final full = _full(seconds, label);
+    final start = _start(leading);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // On a row too narrow for both parts whole, as much as fits.
+        final room = constraints.maxWidth - start - 8;
+        final text = _width(context, full) <= room
+            ? full
+            : _width(context, time) <= room
+            ? time
+            : null;
+        return Padding(
+          padding: EdgeInsets.only(left: start, right: 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: text == null
+                ? null
+                : Text(text, maxLines: 1, softWrap: false, style: style),
+          ),
+        );
+      },
     );
   }
 }

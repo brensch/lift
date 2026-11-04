@@ -76,6 +76,7 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.background,
     required this.panel,
     required this.surfaceHigh,
+    required this.headingBand,
     required this.text,
     required this.muted,
     required this.primary,
@@ -134,6 +135,10 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   /// Filled controls and wells on the ground (surfaceContainerHighest).
   final Color surfaceHigh;
+
+  /// The band behind a section heading over full-width rows: darker than
+  /// the ground the rows sit on, so a heading reads as one at a glance.
+  final Color headingBand;
   final Color text;
 
   /// Secondary text (the colour scheme's tertiary).

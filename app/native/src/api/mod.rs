@@ -2,6 +2,8 @@
 //! Accounts are opened by path and used by handle: the signed-in user's
 //! file, and in-memory ones (the tutorial's sandbox, tests).
 
+pub mod logs;
+
 use std::path::PathBuf;
 
 use schlift_core::sync::{pack, unpack};
