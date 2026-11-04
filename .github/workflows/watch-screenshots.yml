@@ -6,9 +6,6 @@ name: Watch Screenshots
 # store/screenshots/raw/ and commit it; see docs/releasing.md.
 
 on:
-  # TEMPORARY while the workflow is built on its branch; removed before merging.
-  push:
-    branches: [watch-store-shots]
   workflow_dispatch:
     inputs:
       device:
@@ -54,7 +51,7 @@ jobs:
 
       - name: Create and boot the watch simulator
         env:
-          DEVICE: ${{ inputs.device || 'Apple Watch Series 9 (45mm)' }}
+          DEVICE: ${{ inputs.device }}
         run: |
           runtime="$(xcrun simctl list runtimes watchOS -j |
             python3 -c 'import json, sys; r = [x for x in json.load(sys.stdin)["runtimes"] if x["isAvailable"]]; print(r[-1]["identifier"])')"
