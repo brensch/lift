@@ -132,6 +132,7 @@ pub enum Fact {
     HistoryImported(HistoryImported),
     OverrideSet(OverrideSet),
     WorkoutDiscarded(WorkoutDiscarded),
+    WorkoutEndMoved(WorkoutEndMoved),
     /// Of a kind this version doesn't know: kept, folded as nothing.
     #[serde(skip)]
     Unknown(UnknownFact),
@@ -163,6 +164,7 @@ impl Fact {
         "HistoryImported",
         "OverrideSet",
         "WorkoutDiscarded",
+        "WorkoutEndMoved",
     ];
 
     /// The workout a fact about one names.
@@ -182,6 +184,7 @@ impl Fact {
             Fact::WorkoutEnded(f) => &f.workout_id,
             Fact::HeartRateRecorded(f) => &f.workout_id,
             Fact::WorkoutDiscarded(f) => &f.workout_id,
+            Fact::WorkoutEndMoved(f) => &f.workout_id,
             _ => return None,
         })
     }
@@ -429,6 +432,15 @@ pub struct HistoryImported {
 #[serde(default)]
 pub struct WorkoutDiscarded {
     pub workout_id: String,
+}
+
+/// A finished workout's end moved: a correction, for one left running long
+/// after its training. Its heart rate after the new end goes with it.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct WorkoutEndMoved {
+    pub workout_id: String,
+    pub ended_at: i64,
 }
 
 /// The user's own weight (pounds) and reps for a lift, and maybe its sets,
