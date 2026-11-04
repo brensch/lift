@@ -59,7 +59,9 @@ An exported account file (`Store::export`, `app/native/src/store.rs`) has
 the log and, beside it, the account as plain tables, written from the fold
 into the empty file so it reads as everything the app knows. Nothing reads
 them back into the account, and no live file holds them: not the phone's,
-not the server's.
+not the server's. Heart rate is most of it (years of readings every second
+or two), so its table is a reading a row keyed by workout and time, with no
+other index; the app shares the file gzipped.
 
 ```mermaid
 erDiagram
@@ -103,9 +105,8 @@ erDiagram
         INTEGER rest_until
     }
     workout_heart_rate_samples {
-        TEXT id PK
-        TEXT workout_id
-        INTEGER sampled_at
+        TEXT workout_id PK
+        INTEGER sampled_at PK
         REAL bpm
     }
     exercise_decisions {

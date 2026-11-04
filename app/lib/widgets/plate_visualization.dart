@@ -142,9 +142,9 @@ class _PlateSheet extends StatelessWidget {
             ),
           ),
           if (sizes.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: const SectionLabel('Each side, in loading order'),
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: FlatHeading('Each side, in loading order'),
             ),
             for (final size in sizes)
               Container(

@@ -108,10 +108,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: SectionLabel('In your session'),
-        ),
+        const FlatHeading('In your session'),
         // Full-width rows: their emoji on their colour, name, stage.
         _Rows(
           children: [
@@ -159,11 +156,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: SectionLabel('Friends'),
-        ),
-        const SizedBox(height: 6),
+        const FlatHeading('Friends'),
+        const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(

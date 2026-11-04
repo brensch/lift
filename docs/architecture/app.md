@@ -148,6 +148,24 @@ on a deadline or unavailable error; other errors propagate untouched
 reconnecting: a heartbeat every 5 s, redial after 15 s of silence, backoff
 to 10 s.
 
+## Logs
+
+`AppLogger` (`app/lib/services/app_logger.dart`) takes structured entries
+(a level, a tag, a message and a map of fields) from anywhere in the app.
+Each goes to the debugger at once and to `logs.sqlite` in the app's
+support directory, one file per install beside the accounts, written by
+the native core (`app/native/src/logs.rs`): in batches within a second,
+a warning or error straight away, and everything waiting as the app goes
+to the background. Warnings and errors are kept for good; debug and info
+share a budget of 1 MB, the oldest dropped first. Until the file is open
+(and in Dart tests, where it never is) the latest 2,000 entries are kept in
+memory.
+
+Settings → App Logs reads the file newest first, a page at a time as it
+scrolls, by day: a level tab, a search over tags, messages and fields, and
+a tap on a tag to see only it. Copy and share export every entry at the
+level shown; share sends it gzipped (`schlift-logs.txt.gz`).
+
 ## Screens and routing
 
 ```mermaid
@@ -169,6 +187,7 @@ graph TD
     home -->|"Start"| workout
     workout -->|"End"| completed["CompletedWorkoutScreen"]
     settings --> plates["PlateColorsScreen"]
+    settings --> data["YourDataScreen<br/>export, import"]
     settings --> passkeys["PasskeysScreen"]
 ```
 
@@ -199,9 +218,10 @@ The weight sheet during a workout changes this workout only
 (`AdjustExerciseWeight`); a lasting change is an override, made in the
 template editor.
 
-Settings → Export your data shares the account file whole; Settings →
-Import a file replaces this phone's copy with an export of the same
-account. On the login screen, "Open an account file" opens an export with
+Settings → Your data (`YourDataScreen`) has both ways a copy moves: Export
+shares the account file whole, gzipped (`schlift-<name>-<day>.sqlite.gz`),
+and Import a file replaces this phone's copy with an export of the same
+account, gzipped or not. Each shows what it's doing while it does it. On the login screen, "Open an account file" opens an export with
 no server at all; signing in later lets it sync again (see
 [auth.md](auth.md#the-account-and-the-server-session)).
 

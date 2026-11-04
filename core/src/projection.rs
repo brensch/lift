@@ -55,16 +55,15 @@ CREATE TABLE IF NOT EXISTS completed_sets (
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
 
+-- A reading a row, keyed by its workout and time and stored in that order:
+-- years of readings every second or two are the bulk of an export, so no
+-- more than that.
 CREATE TABLE IF NOT EXISTS workout_heart_rate_samples (
-    id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     sampled_at INTEGER NOT NULL,
     bpm REAL NOT NULL,
-    PRIMARY KEY (user_id, id)
-);
-CREATE INDEX IF NOT EXISTS idx_hr_user_workout_time
-    ON workout_heart_rate_samples(user_id, workout_id, sampled_at);
+    PRIMARY KEY (workout_id, sampled_at)
+) WITHOUT ROWID;
 
 -- Per lift in a workout, in the order planned: the decision it started
 -- from, and `log`, its ExerciseLog (proto: the decision with its reasons,
@@ -239,13 +238,12 @@ fn workout_rows(user_id: &str, record: &WorkoutRecord) -> Vec<Statement> {
             ],
         ));
     }
-    for (n, sample) in record.heart_rate.iter().enumerate() {
+    // Two readings at one millisecond are one.
+    for sample in &record.heart_rate {
         out.push(statement(
-            "INSERT INTO workout_heart_rate_samples (id, user_id, workout_id, sampled_at, bpm)
-             VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO workout_heart_rate_samples (workout_id, sampled_at, bpm)
+             VALUES (?, ?, ?)",
             vec![
-                format!("{}:{n}", w.id).into(),
-                user_id.into(),
                 w.id.as_str().into(),
                 sample.sampled_at.into(),
                 sample.bpm.into(),

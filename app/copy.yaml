@@ -413,3 +413,53 @@ plan:
   # The completed workout screen, per lift.
   summary:
     planned: "Planned: {plan}"
+
+# One lift in depth: a lift tapped on Progress. Records over the span
+# picked, each with when it happened, and every session by month.
+# Placeholders.
+exercise:
+  records: Records
+  peak_max: Peak max
+  heaviest_set: Heaviest set
+  most_reps: Most reps
+  biggest_session: Biggest session
+  longest_break: Longest break
+  break_days: "{days} days"
+  # Sessions a week over the span picked.
+  pace: Pace
+  per_week: "{n} a week"
+  last_trained: Last trained
+  today: Today
+  yesterday: Yesterday
+  days_ago: "{days} days ago"
+  gain: Gain
+  # How far the estimated max moved over the span picked.
+  gain_since: "since {date}"
+  none_in_span: "None in the last {span}."
+  # The chart panned or pinched to a stretch with no sessions in it.
+  none_here: Nothing in this stretch.
+
+# Settings → Your data: taking a copy of the account (an export) and
+# bringing one back (an import). Placeholders.
+your_data:
+  settings_row: Your data
+  settings_row_sub: Take a copy, or bring one back
+  title: Your data
+  export_heading: Take a copy
+  export_body: Everything this phone knows about your training, as one SQLite file, gzipped. Any SQLite tool opens it once it's unzipped.
+  # Android: save it where you pick (Downloads, a drive). iPhone: the share
+  # sheet's Save to Files.
+  export_download: Download
+  exporting: Packing it up…
+  # {size} is the file's size, like "10.2 MB".
+  exported: "Ready: {size}"
+  saved: "Saved: {size}"
+  import_heading: Bring one back
+  import_body: Replace this phone's copy of your account with an export of it, gzipped or not. Anything the server already has comes back when it syncs.
+  import_button: Import a file
+  importing: Bringing it back…
+  imported: Done. This phone has the file's copy now.
+  import_confirm_title: Import a file?
+  import_confirm_body: This phone's copy of your account is replaced by the file. Anything the server already has comes back when it syncs.
+  import_confirm: Import
+  import_cancel: Cancel
