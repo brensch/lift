@@ -58,6 +58,9 @@ def compose_description(listing: dict) -> str:
 
 CAPTION_TITLE_LIMIT = 28
 CAPTION_SUBTITLE_LIMIT = 80
+# A watch slide leaves the subtitle three lines (frame_store_screenshots.py's
+# watch_html), a phone slide two.
+CAPTION_SUBTITLE_LIMIT_WATCH = 120
 
 
 def play_short_description(listing: dict) -> str:
@@ -143,10 +146,14 @@ def check(listing: dict, raw_dir: Path = RAW_DIR) -> list[str]:
                 f"{where}: title is {len(title)} characters; "
                 f"keep it under {CAPTION_TITLE_LIMIT} so it fits on one line"
             )
-        if len(subtitle) > CAPTION_SUBTITLE_LIMIT:
+        limit = (
+            CAPTION_SUBTITLE_LIMIT_WATCH
+            if slide.get("device") == "watch"
+            else CAPTION_SUBTITLE_LIMIT
+        )
+        if len(subtitle) > limit:
             problems.append(
-                f"{where}: subtitle is {len(subtitle)} characters; "
-                f"keep it under {CAPTION_SUBTITLE_LIMIT}"
+                f"{where}: subtitle is {len(subtitle)} characters; keep it under {limit}"
             )
         if raw_dir.is_dir() and not (raw_dir / slide["file"]).is_file():
             problems.append(f"{where}: {slide['file']} is not in {raw_dir.relative_to(ROOT)}")
