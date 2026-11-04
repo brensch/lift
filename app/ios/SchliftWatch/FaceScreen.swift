@@ -14,7 +14,7 @@ struct FaceScreen: View {
     let snapshot: Workout_V1_WearWorkoutSnapshot
     let now: Date
 
-    @State private var showPlates = false
+    @State private var showPlates = debugShowsPlates
 
     private var card: Workout_V1_WearStatusCard {
         snapshot.youCard
@@ -98,7 +98,7 @@ struct FaceScreen: View {
                 setRow(stage: stage, height: height * 0.19)
                 line(colors.hairline)
                 band(stage: stage, height: height * 0.20)
-                line(colors.rule)
+                line(colors.hairline)
                 exerciseRow(height: height * 0.11)
                 line(colors.hairline)
                 if card.firstTimeText.isEmpty {
@@ -112,6 +112,8 @@ struct FaceScreen: View {
                 Spacer(minLength: 0)
             }
         }
+        // Rows and lines run to the screen's sides; the text keeps its own padding.
+        .ignoresSafeArea(edges: .horizontal)
         .background(colors.ground.ignoresSafeArea())
     }
 
@@ -330,3 +332,11 @@ extension FaceScreen {
         Rectangle().fill(color).frame(height: 1)
     }
 }
+
+// Debug builds only: open on the plate screen when launched with SCHLIFT_PLATES=1, for
+// the store screenshots (see `PhoneConnector.applyDebugLaunch`).
+#if DEBUG
+    private let debugShowsPlates = ProcessInfo.processInfo.environment["SCHLIFT_PLATES"] == "1"
+#else
+    private let debugShowsPlates = false
+#endif

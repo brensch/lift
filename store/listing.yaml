@@ -108,25 +108,27 @@ screenshots:
   - file: store_06.png
     title: Rest, then schlift again
     subtitle: Timers make sure you know when to stop yapping
-  - file: store_07.png
-    title: Heart rate
-    subtitle: Straight from your watch, proof you are going hard
   - file: wear_01_active_set.png
     device: watch
     title: Companion watch app
-    subtitle: It tracks heartrate and let's you record the workout. It's pretty sweet.
+    subtitle: It tracks heartrate as proof you are going hard. Also control your workout straight from your wrist. It's sweet as.
   - file: store_01.png
     title: Get Huge
     subtitle: Or toned, whatever. We increase the weight for you as you succeed
   - file: store_02.png
     title: Every schlift, tracked
     subtitle: The people yearn for progress charts
+  - file: store_08.png
+    title: Plate calculator
+    subtitle: Your brain has atrophied from using claude so we can do the maths for you
 
 # Watch slides. Play needs square Wear OS captures; the App Store needs Apple
 # Watch captures. Both are placed on a plain dark background, no caption.
 wear_screenshots:
   - file: wear_01_active_set.png
   - file: wear_02_rest_timer.png
+  - file: wear_03_plates.png
 apple_watch_screenshots:
   - file: apple_watch_01_active_set.png
   - file: apple_watch_02_rest_timer.png
+  - file: apple_watch_03_plates.png

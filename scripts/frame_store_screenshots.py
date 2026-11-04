@@ -77,8 +77,8 @@ CROP_TOP = 72
 
 def watch_html(target: Target, raw_png: Path, title: str, subtitle: str) -> str:
     """A slide of the watch: the same caption and band as the phone slides,
-    a round watch in the middle (bezel and straps in the app's colours) with
-    the raw round Wear OS capture as its face."""
+    and the raw round Wear OS capture in the middle, ringed by the same thin
+    outline and shadow as the phone."""
     shot = base64.b64encode(raw_png.read_bytes()).decode()
     w, h = target.width, target.height
     u = w / 1080
@@ -89,13 +89,11 @@ def watch_html(target: Target, raw_png: Path, title: str, subtitle: str) -> str:
     gutter = int(48 * u)
     subtitle_box = f"margin: {int(24 * u)}px auto 0; max-width: {int(w * 0.9)}px"
     edge = max(1, int(2 * u))
-    face = int(w * 0.62)
-    bezel = int(face * 0.08)
-    body = face + 2 * bezel
-    strap_w = int(face * 0.58)
-    # Centred in the room under the caption, straps running off both ends.
+    face = int(w * 0.66)
+    shadow = f"0 {int(24 * u)}px {int(64 * u)}px rgba(17,17,17,0.18), 0 0 0 {edge}px {OUTLINE}"
+    # Centred in the room under the caption.
     top_room = caption_top + title_px * 2 + int(sub_px * 1.35 * 3) + int(60 * u)
-    body_top = top_room + (h - top_room - body) // 2
+    face_top = top_room + (h - top_room - face) // 2
     return f"""<!doctype html>
 <html><head><meta charset="utf-8">
 <style>
@@ -119,24 +117,15 @@ body {{
 .subtitle {{
   font-size: {sub_px}px; line-height: 1.35; color: {MUTED}; {subtitle_box};
 }}
-.strap {{
-  position: absolute; left: 50%; transform: translateX(-50%); width: {strap_w}px;
-  background: {TEXT}; border: {edge}px solid {OUTLINE};
-}}
 .watch {{
-  position: absolute; left: 50%; transform: translateX(-50%); top: {body_top}px;
-  width: {body}px; height: {body}px; border-radius: 50%; background: {TEXT};
-  box-shadow: 0 {int(24 * u)}px {int(64 * u)}px rgba(17,17,17,0.25), 0 0 0 {edge}px {OUTLINE};
+  position: absolute; left: 50%; transform: translateX(-50%); top: {face_top}px;
+  width: {face}px; height: {face}px; border-radius: 50%; overflow: hidden; background: {PANEL};
+  box-shadow: {shadow};
 }}
-.watch img {{
-  position: absolute; left: {bezel}px; top: {bezel}px; width: {face}px; height: {face}px;
-  border-radius: 50%;
-}}
+.watch img {{ display: block; width: {face}px; height: {face}px; }}
 </style></head>
 <body>
   <div class="band"></div>
-  <div class="strap" style="top: {top_room}px; height: {body_top + body // 2 - top_room}px"></div>
-  <div class="strap" style="top: {body_top + body // 2}px; bottom: 0"></div>
   <div class="caption">
     <h1 class="title">{title}</h1>
     <div class="subtitle">{subtitle}</div>

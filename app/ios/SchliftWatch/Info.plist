@@ -46,9 +46,9 @@
 	<string>com.brensch.schlift</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Fonts/SpaceGrotesk-Variable.ttf</string>
-		<string>Fonts/SpaceMono-Bold.ttf</string>
-		<string>Fonts/SpaceMono-Regular.ttf</string>
+		<string>SpaceGrotesk-Variable.ttf</string>
+		<string>SpaceMono-Bold.ttf</string>
+		<string>SpaceMono-Regular.ttf</string>
 	</array>
 	<key>WKBackgroundModes</key>
 	<array>
