@@ -73,6 +73,7 @@ ladder seed a session through the API first.
 | `solo_workout_finish_test.dart` | Done, then End workout through the confirm dialog → the summary with Duration / Volume / Sets / Rest. |
 | `solo_workout_full_test.dart` | Plays an entire workout on its circles (bounded by actions, as the ramp grows the plan) to "All sets complete"; the backend holds exactly one completion per set; ends on the summary. |
 | `skip_warmups_test.dart` | With API-seeded history the next session opens with warmups; "Skip" on the warmup row marks them skipped (none removed), up next moves to the first working set, and a skipped warmup can still be done. |
+| `discard_workout_test.dart` | A workout under way thrown away from the link under it, behind its prompt, leaves home; a finished one thrown away from its summary in History leaves History empty. |
 | `crash_recovery_test.dart` | Done, then a cold relaunch resumes the live workout with the set still recorded. |
 | `workout_backend_sync_test.dart` | A set logged with Done is in the backend's active workout. |
 | `workout_home_after_finish_test.dart` | A first session calibrated and finished in the app, ended from the UI: the summary shows the calibrated weight and the next plan builds on it. |

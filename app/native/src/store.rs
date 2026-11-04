@@ -278,6 +278,10 @@ impl Store {
         };
         for workout_id in workouts {
             let Some(record) = self.account.workout(&workout_id) else {
+                // Thrown away: its heart rate goes with it.
+                self.conn
+                    .execute("DELETE FROM heart_rate WHERE workout_id = ?", [&workout_id])
+                    .map_err(storage)?;
                 continue;
             };
             if record.workout.end_time == 0 {
@@ -870,6 +874,30 @@ mod tests {
             vec![1_000, 3_000, 5_000, 7_000]
         );
         assert_eq!(Store::open(&path, U1, "").unwrap().account, store.account);
+    }
+
+    #[test]
+    fn heart_rate_goes_with_a_discarded_workout() {
+        let mut store = Store::open(&temp("discard"), U1, "").unwrap();
+        let home = onboard(&mut store);
+        let started = start(&mut store, &home.templates[0].id);
+        heart_rate(&mut store, &started.id, &[1_000, 2_000], 2_001);
+        store
+            .call(
+                "DiscardWorkout",
+                &schlift_core::pb::DiscardWorkoutRequest {
+                    workout_id: started.id.clone(),
+                }
+                .encode_to_vec(),
+                2_002,
+            )
+            .unwrap();
+        let gathered: i64 = store
+            .conn
+            .query_row("SELECT COUNT(*) FROM heart_rate", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(gathered, 0);
+        assert!(store.account.workout(&started.id).is_none());
     }
 
     /// Any write: what's gathered for an ended workout is recorded after it.
