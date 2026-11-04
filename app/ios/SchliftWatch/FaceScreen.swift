@@ -98,7 +98,7 @@ struct FaceScreen: View {
                 setRow(stage: stage, height: height * 0.19)
                 line(colors.hairline)
                 band(stage: stage, height: height * 0.20)
-                line(colors.rule)
+                line(colors.hairline)
                 exerciseRow(height: height * 0.11)
                 line(colors.hairline)
                 if card.firstTimeText.isEmpty {
