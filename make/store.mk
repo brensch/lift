@@ -15,6 +15,7 @@ STORE_VENV ?= .tmp/store-venv
 store-backend-start:
 	@bash -ec '\
 		$(MAKE) store-backend-stop >/dev/null; \
+		if (exec 3<>/dev/tcp/127.0.0.1/50051) 2>/dev/null; then echo "port 50051 is in use (make dev?): stop it first"; exit 1; fi; \
 		rm -rf "$(STORE_BACKEND_DATA_DIR)"; mkdir -p "$(STORE_BACKEND_DATA_DIR)"; \
 		cargo build --bin schlift --features test-auth; \
 		DATA_DIR="$(STORE_BACKEND_DATA_DIR)" SEED_DEMO_USER=demo PORT=50051 \
@@ -38,6 +39,7 @@ store-backend-stop:
 # headless at the phone's size → raw PNGs land in $(STORE_RAW_DIR). Commit
 # them; CI frames and uploads.
 store-capture:
+	@rm -f app/test_screenshots/store_*.png  # a run's leftovers would be copied as slides
 	$(MAKE) store-backend-start
 	FLUTTER="$(FLUTTER)" XVFB="$(XVFB)" bash scripts/run_e2e.sh store_shots; rc=$$?; \
 		$(MAKE) store-backend-stop; \

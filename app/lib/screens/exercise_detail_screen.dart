@@ -418,47 +418,58 @@ class _Records extends StatelessWidget {
         ? '${gain >= 0 ? '+' : '−'}${gain.abs().round()}'
         : '${gain >= 0 ? '+' : '−'}${formatWeight(gain.abs(), unit, includeUnit: true)}';
 
-    final tiles = [
-      _Record(
+    final records = <(String, String, Color?, String?)>[
+      (
         c.peakMax,
         maxText(peak.estimatedMax, unit, bodyweight: bodyweight),
+        null,
         dayDate(peak.date),
       ),
-      _Record(
+      (
         bodyweight ? c.mostReps : c.heaviestSet,
         bodyweight
             ? '${heaviest.topReps} reps'
             : '${formatWeight(heaviest.topWeight, unit, includeUnit: true)} × ${heaviest.topReps}',
+        null,
         dayDate(heaviest.date),
       ),
       if (!bodyweight)
-        _Record(
+        (
           c.biggestSession,
           '${compactVolume(biggest.volume, unit)} ${weightUnitSuffix(unit)}',
+          null,
           dayDate(biggest.date),
         ),
       if (gap != null && gap.days > 1)
-        _Record(
+        (
           c.longestBreak,
           c.breakDays.replaceAll('{days}', '${gap.days}'),
+          null,
           '${dayDate(gap.from)} → ${dayDate(gap.to)}',
         ),
-      _Record(
+      (
         c.pace,
         c.perWeek.replaceAll('{n}', pace.toStringAsFixed(1)),
         null,
+        null,
       ),
-      _Record(c.lastTrained, lastText, dayDate(last.date)),
+      (c.lastTrained, lastText, null, dayDate(last.date)),
       if (sessions.length >= 2)
-        _Record(
+        (
           c.gain,
           gainText,
+          gain > 0 ? context.tokens.ready : null,
           c.gainSince.replaceAll('{date}', dayDate(sessions.first.date)),
-          tone: gain > 0 ? context.tokens.ready : null,
         ),
     ];
 
-    return Column(children: tiles);
+    // Two to a row, so each has room for its date.
+    return FlatMetricGrid(
+      columns: 2,
+      bottomLine: true,
+      metrics: [for (final r in records) (r.$1, r.$2, r.$3)],
+      notes: [for (final r in records) r.$4],
+    );
   }
 }
 
@@ -468,62 +479,6 @@ int _daysBetween(DateTime a, DateTime b) => DateTime(
   b.month,
   b.day,
 ).difference(DateTime(a.year, a.month, a.day)).inDays;
-
-/// One record as a full-width row: what and when on the left, the figure
-/// on the right.
-class _Record extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? when;
-  final Color? tone;
-  const _Record(this.label, this.value, this.when, {this.tone});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.tokens.hairline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.body,
-                    color: cs.onSurface,
-                  ),
-                ),
-                if (when != null)
-                  Text(
-                    when!,
-                    style: TextStyle(
-                      color: cs.tertiary,
-                      fontSize: context.tokens.size.small,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: context.tokens.weight.heavy,
-              fontSize: context.tokens.size.body,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: tone ?? cs.onSurface,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// A break this long between sessions breaks the chart's lines: time off
 /// shows as a gap.

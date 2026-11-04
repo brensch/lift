@@ -14,12 +14,15 @@ struct PlateScreen: View {
                     .font(monoFontName(size: faceHeight * 0.14))
                     .foregroundColor(WatchPalette.text)
                     .watchAutoShrink()
-                Rectangle().fill(WatchPalette.hairline).frame(height: 1)
-                bar(height: faceHeight * 0.26)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: faceHeight * 0.30)
-                    .background(Color.white)
-                Rectangle().fill(WatchPalette.hairline).frame(height: 1)
+                // The white runs right up to the lines either side of it.
+                VStack(spacing: 0) {
+                    Rectangle().fill(WatchPalette.hairline).frame(height: 1)
+                    bar(height: faceHeight * 0.26)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: faceHeight * 0.30)
+                        .background(Color.white)
+                    Rectangle().fill(WatchPalette.hairline).frame(height: 1)
+                }
                 Text(card.platesText)
                     .font(monoFontName(size: faceHeight * 0.07))
                     .foregroundColor(WatchPalette.text)
@@ -31,6 +34,8 @@ struct PlateScreen: View {
                 Spacer(minLength: 0)
             }
         }
+        // The lines and the white run to the screen's sides.
+        .ignoresSafeArea(edges: .horizontal)
         .background(WatchPalette.ground.ignoresSafeArea())
     }
 
