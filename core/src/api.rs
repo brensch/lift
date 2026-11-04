@@ -91,7 +91,13 @@ impl<'a> Call<'a> {
     }
 
     fn mutate(&mut self, mutation: workout_mutation::Mutation) -> Result<String, CoreError> {
-        self.record(workout_fact(mutation, self.now))
+        let mut fact = workout_fact(mutation, self.now);
+        if let Fact::WorkoutEnded(ended) = &mut fact {
+            if let Some(record) = self.account.workout(&ended.workout_id) {
+                ended.ended_at = trimmed_end(record, ended.ended_at);
+            }
+        }
+        self.record(fact)
     }
 
     // ── Workouts ──
@@ -228,14 +234,34 @@ impl<'a> Call<'a> {
     /// A finished workout's heart rate, whole, as one event. Not an RPC: the
     /// phone gathers readings while the workout runs and records them once
     /// it has ended (`app/native`'s store).
+    /// Readings outside the workout (before its start, after its end) are
+    /// left out.
     pub fn record_heart_rate(
         &mut self,
         workout_id: &str,
         samples: &[WorkoutHeartRatePoint],
     ) -> Result<(), CoreError> {
+        let within: Vec<WorkoutHeartRatePoint> = match self.account.workout(workout_id) {
+            Some(record) => samples
+                .iter()
+                .filter(|s| within_workout(&record.workout, s.sampled_at))
+                .cloned()
+                .collect(),
+            None => samples.to_vec(),
+        };
         self.record(Fact::HeartRateRecorded(HeartRateRecorded::new(
-            workout_id, samples,
+            workout_id, &within,
         )))?;
+        Ok(())
+    }
+
+    /// Move a finished workout's end earlier (a correction: a workout left
+    /// running after its last set). Not an RPC.
+    pub fn move_workout_end(&mut self, workout_id: &str, ended_at: i64) -> Result<(), CoreError> {
+        self.record(Fact::WorkoutEndMoved(WorkoutEndMoved {
+            workout_id: workout_id.to_string(),
+            ended_at,
+        }))?;
         Ok(())
     }
 
@@ -455,6 +481,29 @@ impl<'a> Call<'a> {
         self.record(Fact::SettingUpdated(SettingUpdated { setting }))?;
         Ok(UpdateSettingResponse {})
     }
+}
+
+/// The longest a workout runs on after its last set: that set's rest, or
+/// this, whichever is shorter. Time after it is not training.
+pub const END_AFTER_LAST_SET_SECONDS: i64 = 5 * 60;
+
+/// When a workout ends: when asked (`requested`), but no later than its last
+/// set's end plus that set's rest (`END_AFTER_LAST_SET_SECONDS` at most), so
+/// a workout left running after it finished stops where the training did.
+/// One with no set done ends when asked. The start always counts.
+pub fn trimmed_end(record: &WorkoutRecord, requested: i64) -> i64 {
+    let Some(last) = record.completed_sets.iter().max_by_key(|c| c.ended_at) else {
+        return requested;
+    };
+    let rest = (last.rest_until - last.ended_at).clamp(0, END_AFTER_LAST_SET_SECONDS);
+    requested.min(last.ended_at + rest).max(last.ended_at)
+}
+
+/// Whether a heart-rate reading (unix ms) falls within the workout: from its
+/// start to its end, or on while it runs.
+fn within_workout(workout: &Workout, sampled_at_ms: i64) -> bool {
+    sampled_at_ms >= workout.start_time * 1000
+        && (workout.end_time == 0 || sampled_at_ms <= workout.end_time * 1000)
 }
 
 /// A change to a workout as the fact it records, its times decided: a time

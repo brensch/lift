@@ -883,7 +883,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _writeToHealthPlatform(Workout workout) async {
-    final heartRate = List<HeartRateSample>.of(_wearHeartRateSamples);
+    // Only what falls within the workout: its end may have been trimmed to
+    // shortly after the last set.
+    final endMs = workout.endTime.toInt() * 1000;
+    final heartRate = _wearHeartRateSamples
+        .where((s) => s.sampledAt.toInt() <= endMs)
+        .toList();
     try {
       final startTime = DateTime.fromMillisecondsSinceEpoch(
         workout.startTime.toInt() * 1000,
