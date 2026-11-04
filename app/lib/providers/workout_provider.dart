@@ -860,6 +860,28 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Throw the workout under way away: gone from the account, nothing
+  /// written to Health, home on screen. Returns whether it was.
+  Future<bool> discardWorkout() async {
+    final workout = _workout;
+    if (workout == null) return false;
+    try {
+      await _service.discardWorkout(workout.id);
+      if (!_sandbox) await NotificationService.cancelAll();
+      _wasResting = false;
+      _stopTimer();
+      _unsavedHeartRate.clear();
+      _clearWorkout();
+      _resetWearHeartRateBuffer();
+      _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _handleError(e);
+      return false;
+    }
+  }
+
   void _writeToHealthPlatform(Workout workout) async {
     final heartRate = List<HeartRateSample>.of(_wearHeartRateSamples);
     try {

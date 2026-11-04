@@ -635,6 +635,14 @@ message EndWorkoutRequest {
   int64 ended_at = 2; // Unix seconds; 0 = the event's time
 }
 
+// Throw a workout away, under way or finished: it is gone from the account
+// (history, plans, maxes) as if it never happened.
+message DiscardWorkoutRequest {
+  string workout_id = 1;
+}
+
+message DiscardWorkoutResponse {}
+
 message EndWorkoutResponse {
   Workout workout = 1;
   // Unset when nothing was done, or the lifts done are the template's.

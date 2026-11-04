@@ -1415,6 +1415,27 @@ final $typed_data.Uint8List endWorkoutRequestDescriptor = $convert.base64Decode(
     'ChFFbmRXb3Jrb3V0UmVxdWVzdBIdCgp3b3Jrb3V0X2lkGAEgASgJUgl3b3Jrb3V0SWQSGQoIZW'
     '5kZWRfYXQYAiABKANSB2VuZGVkQXQ=');
 
+@$core.Deprecated('Use discardWorkoutRequestDescriptor instead')
+const DiscardWorkoutRequest$json = {
+  '1': 'DiscardWorkoutRequest',
+  '2': [
+    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+  ],
+};
+
+/// Descriptor for `DiscardWorkoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List discardWorkoutRequestDescriptor = $convert.base64Decode(
+    'ChVEaXNjYXJkV29ya291dFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElk');
+
+@$core.Deprecated('Use discardWorkoutResponseDescriptor instead')
+const DiscardWorkoutResponse$json = {
+  '1': 'DiscardWorkoutResponse',
+};
+
+/// Descriptor for `DiscardWorkoutResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List discardWorkoutResponseDescriptor =
+    $convert.base64Decode('ChZEaXNjYXJkV29ya291dFJlc3BvbnNl');
+
 @$core.Deprecated('Use endWorkoutResponseDescriptor instead')
 const EndWorkoutResponse$json = {
   '1': 'EndWorkoutResponse',

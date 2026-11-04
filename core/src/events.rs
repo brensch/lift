@@ -8,25 +8,103 @@
 //! older event lacks); one that is renamed or removed would stop the stored
 //! events reading, which `tests/stored_events.rs` guards. Changing what an
 //! existing fact means changes every stored account.
+//!
+//! A kind of fact this version doesn't know (one a newer app recorded) is
+//! kept as it came, `Fact::Unknown`, and folds as nothing: an older phone
+//! carries on syncing, and folds it once it is updated.
 
 use crate::pb::{
     ExerciseDecision, ExerciseWeight, ImportedWorkout, LibraryTemplate, UserSetting,
     WorkoutHeartRatePoint, WorkoutTemplate,
 };
-use serde::{Deserialize, Serialize};
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::{Map, Value};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Event {
     /// Its place in the account's history, given by the server; 0 while it
     /// is still only on the device that recorded it.
-    #[serde(default)]
     pub seq: i64,
     /// Unique. Ids of what the event creates derive from it.
     pub id: String,
     /// Unix seconds, on the recording device's clock.
     pub at: i64,
-    #[serde(flatten)]
     pub fact: Fact,
+}
+
+impl Serialize for Event {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        // Written straight from the fact (through a value, an f32 would
+        // widen); an unknown one as it came.
+        #[derive(Serialize)]
+        struct Written<'a, F: Serialize> {
+            seq: i64,
+            id: &'a str,
+            at: i64,
+            #[serde(flatten)]
+            fact: F,
+        }
+        match &self.fact {
+            Fact::Unknown(unknown) => {
+                let mut fact = Map::new();
+                fact.insert(unknown.name.clone(), unknown.body.clone());
+                Written {
+                    seq: self.seq,
+                    id: &self.id,
+                    at: self.at,
+                    fact,
+                }
+                .serialize(serializer)
+            }
+            fact => Written {
+                seq: self.seq,
+                id: &self.id,
+                at: self.at,
+                fact,
+            }
+            .serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Event {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Raw {
+            #[serde(default)]
+            seq: i64,
+            id: String,
+            at: i64,
+            #[serde(flatten)]
+            fact: Map<String, Value>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        let mut entries = raw.fact.into_iter();
+        let (Some((name, body)), None) = (entries.next(), entries.next()) else {
+            return Err(D::Error::custom("an event holds one fact"));
+        };
+        let fact = if Fact::KINDS.contains(&name.as_str()) {
+            let mut one = Map::new();
+            one.insert(name, body);
+            serde_json::from_value(Value::Object(one)).map_err(D::Error::custom)?
+        } else {
+            Fact::Unknown(UnknownFact { name, body })
+        };
+        Ok(Event {
+            seq: raw.seq,
+            id: raw.id,
+            at: raw.at,
+            fact,
+        })
+    }
+}
+
+/// A fact of a kind this version doesn't know, as it came.
+#[derive(Clone, Debug, PartialEq)]
+pub struct UnknownFact {
+    pub name: String,
+    pub body: Value,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -53,9 +131,40 @@ pub enum Fact {
     SettingUpdated(SettingUpdated),
     HistoryImported(HistoryImported),
     OverrideSet(OverrideSet),
+    WorkoutDiscarded(WorkoutDiscarded),
+    /// Of a kind this version doesn't know: kept, folded as nothing.
+    #[serde(skip)]
+    Unknown(UnknownFact),
 }
 
 impl Fact {
+    /// Every kind this version knows, by name.
+    pub const KINDS: &'static [&'static str] = &[
+        "WorkoutStarted",
+        "SetStarted",
+        "SetCompleted",
+        "SetEdited",
+        "SetUndone",
+        "RungAnswered",
+        "WarmupsSkipped",
+        "ExercisesAdded",
+        "ExerciseAdjusted",
+        "ExerciseRemoved",
+        "ExercisesReordered",
+        "SessionSet",
+        "WorkoutEnded",
+        "HeartRateRecorded",
+        "TemplateSaved",
+        "TemplateDeleted",
+        "TemplatesReordered",
+        "LibraryTemplatesAdded",
+        "Onboarded",
+        "SettingUpdated",
+        "HistoryImported",
+        "OverrideSet",
+        "WorkoutDiscarded",
+    ];
+
     /// The workout a fact about one names.
     pub fn workout_id(&self) -> Option<&str> {
         Some(match self {
@@ -72,6 +181,7 @@ impl Fact {
             Fact::SessionSet(f) => &f.workout_id,
             Fact::WorkoutEnded(f) => &f.workout_id,
             Fact::HeartRateRecorded(f) => &f.workout_id,
+            Fact::WorkoutDiscarded(f) => &f.workout_id,
             _ => return None,
         })
     }
@@ -313,6 +423,14 @@ pub struct HistoryImported {
     pub starting_weights: Vec<ExerciseWeight>,
 }
 
+/// A workout thrown away, under way or finished: it is gone from the
+/// account, as if it never happened. Its events stay in the history.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct WorkoutDiscarded {
+    pub workout_id: String,
+}
+
 /// The user's own weight (pounds) and reps for a lift, and maybe its sets,
 /// replacing any before; reps of 0 removes it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
@@ -327,6 +445,27 @@ pub struct OverrideSet {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_fact_from_a_newer_app_is_kept_and_folds_as_nothing() {
+        let json = r#"{"seq":3,"id":"e3","at":5,"SomethingNew":{"workout_id":"w","more":[1,2]}}"#;
+        let event: Event = serde_json::from_str(json).unwrap();
+        assert!(matches!(&event.fact, Fact::Unknown(u) if u.name == "SomethingNew"));
+        assert_eq!(
+            serde_json::to_value(&event).unwrap(),
+            serde_json::from_str::<Value>(json).unwrap(),
+            "kept as it came"
+        );
+        let mut account = crate::account::Account::default();
+        assert!(account.replay(&event).is_some());
+        assert_eq!(account, crate::account::Account::default());
+        assert!(!crate::session::shared_with_partners(&event.fact));
+        // A batch holding one still unpacks.
+        let packed = crate::sync::pack(std::slice::from_ref(&event));
+        assert_eq!(crate::sync::unpack(&packed).unwrap(), vec![event]);
+        // A known kind that doesn't read is still refused.
+        assert!(serde_json::from_str::<Event>(r#"{"id":"e","at":1,"SetCompleted":7}"#).is_err());
+    }
 
     #[test]
     fn heart_rate_keeps_every_reading_in_order() {

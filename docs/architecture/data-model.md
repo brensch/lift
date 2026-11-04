@@ -30,7 +30,8 @@ one fact — `WorkoutStarted` (with each lift's decision), `SetStarted`,
 `ExercisesReordered`, `SessionSet`, `WorkoutEnded`, `HeartRateRecorded`,
 `TemplateSaved`, `TemplateDeleted`, `TemplatesReordered`,
 `LibraryTemplatesAdded`, `Onboarded`, `SettingUpdated`, `HistoryImported`,
-`OverrideSet`.
+`OverrideSet`, `WorkoutDiscarded`. A kind this version doesn't know is kept
+and folds as nothing.
 
 `seq` runs 1, 2, 3… with no gaps, given by the server; a pending event has
 none yet. Ids the event creates (the workout, its sets, a template) derive

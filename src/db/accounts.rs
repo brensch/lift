@@ -19,6 +19,8 @@ pub struct Pushed {
     pub stored: Vec<Event>,
     /// A workout ended in it.
     pub ended_workout: bool,
+    /// A workout was thrown away in it.
+    pub discarded_workout: bool,
 }
 
 impl ServerDb {
@@ -129,6 +131,7 @@ impl ServerDb {
                 .execute(&mut *tx)
                 .await?;
             pushed.ended_workout |= matches!(event.fact, Fact::WorkoutEnded(_));
+            pushed.discarded_workout |= matches!(event.fact, Fact::WorkoutDiscarded(_));
             pushed.stored.push(event);
         }
         if pushed.stored.is_empty() {

@@ -113,6 +113,13 @@ class WorkoutServiceWrapper {
     EndWorkoutResponse.fromBuffer,
   );
 
+  /// Throw a workout away, under way or finished: gone from the account.
+  Future<void> discardWorkout(String workoutId) => _call(
+    'DiscardWorkout',
+    DiscardWorkoutRequest()..workoutId = workoutId,
+    DiscardWorkoutResponse.fromBuffer,
+  );
+
   /// Everything the home screen needs in one call, every lift planned in
   /// [budgetMinutes] (0 = the core's default).
   Future<GetHomeResponse> getHome({int budgetMinutes = 0}) => _call(

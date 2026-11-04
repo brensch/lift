@@ -346,9 +346,10 @@ impl Stream {
     }
 
     /// A workout ending takes the caller out of their session, its final
-    /// state left on show to the others a while.
+    /// state left on show to the others a while; one thrown away takes them
+    /// out with nothing to show.
     async fn after_push(&self, pushed: &Pushed) -> ServerResult<()> {
-        if !pushed.ended_workout {
+        if !pushed.ended_workout && !pushed.discarded_workout {
             return Ok(());
         }
         let Some(session_id) = self
@@ -359,10 +360,12 @@ impl Stream {
         else {
             return Ok(());
         };
-        self.db
-            .end_session(&session_id, &self.user_id)
-            .await
-            .map_err(internal_error)
+        let left = if pushed.discarded_workout {
+            self.db.leave_session(&session_id, &self.user_id).await
+        } else {
+            self.db.end_session(&session_id, &self.user_id).await
+        };
+        left.map_err(internal_error)
     }
 
     /// A partner's workout events, of those just stored: what of them their

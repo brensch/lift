@@ -49,6 +49,7 @@ stateDiagram-v2
     Solo --> InSession: JoinViaInvite / RespondJoinRequest(accept)<br/>(both users gathered into one session)
     InSession --> Solo: LeaveCurrentSession<br/>(left_at stamped, off show)
     InSession --> Solo: EndWorkout pushed<br/>(left_at and ended_at stamped, still on show)
+    InSession --> Solo: WorkoutDiscarded pushed<br/>(left_at stamped, off show)
     InSession --> Solo: nothing recorded for SHOWN_FOR_SECONDS<br/>(read from their events, never written)
     note right of Solo
         After EndWorkout the finished
