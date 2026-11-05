@@ -412,7 +412,8 @@ void main() {
     }
 
     // A phone that lost its copy, signed out: the older, then the newer,
-    // twice. Everything in them waits to be placed, each once.
+    // twice. What the server placed keeps its places, and only what the
+    // export had waiting waits, each once.
     await sync.signOut();
     await File('${dir.path}/accounts/$me.sqlite').delete();
     for (final file in [older, newer, newer]) {
@@ -420,11 +421,11 @@ void main() {
     }
     await sync.signIn(me, 'Me');
     expect(sync.isReady, isTrue, reason: 'usable at once, with no server');
-    expect(await sync.core!.confirmed(), 0);
-    expect(await sync.core!.pendingCount(), 3 + pending);
+    expect(await sync.core!.confirmed(), 3);
+    expect(await sync.core!.pendingCount(), pending);
 
-    // The server holds the first three: they come back placed, and only
-    // what it lacked still waits.
+    // The server holds the first three in the same places: nothing more
+    // goes up than what it lacked.
     await _until(() => service.streams.length == 2);
     _restore(1).forEach(service.streams.last.add);
     await _until(() => sync.unsynced == pending);

@@ -4,7 +4,7 @@
 //! the first, with the second applied on top. The readable tables
 //! (`schlift_core::projection`) are written only into an export.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use prost::Message;
@@ -424,12 +424,17 @@ impl Store {
         read(&self.conn, sql)
     }
 
-    /// Bring in an export of this account: each event in it that this file
-    /// holds neither placed nor waiting (by id) waits after the rest, in the
-    /// export's order, for the server to place; the server skips any it
-    /// holds. So an import only ever adds: nothing here is removed, and the
-    /// same file brought in again adds nothing. Returns how many it added.
-    /// A file that won't read whole adds nothing.
+    /// Bring in an export of this account. Where its placed events carry
+    /// on from this file's (this file holds none placed, or the export
+    /// holds this file's last at the same seq), the ones after are taken
+    /// as placed, in their places: the id check when a stream opens tells
+    /// whether the server holds them there. Every other event in it that
+    /// this file holds neither placed nor waiting (by id) waits after the
+    /// rest, in the export's order, for the server to place; the server
+    /// skips any it holds. Heart rate gathered for a workout under way
+    /// comes along. So an import only ever adds: nothing here is removed,
+    /// and the same file brought in again adds nothing. Returns how many
+    /// events it added. A file that won't read whole adds nothing.
     pub fn import(&mut self, path: &Path) -> StoreResult<usize> {
         let (owner, _) = file_owner(path)?;
         if owner != self.user_id {
@@ -444,24 +449,77 @@ impl Store {
             // Its events are in a form from before, which nothing reads.
             return Ok(0);
         }
-        let mut theirs = read(&conn, "SELECT event FROM events ORDER BY seq")?;
-        theirs.extend(read(&conn, "SELECT event FROM pending ORDER BY n")?);
-        let mut held: std::collections::HashSet<String> = self
-            .events()?
-            .into_iter()
-            .chain(self.pending()?)
-            .map(|e| e.id)
-            .collect();
-        let added: Vec<Event> = theirs
+        let placed = read(&conn, "SELECT event FROM events ORDER BY seq")?;
+        let waiting = read(&conn, "SELECT event FROM pending ORDER BY n")?;
+        let heart_rate: Vec<(String, i64, f64)> = {
+            let mut query = conn
+                .prepare("SELECT workout_id, sampled_at, bpm FROM heart_rate")
+                .map_err(storage)?;
+            let rows = query
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+                .map_err(storage)?;
+            rows.collect::<Result<_, _>>().map_err(storage)?
+        };
+        let ours = self.events()?;
+        let confirmed = ours.last().map_or(0, |e| e.seq);
+        let placed_here: HashSet<String> = ours.iter().map(|e| e.id.clone()).collect();
+        let mut held = placed_here.clone();
+        held.extend(self.pending()?.into_iter().map(|e| e.id));
+        let (before, after): (Vec<Event>, Vec<Event>) =
+            placed.into_iter().partition(|e| e.seq <= confirmed);
+        // The export's log carries on from this file's: the same last event
+        // in the same place, then one seq after another, none of them one
+        // this file holds placed elsewhere.
+        let meets = match ours.last() {
+            None => true,
+            Some(last) => before
+                .last()
+                .is_some_and(|e| e.seq == last.seq && e.id == last.id),
+        };
+        let carries_on = meets
+            && after
+                .iter()
+                .zip(confirmed + 1..)
+                .all(|(e, seq)| e.seq == seq && !placed_here.contains(&e.id));
+        let (taken, rest): (Vec<Event>, Vec<Event>) = if carries_on {
+            (after, waiting)
+        } else {
+            (
+                Vec::new(),
+                before.into_iter().chain(after).chain(waiting).collect(),
+            )
+        };
+        held.extend(taken.iter().map(|e| e.id.clone()));
+        let added: Vec<Event> = rest
             .into_iter()
             .filter(|e| held.insert(e.id.clone()))
             .map(|e| Event { seq: 0, ..e })
             .collect();
-        if !added.is_empty() {
-            self.add_pending(&added)?;
+        let tx = self.conn.transaction().map_err(storage)?;
+        for event in &taken {
+            let json = serde_json::to_string(event).map_err(storage)?;
+            tx.execute(
+                "INSERT INTO events (seq, id, event) VALUES (?, ?, ?)",
+                params![event.seq, event.id, json],
+            )
+            .map_err(storage)?;
+            tx.execute("DELETE FROM pending WHERE id = ?", [&event.id])
+                .map_err(storage)?;
+        }
+        add_pending(&tx, &added)?;
+        for (workout_id, sampled_at, bpm) in &heart_rate {
+            tx.execute(
+                "INSERT OR IGNORE INTO heart_rate (workout_id, sampled_at, bpm) VALUES (?, ?, ?)",
+                params![workout_id, sampled_at, bpm],
+            )
+            .map_err(storage)?;
+        }
+        tx.commit().map_err(storage)?;
+        let count = taken.len() + added.len();
+        if count > 0 {
             self.refold()?;
         }
-        Ok(added.len())
+        Ok(count)
     }
 
     /// Events from the server, in its order, and the last seq it holds.
@@ -721,7 +779,6 @@ mod tests {
         CompleteOnboardingRequest, EndWorkoutRequest, GetHomeRequest, GetHomeResponse,
         StartWorkoutRequest, StartWorkoutResponse, WeightUnit,
     };
-    use std::collections::HashSet;
 
     fn temp(name: &str) -> std::path::PathBuf {
         std::env::temp_dir().join(format!(
@@ -1389,5 +1446,68 @@ mod tests {
         let mut theirs = Store::open(&temp("import-theirs"), U2, "").unwrap();
         assert!(theirs.import(&newer).is_err());
         assert!(theirs.pending().unwrap().is_empty());
+    }
+
+    /// A new phone opening an export takes its placed history as placed,
+    /// in its places: only what the export had waiting goes up, not the
+    /// whole account again.
+    #[test]
+    fn an_import_onto_a_new_phone_keeps_the_places() {
+        let mut server = Vec::new();
+        let mut phone = Store::open(&temp("keep-phone"), U1, "").unwrap();
+        onboard(&mut phone);
+        settings(&mut phone, 999);
+        sync(&mut phone, &mut server);
+        assert_eq!(server.len(), 1_000);
+        // Two not yet sent.
+        settings(&mut phone, 2);
+        let export = temp("keep-export");
+        phone.export(&export).unwrap();
+
+        let mut fresh = Store::open(&temp("keep-fresh"), U1, "").unwrap();
+        assert_eq!(fresh.import(&export).unwrap(), 1_002);
+        assert_eq!(fresh.events().unwrap(), server, "placed where they were");
+        assert_eq!(fresh.pending().unwrap(), phone.pending().unwrap());
+        assert_eq!(fresh.account, phone.account);
+        assert_eq!(fresh.opens_after().unwrap(), 999);
+
+        sync(&mut fresh, &mut server);
+        assert_eq!(server.len(), 1_002);
+        assert_eq!(fresh.events().unwrap(), server);
+        assert!(fresh.pending().unwrap().is_empty());
+
+        // An export whose log doesn't carry on from this file's (the same
+        // place, another event) is only queued, for the server to place.
+        let mut elsewhere = Vec::new();
+        let mut other = Store::open(&temp("keep-other"), U1, "").unwrap();
+        onboard(&mut other);
+        sync(&mut other, &mut elsewhere);
+        let held = other.events().unwrap();
+        assert_eq!(other.import(&export).unwrap(), 1_002);
+        assert_eq!(other.events().unwrap(), held, "its places are kept");
+        assert_eq!(other.pending_count().unwrap(), 1_002);
+    }
+
+    /// Heart rate gathered for a workout under way comes along with an
+    /// export, and is recorded when the workout ends on the new phone.
+    #[test]
+    fn an_import_brings_the_heart_rate_of_a_workout_under_way() {
+        let mut phone = Store::open(&temp("hr-phone"), U1, "").unwrap();
+        let home = onboard(&mut phone);
+        let started = start(&mut phone, &home.templates[0].id);
+        heart_rate(&mut phone, &started.id, &[1_000, 3_000], 2_001);
+        let export = temp("hr-export");
+        phone.export(&export).unwrap();
+
+        let mut fresh = Store::open(&temp("hr-fresh"), U1, "").unwrap();
+        fresh.import(&export).unwrap();
+        // Brought in again, nothing is gathered twice.
+        fresh.import(&export).unwrap();
+        heart_rate(&mut fresh, &started.id, &[5_000], 2_002);
+        end(&mut fresh, &started.id, 2_010);
+        assert_eq!(
+            shown_heart_rate(&mut fresh, &started.id),
+            vec![1_000, 3_000, 5_000]
+        );
     }
 }

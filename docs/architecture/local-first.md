@@ -161,10 +161,16 @@ order of an account's events; the phone records without waiting for it.
   in their place; differing at the first event a stream sent, the phone
   can't tell where they meet, so it dials again from twice as far back,
   until it can.
-- **Import:** an export only adds. `Store::import` queues each event in
-  the file that the phone holds neither placed nor pending (by id), and
-  the server skips any it holds, so nothing is removed and the same file
-  twice adds nothing.
+- **Import:** an export only adds. Where the export's placed events carry
+  on from the phone's (a new phone holds none, or the export holds the
+  phone's last event at the same seq), `Store::import` takes the ones
+  after as placed, in their places, so a new phone sends up only what the
+  export had pending; the id check when the stream opens tells whether
+  the server holds them there. Otherwise it queues each event in the file
+  that the phone holds neither placed nor pending (by id), and the server
+  skips any it holds. Either way nothing is removed and the same file
+  twice adds nothing. Heart rate gathered for a workout under way comes
+  along too.
 
 The stream is only the fast path. A pending event is resent after any
 reconnect until it comes back placed, and every down message is either
