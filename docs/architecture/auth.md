@@ -155,7 +155,9 @@ the phone (`AuthProvider`):
 
 A passkey sign-in sets both: the token, and the user id whose file
 `AccountSync` then opens (pulling the log from the server first on a fresh
-install). Logins last 30 days from the sign-in and are never extended. If
+install). A login stays signed in while it is used: each
+use slides its expiry to 30 days out (`validate_auth_session`, written at most
+once a day), so only a login left unused for 30 days lapses. If
 the server refuses the token (lapsed, its passkey deleted, the account
 deleted), `expireSession` clears only the token; the account stays open and
 usable. While an account is open with no session (this, or one opened from a

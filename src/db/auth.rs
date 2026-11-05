@@ -2,8 +2,12 @@ use super::migrate::token_hash;
 use super::*;
 use schlift::workout::v1::User;
 
-/// How long a login lasts.
+/// How long a login lasts unused: every use pushes it back to this.
 const LOGIN_SECONDS: i64 = 30 * 24 * 60 * 60;
+
+/// How stale a login's expiry may get before a use writes it forward: at
+/// most one write a day per login, not one per request.
+const LOGIN_EXTEND_AFTER_SECONDS: i64 = 24 * 60 * 60;
 
 const USER_COLUMNS: &str = "id, username, created_at, emoji, color_hex, body_weight_kg";
 
@@ -244,15 +248,31 @@ impl ServerDb {
         Ok(token)
     }
 
+    /// The user a login belongs to, if it hasn't expired. A login in use
+    /// stays signed in: its expiry slides to `LOGIN_SECONDS` from now
+    /// (written once it is more than a day old).
     pub async fn validate_auth_session(&self, token: &str) -> DbResult<Option<String>> {
-        let user_id: Option<String> = sqlx::query_scalar(
-            "SELECT user_id FROM logins WHERE token_hash = ? AND expires_at > ?",
+        let now = now_unix();
+        let hash = token_hash(token);
+        let row: Option<(String, i64)> = sqlx::query_as(
+            "SELECT user_id, expires_at FROM logins WHERE token_hash = ? AND expires_at > ?",
         )
-        .bind(token_hash(token))
-        .bind(now_unix())
+        .bind(&hash)
+        .bind(now)
         .fetch_optional(&self.read_pool)
         .await?;
-        Ok(user_id)
+        let Some((user_id, expires_at)) = row else {
+            return Ok(None);
+        };
+        if expires_at < now + LOGIN_SECONDS - LOGIN_EXTEND_AFTER_SECONDS {
+            sqlx::query("UPDATE logins SET expires_at = ? WHERE token_hash = ? AND expires_at > ?")
+                .bind(now + LOGIN_SECONDS)
+                .bind(&hash)
+                .bind(now)
+                .execute(&self.write_pool)
+                .await?;
+        }
+        Ok(Some(user_id))
     }
 
     /// Sign a login out; the user's open streams hear of it and end the
@@ -377,7 +397,7 @@ impl ServerDb {
 
 #[cfg(test)]
 mod tests {
-    use super::token_hash;
+    use super::{now_unix, token_hash, LOGIN_SECONDS};
     use crate::db::ServerDb;
     use sqlx::Row;
     use uuid::Uuid;
@@ -431,6 +451,45 @@ mod tests {
             db.get_credentials_for_user("victim").await.unwrap().len(),
             1
         );
+    }
+
+    #[tokio::test]
+    async fn a_login_in_use_keeps_sliding_forward() {
+        let db = temp_db().await;
+        db.create_user_with_id("u", "u").await.unwrap();
+        let token = db.create_auth_session("u").await.unwrap();
+        let expiry = || async {
+            sqlx::query_scalar::<_, i64>("SELECT expires_at FROM logins WHERE token_hash = ?")
+                .bind(token_hash(&token))
+                .fetch_one(&db.read_pool)
+                .await
+                .unwrap()
+        };
+        let fresh = expiry().await;
+        // Used the same day: no write.
+        db.validate_auth_session(&token).await.unwrap();
+        assert_eq!(expiry().await, fresh);
+        // Twenty-nine days on (one day left), a use pushes it a month out.
+        sqlx::query("UPDATE logins SET expires_at = ? WHERE token_hash = ?")
+            .bind(now_unix() + 24 * 60 * 60)
+            .bind(token_hash(&token))
+            .execute(&db.write_pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            db.validate_auth_session(&token).await.unwrap().as_deref(),
+            Some("u")
+        );
+        assert!(expiry().await >= now_unix() + LOGIN_SECONDS - 5);
+        // Left unused past its expiry, it is gone and a use doesn't revive it.
+        sqlx::query("UPDATE logins SET expires_at = ? WHERE token_hash = ?")
+            .bind(now_unix() - 1)
+            .bind(token_hash(&token))
+            .execute(&db.write_pool)
+            .await
+            .unwrap();
+        assert_eq!(db.validate_auth_session(&token).await.unwrap(), None);
+        assert!(expiry().await < now_unix());
     }
 
     #[tokio::test]
