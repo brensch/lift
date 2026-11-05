@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
+import '../gen/copy.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/plate_visualization.dart';
 import '../theme/theme_spec.dart';
 
-const List<MapEntry<String, Color>> _colorOptions = [
-  MapEntry('Red', Colors.red),
-  MapEntry('Blue', Colors.blue),
-  MapEntry('Green', Colors.green),
-  MapEntry('Yellow', Color(0xFFFFEB3B)),
-  MapEntry('Amber', Colors.amber),
-  MapEntry('Orange', Colors.orange),
-  MapEntry('Purple', Colors.purple),
-  MapEntry('Pink', Colors.pink),
-  MapEntry('Teal', Colors.teal),
-  MapEntry('White', Color(0xFFE0E0E0)),
-  MapEntry('Light Grey', Color(0xFFBDBDBD)),
-  MapEntry('Grey', Colors.grey),
-  MapEntry('Dark Grey', Color(0xFF616161)),
-  MapEntry('Black', Color(0xFF212121)),
-  MapEntry('Brown', Colors.brown),
+final List<MapEntry<String, Color>> _colorOptions = [
+  MapEntry(copy.plateColours.red, Colors.red),
+  MapEntry(copy.plateColours.blue, Colors.blue),
+  MapEntry(copy.plateColours.green, Colors.green),
+  MapEntry(copy.plateColours.yellow, const Color(0xFFFFEB3B)),
+  MapEntry(copy.plateColours.amber, Colors.amber),
+  MapEntry(copy.plateColours.orange, Colors.orange),
+  MapEntry(copy.plateColours.purple, Colors.purple),
+  MapEntry(copy.plateColours.pink, Colors.pink),
+  MapEntry(copy.plateColours.teal, Colors.teal),
+  MapEntry(copy.plateColours.white, const Color(0xFFE0E0E0)),
+  MapEntry(copy.plateColours.lightGrey, const Color(0xFFBDBDBD)),
+  MapEntry(copy.plateColours.grey, Colors.grey),
+  MapEntry(copy.plateColours.darkGrey, const Color(0xFF616161)),
+  MapEntry(copy.plateColours.black, const Color(0xFF212121)),
+  MapEntry(copy.plateColours.brown, Colors.brown),
 ];
 
 /// Plate colours: the bar loaded with one of every plate, then a row per
@@ -39,7 +40,7 @@ class PlateColorsScreen extends StatelessWidget {
     String nameOf(Color c) => _colorOptions
         .firstWhere(
           (o) => o.value.toARGB32() == c.toARGB32(),
-          orElse: () => MapEntry('Custom', c),
+          orElse: () => MapEntry(copy.plateColours.custom, c),
         )
         .key;
 
@@ -50,7 +51,7 @@ class PlateColorsScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const PageTitle('Plate colours')),
+      appBar: AppBar(title: PageTitle(copy.plateColours.title)),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
@@ -59,7 +60,7 @@ class PlateColorsScreen extends StatelessWidget {
             height: 150,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: t.lightBackdrop,
               border: Border(bottom: BorderSide(color: t.outline)),
             ),
             child: FittedBox(

@@ -178,9 +178,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         .where((c) => c.endedAt != Int64.ZERO)
         .length;
     final pageTabs = <PageTabItem>[
-      const PageTabItem('Workout'),
-      PageTabItem('Log', count: loggedCount > 0 ? loggedCount : null),
-      const PageTabItem('Heart'),
+      PageTabItem(copy.workoutPage.tabWorkout),
+      PageTabItem(
+        copy.workoutPage.tabLog,
+        count: loggedCount > 0 ? loggedCount : null,
+      ),
+      PageTabItem(copy.workoutPage.tabHeart),
     ];
 
     final workout = wp.workout!;

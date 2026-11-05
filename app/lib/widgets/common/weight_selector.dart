@@ -167,11 +167,12 @@ class _WeightSelectorState extends State<WeightSelector> {
                       decimal: true,
                     ),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                      // A comma too: a decimal-comma keypad's mark.
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                     ],
                     textAlign: TextAlign.center,
                     onChanged: (value) {
-                      final typed = double.tryParse(value);
+                      final typed = parseDisplayWeight(value);
                       if (typed != null) {
                         _current = poundsFromDisplayWeight(typed, unit);
                         widget.onChanged(_current);
@@ -216,7 +217,7 @@ class _WeightSelectorState extends State<WeightSelector> {
               height: 96,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: t.lightBackdrop,
                 border: Border.symmetric(
                   horizontal: BorderSide(color: t.outline),
                 ),

@@ -91,7 +91,7 @@ class AuthProvider extends ChangeNotifier {
       await _saveSession(response);
     } catch (e) {
       if (e is! PasskeyAuthCancelledException) {
-        _error = _formatError(e);
+        _error = formatAuthError(e);
       }
     } finally {
       _isLoading = false;
@@ -109,7 +109,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.testLogin(username);
       await _saveSession(response);
     } catch (e) {
-      _error = _formatError(e);
+      _error = formatAuthError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -129,7 +129,7 @@ class AuthProvider extends ChangeNotifier {
       // Cancellation is user-initiated (or the OS dismissed the sheet) — clear
       // silently so the button just becomes tappable again without an error.
       if (e is! PasskeyAuthCancelledException) {
-        _error = _formatError(e);
+        _error = formatAuthError(e);
       }
     } finally {
       _isLoading = false;
@@ -295,14 +295,16 @@ class AuthProvider extends ChangeNotifier {
     _error = message;
     notifyListeners();
   }
+}
 
-  static String _formatError(Object e) {
-    if (e is AuthenticatorException) {
-      return formatPasskeyError(e);
-    }
-    if (e is PlatformException) {
-      return formatPlatformError(e);
-    }
-    return cleanErrorMessage(e);
+/// An auth failure as the user reads it: a passkey's or the platform's
+/// error with its code, a server error's own message.
+String formatAuthError(Object e) {
+  if (e is AuthenticatorException) {
+    return formatPasskeyError(e);
   }
+  if (e is PlatformException) {
+    return formatPlatformError(e);
+  }
+  return cleanErrorMessage(e);
 }

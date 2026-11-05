@@ -12,7 +12,6 @@ import '../../providers/workout_provider.dart';
 
 class SectionWorkout {
   final List<CompletedSet> completedSets;
-  final List<ProposedSet> proposedSets;
 
   /// The set being lifted, or empty.
   final String liftingSetId;
@@ -35,7 +34,6 @@ class SectionWorkout {
 
   const SectionWorkout({
     required this.completedSets,
-    required this.proposedSets,
     required this.liftingSetId,
     required this.nextSetId,
     required this.state,
@@ -47,7 +45,6 @@ class SectionWorkout {
   /// Your workout, live: taps start, finish and correct sets.
   factory SectionWorkout.mine(WorkoutProvider wp) => SectionWorkout(
     completedSets: wp.completedSets,
-    proposedSets: wp.proposedSets,
     liftingSetId: wp.workout?.liftingSetId ?? '',
     nextSetId: wp.doneTargetSet?.id,
     state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
@@ -65,7 +62,6 @@ class SectionWorkout {
     final nowUnix = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     return SectionWorkout(
       completedSets: p.completedSets,
-      proposedSets: p.proposedSets,
       liftingSetId: p.hasActiveWorkout() ? p.activeWorkout.liftingSetId : '',
       nextSetId: shownSet(snapshot, p.hasNextUpSet() ? p.nextUpSet : null)?.id,
       state: stateAt(snapshot, nowUnix),
@@ -74,8 +70,6 @@ class SectionWorkout {
       actions: null,
     );
   }
-
-  bool get live => actions != null;
 
   CompletedSet? doneFor(String proposedSetId) {
     for (final c in completedSets) {

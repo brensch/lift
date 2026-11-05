@@ -57,7 +57,7 @@ class _YourDataScreenState extends State<YourDataScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _exporting = false);
-      ErrorModalService.showError('EXPORT FAILED: $e');
+      ErrorModalService.showError(c.exportFailed.replaceAll('{error}', '$e'));
     }
   }
 
@@ -103,7 +103,7 @@ class _YourDataScreenState extends State<YourDataScreen> {
       });
     } catch (e) {
       if (mounted) setState(() => _importing = false);
-      ErrorModalService.showError('IMPORT FAILED: $e');
+      ErrorModalService.showError(c.importFailed.replaceAll('{error}', '$e'));
     }
   }
 

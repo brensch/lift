@@ -1,10 +1,8 @@
-import 'dart:math';
-
 import '../widgets/common/flat.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../logic/user_profile.dart';
+import '../gen/copy.dart';
 import '../logic/whimsical_emojis.dart';
 import '../providers/auth_provider.dart';
 import '../services/grpc_client.dart';
@@ -21,7 +19,6 @@ class ProfileMarkerScreen extends StatefulWidget {
 }
 
 class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
-  static const int _emojiWindowSize = 18;
   late String _savedEmoji;
   late String _savedColorHex;
   late String _selectedEmoji;
@@ -37,28 +34,17 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
     _savedColorHex = auth.profileColorHex;
     _selectedEmoji = _savedEmoji;
     _selectedColorHex = _savedColorHex;
-    _emojiChoices = whimsicalEmojiCatalog.take(_emojiWindowSize).toList();
-    _ensureSelectedEmojiVisible();
+    _emojiChoices = withSelectedVisible(
+      whimsicalEmojiCatalog.take(emojiWindowSize).toList(),
+      _selectedEmoji,
+    );
   }
 
   bool get _hasUnsavedChanges =>
       _selectedEmoji != _savedEmoji || _selectedColorHex != _savedColorHex;
 
-  void _ensureSelectedEmojiVisible() {
-    if (_emojiChoices.contains(_selectedEmoji)) return;
-    _emojiChoices = [
-      _selectedEmoji,
-      ..._emojiChoices.take(_emojiWindowSize - 1),
-    ];
-  }
-
   void _refreshEmojiChoices() {
-    final pool = <String>{...whimsicalEmojiCatalog, _selectedEmoji}.toList();
-    pool.shuffle(Random());
-    setState(() {
-      _emojiChoices = pool.take(_emojiWindowSize).toList();
-      _ensureSelectedEmojiVisible();
-    });
+    setState(() => _emojiChoices = shuffledEmojiWindow(_selectedEmoji));
   }
 
   Future<void> _save() async {
@@ -80,8 +66,14 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
         _savedColorHex = user.profileColorHex;
         _selectedEmoji = user.profileEmoji;
         _selectedColorHex = user.profileColorHex;
-        _ensureSelectedEmojiVisible();
+        _emojiChoices = withSelectedVisible(_emojiChoices, _selectedEmoji);
       });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(copy.profileMarker.saveFailed)));
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -96,7 +88,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
           icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: PageTitle('Profile Marker'),
+        title: PageTitle(copy.profileMarker.title),
       ),
       body: SafeArea(
         child: Column(
@@ -106,7 +98,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                 children: [
                   Text(
-                    'GROUP LOOK',
+                    copy.profileMarker.eyebrow,
                     style: TextStyle(
                       fontSize: context.tokens.size.small,
                       fontWeight: context.tokens.weight.heavy,
@@ -116,7 +108,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Pick your colour and emoji',
+                    copy.profileMarker.heading,
                     style: TextStyle(
                       fontSize: context.tokens.size.headline,
                       fontWeight: context.tokens.weight.heavy,
@@ -124,7 +116,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'This controls the badge and side stripe used for you in group workouts.',
+                    copy.profileMarker.body,
                     style: TextStyle(
                       fontSize: context.tokens.size.body,
                       height: 1.4,
@@ -140,7 +132,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                   Row(
                     children: [
                       Text(
-                        'EMOJIS',
+                        copy.profileMarker.emojis,
                         style: TextStyle(
                           fontSize: context.tokens.size.small,
                           fontWeight: context.tokens.weight.heavy,
@@ -152,27 +144,19 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                       TextButton.icon(
                         onPressed: _refreshEmojiChoices,
                         icon: const Icon(AppIcons.refresh, size: 18),
-                        label: const Text('Refresh'),
+                        label: Text(copy.profileMarker.refresh),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: _emojiChoices
-                        .map(
-                          (emoji) => EmojiChoiceChip(
-                            emoji: emoji,
-                            selected: emoji == _selectedEmoji,
-                            onTap: () => setState(() => _selectedEmoji = emoji),
-                          ),
-                        )
-                        .toList(),
+                  EmojiChoiceWrap(
+                    choices: _emojiChoices,
+                    selected: _selectedEmoji,
+                    onSelect: (emoji) => setState(() => _selectedEmoji = emoji),
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'COLOURS',
+                    copy.profileMarker.colours,
                     style: TextStyle(
                       fontSize: context.tokens.size.small,
                       fontWeight: context.tokens.weight.heavy,
@@ -181,19 +165,9 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: profileColorHexOptions
-                        .map(
-                          (hex) => ColorChoiceDot(
-                            hex: hex,
-                            selected: hex == _selectedColorHex,
-                            onTap: () =>
-                                setState(() => _selectedColorHex = hex),
-                          ),
-                        )
-                        .toList(),
+                  ColorChoiceWrap(
+                    selected: _selectedColorHex,
+                    onSelect: (hex) => setState(() => _selectedColorHex = hex),
                   ),
                 ],
               ),
@@ -218,7 +192,7 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          'SAVE',
+                          copy.profileMarker.save,
                           style: TextStyle(
                             fontWeight: context.tokens.weight.heavy,
                           ),
