@@ -149,6 +149,11 @@ impl AdminService for ServerAdminService {
                 .await
                 .map_err(internal_error)?,
             trail,
+            active_users: self
+                .db
+                .active_users(since_ms)
+                .await
+                .map_err(internal_error)?,
             total_users: self.db.total_users().await.map_err(internal_error)?,
             new_users,
         }))
@@ -341,6 +346,37 @@ mod tests {
         assert_eq!(stats.trail.len(), 3);
         assert_eq!(stats.users[0].username, "lifter");
         assert_eq!(stats.total_users, 2);
+        assert_eq!(stats.active_users, 1, "the admin opened nothing");
+    }
+
+    /// The user list stops at 200; the active-user count does not.
+    #[tokio::test]
+    async fn active_users_count_past_the_listed_users() {
+        let db = temp_db().await;
+        let (_, admin_token) = db
+            .get_or_create_user_with_auth_session("boss")
+            .await
+            .unwrap();
+        db.grant_admin("boss").await.unwrap();
+        let now_ms = now_unix() * 1000;
+        for n in 0..201 {
+            let (user, _) = db
+                .get_or_create_user_with_auth_session(&format!("lifter{n}"))
+                .await
+                .unwrap();
+            db.record_page_views(&user.id, "android", "1.0.0", &[view(1, "/", now_ms)])
+                .await
+                .unwrap();
+        }
+
+        let stats = ServerAdminService { db }
+            .get_stats(authed(GetStatsRequest::default(), &admin_token))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(stats.users.len(), 200);
+        assert_eq!(stats.active_users, 201);
     }
 
     /// A linked trail can name an account that has since been deleted: the

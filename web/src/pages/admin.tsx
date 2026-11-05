@@ -487,7 +487,7 @@ export function AdminPage() {
             />
             <StatTile
               label="Active users"
-              value={formatNumber(stats.users.length, 0)}
+              value={formatNumber(Number(stats.activeUsers), 0)}
               sub="opened the app"
             />
             <StatTile
