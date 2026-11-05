@@ -167,9 +167,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _accountSync = AccountSync(_grpcClient);
     // With no session the server would turn the stream down.
     _accountSync.canDial = () => _authProvider.hasServerSession;
-    _accountSync.onCaughtUp = () {
-      unawaited(_reloadAccount());
-    };
+    _accountSync.onCaughtUp = _reloadAccount;
     _accountSync.onSessionRejected = () {
       // Nothing of the account on this phone yet: sign in from the start.
       if (!_accountSync.isReady) {

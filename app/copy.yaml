@@ -723,7 +723,6 @@ progress:
 home:
   # Both cards' button. (workout.start is the set circle's and the watch's.)
   start: START
-  start_failed: "Failed to start workout: {error}"
   # The freestyle workout: its chip, and its card.
   empty_chip: Empty
   empty_title: "Don't tell me what to do"

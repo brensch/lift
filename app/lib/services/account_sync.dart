@@ -346,8 +346,11 @@ class AccountSync extends ChangeNotifier
 
   /// Called after the server changed what the account shows (another
   /// device's events, or a new template library): what's on screen may
-  /// have changed.
-  VoidCallback? onCaughtUp;
+  /// have changed. Never run twice at once: changes while it runs (a
+  /// restore lands in many pieces) run it once more after, not once each.
+  Future<void> Function()? onCaughtUp;
+  Future<void>? _catchingUp;
+  bool _caughtUpAgain = false;
 
   /// Moves each time the server changes what the account shows: a screen
   /// that read the account reads it again when it does.
@@ -357,7 +360,23 @@ class AccountSync extends ChangeNotifier
   void _changed() {
     _revision++;
     notifyListeners();
-    onCaughtUp?.call();
+    if (_catchingUp != null) {
+      _caughtUpAgain = true;
+      return;
+    }
+    _catchingUp = _catchUp();
+  }
+
+  Future<void> _catchUp() async {
+    do {
+      _caughtUpAgain = false;
+      try {
+        await onCaughtUp?.call();
+      } catch (e) {
+        AppLogger.instance.warn(_tag, 'reload failed', {'error': e.toString()});
+      }
+    } while (_caughtUpAgain);
+    _catchingUp = null;
   }
 
   /// Send what this phone recorded that hasn't been sent on this stream, in
