@@ -13,7 +13,6 @@ mod analytics;
 mod auth;
 mod changes;
 mod migrate;
-pub use accounts::Pushed;
 pub use changes::{Change, Topic};
 mod session;
 pub use session::JOIN_REQUEST_TTL_SECONDS;
