@@ -67,9 +67,8 @@ code has to be the version that checks it.
 
 | Tools | Pinned in |
 |---|---|
-| ruff, shellcheck, shfmt, ktlint, swiftformat, swiftlint | `scripts/install_lint_tools.sh` (version + sha256), installed to `.tools/bin` by `make lint-tools`, which `make fmt` / `make lint-check` run for you |
+| ruff, shellcheck, shfmt, ktlint, swiftformat, swiftlint, buf | `scripts/install_lint_tools.sh` (version + sha256), installed to `.tools/bin` by `make lint-tools`, which `make fmt` / `make lint-check` run for you |
 | Flutter / Dart | `FLUTTER_VERSION` in `.github/workflows/tests.yml`. Keep it equal to your local SDK. |
-| buf | `BUF_VERSION` in `.github/workflows/tests.yml` |
 | prettier, eslint, typescript | `web/package.json` + both lockfiles |
 | rustfmt, clippy | the `stable` toolchain |
 
