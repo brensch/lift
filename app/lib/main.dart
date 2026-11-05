@@ -203,6 +203,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _wearableSyncCoordinator = WearableSyncCoordinator(
       workoutProvider: _workoutProvider,
       multiplayerProvider: _multiplayerProvider,
+      settingsProvider: _settingsProvider,
       bridgeService: _wearableBridgeService,
       myUserId: () => _authProvider.userId ?? '',
     );

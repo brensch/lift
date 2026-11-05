@@ -8,6 +8,7 @@ import 'dart:async';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/multiplayer_provider.dart';
@@ -53,6 +54,7 @@ void main() {
         multiplayerProvider: MultiplayerProvider(
           MultiplayerServiceWrapper(GrpcClient(host: '127.0.0.1', port: 1)),
         ),
+        settingsProvider: h.settings,
         bridgeService: b,
         myUserId: () => 'me',
       );
@@ -97,6 +99,16 @@ void main() {
     await coordinator.signOut();
     expect(bridge.snapshots.length, before);
     expect(bridge.ended, isEmpty);
+  });
+
+  test('a unit switched mid-workout reaches the watch', () async {
+    await h.start([Exercise.EXERCISE_SQUAT]);
+    expect(bridge.snapshots.last.youCard.unitText, 'lb');
+    final before = bridge.snapshots.length;
+    h.settings.applyWeightUnitLocally(WeightUnit.WEIGHT_UNIT_KG);
+    await pumpEventQueue();
+    expect(bridge.snapshots.length, greaterThan(before));
+    expect(bridge.snapshots.last.youCard.unitText, 'kg');
   });
 
   group('watch intents', () {

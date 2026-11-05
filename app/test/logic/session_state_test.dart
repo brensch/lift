@@ -121,4 +121,16 @@ void main() {
     expect(formatDurationShort(2700), '45m');
     expect(formatRestClock(-75), '1:15');
   });
+
+  test('the rest-end cue is for a rest that ended just now', () {
+    final rest = WorkoutStateSnapshot(state: resting, restUntil: Int64(now));
+    expect(restEndedJustNow(rest, now), isTrue);
+    expect(restEndedJustNow(rest, now + 1), isTrue);
+    expect(restEndedJustNow(rest, now + 2), isTrue);
+    expect(
+      restEndedJustNow(rest, now + 120),
+      isFalse,
+      reason: 'back two minutes later: the notification rang at the end',
+    );
+  });
 }

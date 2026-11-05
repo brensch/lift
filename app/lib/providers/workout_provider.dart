@@ -42,9 +42,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   double _bodyWeightKg = 0;
 
   /// Called after endWorkout() completes successfully, with the finished
-  /// workout's id. Used by the app shell to navigate to the summary screen
-  /// when the workout is ended from a source that can't navigate itself
-  /// (e.g. the watch).
+  /// workout's id. The app shell opens the summary and any template offer
+  /// over it, for an end on the phone or the watch alike.
   void Function(String workoutId)? onWorkoutEnded;
 
   /// Called once for each ramp set whose "how many more could you have
@@ -195,9 +194,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final isCurrentlyResting =
         stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
     if (_wasResting && !isCurrentlyResting && !_sandbox) {
+      // Back after the rest ran out in the background: the notification
+      // already rang for it.
+      final cue = restEndedJustNow(snapshot, _nowSecs);
       await NotificationService.cancelRest();
-      _soundProvider?.playCurrentSound();
-      unawaited(NotificationService.playRestCompletionHaptic());
+      if (cue) {
+        _soundProvider?.playCurrentSound();
+        unawaited(NotificationService.playRestCompletionHaptic());
+      }
     }
     _wasResting = isCurrentlyResting;
   }
@@ -844,8 +848,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// End the workout. The health write happens in the background.
   ///
   /// [fireEndedCallback] controls whether [onWorkoutEnded] is called after
-  /// completion. Pass false when the caller (e.g. the phone UI) will handle
-  /// navigation itself.
+  /// completion. Pass false when nothing should open (tests, scenarios).
   Future<void> endWorkout({bool fireEndedCallback = true}) async {
     if (_workout == null) return;
     try {

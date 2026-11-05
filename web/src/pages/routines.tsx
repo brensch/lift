@@ -33,7 +33,7 @@ export function RoutinesPage() {
         </h1>
         <p className="mt-6 text-muted leading-relaxed">
           Every routine in the app. Tick the ones you want when you sign up, add more any time from
-          the Add chip. They're yours to edit once added.
+          the Manage chip. They're yours to edit once added.
         </p>
 
         {groups.map((group) => {
