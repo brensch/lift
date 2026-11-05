@@ -987,4 +987,61 @@ mod tests {
         let reopened = Store::open(&dest, U1, "").unwrap();
         assert_eq!(reopened.account, store.account);
     }
+
+    fn home(store: &mut Store) -> GetHomeResponse {
+        let bytes = store
+            .call("GetHome", &GetHomeRequest::default().encode_to_vec(), 1_000)
+            .unwrap();
+        GetHomeResponse::decode(bytes.as_slice()).unwrap()
+    }
+
+    #[test]
+    fn the_servers_library_is_kept_and_coupled_templates_follow_it() {
+        let path = temp("library");
+        let mut store = Store::open(&path, U1, "").unwrap();
+        let coupled = onboard(&mut store)
+            .templates
+            .into_iter()
+            .find(|t| t.coupled)
+            .expect("a template that follows the library");
+        let mut library = schlift_core::template_library::library().to_vec();
+        let entry = library
+            .iter_mut()
+            .find(|e| e.id == coupled.library_id)
+            .unwrap();
+        entry.name = "Renamed by the server".into();
+        let packed = ListTemplateLibraryResponse {
+            templates: library.clone(),
+            ..Default::default()
+        }
+        .encode_to_vec();
+        assert!(store.set_library(&packed).unwrap(), "a change");
+        assert!(!store.set_library(&packed).unwrap(), "the same again");
+        drop(store);
+
+        // After a restart: the server's library, not the one built in.
+        let mut store = Store::open(&path, U1, "").unwrap();
+        assert_eq!(store.library, library);
+        let shown = home(&mut store)
+            .templates
+            .into_iter()
+            .find(|t| t.id == coupled.id)
+            .unwrap();
+        assert_eq!(shown.name, "Renamed by the server");
+    }
+
+    #[test]
+    fn server_events_after_a_gap_are_refused_and_change_nothing() {
+        let mut store = Store::open(&temp("gap"), U1, "").unwrap();
+        onboard(&mut store);
+        let pending = store.pending().unwrap();
+        let before = store.account.clone();
+        // Placed at 2 while this file holds nothing: seq 1 is missing.
+        let error = store.receive(place(pending.clone(), 1), 2).unwrap_err();
+        assert!(error.starts_with("failed_precondition"), "{error}");
+        assert!(store.events().unwrap().is_empty());
+        assert_eq!(store.pending().unwrap(), pending);
+        assert_eq!(store.confirmed().unwrap(), 0);
+        assert_eq!(store.account, before);
+    }
 }
