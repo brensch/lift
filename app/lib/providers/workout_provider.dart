@@ -79,10 +79,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void>? _heartRateSaveInFlight;
 
   bool _wasResting = false;
-  // Who gives the rest-end cue: the app while it is in the foreground, the
-  // OS notification (scheduled as the app leaves it) otherwise. Never both.
-  bool _resumed =
-      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+  // Who gives the rest-end cue: the app while it is on screen (resumed, or
+  // inactive behind Control Center, a call banner or the app switcher: it
+  // still ticks, and iOS shows no notification then), the OS notification
+  // (scheduled as the app goes hidden) otherwise. Never both.
+  bool _onScreen = _isOnScreen(WidgetsBinding.instance.lifecycleState);
   Timer? _timer;
   DateTime _now = DateTime.now();
   late final ValueNotifier<DateTime> _clock = ValueNotifier<DateTime>(_now);
@@ -117,16 +118,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _soundProvider = provider;
   }
 
+  static bool _isOnScreen(AppLifecycleState? state) =>
+      state == AppLifecycleState.resumed || state == AppLifecycleState.inactive;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _resumed = true;
+    final onScreen = _isOnScreen(state);
+    if (onScreen == _onScreen) return;
+    _onScreen = onScreen;
+    if (onScreen) {
       _setNow(DateTime.now());
       // The app has the cue again: drop the notification, rung or not.
       if (!_sandbox) unawaited(NotificationService.cancelRest());
       notifyListeners();
-    } else if (_resumed) {
-      _resumed = false;
+    } else {
       final snapshot = _snapshot;
       final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       if (!_sandbox &&
@@ -199,8 +204,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Rest end: sound and state ──
 
-  /// Called every second. In the foreground the app plays the rest-end
-  /// cue; out of it the OS notification does, so this leaves it alone.
+  /// Called every second. On screen the app plays the rest-end cue; off
+  /// it the OS notification does, so this leaves it alone.
   Future<void> _checkRestSound() async {
     final snapshot = _snapshot;
     if (snapshot == null) {
@@ -209,11 +214,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     final isCurrentlyResting =
         stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
-    if (_wasResting && !isCurrentlyResting && !_sandbox && _resumed) {
-      // Back after the rest ran out in the background: the notification
-      // already rang for it.
+    if (_wasResting && !isCurrentlyResting && !_sandbox && _onScreen) {
+      // Back after the rest ran out off screen: the notification already
+      // rang for it.
       final cue = restEndedJustNow(snapshot, _nowSecs);
-      // Nothing should be scheduled while in the foreground; this covers a
+      // Nothing should be scheduled while on screen; this covers a
       // schedule from leaving it that landed after the cancel on return.
       await NotificationService.cancelRest();
       if (cue) {
@@ -257,15 +262,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (isResting) {
       if (restUntil > 0) {
         _wasResting = true;
-        // In the foreground the app gives the cue; leaving it schedules.
-        if (!_resumed &&
+        // On screen the app gives the cue; leaving the screen schedules.
+        if (!_onScreen &&
             (restUntil != oldRestUntil ||
                 oldState != WorkoutState.WORKOUT_STATE_RESTING)) {
           _scheduleRestNotification(restUntil);
         }
       }
     } else if (oldState == WorkoutState.WORKOUT_STATE_RESTING) {
-      unawaited(NotificationService.cancelRest());
+      // A rest cut short (the next set started) takes its notification with
+      // it. One that ran out leaves it be: off screen it is ringing now, and
+      // on screen nothing is scheduled.
+      final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if ((oldRestUntil ?? 0) > nowSecs) {
+        unawaited(NotificationService.cancelRest());
+      }
       _wasResting = false;
     }
   }
