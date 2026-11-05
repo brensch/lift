@@ -81,7 +81,9 @@ impl ServerDb {
         Ok(())
     }
 
-    /// The server's own verdict. Overrides anything the client reported.
+    /// The server's own verdict. Overrides anything the client reported,
+    /// but never an earlier verdict: a finish replayed for a settled attempt
+    /// (anyone can send one, naming a user id) changes nothing.
     pub async fn finish_auth_attempt(
         &self,
         attempt_id: &str,
@@ -89,7 +91,8 @@ impl ServerDb {
         reason: &str,
     ) -> DbResult<()> {
         sqlx::query(
-            "UPDATE auth_attempts SET outcome = ?, reason = ?, finished_at = ? WHERE attempt_id = ?",
+            "UPDATE auth_attempts SET outcome = ?, reason = ?, finished_at = ?
+             WHERE attempt_id = ? AND outcome IN ('started', 'client_error')",
         )
         .bind(outcome)
         .bind(reason)

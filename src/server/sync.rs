@@ -202,6 +202,11 @@ impl Stream {
                 } => Woke::Partner(partner, change),
                 up = inbound.message() => Woke::Up(up),
             };
+            // Whatever woke it, nothing goes down a signed-out stream (what
+            // comes up is checked as it is received).
+            if !matches!(woke, Woke::Up(_)) {
+                self.ensure_signed_in().await?;
+            }
             let sent = match woke {
                 Woke::Up(Ok(Some(up))) => self.receive(up).await?,
                 // The phone closed its side, or the link died.

@@ -50,7 +50,8 @@ impl ServerDb {
     // ── Sessions ──
 
     /// Put the user in `session_id`. A session they were in before is left,
-    /// and they're off show there.
+    /// and they're off show there. Coming back to a session they left
+    /// counts as joining it now; one they're still in is left as it was.
     pub async fn join_session(&self, session_id: &str, user_id: &str) -> DbResult<()> {
         let now = now_unix();
         let mut tx = self.write_pool.begin().await?;
@@ -67,7 +68,9 @@ impl ServerDb {
         sqlx::query(
             "INSERT INTO session_members (session_id, user_id, joined_at, left_at)
              VALUES (?, ?, ?, 0)
-             ON CONFLICT (session_id, user_id) DO UPDATE SET left_at = 0, ended_at = 0",
+             ON CONFLICT (session_id, user_id) DO UPDATE SET
+               joined_at = CASE WHEN left_at = 0 THEN joined_at ELSE excluded.joined_at END,
+               left_at = 0, ended_at = 0",
         )
         .bind(session_id)
         .bind(user_id)
@@ -330,11 +333,19 @@ impl ServerDb {
         Ok(())
     }
 
-    /// Requests a deleted account made or was asked.
+    /// Requests a deleted account made or was asked. Those it asked hear
+    /// that its requests are gone.
     pub(super) fn forget_join_requests(&self, user_id: &str) {
-        self.join_requests
-            .lock()
-            .retain(|_, r| r.from != user_id && r.to != user_id);
+        let mut asked = Vec::new();
+        self.join_requests.lock().retain(|_, r| {
+            if r.from == user_id {
+                asked.push(r.to.clone());
+            }
+            r.from != user_id && r.to != user_id
+        });
+        for to in asked {
+            self.notify(Topic::User(to), Change::JoinRequests);
+        }
     }
 
     /// Push a join request's creation [seconds] into the past: expiry tests.
