@@ -183,6 +183,12 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _soundProvider = SoundProvider();
     _workoutProvider = WorkoutProvider(_account, _settingsProvider);
     _workoutProvider.setSoundProvider(_soundProvider);
+    // The startup error's Retry opens the account again (a no-op when it is
+    // open), then loads; a load alone would wait on an account never opened.
+    _workoutProvider.onRetryStartup = () async {
+      final userId = _openUserId;
+      if (userId != null) await _openAccount(userId);
+    };
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
       feed: _accountSync,
