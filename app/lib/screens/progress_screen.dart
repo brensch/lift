@@ -49,6 +49,7 @@ class _ProgressScreenState extends State<ProgressScreen>
       out.add(
         _ExerciseProgress(
           exercise: s.exercise,
+          bodyweight: s.bodyweight,
           points: pts,
           history: s.points,
           colorIndex: s.colorIndex,
@@ -79,6 +80,7 @@ class _ProgressScreenState extends State<ProgressScreen>
         series.add(
           _ExerciseProgress(
             exercise: ep.exercise,
+            bodyweight: ep.bodyweight,
             points: ep.points
                 .map(
                   (p) => _Point(
@@ -529,6 +531,10 @@ class _Point {
 
 class _ExerciseProgress {
   final Exercise exercise;
+
+  /// A bodyweight lift, by its load style: its maxes are rep maxes, even
+  /// with added weight.
+  final bool bodyweight;
   final List<_Point> points;
 
   /// Every session of the lift, whatever the span: what the chart plots.
@@ -538,6 +544,7 @@ class _ExerciseProgress {
   final int colorIndex;
   _ExerciseProgress({
     required this.exercise,
+    required this.bodyweight,
     required this.points,
     List<_Point>? history,
     required this.colorIndex,
@@ -551,6 +558,5 @@ class _ExerciseProgress {
   double get best =>
       points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
   double get maxNow => points.last.estimatedMax;
-  bool get bodyweight => points.every((p) => p.weight <= 0);
   double get gain => current - start;
 }
