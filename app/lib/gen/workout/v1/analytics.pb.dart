@@ -889,6 +889,7 @@ class GetStatsResponse extends $pb.GeneratedMessage {
     $core.Iterable<TrailEntry>? trail,
     $fixnum.Int64? totalUsers,
     $fixnum.Int64? newUsers,
+    $fixnum.Int64? activeUsers,
   }) {
     final result = create();
     if (days != null) result.days = days;
@@ -899,6 +900,7 @@ class GetStatsResponse extends $pb.GeneratedMessage {
     if (trail != null) result.trail.addAll(trail);
     if (totalUsers != null) result.totalUsers = totalUsers;
     if (newUsers != null) result.newUsers = newUsers;
+    if (activeUsers != null) result.activeUsers = activeUsers;
     return result;
   }
 
@@ -928,6 +930,7 @@ class GetStatsResponse extends $pb.GeneratedMessage {
         subBuilder: TrailEntry.create)
     ..aInt64(7, _omitFieldNames ? '' : 'totalUsers')
     ..aInt64(8, _omitFieldNames ? '' : 'newUsers')
+    ..aInt64(9, _omitFieldNames ? '' : 'activeUsers')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -990,6 +993,16 @@ class GetStatsResponse extends $pb.GeneratedMessage {
   $core.bool hasNewUsers() => $_has(7);
   @$pb.TagNumber(8)
   void clearNewUsers() => $_clearField(8);
+
+  /// Distinct users with a page view inside the window; `users` is capped.
+  @$pb.TagNumber(9)
+  $fixnum.Int64 get activeUsers => $_getI64(8);
+  @$pb.TagNumber(9)
+  set activeUsers($fixnum.Int64 value) => $_setInt64(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasActiveUsers() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearActiveUsers() => $_clearField(9);
 }
 
 const $core.bool _omitFieldNames =

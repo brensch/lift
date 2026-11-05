@@ -276,6 +276,17 @@ impl ServerDb {
             .collect())
     }
 
+    /// Distinct users with a page view since `since_ms`: the whole count,
+    /// where `user_activity` lists only the most recent.
+    pub async fn active_users(&self, since_ms: i64) -> DbResult<i64> {
+        Ok(sqlx::query_scalar(
+            "SELECT COUNT(DISTINCT user_id) FROM page_views WHERE entered_at_ms >= ?",
+        )
+        .bind(since_ms)
+        .fetch_one(&self.read_pool)
+        .await?)
+    }
+
     /// The user's most recent views, newest first.
     pub async fn user_trail(&self, user_id: &str, limit: i64) -> DbResult<Vec<TrailEntry>> {
         let rows = sqlx::query(

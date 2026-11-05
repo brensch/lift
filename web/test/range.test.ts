@@ -28,9 +28,10 @@ const workout = (startS: number, volumeLb: number): WorkoutRow => ({
   heaviestSetLb: 0,
 });
 
-const series = (key: string, points: [number, number][]): ExerciseSeries => ({
+const series = (key: string, points: [number, number][], bodyweight = false): ExerciseSeries => ({
   key,
   name: key,
+  bodyweight,
   points: points.map(([dateS, e1rmLb]) => ({
     dateS,
     e1rmLb,
@@ -163,12 +164,17 @@ test("resolveRange: presets count back from now, All from the first workout", ()
   assert.equal(resolveRange({ preset: "all" }, now, since).startS, since);
 });
 
-test("exercisesInRange flags a lift that never carried weight as bodyweight", () => {
-  const pullUp = series("pullup", [
-    [at(2026, 6, 1), 10],
-    [at(2026, 6, 8), 12],
-  ]);
-  pullUp.points = pullUp.points.map((p) => ({ ...p, topWeightLb: 0, topReps: 10 }));
+test("exercisesInRange keeps the core's bodyweight flag, added weight or not", () => {
+  const pullUp = series(
+    "pullup",
+    [
+      [at(2026, 6, 1), 10],
+      [at(2026, 6, 8), 12],
+    ],
+    true,
+  );
+  // A weighted pull-up: the top set carries 25 lb, the max is still reps.
+  pullUp.points = pullUp.points.map((p) => ({ ...p, topWeightLb: 25, topReps: 10 }));
   const out = exercisesInRange(
     data([
       pullUp,

@@ -856,6 +856,27 @@ mod the_walk {
         assert_eq!(maxes[1], plan(&app, Exercise::Squat).max);
     }
 
+    /// A bodyweight lift is marked by its load style, so a pull-up with
+    /// added weight still reads as reps; a barbell lift is not marked.
+    #[test]
+    fn progress_marks_bodyweight_lifts_by_load_style() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        import_session(&mut app, Exercise::PullUp, 25.0, 8, &[8, 8, 8], NOW - DAY);
+        import_session(&mut app, Exercise::Squat, 200.0, 5, &[5, 5, 5], NOW - DAY);
+        let progress = app.view().get_exercise_progress();
+        let marked = |ex: Exercise| {
+            progress
+                .exercises
+                .iter()
+                .find(|e| e.exercise == ex as i32)
+                .unwrap()
+                .bodyweight
+        };
+        assert!(marked(Exercise::PullUp), "added weight is still bodyweight");
+        assert!(!marked(Exercise::Squat));
+    }
+
     /// The suggestion turns from the template just trained to the other in
     /// rotation, and says what is still recovering.
     #[test]
