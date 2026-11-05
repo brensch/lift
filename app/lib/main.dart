@@ -24,7 +24,7 @@ import 'services/platform_wearable_bridge_service.dart';
 import 'services/wearable_bridge_service.dart';
 import 'services/wearable_sync_coordinator.dart';
 import 'providers/auth_provider.dart';
-import 'widgets/update_required_gate.dart';
+import 'widgets/update_required_banner.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
 import 'providers/settings_provider.dart';
@@ -506,7 +506,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         theme: AppTheme.theme,
         routerConfig: _router,
         builder: (context, child) =>
-            UpdateRequiredGate(child: child ?? const SizedBox.shrink()),
+            UpdateRequiredBanner(child: child ?? const SizedBox.shrink()),
       ),
     );
   }
