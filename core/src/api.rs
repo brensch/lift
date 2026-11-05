@@ -156,6 +156,7 @@ impl<'a> Call<'a> {
             &[],
             req.budget_minutes,
         );
+        check_decisions(&req.decisions)?;
         if req.name.is_empty() {
             req.name = "Workout".to_string();
         }
@@ -226,6 +227,7 @@ impl<'a> Call<'a> {
             .filter(|ex| planned.iter().all(|d| d.exercise != *ex as i32))
             .collect();
         req.decisions = Planner::new(self.account, self.now).workout(&added, &planned, budget);
+        check_decisions(&req.decisions)?;
         self.record(Fact::ExercisesAdded(ExercisesAdded {
             workout_id: req.workout_id,
             exercises: req.exercises,
@@ -1044,6 +1046,20 @@ fn current_plan(templates: &[WorkoutTemplate]) -> Option<&'static LibraryPlan> {
 
 /// The valid exercises of a list, in order, each once: a workout has a lift
 /// at most once.
+/// A plan nothing in the app arrives at (a weight past what any history or
+/// override leads to, more sets than an override may ask) is refused rather
+/// than recorded: every device and partner folds what is recorded.
+fn check_decisions(decisions: &[ExerciseDecision]) -> Result<(), CoreError> {
+    for d in decisions {
+        if !(0.0..=10_000.0).contains(&d.weight) || !(1..=20).contains(&d.sets) {
+            return Err(CoreError::InvalidArgument(
+                "The plan is out of range".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn exercises(values: &[i32]) -> Vec<Exercise> {
     let mut out: Vec<Exercise> = Vec::new();
     for ex in values.iter().filter_map(|v| Exercise::try_from(*v).ok()) {

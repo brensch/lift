@@ -62,7 +62,7 @@ pub fn compute_workout_summary(
         // Resting — Done to the rest's end, cut short by the next set.
         let rest_end = cap(next_start.map_or(c.rest_until, |n| n.min(c.rest_until)));
         if rest_end > c.ended_at {
-            resting_seconds += rest_end - c.ended_at;
+            resting_seconds = resting_seconds.saturating_add(rest_end.saturating_sub(c.ended_at));
         }
 
         // Yapping — once the rest has run out, until the next set began.
@@ -102,7 +102,7 @@ pub fn compute_workout_summary(
     }
 
     let duration_seconds = if workout.end_time != 0 && workout.start_time != 0 {
-        workout.end_time - workout.start_time
+        workout.end_time.saturating_sub(workout.start_time)
     } else {
         0
     };

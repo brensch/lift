@@ -358,7 +358,7 @@ impl HeartRateRecorded {
         Some(
             gaps.zip(&self.bpm)
                 .map(|(gap, &bpm)| {
-                    at += i64::from(gap);
+                    at = at.saturating_add(i64::from(gap));
                     WorkoutHeartRatePoint {
                         sampled_at: at,
                         bpm: f32::from(bpm),

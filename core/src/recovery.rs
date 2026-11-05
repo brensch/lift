@@ -44,7 +44,11 @@ impl MuscleRecovery {
     }
     /// Hours until recovered (0 if already).
     pub fn hours_remaining(&self, now: i64) -> i64 {
-        ((self.recovered_at - now) + HOUR - 1).max(0) / HOUR
+        self.recovered_at
+            .saturating_sub(now)
+            .saturating_add(HOUR - 1)
+            .max(0)
+            / HOUR
     }
 }
 
@@ -98,7 +102,7 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
             MuscleRecovery {
                 muscle,
                 last_trained_at: last,
-                recovered_at: last + recovery_hours(muscle) * HOUR,
+                recovered_at: last.saturating_add(recovery_hours(muscle) * HOUR),
             }
         })
         .collect()

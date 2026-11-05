@@ -86,6 +86,14 @@ muscle is recovering and another was ready, or if Full Body takes over
 a short template whose muscles a bigger one also trains (StrongLifts B
 beside Lower and Full Body) rarely comes within a fifth of its score.
 
+## Events no phone writes
+
+`core/tests/hostile_fold.rs` folds what only a hand-made or corrupt event
+holds, as a partner's phone or the server would: a decision at an absurd
+weight or with billions of sets folds in seconds and bounded memory, and
+every time in the stored events pushed to the ends of i64 folds and reads
+without overflowing.
+
 ## Invariant fuzzer
 
 `core/examples/fuzz.rs` runs the core in-process, as the phone does, with
