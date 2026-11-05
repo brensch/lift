@@ -79,6 +79,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void>? _heartRateSaveInFlight;
 
   bool _wasResting = false;
+  // Who gives the rest-end cue: the app while it is in the foreground, the
+  // OS notification (scheduled as the app leaves it) otherwise. Never both.
+  bool _resumed =
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
   Timer? _timer;
   DateTime _now = DateTime.now();
   late final ValueNotifier<DateTime> _clock = ValueNotifier<DateTime>(_now);
@@ -116,8 +120,20 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _resumed = true;
       _setNow(DateTime.now());
+      // The app has the cue again: drop the notification, rung or not.
+      if (!_sandbox) unawaited(NotificationService.cancelRest());
       notifyListeners();
+    } else if (_resumed) {
+      _resumed = false;
+      final snapshot = _snapshot;
+      final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (!_sandbox &&
+          snapshot != null &&
+          stateAt(snapshot, nowSecs) == WorkoutState.WORKOUT_STATE_RESTING) {
+        _scheduleRestNotification(snapshot.restUntil.toInt());
+      }
     }
   }
 
@@ -183,8 +199,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Rest end: sound and state ──
 
-  /// Called every second. The in-app sound at rest end is the primary
-  /// path; the OS notification is the fallback for when the app is killed.
+  /// Called every second. In the foreground the app plays the rest-end
+  /// cue; out of it the OS notification does, so this leaves it alone.
   Future<void> _checkRestSound() async {
     final snapshot = _snapshot;
     if (snapshot == null) {
@@ -193,10 +209,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     final isCurrentlyResting =
         stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
-    if (_wasResting && !isCurrentlyResting && !_sandbox) {
+    if (_wasResting && !isCurrentlyResting && !_sandbox && _resumed) {
       // Back after the rest ran out in the background: the notification
       // already rang for it.
       final cue = restEndedJustNow(snapshot, _nowSecs);
+      // Nothing should be scheduled while in the foreground; this covers a
+      // schedule from leaving it that landed after the cancel on return.
       await NotificationService.cancelRest();
       if (cue) {
         _soundProvider?.playCurrentSound();
@@ -239,22 +257,27 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (isResting) {
       if (restUntil > 0) {
         _wasResting = true;
-        if (restUntil != oldRestUntil ||
-            oldState != WorkoutState.WORKOUT_STATE_RESTING) {
-          final presetId = knownSoundPreset(_soundProvider?.currentPreset);
-          unawaited(
-            NotificationService.scheduleRest(
-              restUntilUnix: restUntil,
-              soundPresetId: presetId,
-              body: _nextSetBody(),
-            ),
-          );
+        // In the foreground the app gives the cue; leaving it schedules.
+        if (!_resumed &&
+            (restUntil != oldRestUntil ||
+                oldState != WorkoutState.WORKOUT_STATE_RESTING)) {
+          _scheduleRestNotification(restUntil);
         }
       }
     } else if (oldState == WorkoutState.WORKOUT_STATE_RESTING) {
       unawaited(NotificationService.cancelRest());
       _wasResting = false;
     }
+  }
+
+  void _scheduleRestNotification(int restUntil) {
+    unawaited(
+      NotificationService.scheduleRest(
+        restUntilUnix: restUntil,
+        soundPresetId: knownSoundPreset(_soundProvider?.currentPreset),
+        body: _nextSetBody(),
+      ),
+    );
   }
 
   void _startTimer() {
