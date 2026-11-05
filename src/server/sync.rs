@@ -56,6 +56,13 @@ fn check_push(events: &[Event]) -> ServerResult<()> {
             ))
             .into());
         }
+        if !event.plans_are_sane() {
+            return Err(Status::invalid_argument(format!(
+                "event {} holds a plan no app makes",
+                event.id
+            ))
+            .into());
+        }
         match &event.fact {
             Fact::HeartRateRecorded(recorded)
                 if recorded.bpm.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
@@ -590,5 +597,31 @@ mod tests {
             ..Default::default()
         }));
         assert!(check_push(&[not_a_number]).is_err());
+    }
+
+    /// A plan folds on the server and every partner's phone, so one no app
+    /// makes (far too many lifts, sets or pounds) is turned away; what an app
+    /// plans goes through.
+    #[test]
+    fn a_push_with_a_plan_no_app_makes_is_refused() {
+        use schlift_core::events::WorkoutStarted;
+        use schlift_core::pb::ExerciseDecision;
+        let started = |count: usize, sets: i32, weight: f32| {
+            event(Fact::WorkoutStarted(WorkoutStarted {
+                decisions: vec![
+                    ExerciseDecision {
+                        sets,
+                        weight,
+                        ..Default::default()
+                    };
+                    count
+                ],
+                ..Default::default()
+            }))
+        };
+        assert!(check_push(&[started(76, 20, 8_700.0)]).is_ok());
+        assert!(check_push(&[started(101, 3, 135.0)]).is_err());
+        assert!(check_push(&[started(1, 10_000, 135.0)]).is_err());
+        assert!(check_push(&[started(1, 3, 2.1e9)]).is_err());
     }
 }
