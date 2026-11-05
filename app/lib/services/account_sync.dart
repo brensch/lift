@@ -91,6 +91,14 @@ class AccountSync extends ChangeNotifier
   /// ignored rather than taken for the new one's.
   int _generation = 0;
 
+  /// The messages from the stream, handled in turn.
+  Future<void> _inbox = Future.value();
+
+  /// Whether there is a session to open the stream with. Without one the
+  /// server would turn it down, so nothing is dialled; [redial] starts it
+  /// once there is.
+  bool Function() canDial = () => true;
+
   static Future<File> _fileFor(String userId) async {
     final dir = await getApplicationSupportDirectory();
     final accounts = Directory('${dir.path}/accounts');
@@ -106,10 +114,20 @@ class AccountSync extends ChangeNotifier
     if (_userId == userId) return;
     await signOut();
     _userId = userId;
-    final file = await _fileFor(userId);
-    final core = await LocalCore.open(file.path, userId, name: name);
+    final LocalCore core;
+    try {
+      core = await LocalCore.open(
+        (await _fileFor(userId)).path,
+        userId,
+        name: name,
+      );
+    } catch (_) {
+      // Nothing open: a later sign-in for this user tries again.
+      if (_userId == userId) _userId = null;
+      rethrow;
+    }
     if (_userId != userId) {
-      core.close();
+      await core.close();
       return;
     }
     _core = core;
@@ -176,18 +194,20 @@ class AccountSync extends ChangeNotifier
     _redial?.cancel();
     await _writesSub?.cancel();
     _writesSub = null;
-    _core?.close();
+    final core = _core;
     _core = null;
     if (_ready.isCompleted) _ready = Completer<LocalCore>();
     _session = Session();
     _joinRequests = GetJoinRequestsResponse();
     _unsynced = 0;
     notifyListeners();
+    // Closed before returning: importFile writes over the file next.
+    await core?.close();
   }
 
   void _dial() {
     final core = _core;
-    if (core == null || _up != null) return;
+    if (core == null || _up != null || !canDial()) return;
     _redial?.cancel();
     final up = StreamController<SyncRequest>();
     _up = up;
@@ -205,16 +225,29 @@ class AccountSync extends ChangeNotifier
     );
     final down = _grpc.syncService.sync(up.stream);
     _down = down;
+    // One at a time, in the order sent (a restore comes in chunks the store
+    // takes only in order), and the end of the stream after them.
+    void inTurn(Future<void> Function() handle) {
+      _inbox = _inbox.then((_) async {
+        if (generation != _generation) return;
+        try {
+          await handle();
+        } catch (e) {
+          AppLogger.instance.warn(_tag, 'message failed', {
+            'error': e.toString(),
+          });
+        }
+      });
+    }
+
     down.listen(
       (message) {
-        if (generation == _generation) unawaited(_heard(message));
+        // Heard now, however long the messages ahead of it take.
+        if (generation == _generation) _lastHeard = DateTime.now();
+        inTurn(() => _heard(message));
       },
-      onError: (Object e) {
-        if (generation == _generation) _lost(e);
-      },
-      onDone: () {
-        if (generation == _generation) _lost(null);
-      },
+      onError: (Object e) => inTurn(() async => _lost(e)),
+      onDone: () => inTurn(() async => _lost(null)),
       cancelOnError: true,
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) => _beat());
@@ -275,7 +308,10 @@ class AccountSync extends ChangeNotifier
       return;
     }
     await _refreshUnsynced();
-    if (!_ready.isCompleted && await core.confirmed() >= head) {
+    if (!_ready.isCompleted &&
+        await core.confirmed() >= head &&
+        !_ready.isCompleted &&
+        identical(_core, core)) {
       _ready.complete(core);
       notifyListeners();
     }
