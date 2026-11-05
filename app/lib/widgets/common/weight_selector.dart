@@ -87,10 +87,16 @@ class _WeightSelectorState extends State<WeightSelector> {
   double get _min => widget.barbell ? standardBarWeight(_unit) : 0;
   double get _max => _kg ? 300 : 650;
 
+  /// [display] (in the display unit) snapped to the small step and in
+  /// range, in pounds.
+  double _settled(double display) {
+    final snapped = ((display / _small).round() * _small).clamp(_min, _max);
+    return poundsFromDisplayWeight(snapped.toDouble(), _unit);
+  }
+
   /// Set from the display unit, snapped to the small step and in range.
   void _set(double display) {
-    final snapped = ((display / _small).round() * _small).clamp(_min, _max);
-    final lb = poundsFromDisplayWeight(snapped.toDouble(), _unit);
+    final lb = _settled(display);
     _current = lb;
     if (!_focus.hasFocus) _text.text = _shown(lb);
     widget.onChanged(lb);
@@ -171,10 +177,13 @@ class _WeightSelectorState extends State<WeightSelector> {
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                     ],
                     textAlign: TextAlign.center,
+                    // What's typed stays as typed until the field is left,
+                    // but what's given out is already settled: a save
+                    // tapped with the keyboard up takes it as it is.
                     onChanged: (value) {
                       final typed = parseDisplayWeight(value);
                       if (typed != null) {
-                        _current = poundsFromDisplayWeight(typed, unit);
+                        _current = _settled(typed);
                         widget.onChanged(_current);
                       }
                     },
