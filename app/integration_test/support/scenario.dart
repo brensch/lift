@@ -682,11 +682,31 @@ class Scenario {
   /// End the live workout through the confirm dialog and wait for the
   /// summary. "End workout" is the quiet link under the exercise list and,
   /// once every set is done, the bar's big button; either opens the dialog.
+  /// A session that didn't match its template opens the summary under the
+  /// offer to save it as one; that is turned down, leaving the summary.
   Future<void> endWorkoutAndWaitForSummary() async {
     await tapText(copy.workout.endWorkout);
-    await mustSee('This will end your current workout.', seconds: 6);
-    await tap(find.text('End Workout').last); // the dialog's confirm button
+    await mustSee(copy.endWorkoutDialog.body, seconds: 6);
+    // The dialog's confirm button.
+    await tap(find.text(copy.endWorkoutDialog.confirm).last);
     // The summary's first section.
     await mustSee('SESSION', seconds: 15);
+    await declineTemplateOffer();
+  }
+
+  /// Turn down the "save / update the template?" offer if it is up.
+  Future<void> declineTemplateOffer() async {
+    await settle(seconds: 1);
+    for (final decline in [
+      copy.templateUpdate.updateDecline,
+      copy.templateUpdate.newDecline,
+    ]) {
+      if (isVisible(decline)) {
+        await shot('Template offer', note: 'Turned down.');
+        await tapText(decline);
+        await settle(seconds: 1);
+        return;
+      }
+    }
   }
 }
