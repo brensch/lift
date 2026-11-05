@@ -72,6 +72,8 @@ library:
   clone: Clone
   remove: Remove
   delete: Delete
+  # The Manage sheet's delete prompt.
+  cancel: Cancel
   loading_failed: Couldn't load the library. Check your connection.
   empty: The library is empty. Someone deleted the internet.
 
@@ -159,6 +161,9 @@ permissions:
 onboarding:
   next: NEXT
   back: BACK
+  # After setup, when the emoji, colour and bodyweight didn't reach the
+  # server. Setup still finishes. Placeholder.
+  profile_failed: Your emoji, colour and bodyweight didn't save. Change them in Settings.
   marker:
     title: Which emoji do you identify as
     body: The hardest question in the whole signup.
@@ -438,6 +443,18 @@ exercise:
   none_in_span: "None in the last {span}."
   # The chart panned or pinched to a stretch with no sessions in it.
   none_here: Nothing in this stretch.
+  empty: No completed sets for this lift yet.
+  # The headline: the estimated max now, and the heaviest set last time.
+  estimated_max: estimated max
+  heaviest_last_time: heaviest set last time
+  # A bodyweight lift's heaviest set.
+  reps: "{n} reps"
+  # Totals over the span.
+  sessions: Sessions
+  total_sets: Total sets
+  volume: Volume
+  # A session's row: "{sets} sets · {volume}".
+  session_line: "{sets} sets · {volume}"
 
 # Settings → Your data: taking a copy of the account (an export) and
 # bringing one back (an import). Placeholders.
@@ -463,6 +480,9 @@ your_data:
   import_confirm_body: This phone's copy of your account is replaced by the file. Anything the server already has comes back when it syncs.
   import_confirm: Import
   import_cancel: Cancel
+  # {error} is what went wrong.
+  export_failed: "EXPORT FAILED: {error}"
+  import_failed: "IMPORT FAILED: {error}"
 
 # Ending a workout: the prompt the End workout button asks first.
 # Placeholders.
@@ -641,3 +661,312 @@ session_expired: Sign in again to sync this phone with your account.
 error_dialog:
   title: "Error"
   ok: "OK"
+
+# The template editor page. Placeholders.
+template_editor:
+  new_title: New workout
+  edit_title: Edit workout
+  name_hint: Name, e.g. Push, Legs, Tuesday
+  # The empty exercise list.
+  empty: Add exercises. Tap one to set your own weight and reps. They follow the exercise everywhere.
+  add_exercises: ADD EXERCISES
+  save: SAVE
+  # Also the override sheet's failure. {error} is the reason.
+  save_failed: "Could not save: {error}"
+
+# History: past workouts by month. Placeholders.
+history:
+  title: History
+  empty: No completed workouts yet
+  # The two counts at the top.
+  workouts: workouts
+  this_week: this week
+  # A workout with no lifts and no name.
+  untitled: Workout
+  sets: "{n} sets"
+  # Who you trained with: {names} is one name, "{a} & {b}", or two and +N.
+  with_partners: "with {names}"
+  two_names: "{a} & {b}"
+  # A group session whose partners have no names.
+  friends: friends
+  today: Today
+  yesterday: Yesterday
+  days_ago: "{days} days ago"
+  last_week: Last week
+
+# Progress: a card per lift. {…} are substituted by the code.
+# Placeholders.
+progress:
+  title: Progress
+  workouts: workouts
+  # {unit} is lb or kg.
+  lifted: "{unit} lifted"
+  since: "since {date}"
+  # {span} is the span picked: 1Y, 6M, …
+  none_in_span: "No lifts in the last {span}."
+  max: MAX
+  best: BEST
+  empty: No workout history yet
+  empty_body: Finish a workout and your progress shows up here.
+
+# Home: the chips and the workout cards. {…} are substituted by the code.
+# Placeholders.
+home:
+  # Both cards' button. (workout.start is the set circle's and the watch's.)
+  start: START
+  start_failed: "Failed to start workout: {error}"
+  # The freestyle workout: its chip, and its card.
+  empty_chip: Empty
+  empty_title: "Don't tell me what to do"
+  empty_body: I'll add exercises as I go. The app still brings the weights, sets and reps for whatever you pick.
+  # The card menu, on a workout of your own.
+  edit: Edit
+  # Asked before a workout is removed from Home. {name} is its name.
+  delete_title: "Delete {name}?"
+  delete_body: Your weights are safe. They live on the exercises, not the template.
+  delete_cancel: Cancel
+  delete_confirm: Delete
+  # No workouts at all.
+  no_templates: No templates yet
+  no_templates_body: A template is just a list of exercises. The app handles the sets, reps and weight.
+  create_one: CREATE ONE
+
+# The live workout page on the phone: its tabs and panels. Placeholders.
+workout_page:
+  tab_workout: Workout
+  tab_log: Log
+  tab_heart: Heart
+  # The Heart tab with no watch.
+  no_heart_rate: No heart rate yet
+  no_heart_rate_body: Get the watch app and you can see how hard you are pumping your heart while schlifting.
+  add_exercise: Add exercise
+  # The button on an exercise that opens its weight and reps.
+  weight_and_reps: Weight and reps
+
+# The first screen after sign-in: the back button's exit prompt, and the
+# account failing to open. Placeholders.
+startup:
+  exit_title: Exit app?
+  exit_body: Are you sure you want to quit?
+  exit_cancel: CANCEL
+  exit_confirm: EXIT
+  failed: Could not finish startup
+  retry: Retry
+
+# A finished workout's summary. Placeholders.
+summary:
+  # Also the title when the workout has no name.
+  title: Workout summary
+  load_failed: Failed to load workout summary.
+  retry: Retry
+  session: Session
+  duration: Duration
+  volume: Volume
+  sets: Sets
+  reps: Reps
+  max: Max
+  heart: Heart
+  trained_with: Trained with
+  solo: Nobody (solo session)
+  loading: Loading…
+  exercises: Exercises
+  # {weight} is the heaviest set's weight.
+  heaviest_set: "Heaviest set: {weight}"
+
+# Settings, and the sheets it opens. {…} are substituted by the code.
+# Placeholders.
+settings:
+  title: Settings
+  you_heading: You
+  body_weight: Body weight
+  body_weight_not_set: Not set
+  body_weight_sync: Sync from health data
+  # {weight} with its unit.
+  body_weight_synced: "Synced body weight to {weight}"
+  body_weight_not_found: No body weight found in health data
+  body_weight_save_failed: Failed to save body weight
+  # The body-weight sheet.
+  body_weight_body: Used to estimate calories burned. Stored on your profile.
+  body_weight_field: Weight
+  save: SAVE
+  weight_unit: Weight unit
+  pounds: Pounds (🦅)
+  pounds_sub: Standard US gym loading
+  kilograms: Kilograms (🌍)
+  kilograms_sub: Standard international gym loading
+  plate_colours: Plate colours
+  plate_colours_sub: Assign colours to plate weights
+  account_heading: Account
+  sync: Sync
+  # Where the server's copy is up to. {n} is the changes not sent yet.
+  sync_up_to_date: Up to date
+  sync_sending: "Sending {n} changes"
+  sync_offline: Offline, nothing waiting
+  sync_offline_waiting: "Offline, {n} changes waiting"
+  passkeys: Passkeys
+  passkeys_sub: Manage your login credentials
+  sounds_heading: Sounds
+  sound: Pick sound
+  sound_sub: Choose notification sound
+  behind_heading: Behind the scenes
+  debug: Debug
+  debug_sub: Notification debugging
+  logs: App Logs
+  logs_sub: View and share diagnostic logs
+  build_info: Build info
+  build_info_sub: Version, device, and watch details
+
+# Settings → Profile Marker: the emoji and colour that mark you in group
+# workouts. Placeholders.
+profile_marker:
+  title: Profile Marker
+  eyebrow: GROUP LOOK
+  heading: Pick your colour and emoji
+  body: This controls the badge and side stripe used for you in group workouts.
+  # The card that shows the pick in place.
+  preview_title: Group workout preview
+  preview_body: Your emoji replaces the vertical name and your colour owns the sidebar.
+  emojis: EMOJIS
+  refresh: Refresh
+  colours: COLOURS
+  save: SAVE
+  save_failed: Couldn't save your marker. Try again.
+
+# Settings → Passkeys: the list, and deleting one. Placeholders.
+passkeys:
+  title: Passkeys
+  heading: Your passkeys
+  none: No passkeys found
+  add: Add passkey
+  # A passkey with no name. {n} is its place in the list.
+  unnamed: "Passkey {n}"
+  # {date} is when it was added.
+  added: "Added {date}"
+  # How a passkey signs in.
+  transport_internal: This device
+  transport_usb: USB
+  transport_nfc: NFC
+  transport_ble: Bluetooth
+  transport_hybrid: Phone/Tablet
+  load_failed: Failed to load passkeys
+  delete_failed: Failed to delete passkey
+  delete_title: Delete Passkey
+  delete_warning: Make sure you have one of the remaining passkeys before deleting anything. If you don't have a valid passkey you cannot recover your account.
+  delete_body: Are you sure? This cannot be undone.
+  delete_cancel: Cancel
+  delete_confirm: Delete
+
+# Passkeys → Add passkey. Placeholders.
+add_passkey:
+  title: Add Passkey
+  body: Give this passkey a name so you can recognize it later.
+  name: Name
+  name_hint: e.g. Work Phone
+  name_required: Name is required.
+  submit: Continue
+  adding: Adding...
+
+# Settings → Plate colours: the page, and the colours a plate can be.
+# Placeholders.
+plate_colours:
+  title: Plate colours
+  red: Red
+  blue: Blue
+  green: Green
+  yellow: Yellow
+  amber: Amber
+  orange: Orange
+  purple: Purple
+  pink: Pink
+  teal: Teal
+  white: White
+  light_grey: Light Grey
+  grey: Grey
+  dark_grey: Dark Grey
+  black: Black
+  brown: Brown
+  # A colour that isn't one of these.
+  custom: Custom
+
+# The Learn page on the menu. Placeholders.
+learn:
+  title: Learn
+  tutorial: Tutorial
+  tutorial_sub: The walkthrough again
+  science: Workout science
+  science_sub: The papers behind the app
+  maths: Calorie maths
+  maths_sub: How burn is worked out
+
+# Learn → Workout science: what the plan is built on. The papers
+# cited under each section stay in the code, by id. Placeholders.
+science:
+  title: 🧠 Workout science
+  intro: "Every number I give you comes from one estimate per lift and the time you said you have. The studies behind it are below."
+  sections:
+    - id: kinds
+      title: "Three kinds of lift"
+      body: "Barbell compounds are heavy: 5–8 reps, 3:00 rest, warmups first. Every other loaded lift is 8–12 reps with 2:00. Bodyweight and core are 5–15 reps with 1:30. Heavy is better for strength. For size, anything from about 6 to 30 reps works if it's hard. Long rest beats short on the big lifts."
+    - id: max
+      title: "Your estimated max"
+      body: "Each lift has one number: the most I think you could lift once. For bodyweight lifts it's the most reps in a set. I work it out from every set you've logged, assuming one rep left in the tank and a bit of fatigue per set. Hit every rep and it goes up a rep's worth. Miss one and it drops to what you actually showed. Stop early, or lower the weight yourself, and it stays put."
+    - id: reps
+      title: "Reps and weight"
+      body: "I keep you at the weight you did last time, for as many reps as your max covers. Past the top of the range, the weight goes up a step. Under the bottom, it comes down to what you can do. So you add a rep a session, then a plate. More reps works about as well as more weight."
+    - id: sets
+      title: "Sets: from your time"
+      body: "You tell me how long you have on the home screen. Sixty minutes unless you say otherwise. Every lift gets two sets. The rest go one at a time, five at most, to whichever muscle is furthest under ten sets this week. I time your sets and rests, and once I have ten of each I use yours instead of my guesses. If two sets each won't fit, I tell you how long it needs."
+    - id: volume
+      title: "Weekly volume: 10–20 sets per muscle"
+      body: "Ten hard sets a week per muscle beats fewer. Past twenty you're mostly just tired. That's the band on the home screen."
+    - id: time_off
+      title: "Time off"
+      body: "Strength holds for about three weeks. Away from a lift longer than that and I cut its max to 90%. Six weeks, 80%. It comes back fast."
+    - id: first_time
+      title: "The first time"
+      body: "A lift you've never done starts from the weight your emoji picked, or wherever you tell me to start. Sets of 5 from 60% of it, 10% heavier each set, until you miss a rep. Six sets at most. Get all 5 and I ask how many more you had in you. 0–1 and we're done there. 2–4, the next set goes up as usual. 5+, it jumps about a fifth, to roughly one rep short of what you showed. Or type exactly how much to add and the next set goes up by that. Don't answer and it goes up as usual. Under 3 reps and it was too heavy, which tells me nothing, so the next set is a fifth lighter (never back down to one you already did all 5 of). 3 or 4 reps and we're done. The set you got 3 or 4 on, or the one you said 0–1 on, tells me your max, and the rest of the workout comes from that. Bodyweight lifts start at the bottom of the range."
+    - id: overrides
+      title: "Your own numbers"
+      body: "Tap a lift in a workout's editor to give it your own weight and reps, and sets if you want. I work out the max that means and carry on from there. Take them off and I go back to your history."
+    - id: no_drops
+      title: "No automatic drops"
+      body: "I never lower a weight during a workout. Missed reps? Rest and go again. Cooked? Lower it yourself. I'll take the hint next time."
+    - id: warmups
+      title: "Warmups"
+      body: "Heavy lifts get four warmup sets at about 40, 55, 70 and 85% of the working weight. Everything else warms itself up."
+    - id: recovery
+      title: "Recovery"
+      body: "Big muscles take about 48 hours, arms and shoulders 36, calves and core 24. The amber marker is a suggestion, not a bouncer."
+  honesty: "Honesty note: the effects in these studies are small and most of them are short. Good programs barely differ. Showing up beats all of it, so I kept it simple."
+
+# Learn → Calorie maths: how a workout's burn is worked out. {…} are
+# substituted by the code; the formula's symbols stay in the code.
+# Placeholders.
+maths:
+  title: Calorie maths
+  estimation_label: CALORIE ESTIMATION
+  estimation_title: How we estimate calories burned
+  estimation_body: "We use the MET (Metabolic Equivalent of Task) formula from the 2011 Compendium of Physical Activities (Ainsworth et al., Med Sci Sports Exerc 43(8):1575–81). Traditional strength training has a MET value of 3.5."
+  formula_label: FORMULA
+  # What each symbol of the formula is.
+  term_met: 3.5 (traditional strength training)
+  term_constant: ml O₂ per kg per min at 1 MET (standard constant)
+  term_weight: your bodyweight in kilograms
+  term_minutes: total workout duration
+  term_divisor: converts ml O₂/min to kcal/min (5 kcal/L O₂ ÷ 1000 × 40)
+  your_estimate_label: YOUR ESTIMATE
+  # {min} is the example session's length.
+  example: "EXAMPLE: {min} MIN SESSION"
+  example_result: "≈ {kcal} kcal"
+  no_weight: Set your bodyweight in Settings → Body weight to get a personalised calorie estimate.
+  tonnage_label: WHAT ABOUT TONNAGE?
+  tonnage_title: Volume and calorie burn
+  tonnage_body: "Tonnage (sets × reps × weight lifted) does predict calorie expenditure during strength training. A 2006 study by Haddock & Wilkin (Int J Sports Med 27(2):143–8) found that 3-set protocols burned ~2.8× more calories than 1-set protocols of the same exercise.\n\nHowever, when normalised per minute of actual exercise time, calorie rate is roughly constant, meaning total duration already captures most of the tonnage effect. More volume → longer sessions → more calories, which the MET × duration formula handles automatically.\n\nA 2020 regression study found that session time and volume load together explained ~61% of energy expenditure variance (R² = 0.61). The remaining 39% is individual variation in rest periods, exercise selection, and body composition that no formula can capture without direct measurement."
+  accuracy_label: ACCURACY
+  accuracy_title: Why this is an estimate
+  accuracy_body: "Resistance training has a large anaerobic component (up to 40% of total energy expenditure) that standard indirect calorimetry cannot fully capture, and no phone app can measure it at all. A 2024 systematic review (PMC11393209) found no gold-standard method for resistance training energy expenditure. The MET formula gives a reasonable population-average estimate, accurate to perhaps ±25% for any individual session.\n\nIf no bodyweight is set, we fall back to a flat 5 kcal/min, roughly the midpoint of the 4–10 kcal/min range observed across studies."
+  references_label: REFERENCES
+  references:
+    - "Ainsworth BE et al. (2011). 2011 Compendium of Physical Activities: A Second Update of Codes and MET Values. Med Sci Sports Exerc, 43(8):1575–81."
+    - "Haddock CK & Wilkin LD (2006). Resistance training volume and post exercise energy expenditure. Int J Sports Med, 27(2):143–8."
+    - "Dinyer-McNeely TK et al. (2024). Methods to Assess Energy Expenditure of Resistance Exercise: A Systematic Scoping Review. PMC11393209."

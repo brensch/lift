@@ -110,6 +110,74 @@ void main() {
     expect(h.provider.templates.single.id, template.id);
   });
 
+  testWidgets('the override sheet needs a weight, and reads a comma', (
+    tester,
+  ) async {
+    final h = (await tester.runAsync(() async {
+      final h = await ProviderHarness.boot();
+      await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
+      await h.provider.loadActiveWorkout('test');
+      return h;
+    }))!;
+    addTearDown(h.dispose);
+    final plan = h.provider.planFor(Exercise.EXERCISE_SQUAT)!;
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: h.provider),
+          ChangeNotifierProvider.value(value: h.settings),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.theme,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () => showOverrideSheet(
+                    context,
+                    plan: plan,
+                    unit: WeightUnit.WEIGHT_UNIT_LB,
+                    provider: h.provider,
+                  ),
+                  child: const Text('OPEN'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('OPEN'));
+    await tester.pumpAndSettle();
+
+    FilledButton save() => tester.widget<FilledButton>(
+      find.ancestor(of: find.text('SAVE'), matching: find.byType(FilledButton)),
+    );
+    final weight = find.byType(TextField);
+
+    // Blank: nothing to plan from, so no save (it would record 0 lb).
+    await tester.enterText(weight, '');
+    await tester.pump();
+    expect(save().onPressed, isNull);
+    await tester.enterText(weight, '0');
+    await tester.pump();
+    expect(save().onPressed, isNull);
+
+    // A decimal-comma keypad's "95,0" is 95 (a weight the plates make
+    // exactly), not nothing.
+    await tester.enterText(weight, '95,0');
+    await tester.pump();
+    expect(save().onPressed, isNotNull);
+    await tester.tap(find.text('SAVE'));
+    await _settle(
+      tester,
+      () => h.provider.planFor(Exercise.EXERCISE_SQUAT)!.overridden,
+    );
+    final after = h.provider.planFor(Exercise.EXERCISE_SQUAT)!;
+    expect(after.overridden, isTrue);
+    expect(after.decision.weight, closeTo(95, 0.01));
+  });
+
   testWidgets('a drag down one place sticks', (tester) async {
     final h = (await tester.runAsync(() => ProviderHarness.boot()))!;
     addTearDown(h.dispose);

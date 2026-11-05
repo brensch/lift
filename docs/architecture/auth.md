@@ -185,14 +185,15 @@ needs challenges in shared storage.
 |---|---|
 | `AddPasskeyStart` / `AddPasskeyFinish` | Register an extra passkey for the logged-in user; excludes already-registered credentials |
 | `ListPasskeys` | Metadata only — created-at, IP, optional `cred_name` |
-| `DeletePasskey` | Removes one credential; the last one is refused (`FailedPrecondition`) |
+| `DeletePasskey` | Removes one credential; the last one is refused (`FailedPrecondition`), and `PasskeysScreen` disables it |
 
 A friendly name is stored by injecting a `cred_name` key into the serialised
 credential JSON rather than as its own column
 (`stored_passkey_json` in `src/auth.rs`). It travels with the credential, but it is not queryable.
 
-> Losing your last passkey locks you out permanently — there is no recovery
-> channel — so the server never deletes it (`delete_credential`).
+> You cannot delete your last passkey, but losing every device or password
+> manager that holds one still locks you out: there is no self-serve recovery
+> (`LostPasskeyScreen` points the user to the owner).
 
 ## Test login
 

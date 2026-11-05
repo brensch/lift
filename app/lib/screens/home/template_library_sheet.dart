@@ -194,7 +194,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
+              child: Text(t.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),

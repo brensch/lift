@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/common/flat.dart';
 import 'package:provider/provider.dart';
 
+import '../gen/copy.dart';
 import '../providers/auth_provider.dart';
 import '../services/health_service.dart';
 import '../theme/theme_spec.dart';
@@ -13,6 +14,7 @@ class MathsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final c = copy.maths;
     final auth = context.watch<AuthProvider>();
     final bodyWeightKg = auth.bodyWeightKg;
     final hasWeight = bodyWeightKg > 0;
@@ -30,15 +32,15 @@ class MathsScreen extends StatelessWidget {
           icon: const Icon(AppIcons.back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: PageTitle('Calorie maths'),
+        title: PageTitle(c.title),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         children: [
-          _SectionLabel('CALORIE ESTIMATION', cs),
+          _SectionLabel(c.estimationLabel, cs),
           const SizedBox(height: 8),
           Text(
-            'How we estimate calories burned',
+            c.estimationTitle,
             style: TextStyle(
               fontSize: context.tokens.size.titleLg,
               fontWeight: context.tokens.weight.heavy,
@@ -46,10 +48,7 @@ class MathsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'We use the MET (Metabolic Equivalent of Task) formula from the '
-            '2011 Compendium of Physical Activities (Ainsworth et al., Med Sci '
-            'Sports Exerc 43(8):1575–81). Traditional strength training has a '
-            'MET value of 3.5.',
+            c.estimationBody,
             style: TextStyle(
               fontSize: context.tokens.size.body,
               height: 1.5,
@@ -60,7 +59,7 @@ class MathsScreen extends StatelessWidget {
           _FormulaCard(cs),
           const SizedBox(height: 20),
           if (hasWeight) ...[
-            _SectionLabel('YOUR ESTIMATE', cs),
+            _SectionLabel(c.yourEstimateLabel, cs),
             const SizedBox(height: 8),
             _ExampleCard(
               cs: cs,
@@ -73,10 +72,10 @@ class MathsScreen extends StatelessWidget {
             _NoWeightCard(cs),
             const SizedBox(height: 20),
           ],
-          _SectionLabel('WHAT ABOUT TONNAGE?', cs),
+          _SectionLabel(c.tonnageLabel, cs),
           const SizedBox(height: 8),
           Text(
-            'Volume and calorie burn',
+            c.tonnageTitle,
             style: TextStyle(
               fontSize: context.tokens.size.title,
               fontWeight: context.tokens.weight.heavy,
@@ -84,21 +83,7 @@ class MathsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Tonnage (sets × reps × weight lifted) does predict calorie '
-            'expenditure during strength training. A 2006 study by Haddock & '
-            'Wilkin (Int J Sports Med 27(2):143–8) found that 3-set protocols '
-            'burned ~2.8× more calories than 1-set protocols of the same '
-            'exercise.\n\n'
-            'However, when normalised per minute of actual exercise time, '
-            'calorie rate is roughly constant, meaning total duration already '
-            'captures most of the tonnage effect. More volume → longer sessions '
-            '→ more calories, which the MET × duration formula handles '
-            'automatically.\n\n'
-            'A 2020 regression study found that session time and volume load '
-            'together explained ~61% of energy expenditure variance (R² = 0.61). '
-            'The remaining 39% is individual variation in rest periods, exercise '
-            'selection, and body composition that no formula can capture without '
-            'direct measurement.',
+            c.tonnageBody,
             style: TextStyle(
               fontSize: context.tokens.size.body,
               height: 1.5,
@@ -106,10 +91,10 @@ class MathsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _SectionLabel('ACCURACY', cs),
+          _SectionLabel(c.accuracyLabel, cs),
           const SizedBox(height: 8),
           Text(
-            'Why this is an estimate',
+            c.accuracyTitle,
             style: TextStyle(
               fontSize: context.tokens.size.title,
               fontWeight: context.tokens.weight.heavy,
@@ -117,16 +102,7 @@ class MathsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Resistance training has a large anaerobic component (up to 40% of '
-            'total energy expenditure) that standard indirect calorimetry cannot '
-            'fully capture, and no phone app can measure it at all. A 2024 '
-            'systematic review (PMC11393209) found no gold-standard method for '
-            'resistance training energy expenditure. The MET formula gives a '
-            'reasonable population-average estimate, accurate to perhaps ±25% '
-            'for any individual session.\n\n'
-            'If no bodyweight is set, we fall back to a flat 5 kcal/min, '
-            'roughly the midpoint of the 4–10 kcal/min range observed across '
-            'studies.',
+            c.accuracyBody,
             style: TextStyle(
               fontSize: context.tokens.size.body,
               height: 1.5,
@@ -134,7 +110,7 @@ class MathsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _SectionLabel('REFERENCES', cs),
+          _SectionLabel(c.referencesLabel, cs),
           const SizedBox(height: 8),
           ..._references(context, cs),
         ],
@@ -143,12 +119,7 @@ class MathsScreen extends StatelessWidget {
   }
 
   List<Widget> _references(BuildContext context, ColorScheme cs) {
-    final refs = [
-      'Ainsworth BE et al. (2011). 2011 Compendium of Physical Activities: A Second Update of Codes and MET Values. Med Sci Sports Exerc, 43(8):1575–81.',
-      'Haddock CK & Wilkin LD (2006). Resistance training volume and post exercise energy expenditure. Int J Sports Med, 27(2):143–8.',
-      'Dinyer-McNeely TK et al. (2024). Methods to Assess Energy Expenditure of Resistance Exercise: A Systematic Scoping Review. PMC11393209.',
-    ];
-    return refs
+    return copy.maths.references
         .map(
           (r) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -218,7 +189,7 @@ class _FormulaCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'FORMULA',
+            copy.maths.formulaLabel,
             style: TextStyle(
               fontSize: context.tokens.size.caption,
               fontWeight: context.tokens.weight.heavy,
@@ -238,21 +209,11 @@ class _FormulaCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          _row(context, cs, 'MET', '3.5 (traditional strength training)'),
-          _row(
-            context,
-            cs,
-            '3.5',
-            'ml O₂ per kg per min at 1 MET (standard constant)',
-          ),
-          _row(context, cs, 'weight_kg', 'your bodyweight in kilograms'),
-          _row(context, cs, 'minutes', 'total workout duration'),
-          _row(
-            context,
-            cs,
-            '÷ 200',
-            'converts ml O₂/min to kcal/min (5 kcal/L O₂ ÷ 1000 × 40)',
-          ),
+          _row(context, cs, 'MET', copy.maths.termMet),
+          _row(context, cs, '3.5', copy.maths.termConstant),
+          _row(context, cs, 'weight_kg', copy.maths.termWeight),
+          _row(context, cs, 'minutes', copy.maths.termMinutes),
+          _row(context, cs, '÷ 200', copy.maths.termDivisor),
         ],
       ),
     );
@@ -323,7 +284,10 @@ class _ExampleCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'EXAMPLE: ${durationMinutes.toInt()} MIN SESSION',
+            copy.maths.example.replaceAll(
+              '{min}',
+              '${durationMinutes.toInt()}',
+            ),
             style: TextStyle(
               fontSize: context.tokens.size.caption,
               fontWeight: context.tokens.weight.heavy,
@@ -343,7 +307,7 @@ class _ExampleCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '≈ $calories kcal',
+            copy.maths.exampleResult.replaceAll('{kcal}', '$calories'),
             style: TextStyle(
               fontSize: context.tokens.size.headline,
               fontWeight: context.tokens.weight.heavy,
@@ -375,7 +339,7 @@ class _NoWeightCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Set your bodyweight in Settings → Body weight to get a personalised calorie estimate.',
+              copy.maths.noWeight,
               style: TextStyle(
                 fontSize: context.tokens.size.body,
                 color: cs.onSurface,

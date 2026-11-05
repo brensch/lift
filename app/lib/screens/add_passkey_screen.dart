@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:passkeys/exceptions.dart';
 import 'package:provider/provider.dart';
 
-import '../logic/utils.dart';
+import '../gen/copy.dart';
+import '../providers/auth_provider.dart' show formatAuthError;
 import '../services/auth_service.dart';
 import '../theme/theme_spec.dart';
 
@@ -29,7 +30,7 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Name is required.');
+      setState(() => _error = copy.addPasskey.nameRequired);
       return;
     }
 
@@ -45,10 +46,8 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
       context.pop(true);
     } on PasskeyAuthCancelledException {
       return;
-    } on AuthenticatorException catch (e) {
-      if (mounted) setState(() => _error = formatPasskeyError(e));
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = formatAuthError(e));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -59,13 +58,13 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: PageTitle('Add Passkey')),
+      appBar: AppBar(title: PageTitle(copy.addPasskey.title)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              'Give this passkey a name so you can recognize it later.',
+              copy.addPasskey.body,
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
@@ -73,9 +72,9 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
               controller: _nameController,
               autofocus: true,
               enabled: !_isSubmitting,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g. Work Phone',
+              decoration: InputDecoration(
+                labelText: copy.addPasskey.name,
+                hintText: copy.addPasskey.nameHint,
               ),
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
@@ -100,7 +99,9 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _isSubmitting ? null : _submit,
-              child: Text(_isSubmitting ? 'Adding...' : 'Continue'),
+              child: Text(
+                _isSubmitting ? copy.addPasskey.adding : copy.addPasskey.submit,
+              ),
             ),
           ],
         ),

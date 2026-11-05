@@ -1,10 +1,89 @@
-/// Profile-marker pieces: live preview card, emoji chips, colour dots.
+/// Profile-marker pieces, shared by onboarding and the Profile Marker
+/// screen: the emoji window, live preview card, emoji chips, colour dots.
 library;
+
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
+import '../../../logic/whimsical_emojis.dart';
 import '../../../theme/theme_spec.dart';
+
+/// How many emojis the picker offers at once.
+const int emojiWindowSize = 18;
+
+/// [window], with [selected] put first if it is not already in it.
+List<String> withSelectedVisible(List<String> window, String selected) =>
+    window.contains(selected)
+    ? window
+    : [selected, ...window.take(emojiWindowSize - 1)];
+
+/// A fresh random window from the catalog that still shows [selected].
+List<String> shuffledEmojiWindow(String selected, [Random? random]) {
+  final pool = <String>{...whimsicalEmojiCatalog, selected}.toList()
+    ..shuffle(random);
+  return withSelectedVisible(pool.take(emojiWindowSize).toList(), selected);
+}
+
+/// The emoji choices as chips, [selected] highlighted.
+class EmojiChoiceWrap extends StatelessWidget {
+  final List<String> choices;
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  const EmojiChoiceWrap({
+    super.key,
+    required this.choices,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final emoji in choices)
+          EmojiChoiceChip(
+            emoji: emoji,
+            selected: emoji == selected,
+            onTap: () => onSelect(emoji),
+          ),
+      ],
+    );
+  }
+}
+
+/// Every profile colour as a dot, [selected] framed.
+class ColorChoiceWrap extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelect;
+
+  const ColorChoiceWrap({
+    super.key,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final hex in profileColorHexOptions)
+          ColorChoiceDot(
+            hex: hex,
+            selected: hex == selected,
+            onTap: () => onSelect(hex),
+          ),
+      ],
+    );
+  }
+}
 
 class ProfilePreviewCard extends StatelessWidget {
   final String emoji;
@@ -50,7 +129,7 @@ class ProfilePreviewCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Group workout preview',
+                    copy.profileMarker.previewTitle,
                     style: TextStyle(
                       fontSize: context.tokens.size.body,
                       fontWeight: context.tokens.weight.heavy,
@@ -59,7 +138,7 @@ class ProfilePreviewCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Your emoji replaces the vertical name and your colour owns the sidebar.',
+                    copy.profileMarker.previewBody,
                     style: TextStyle(
                       fontSize: context.tokens.size.body,
                       fontWeight: context.tokens.weight.bold,

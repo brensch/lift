@@ -122,7 +122,7 @@ class ExerciseSection extends StatelessWidget {
           // The pencil, then the target flush with the right margin.
           if (live && onEdit != null)
             IconButton(
-              tooltip: 'Weight and reps',
+              tooltip: copy.workoutPage.weightAndReps,
               onPressed: onEdit,
               visualDensity: VisualDensity.compact,
               icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),

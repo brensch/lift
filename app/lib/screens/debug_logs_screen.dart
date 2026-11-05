@@ -281,13 +281,7 @@ class _DebugLogsScreenState extends State<DebugLogsScreen> {
 
 /// "Today", "Yesterday", or "Nov 3" ("Nov 3, 2025" in another year).
 String _dayLabel(DateTime d) {
-  final now = DateTime.now();
-  final days = DateTime(
-    now.year,
-    now.month,
-    now.day,
-  ).difference(DateTime(d.year, d.month, d.day)).inDays;
-  return switch (days) {
+  return switch (calendarDaysBetween(d, DateTime.now())) {
     0 => 'Today',
     1 => 'Yesterday',
     _ => dayDate(d),
