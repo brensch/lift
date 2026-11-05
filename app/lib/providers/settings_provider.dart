@@ -53,8 +53,9 @@ class SettingsProvider extends ChangeNotifier {
     WeightUnit unit,
     Map<double, Color> chosen,
   ) => {
-    for (final MapEntry(key: plate, value: fallback)
-        in defaultPlateColors(unit).entries)
+    for (final MapEntry(key: plate, value: fallback) in defaultPlateColors(
+      unit,
+    ).entries)
       plate: chosen[plate] ?? fallback,
   };
 
@@ -138,6 +139,6 @@ class SettingsProvider extends ChangeNotifier {
 
   static Map<double, Color> _parsePlateColors(PlateColorsConfig config) => {
     for (final plate in config.plates)
-      if (colorFromHex(plate.hexColor) case final color?) plate.weight: color,
+      plate.weight: ?colorFromHex(plate.hexColor),
   };
 }
