@@ -45,31 +45,91 @@ fn normalize_profile_color_hex(value: &str) -> String {
     }
 }
 
+/// A new user, with the default profile.
+async fn insert_user(
+    conn: &mut sqlx::SqliteConnection,
+    user_id: &str,
+    username: &str,
+) -> DbResult<User> {
+    let user = User {
+        id: user_id.to_string(),
+        name: username.trim().to_string(),
+        created_at: now_unix(),
+        profile_emoji: default_profile_emoji().to_string(),
+        profile_color_hex: default_profile_color_hex().to_string(),
+        body_weight_kg: 0.0,
+    };
+    sqlx::query(
+        "INSERT INTO users (id, username, invite_token, created_at, emoji, color_hex)
+         VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&user.id)
+    .bind(&user.name)
+    .bind(Uuid::new_v4().to_string())
+    .bind(user.created_at)
+    .bind(&user.profile_emoji)
+    .bind(&user.profile_color_hex)
+    .execute(conn)
+    .await?;
+    Ok(user)
+}
+
+/// A new passkey. A credential id already held, by anyone, is an error:
+/// credential ids are public, and must never move between accounts.
+async fn insert_passkey(
+    conn: &mut sqlx::SqliteConnection,
+    credential_id: &str,
+    user_id: &str,
+    credential_json: &str,
+    created_at_ip: Option<&str>,
+) -> DbResult<()> {
+    sqlx::query(
+        "INSERT INTO passkeys (credential_id, user_id, passkey_json, created_at, created_ip)
+         VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(credential_id)
+    .bind(user_id)
+    .bind(credential_json)
+    .bind(now_unix())
+    .bind(created_at_ip)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
 impl ServerDb {
     // ── Users ──
 
+    /// A user with no passkey: tests and the test-auth dev login only.
+    #[cfg(any(test, feature = "test-auth"))]
     pub async fn create_user_with_id(&self, user_id: &str, username: &str) -> DbResult<User> {
-        let user = User {
-            id: user_id.to_string(),
-            name: username.trim().to_string(),
-            created_at: now_unix(),
-            profile_emoji: default_profile_emoji().to_string(),
-            profile_color_hex: default_profile_color_hex().to_string(),
-            body_weight_kg: 0.0,
-        };
-        sqlx::query(
-            "INSERT INTO users (id, username, invite_token, created_at, emoji, color_hex)
-             VALUES (?, ?, ?, ?, ?, ?)",
+        let mut conn = self.write_pool.acquire().await?;
+        insert_user(&mut conn, user_id, username).await
+    }
+
+    /// A new account and its first passkey, together or not at all: an
+    /// account left without one could never be signed in to, and would
+    /// hold its name for good.
+    pub async fn create_user_with_passkey(
+        &self,
+        user_id: &str,
+        username: &str,
+        credential_id: &str,
+        credential_json: &str,
+        created_at_ip: Option<&str>,
+    ) -> DbResult<()> {
+        let mut tx = self.write_pool.begin().await?;
+        insert_user(&mut tx, user_id, username).await?;
+        insert_passkey(
+            &mut tx,
+            credential_id,
+            user_id,
+            credential_json,
+            created_at_ip,
         )
-        .bind(&user.id)
-        .bind(&user.name)
-        .bind(Uuid::new_v4().to_string())
-        .bind(user.created_at)
-        .bind(&user.profile_emoji)
-        .bind(&user.profile_color_hex)
-        .execute(&self.write_pool)
         .await?;
-        Ok(user)
+        tx.commit().await?;
+        Ok(())
     }
 
     #[cfg(any(test, feature = "test-auth"))]
@@ -137,8 +197,10 @@ impl ServerDb {
     }
 
     /// The account and everything it owns: the cascade takes its events,
-    /// logins, passkeys, sessions and page views.
+    /// logins, passkeys, sessions and page views. Its partners' streams
+    /// hear the session without it, and its requests to join go.
     pub async fn delete_user_account_and_data(&self, user_id: &str) -> DbResult<()> {
+        let session = self.get_user_session_pointer(user_id).await?;
         // On the one write connection: a push already under way lands
         // before it (and goes with it), one after finds no account.
         let mut tx = self.write_pool.begin().await?;
@@ -153,6 +215,9 @@ impl ServerDb {
             .await?;
         tx.commit().await?;
         self.forget_join_requests(user_id);
+        if let Some(session) = session {
+            self.session_changed(&session);
+        }
         Ok(())
     }
 
@@ -209,8 +274,7 @@ impl ServerDb {
         Ok(held)
     }
 
-    /// Store a new passkey. A credential id already held, by anyone, is an
-    /// error: credential ids are public, and must never move between accounts.
+    /// Store another passkey for an existing user (see `insert_passkey`).
     pub async fn store_credential(
         &self,
         credential_id: &str,
@@ -218,28 +282,27 @@ impl ServerDb {
         credential_json: &str,
         created_at_ip: Option<&str>,
     ) -> DbResult<()> {
-        sqlx::query(
-            "INSERT INTO passkeys (credential_id, user_id, passkey_json, created_at, created_ip)
-             VALUES (?, ?, ?, ?, ?)",
+        let mut conn = self.write_pool.acquire().await?;
+        insert_passkey(
+            &mut conn,
+            credential_id,
+            user_id,
+            credential_json,
+            created_at_ip,
         )
-        .bind(credential_id)
-        .bind(user_id)
-        .bind(credential_json)
-        .bind(now_unix())
-        .bind(created_at_ip)
-        .execute(&self.write_pool)
-        .await?;
-        Ok(())
+        .await
     }
 
-    pub async fn delete_credential(&self, user_id: &str, credential_id: &str) -> DbResult<()> {
+    /// Delete one of the user's passkeys, unless it is their last: false,
+    /// and nothing deleted, so nobody locks themselves out.
+    pub async fn delete_credential(&self, user_id: &str, credential_id: &str) -> DbResult<bool> {
         let mut tx = self.write_pool.begin().await?;
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkeys WHERE user_id = ?")
             .bind(user_id)
             .fetch_one(&mut *tx)
             .await?;
         if count <= 1 {
-            return Err("Cannot delete the last passkey".into());
+            return Ok(false);
         }
         sqlx::query("DELETE FROM passkeys WHERE user_id = ? AND credential_id = ?")
             .bind(user_id)
@@ -247,7 +310,7 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
-        Ok(())
+        Ok(true)
     }
 
     pub async fn update_credential_json(
@@ -323,6 +386,26 @@ mod tests {
             .await
             .unwrap()
             .is_empty());
+    }
+
+    /// A sign-up whose passkey can't be stored leaves no account behind to
+    /// hold the name.
+    #[tokio::test]
+    async fn a_sign_up_is_the_account_and_its_passkey_or_nothing() {
+        let db = temp_db().await;
+        db.create_user_with_passkey("victim", "victim", "cred", "{}", None)
+            .await
+            .unwrap();
+        assert!(db
+            .create_user_with_passkey("new", "new", "cred", "{}", None)
+            .await
+            .is_err());
+        assert!(db.get_user("new").await.unwrap().is_none());
+        assert!(db.get_user_by_name("new").await.unwrap().is_none());
+        assert_eq!(
+            db.get_credentials_for_user("victim").await.unwrap().len(),
+            1
+        );
     }
 
     #[tokio::test]
