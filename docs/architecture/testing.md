@@ -178,7 +178,12 @@ confirm it trips.
   ending or going idle.
 - `src/server/sync_tests.rs` (`stream`) — a partner's sets reach the others
   as events as they happen; one who opens the app mid-workout gets the
-  workout so far; heart rate and the rest of an account never leave it.
+  workout so far; heart rate and the rest of an account never leave it;
+  one who ended keeps sending that workout, late events and catch-up
+  included, and nothing of their next.
+- `src/server/multiplayer_tests.rs` — a member who never trained, or never
+  pressed End, is out of the session days later and their next workout is
+  their own; starting another workout leaves.
 - `src/server/auth.rs` — the `test-auth` gate on `TestLogin`, both branches.
 - `src/demo_seed.rs` — the demo users seed (`test-auth`), and the walk over
   their history rises.

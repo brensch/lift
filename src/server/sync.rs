@@ -1,5 +1,5 @@
 use super::*;
-use crate::db::{Change, Pushed, Topic};
+use crate::db::{Change, Topic};
 use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
 use schlift_core::sync::{pack, unpack_push};
@@ -18,10 +18,11 @@ use tonic::Streaming;
 // with the others, and heartbeats, answered with the head. Also down, on
 // connect and whenever they change: the caller's session (who else is in it)
 // and requests to join them, whole; on connect the template library, which
-// coupled templates follow. And for each session partner, their workout as
-// events: the workout so far when they first appear, then each event as
-// they record it. The phone folds those (schlift_core::session); the server
-// keeps nothing of where anyone is up to.
+// coupled templates follow. And for each session partner, their workout in
+// the session as events: the workout so far when they first appear (or it
+// first does), then each event of it as they record it, and nothing of any
+// other workout of theirs. The phone folds those (schlift_core::session);
+// the server keeps nothing of where anyone is up to.
 
 /// Events per message down: a whole account's history arrives in pieces.
 const EVENTS_PER_MESSAGE: i64 = 500;
@@ -124,6 +125,7 @@ impl SyncService for ServerSyncService {
                 tx,
                 session: None,
                 partners: HashMap::new(),
+                workouts: HashMap::new(),
                 sent: 0,
                 last_session: None,
                 last_requests: None,
@@ -153,6 +155,9 @@ struct Stream {
     /// The partners in that session, and their accounts' changes: whose
     /// workout events go down this stream.
     partners: HashMap<String, broadcast::Receiver<Change>>,
+    /// Each partner's workout in the session (empty before they have one):
+    /// the only one of theirs whose events go down this stream.
+    workouts: HashMap<String, String>,
     /// The last seq sent down.
     sent: i64,
     /// What was last sent, so an unchanged view isn't sent again.
@@ -319,12 +324,10 @@ impl Stream {
             Some(sync_request::Kind::Events(packed)) => {
                 let events = unpack_push(&packed).map_err(core_status)?;
                 check_push(&events)?;
-                let pushed = self
-                    .db
+                self.db
                     .push_events(&self.user_id, events)
                     .await
                     .map_err(internal_error)?;
-                self.after_push(&pushed).await?;
                 Ok(Ok(()))
             }
             Some(sync_request::Kind::Heartbeat(_)) | None => {
@@ -401,40 +404,23 @@ impl Stream {
         Ok(self.send(sync_response::Kind::Events(message)).await)
     }
 
-    /// A workout ending takes the caller out of their session, its final
-    /// state left on show to the others a while; one thrown away takes them
-    /// out with nothing to show.
-    async fn after_push(&self, pushed: &Pushed) -> ServerResult<()> {
-        if !pushed.ended_workout && !pushed.discarded_workout {
-            return Ok(());
-        }
-        let Some(session_id) = self
-            .db
-            .get_user_session_pointer(&self.user_id)
-            .await
-            .map_err(internal_error)?
-        else {
-            return Ok(());
-        };
-        let left = if pushed.discarded_workout {
-            self.db.leave_session(&session_id, &self.user_id).await
-        } else {
-            self.db.end_session(&session_id, &self.user_id).await
-        };
-        left.map_err(internal_error)
-    }
-
-    /// A partner's workout events, of those just stored: what of them their
-    /// partners see.
+    /// A partner's events, of those just stored: those of their workout in
+    /// the session are what the caller sees of them. Nothing of a workout
+    /// before or after it, nor anything else of their account.
     async fn send_partner(
         &self,
         partner: &str,
         events: &[Event],
         whole: bool,
     ) -> Result<(), Closed> {
+        let workout = self.workouts.get(partner).map_or("", String::as_str);
         let shared: Vec<Event> = events
             .iter()
-            .filter(|e| shared_with_partners(&e.fact))
+            .filter(|e| {
+                !workout.is_empty()
+                    && e.workout_id() == Some(workout)
+                    && shared_with_partners(&e.fact)
+            })
             .cloned()
             .collect();
         if shared.is_empty() && !whole {
@@ -448,13 +434,17 @@ impl Stream {
         self.send(sync_response::Kind::PartnerEvents(message)).await
     }
 
-    /// A partner's latest workout so far, replacing what the phone had.
+    /// A partner's workout in the session so far (all of it, once it has
+    /// ended), replacing what the phone had: nothing before they have one.
     async fn send_partner_whole(&self, partner: &str) -> ServerResult<Result<(), Closed>> {
-        let events = self
-            .db
-            .latest_workout_events(partner)
-            .await
-            .map_err(internal_error)?;
+        let events = match self.workouts.get(partner) {
+            Some(workout) if !workout.is_empty() => self
+                .db
+                .workout_events(partner, workout)
+                .await
+                .map_err(internal_error)?,
+            _ => Vec::new(),
+        };
         Ok(self.send_partner(partner, &events, true).await)
     }
 
@@ -495,19 +485,33 @@ impl Stream {
         }
         // Each partner watched, before their workout so far is read, so
         // nothing they record between is missed (the phone skips an event
-        // it already has).
+        // it already has). Sent whole when they first appear, and again
+        // once their workout in the session is known.
         let members: Vec<String> = session
             .members
             .iter()
             .filter_map(|m| m.user.as_ref().map(|u| u.id.clone()))
             .collect();
+        let mut workouts = if session.session_id.is_empty() {
+            HashMap::new()
+        } else {
+            self.db
+                .session_workouts(&session.session_id)
+                .await
+                .map_err(internal_error)?
+        };
         self.partners.retain(|partner, _| members.contains(partner));
+        self.workouts.retain(|partner, _| members.contains(partner));
         for partner in members {
-            if self.partners.contains_key(&partner) {
+            let workout = workouts.remove(&partner).unwrap_or_default();
+            if self.workouts.get(&partner) == Some(&workout) {
                 continue;
             }
-            self.partners
-                .insert(partner.clone(), self.db.watch(Topic::User(partner.clone())));
+            if !self.partners.contains_key(&partner) {
+                self.partners
+                    .insert(partner.clone(), self.db.watch(Topic::User(partner.clone())));
+            }
+            self.workouts.insert(partner.clone(), workout);
             if let Err(closed) = self.send_partner_whole(&partner).await? {
                 return Ok(Err(closed));
             }
