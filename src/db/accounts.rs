@@ -2,11 +2,10 @@
 //! the server's order, and nothing else of it is kept: a read folds it from
 //! there, and a push places events after the head without folding anything.
 
-use std::collections::HashSet;
-
 use schlift_core::account::Account;
 use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
+use std::collections::HashSet;
 
 /// How far back a partner's latest workout is looked for: more events than
 /// any one workout records.
@@ -116,7 +115,7 @@ impl ServerDb {
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let mut tx = self.write_pool.begin().await?;
         let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
-        let held: HashSet<String> = sqlx::query_scalar(
+        let mut placed: HashSet<String> = sqlx::query_scalar(
             "SELECT id FROM account_events
              WHERE user_id = ? AND id IN (SELECT value FROM json_each(?))",
         )
@@ -133,10 +132,10 @@ impl ServerDb {
         .fetch_one(&mut *tx)
         .await?;
         let mut pushed = Pushed::default();
-        // Ids stored by this push: one sent twice in it is stored once.
-        let mut seen: HashSet<String> = HashSet::new();
         for mut event in events {
-            if held.contains(&event.id) || !seen.insert(event.id.clone()) {
+            // Held already, or earlier in this push: skipped. A set, so the
+            // largest push is not checked against itself event by event.
+            if !placed.insert(event.id.clone()) {
                 continue;
             }
             head += 1;
