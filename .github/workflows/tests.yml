@@ -21,6 +21,7 @@ env:
   # formats the code has to be the version that checks it. Bump this together
   # with the local SDK, and re-run `scripts/lint.sh fmt dart` when you do.
   FLUTTER_VERSION: "3.44.8"
+  # Keep equal to BUF_VERSION in scripts/install_lint_tools.sh.
   BUF_VERSION: "1.64.0"
 
 jobs:
