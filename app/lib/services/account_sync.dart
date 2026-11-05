@@ -70,6 +70,11 @@ class AccountSync extends ChangeNotifier
   bool get connected => _connected;
   bool _connected = false;
 
+  /// The server turned this app version away (`MIN_APP_VERSION`): the
+  /// stream is not dialled again until the app is updated.
+  bool get updateRequired => _updateRequired;
+  bool _updateRequired = false;
+
   /// Events recorded here that the server hasn't placed yet.
   int get unsynced => _unsynced;
   int _unsynced = 0;
@@ -207,7 +212,7 @@ class AccountSync extends ChangeNotifier
 
   void _dial() {
     final core = _core;
-    if (core == null || _up != null || !canDial()) return;
+    if (core == null || _up != null || _updateRequired || !canDial()) return;
     _redial?.cancel();
     final up = StreamController<SyncRequest>();
     _up = up;
@@ -392,6 +397,16 @@ class AccountSync extends ChangeNotifier
       // The session lapsed: nothing to dial until the user signs in again.
       _hangUp();
       onSessionRejected?.call();
+      notifyListeners();
+      return;
+    }
+    if (error is GrpcError &&
+        error.code == StatusCode.failedPrecondition &&
+        error.message == 'app_update_required') {
+      // Too old for the server: dialling again would be turned away too.
+      AppLogger.instance.warn(_tag, 'app update required');
+      _hangUp();
+      _updateRequired = true;
       notifyListeners();
       return;
     }

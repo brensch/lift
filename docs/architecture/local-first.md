@@ -136,7 +136,7 @@ order of an account's events; the phone records without waiting for it.
 - **Up:** the pending events — packed as zstd JSON (`core/src/sync.rs`),
   sent after each write and on every (re)connect.
 - **Server:** each pushed event it doesn't already hold (by id: a resend
-  is skipped) is given the next seq, folded and stored, and sent down every
+  is skipped) is given the next seq and stored, and sent down every
   stream of that account, the pusher's included.
 - **Down:** those events, from whichever device, in the server's order; the
   head, answering a heartbeat; whole each time, on connect and on every

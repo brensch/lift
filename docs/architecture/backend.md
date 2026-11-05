@@ -183,7 +183,7 @@ graph LR
     end
     subgraph "MultiplayerService"
         m1["JoinViaInvite / LeaveCurrentSession"]
-        m2["GetCurrentSession / GetSessionRosters"]
+        m2["GetSessionRosters"]
         m3["GetMyInviteToken"]
         m4["RequestJoinPartner / GetJoinRequests<br/>RespondJoinRequest"]
         m5["GetTrainingPartners"]
@@ -230,12 +230,16 @@ and message before unwinding.
 
 ## Tests
 
-- `src/server/sync_tests.rs` — events pushed and folded, a resent batch
-  placed once, a push after deletion storing nothing; and over a real server
-  on a local port, the Sync stream: catching a device up, carrying one
-  partner's workout to the other (and only the workout), a new profile to
-  partners without the body weight, a deleted partner out of the session,
-  and a signed-out or deleted account sent nothing more.
+- `src/server/sync_tests.rs` — pushed events folding into the same
+  account, a resent batch placed once, two devices' events placed in the
+  order they arrive, a push after deletion storing nothing, events read back
+  as they were pushed; and over a real server on a local port, the Sync
+  stream: a partner's progress as it happens, a late partner getting the
+  workout so far (and only the workout), discarding the workout leaving the
+  session, a heartbeat answered, a deleted account unable to push, a
+  signed-out stream sent nothing more, a deleted partner out of the
+  session, a new profile to partners without the body weight, a device
+  catching up and hearing the others, and a stranger turned away.
 - `src/db/migrate.rs` — a fresh database starts at the latest version, and
   one from before versions is converted.
 - `src/demo_seed.rs` — both demo users seed, and the walk over their

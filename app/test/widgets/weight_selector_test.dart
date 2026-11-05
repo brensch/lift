@@ -1,5 +1,6 @@
 /// Picking a weight: the steps, the bar's floor and the top, the unit, and
-/// a typed weight settled onto the step's grid when the field is left.
+/// a typed weight settled onto the step's grid at once, though shown as
+/// typed until the field is left.
 library;
 
 import 'dart:async';
@@ -129,6 +130,27 @@ void main() {
     await tester.pump();
     expect(given.last, 650);
     expect(find.text('650'), findsOneWidget);
+  });
+
+  testWidgets('a typed weight is given out settled while the field still '
+      'has focus, as typed on screen', (tester) async {
+    // A save tapped with the keyboard up never takes the field's focus.
+    final given = await pump(tester, weightLb: 135, stepLb: 5);
+    final field = find.byType(TextField);
+
+    await tester.enterText(field, '4000');
+    await tester.pump();
+    expect(given.last, 650);
+    expect(find.text('4000'), findsOneWidget);
+
+    await tester.enterText(field, '1');
+    await tester.pump();
+    expect(given.last, 45);
+
+    await tester.enterText(field, '137');
+    await tester.pump();
+    expect(given.last, 135);
+    expect(find.text('137'), findsOneWidget);
   });
 
   testWidgets('the slider stays on the step\'s grid', (tester) async {

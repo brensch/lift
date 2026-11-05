@@ -657,6 +657,13 @@ invite:
 # usable on the phone. Placeholder, as the app had it.
 session_expired: Sign in again to sync this phone with your account.
 
+# Over the whole app when the server no longer accepts this version: the
+# button opens the app's store page. Placeholders.
+update_required:
+  title: Update needed
+  body: This version of the app can no longer sync. Update it to carry on.
+  button: UPDATE
+
 # The error dialog. Placeholders, as the app had them.
 error_dialog:
   title: "Error"
@@ -784,6 +791,8 @@ settings:
   # {weight} with its unit.
   body_weight_synced: "Synced body weight to {weight}"
   body_weight_not_found: No body weight found in health data
+  # Health had a weight but it couldn't be saved (offline, say).
+  body_weight_sync_failed: Could not sync body weight
   body_weight_save_failed: Failed to save body weight
   # The body-weight sheet.
   body_weight_body: Used to estimate calories burned. Stored on your profile.
