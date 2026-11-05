@@ -8,7 +8,7 @@
 #
 # Toolchain-provided tools are not handled here: dart format / flutter
 # analyze (Flutter SDK), cargo fmt / clippy (rustup), eslint / prettier
-# (web/package.json), buf (see make install-deps).
+# (web/package.json).
 #
 # To bump a tool: change its version, run with --print-checksums, paste the
 # new hashes below.
@@ -20,6 +20,7 @@ SHFMT_VERSION=3.14.1
 KTLINT_VERSION=1.8.0
 SWIFTFORMAT_VERSION=0.63.0
 SWIFTLINT_VERSION=0.65.1
+BUF_VERSION=1.64.0 # keep equal to BUF_VERSION in .github/workflows/tests.yml
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS="$ROOT/.tools"
@@ -45,10 +46,17 @@ arch="$(uname -m)"
 if [ "$os" != "Linux" ]; then
 	cat >&2 <<-EOF
 		This installer fetches Linux binaries. On macOS install the same versions with:
-		  brew install ruff shellcheck shfmt ktlint swiftformat swiftlint
+		  brew install ruff shellcheck shfmt ktlint swiftformat swiftlint buf
 		and put them on PATH; scripts/lint.sh falls back to PATH.
 	EOF
-	exit 1
+	missing=0
+	for tool in ruff shellcheck shfmt ktlint swiftformat swiftlint buf; do
+		if ! command -v "$tool" >/dev/null 2>&1; then
+			echo "missing: $tool" >&2
+			missing=1
+		fi
+	done
+	exit "$missing"
 fi
 case "$arch" in
 x86_64)
@@ -57,6 +65,7 @@ x86_64)
 	shfmt_asset="shfmt_v${SHFMT_VERSION}_linux_amd64"
 	swiftformat_asset="swiftformat_linux.zip"
 	swiftlint_asset="swiftlint_linux_amd64.zip"
+	buf_asset="buf-Linux-x86_64"
 	;;
 aarch64 | arm64)
 	ruff_asset="ruff-aarch64-unknown-linux-gnu.tar.gz"
@@ -64,6 +73,7 @@ aarch64 | arm64)
 	shfmt_asset="shfmt_v${SHFMT_VERSION}_linux_arm64"
 	swiftformat_asset="swiftformat_linux_aarch64.zip"
 	swiftlint_asset="swiftlint_linux_arm64.zip"
+	buf_asset="buf-Linux-aarch64"
 	;;
 *)
 	echo "unsupported architecture: $arch" >&2
@@ -81,6 +91,7 @@ declare -A SHA256=(
 	["ktlint"]="a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75"
 	["swiftformat_linux.zip"]="b4a3cbb8c852a0baaf9adf853e221ff1dabf921a3d8957a602e0bda3af8470f1"
 	["swiftlint_linux_amd64.zip"]="caeed6f4a679c35539ffaf124f6c4ab4a8416917f7d8796279dc52b74026059d"
+	["buf-Linux-x86_64"]="ce39d3b9b8cad23f75b8f6645605055fbe9760f81571c1d10a7928602bce601c"
 )
 
 mkdir -p "$BIN" "$TOOLS/dl"
@@ -149,6 +160,12 @@ if ! have swiftlint "$SWIFTLINT_VERSION"; then
 	unzip -q -o "$f" -d "$TOOLS/dl/swiftlint"
 	install -m 0755 "$(find "$TOOLS/dl/swiftlint" -type f -name 'swiftlint*' | head -1)" "$BIN/swiftlint"
 	done_with swiftlint "$SWIFTLINT_VERSION"
+fi
+
+if ! have buf "$BUF_VERSION"; then
+	f="$(fetch "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/${buf_asset}")"
+	install -m 0755 "$f" "$BIN/buf"
+	done_with buf "$BUF_VERSION"
 fi
 
 rm -rf "$TOOLS/dl"
