@@ -3278,6 +3278,65 @@ mod settings {
         );
     }
 
+    /// The rung question's buttons show what each answer gives in the
+    /// workout's unit too, not the one the settings changed to since.
+    #[test]
+    fn a_unit_change_mid_ramp_keeps_what_each_answer_shows() {
+        // A fresh squat ramp started in lb, its first rung done, the unit
+        // then set to `now_in`: what each answer is shown to lead to.
+        let asked = |now_in: WeightUnit| {
+            let mut app = App::new();
+            onboard(&mut app, WeightUnit::Lb);
+            let started = start(&mut app, &[Exercise::Squat]);
+            let rung = started.proposed_sets[0].clone();
+            batch(
+                &mut app,
+                vec![complete_set(&rung, 5, rung.target_weight, NOW + 60)],
+            );
+            set(&mut app, unit(now_in));
+            let outcomes = app
+                .view()
+                .get_workout(GetWorkoutRequest {
+                    workout_id: started.id.clone(),
+                })
+                .unwrap()
+                .rung_outcomes;
+            assert_eq!(outcomes.len(), 3);
+            (app, started, rung, outcomes)
+        };
+        let (_, _, _, in_lb) = asked(WeightUnit::Lb);
+        let (_, _, _, changed) = asked(WeightUnit::Kg);
+        assert_eq!(changed, in_lb, "still snapped in lb");
+        for shown in &changed {
+            let (mut app, started, rung, _) = asked(WeightUnit::Kg);
+            let state = batch(
+                &mut app,
+                vec![mutation(Mutation::AnswerRung(AnswerRungRequest {
+                    workout_id: started.id.clone(),
+                    proposed_set_id: rung.id.clone(),
+                    reps_left: shown.reps_left,
+                    jump_lb: 0.0,
+                }))],
+            )
+            .workout_state
+            .unwrap();
+            let next = state
+                .proposed_sets
+                .iter()
+                .find(|s| {
+                    s.exercise == Exercise::Squat as i32
+                        && !s.warmup
+                        && !s.cancelled
+                        && state
+                            .completed_sets
+                            .iter()
+                            .all(|c| c.proposed_set_id != s.id)
+                })
+                .unwrap();
+            assert_eq!(next.target_weight, shown.weight, "{shown:?}");
+        }
+    }
+
     /// Onboarding again without a unit keeps the one set.
     #[test]
     fn onboarding_again_without_a_unit_keeps_it() {
