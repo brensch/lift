@@ -85,7 +85,8 @@ class LocalCore {
     } catch (e) {
       throw CoreException.from(e);
     }
-    if (!_isRead(method)) _writes.add(null);
+    // A write that finished as the file was closed has no one to tell.
+    if (!_isRead(method) && !_writes.isClosed) _writes.add(null);
     return parse(response);
   }
 
@@ -190,8 +191,9 @@ class LocalCore {
     }
   }
 
-  void close() {
-    _writes.close();
-    native.closeAccount(handle: _handle);
+  /// Done once the file is closed: after any call still running on it.
+  Future<void> close() async {
+    await native.closeAccount(handle: _handle);
+    await _writes.close();
   }
 }

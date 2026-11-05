@@ -179,11 +179,24 @@ of `app/native` from `target/debug/` and gives each test an in-memory
 account. So `cargo build -p schlift_native` must run first — `make test-app`
 does it, and so does CI before `flutter test`.
 
-- `test/providers/workout_provider_test.dart` — the provider as a view over
-  the core: a start lays out the blocks, done/undo taps, skipped warmups,
-  ending a session and the next plan following it on Home, the session is
-  recorded on the workout, an adjusted weight moves the pending sets.
-- `test/logic/` — display helpers. `test/screenshots/` — real screens
+Most of them run on the harness; a few need no core at all.
+
+- `test/providers/` — the providers as views over the core: the workout
+  (start, done/undo taps, warmups, ending and the next plan on Home, the
+  session recorded once, a ramp question not asked again after a reload),
+  settings (the unit read back, every plate coloured in either unit), and
+  auth with no server (a saved session published at once, what sign-out
+  and a lapsed session keep).
+- `test/services/` — the watch snapshot and the coordinator's sign-out,
+  page tracking.
+- `test/screens/`, `test/widgets/` — real screens and widgets on the
+  harness: Home's rotation and time control, the template editor, the
+  status box, the ramp question dialog, the partner ticker, the heart-rate
+  chart's labels.
+- `test/logic/` — display helpers and the "who lifts next" rules.
+- `test/tutorial/`, `test/grpc_recovery_test.dart` — the tutorial's seen
+  flag, and retrying a read after a reconnect.
+- `test/screenshots/` — real screens at phone size
   ([`docs/testing/app-harness.md`](../testing/app-harness.md)).
 
 ## E2E scenarios

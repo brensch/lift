@@ -132,3 +132,11 @@ const chartWindows = <({String label, int? days})>[
   }
   return (from: from, to: to);
 }
+
+/// How long to wait before retry number [failures] (from 0) of a call to
+/// the server that failed: 5 s, doubling, at most 5 minutes.
+Duration retryDelay(int failures) {
+  const most = Duration(minutes: 5);
+  final wait = Duration(seconds: 5 << failures.clamp(0, 6));
+  return wait > most ? most : wait;
+}
