@@ -88,8 +88,17 @@ if ! systemctl is-active --quiet "${SERVICE_NAME}"; then
 	rollback
 	exit 1
 fi
-if ! bash -c "exec 3<>/dev/tcp/127.0.0.1/${HEALTHCHECK_PORT}" >/dev/null 2>&1; then
-	echo "health check on 127.0.0.1:${HEALTHCHECK_PORT} failed; rolling back" >&2
+# The server runs migrations before it listens, so poll rather than probe once.
+healthcheck_ok=0
+for _ in $(seq 1 60); do
+	if curl -fsS "http://127.0.0.1:${HEALTHCHECK_PORT}/api/health" >/dev/null 2>&1; then
+		healthcheck_ok=1
+		break
+	fi
+	sleep 1
+done
+if [[ "${healthcheck_ok}" -ne 1 ]]; then
+	echo "health check on http://127.0.0.1:${HEALTHCHECK_PORT}/api/health failed; rolling back" >&2
 	rollback
 	exit 1
 fi
