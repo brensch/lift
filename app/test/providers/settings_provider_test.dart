@@ -62,7 +62,7 @@ void main() {
   test('chosen colours are kept across a load and a unit change', () async {
     await h.settings.load();
     const pink = Color(0xFFFF00FF);
-    await h.settings.updatePlateColors({...h.settings.plateColors, 25: pink});
+    await h.settings.choosePlateColor(25, pink);
 
     final fresh = SettingsProvider(h.service);
     await fresh.load();
@@ -74,6 +74,25 @@ void main() {
     expect(fresh.plateColor(25), pink);
     expect(fresh.plateColor(20).toARGB32(), Colors.blue.toARGB32());
     expect(fresh.plateColor(1.25), isNot(Colors.purple));
+  });
+
+  test('a colour chosen in one unit keeps the other unit\'s', () async {
+    await h.settings.load();
+    const black = Color(0xFF000000);
+    const teal = Color(0xFF008080);
+    await h.settings.choosePlateColor(45, black);
+    await h.settings.updateWeightUnit(kg);
+    await h.settings.choosePlateColor(20, teal);
+    await h.settings.updateWeightUnit(lb);
+
+    // Read back from what was recorded.
+    final fresh = SettingsProvider(h.service);
+    await fresh.load();
+    final lbDefaults = SettingsProvider.defaultPlateColors(lb);
+    expect(fresh.plateColor(45), black);
+    expect(fresh.plateColor(25), lbDefaults[25], reason: 'never chosen');
+    fresh.applyWeightUnitLocally(kg);
+    expect(fresh.plateColor(20), teal);
   });
 
   test('a load notifies once, with the recorded values', () async {
