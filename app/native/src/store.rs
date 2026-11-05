@@ -202,15 +202,26 @@ impl Store {
     fn answer(&mut self, method: &str, request: &[u8], now: i64) -> StoreResult<Vec<u8>> {
         let event_id = uuid::Uuid::new_v4().to_string();
         let mut call = Call::new(&mut self.account, now, event_id).with_library(&self.library);
-        let response = api::call(&mut call, method, request).map_err(|e| {
-            let code = match e {
-                schlift_core::account::CoreError::InvalidArgument(_) => "invalid_argument",
-                schlift_core::account::CoreError::NotFound(_) => "not_found",
-                schlift_core::account::CoreError::FailedPrecondition(_) => "failed_precondition",
-            };
-            format!("{code}: {e}")
-        })?;
+        let answered = api::call(&mut call, method, request);
         let events = std::mem::take(&mut call.events);
+        let response = match answered {
+            Ok(response) => response,
+            Err(e) => {
+                // A call can fail after recording some of its events: they
+                // are in memory but not written, so go back to the file.
+                if !events.is_empty() {
+                    self.refold()?;
+                }
+                let code = match e {
+                    schlift_core::account::CoreError::InvalidArgument(_) => "invalid_argument",
+                    schlift_core::account::CoreError::NotFound(_) => "not_found",
+                    schlift_core::account::CoreError::FailedPrecondition(_) => {
+                        "failed_precondition"
+                    }
+                };
+                return Err(format!("{code}: {e}"));
+            }
+        };
         if !events.is_empty() {
             if let Err(error) = self.add_pending(&events) {
                 // Memory ran ahead of the file: go back to what was written.
@@ -965,6 +976,14 @@ mod tests {
             )
             .unwrap();
         assert_eq!(samples, 3, "the export has the readable tables");
+        let in_rotation: i64 = exported
+            .query_row(
+                "SELECT in_rotation FROM workout_templates WHERE id = ?",
+                [&home.templates[0].id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(in_rotation, i64::from(home.templates[0].in_rotation));
         let reopened = Store::open(&dest, U1, "").unwrap();
         assert_eq!(reopened.account, store.account);
     }

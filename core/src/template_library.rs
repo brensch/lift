@@ -176,16 +176,6 @@ pub fn plans() -> &'static [LibraryPlan] {
     PLANS.get_or_init(|| load_plans().expect("templates/library.yaml is validated by cargo test"))
 }
 
-pub fn find(id: &str) -> Option<&'static LibraryTemplate> {
-    library().iter().find(|t| t.id == id)
-}
-
-/// The entries marked `default: true`: what a client that never asked
-/// (or an onboarding request that names nothing) gets copied in.
-pub fn defaults() -> Vec<&'static LibraryTemplate> {
-    library().iter().filter(|t| t.is_default).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,7 +191,9 @@ mod tests {
         }
         // Defaults keep the pre-library behaviour: at least one full body
         // template lands for a client that never asked.
-        assert!(defaults().iter().any(|t| t.id == "stronglifts_a"));
+        assert!(library
+            .iter()
+            .any(|t| t.is_default && t.id == "stronglifts_a"));
     }
 
     #[test]
@@ -236,7 +228,11 @@ mod tests {
                 plan.id
             );
             for id in &plan.library_ids {
-                assert!(find(id).is_some(), "plan {} names {id}", plan.id);
+                assert!(
+                    library().iter().any(|t| &t.id == id),
+                    "plan {} names {id}",
+                    plan.id
+                );
             }
         }
     }

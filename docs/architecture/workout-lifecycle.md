@@ -469,7 +469,7 @@ sequenceDiagram
     P->>P: show it, notifyListeners()
 ```
 
-`Account::mutate_workout` changes a copy of the workout and puts it back
+`Account::change_workout` changes a copy of the workout and puts it back
 only if the whole mutation applied, so an event is all or nothing. A batch
 (`AppendWorkoutMutations` with several) records one event per mutation; one
 that can't apply is skipped and the rest still land.
