@@ -174,24 +174,17 @@ class SettingsScreen extends StatelessWidget {
     WeightUnit unit,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    final syncedKg = await auth.syncBodyWeightFromHealth();
+    final synced = await auth.syncBodyWeightFromHealth();
     if (!context.mounted) return;
-    if (syncedKg != null && syncedKg > 0) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            copy.settings.bodyWeightSynced.replaceAll(
-              '{weight}',
-              _bodyWeightText(syncedKg, unit),
-            ),
-          ),
-        ),
-      );
-    } else {
-      messenger.showSnackBar(
-        SnackBar(content: Text(copy.settings.bodyWeightNotFound)),
-      );
-    }
+    final message = switch (synced) {
+      BodyWeightSynced(:final kg) => copy.settings.bodyWeightSynced.replaceAll(
+        '{weight}',
+        _bodyWeightText(kg, unit),
+      ),
+      BodyWeightNotInHealth() => copy.settings.bodyWeightNotFound,
+      BodyWeightSyncFailed() => copy.settings.bodyWeightSyncFailed,
+    };
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showWeightUnitPicker(

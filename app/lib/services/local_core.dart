@@ -36,7 +36,7 @@ class CoreException implements Exception {
 class LocalCore {
   final int _handle;
 
-  /// Fires after every call that may have recorded something, so the sync
+  /// Fires after every call that stored events for the server, so the sync
   /// can push it.
   final _writes = StreamController<void>.broadcast();
 
@@ -76,8 +76,9 @@ class LocalCore {
     T Function(List<int>) parse,
   ) async {
     final List<int> response;
+    final bool recorded;
     try {
-      response = await native.call(
+      (response, recorded) = await native.call(
         handle: _handle,
         method: method,
         request: request.writeToBuffer(),
@@ -85,13 +86,12 @@ class LocalCore {
     } catch (e) {
       throw CoreException.from(e);
     }
-    // A write that finished as the file was closed has no one to tell.
-    if (!_isRead(method) && !_writes.isClosed) _writes.add(null);
+    // Something for the server: a write, or a read that recorded an ended
+    // workout's heart rate. One that finished as the file was closed has no
+    // one to tell.
+    if (recorded && !_writes.isClosed) _writes.add(null);
     return parse(response);
   }
-
-  static bool _isRead(String method) =>
-      method.startsWith('Get') || method.startsWith('List');
 
   /// The last seq this file holds: where the server picks up.
   Future<int> confirmed() => native.confirmed(handle: _handle);

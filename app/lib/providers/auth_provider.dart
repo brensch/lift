@@ -12,6 +12,28 @@ import '../services/health_service.dart';
 import '../services/user_service.dart';
 import '../logic/utils.dart';
 
+/// What a body-weight sync from Health came to.
+sealed class BodyWeightSync {
+  const BodyWeightSync();
+}
+
+/// The profile holds Health's latest body weight, [kg].
+final class BodyWeightSynced extends BodyWeightSync {
+  final double kg;
+  const BodyWeightSynced(this.kg);
+}
+
+/// Health has no body weight.
+final class BodyWeightNotInHealth extends BodyWeightSync {
+  const BodyWeightNotInHealth();
+}
+
+/// Not synced: signed out of the server, another sync running, or the
+/// profile update failed.
+final class BodyWeightSyncFailed extends BodyWeightSync {
+  const BodyWeightSyncFailed();
+}
+
 class AuthProvider extends ChangeNotifier {
   static const _sessionTokenKey = 'liftSessionToken';
   static const _userIdKey = 'liftUserId';
@@ -249,14 +271,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<double?> syncBodyWeightFromHealth() async {
-    if (_bodyWeightHealthSyncInFlight || _sessionToken == null) return null;
+  Future<BodyWeightSync> syncBodyWeightFromHealth() async {
+    if (_bodyWeightHealthSyncInFlight || _sessionToken == null) {
+      return const BodyWeightSyncFailed();
+    }
     _bodyWeightHealthSyncInFlight = true;
     try {
       // Compare against the server's body weight, not the 0 we start with.
       await _initialProfileLoad;
       final importedKg = await HealthService.readLatestBodyWeightKg();
-      if (importedKg == null || importedKg <= 0) return null;
+      if (importedKg == null || importedKg <= 0) {
+        return const BodyWeightNotInHealth();
+      }
 
       final changed = (_bodyWeightKg - importedKg).abs() >= 0.05;
       if (!changed) {
@@ -264,7 +290,7 @@ class AuthProvider extends ChangeNotifier {
           'reason': 'unchanged',
           'bodyWeightKg': importedKg,
         });
-        return importedKg;
+        return BodyWeightSynced(importedKg);
       }
 
       final user = await UserServiceWrapper(
@@ -275,12 +301,12 @@ class AuthProvider extends ChangeNotifier {
         'bodyWeightKg': _bodyWeightKg,
       });
       notifyListeners();
-      return _bodyWeightKg;
+      return BodyWeightSynced(_bodyWeightKg);
     } catch (e) {
       AppLogger.instance.warn('Auth', 'bodyweight sync failed', {
         'error': e.toString(),
       });
-      return null;
+      return const BodyWeightSyncFailed();
     } finally {
       _bodyWeightHealthSyncInFlight = false;
     }

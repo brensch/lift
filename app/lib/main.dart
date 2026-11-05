@@ -24,6 +24,7 @@ import 'services/platform_wearable_bridge_service.dart';
 import 'services/wearable_bridge_service.dart';
 import 'services/wearable_sync_coordinator.dart';
 import 'providers/auth_provider.dart';
+import 'widgets/update_required_gate.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
 import 'providers/settings_provider.dart';
@@ -113,9 +114,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   bool _hadServerSession = false;
 
   Future<void> _syncBodyWeightOnAppLoad() async {
-    final importedKg = await _authProvider.syncBodyWeightFromHealth();
-    if (importedKg != null) {
-      _workoutProvider.setBodyWeightKg(importedKg);
+    final synced = await _authProvider.syncBodyWeightFromHealth();
+    if (synced is BodyWeightSynced) {
+      _workoutProvider.setBodyWeightKg(synced.kg);
     }
   }
 
@@ -498,6 +499,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         routerConfig: _router,
+        builder: (context, child) =>
+            UpdateRequiredGate(child: child ?? const SizedBox.shrink()),
       ),
     );
   }
