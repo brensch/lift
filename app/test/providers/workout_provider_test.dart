@@ -118,6 +118,29 @@ void main() {
     );
   });
 
+  test('a template workout with a lift added offers the template', () async {
+    await h.provider.saveTemplate(
+      WorkoutTemplate(name: 'Legs', exercises: [squat]),
+    );
+    final template = h.provider.templates.singleWhere((t) => t.name == 'Legs');
+    await h.provider.startWorkout(
+      template.name,
+      templateId: template.id,
+      exercises: template.exercises,
+    );
+    await h.provider.addPrescribedExercises([raise]);
+    for (final exercise in [squat, raise]) {
+      final set = h.working(exercise).first;
+      await h.provider.completeSet(set.id, set.targetReps, set.targetWeight);
+    }
+    await h.provider.endWorkout(fireEndedCallback: false);
+    final offer = h.provider.takePendingTemplateOffer();
+    expect(offer, isNotNull);
+    expect(offer!.templateId, template.id);
+    expect(offer.exercises, [squat, raise]);
+    expect(h.provider.takePendingTemplateOffer(), isNull, reason: 'taken');
+  });
+
   test('the budget moves in 5-minute steps and plans the home', () async {
     expect(h.provider.budgetMinutes, 60);
     await h.provider.stepBudget(-1);

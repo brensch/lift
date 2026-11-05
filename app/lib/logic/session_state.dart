@@ -46,6 +46,15 @@ WorkoutState stateAt(WorkoutStateSnapshot? snapshot, int nowUnix) {
   return state;
 }
 
+/// How long after a rest's end the in-app cue still plays. Later than this
+/// (the app was suspended through it) the OS notification already rang.
+const restEndCueWindowSeconds = 2;
+
+/// Whether a rest that has run out ended just now, so the in-app sound and
+/// haptic are for it, not for one that ended while the app was away.
+bool restEndedJustNow(WorkoutStateSnapshot snapshot, int nowUnix) =>
+    nowUnix - snapshot.restUntil.toInt() <= restEndCueWindowSeconds;
+
 /// A workout's stage as every status line says it (your bar, a partner's
 /// bar, the watch): its state on this clock ([stateAt]), the label, and the
 /// clock. Lifting counts up from Start, resting down to the rest end,

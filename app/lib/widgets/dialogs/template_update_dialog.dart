@@ -58,10 +58,21 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
     if (name.isEmpty || _isSaving) return;
     setState(() => _isSaving = true);
     try {
-      final template = WorkoutTemplate()
-        ..id = widget.offer.templateId
-        ..name = name
-        ..exercises.addAll(widget.offer.exercises);
+      // An existing template keeps everything but its exercises (its
+      // place in the rotation, where it came from).
+      final existing = _isNew
+          ? null
+          : widget.provider.templates
+                .where((t) => t.id == widget.offer.templateId)
+                .firstOrNull;
+      final template = existing != null
+          ? (existing.deepCopy()
+              ..exercises.clear()
+              ..exercises.addAll(widget.offer.exercises))
+          : (WorkoutTemplate()
+              ..id = widget.offer.templateId
+              ..name = name
+              ..exercises.addAll(widget.offer.exercises));
       await widget.provider.saveTemplate(template);
       if (mounted) Navigator.pop(context);
     } catch (e) {
