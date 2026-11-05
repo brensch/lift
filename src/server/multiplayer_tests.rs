@@ -816,4 +816,120 @@ mod session_history_tests {
         assert_eq!(bob.ended_at, 0, "his old workout is not his status");
         assert!(bob.joined_at > now_unix() - 60, "joined now");
     }
+
+    /// Bob left a workout open yesterday and scans Alice's code today. His
+    /// phone puts that workout in the session, but it is not under way:
+    /// Alice doesn't see it, and throwing it away leaves him in. The one he
+    /// starts next is his workout in the session.
+    #[tokio::test]
+    async fn a_workout_left_open_from_yesterday_is_not_the_session_workout() {
+        use schlift_core::events::{Event, Fact, SessionSet, WorkoutDiscarded};
+        let svc = setup().await;
+        let (alice_id, _) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let yesterday = now_unix() - 3 * schlift_core::session::SHOWN_FOR_SECONDS;
+        let (stale, events) = workout_started(yesterday);
+        svc.db.push_events(&bob_id, events).await.unwrap();
+
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        let session_id = svc
+            .join_via_invite(authed(
+                &bob_tok,
+                JoinViaInviteRequest {
+                    invite_token: alice_invite,
+                },
+            ))
+            .await
+            .unwrap()
+            .into_inner()
+            .session_id;
+        let event = |fact| Event {
+            seq: 0,
+            id: Uuid::new_v4().to_string(),
+            at: now_unix(),
+            fact,
+        };
+        svc.db
+            .push_events(
+                &bob_id,
+                vec![event(Fact::SessionSet(SessionSet {
+                    workout_id: stale.clone(),
+                    session_id: session_id.clone(),
+                }))],
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            svc.db.session_workouts(&session_id).await.unwrap()[&bob_id],
+            "",
+            "alice is not shown yesterday's sets"
+        );
+
+        svc.db
+            .push_events(
+                &bob_id,
+                vec![event(Fact::WorkoutDiscarded(WorkoutDiscarded {
+                    workout_id: stale,
+                }))],
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            svc.db
+                .session_member_left_at(&session_id, &bob_id)
+                .await
+                .unwrap(),
+            0,
+            "throwing it away leaves him in"
+        );
+
+        let (fresh, events) = workout_started(now_unix());
+        svc.db.push_events(&bob_id, events).await.unwrap();
+        assert_eq!(
+            svc.db.session_workouts(&session_id).await.unwrap()[&bob_id],
+            fresh
+        );
+        assert_eq!(
+            current_session(&svc.db, &bob_id).await.unwrap().session_id,
+            session_id
+        );
+    }
+
+    /// Bob joined Alice and went idle, his leave not yet written. Scanning
+    /// her again is a fresh join: he is in, joined now, and stays in.
+    #[tokio::test]
+    async fn rejoining_a_session_gone_idle_in_joins_afresh() {
+        let svc = setup().await;
+        let (alice_id, _) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        let join = || {
+            svc.join_via_invite(authed(
+                &bob_tok,
+                JoinViaInviteRequest {
+                    invite_token: alice_invite.clone(),
+                },
+            ))
+        };
+        let first = join().await.unwrap().into_inner().session_id;
+        svc.db
+            .age_session_member(&bob_id, schlift_core::session::SHOWN_FOR_SECONDS + 1)
+            .await
+            .unwrap();
+
+        let again = join().await.unwrap().into_inner().session_id;
+        assert_eq!(again, first, "alice is still in it");
+        assert_eq!(
+            svc.db.get_user_current_session(&bob_id).await.unwrap(),
+            Some(first),
+            "bob is in it, not dropped as idle"
+        );
+        let alice_view = current_session(&svc.db, &alice_id).await.unwrap();
+        let bob = alice_view
+            .members
+            .iter()
+            .find(|m| m.user.as_ref().is_some_and(|u| u.id == bob_id))
+            .expect("alice sees bob");
+        assert!(bob.joined_at > now_unix() - 60, "joined now");
+    }
 }

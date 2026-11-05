@@ -56,7 +56,13 @@ impl ServerMultiplayerService {
             .map_err(internal_error)?
             .unwrap_or_else(|| Uuid::new_v4().to_string());
         // An idle anchor has left their old session as it was read: they
-        // start afresh, and no one joins the group they were idle in.
+        // start afresh, and no one joins the group they were idle in. An
+        // idle joiner leaves theirs too, so joining is a fresh start even
+        // in the session they were idle in.
+        self.db
+            .get_user_current_session(joiner)
+            .await
+            .map_err(internal_error)?;
         for user in [anchor, joiner] {
             self.db
                 .join_session(&session_id, user)
