@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 export interface LegendItem {
   label: string;
   color: string;
-  shape: "line" | "rect";
 }
 
 export interface TableSpec {
@@ -26,7 +25,6 @@ export function ChartCard({
   table,
   children,
   fill = false,
-  actions,
 }: {
   title: string;
   subtitle?: string;
@@ -35,10 +33,14 @@ export function ChartCard({
   children: ReactNode;
   /** Take the parent's full height; the chart area becomes the flexible part. */
   fill?: boolean;
-  /** Extra controls in the title row (a tab switch, a select). */
-  actions?: ReactNode;
 }) {
   const [showTable, setShowTable] = useState(false);
+  const legendItems = legend?.map((item) => (
+    <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
+      <span className="inline-block w-3.5 h-0.5 rounded-full" style={{ background: item.color }} />
+      {item.label}
+    </span>
+  ));
 
   return (
     <div
@@ -53,26 +55,8 @@ export function ChartCard({
           {subtitle && <p className="text-sm text-muted mt-0.5 m-0">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          {actions}
           {legend && legend.length > 1 && !showTable && (
-            <div className="hidden sm:flex items-center gap-4">
-              {legend.map((item) => (
-                <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
-                  {item.shape === "line" ? (
-                    <span
-                      className="inline-block w-3.5 h-0.5 rounded-full"
-                      style={{ background: item.color }}
-                    />
-                  ) : (
-                    <span
-                      className="inline-block w-2.5 h-2.5 rounded-[3px]"
-                      style={{ background: item.color }}
-                    />
-                  )}
-                  {item.label}
-                </span>
-              ))}
-            </div>
+            <div className="hidden sm:flex items-center gap-4">{legendItems}</div>
           )}
           <button
             onClick={() => setShowTable(!showTable)}
@@ -87,24 +71,7 @@ export function ChartCard({
 
       {/* Mobile legend — below title so it never crowds the toggle */}
       {legend && legend.length > 1 && !showTable && (
-        <div className="flex sm:hidden items-center gap-4 mb-3 -mt-1">
-          {legend.map((item) => (
-            <span key={item.label} className="flex items-center gap-1.5 text-xs text-muted">
-              {item.shape === "line" ? (
-                <span
-                  className="inline-block w-3.5 h-0.5 rounded-full"
-                  style={{ background: item.color }}
-                />
-              ) : (
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-[3px]"
-                  style={{ background: item.color }}
-                />
-              )}
-              {item.label}
-            </span>
-          ))}
-        </div>
+        <div className="flex sm:hidden items-center gap-4 mb-3 -mt-1">{legendItems}</div>
       )}
 
       {showTable ? (

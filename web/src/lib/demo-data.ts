@@ -82,7 +82,7 @@ const DAY_MS = 86_400_000;
 export function generateDemoData(): DashboardData {
   const rand = lcg(20260802);
   const weeks = 30;
-  // Anchor "now" to the most recent Friday so the data always looks fresh.
+  // Anchor to today so the data always looks fresh.
   const now = new Date();
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const start = new Date(end.getTime() - weeks * 7 * DAY_MS);
