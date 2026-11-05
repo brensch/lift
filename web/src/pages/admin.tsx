@@ -379,6 +379,7 @@ export function AdminPage() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    setError(null);
     adminClient
       .getStats({ days, trailUsername: trailUser }, authHeaders(user.sessionToken))
       .then((res) => {
