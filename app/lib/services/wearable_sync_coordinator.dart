@@ -5,6 +5,7 @@ import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../providers/multiplayer_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../screens/workout/live_set_circle.dart';
 import '../screens/workout/section_workout.dart';
@@ -14,6 +15,8 @@ import 'wearable_snapshot_builder.dart';
 class WearableSyncCoordinator {
   final WorkoutProvider _workoutProvider;
   final MultiplayerProvider _multiplayerProvider;
+  // The unit and plate colours every weight on the watch is drawn in.
+  final SettingsProvider _settingsProvider;
   final WearableBridgeService _bridgeService;
   final String Function() _myUserId;
 
@@ -44,10 +47,12 @@ class WearableSyncCoordinator {
   WearableSyncCoordinator({
     required WorkoutProvider workoutProvider,
     required MultiplayerProvider multiplayerProvider,
+    required SettingsProvider settingsProvider,
     required WearableBridgeService bridgeService,
     required String Function() myUserId,
   }) : _workoutProvider = workoutProvider,
        _multiplayerProvider = multiplayerProvider,
+       _settingsProvider = settingsProvider,
        _bridgeService = bridgeService,
        _myUserId = myUserId;
 
@@ -68,6 +73,7 @@ class WearableSyncCoordinator {
 
     _workoutProvider.addListener(_onWorkoutChanged);
     _multiplayerProvider.addListener(_publishSnapshot);
+    _settingsProvider.addListener(_publishSnapshot);
     _publishSnapshot();
   }
 
@@ -194,6 +200,7 @@ class WearableSyncCoordinator {
   Future<void> dispose() async {
     _workoutProvider.removeListener(_onWorkoutChanged);
     _multiplayerProvider.removeListener(_publishSnapshot);
+    _settingsProvider.removeListener(_publishSnapshot);
     await _intentSub?.cancel();
     await _sensorSub?.cancel();
   }
