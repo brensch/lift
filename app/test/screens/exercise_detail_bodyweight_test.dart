@@ -46,9 +46,6 @@ void main() {
       await tester.pump();
     }
 
-    expect(
-      find.text(copy.exercise.reps.replaceAll('{n}', '8')),
-      findsWidgets,
-    );
+    expect(find.text(copy.exercise.reps.replaceAll('{n}', '8')), findsWidgets);
   });
 }
