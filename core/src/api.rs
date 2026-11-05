@@ -19,7 +19,7 @@ use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
 use crate::volume::{muscle_volume_7d, suggest_template};
 use crate::workout::{
-    apply_answer_rung_to_active, get_workout_response_from_active,
+    apply_answer_rung_to_active, get_workout_response_from_active, rung_append_lifted,
     start_workout_response_from_active,
 };
 
@@ -92,12 +92,39 @@ impl<'a> Call<'a> {
 
     fn mutate(&mut self, mutation: workout_mutation::Mutation) -> Result<String, CoreError> {
         let mut fact = workout_fact(mutation, self.now);
+        self.check(&fact)?;
         if let Fact::WorkoutEnded(ended) = &mut fact {
             if let Some(record) = self.account.workout(&ended.workout_id) {
                 ended.ended_at = trimmed_end(record, ended.ended_at);
             }
         }
         self.record(fact)
+    }
+
+    /// Refuse a change to a workout the fold would take but that must not
+    /// be written: a done set's reps or weight out of range (as an edit's
+    /// are), or the undo of a rung whose append was lifted (done again, it
+    /// would append twice). Stored facts fold as they always have.
+    fn check(&self, fact: &Fact) -> Result<(), CoreError> {
+        match fact {
+            Fact::SetCompleted(r) if r.actual_reps < 0 => {
+                Err(CoreError::InvalidArgument("Reps must be at least 0".into()))
+            }
+            Fact::SetCompleted(r) if !(0.0..=2000.0).contains(&r.actual_weight) => {
+                Err(CoreError::InvalidArgument("Weight out of range".into()))
+            }
+            Fact::SetUndone(r)
+                if self
+                    .account
+                    .workout(&r.workout_id)
+                    .is_some_and(|w| rung_append_lifted(w, &r.completed_set_id)) =>
+            {
+                Err(CoreError::FailedPrecondition(
+                    "A rung whose sets were lifted can't be undone".into(),
+                ))
+            }
+            _ => Ok(()),
+        }
     }
 
     // ── Workouts ──
@@ -173,16 +200,24 @@ impl<'a> Call<'a> {
     /// which keep their decisions.
     fn add_exercises(&mut self, mut req: AddExercisesRequest) -> Result<String, CoreError> {
         let record = self.view().workout(&req.workout_id)?;
+        // Each lift still in it once, by its latest decision: one removed
+        // and added again has an older log too.
         let planned: Vec<ExerciseDecision> = record
             .exercise_logs
             .iter()
-            .filter_map(|log| log.decision.clone())
+            .filter_map(|log| log.decision.as_ref())
+            .filter(|d| {
+                record
+                    .decision(d.exercise)
+                    .is_some_and(|latest| std::ptr::eq(latest, *d))
+            })
             .filter(|d| {
                 record
                     .proposed_sets
                     .iter()
                     .any(|s| s.exercise == d.exercise && !s.cancelled)
             })
+            .cloned()
             .collect();
         let budget = planned.first().map(|d| d.budget_minutes).unwrap_or(0);
         let added: Vec<Exercise> = exercises(&req.exercises)
@@ -207,9 +242,11 @@ impl<'a> Call<'a> {
     ) -> Result<AppendWorkoutMutationsResponse, CoreError> {
         let mut workout_id = None;
         for mutation in req.mutations {
-            let payload = mutation
-                .mutation
-                .ok_or_else(|| CoreError::InvalidArgument("mutation missing".into()))?;
+            // An empty one (or a kind this build doesn't know) is skipped
+            // like any other that can't apply.
+            let Some(payload) = mutation.mutation else {
+                continue;
+            };
             let _ = match payload {
                 workout_mutation::Mutation::AddExercises(add) => {
                     workout_id.get_or_insert_with(|| add.workout_id.clone());
@@ -219,7 +256,7 @@ impl<'a> Call<'a> {
                     let fact = workout_fact(other, self.now);
                     workout_id
                         .get_or_insert_with(|| fact.workout_id().unwrap_or_default().to_string());
-                    self.record(fact)
+                    self.check(&fact).and_then(|()| self.record(fact))
                 }
             };
         }
@@ -241,14 +278,15 @@ impl<'a> Call<'a> {
         workout_id: &str,
         samples: &[WorkoutHeartRatePoint],
     ) -> Result<(), CoreError> {
-        let within: Vec<WorkoutHeartRatePoint> = match self.account.workout(workout_id) {
-            Some(record) => samples
-                .iter()
-                .filter(|s| within_workout(&record.workout, s.sampled_at))
-                .cloned()
-                .collect(),
-            None => samples.to_vec(),
-        };
+        let record = self
+            .account
+            .workout(workout_id)
+            .ok_or_else(|| CoreError::NotFound("Workout not found".into()))?;
+        let within: Vec<WorkoutHeartRatePoint> = samples
+            .iter()
+            .filter(|s| within_workout(&record.workout, s.sampled_at))
+            .cloned()
+            .collect();
         self.record(Fact::HeartRateRecorded(HeartRateRecorded::new(
             workout_id, &within,
         )))?;
