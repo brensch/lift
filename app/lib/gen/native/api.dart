@@ -36,9 +36,19 @@ Future<(Uint8List, bool)> call({
   request: request,
 );
 
-/// The last seq the file holds: what the Sync stream opens with.
+/// The last seq the file holds.
 Future<PlatformInt64> confirmed({required int handle}) =>
     RustLib.instance.api.crateApiConfirmed(handle: handle);
+
+/// What the Sync stream opens with: a seq before the last the file holds,
+/// so the server's first event shows whether the histories agree.
+Future<PlatformInt64> opensAfter({required int handle}) =>
+    RustLib.instance.api.crateApiOpensAfter(handle: handle);
+
+/// Bring in the export at `path`: what in it the file lacks waits to be
+/// placed; nothing is removed. Returns how many events it added.
+Future<PlatformInt64> importFile({required int handle, required String path}) =>
+    RustLib.instance.api.crateApiImportFile(handle: handle, path: path);
 
 /// What this device recorded that the server hasn't placed, after the
 /// pending event numbered `after` (the last one this stream sent): packed

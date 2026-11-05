@@ -222,8 +222,8 @@ template editor.
 
 Settings → Your data (`YourDataScreen`) has both ways a copy moves: Export
 shares the account file whole, gzipped (`schlift-<name>-<day>.sqlite.gz`),
-and Import a file replaces this phone's copy with an export of the same
-account, gzipped or not. Each shows what it's doing while it does it. On the login screen, "Open an account file" opens an export with
+and Import a file adds to this phone's copy whatever an export of the same
+account (gzipped or not) has that it lacks, removing nothing. Each shows what it's doing while it does it. On the login screen, "Open an account file" opens an export with
 no server at all; signing in later lets it sync again (see
 [auth.md](auth.md#the-account-and-the-server-session)).
 
