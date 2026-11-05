@@ -18,7 +18,7 @@ pub use reducer::{
     apply_answer_rung_to_active, apply_complete_set_to_active,
     apply_delete_completed_set_to_active, apply_edit_completed_set_to_active,
     apply_skip_warmups_to_active, apply_start_set_to_active, get_workout_response_from_active,
-    start_workout_response_from_active,
+    rung_append_lifted, start_workout_response_from_active,
 };
 
 #[derive(Clone, Copy, Debug)]

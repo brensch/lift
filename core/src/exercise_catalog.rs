@@ -248,58 +248,29 @@ pub const ALL_MUSCLES: [MuscleGroup; 10] = [
     MuscleGroup::Core,
 ];
 
-/// A lift's role: a compound works several joints at once; the rest are
-/// auxiliary.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ExerciseCategory {
-    Compound,
-    Auxiliary,
-}
-
-pub fn category(ex: Exercise) -> ExerciseCategory {
+/// Whether a barbell lift is a compound (several joints at once), and so
+/// Heavy. The other barbell lifts (shrug, upright row, curls, skull
+/// crusher) are Standard.
+fn heavy(ex: Exercise) -> bool {
     use Exercise as E;
-    match ex {
+    matches!(
+        ex,
         E::Squat
-        | E::BenchPress
-        | E::Deadlift
-        | E::OverheadPress
-        | E::BarbellRow
-        | E::HipThrust
-        | E::BulgarianSplitSquat
-        | E::RomanianDeadlift
-        | E::GluteBridge
-        | E::Lunge
-        | E::InclineBenchPress
-        | E::DumbbellBenchPress
-        | E::InclineDumbbellPress
-        | E::PushUp
-        | E::ChestDip
-        | E::MachineChestPress
-        | E::PullUp
-        | E::ChinUp
-        | E::LatPulldown
-        | E::SeatedCableRow
-        | E::DumbbellRow
-        | E::TBarRow
-        | E::PendlayRow
-        | E::DumbbellShoulderPress
-        | E::ArnoldPress
-        | E::CloseGripBenchPress
-        | E::TricepDip
-        | E::FrontSquat
-        | E::LegPress
-        | E::HackSquat
-        | E::GobletSquat
-        | E::WalkingLunge
-        | E::StepUp
-        | E::GoodMorning
-        | E::SumoDeadlift
-        | E::SumoSquat
-        | E::CurtsyLunge
-        | E::SingleLegHipThrust
-        | E::CablePullThrough => ExerciseCategory::Compound,
-        _ => ExerciseCategory::Auxiliary,
-    }
+            | E::BenchPress
+            | E::Deadlift
+            | E::OverheadPress
+            | E::BarbellRow
+            | E::HipThrust
+            | E::RomanianDeadlift
+            | E::GluteBridge
+            | E::InclineBenchPress
+            | E::PendlayRow
+            | E::TBarRow
+            | E::CloseGripBenchPress
+            | E::FrontSquat
+            | E::GoodMorning
+            | E::SumoDeadlift
+    )
 }
 
 /// The three classes every lift falls in. The class sets the rep range,
@@ -326,7 +297,7 @@ pub enum LiftClass {
 pub fn lift_class(ex: Exercise) -> LiftClass {
     if load_style(ex) == LoadStyle::Bodyweight || primary_muscle(ex) == MuscleGroup::Core {
         LiftClass::Bodyweight
-    } else if load_style(ex) == LoadStyle::Barbell && category(ex) == ExerciseCategory::Compound {
+    } else if load_style(ex) == LoadStyle::Barbell && heavy(ex) {
         LiftClass::Heavy
     } else {
         LiftClass::Standard
@@ -516,6 +487,21 @@ mod tests {
         );
         assert!(!standard.warmups);
         assert_eq!(lift_class(Exercise::BarbellCurl), LiftClass::Standard);
+        // Heavy is exactly the barbell compounds; the barbell isolation
+        // lifts are Standard.
+        let heavy_lifts = all_exercises()
+            .into_iter()
+            .filter(|ex| lift_class(*ex) == LiftClass::Heavy)
+            .count();
+        assert_eq!(heavy_lifts, 15);
+        for ex in [
+            Exercise::Shrug,
+            Exercise::UprightRow,
+            Exercise::PreacherCurl,
+            Exercise::SkullCrusher,
+        ] {
+            assert_eq!(lift_class(ex), LiftClass::Standard, "{ex:?}");
+        }
         assert_eq!(lift_class(Exercise::DumbbellRow), LiftClass::Standard);
         for ex in [Exercise::PullUp, Exercise::Crunch, Exercise::CableCrunch] {
             let p = rules(ex);
@@ -570,5 +556,50 @@ mod tests {
         let kg = AppWeightUnit::Kg;
         let down = snap_down_weight_lb(Exercise::Squat, 100.0, kg);
         assert!(down <= 100.0 + 1e-3 && down > 94.0, "{down}");
+    }
+
+    /// In kilograms a dumbbell moves by 2 kg and a machine or cable by
+    /// 2.5 kg; a done set in a kg workout snaps to that grid.
+    #[test]
+    fn kg_snaps_to_the_equipments_grid() {
+        use crate::weight_units::{kg_to_pounds, pounds_to_kg};
+        let kg = AppWeightUnit::Kg;
+        let shown = |ex: Exercise, input_kg: f32| {
+            let snapped = snap_weight_lb(ex, kg_to_pounds(input_kg), kg);
+            assert!(
+                (snap_weight_lb(ex, snapped, kg) - snapped).abs() < 1e-3,
+                "{ex:?} at {input_kg} kg is not a fixed point"
+            );
+            pounds_to_kg(snapped)
+        };
+        let near = |a: f32, b: f32| (a - b).abs() < 1e-3;
+        assert_eq!(load_style(Exercise::DumbbellRow), LoadStyle::Dumbbell);
+        assert_eq!(load_style(Exercise::MachineChestPress), LoadStyle::Machine);
+        assert_eq!(load_style(Exercise::LatPulldown), LoadStyle::Cable);
+        assert!(near(shown(Exercise::DumbbellRow, 13.1), 14.0));
+        assert!(near(shown(Exercise::DumbbellRow, 12.9), 12.0));
+        assert!(near(shown(Exercise::MachineChestPress, 13.1), 12.5));
+        assert!(near(shown(Exercise::LatPulldown, 13.9), 15.0));
+
+        let input = kg_to_pounds(13.9);
+        let down = snap_down_weight_lb(Exercise::DumbbellRow, input, kg);
+        assert!(near(pounds_to_kg(down), 12.0), "{}", pounds_to_kg(down));
+        assert!(down <= input + 1e-3);
+        let input = kg_to_pounds(14.9);
+        let down = snap_down_weight_lb(Exercise::LatPulldown, input, kg);
+        assert!(near(pounds_to_kg(down), 12.5), "{}", pounds_to_kg(down));
+        assert!(down <= input + 1e-3);
+    }
+
+    /// Unset or unknown units read as pounds.
+    #[test]
+    fn an_unknown_unit_is_pounds() {
+        for unit in [0, 99, -1] {
+            assert_eq!(
+                crate::weight_units::unit_from_proto(unit),
+                AppWeightUnit::Lb,
+                "{unit}"
+            );
+        }
     }
 }

@@ -10,7 +10,7 @@ calories = MET × 3.5 × body_weight_kg × duration_minutes / 200
 
 For traditional strength training, **MET = 3.5** (Ainsworth et al., 2011 Compendium of Physical Activities).
 
-The constant 3.5 ml O₂ / kg / min represents resting oxygen consumption at 1 MET. Dividing by 200 converts from ml O₂/min to kcal/min using the approximation that 1 L O₂ ≈ 5 kcal (i.e. 5 / 1000 × 40 = 1/200).
+The constant 3.5 ml O₂ / kg / min represents resting oxygen consumption at 1 MET. Dividing by 200 converts ml O₂/min to kcal/min: ÷1000 for litres, ×5 kcal per litre of O₂ (5/1000 = 1/200).
 
 ### Example
 
