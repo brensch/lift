@@ -100,10 +100,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text(copy.templateUpdate.updateConfirm));
-    await until(
-      tester,
-      () => find.byType(AlertDialog).evaluate().isEmpty,
-    );
+    await until(tester, () => find.byType(AlertDialog).evaluate().isEmpty);
 
     final saved = h.provider.templates.singleWhere((t) => t.id == template.id);
     expect(saved.exercises, [squat, raise]);
