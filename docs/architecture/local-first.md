@@ -147,8 +147,12 @@ order of an account's events; the phone records without waiting for it.
   `pending`; when another device's arrive, the account is refolded, theirs
   then whatever is still pending on top. Two phones on one account both
   keep everything, in the order the server gave it. If the server holds
-  less than the phone (an older export opened), what it lacks goes back to
-  `pending` and is placed again.
+  less than the phone (an older export opened, or the server restored from
+  an older backup), what it lacks goes back to `pending`, ahead of what
+  was waiting, and is placed again. The server tells such a phone its head
+  and ends the stream without reading it: what the phone pushed on opening,
+  before it heard, would otherwise be placed ahead of those older events.
+  It dials again from the head.
 
 The stream is only the fast path. A pending event is resent after any
 reconnect until it comes back placed, and every down message is either
