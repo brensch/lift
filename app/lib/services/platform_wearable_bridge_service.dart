@@ -28,12 +28,6 @@ class PlatformWearableBridgeService implements WearableBridgeService {
       .map(WearSensorBatch.fromBuffer);
 
   @override
-  Future<void> init() async {}
-
-  @override
-  Future<void> dispose() async {}
-
-  @override
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot) async {
     await _methods.invokeMethod<void>('publishSnapshot', {
       'payload': snapshot.writeToBuffer(),

@@ -22,6 +22,11 @@ class WearableSyncCoordinator {
 
   /// Intents that arrived before the workout was loaded.
   final List<WearIntent> _pendingIntents = [];
+
+  /// Heart-rate batches that arrived before the workout first loaded (a cold
+  /// start mid-workout), by batch id: the bridge has already acked them, so
+  /// the watch will not send them again.
+  final Map<String, WearSensorBatch> _pendingSensorBatches = {};
   final Set<String> _handledIntentIds = <String>{};
   bool _workoutEverLoaded = false;
   String? _lastPublishedSnapshotKey;
@@ -47,14 +52,15 @@ class WearableSyncCoordinator {
        _myUserId = myUserId;
 
   Future<void> init() async {
-    await _bridgeService.init();
-
     _intentSub = _bridgeService.intentStream.listen((intent) async {
       await _handleIntent(intent);
     });
 
     _sensorSub = _bridgeService.sensorBatchStream.listen((batch) {
-      if (!_workoutProvider.hasActiveWorkout) return;
+      if (!_workoutProvider.hasActiveWorkout) {
+        if (!_workoutEverLoaded) _pendingSensorBatches[batch.batchId] = batch;
+        return;
+      }
       final workoutId = _workoutProvider.workout?.id;
       if (workoutId == null || batch.workoutId != workoutId) return;
       _workoutProvider.ingestWearHeartRateBatch(batch);
@@ -73,7 +79,8 @@ class WearableSyncCoordinator {
     }
     if (!_workoutEverLoaded && _workoutProvider.hasActiveWorkout) {
       _workoutEverLoaded = true;
-      _replayPendingIntents();
+      _replayPendingSensorBatches();
+      unawaited(_replayPendingIntents());
     }
     // When the workout becomes ended, tell the watch to stop its HK session (exactly once).
     // The phone cannot end the watch's session directly — this dedicated, guaranteed-delivery
@@ -96,12 +103,24 @@ class WearableSyncCoordinator {
     await _executeIntent(intent);
   }
 
-  void _replayPendingIntents() {
-    if (_pendingIntents.isEmpty) return;
+  /// One at a time, in the order the watch sent them: a set's start must
+  /// land before its completion.
+  Future<void> _replayPendingIntents() async {
     final intents = List<WearIntent>.from(_pendingIntents);
     _pendingIntents.clear();
     for (final intent in intents) {
-      _executeIntent(intent);
+      await _executeIntent(intent);
+    }
+  }
+
+  void _replayPendingSensorBatches() {
+    final batches = _pendingSensorBatches.values.toList();
+    _pendingSensorBatches.clear();
+    final workoutId = _workoutProvider.workout?.id;
+    for (final batch in batches) {
+      if (batch.workoutId == workoutId) {
+        _workoutProvider.ingestWearHeartRateBatch(batch);
+      }
     }
   }
 
@@ -158,6 +177,7 @@ class WearableSyncCoordinator {
   Future<void> signOut() async {
     final workoutId = _workoutProvider.workout?.id;
     _pendingIntents.clear();
+    _pendingSensorBatches.clear();
     if (workoutId == null) return;
     _endCommandSentForWorkoutId = workoutId;
     _lastPublishedSnapshotKey = null;
@@ -176,7 +196,6 @@ class WearableSyncCoordinator {
     _multiplayerProvider.removeListener(_publishSnapshot);
     await _intentSub?.cancel();
     await _sensorSub?.cancel();
-    await _bridgeService.dispose();
   }
 
   void _publishSnapshot({bool force = false}) {
