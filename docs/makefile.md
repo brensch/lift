@@ -18,7 +18,7 @@ Variables worth knowing (all overridable, `make VAR=value target`):
 | `ANDROID_SDK` | `~/android-sdk` | |
 | `ADB` | `$(ANDROID_SDK)/platform-tools/adb` | Not on `PATH`. A phone on wireless debugging shows up as `192.168.x.x:port` |
 | `PHONE_SERIAL`, `WEAR_SERIAL` | auto-detected | Pick the phone or watch when several are attached. Otherwise the first non-watch / watch device on adb |
-| `ANDROID_SERIAL` | `emulator-5554` | The emulator the agent, e2e and store targets drive |
+| `ANDROID_SERIAL` | `emulator-5554` | The emulator the android-emulator-*/agent targets drive |
 | `DEV_SERVER_HOST` | `dev.schlift.com` | Backend the dev app is compiled against |
 
 Release builds of the app default to `schlift.com:443`; debug builds default to
@@ -38,10 +38,11 @@ two seconds; a Dart save is on the phone in under one. Ctrl+C stops all of it.
 | Target | |
 |---|---|
 | `make hot-reload` / `make hot-restart` | Signal the running `run-android` session, the same as `r` / `R` in its terminal. |
-| `make hot-reload-on-save` | The watcher `dev` runs. A save under `app/lib/theme/` or to `main.dart` hot *restarts*: the themes and app wiring are built once at startup, so a reload would keep the old ones. |
+| `make hot-reload-on-save` | The watcher `dev` runs. A save under `app/lib/theme/` or `app/lib/gen/`, or to `main.dart`, hot *restarts*: the themes, generated code and app wiring are built once at startup, so a reload would keep the old ones. |
 
-Hot reload covers Dart code. A proto change: `make proto-dart`, then
-`make hot-restart` (the backend regenerates its side by itself). Native code —
+Hot reload covers Dart code. A proto change: `make proto-dart`; the watcher
+hot-restarts on the regenerated `app/lib/gen/` (the backend regenerates its
+side by itself). Native code —
 including the Rust core the app links (`core/`, `app/native`) — pubspec and
 `--dart-define` changes need a fresh `make dev`.
 
@@ -139,7 +140,7 @@ in [`android_dev.md`](android_dev.md).
 | Target | |
 |---|---|
 | `make e2e` | `e2e-up` + `e2e-run` (`SCENARIO=<name>` for one, `E2E_JOBS` at once). Every scenario in one Linux binary, run side by side on Xvfb. Report at `app/test_screenshots/report.html`. See [`testing/e2e-scenarios.md`](testing/e2e-scenarios.md). |
-| `make loadtest` | Lightweight clients running the phone's core sign up, train and sync against a fresh release server; every account is checked against the server's copy. `LOAD_PROFILE=scale` for 1000 clients, `LOAD_ARGS` for more flags. See [`testing/load.md`](testing/load.md). |
+| `make loadtest` | Lightweight clients running the phone's core sign up, train and sync against a fresh release server; every account is checked against the server's copy. `LOAD_PROFILE=scale` for 1000 clients, `LOAD_ARGS` for more flags. `make loadtest-profile` runs the same under the samply profiler and prints where the server's CPU went. See [`testing/load.md`](testing/load.md). |
 | `make store-capture`, `store-frame`, `store-check`, `store-backend-start`, `store-backend-stop` | Store screenshots and listing checks. |
 
 ## Release and signing

@@ -1,8 +1,10 @@
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
+# The SDK install-deps clones. Keep equal to FLUTTER_VERSION in
+# .github/workflows/tests.yml (dart format's output depends on it).
+FLUTTER_VERSION = 3.44.8
 
 ANDROID_SDK ?= $(HOME)/android-sdk
-ANDROID_HOME ?= $(ANDROID_SDK)
 ANDROID_PLATFORM ?= android-34
 ANDROID_PHONE_AVD ?= lift_api34
 ANDROID_PHONE_PLAY_AVD ?= lift_api34_play
@@ -34,7 +36,7 @@ DEBUG_STOREPASS = android
 
 # Phone targets pick the first adb device that is not a watch; watch targets
 # the first that is. Set PHONE_SERIAL / WEAR_SERIAL to choose explicitly.
-# ANDROID_SERIAL above is the emulator the agent and e2e targets drive.
+# ANDROID_SERIAL above is the emulator the android-emulator-*/agent targets drive.
 PHONE_SERIAL ?=
 WEAR_SERIAL ?=
 

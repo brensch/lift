@@ -25,6 +25,7 @@ WORK="$ROOT/.tmp/e2e"
 ENTRY="$APP/build/e2e/main.dart"
 BIN="$APP/build/linux/x64/debug/bundle/schlift"
 JOBS="${E2E_JOBS:-$(($(nproc) / 2))}"
+[ "$JOBS" -ge 1 ] || JOBS=1
 TIMEOUT="${E2E_TIMEOUT:-300}"
 XVFB="${XVFB:-Xvfb}"
 

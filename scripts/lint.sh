@@ -151,15 +151,15 @@ lint_swift() {
 
 # ── proto ──
 fmt_proto() {
-	need buf "make install-deps"
+	need_pinned buf
 	(cd proto && buf format -w)
 }
 fmt_check_proto() {
-	need buf "make install-deps"
+	need_pinned buf
 	(cd proto && buf format -d --exit-code)
 }
 lint_proto() {
-	need buf "make install-deps"
+	need_pinned buf
 	(cd proto && buf lint)
 }
 
