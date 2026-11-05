@@ -32,7 +32,6 @@ const schliftSpec = ThemeSpec(
   lifting: Color(0xFFFF4F00),
   // Yapping: rest has run out and the next set isn't started. Pink.
   yapping: Color(0xFFD94F8C),
-  warmup: Color(0xFF6B7280),
   heart: Color(0xFFE11D48),
   heartZones: [
     Color(0xFF22C55E), // Z1: green
@@ -41,6 +40,7 @@ const schliftSpec = ThemeSpec(
     Color(0xFFEF4444), // Z4: red
     Color(0xFFB91C1C), // Z5: deep red
   ],
+  lightBackdrop: Colors.white,
   barSteel: Color(0xFFBDBDBD),
   sleeveSteel: Color(0xFF9E9E9E),
   collarSteel: Color(0xFF616161),

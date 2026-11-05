@@ -90,13 +90,13 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
     required this.success,
     required this.ready,
     required this.overdue,
-    required this.warmup,
     required this.resting,
     required this.yapping,
     required this.lifting,
     required this.short,
     required this.heart,
     required this.heartZones,
+    required this.lightBackdrop,
     required this.barSteel,
     required this.sleeveSteel,
     required this.collarSteel,
@@ -166,7 +166,6 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
 
   /// Overdue amber.
   final Color overdue;
-  final Color warmup;
 
   /// The live workout states: lifting (counting up from Start), resting
   /// (blue countdown) and yapping (pink count-up).
@@ -184,6 +183,10 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
   final List<Color> heartZones;
 
   // ─── Hardware: the drawn bars and dumbbells ────────────────────────
+  /// The light ground the drawn bars and plates (and the invite QR code)
+  /// sit on, so plate colours read the same whatever the page colour.
+  final Color lightBackdrop;
+
   /// The bar between the plates in the inline drawing.
   final Color barSteel;
 

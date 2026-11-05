@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../screens/completed_workout_screen.dart';
-import '../../theme/theme_spec.dart';
+import '../../gen/copy.dart';
+import 'confirm_dialog.dart';
 
 Future<void> endWorkout(BuildContext context) async {
   final confirmed = await showEndWorkoutConfirmDialog(context);
@@ -34,31 +35,11 @@ Future<void> endWorkout(BuildContext context) async {
   }
 }
 
-Future<bool> showEndWorkoutConfirmDialog(BuildContext context) async {
-  final colorScheme = Theme.of(context).colorScheme;
-  return await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(
-            'End Workout?',
-            style: TextStyle(fontWeight: context.tokens.weight.heavy),
-          ),
-          content: const Text('This will end your current workout.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              child: const Text('End Workout'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
-}
+Future<bool> showEndWorkoutConfirmDialog(BuildContext context) => confirmDialog(
+  context,
+  title: copy.endWorkoutDialog.title,
+  body: copy.endWorkoutDialog.body,
+  confirm: copy.endWorkoutDialog.confirm,
+  cancel: copy.endWorkoutDialog.cancel,
+  destructive: true,
+);

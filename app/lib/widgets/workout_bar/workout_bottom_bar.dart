@@ -282,6 +282,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                   child: _PartnerRow(
                                     partners: others,
                                     upNextId: nextToLift,
+                                    now: now,
                                     onTap: () => _open.animateTo(
                                       1,
                                       curve: Curves.easeOut,
@@ -404,11 +405,16 @@ class _PartnerStackState extends State<_PartnerStack> {
 class _PartnerRow extends StatelessWidget {
   final List<ParticipantStatus> partners;
   final String? upNextId;
+
+  /// The workout clock's now, the same one the partners' boxes are drawn
+  /// at.
+  final DateTime now;
   final VoidCallback onTap;
 
   const _PartnerRow({
     required this.partners,
     required this.upNextId,
+    required this.now,
     required this.onTap,
   });
 
@@ -417,7 +423,6 @@ class _PartnerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
-    final now = DateTime.now();
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,

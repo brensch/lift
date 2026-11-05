@@ -333,20 +333,6 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
-  /// Phosphor `arrowLineDown`.
-  static const toBottom = IconData(
-    0xe05c,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
-  /// Phosphor `arrowLineUp`.
-  static const toTop = IconData(
-    0xe066,
-    fontFamily: _family,
-    fontPackage: _package,
-  );
-
   /// Phosphor `graduationCap`.
   static const tutorial = IconData(
     0xe62c,
