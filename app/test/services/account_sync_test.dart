@@ -320,4 +320,46 @@ void main() {
 
     await sync.signOut();
   });
+
+  test('a damaged import is turned away and the account stays open', () async {
+    final service = _Scripted();
+    final sync = await serve(service);
+    // An id the server made: it names the account's file.
+    const me = '0b7d5c3e-6f1a-4c2b-9d8e-2a4f6b1c3d5e';
+    await sync.signIn(me, 'Me');
+    await _until(() => service.streams.length == 1);
+    _restore(1).forEach(service.streams.first.add);
+    await _until(() => sync.isReady);
+    await sync.core!.call(
+      'StartWorkout',
+      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutResponse.fromBuffer,
+    );
+    final pending = await sync.core!.pendingCount();
+
+    // The export, unzipped, with its events' page (the fourth, after the
+    // schema and meta) written over: whose it is still reads, but the
+    // account in it doesn't.
+    final whole = gzip.decode(await (await sync.export('Me')).readAsBytes());
+    final damaged = File('${dir.path}/damaged.sqlite')
+      ..writeAsBytesSync([...whole]..fillRange(3 * 4096, 4 * 4096, 7));
+    final garbage = File('${dir.path}/garbage.sqlite')
+      ..writeAsBytesSync(List.filled(4096, 7));
+
+    for (final file in [damaged, garbage]) {
+      await expectLater(sync.importFile(file.path), throwsA(anything));
+      expect(sync.core, isNotNull);
+      expect(await sync.core!.confirmed(), 3);
+      expect(await sync.core!.pendingCount(), pending);
+    }
+    expect(File('${dir.path}/accounts/$me.import.sqlite').existsSync(), false);
+
+    // A whole export still goes in, and the account reopens from it.
+    final good = File('${dir.path}/good.sqlite')..writeAsBytesSync(whole);
+    expect(await sync.importFile(good.path), (me, 'Me'));
+    expect(await sync.core!.confirmed(), 3);
+    expect(await sync.core!.pendingCount(), pending);
+
+    await sync.signOut();
+  });
 }
