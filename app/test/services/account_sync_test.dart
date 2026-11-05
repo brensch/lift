@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:fixnum/fixnum.dart';
@@ -43,6 +44,46 @@ class _Scripted extends SyncServiceBase {
 SyncResponse _joinRequest(String id) => SyncResponse(
   joinRequests: GetJoinRequestsResponse(requests: [JoinRequest(requestId: id)]),
 );
+
+/// [events] as the server packs them: a JSON array in a zstd frame, here
+/// with its blocks stored uncompressed (which any zstd decoder reads).
+List<int> _packed(List<Map<String, Object>> events) {
+  final json = utf8.encode(jsonEncode(events));
+  const block = 1 << 17;
+  // Magic number; no content size, checksum or dictionary; a 128 KiB window.
+  final out = <int>[0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x38];
+  for (var at = 0; at < json.length; at += block) {
+    final end = at + block < json.length ? at + block : json.length;
+    final header = (end - at) << 3 | (end == json.length ? 1 : 0);
+    out
+      ..addAll([header & 0xFF, header >> 8 & 0xFF, header >> 16 & 0xFF])
+      ..addAll(json.sublist(at, end));
+  }
+  return out;
+}
+
+/// The server's history in pieces of [per], as a restore sends it. The
+/// facts are of a kind this app doesn't know, which fold as nothing.
+List<SyncResponse> _restore(int pieces, {int per = 3}) {
+  final head = pieces * per;
+  return [
+    for (var piece = 0; piece < pieces; piece++)
+      SyncResponse(
+        events: Events(
+          head: Int64(head),
+          packed: _packed([
+            for (var i = 1; i <= per; i++)
+              {
+                'seq': piece * per + i,
+                'id': 'e${piece * per + i}',
+                'at': 0,
+                'later_fact': <String, Object>{},
+              },
+          ]),
+        ),
+      ),
+  ];
+}
 
 Future<void> _until(bool Function() done) async {
   final deadline = DateTime.now().add(const Duration(seconds: 10));
@@ -216,4 +257,31 @@ void main() {
 
     await sync.signOut();
   });
+  test(
+    'a restore in many pieces reads the account again at most twice',
+    () async {
+      final service = _Scripted();
+      final sync = await serve(service);
+      // As the app does: each notice reads the account, which waits until
+      // the account is usable and then takes a while (GetHome).
+      var reloads = 0;
+      sync.onCaughtUp = () async {
+        await sync.ready;
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        reloads++;
+      };
+      await sync.signIn('u1', 'Me');
+      await _until(() => service.streams.length == 1);
+      for (final piece in _restore(20)) {
+        service.streams.first.add(piece);
+      }
+      await _until(() => sync.isReady);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      expect(await sync.core!.confirmed(), 60);
+      // The last read is of the whole history.
+      expect(reloads, inInclusiveRange(1, 2));
+
+      await sync.signOut();
+    },
+  );
 }
