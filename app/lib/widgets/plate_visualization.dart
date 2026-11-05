@@ -116,11 +116,7 @@ class _PlateSheet extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                column(
-                  copy.plates.plates,
-                  plateText,
-                  copy.plates.eachSide,
-                ),
+                column(copy.plates.plates, plateText, copy.plates.eachSide),
                 column(copy.plates.bar, barText, null),
                 column(
                   copy.plates.total,
