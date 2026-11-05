@@ -7,6 +7,7 @@ use std::path::Path;
 
 use rusqlite::{params, Connection, OptionalExtension};
 
+use crate::api::logs::{KeptLogLine, LogLine};
 use crate::store::StoreResult;
 
 /// The most the debug and info entries hold between them, in bytes of tag,
@@ -29,25 +30,6 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 CREATE INDEX IF NOT EXISTS logs_level ON logs(level, id);
 ";
-
-/// One entry, as the app logged it.
-pub struct LogRecord {
-    pub at_ms: i64,
-    pub level: i32,
-    pub tag: String,
-    pub message: String,
-    pub fields: String,
-}
-
-/// One entry as kept, with its place in the log.
-pub struct StoredLog {
-    pub id: i64,
-    pub at_ms: i64,
-    pub level: i32,
-    pub tag: String,
-    pub message: String,
-    pub fields: String,
-}
 
 pub struct LogStore {
     conn: Connection,
@@ -78,7 +60,7 @@ impl LogStore {
     }
 
     /// Keep `records`, then drop the oldest debug and info past the budget.
-    pub fn append(&mut self, records: Vec<LogRecord>) -> StoreResult<()> {
+    pub fn append(&mut self, records: Vec<LogLine>) -> StoreResult<()> {
         let tx = self.conn.transaction().map_err(storage)?;
         for r in &records {
             let size = (r.tag.len() + r.message.len() + r.fields.len()) as i64;
@@ -126,7 +108,7 @@ impl LogStore {
         text: &str,
         before: i64,
         limit: u32,
-    ) -> StoreResult<Vec<StoredLog>> {
+    ) -> StoreResult<Vec<KeptLogLine>> {
         let before = if before > 0 { before } else { i64::MAX };
         let pattern = format!("%{}%", text.replace('%', "\\%").replace('_', "\\_"));
         let mut query = self
@@ -143,7 +125,7 @@ impl LogStore {
             .map_err(storage)?;
         let rows = query
             .query_map(params![min_level, before, tag, text, pattern, limit], |r| {
-                Ok(StoredLog {
+                Ok(KeptLogLine {
                     id: r.get(0)?,
                     at_ms: r.get(1)?,
                     level: r.get(2)?,
@@ -169,8 +151,8 @@ impl LogStore {
 mod tests {
     use super::*;
 
-    fn record(level: i32, message: &str) -> LogRecord {
-        LogRecord {
+    fn record(level: i32, message: &str) -> LogLine {
+        LogLine {
             at_ms: 1,
             level,
             tag: "t".into(),
@@ -212,7 +194,7 @@ mod tests {
         logs.append(vec![
             record(0, "one"),
             record(1, "two"),
-            LogRecord {
+            LogLine {
                 tag: "gRPC".into(),
                 ..record(3, "three 100%")
             },
