@@ -100,7 +100,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _loadError = 'Failed to load workout summary.';
+          _loadError = copy.summary.loadFailed;
         });
       }
     }
@@ -132,14 +132,14 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     }
     if (_workout == null) {
       return Scaffold(
-        appBar: AppBar(title: PageTitle('Workout summary')),
+        appBar: AppBar(title: PageTitle(copy.summary.title)),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_loadError ?? 'Failed to load workout summary.'),
+                Text(_loadError ?? copy.summary.loadFailed),
                 const SizedBox(height: 12),
                 FilledButton(
                   onPressed: () {
@@ -149,7 +149,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                     });
                     _loadWorkout();
                   },
-                  child: const Text('Retry'),
+                  child: Text(copy.summary.retry),
                 ),
               ],
             ),
@@ -186,7 +186,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             onPressed: _handleBackNavigation,
           ),
           title: PageTitle(
-            workout.name.isNotEmpty ? workout.name : 'Workout summary',
+            workout.name.isNotEmpty ? workout.name : copy.summary.title,
           ),
         ),
         body: ListView(
@@ -194,15 +194,15 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           padding: const EdgeInsets.only(top: 1, bottom: 24),
           children: [
             FlatSection(
-              label: 'Session',
+              label: copy.summary.session,
               bleed: true,
               flushTop: true,
               flushBottom: true,
               child: FlatMetricGrid(
                 metrics: [
-                  ('Duration', summary.durationLabel, null),
-                  ('Volume', summary.volumeLabel, null),
-                  ('Sets', '${summary.workingSets}', null),
+                  (copy.summary.duration, summary.durationLabel, null),
+                  (copy.summary.volume, summary.volumeLabel, null),
+                  (copy.summary.sets, '${summary.workingSets}', null),
                   (
                     copy.workout.lifting,
                     summary.liftingTimeLabel,
@@ -223,7 +223,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             ),
             if (hasHeartRateChart)
               FlatSection(
-                label: 'Heart',
+                label: copy.summary.heart,
                 bleed: true,
                 flushTop: true,
                 flushBottom: true,
@@ -239,8 +239,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                   closeGrid: false,
                 ),
               ),
-            FlatSection(label: 'Trained with', child: _buildFriends(context)),
-            const FlatHeading('Exercises'),
+            FlatSection(
+              label: copy.summary.trainedWith,
+              child: _buildFriends(context),
+            ),
+            FlatHeading(copy.summary.exercises),
             for (final exercise in summary.exerciseSummaries)
               _ExerciseSummaryRow(
                 exercise: exercise,
@@ -277,6 +280,8 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       return;
     }
     if (wp.workout?.id == widget.workoutId) await wp.dismissEndedWorkout();
+    // Home's volume, recovery and plans counted it: plan them without it.
+    await wp.refreshHome();
     if (!mounted) return;
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
@@ -298,7 +303,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     final t = context.tokens;
     if (!_sessionFriendsLoaded || _sessionFriends.isEmpty) {
       return Text(
-        _sessionFriendsLoaded ? 'Nobody (solo session)' : 'Loading…',
+        _sessionFriendsLoaded ? copy.summary.solo : copy.summary.loading,
         style: TextStyle(fontSize: t.size.bodyLg, color: t.muted),
       );
     }
@@ -406,16 +411,19 @@ class _ExerciseSummaryRow extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _ExerciseStatColumn(
-                label: 'Sets',
+                label: copy.summary.sets,
                 value: '${exercise.totalSets}',
               ),
               _ExerciseStatColumn(
-                label: 'Reps',
+                label: copy.summary.reps,
                 value: '${exercise.totalReps}',
               ),
-              _ExerciseStatColumn(label: 'Volume', value: exercise.volumeLabel),
               _ExerciseStatColumn(
-                label: 'Max',
+                label: copy.summary.volume,
+                value: exercise.volumeLabel,
+              ),
+              _ExerciseStatColumn(
+                label: copy.summary.max,
                 value: max == null
                     ? '-'
                     : maxText(
@@ -429,7 +437,10 @@ class _ExerciseSummaryRow extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Heaviest set: ${exercise.heaviestSetWeightLabel}',
+            copy.summary.heaviestSet.replaceAll(
+              '{weight}',
+              exercise.heaviestSetWeightLabel,
+            ),
             style: TextStyle(fontSize: t.size.body, color: t.muted),
           ),
           for (final note in notes)
