@@ -119,7 +119,7 @@ class _PlateSheet extends StatelessWidget {
                 column(
                   copy.plates.plates,
                   plateText,
-                  copy.workout.watchEachSide,
+                  copy.plates.eachSide,
                 ),
                 column(copy.plates.bar, barText, null),
                 column(

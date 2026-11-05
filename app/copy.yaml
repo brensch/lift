@@ -594,6 +594,8 @@ plates:
   none: None
   # In place of the bar for a weight under it.
   dumbbells: Dumbbells
+  # Under Plates: the plates listed are for each side.
+  each_side: each side
   loading_order: Each side, in loading order
 
 # The sheet for changing a lift's weight and reps mid-workout. {…} are
