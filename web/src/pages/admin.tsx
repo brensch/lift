@@ -374,12 +374,13 @@ export function AdminPage() {
   // the trail in `stats` only when the refetch lands.
   const [trailFor, setTrailFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The trail username the last failed fetch was for.
+  const [errorFor, setErrorFor] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    setError(null);
     adminClient
       .getStats({ days, trailUsername: trailUser }, authHeaders(user.sessionToken))
       .then((res) => {
@@ -391,7 +392,10 @@ export function AdminPage() {
       .catch((err: unknown) => {
         if (cancelled) return;
         if (err instanceof ConnectError && err.code === Code.PermissionDenied) setDenied(true);
-        else setError(err instanceof Error ? err.message : "Failed to load stats");
+        else {
+          setError(err instanceof Error ? err.message : "Failed to load stats");
+          setErrorFor(trailUser);
+        }
       });
     return () => {
       cancelled = true;
@@ -611,7 +615,7 @@ export function AdminPage() {
                 <Trail
                   username={trailUser}
                   entries={trailFor === trailUser ? stats.trail : null}
-                  failed={error !== null}
+                  failed={error !== null && errorFor === trailUser}
                   onClose={() => setTrailUser("")}
                 />
               </div>
