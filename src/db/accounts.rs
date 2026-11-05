@@ -2,11 +2,10 @@
 //! the server's order, and nothing else of it is kept: a read folds it from
 //! there, and a push places events after the head without folding anything.
 
-use std::collections::HashSet;
-
 use schlift_core::account::Account;
 use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
+use std::collections::HashSet;
 
 /// How far back a partner's latest workout is looked for: more events than
 /// any one workout records.
@@ -27,11 +26,13 @@ pub struct Pushed {
 
 impl ServerDb {
     /// Look at a user's account, folded from its history (without heart
-    /// rate, which the server never reads).
-    pub async fn read_account<R>(
+    /// rate, which the server never reads). The fold and the read run on
+    /// the blocking pool: a large account takes a while to fold, and the
+    /// runtime's few workers also serve every stream.
+    pub async fn read_account<R: Send + 'static>(
         &self,
         user_id: &str,
-        read: impl FnOnce(&Account) -> R,
+        read: impl FnOnce(&Account) -> R + Send + 'static,
     ) -> DbResult<R> {
         // Heart-rate rows are most of a log and change nothing in a fold
         // without heart rate, so they are not read (or parsed) at all.
@@ -42,11 +43,14 @@ impl ServerDb {
         .bind(user_id)
         .fetch_all(&self.read_pool)
         .await?;
-        let events = rows
-            .iter()
-            .map(|json| serde_json::from_str(json))
-            .collect::<Result<Vec<Event>, _>>()?;
-        Ok(read(&Account::fold_without_heart_rate(&events)))
+        tokio::task::spawn_blocking(move || {
+            let events = rows
+                .iter()
+                .map(|json| serde_json::from_str(json))
+                .collect::<Result<Vec<Event>, _>>()?;
+            Ok(read(&Account::fold_without_heart_rate(&events)))
+        })
+        .await?
     }
 
     /// The last seq the server holds for the user.
@@ -116,7 +120,7 @@ impl ServerDb {
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let mut tx = self.write_pool.begin().await?;
         let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
-        let held: HashSet<String> = sqlx::query_scalar(
+        let mut placed: HashSet<String> = sqlx::query_scalar(
             "SELECT id FROM account_events
              WHERE user_id = ? AND id IN (SELECT value FROM json_each(?))",
         )
@@ -133,10 +137,10 @@ impl ServerDb {
         .fetch_one(&mut *tx)
         .await?;
         let mut pushed = Pushed::default();
-        // Ids stored by this push: one sent twice in it is stored once.
-        let mut seen: HashSet<String> = HashSet::new();
         for mut event in events {
-            if held.contains(&event.id) || !seen.insert(event.id.clone()) {
+            // Held already, or earlier in this push: skipped. A set, so the
+            // largest push is not checked against itself event by event.
+            if !placed.insert(event.id.clone()) {
                 continue;
             }
             head += 1;

@@ -86,6 +86,14 @@ muscle is recovering and another was ready, or if Full Body takes over
 a short template whose muscles a bigger one also trains (StrongLifts B
 beside Lower and Full Body) rarely comes within a fifth of its score.
 
+## Events no phone writes
+
+`core/tests/hostile_fold.rs` folds what only a hand-made or corrupt event
+holds, as a partner's phone or the server would: a decision at an absurd
+weight or with billions of sets folds in seconds and bounded memory, and
+every time in the stored events pushed to the ends of i64 folds and reads
+without overflowing.
+
 ## Invariant fuzzer
 
 `core/examples/fuzz.rs` runs the core in-process, as the phone does, with
@@ -129,14 +137,21 @@ confirm it trips.
 
 - `src/server/sync_tests.rs` — pushed events fold into the same account, a
   resent batch is placed once, two devices' events are placed in the order
-  they arrive, a push after the account is deleted stores nothing, events
-  read back as they were pushed; and over a real server on a local port: a
-  partner's progress arrives as it happens, a late partner gets the workout
-  so far and only the workout, discarding the workout leaves the session, a
+  they arrive, the largest push (and the same again) is placed in seconds,
+  a push after the account is deleted stores nothing, events read back as
+  they were pushed; and over a real server on a local port: a partner's
+  progress arrives as it happens, a late partner gets the workout so far
+  and only the workout, discarding the workout leaves the session, a
   heartbeat is answered, a deleted account cannot push again, a signed-out
-  stream is sent nothing more, a deleted partner leaves the others'
-  session, a new profile reaches partners without the body weight, a device
-  catches up and hears the others, a stranger is turned away.
+  stream is sent nothing more (not even another device's events), an
+  expired one likewise once its recheck is due, a deleted partner leaves
+  the others' session, a new profile reaches partners without the body
+  weight, a device catches up and hears the others, a stranger is turned
+  away.
+- `testkit/tests/devices.rs` — three devices of one account training
+  offline and syncing in random pieces and orders: each always shows what
+  its events fold to, and all end on the server's log and account
+  (`DEVICE_SEEDS=300` for more interleavings than CI).
 - `src/server/multiplayer_tests.rs` — the session roster and
   training-together history through the real handlers.
 - `src/db/auth.rs` — every table with a `user_id` column references

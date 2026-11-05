@@ -235,6 +235,11 @@ pub fn working_sets_after_calibration(
     working_sets(workout_id, decision, weight, reps)
 }
 
+/// The most working sets one decision lays out. The app decides at most 20
+/// (`api.rs` refuses more); this only keeps a hand-made decision from
+/// asking for billions.
+const MOST_WORKING_SETS: i32 = 10_000;
+
 /// The decision's working sets at `weight` × `reps`. Ids are fresh;
 /// callers set them.
 fn working_sets(
@@ -243,7 +248,7 @@ fn working_sets(
     weight: f32,
     reps: i32,
 ) -> Vec<ProposedSet> {
-    (0..decision.sets.max(1))
+    (0..decision.sets.clamp(1, MOST_WORKING_SETS))
         .map(|_| {
             make_set(
                 workout_id,

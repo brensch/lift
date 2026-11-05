@@ -218,6 +218,7 @@ impl ServerDb {
         if let Some(session) = session {
             self.session_changed(&session);
         }
+        self.notify(Topic::User(user_id.to_string()), Change::SignedOut);
         Ok(())
     }
 
@@ -254,11 +255,17 @@ impl ServerDb {
         Ok(user_id)
     }
 
+    /// Sign a login out; the user's open streams hear of it and end the
+    /// one it opened.
     pub async fn delete_auth_session(&self, token: &str) -> DbResult<()> {
-        sqlx::query("DELETE FROM logins WHERE token_hash = ?")
-            .bind(token_hash(token))
-            .execute(&self.write_pool)
-            .await?;
+        let user_id: Option<String> =
+            sqlx::query_scalar("DELETE FROM logins WHERE token_hash = ? RETURNING user_id")
+                .bind(token_hash(token))
+                .fetch_optional(&self.write_pool)
+                .await?;
+        if let Some(user_id) = user_id {
+            self.notify(Topic::User(user_id), Change::SignedOut);
+        }
         Ok(())
     }
 
@@ -325,6 +332,9 @@ impl ServerDb {
                 .await?;
         }
         tx.commit().await?;
+        if deleted > 0 {
+            self.notify(Topic::User(user_id.to_string()), Change::SignedOut);
+        }
         Ok(true)
     }
 

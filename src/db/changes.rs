@@ -26,6 +26,9 @@ pub enum Change {
     JoinRequests,
     /// The session's members or their progress.
     Session,
+    /// One of the user's logins was signed out, or the account deleted:
+    /// each of their streams checks it is still signed in.
+    SignedOut,
 }
 
 /// Changes a stream may fall behind by before it is told it missed some.
