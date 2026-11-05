@@ -34,21 +34,16 @@ void main() {
         workoutId: workout ?? workoutId,
         heartRateSamples: [
           for (final o in offsets)
-            HeartRateSample(
-              sampledAt: Int64(startMs + o),
-              bpm: 100.0 + o,
-            ),
+            HeartRateSample(sampledAt: Int64(startMs + o), bpm: 100.0 + o),
         ],
       );
 
   List<int> offsets(WorkoutProvider p) =>
       p.wearHeartRateSamples.map((s) => s.sampledAt.toInt() - startMs).toList();
 
-  Future<List<int>> stored() async =>
-      (await h.service.getWorkoutHeartRate(workoutId))
-          .map((s) => s.sampledAt.toInt() - startMs)
-          .toList()
-        ..sort();
+  Future<List<int>> stored() async => (await h.service.getWorkoutHeartRate(
+    workoutId,
+  )).map((s) => s.sampledAt.toInt() - startMs).toList()..sort();
 
   test('samples are kept in time order, a late one slotted in', () async {
     h.provider.ingestWearHeartRateBatch(batch('a', [10, 30]));
