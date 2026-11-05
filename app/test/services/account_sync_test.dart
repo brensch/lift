@@ -205,9 +205,9 @@ void main() {
   test('signing out as the stream opens leaves nothing running', () async {
     final service = _Scripted();
     final sync = await serve(service);
-    // The stream opens with what the core holds, then pushes what it has
-    // to send, reading the core again: signed out the moment the opening
-    // arrives, the file closes under those reads.
+    // The stream opens with what the core holds, read from the core:
+    // signed out the moment the opening arrives, the file closes under any
+    // read still running.
     Future<void>? signedOut;
     service.onRequest = (r) {
       if (r.hasAfterSeq()) signedOut ??= sync.signOut();
@@ -335,9 +335,10 @@ void main() {
       ..add(SyncResponse(events: Events(head: Int64(1))))
       ..close();
 
-    // The phone dials again from there, everything after it queued.
+    // The phone queues everything after the head and dials again from
+    // before it, to see the server's last event is its own.
     await _until(() => opened.length == 3);
-    expect(opened, [0, 3, 1]);
+    expect(opened, [0, 2, 0]);
     expect(await sync.core!.confirmed(), 1);
     expect(await sync.core!.pendingCount(), 3);
 
@@ -375,13 +376,59 @@ void main() {
       expect(await sync.core!.confirmed(), 3);
       expect(await sync.core!.pendingCount(), pending);
     }
-    expect(File('${dir.path}/accounts/$me.import.sqlite').existsSync(), false);
 
-    // A whole export still goes in, and the account reopens from it.
+    // A whole export still goes in: it holds nothing this phone lacks.
     final good = File('${dir.path}/good.sqlite')..writeAsBytesSync(whole);
     expect(await sync.importFile(good.path), (me, 'Me'));
     expect(await sync.core!.confirmed(), 3);
     expect(await sync.core!.pendingCount(), pending);
+
+    await sync.signOut();
+  });
+
+  test('an import only adds, and the same file again adds nothing', () async {
+    final service = _Scripted();
+    final sync = await serve(service);
+    const me = '0b7d5c3e-6f1a-4c2b-9d8e-2a4f6b1c3d5e';
+    await sync.signIn(me, 'Me');
+    await _until(() => service.streams.length == 1);
+    _restore(1).forEach(service.streams.first.add);
+    await _until(() => sync.isReady);
+    final older = await (await sync.export('Me')).copy('${dir.path}/older.gz');
+    await sync.core!.call(
+      'StartWorkout',
+      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutResponse.fromBuffer,
+    );
+    final pending = await sync.core!.pendingCount();
+    final newer = await (await sync.export('Me')).copy('${dir.path}/newer.gz');
+
+    // Its own exports, again, and the older after the newer: nothing to add
+    // and nothing removed.
+    for (final file in [newer, newer, older]) {
+      expect(await sync.importFile(file.path), (me, 'Me'));
+      expect(await sync.core!.confirmed(), 3);
+      expect(await sync.core!.pendingCount(), pending);
+    }
+
+    // A phone that lost its copy, signed out: the older, then the newer,
+    // twice. Everything in them waits to be placed, each once.
+    await sync.signOut();
+    await File('${dir.path}/accounts/$me.sqlite').delete();
+    for (final file in [older, newer, newer]) {
+      expect(await sync.importFile(file.path), (me, 'Me'));
+    }
+    await sync.signIn(me, 'Me');
+    expect(sync.isReady, isTrue, reason: 'usable at once, with no server');
+    expect(await sync.core!.confirmed(), 0);
+    expect(await sync.core!.pendingCount(), 3 + pending);
+
+    // The server holds the first three: they come back placed, and only
+    // what it lacked still waits.
+    await _until(() => service.streams.length == 2);
+    _restore(1).forEach(service.streams.last.add);
+    await _until(() => sync.unsynced == pending);
+    expect(await sync.core!.confirmed(), 3);
 
     await sync.signOut();
   });

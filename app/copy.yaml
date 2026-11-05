@@ -472,12 +472,12 @@ your_data:
   exported: "Ready: {size}"
   saved: "Saved: {size}"
   import_heading: Bring one back
-  import_body: Replace this phone's copy of your account with an export of it, gzipped or not. Anything the server already has comes back when it syncs.
+  import_body: Add what's in an export of your account, gzipped or not, to this phone's copy. Nothing is removed.
   import_button: Import a file
   importing: Bringing it back…
-  imported: Done. This phone has the file's copy now.
+  imported: Done. Anything this phone was missing from the file is added.
   import_confirm_title: Import a file?
-  import_confirm_body: This phone's copy of your account is replaced by the file. Anything the server already has comes back when it syncs.
+  import_confirm_body: Importing adds anything from the file that this phone and the server are missing, and removes nothing. What's there already isn't added twice, so the same file again changes nothing.
   import_confirm: Import
   import_cancel: Cancel
   # {error} is what went wrong.
