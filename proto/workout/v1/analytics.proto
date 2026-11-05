@@ -99,6 +99,8 @@ message GetStatsResponse {
   repeated TrailEntry trail = 6;
   int64 total_users = 7;
   int64 new_users = 8; // accounts created inside the window
+  // Distinct users with a page view inside the window; `users` is capped.
+  int64 active_users = 9;
 }
 
 service AdminService {
