@@ -2978,8 +2978,9 @@ mod refused_writes {
         assert_eq!(app.log.len(), 3, "onboarding, the start and the set");
     }
 
-    /// A done set's reps and weight are held to an edit's bounds: one out
-    /// of them (NaN included) is refused and records nothing.
+    /// A done set with negative reps or a negative or non-finite weight
+    /// fails the batch and records nothing. A weight past an edit's 2000
+    /// is taken: the planner can propose one.
     #[test]
     fn a_done_set_out_of_range_is_refused() {
         let mut app = App::new();
@@ -2995,15 +2996,17 @@ mod refused_writes {
         let started = start(&mut app, &[Exercise::LateralRaise]);
         let set = working(&started.proposed_sets, Exercise::LateralRaise)[0].clone();
         let logged = app.log.len();
-        for (reps, weight) in [(10, f32::NAN), (10, -1.0), (10, 3000.0), (-1, 20.0)] {
-            let state = batch(&mut app, vec![complete_set(&set, reps, weight, NOW + 100)])
-                .workout_state
-                .unwrap();
-            assert!(state.completed_sets.is_empty(), "{reps} x {weight}");
+        for (reps, weight) in [(10, f32::NAN), (10, f32::INFINITY), (10, -1.0), (-1, 20.0)] {
+            let refused = app
+                .call()
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![complete_set(&set, reps, weight, NOW + 100)],
+                });
+            assert!(refused.is_err(), "{reps} x {weight}");
         }
         assert_eq!(app.log.len(), logged, "nothing recorded");
-        // The bounds themselves are fine.
-        for (n, weight) in [0.0, 2000.0].into_iter().enumerate() {
+        // The bounds themselves are fine, and so is a weight past 2000.
+        for (n, weight) in [0.0, 3000.0].into_iter().enumerate() {
             let set = working(&started.proposed_sets, Exercise::LateralRaise)[n].clone();
             batch(&mut app, vec![complete_set(&set, 0, weight, NOW + 200)]);
         }
@@ -3073,10 +3076,21 @@ mod refused_writes {
         .unwrap();
         let logged = app.log.len();
         let rung1_done = done_id(&lifted, &rung1);
-        let after = batch(&mut app, vec![undo(&rung2_done), undo(&rung1_done)])
-            .workout_state
-            .unwrap();
+        for id in [&rung2_done, &rung1_done] {
+            let refused = app
+                .call()
+                .append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![undo(id)],
+                });
+            assert!(refused.is_err(), "the undo fails the call");
+        }
         assert_eq!(app.log.len(), logged, "both refused");
+        let after = app
+            .view()
+            .get_workout(GetWorkoutRequest {
+                workout_id: started.id.clone(),
+            })
+            .unwrap();
         assert_eq!(after.proposed_sets, lifted.proposed_sets);
         assert_eq!(after.completed_sets, lifted.completed_sets);
     }

@@ -294,8 +294,15 @@ impl ServerDb {
     }
 
     /// Delete one of the user's passkeys, unless it is their last: false,
-    /// and nothing deleted, so nobody locks themselves out.
-    pub async fn delete_credential(&self, user_id: &str, credential_id: &str) -> DbResult<bool> {
+    /// and nothing deleted, so nobody locks themselves out. Deleting one
+    /// signs out every other login of the user (a lost phone's among them,
+    /// as nothing ties a login to its passkey); `caller_token`'s stays.
+    pub async fn delete_credential(
+        &self,
+        user_id: &str,
+        credential_id: &str,
+        caller_token: &str,
+    ) -> DbResult<bool> {
         let mut tx = self.write_pool.begin().await?;
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkeys WHERE user_id = ?")
             .bind(user_id)
@@ -304,11 +311,19 @@ impl ServerDb {
         if count <= 1 {
             return Ok(false);
         }
-        sqlx::query("DELETE FROM passkeys WHERE user_id = ? AND credential_id = ?")
+        let deleted = sqlx::query("DELETE FROM passkeys WHERE user_id = ? AND credential_id = ?")
             .bind(user_id)
             .bind(credential_id)
             .execute(&mut *tx)
-            .await?;
+            .await?
+            .rows_affected();
+        if deleted > 0 {
+            sqlx::query("DELETE FROM logins WHERE user_id = ? AND token_hash != ?")
+                .bind(user_id)
+                .bind(token_hash(caller_token))
+                .execute(&mut *tx)
+                .await?;
+        }
         tx.commit().await?;
         Ok(true)
     }
