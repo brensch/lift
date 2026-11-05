@@ -1045,8 +1045,6 @@ fn current_plan(templates: &[WorkoutTemplate]) -> Option<&'static LibraryPlan> {
     })
 }
 
-/// The valid exercises of a list, in order, each once: a workout has a lift
-/// at most once.
 /// A plan nothing in the app arrives at (a weight past what any history or
 /// override leads to, more sets than an override may ask) is refused rather
 /// than recorded: every device and partner folds what is recorded.
@@ -1061,6 +1059,8 @@ fn check_decisions(decisions: &[ExerciseDecision]) -> Result<(), CoreError> {
     Ok(())
 }
 
+/// The valid exercises of a list, in order, each once: a workout has a lift
+/// at most once.
 fn exercises(values: &[i32]) -> Vec<Exercise> {
     let mut out: Vec<Exercise> = Vec::new();
     for ex in values.iter().filter_map(|v| Exercise::try_from(*v).ok()) {

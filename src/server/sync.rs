@@ -313,6 +313,11 @@ impl Stream {
         let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
         let mut sent_any = false;
         loop {
+            // A restore can run for many messages: a login revoked partway
+            // through gets no more than one of them.
+            if sent_any {
+                self.ensure_signed_in().await?;
+            }
             let events = self
                 .db
                 .events_after(&self.user_id, self.sent, EVENTS_PER_MESSAGE)

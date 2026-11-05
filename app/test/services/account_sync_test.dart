@@ -101,6 +101,12 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     expect(service.calls, 2);
 
+    // Signing out forgets it: the next sign-in asks the server again.
+    await sync.signOut();
+    expect(sync.updateRequired, isFalse);
+    await sync.signIn('u1', 'Me');
+    await _until(() => service.calls == 3 && sync.updateRequired);
+
     await sync.signOut();
   });
 
