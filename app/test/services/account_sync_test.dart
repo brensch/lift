@@ -222,6 +222,29 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 100));
   });
 
+  test(
+    'disposed while signed in, it tells no one and closes the file',
+    () async {
+      final service = _Scripted();
+      final sync = await serve(service);
+      await sync.signIn('u1', 'Me');
+      await _until(() => service.streams.length == 1);
+      _restore(1).forEach(service.streams.first.add);
+      await _until(() => sync.isReady && sync.connected);
+      final core = sync.core!;
+      var notified = 0;
+      sync.addListener(() => notified++);
+
+      // The sign-out it starts runs on after it: a notice then would be a
+      // used-after-dispose error, uncaught, failing the test.
+      sync.dispose();
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(notified, 0);
+      expect(sync.core, isNull);
+      await expectLater(core.confirmed(), throwsA(anything));
+    },
+  );
+
   test('a hung-up stream changes nothing; the new one does', () async {
     final service = _Scripted();
     final sync = await serve(service);
@@ -304,15 +327,15 @@ void main() {
     );
     await service.streams.first.close();
 
-    // Restored from an older backup, the server holds one event: it says
-    // so and ends the stream, unread.
-    await _until(() => service.streams.length == 2);
+    // Restored from an older backup, the server holds one event: once the
+    // phone has said what it holds (as a real server waits to hear), it
+    // says so and ends the stream, unread.
+    await _until(() => opened.length == 2);
     service.streams[1]
       ..add(SyncResponse(events: Events(head: Int64(1))))
       ..close();
 
     // The phone dials again from there, everything after it queued.
-    await _until(() => service.streams.length == 3);
     await _until(() => opened.length == 3);
     expect(opened, [0, 3, 1]);
     expect(await sync.core!.confirmed(), 1);
