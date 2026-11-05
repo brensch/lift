@@ -79,9 +79,18 @@ class WearableSyncCoordinator {
 
   void _onWorkoutChanged() {
     final workoutId = _workoutProvider.workout?.id;
-    if (_lastWorkoutId != workoutId) {
+    final previousId = _lastWorkoutId;
+    if (previousId != workoutId) {
       _handledIntentIds.clear();
       _lastWorkoutId = workoutId;
+    }
+    // The workout on show went away unfinished (discarded here, or ended or
+    // discarded on another device): the watch is still tracking it. A
+    // workout that ended while on show was already told (below).
+    if (previousId != null &&
+        workoutId == null &&
+        _endCommandSentForWorkoutId != previousId) {
+      unawaited(_tellWatchEnded(previousId));
     }
     if (!_workoutEverLoaded && _workoutProvider.hasActiveWorkout) {
       _workoutEverLoaded = true;
@@ -177,14 +186,19 @@ class WearableSyncCoordinator {
   }
 
   /// Signing out ends what the watch is tracking: the workout belongs to the
-  /// account that is leaving. Call before the workout is cleared. An ALL_DONE
-  /// snapshot with no End action is what both watches read as ended; iOS also
-  /// gets its dedicated end command for the HealthKit session.
+  /// account that is leaving. Call before the workout is cleared.
   Future<void> signOut() async {
     final workoutId = _workoutProvider.workout?.id;
     _pendingIntents.clear();
     _pendingSensorBatches.clear();
     if (workoutId == null) return;
+    await _tellWatchEnded(workoutId);
+  }
+
+  /// An ALL_DONE snapshot with no End action is what both watches read as
+  /// ended; iOS also gets its dedicated end command for the HealthKit
+  /// session. Recorded first, so it is sent once per workout.
+  Future<void> _tellWatchEnded(String workoutId) async {
     _endCommandSentForWorkoutId = workoutId;
     _lastPublishedSnapshotKey = null;
     await _bridgeService.publishSnapshot(
