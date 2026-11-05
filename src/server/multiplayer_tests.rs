@@ -611,4 +611,48 @@ mod session_history_tests {
             .body_weight_kg;
         assert_eq!(own, 82.5, "alice's own record keeps it");
     }
+
+    /// Coming back to a session left long ago counts as joining it now:
+    /// the rejoiner is in it, not dropped as idle from their first join.
+    #[tokio::test]
+    async fn rejoining_a_session_left_long_ago_puts_you_back_in_it() {
+        let svc = setup().await;
+        let (alice_id, _) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        let join = || {
+            svc.join_via_invite(authed(
+                &bob_tok,
+                JoinViaInviteRequest {
+                    invite_token: alice_invite.clone(),
+                },
+            ))
+        };
+        let first = join().await.unwrap().into_inner().session_id;
+        let session_id = svc
+            .db
+            .get_user_session_pointer(&bob_id)
+            .await
+            .unwrap()
+            .unwrap();
+        svc.db.end_session(&session_id, &bob_id).await.unwrap();
+        svc.db
+            .age_session_member(&bob_id, schlift_core::session::SHOWN_FOR_SECONDS + 1)
+            .await
+            .unwrap();
+
+        // Alice trained on in it: Bob scans her again and is back in it.
+        let again = join().await.unwrap().into_inner().session_id;
+        assert_eq!(again, first, "the same session");
+        let bob_view = current_session(&svc.db, &bob_id).await.unwrap();
+        assert_eq!(bob_view.session_id, first, "bob is in it");
+        let alice_view = current_session(&svc.db, &alice_id).await.unwrap();
+        let bob = alice_view
+            .members
+            .iter()
+            .find(|m| m.user.as_ref().is_some_and(|u| u.id == bob_id))
+            .expect("alice sees bob");
+        assert_eq!(bob.ended_at, 0, "his old workout is not his status");
+        assert!(bob.joined_at > now_unix() - 60, "joined now");
+    }
 }

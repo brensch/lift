@@ -621,13 +621,27 @@ mod stream {
             .is_empty());
     }
 
+    /// The status a stream ends with, failing if anything comes down first.
+    async fn ends_unsent(link: &mut Link) -> Status {
+        let next = tokio::time::timeout(Duration::from_secs(5), link.down.message())
+            .await
+            .expect("the stream ends");
+        match next {
+            Ok(Some(message)) => panic!("sent to a signed-out stream: {:?}", message.kind),
+            Ok(None) => panic!("closed without a status"),
+            Err(status) => status,
+        }
+    }
+
     /// Signing out ends the stream even when the phone sends nothing more:
-    /// the next view it would be sent is refused instead.
+    /// whatever it would be sent next (a request to join, the account's
+    /// new events from another device, a partner's workout) is refused
+    /// instead.
     #[tokio::test]
     async fn a_signed_out_stream_is_sent_nothing_more() {
         let db = db().await;
         let channel = serve(db.clone()).await;
-        let (erin, token) = db
+        let (erin, _) = db
             .get_or_create_user_with_auth_session("erin")
             .await
             .unwrap();
@@ -635,29 +649,124 @@ mod stream {
             .get_or_create_user_with_auth_session("frank")
             .await
             .unwrap();
-        let mut link = Link::open(channel, &token).await;
-        link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
-            .await;
+        db.join_session("s", &erin.id).await.unwrap();
+        db.join_session("s", &frank.id).await.unwrap();
 
-        db.delete_auth_session(&token).await.unwrap();
-        db.create_join_request("r1", &frank.id, &erin.id)
-            .await
-            .unwrap();
-        let status = tokio::time::timeout(Duration::from_secs(5), async {
-            loop {
-                match link.down.message().await {
-                    Ok(Some(message)) => assert!(
-                        !matches!(message.kind, Some(sync_response::Kind::JoinRequests(_))),
-                        "a join request reached a signed-out stream"
-                    ),
-                    Ok(None) => panic!("closed without a status"),
-                    Err(status) => return status,
+        for wake in ["join request", "own events", "partner events"] {
+            let token = db.create_auth_session(&erin.id).await.unwrap();
+            let mut link = Link::open(channel.clone(), &token).await;
+            // Everything sent on connect has gone once the requests have.
+            link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+                .await;
+
+            db.delete_auth_session(&token).await.unwrap();
+            let (_, events) = Phone::new().start_squats(now_unix());
+            match wake {
+                "join request" => db
+                    .create_join_request("r1", &frank.id, &erin.id)
+                    .await
+                    .unwrap(),
+                "own events" => {
+                    db.push_events(&erin.id, events).await.unwrap();
+                }
+                _ => {
+                    db.push_events(&frank.id, events).await.unwrap();
                 }
             }
+            let status = ends_unsent(&mut link).await;
+            assert_eq!(status.code(), tonic::Code::Unauthenticated, "{wake}");
+        }
+    }
+
+    /// Deleting an account takes it out of its partners' session at once,
+    /// and the requests to join it made go from their screens.
+    #[tokio::test]
+    async fn a_deleted_partner_leaves_the_others_session() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (hal, _) = db
+            .get_or_create_user_with_auth_session("hal")
+            .await
+            .unwrap();
+        let (ida, ida_token) = db
+            .get_or_create_user_with_auth_session("ida")
+            .await
+            .unwrap();
+        db.join_session("s", &hal.id).await.unwrap();
+        db.join_session("s", &ida.id).await.unwrap();
+        db.create_join_request("r1", &hal.id, &ida.id)
+            .await
+            .unwrap();
+
+        let mut link = Link::open(channel, &ida_token).await;
+        link.session(|s| s.members.len() == 1).await;
+        link.next(|kind| match kind {
+            sync_response::Kind::JoinRequests(r) if r.requests.len() == 1 => Some(()),
+            _ => None,
         })
-        .await
-        .expect("the stream ends");
-        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+        .await;
+
+        db.delete_user_account_and_data(&hal.id).await.unwrap();
+        // Her own changes come first, then her session's.
+        let requests = link
+            .next(|kind| match kind {
+                sync_response::Kind::JoinRequests(r) => Some(r),
+                _ => None,
+            })
+            .await;
+        assert!(requests.requests.is_empty(), "hal's request is gone");
+        let session = link.session(|_| true).await;
+        assert_eq!(session.session_id, "s", "ida is still in it");
+        assert!(session.members.is_empty(), "hal is gone: {session:?}");
+    }
+
+    /// A new profile reaches the partners at once, still without the body
+    /// weight, which is the owner's alone.
+    #[tokio::test]
+    async fn a_new_profile_reaches_partners_without_the_body_weight() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (jo, jo_token) = db.get_or_create_user_with_auth_session("jo").await.unwrap();
+        let (_, kim_token) = db
+            .get_or_create_user_with_auth_session("kim")
+            .await
+            .unwrap();
+        let invite = db.get_invite_token(&jo.id).await.unwrap().unwrap();
+        MultiplayerServiceClient::new(channel.clone())
+            .join_via_invite(authed(
+                &kim_token,
+                JoinViaInviteRequest {
+                    invite_token: invite,
+                },
+            ))
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &kim_token).await;
+        link.session(|s| s.members.len() == 1).await;
+
+        ServerUserService { db: db.clone() }
+            .update_my_profile(authed(
+                &jo_token,
+                UpdateMyProfileRequest {
+                    profile_emoji: "X".to_string(),
+                    profile_color_hex: String::new(),
+                    body_weight_kg: 82.5,
+                },
+            ))
+            .await
+            .unwrap();
+
+        let session = link
+            .session(|s| {
+                s.members
+                    .first()
+                    .and_then(|m| m.user.as_ref())
+                    .is_some_and(|u| u.profile_emoji == "X")
+            })
+            .await;
+        let seen = session.members[0].user.as_ref().unwrap();
+        assert_eq!(seen.id, jo.id);
+        assert_eq!(seen.body_weight_kg, 0.0, "the weight stays jo's");
     }
 
     /// A device that connects gets everything after what it holds, in
