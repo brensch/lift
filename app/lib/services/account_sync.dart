@@ -71,7 +71,9 @@ class AccountSync extends ChangeNotifier
   bool _connected = false;
 
   /// The server turned this app version away (`MIN_APP_VERSION`): the
-  /// stream is not dialled again until the app is updated.
+  /// stream is not dialled again until the app is back in the foreground,
+  /// when the server is asked once more (it may have stopped turning it
+  /// away). Everything but sync works meanwhile.
   bool get updateRequired => _updateRequired;
   bool _updateRequired = false;
 
@@ -220,14 +222,19 @@ class AccountSync extends ChangeNotifier
     _lastHeard = DateTime.now();
     final generation = _generation;
     // The stream opens with what this phone holds; the server sends the rest.
-    unawaited(
-      core.confirmed().then((confirmed) {
-        if (generation != _generation || up.isClosed) return;
-        up.add(SyncRequest(afterSeq: Int64(confirmed)));
-        _sentUpTo = 0;
-        unawaited(_push());
-      }),
-    );
+    unawaited(() async {
+      final int confirmed;
+      try {
+        confirmed = await core.confirmed();
+      } catch (_) {
+        // Closed by a sign-out meanwhile: this stream is already hung up.
+        return;
+      }
+      if (generation != _generation || up.isClosed) return;
+      up.add(SyncRequest(afterSeq: Int64(confirmed)));
+      _sentUpTo = 0;
+      await _push();
+    }());
     final down = _grpc.syncService.sync(up.stream);
     _down = down;
     // One at a time, in the order sent (a restore comes in chunks the store
@@ -356,15 +363,23 @@ class AccountSync extends ChangeNotifier
       _dial();
       return;
     }
-    await _refreshUnsynced();
-    while (true) {
-      final after = _sentUpTo;
-      if (after == null) return;
-      final (packed, last) = await core.outbox(after);
-      // Another push may have sent them meanwhile.
-      if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
-      _sentUpTo = last;
-      up.add(SyncRequest(events: packed));
+    try {
+      await _refreshUnsynced();
+      while (true) {
+        final after = _sentUpTo;
+        if (after == null) return;
+        final (packed, last) = await core.outbox(after);
+        // Another push may have sent them meanwhile.
+        if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
+        _sentUpTo = last;
+        up.add(SyncRequest(events: packed));
+      }
+    } catch (e) {
+      // Signed out meanwhile: the file is closed and nothing waits to go
+      // up on this stream. Otherwise the events stay pending for the next.
+      if (identical(_core, core)) {
+        AppLogger.instance.warn(_tag, 'push failed', {'error': e.toString()});
+      }
     }
   }
 
@@ -451,6 +466,8 @@ class AccountSync extends ChangeNotifier
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || _core == null) return;
+    // Asked again: a refusal sets it straight back.
+    _updateRequired = false;
     _hangUp();
     _failures = 0;
     _dial();

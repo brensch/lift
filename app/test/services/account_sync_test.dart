@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:schlift/gen/workout/v1/account.pbgrpc.dart';
@@ -26,9 +28,12 @@ class _TooOld extends SyncServiceBase {
 class _Scripted extends SyncServiceBase {
   final streams = <StreamController<SyncResponse>>[];
 
+  /// Called with each request the phone sends up.
+  void Function(SyncRequest)? onRequest;
+
   @override
   Stream<SyncResponse> sync(ServiceCall call, Stream<SyncRequest> request) {
-    request.listen((_) {}, onError: (_) {});
+    request.listen((r) => onRequest?.call(r), onError: (_) {});
     final down = StreamController<SyncResponse>();
     streams.add(down);
     return down.stream;
@@ -90,6 +95,12 @@ void main() {
     expect(service.calls, 1);
     expect(sync.connected, isFalse);
 
+    // Back in the foreground the server is asked again, once.
+    sync.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await _until(() => service.calls == 2 && sync.updateRequired);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    expect(service.calls, 2);
+
     await sync.signOut();
   });
 
@@ -116,30 +127,51 @@ void main() {
     final sync = await serve(service);
     await sync.signIn('u1', 'Me');
     await _until(() => service.streams.length == 1);
+    // A fresh file: usable once the server's history is in.
+    expect(sync.isReady, isFalse);
 
-    // Each time the stream is seen to drop: whether the message was in.
-    final requestsWhenLost = <int>[];
+    // Each time the stream is seen to drop: whether the history was in. Its
+    // handler awaits the core before it takes effect, so the end of the
+    // stream right behind it must wait its turn.
+    final readyWhenLost = <bool>[];
     var wasConnected = false;
     sync.addListener(() {
       if (sync.connected) wasConnected = true;
       if (wasConnected && !sync.connected) {
         wasConnected = false;
-        requestsWhenLost.add(sync.joinRequests.requests.length);
+        readyWhenLost.add(sync.isReady);
       }
     });
     service.streams.first
-      ..add(_joinRequest('r1'))
+      ..add(SyncResponse(events: Events(head: Int64(0))))
       ..close();
 
-    await _until(() => requestsWhenLost.isNotEmpty);
-    expect(requestsWhenLost, [1]);
-    expect(sync.joinRequests.requests.single.requestId, 'r1');
+    await _until(() => readyWhenLost.isNotEmpty);
+    expect(readyWhenLost, [true]);
     // Lost, so dialled again after the backoff.
     await _until(() => service.streams.length == 2);
-    // Let the new stream's opening read the core before it closes.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
 
     await sync.signOut();
+  });
+
+  test('signing out as the stream opens leaves nothing running', () async {
+    final service = _Scripted();
+    final sync = await serve(service);
+    // The stream opens with what the core holds, then pushes what it has
+    // to send, reading the core again: signed out the moment the opening
+    // arrives, the file closes under those reads.
+    Future<void>? signedOut;
+    service.onRequest = (r) {
+      if (r.hasAfterSeq()) signedOut ??= sync.signOut();
+    };
+    for (var i = 1; i <= 5; i++) {
+      signedOut = null;
+      await sync.signIn('u1', 'Me');
+      await _until(() => signedOut != null);
+      await signedOut;
+    }
+    // Any read that failed on the closed file would have failed the test.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
   });
 
   test('a hung-up stream changes nothing; the new one does', () async {
@@ -150,13 +182,15 @@ void main() {
 
     sync.redial();
     await _until(() => service.streams.length == 2);
-    service.streams.first.add(_joinRequest('old'));
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    expect(sync.joinRequests.requests, isEmpty);
-
     service.streams.last.add(_joinRequest('new'));
     await _until(() => sync.joinRequests.requests.isNotEmpty);
     expect(sync.joinRequests.requests.single.requestId, 'new');
+    expect(sync.connected, isTrue);
+
+    // The old call's cancellation comes in late: not taken for the new one.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(sync.connected, isTrue);
+    expect(service.streams, hasLength(2));
 
     await sync.signOut();
   });
