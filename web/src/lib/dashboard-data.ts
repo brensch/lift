@@ -37,6 +37,9 @@ export interface DashboardData {
   workoutCount: number;
   totalVolumeLb: number;
   sinceS: number;
+  /** When the data was loaded: ranges end here, so a fresh load includes
+   *  every workout it fetched. */
+  nowS: number;
   exercises: ExerciseSeries[]; // most-improved first
   workouts: WorkoutRow[]; // newest first
 }
@@ -93,6 +96,7 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
     workoutCount: progress.workoutCount,
     totalVolumeLb: progress.totalVolume,
     sinceS: Number(progress.since),
+    nowS: Math.floor(Date.now() / 1000),
     exercises,
     workouts,
   };
