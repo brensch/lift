@@ -110,7 +110,13 @@ impl LogStore {
         limit: u32,
     ) -> StoreResult<Vec<KeptLogLine>> {
         let before = if before > 0 { before } else { i64::MAX };
-        let pattern = format!("%{}%", text.replace('%', "\\%").replace('_', "\\_"));
+        // The escape character itself first, or a `\` in the search (JSON
+        // fields hold plenty) would escape whatever follows it.
+        let escaped = text
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
+        let pattern = format!("%{escaped}%");
         let mut query = self
             .conn
             .prepare_cached(
@@ -198,20 +204,25 @@ mod tests {
                 tag: "gRPC".into(),
                 ..record(3, "three 100%")
             },
+            record(0, r"at C:\x"),
+            record(0, "at C:x"),
         ])
         .unwrap();
         let all = logs.read(0, "", "", 0, 2).unwrap();
         assert_eq!(
             all.iter().map(|l| l.message.as_str()).collect::<Vec<_>>(),
-            ["three 100%", "two"]
+            [r"at C:x", r"at C:\x"]
         );
         let older = logs.read(0, "", "", all[1].id, 10).unwrap();
-        assert_eq!(older.len(), 1);
-        assert_eq!(older[0].message, "one");
+        assert_eq!(older.len(), 3);
+        assert_eq!(older[2].message, "one");
         assert_eq!(logs.read(1, "", "", 0, 10).unwrap().len(), 2);
         assert_eq!(logs.read(0, "gRPC", "", 0, 10).unwrap().len(), 1);
         assert_eq!(logs.read(0, "", "TWO", 0, 10).unwrap().len(), 1);
         assert_eq!(logs.read(0, "", "0%", 0, 10).unwrap().len(), 1);
         assert_eq!(logs.read(0, "", "_", 0, 10).unwrap().len(), 0);
+        let slashed = logs.read(0, "", r"C:\x", 0, 10).unwrap();
+        assert_eq!(slashed.len(), 1);
+        assert_eq!(slashed[0].message, r"at C:\x");
     }
 }
