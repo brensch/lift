@@ -18,6 +18,12 @@ export function formatWeight(lb: number, unit: DisplayUnit): string {
   return `${formatNumber(lbToDisplay(lb, unit))} ${unit}`;
 }
 
+/** An estimated max as the app shows it: a weight, or reps for a bodyweight
+ *  lift (its max is a rep max). */
+export function formatMax(max: number, unit: DisplayUnit, bodyweight: boolean): string {
+  return bodyweight ? `${formatNumber(max, 0)} reps` : formatWeight(max, unit);
+}
+
 /** 1,284 / 12.9K / 4.2M — for stat tiles and axis ticks */
 export function formatCompact(n: number): string {
   if (Math.abs(n) >= 1_000_000) return `${formatNumber(n / 1_000_000)}M`;

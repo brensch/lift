@@ -24,6 +24,9 @@ export function rangeStart(key: RangeKey, nowS: number, sinceS: number): number 
 export interface ExerciseInRange {
   series: ExerciseSeries;
   points: ExerciseSeries["points"];
+  /** Every session lifted no weight: the maxes are rep maxes (a count of
+   *  reps, as the core gives them), not pounds. */
+  bodyweight: boolean;
   /** Best e1RM in range minus the best before the range started; with no
    *  history before, last minus first in range. */
   deltaLb: number;
@@ -49,6 +52,7 @@ export function exercisesInRange(
     const last = points[points.length - 1].e1rmLb;
     out.push({
       series,
+      bodyweight: series.points.every((p) => p.topWeightLb <= 0),
       points,
       deltaLb: before.length ? bestLb - bestBefore : last - first,
       bestLb,
@@ -58,6 +62,17 @@ export function exercisesInRange(
   }
   // Most improved first; ties by most recent.
   return out.sort((a, b) => b.deltaLb - a.deltaLb || b.lastDateS - a.lastDateS);
+}
+
+/** The lift with the best estimated max by weight; bodyweight lifts, whose
+ *  maxes are reps, are left out. */
+export function heaviestMax(exercises: ExerciseInRange[]): { name: string; lb: number } | null {
+  return exercises
+    .filter((e) => !e.bodyweight)
+    .reduce<{ name: string; lb: number } | null>(
+      (acc, e) => (!acc || e.bestLb > acc.lb ? { name: e.series.name, lb: e.bestLb } : acc),
+      null,
+    );
 }
 
 export function workoutsInRange(
