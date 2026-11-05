@@ -7,6 +7,7 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/workout_provider.dart';
 
 import '../services/account_sync.dart';
 import '../services/grpc_client.dart';
@@ -228,6 +229,8 @@ class SettingsScreen extends StatelessWidget {
     );
     if (choice != null) {
       await settings.updateWeightUnit(choice);
+      // The core plans in the account's unit: replan home in the new one.
+      if (context.mounted) await context.read<WorkoutProvider>().refreshHome();
     }
   }
 }
