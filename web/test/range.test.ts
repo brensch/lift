@@ -4,6 +4,7 @@ import type { DashboardData, ExerciseSeries, WorkoutRow } from "../src/lib/dashb
 import {
   DAY_S,
   exercisesInRange,
+  heaviestMax,
   resolveRange,
   weeklyVolume,
   workoutsInRange,
@@ -160,4 +161,32 @@ test("resolveRange: presets count back from now, All from the first workout", ()
     label: "1M",
   });
   assert.equal(resolveRange({ preset: "all" }, now, since).startS, since);
+});
+
+test("exercisesInRange flags a lift that never carried weight as bodyweight", () => {
+  const pullUp = series("pullup", [
+    [at(2026, 6, 1), 10],
+    [at(2026, 6, 8), 12],
+  ]);
+  pullUp.points = pullUp.points.map((p) => ({ ...p, topWeightLb: 0, topReps: 10 }));
+  const out = exercisesInRange(
+    data([
+      pullUp,
+      series("squat", [
+        [at(2026, 6, 1), 200],
+        [at(2026, 6, 8), 210],
+      ]),
+    ]),
+    at(2026, 5, 1),
+  );
+  assert.deepEqual(
+    out.map((e) => [e.series.key, e.bodyweight]),
+    [
+      ["squat", false],
+      ["pullup", true],
+    ],
+  );
+  // A rep max of 12 is not 12 lb: the best weight is the squat's.
+  assert.deepEqual(heaviestMax(out), { name: "squat", lb: 210 });
+  assert.equal(heaviestMax(out.filter((e) => e.bodyweight)), null);
 });

@@ -4,6 +4,7 @@ import {
   formatCompact,
   formatDate,
   formatDuration,
+  formatMax,
   formatNumber,
   formatWeight,
   volumeComparison,
@@ -53,4 +54,10 @@ test("volumeComparison picks the heaviest thing that fits", () => {
   // Ten or more round to a whole number.
   assert.equal(volumeComparison(875_000 * 12.4), "≈ 12 loaded 747s");
   assert.equal(volumeComparison(22_500_000 * 1500), "≈ 1,500 Eiffel Towers");
+});
+
+test("formatMax shows a bodyweight lift's max as reps, unconverted", () => {
+  assert.equal(formatMax(12.4, "kg", true), "12 reps");
+  assert.equal(formatMax(225, "lb", false), "225 lb");
+  assert.equal(formatMax(220.46226218, "kg", false), "100 kg");
 });

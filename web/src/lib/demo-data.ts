@@ -193,6 +193,7 @@ export function generateDemoData(): DashboardData {
     sinceS: workouts.length
       ? workouts[workouts.length - 1].startS
       : Math.floor(start.getTime() / 1000),
+    nowS: Math.floor(now.getTime() / 1000),
     exercises,
     workouts,
   };
