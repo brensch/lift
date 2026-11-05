@@ -77,7 +77,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final Set<int> _wearHeartRateSampleTimestamps = <int>{};
   final List<WorkoutHeartRatePoint> _unsavedHeartRate = [];
   DateTime? _lastHeartRateSave;
-  bool _heartRateSaveInFlight = false;
+  Future<void>? _heartRateSaveInFlight;
 
   bool _wasResting = false;
   Timer? _timer;
@@ -834,6 +834,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> endWorkout({bool fireEndedCallback = true}) async {
     if (_workout == null) return;
     try {
+      // Samples heard while a save was in flight are written after it.
+      await _heartRateSaveInFlight;
       await _saveHeartRate(force: true);
       if (!_sandbox) await NotificationService.cancelAll();
       _wasResting = false;
@@ -975,7 +977,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _wearHeartRateSampleTimestamps.clear();
     _unsavedHeartRate.clear();
     _lastHeartRateSave = null;
-    _heartRateSaveInFlight = false;
+    _heartRateSaveInFlight = null;
   }
 
   void _resetWearHeartRateBufferIfWorkoutChanged(String? nextWorkoutId) {
@@ -1062,7 +1064,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Write the heart rate heard since the last save into the account, in
   /// batches rather than an event per sample.
   Future<void> _saveHeartRate({bool force = false}) async {
-    if (_heartRateSaveInFlight || _unsavedHeartRate.isEmpty) return;
+    if (_heartRateSaveInFlight != null || _unsavedHeartRate.isEmpty) return;
     final workout = _workout;
     if (workout == null || workout.endTime != Int64.ZERO) return;
     final now = DateTime.now();
@@ -1070,17 +1072,24 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!force && last != null && now.difference(last) < _heartRateBatchEvery) {
       return;
     }
-    _heartRateSaveInFlight = true;
     _lastHeartRateSave = now;
     final batch = List<WorkoutHeartRatePoint>.of(_unsavedHeartRate);
     _unsavedHeartRate.clear();
+    final save = _appendHeartRate(workout.id, batch);
+    _heartRateSaveInFlight = save;
+    await save;
+    if (identical(_heartRateSaveInFlight, save)) _heartRateSaveInFlight = null;
+  }
+
+  Future<void> _appendHeartRate(
+    String workoutId,
+    List<WorkoutHeartRatePoint> batch,
+  ) async {
     try {
-      await _service.appendWorkoutHeartRate(workout.id, batch);
+      await _service.appendWorkoutHeartRate(workoutId, batch);
     } catch (e) {
       _unsavedHeartRate.insertAll(0, batch);
       debugPrint('Heart rate save failed: $e');
-    } finally {
-      _heartRateSaveInFlight = false;
     }
   }
 
