@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
+import 'package:schlift/providers/workout_provider.dart';
 
 import '../support/provider_harness.dart';
 
@@ -204,6 +205,43 @@ void main() {
       reason: 'no rung after it',
     );
     expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
+  });
+
+  test('a question open before a reload is not asked again', () async {
+    const deadlift = Exercise.EXERCISE_DEADLIFT;
+    await h.start([deadlift]);
+    final first = h.provider.doneTargetSet!;
+    expect(first.calibration, isTrue);
+    await h.provider.completeSet(
+      first.id,
+      first.targetReps,
+      first.targetWeight,
+    );
+    expect(h.provider.rungQuestionSetId, first.id);
+
+    // The app restarts with the question still open.
+    final again = WorkoutProvider(h.service, h.settings, sandbox: true);
+    addTearDown(again.dispose);
+    final asked = <String>[];
+    again.onRungQuestion = asked.add;
+    await again.loadActiveWorkout('test');
+    expect(again.rungQuestionSetId, first.id);
+    // A change that leaves it open: still not asked.
+    await again.skipWarmups(deadlift);
+    expect(asked, isEmpty);
+  });
+
+  test('a session is recorded once while the first is in flight', () async {
+    await h.start([raise]);
+    final before = await h.core.pendingCount();
+    // The sync stream notifies several times on joining.
+    await Future.wait([
+      h.provider.recordSession('s1'),
+      h.provider.recordSession('s1'),
+      h.provider.recordSession('s1'),
+    ]);
+    expect(h.provider.workout!.sessionId, 's1');
+    expect(await h.core.pendingCount() - before, 1);
   });
 
   test('a missed ramp set never asks', () async {

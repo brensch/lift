@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart' show Toast, ToastGravity;
 import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
+import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
@@ -53,7 +54,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
-  bool _isLoading = false;
   String? _lastLoadError;
 
   // The workout on screen: the active one, or the one just ended.
@@ -272,8 +272,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Reads ──
 
-  bool get isLoading => _isLoading;
   String? get lastLoadError => _lastLoadError;
+
+  /// The account couldn't be opened at all: shown as a failed load.
+  void reportLoadError(Object error) {
+    _lastLoadError = cleanErrorMessage(error);
+    notifyListeners();
+  }
 
   Workout? get workout => _workout;
   List<ProposedSet> get proposedSets => _proposed;
@@ -357,10 +362,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const _budgetSettle = Duration(milliseconds: 250);
   Timer? _budgetReplan;
   Completer<void>? _budgetReplanned;
-
-  /// Each lift of the workout on screen: the decision it started from and
-  /// the weight changes since, in workout order.
-  List<ExerciseLog> get exerciseLogs => _logs;
 
   /// The core's totals for the workout on screen: working-set volume and
   /// sets per exercise, and its time.
@@ -457,11 +458,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String _nextSetBody() {
     final next = nextPendingSet;
-    if (next == null) return 'All sets complete!';
-    final name = exerciseName(next.exercise);
-    final prefix = next.warmup ? 'Warmup ' : '';
-    final set = setTextFor(next, _settingsProvider.weightUnit);
-    return 'Next up: $prefix$name, $set';
+    final text = copy.restNotification;
+    if (next == null) return text.allDone;
+    return (next.warmup ? text.nextUpWarmup : text.nextUp)
+        .replaceAll('{exercise}', exerciseName(next.exercise))
+        .replaceAll('{set}', setTextFor(next, _settingsProvider.weightUnit));
   }
 
   /// True until this account has finished a workout: the banner explains
@@ -486,7 +487,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> loadActiveWorkout(String userId) async {
     _userId = userId;
     if (!_sandbox) unawaited(_loadFirstWorkout(userId));
-    _isLoading = true;
     _lastLoadError = null;
     notifyListeners();
     try {
@@ -505,7 +505,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _lastLoadError = cleanErrorMessage(e);
       _handleError(e);
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
   }
@@ -796,14 +795,25 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> recordSession(String sessionId) async {
     final workout = _workout;
     if (workout == null || !hasActiveWorkout) return;
-    if (workout.sessionId == sessionId) return;
-    await _mutate(
-      WorkoutMutation()
-        ..setSession = (SetWorkoutSessionRequest()
-          ..workoutId = _workoutId
-          ..sessionId = sessionId),
-    );
+    // Called on every sync notice: once per session, even while the first
+    // is still being recorded.
+    if (workout.sessionId == sessionId || _sessionRecording == sessionId) {
+      return;
+    }
+    _sessionRecording = sessionId;
+    try {
+      await _mutate(
+        WorkoutMutation()
+          ..setSession = (SetWorkoutSessionRequest()
+            ..workoutId = _workoutId
+            ..sessionId = sessionId),
+      );
+    } finally {
+      _sessionRecording = null;
+    }
   }
+
+  String? _sessionRecording;
 
   Future<void> reorderExercises(List<Exercise> exercises) async {
     if (_workout == null) return;
@@ -889,6 +899,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final heartRate = _wearHeartRateSamples
         .where((s) => s.sampledAt.toInt() <= endMs)
         .toList();
+    final healthStore = Platform.isAndroid
+        ? copy.health.storeAndroid
+        : copy.health.storeIos;
     try {
       final startTime = DateTime.fromMillisecondsSinceEpoch(
         workout.startTime.toInt() * 1000,
@@ -910,11 +923,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         bodyWeightKg: _bodyWeightKg,
       );
       if (stored) {
-        final storeName = Platform.isAndroid
-            ? 'Health Connect'
-            : 'Apple Health';
         showToast(
-          msg: 'Successfully uploaded to $storeName',
+          msg: copy.health.uploaded.replaceAll('{store}', healthStore),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: schliftSpec.success,
@@ -924,7 +934,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e, st) {
       debugPrint('Health: write failed: $e\n$st');
       showToast(
-        msg: 'Failed to sync workout to Health Connect',
+        msg: copy.health.uploadFailed.replaceAll('{store}', healthStore),
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: schliftSpec.error,
