@@ -84,6 +84,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   // still ticks, and iOS shows no notification then), the OS notification
   // (scheduled as the app goes hidden) otherwise. Never both.
   bool _onScreen = _isOnScreen(WidgetsBinding.instance.lifecycleState);
+  // Whether a rest's notification is scheduled. As the app leaves the
+  // screen on Android; on iOS as soon as it leaves resumed, since a kill
+  // from the app switcher goes from inactive straight to gone, and iOS shows
+  // no notification while the app is inactive, so it never doubles the cue.
+  bool _notifying = _wantsNotification(WidgetsBinding.instance.lifecycleState);
   Timer? _timer;
   DateTime _now = DateTime.now();
   late final ValueNotifier<DateTime> _clock = ValueNotifier<DateTime>(_now);
@@ -121,16 +126,26 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static bool _isOnScreen(AppLifecycleState? state) =>
       state == AppLifecycleState.resumed || state == AppLifecycleState.inactive;
 
+  static bool _wantsNotification(AppLifecycleState? state) => Platform.isIOS
+      ? state != null && state != AppLifecycleState.resumed
+      : !_isOnScreen(state);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final onScreen = _isOnScreen(state);
-    if (onScreen == _onScreen) return;
-    _onScreen = onScreen;
-    if (onScreen) {
-      _setNow(DateTime.now());
+    if (onScreen != _onScreen) {
+      _onScreen = onScreen;
+      if (onScreen) {
+        _setNow(DateTime.now());
+        notifyListeners();
+      }
+    }
+    final notifying = _wantsNotification(state);
+    if (notifying == _notifying) return;
+    _notifying = notifying;
+    if (!notifying) {
       // The app has the cue again: drop the notification, rung or not.
       if (!_sandbox) unawaited(NotificationService.cancelRest());
-      notifyListeners();
     } else {
       final snapshot = _snapshot;
       final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -263,7 +278,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (restUntil > 0) {
         _wasResting = true;
         // On screen the app gives the cue; leaving the screen schedules.
-        if (!_onScreen &&
+        if (_notifying &&
             (restUntil != oldRestUntil ||
                 oldState != WorkoutState.WORKOUT_STATE_RESTING)) {
           _scheduleRestNotification(restUntil);
