@@ -1,7 +1,8 @@
-/// One cue at a rest's end. In the foreground the app plays it, so no OS
-/// notification is scheduled; leaving the foreground mid-rest schedules
+/// One cue at a rest's end. On screen (resumed or inactive) the app plays
+/// it, so no OS notification is scheduled; going hidden mid-rest schedules
 /// one (it rings if the rest ends out there, even if the app is killed),
-/// and coming back cancels it.
+/// coming back on screen or cutting the rest short cancels it, and the
+/// rest running out does not.
 library;
 
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ void main() {
   late WorkoutProvider p;
   final scheduled = <Object?>[];
   var cancels = 0;
+  var vibrations = 0;
 
   setUpAll(tz.initializeTimeZones);
 
@@ -37,8 +39,14 @@ void main() {
             return null;
           },
         );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'HapticFeedback.vibrate') vibrations++;
+          return null;
+        });
     scheduled.clear();
     cancels = 0;
+    vibrations = 0;
     h = await ProviderHarness.boot();
     await h.seedHistory({Exercise.EXERCISE_LATERAL_RAISE: (20, 10)});
     // The real kind, which schedules notifications; the harness's is a
@@ -53,12 +61,27 @@ void main() {
     h.dispose();
   });
 
-  Future<int> rest() async {
+  /// Finish a set and rest; with [endsIn], the set is logged back in time
+  /// so the rest runs out that many seconds from now.
+  Future<int> rest({int? endsIn}) async {
     final set = p.proposedSets.firstWhere((s) => !s.warmup);
-    await p.startSet(set.id);
-    await p.completeSet(set.id, 10, set.targetWeight);
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final doneAt = endsIn == null ? null : now - set.restSeconds + endsIn;
+    await p.startSet(set.id, startedAt: doneAt == null ? null : doneAt - 30);
+    await p.completeSet(set.id, 10, set.targetWeight, completedAt: doneAt);
     expect(p.stateSnapshot!.state, WorkoutState.WORKOUT_STATE_RESTING);
-    return p.stateSnapshot!.restUntil.toInt();
+    final restUntil = p.stateSnapshot!.restUntil.toInt();
+    if (endsIn != null) expect(restUntil, now + endsIn);
+    return restUntil;
+  }
+
+  /// Past [restUntil], and a tick or two for the provider to see it.
+  Future<void> waitPast(int restUntil) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await Future<void>.delayed(
+      Duration(milliseconds: restUntil * 1000 - now + 2200),
+    );
+    await pumpEventQueue();
   }
 
   test('a rest in the foreground schedules nothing', () async {
@@ -90,5 +113,49 @@ void main() {
     final restUntil = await rest();
     await pumpEventQueue();
     expect(scheduled, ['$restUntil']);
+  });
+
+  test('a rest that runs out off screen leaves its notification', () async {
+    final restUntil = await rest(endsIn: 2);
+    p
+      ..didChangeAppLifecycleState(AppLifecycleState.inactive)
+      ..didChangeAppLifecycleState(AppLifecycleState.hidden)
+      ..didChangeAppLifecycleState(AppLifecycleState.paused);
+    await pumpEventQueue();
+    expect(scheduled, ['$restUntil']);
+    final before = cancels;
+
+    await waitPast(restUntil);
+    expect(p.stateSnapshot!.state, isNot(WorkoutState.WORKOUT_STATE_RESTING));
+    expect(cancels, before, reason: 'the notification is ringing');
+    expect(vibrations, 0, reason: 'the notification is the cue');
+  });
+
+  test('inactive is on screen: the app gives the cue', () async {
+    final restUntil = await rest(endsIn: 2);
+    p.didChangeAppLifecycleState(AppLifecycleState.inactive);
+    await pumpEventQueue();
+    expect(scheduled, isEmpty);
+
+    await waitPast(restUntil);
+    expect(p.stateSnapshot!.state, isNot(WorkoutState.WORKOUT_STATE_RESTING));
+    expect(vibrations, greaterThan(0));
+    expect(scheduled, isEmpty);
+  });
+
+  test('the next set started off screen cancels the notification', () async {
+    await rest();
+    p
+      ..didChangeAppLifecycleState(AppLifecycleState.inactive)
+      ..didChangeAppLifecycleState(AppLifecycleState.hidden);
+    await pumpEventQueue();
+    expect(scheduled, hasLength(1));
+    final before = cancels;
+
+    final next = p.proposedSets.where((s) => !s.warmup).elementAt(1);
+    await p.startSet(next.id);
+    await pumpEventQueue();
+    expect(p.stateSnapshot!.state, WorkoutState.WORKOUT_STATE_LIFTING);
+    expect(cancels, greaterThan(before));
   });
 }
