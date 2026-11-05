@@ -2,6 +2,8 @@
 
 This deploy flow builds the backend on a GitHub-hosted ARM64 runner, uploads the `schlift` binary as an artifact, and deploys it from a self-hosted runner on the server.
 
+The dev instance (`dev.schlift.com`) on the same box is described in [`docs/dev-channel.md`](../docs/dev-channel.md).
+
 ## Server layout
 
 ```text
@@ -67,14 +69,8 @@ Do not expose `50051` publicly. Let Caddy proxy `schlift.com` to `127.0.0.1:5005
 
 The self-hosted runner user must be able to run the deploy scripts non-interactively. A narrow sudoers entry is better than blanket `NOPASSWD`.
 
-Example for `opc`:
-
-```text
-opc ALL=(root) NOPASSWD:SETENV: /opt/repo-schlift-current/scripts/install_schlift_service.sh, /opt/repo-schlift-current/scripts/deploy_schlift_release.sh, /opt/repo-schlift-current/deploy/setup-prod-env.sh, /usr/bin/systemctl, /usr/bin/journalctl, /usr/bin/install, /usr/bin/dnf, /usr/bin/rsync, /usr/bin/mkdir
-```
-
-A copyable example file lives at `deploy/schlift-runner.sudoers.example`.
+The entry for `opc` (including the dev deploy script) is in `deploy/schlift-runner.sudoers.example`; copy it into `/etc/sudoers.d/`.
 
 ## Downtime model
 
-This flow restarts a single `systemd` service in place and rolls back to the previous release if the new binary fails to start or fails the local health check. By default the deploy script performs a local TCP readiness check against `127.0.0.1:50051`; set `HEALTHCHECK_MODE=http` and `HEALTHCHECK_URL=...` if you later add a dedicated HTTP health endpoint. It is intentionally simple and SQLite-friendly. It does not provide true zero downtime.
+This flow restarts a single `systemd` service in place and rolls back to the previous release if the new binary fails to start or fails the local health check. The deploy script polls `http://127.0.0.1:50051/api/health` (override with `HEALTHCHECK_URL`) for up to 60 seconds, since the server runs migrations before it listens. It is intentionally simple and SQLite-friendly. It does not provide true zero downtime.
