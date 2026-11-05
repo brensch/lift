@@ -62,10 +62,7 @@ void main() {
   test('chosen colours are kept across a load and a unit change', () async {
     await h.settings.load();
     const pink = Color(0xFFFF00FF);
-    await h.settings.updatePlateColors({
-      ...h.settings.plateColors,
-      25: pink,
-    });
+    await h.settings.updatePlateColors({...h.settings.plateColors, 25: pink});
 
     final fresh = SettingsProvider(h.service);
     await fresh.load();
