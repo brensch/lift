@@ -763,6 +763,25 @@ mod tests {
         assert_eq!(store.account, before);
     }
 
+    /// What the server lacks goes ahead of what was waiting already, and the
+    /// whole queue is offered again, however much of it was sent before.
+    #[test]
+    fn what_the_server_lacks_goes_ahead_of_what_waits() {
+        let mut store = Store::open(&temp("behind-waiting"), U1, "").unwrap();
+        let home = onboard(&mut store);
+        let placed = place(store.pending().unwrap(), 0);
+        store.receive(placed.clone(), 1).unwrap();
+        start(&mut store, &home.templates[0].id);
+        let (waiting, sent) = store.pending_after(0).unwrap();
+        let before = store.account.clone();
+        assert!(store.receive(Vec::new(), 0).unwrap());
+        let ids = |events: &[Event]| events.iter().map(|e| e.id.clone()).collect::<Vec<_>>();
+        let queued = [placed, waiting].concat();
+        assert_eq!(ids(&store.pending().unwrap()), ids(&queued));
+        assert_eq!(ids(&store.pending_after(sent).unwrap().0), ids(&queued));
+        assert_eq!(store.account, before);
+    }
+
     #[test]
     fn a_file_from_before_drops_its_events_for_the_server_to_resend() {
         let path = temp("old");
