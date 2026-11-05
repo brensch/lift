@@ -20,7 +20,7 @@ SHFMT_VERSION=3.14.1
 KTLINT_VERSION=1.8.0
 SWIFTFORMAT_VERSION=0.63.0
 SWIFTLINT_VERSION=0.65.1
-BUF_VERSION=1.64.0 # keep equal to BUF_VERSION in .github/workflows/tests.yml
+BUF_VERSION=1.64.0
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOLS="$ROOT/.tools"
