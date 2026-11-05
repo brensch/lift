@@ -13,7 +13,7 @@ graph TD
     widgets["widgets/<br/>reusable UI components"]
     providers["providers/<br/>app state — ChangeNotifier"]
     services["services/<br/>the core doorway, sync, transport, platform"]
-    logic["logic/<br/>pure functions, no Flutter imports"]
+    logic["logic/<br/>display helpers, no widgets or platform I/O"]
     gen["gen/<br/>generated protobuf + flutter_rust_bridge — do not edit"]
     native["app/native (Rust)<br/>Store + core"]
 
@@ -37,9 +37,11 @@ The rules that matter:
   answer; Dart only words the reasons (`logic/plan_text.dart`) and the
   suggestion's reason, the rotation check's warnings and what a workout
   would add (`logic/rotation_text.dart`).
-- **`logic/` must not import Flutter.** It is display-side helpers only —
-  plate maths for the bar picture, unit formatting, grouping sets into
-  exercise blocks — testable without a widget harness.
+- **`logic/` has no widgets and no platform I/O.** It is display-side
+  helpers only — plate maths for the bar picture, unit formatting, grouping
+  sets into exercise blocks, profile colours, error wording — testable
+  without a widget harness. Anything that plays sound, reads preferences or
+  touches files is a service.
 
 ## The core on the phone
 

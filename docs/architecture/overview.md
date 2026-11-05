@@ -67,7 +67,7 @@ app/                Flutter app
   lib/widgets/      Reusable UI
   lib/providers/    App state (ChangeNotifier)
   lib/services/     The core doorway, sync, transport, platform integration
-  lib/logic/        Pure functions (no Flutter imports)
+  lib/logic/        Display helpers (no widgets, no platform I/O)
   lib/gen/          Generated Dart (protobuf, flutter_rust_bridge) — do not edit
   android/wear/     Wear OS companion (Kotlin)
   ios/SchliftWatch/ Apple Watch companion (SwiftUI)
