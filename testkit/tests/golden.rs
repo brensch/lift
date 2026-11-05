@@ -189,15 +189,10 @@ fn kind(event: &Event) -> String {
 
 #[test]
 fn the_every_fact_history_holds_every_fact() {
-    // Serde names every variant when refusing one it doesn't know.
-    let refused = serde_json::from_str::<Fact>(r#"{"":null}"#)
-        .unwrap_err()
-        .to_string();
-    let (_, names) = refused.split_once("expected one of ").unwrap();
+    // Every kind (core's stored_events.rs proves the list is complete).
     let events = every_fact_events(false);
     let kinds: Vec<String> = events.iter().map(kind).collect();
-    for name in names.split(", ") {
-        let name = name.split('`').nth(1).unwrap();
+    for name in Fact::KINDS {
         assert!(
             kinds.iter().any(|k| k == name),
             "no {name} in testdata/golden_every_fact_events.json.zst"

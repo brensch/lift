@@ -252,7 +252,10 @@ jobs:
 
       - name: Run Flutter tests
         working-directory: app
-        run: flutter test
+        # The `dst` tests need a zone with daylight saving (the runner is UTC).
+        run: |
+          flutter test --exclude-tags dst
+          TZ=America/Los_Angeles flutter test --tags dst
 
   web:
     needs: changes
