@@ -162,8 +162,8 @@ onboarding:
   next: NEXT
   back: BACK
   # After setup, when the emoji, colour and bodyweight didn't reach the
-  # server. Setup still finishes. Placeholder.
-  profile_failed: Your emoji, colour and bodyweight didn't save. Change them in Settings.
+  # server. Setup still finishes.
+  profile_failed: You still gotta pick your emoji mate. The menu has an option to change it.
   marker:
     title: Which emoji do you identify as
     body: The hardest question in the whole signup.
@@ -534,7 +534,7 @@ join_request:
   accept: Accept
   # Accept on a request that can no longer be answered (it timed out or
   # was taken back).
-  expired: That request has expired
+  expired: Request expired, they may not like you any more.
 
 # The multiplayer sheet: scan a friend's code, show yours, and ask people
 # you've trained with. {…} are substituted. Placeholders.
@@ -666,7 +666,7 @@ session_expired: Sign in again to sync this phone with your account.
 # button opens the app's store page. Placeholders.
 update_required:
   title: Update needed
-  body: This version of the app can no longer sync. Update it to carry on.
+  body: New app version lovingly crafted for you is ready. Download it to continue.
   button: UPDATE
 
 # The error dialog. Placeholders, as the app had them.
