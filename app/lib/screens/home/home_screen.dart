@@ -33,6 +33,7 @@ import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
 import '../../widgets/common/flat.dart';
+import '../../widgets/dialogs/confirm_dialog.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
 
@@ -87,14 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (workoutId != null && mounted) {
         unawaited(_setUpHealthAndWatch(wearableBridge));
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(copy.home.startFailed.replaceAll('{error}', '$e')),
-          ),
-        );
-      }
     } finally {
       if (mounted) setState(() => _isStarting = false);
     }
@@ -131,31 +124,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _confirmDeleteTemplate(WorkoutTemplate template) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          copy.home.deleteTitle.replaceAll('{name}', template.name),
-          style: TextStyle(fontWeight: context.tokens.weight.heavy),
-        ),
-        content: Text(copy.home.deleteBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(copy.home.deleteCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            child: Text(copy.home.deleteConfirm),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: copy.home.deleteTitle.replaceAll('{name}', template.name),
+      body: copy.home.deleteBody,
+      confirm: copy.home.deleteConfirm,
+      cancel: copy.home.deleteCancel,
+      destructive: true,
     );
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       await context.read<WorkoutProvider>().deleteTemplate(template.id);
     }
   }
