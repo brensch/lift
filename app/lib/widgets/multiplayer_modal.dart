@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../gen/copy.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart' show User;
 import '../logic/user_profile.dart';
@@ -60,7 +61,10 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     try {
       await SharePlus.instance.share(
         ShareParams(
-          text: 'Join my workout on Schlift: ${_shareUrl(inviteToken)}',
+          text: copy.multiplayer.shareText.replaceAll(
+            '{url}',
+            _shareUrl(inviteToken),
+          ),
         ),
       );
     } catch (e) {
@@ -77,7 +81,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          error ?? 'Asked $name to train. Waiting for them to accept',
+          error ?? copy.multiplayer.asked.replaceAll('{name}', name),
         ),
       ),
     );
@@ -85,19 +89,29 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 
   String _partnerSubtitle(TrainingPartner p) {
     final sessions = p.sessionsTogether;
-    final label = sessions == 1 ? '1 session' : '$sessions sessions';
+    final label = sessions == 1
+        ? copy.multiplayer.sessionsOne
+        : copy.multiplayer.sessions.replaceAll('{n}', '$sessions');
     return '$label · ${_relativeDay(p.lastTrainedAt.toInt())}';
   }
 
   String _relativeDay(int unixSeconds) {
-    if (unixSeconds <= 0) return 'recently';
+    if (unixSeconds <= 0) return copy.multiplayer.recently;
     final then = DateTime.fromMillisecondsSinceEpoch(unixSeconds * 1000);
     final days = DateTime.now().difference(then).inDays;
-    if (days <= 0) return 'today';
-    if (days == 1) return 'yesterday';
-    if (days < 7) return '$days days ago';
-    if (days < 30) return '${(days / 7).floor()}w ago';
-    return '${(days / 30).floor()}mo ago';
+    if (days <= 0) return copy.multiplayer.today;
+    if (days == 1) return copy.multiplayer.yesterday;
+    if (days < 7) return copy.multiplayer.daysAgo.replaceAll('{n}', '$days');
+    if (days < 30) {
+      return copy.multiplayer.weeksAgo.replaceAll(
+        '{n}',
+        '${(days / 7).floor()}',
+      );
+    }
+    return copy.multiplayer.monthsAgo.replaceAll(
+      '{n}',
+      '${(days / 30).floor()}',
+    );
   }
 
   /// Who's currently in your session, with their live status. Hidden when you're
@@ -108,7 +122,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const FlatHeading('In your session'),
+        FlatHeading(copy.multiplayer.inSession),
         // Full-width rows: their emoji on their colour, name, stage.
         _Rows(
           children: [
@@ -156,13 +170,12 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const FlatHeading('Friends'),
+        FlatHeading(copy.multiplayer.friends),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'People you’ve trained with. Tap Ask and they get a request to '
-            'join your session.',
+            copy.multiplayer.friendsBody,
             style: TextStyle(
               fontSize: context.tokens.size.body,
               height: 1.35,
@@ -181,9 +194,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               ),
             ),
             child: Text(
-              'No training partners yet. Do a session with someone (scan their '
-              'code or open their link) and they’ll show up here to re-invite '
-              'in one tap.',
+              copy.multiplayer.friendsEmpty,
               style: TextStyle(
                 fontSize: context.tokens.size.small,
                 height: 1.4,
@@ -224,7 +235,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                           style: FilledButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                           ),
-                          child: const Text('Ask'),
+                          child: Text(copy.multiplayer.ask),
                         ),
                 ),
             ],
@@ -263,7 +274,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   horizontal: 16,
                   vertical: 10,
                 ),
-                child: const PageTitle('Multiplayer'),
+                child: PageTitle(copy.multiplayer.title),
               ),
               const SizedBox(height: 12),
               if (_isScanning)
@@ -275,7 +286,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'Point at your friend’s code',
+                      copy.multiplayer.scanPrompt,
                       style: TextStyle(
                         fontSize: context.tokens.size.body,
                         fontWeight: context.tokens.weight.bold,
@@ -285,7 +296,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     const SizedBox(height: 6),
                     TextButton(
                       onPressed: () => setState(() => _isScanning = false),
-                      child: const Text('Cancel'),
+                      child: Text(copy.multiplayer.scanCancel),
                     ),
                   ],
                 )
@@ -307,7 +318,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     onPressed: () => setState(() => _isScanning = true),
                     icon: const Icon(AppIcons.camera, size: 24),
                     label: Text(
-                      'Scan',
+                      copy.multiplayer.scan,
                       style: TextStyle(
                         fontSize: context.tokens.size.bodyLg,
                         fontWeight: context.tokens.weight.heavy,
@@ -321,7 +332,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.tokens.lightBackdrop,
                       border: Border.all(color: cs.outline),
                     ),
                     child: QrImageView(
@@ -336,7 +347,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   child: TextButton.icon(
                     onPressed: () => _shareInvite(inviteToken),
                     icon: const Icon(AppIcons.export, size: 18),
-                    label: const Text('Share link'),
+                    label: Text(copy.multiplayer.shareLink),
                   ),
                 ),
                 const SizedBox(height: 26),

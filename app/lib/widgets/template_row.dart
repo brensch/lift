@@ -85,7 +85,7 @@ class _TemplateRowState extends State<TemplateRow> {
               children: [
                 ?widget.leading,
                 if (selected != null) ...[
-                  SelectBox(selected: selected, colorScheme: cs),
+                  SelectBox(selected: selected),
                   const SizedBox(width: 12),
                 ],
                 if (widget.personal) ...[
@@ -149,19 +149,6 @@ class _TemplateRowState extends State<TemplateRow> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.personal)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      copy.library.personal.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: context.tokens.size.small,
-                        fontWeight: context.tokens.weight.heavy,
-                        letterSpacing: 0.8,
-                        color: cs.primary,
-                      ),
-                    ),
-                  ),
                 if (widget.blurb.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -193,17 +180,12 @@ class _TemplateRowState extends State<TemplateRow> {
 /// reads as a radio button (pick one) when the user can pick many.
 class SelectBox extends StatelessWidget {
   final bool selected;
-  final ColorScheme colorScheme;
 
-  const SelectBox({
-    super.key,
-    required this.selected,
-    required this.colorScheme,
-  });
+  const SelectBox({super.key, required this.selected});
 
   @override
   Widget build(BuildContext context) {
-    final cs = colorScheme;
+    final cs = Theme.of(context).colorScheme;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 120),
       width: 22,

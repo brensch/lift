@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../gen/copy.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
@@ -61,7 +62,9 @@ class MainLayout extends StatelessWidget {
         path == '/sound-settings' ||
         path == '/debug-notifications' ||
         path == '/settings/plate-colors' ||
-        path == '/settings/data';
+        path == '/settings/data' ||
+        path == '/debug-logs' ||
+        path == '/build-info';
 
     final isTopLevelMenuPage =
         currentPath == '/' ||
@@ -119,28 +122,28 @@ class MainLayout extends StatelessWidget {
                   children: [
                     _MenuButton(
                       icon: AppIcons.workout,
-                      label: 'Workout',
+                      label: copy.menu.workout,
                       onTap: () => goToTopLevel('/'),
                       isActive: currentPath == '/',
                     ),
                     const SizedBox(height: 4),
                     _MenuButton(
                       icon: AppIcons.progress,
-                      label: 'Progress',
+                      label: copy.menu.progress,
                       onTap: () => goToTopLevel('/progress'),
                       isActive: currentPath == '/progress',
                     ),
                     const SizedBox(height: 4),
                     _MenuButton(
                       icon: AppIcons.history,
-                      label: 'History',
+                      label: copy.menu.history,
                       onTap: () => goToTopLevel('/history'),
                       isActive: currentPath == '/history',
                     ),
                     const SizedBox(height: 4),
                     _MenuButton(
                       icon: AppIcons.tutorial,
-                      label: 'Learn',
+                      label: copy.menu.learn,
                       onTap: () => goToTopLevel('/learn'),
                       isActive: currentPath == '/learn',
                     ),
@@ -155,7 +158,7 @@ class MainLayout extends StatelessWidget {
                     children: [
                       _MenuButton(
                         icon: AppIcons.logout,
-                        label: 'Logout',
+                        label: copy.menu.logout,
                         color: colorScheme.error,
                         onTap: () {
                           Navigator.pop(context);
@@ -167,7 +170,7 @@ class MainLayout extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
-                        tooltip: 'Settings',
+                        tooltip: copy.menu.settings,
                         onPressed: () => goToTopLevel('/settings'),
                         icon: Icon(
                           AppIcons.settings,
@@ -211,7 +214,7 @@ class MainLayout extends StatelessWidget {
         backgroundColor: colorScheme.onSurface,
         textColor: colorScheme.surface,
         child: IconButton.filled(
-          tooltip: 'Multiplayer',
+          tooltip: copy.menu.multiplayer,
           onPressed: () => _showMultiplayerModal(context),
           icon: const Icon(AppIcons.multiplayer),
           style: IconButton.styleFrom(
@@ -321,7 +324,7 @@ class _WatchLaunchButtonState extends State<_WatchLaunchButton> {
     if (!_available) return const SizedBox.shrink();
     final colorScheme = Theme.of(context).colorScheme;
     return IconButton(
-      tooltip: 'Open watch app',
+      tooltip: copy.menu.openWatch,
       icon: Icon(AppIcons.watch, color: colorScheme.onSurface),
       onPressed: () async {
         final bridge = context.read<WearableBridgeService>();
@@ -330,11 +333,11 @@ class _WatchLaunchButtonState extends State<_WatchLaunchButton> {
         if (!context.mounted) return;
         final String message;
         if (!queued) {
-          message = 'No paired watch with Schlift installed';
+          message = copy.menu.watchMissing;
         } else if (alreadyOpen) {
-          message = 'Schlift is already open on your watch';
+          message = copy.menu.watchAlreadyOpen;
         } else {
-          message = 'Open Schlift on your wrist to connect';
+          message = copy.menu.watchOpening;
         }
         ScaffoldMessenger.of(
           context,

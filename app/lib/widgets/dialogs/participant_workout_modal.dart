@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/group.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/session_state.dart';
@@ -46,18 +47,18 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
     );
     return ValueListenableBuilder<DateTime>(
       valueListenable: context.read<WorkoutProvider>().clock,
-      builder: (context, _, __) => _sheet(context, latest),
+      builder: (context, now, _) => _sheet(context, latest, now),
     );
   }
 
-  Widget _sheet(BuildContext context, ParticipantStatus p) {
+  Widget _sheet(BuildContext context, ParticipantStatus p, DateTime now) {
     final t = context.tokens;
     final workout = SectionWorkout.of(p);
     final blocks = blocksFromSets(
       p.proposedSets.toList()
         ..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder)),
     );
-    final status = describeParticipantStatus(p, tokens: t);
+    final status = describeParticipantStatus(p, tokens: t, now: now);
     final nextExercise = workout.nextSetId == null
         ? null
         : p.proposedSets
@@ -128,7 +129,7 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
                   ? Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        'No workout yet.',
+                        copy.participant.noWorkout,
                         style: TextStyle(fontSize: t.size.body, color: t.muted),
                       ),
                     )

@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
@@ -14,6 +15,7 @@ import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../common/flat.dart';
 import '../common/weight_selector.dart';
+import 'confirm_dialog.dart';
 import 'workout_sheet.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
@@ -162,7 +164,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
               children: [
                 Expanded(child: PageTitle(name)),
                 IconButton(
-                  tooltip: 'Remove from this workout',
+                  tooltip: copy.adjustWeight.removeTooltip,
                   onPressed: () {
                     Navigator.pop(context);
                     widget.onDelete();
@@ -175,7 +177,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
-              'Changes $name for the rest of this workout and for next time.',
+              copy.adjustWeight.body.replaceAll('{name}', name),
               style: TextStyle(fontSize: t.size.body, color: t.muted),
             ),
           ),
@@ -200,7 +202,7 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             child: Row(
               children: [
                 stepper(
-                  'Reps',
+                  copy.adjustWeight.reps,
                   '$_reps',
                   () => setState(() => _reps = (_reps - 1).clamp(1, 100)),
                   () => setState(() => _reps = (_reps + 1).clamp(1, 100)),
@@ -221,7 +223,11 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
                         height: 22,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : Text(_dirty ? 'SAVE' : 'DONE'),
+                    : Text(
+                        _dirty
+                            ? copy.adjustWeight.save
+                            : copy.adjustWeight.done,
+                      ),
               ),
             ),
           ),
@@ -259,33 +265,11 @@ class _StepButton extends StatelessWidget {
 Future<bool> showDeleteExerciseDialog(
   BuildContext context,
   String exerciseName,
-) async {
-  final colorScheme = Theme.of(context).colorScheme;
-  return await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(
-            'Remove $exerciseName?',
-            style: TextStyle(fontWeight: context.tokens.weight.heavy),
-          ),
-          content: const Text(
-            'This will remove its remaining sets. Sets you already did stay.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              child: const Text('Remove'),
-            ),
-          ],
-        ),
-      ) ??
-      false;
-}
+) => confirmDialog(
+  context,
+  title: copy.adjustWeight.removeTitle.replaceAll('{exercise}', exerciseName),
+  body: copy.adjustWeight.removeBody,
+  confirm: copy.adjustWeight.removeConfirm,
+  cancel: copy.adjustWeight.removeCancel,
+  destructive: true,
+);
