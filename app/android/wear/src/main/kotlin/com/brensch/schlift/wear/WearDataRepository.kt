@@ -69,8 +69,13 @@ object WearDataRepository {
                     "timer=${snapshot.youCard.timerText}",
             )
         }
-        lastSnapshotReceivedElapsedRealtimeMs = SystemClock.elapsedRealtime()
-        lastSnapshotEmittedAtUnixMs = snapshot.emittedAt.toLong()
+        // Re-anchor the clock only on a newer snapshot: the phone answers a
+        // snapshot request with the one it last sent, whose emittedAt can be
+        // long past (mid-rest, the rest's start).
+        if (incomingEmittedAt > lastSnapshotEmittedAtUnixMs) {
+            lastSnapshotReceivedElapsedRealtimeMs = SystemClock.elapsedRealtime()
+            lastSnapshotEmittedAtUnixMs = incomingEmittedAt
+        }
         _snapshot.value = snapshot
         reconcileRestCompletionAlert(context, snapshot)
     }
