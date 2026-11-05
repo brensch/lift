@@ -155,9 +155,15 @@ the phone (`AuthProvider`):
 
 A passkey sign-in sets both: the token, and the user id whose file
 `AccountSync` then opens (pulling the log from the server first on a fresh
-install). If the server later refuses the token, `expireSession` clears only
-the token; the account stays open and usable, and signing in again from
-`/login` resumes sync.
+install). Logins last 30 days from the sign-in and are never extended. If
+the server refuses the token (lapsed, its passkey deleted, the account
+deleted), `expireSession` clears only the token; the account stays open and
+usable. While an account is open with no session (this, or one opened from a
+file), `SessionExpiredBanner` sits over the app's pages (around `MainLayout`
+in the shell route: not over `/login`, onboarding or the tutorial, and not
+while the update banner shows) with a sign-in button to `/login`; signing in
+there resumes sync, and the login screen's back arrow returns home without
+signing in.
 
 "Open an account file" on the login screen opens an exported account with no
 server at all (`AuthProvider.openLocalAccount`): the file names its owner, so
