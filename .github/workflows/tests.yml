@@ -60,6 +60,7 @@ jobs:
               - 'core/**'
               - 'app/native/**'
               - 'loadtest/**'
+              - 'testkit/**'
               - 'templates/library.yaml'
               - 'proto/**'
               - 'testdata/**'
@@ -68,6 +69,7 @@ jobs:
               - 'Cargo.lock'
               - 'Makefile'
               - 'make/**'
+              - 'scripts/lint.sh'
               - '.github/workflows/tests.yml'
             flutter:
               - 'app/**'
@@ -76,6 +78,8 @@ jobs:
               - 'scripts/gen_copy.py'
               - 'scripts/sync_sounds.py'
               - 'scripts/lint.sh'
+              - 'scripts/run_e2e.sh'
+              - 'scripts/build_e2e_report.py'
               - 'proto/**'
               - '.github/workflows/tests.yml'
             web:
