@@ -24,8 +24,9 @@ Future<void> closeAccount({required int handle}) =>
     RustLib.instance.api.crateApiCloseAccount(handle: handle);
 
 /// Answer one RPC by its gRPC method name, request and response as proto
-/// bytes. Errors read `code: message`.
-Future<Uint8List> call({
+/// bytes, and whether it stored events for the server: a write, or a read
+/// that recorded an ended workout's heart rate. Errors read `code: message`.
+Future<(Uint8List, bool)> call({
   required int handle,
   required String method,
   required List<int> request,
