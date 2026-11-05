@@ -117,13 +117,15 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updatePlateColors(Map<double, Color> colors) async {
-    _chosenColors = Map.from(colors);
+  /// Records [color] for [plate] alongside the user's other choices (of
+  /// either unit); plates they never chose keep following the defaults.
+  Future<void> choosePlateColor(double plate, Color color) async {
+    _chosenColors = {..._chosenColors, plate: color};
     _plateColors = _colorsFor(_weightUnit, _chosenColors);
     notifyListeners();
 
     final config = PlateColorsConfig(
-      plates: colors.entries
+      plates: _chosenColors.entries
           .map((e) => PlateColor(weight: e.key, hexColor: colorHex(e.value)))
           .toList(),
     );
