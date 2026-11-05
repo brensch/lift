@@ -123,13 +123,7 @@ class HeartRateStreamer(
                 .addAllHeartRateSamples(samples)
                 .build()
 
-        val enqueued = WearSensorBatchOutbox.enqueue(context, batch)
-        if (!enqueued) {
-            synchronized(pendingLock) {
-                pendingSamples.addAll(0, samples)
-            }
-            return
-        }
+        WearSensorBatchOutbox.enqueue(context, batch)
         WearSensorBatchOutbox.flush(context)
     }
 

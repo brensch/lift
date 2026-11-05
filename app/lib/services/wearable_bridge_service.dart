@@ -5,9 +5,6 @@ abstract class WearableBridgeService {
   Stream<WearIntent> get intentStream;
   Stream<WearSensorBatch> get sensorBatchStream;
 
-  Future<void> init();
-  Future<void> dispose();
-
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot);
   Future<bool> openWatchApp();
 
@@ -43,12 +40,6 @@ class NoopWearableBridgeService implements WearableBridgeService {
 
   @override
   Stream<WearSensorBatch> get sensorBatchStream => const Stream.empty();
-
-  @override
-  Future<void> init() async {}
-
-  @override
-  Future<void> dispose() async {}
 
   @override
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot) async {}

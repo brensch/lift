@@ -35,8 +35,6 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
     var pendingHRSamples: [Workout_V1_HeartRateSample] = []
     let hrLock = NSLock()
     var pendingHRWorkoutID: String = ""
-    var lastHRSampleAtMs: Int64 = 0
-    var hrMonitoringStartedAtMs: Int64 = 0
     var hrWatchdogTimer: Timer?
 
     override init() {
@@ -222,12 +220,6 @@ class PhoneConnector: NSObject, ObservableObject, WCSessionDelegate {
         let activeWorkout = !locallyEnded && !snapshot.workoutID.isEmpty &&
             (snapshot.state != .allDone || hasEndWorkoutAction)
         if activeWorkout {
-            if pendingHRWorkoutID != snapshot.workoutID {
-                lastHRSampleAtMs = 0
-                hrMonitoringStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
-            } else if hrMonitoringStartedAtMs == 0 {
-                hrMonitoringStartedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
-            }
             hrLock.lock()
             pendingHRWorkoutID = snapshot.workoutID
             hrLock.unlock()

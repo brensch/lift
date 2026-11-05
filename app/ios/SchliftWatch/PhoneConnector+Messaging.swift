@@ -118,7 +118,7 @@ extension PhoneConnector {
             else {
                 return
             }
-            sensorBatchOutbox.acknowledge(ack)
+            sensorBatchOutbox.remove(batchID: ack.batchID)
             return
         }
 
@@ -131,18 +131,27 @@ extension PhoneConnector {
         }
     }
 
-    @discardableResult
-    func enqueueSensorBatch(_ batch: Workout_V1_WearSensorBatch) -> Bool {
-        let enqueued = sensorBatchOutbox.enqueue(batch)
-        guard enqueued else { return false }
+    func enqueueSensorBatch(_ batch: Workout_V1_WearSensorBatch) {
+        sensorBatchOutbox.enqueue(batch)
         flushPendingSensorBatches()
-        return true
     }
 
+    /// Offers the phone every unacked batch not already waiting in a
+    /// transferUserInfo: each one is guaranteed and kept across launches, so
+    /// queueing it again on every sample would pile up duplicate transfers.
+    /// A batch delivered but never acked is offered again.
     func flushPendingSensorBatches() {
         let batches = sensorBatchOutbox.pendingBatches()
         guard !batches.isEmpty else { return }
-        for batch in batches {
+        let queued = Set(WCSession.default.outstandingUserInfoTransfers.compactMap { transfer -> String? in
+            let info = transfer.userInfo
+            guard info["path"] as? String == WatchPaths.wearToPhoneSensorBatch,
+                  let data = info["data"] as? Data,
+                  let batch = try? Workout_V1_WearSensorBatch(serializedBytes: data)
+            else { return nil }
+            return batch.batchID
+        })
+        for batch in batches where !queued.contains(batch.batchID) {
             guard let data = try? batch.serializedData() else {
                 sensorBatchOutbox.remove(batchID: batch.batchID)
                 continue
