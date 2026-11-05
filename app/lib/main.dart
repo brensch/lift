@@ -51,6 +51,7 @@ import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/build_info_screen.dart';
 import 'widgets/main_layout.dart';
+import 'widgets/session_expired_banner.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
 // overridden with --dart-define=SERVER_HOST=... and --dart-define=SERVER_PORT=...
@@ -346,8 +347,11 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         ),
         ShellRoute(
           observers: [PageTrackObserver()],
-          builder: (context, state, child) =>
-              MainLayout(currentPath: state.matchedLocation, child: child),
+          // The banner here, not in MainLayout: the tutorial's sandbox
+          // layout has no session to lose.
+          builder: (context, state, child) => SessionExpiredBanner(
+            child: MainLayout(currentPath: state.matchedLocation, child: child),
+          ),
           routes: [
             GoRoute(path: '/', builder: (_, __) => const WorkoutTab()),
             GoRoute(

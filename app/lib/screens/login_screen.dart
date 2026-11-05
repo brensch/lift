@@ -7,11 +7,13 @@ import '../gen/copy.dart';
 import 'lost_passkey_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/account_sync.dart';
 import '../widgets/wordmark.dart';
 import '../widgets/common/primary_button.dart';
+import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -92,6 +94,17 @@ class _LoginScreenState extends State<LoginScreen>
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      // An account is already open (its session lapsed, or it came from a
+      // file): signing in is for sync, so the way back is always there.
+      appBar: auth.isLoggedIn
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(AppIcons.back),
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                onPressed: () => context.go('/'),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -398,6 +411,8 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final (userId, name) = await sync.importFile(path);
       await auth.openLocalAccount(userId, name);
+      // Opened: in. The router still stops at permissions or onboarding.
+      if (mounted) context.go('/');
     } catch (e) {
       auth.setError('${copy.login.openFileFailed}: $e');
     } finally {
