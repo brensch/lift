@@ -45,8 +45,9 @@ Future<PlatformInt64> confirmed({required int handle}) =>
 Future<PlatformInt64> opensAfter({required int handle}) =>
     RustLib.instance.api.crateApiOpensAfter(handle: handle);
 
-/// Bring in the export at `path`: what in it the file lacks waits to be
-/// placed; nothing is removed. Returns how many events it added.
+/// Bring in the export at `path`: what in it the file lacks is added, in
+/// its places where its history carries on from the file's, otherwise to
+/// wait to be placed; nothing is removed. Returns how many events it added.
 Future<PlatformInt64> importFile({required int handle, required String path}) =>
     RustLib.instance.api.crateApiImportFile(handle: handle, path: path);
 
