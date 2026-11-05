@@ -2,6 +2,8 @@
 //! the server's order, and nothing else of it is kept: a read folds it from
 //! there, and a push places events after the head without folding anything.
 
+use std::collections::HashSet;
+
 use schlift_core::account::Account;
 use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
@@ -31,7 +33,19 @@ impl ServerDb {
         user_id: &str,
         read: impl FnOnce(&Account) -> R,
     ) -> DbResult<R> {
-        let events = self.events_after(user_id, 0, i64::MAX).await?;
+        // Heart-rate rows are most of a log and change nothing in a fold
+        // without heart rate, so they are not read (or parsed) at all.
+        let rows: Vec<String> = sqlx::query_scalar(
+            "SELECT event FROM account_events
+             WHERE user_id = ? AND event -> '$.HeartRateRecorded' IS NULL ORDER BY seq",
+        )
+        .bind(user_id)
+        .fetch_all(&self.read_pool)
+        .await?;
+        let events = rows
+            .iter()
+            .map(|json| serde_json::from_str(json))
+            .collect::<Result<Vec<Event>, _>>()?;
         Ok(read(&Account::fold_without_heart_rate(&events)))
     }
 
@@ -102,14 +116,16 @@ impl ServerDb {
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let mut tx = self.write_pool.begin().await?;
         let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
-        let held: Vec<String> = sqlx::query_scalar(
+        let held: HashSet<String> = sqlx::query_scalar(
             "SELECT id FROM account_events
              WHERE user_id = ? AND id IN (SELECT value FROM json_each(?))",
         )
         .bind(user_id)
         .bind(serde_json::to_string(&ids)?)
         .fetch_all(&mut *tx)
-        .await?;
+        .await?
+        .into_iter()
+        .collect();
         let mut head: i64 = sqlx::query_scalar(
             "SELECT COALESCE(MAX(seq), 0) FROM account_events WHERE user_id = ?",
         )
@@ -117,8 +133,10 @@ impl ServerDb {
         .fetch_one(&mut *tx)
         .await?;
         let mut pushed = Pushed::default();
+        // Ids stored by this push: one sent twice in it is stored once.
+        let mut seen: HashSet<String> = HashSet::new();
         for mut event in events {
-            if held.contains(&event.id) || pushed.stored.iter().any(|e| e.id == event.id) {
+            if held.contains(&event.id) || !seen.insert(event.id.clone()) {
                 continue;
             }
             head += 1;

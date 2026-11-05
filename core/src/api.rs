@@ -102,15 +102,16 @@ impl<'a> Call<'a> {
     }
 
     /// Refuse a change to a workout the fold would take but that must not
-    /// be written: a done set's reps or weight out of range (as an edit's
-    /// are), or the undo of a rung whose append was lifted (done again, it
-    /// would append twice). Stored facts fold as they always have.
+    /// be written: a done set with negative reps or a negative or
+    /// non-finite weight, or the undo of a rung whose append was lifted
+    /// (done again, it would append twice). Stored facts fold as they
+    /// always have.
     fn check(&self, fact: &Fact) -> Result<(), CoreError> {
         match fact {
             Fact::SetCompleted(r) if r.actual_reps < 0 => {
                 Err(CoreError::InvalidArgument("Reps must be at least 0".into()))
             }
-            Fact::SetCompleted(r) if !(0.0..=2000.0).contains(&r.actual_weight) => {
+            Fact::SetCompleted(r) if !(r.actual_weight.is_finite() && r.actual_weight >= 0.0) => {
                 Err(CoreError::InvalidArgument("Weight out of range".into()))
             }
             Fact::SetUndone(r)
@@ -120,7 +121,7 @@ impl<'a> Call<'a> {
                     .is_some_and(|w| rung_append_lifted(w, &r.completed_set_id)) =>
             {
                 Err(CoreError::FailedPrecondition(
-                    "A rung whose sets were lifted can't be undone".into(),
+                    "Undo the sets this rung added first".into(),
                 ))
             }
             _ => Ok(()),
@@ -234,8 +235,10 @@ impl<'a> Call<'a> {
 
     /// Several changes in one go (the watch's intents arrive this way). One
     /// that can't apply — a set already gone, a workout already over — is
-    /// skipped and the rest still apply. New lifts are planned here
-    /// (`add_exercises`).
+    /// skipped and the rest still apply. One the core refuses (`check`: a
+    /// done set out of range, the undo of a rung whose append was lifted)
+    /// fails the whole call, so the app can say why. New lifts are planned
+    /// here (`add_exercises`).
     pub fn append_workout_mutations(
         &mut self,
         req: AppendWorkoutMutationsRequest,
@@ -247,18 +250,19 @@ impl<'a> Call<'a> {
             let Some(payload) = mutation.mutation else {
                 continue;
             };
-            let _ = match payload {
+            match payload {
                 workout_mutation::Mutation::AddExercises(add) => {
                     workout_id.get_or_insert_with(|| add.workout_id.clone());
-                    self.add_exercises(add)
+                    let _ = self.add_exercises(add);
                 }
                 other => {
                     let fact = workout_fact(other, self.now);
                     workout_id
                         .get_or_insert_with(|| fact.workout_id().unwrap_or_default().to_string());
-                    self.check(&fact).and_then(|()| self.record(fact))
+                    self.check(&fact)?;
+                    let _ = self.record(fact);
                 }
-            };
+            }
         }
         Ok(AppendWorkoutMutationsResponse {
             workout_state: match workout_id {
@@ -746,8 +750,7 @@ impl<'a> View<'a> {
                     reps_left: reps_left as i32,
                     jump_lb: 0.0,
                 };
-                apply_answer_rung_to_active(&mut answered, &req, self.account.unit(), self.now)
-                    .ok()?;
+                apply_answer_rung_to_active(&mut answered, &req, self.account.unit(), self.now);
                 let done = done_set_ids(&answered.completed_sets);
                 let next = answered.proposed_sets.iter().find(|s| {
                     s.exercise == exercise
