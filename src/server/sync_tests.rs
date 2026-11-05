@@ -921,6 +921,65 @@ mod stream {
         assert_eq!(laptop.events_through(1_202).await.len(), 1);
     }
 
+    /// A server restored from an older backup holds less than the phone.
+    /// Every app pushes what waits as it opens, before it hears the head;
+    /// placed then, those events would go ahead of the older ones the server
+    /// lost, which the phone sends again once it hears. So the stream tells
+    /// the head and ends unread, and the phone's next stream, opened at the
+    /// head, has its events placed in the order it recorded them, and sent
+    /// back.
+    #[tokio::test]
+    async fn a_server_behind_the_phone_gets_its_events_back_in_order() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (gil, token) = db
+            .get_or_create_user_with_auth_session("gil")
+            .await
+            .unwrap();
+        let mut phone = Phone::new();
+        let (started, held) = phone.start_squats(now_unix());
+        let (_, lost) = phone.write(now_unix(), |call| {
+            for n in 0..2 {
+                call.record_heart_rate(
+                    &started.id,
+                    &[WorkoutHeartRatePoint {
+                        sampled_at: n,
+                        bpm: 100.0,
+                    }],
+                )
+                .unwrap();
+            }
+        });
+        let (_, waiting) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        db.push_events(&gil.id, held.clone()).await.unwrap();
+        let head = held.len() as i64;
+
+        let confirmed = head + lost.len() as i64;
+        let mut link = Link::open_after(channel.clone(), &token, confirmed).await;
+        link.push(waiting.clone()).await;
+        assert_eq!(link.head().await, head);
+        let end = tokio::time::timeout(Duration::from_secs(5), link.down.message())
+            .await
+            .expect("the stream ends");
+        assert!(matches!(end, Ok(None)), "ended, not {end:?}");
+        assert_eq!(db.head(&gil.id).await.unwrap(), head, "nothing placed");
+
+        // What the server lacks, then what waited, as the phone queues them.
+        let mut link = Link::open_after(channel, &token, head).await;
+        link.push([lost, waiting].concat()).await;
+        let back = link.events_through(phone.log.len() as i64).await;
+        let ids = |events: &[Event]| events.iter().map(|e| e.id.clone()).collect::<Vec<_>>();
+        assert_eq!(ids(&back), ids(&phone.log[held.len()..]));
+        let server = db.events_after(&gil.id, 0, i64::MAX).await.unwrap();
+        assert_eq!(ids(&server), ids(&phone.log));
+    }
+
     /// The stream needs a signed-in caller.
     #[tokio::test]
     async fn a_stranger_is_turned_away() {

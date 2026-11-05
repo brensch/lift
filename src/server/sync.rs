@@ -172,6 +172,20 @@ impl Stream {
             }
             Ok(None) | Err(_) => return Ok(()),
         };
+        // It holds more than this server (restored from an older backup):
+        // told the head, it queues what the server lacks ahead of what it
+        // has waiting. What it pushed on opening, before it heard, would be
+        // placed ahead of those older events, so the stream ends unread and
+        // the device dials again from the head.
+        let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
+        if self.sent > head {
+            let message = schlift::workout::v1::Events {
+                packed: Vec::new(),
+                head,
+            };
+            let _ = self.send(sync_response::Kind::Events(message)).await;
+            return Ok(());
+        }
         if self.send_events(true).await?.is_err() {
             return Ok(());
         }

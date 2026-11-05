@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:grpc/grpc.dart';
 import 'package:schlift/gen/workout/v1/account.pbgrpc.dart';
 import 'package:schlift/gen/workout/v1/group.pb.dart';
+import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/services/account_sync.dart';
 import 'package:schlift/services/grpc_client.dart';
 
@@ -284,4 +285,39 @@ void main() {
       await sync.signOut();
     },
   );
+
+  test('a server that holds less is sent the rest from its head', () async {
+    final service = _Scripted();
+    final opened = <int>[];
+    service.onRequest = (r) {
+      if (r.hasAfterSeq()) opened.add(r.afterSeq.toInt());
+    };
+    final sync = await serve(service);
+    await sync.signIn('u1', 'Me');
+    await _until(() => service.streams.length == 1);
+    _restore(1).forEach(service.streams.first.add);
+    await _until(() => sync.isReady);
+    await sync.core!.call(
+      'StartWorkout',
+      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutResponse.fromBuffer,
+    );
+    await service.streams.first.close();
+
+    // Restored from an older backup, the server holds one event: it says
+    // so and ends the stream, unread.
+    await _until(() => service.streams.length == 2);
+    service.streams[1]
+      ..add(SyncResponse(events: Events(head: Int64(1))))
+      ..close();
+
+    // The phone dials again from there, everything after it queued.
+    await _until(() => service.streams.length == 3);
+    await _until(() => opened.length == 3);
+    expect(opened, [0, 3, 1]);
+    expect(await sync.core!.confirmed(), 1);
+    expect(await sync.core!.pendingCount(), 3);
+
+    await sync.signOut();
+  });
 }
