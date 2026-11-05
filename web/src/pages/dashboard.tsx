@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useAuth } from "@/lib/use-auth";
-import { LogOut, ArrowRight, Trophy, ChevronDown } from "lucide-react";
+import { LogOut, ArrowRight, Trophy } from "lucide-react";
 import { loadDashboardData, type DashboardData } from "@/lib/dashboard-data";
 import { generateDemoData } from "@/lib/demo-data";
 import { ChartCard } from "@/components/charts/chart-card";
@@ -62,39 +63,6 @@ function Stat({
         {value}
       </p>
     </div>
-  );
-}
-
-function Select({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  ariaLabel: string;
-}) {
-  return (
-    <span className="relative inline-flex">
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 appearance-none pl-3 pr-8 rounded-lg border border-border bg-surface text-sm font-semibold text-text hover:border-muted transition-colors cursor-pointer"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={14}
-        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted"
-      />
-    </span>
   );
 }
 
@@ -318,8 +286,8 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                   title={selected.series.name}
                   subtitle={`Est. 1RM and heaviest working set, ${unit}`}
                   legend={[
-                    { label: "Est. 1RM", color: SERIES_1, shape: "line" },
-                    { label: "Top set", color: CONTEXT, shape: "line" },
+                    { label: "Est. 1RM", color: SERIES_1 },
+                    { label: "Top set", color: CONTEXT },
                   ]}
                   table={{
                     head: [

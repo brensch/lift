@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ChevronDown, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { adminClient, authHeaders } from "@/lib/grpc";
 import type {
@@ -14,6 +14,7 @@ import type {
 import { ChartCard } from "@/components/charts/chart-card";
 import { ColumnChart } from "@/components/charts/column-chart";
 import { StatTile } from "@/components/charts/stat-tile";
+import { Select } from "@/components/ui/select";
 import { CONTEXT, SERIES_1, SERIES_3 } from "@/components/charts/chart-utils";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -296,13 +297,14 @@ function Trail({
   onClose,
 }: {
   username: string;
-  entries: TrailEntry[];
+  /** Null while this user's trail is still loading. */
+  entries: TrailEntry[] | null;
   onClose: () => void;
 }) {
   // Newest sitting first; within a sitting, in the order it happened.
   const sittings = useMemo(() => {
     const bySession = new Map<string, TrailEntry[]>();
-    for (const e of entries) {
+    for (const e of entries ?? []) {
       const list = bySession.get(e.appSessionId) ?? [];
       list.push(e);
       bySession.set(e.appSessionId, list);
@@ -322,7 +324,9 @@ function Trail({
       >
         <X size={16} />
       </button>
-      {sittings.length === 0 ? (
+      {entries === null ? (
+        <p className="text-sm text-muted m-0">Loading…</p>
+      ) : sittings.length === 0 ? (
         <p className="text-sm text-muted m-0">No page views recorded for this user.</p>
       ) : (
         <div className="flex flex-col gap-4 max-h-[32rem] overflow-y-auto pr-1">
@@ -361,6 +365,9 @@ export function AdminPage() {
   const setTrailUser = (username: string) =>
     setParams(username ? { user: username } : {}, { replace: true });
   const [stats, setStats] = useState<GetStatsResponse | null>(null);
+  // The trail username `stats` was fetched for: `trailUser` changes at once,
+  // the trail in `stats` only when the refetch lands.
+  const [trailFor, setTrailFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
 
@@ -373,6 +380,7 @@ export function AdminPage() {
         if (cancelled) return;
         setError(null);
         setStats(res);
+        setTrailFor(trailUser);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -443,27 +451,15 @@ export function AdminPage() {
             Page views and sign-in attempts. First-party; kept until the account is deleted.
           </p>
         </div>
-        <span className="relative inline-flex">
-          <select
-            aria-label="Window"
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="h-9 appearance-none pl-3 pr-8 rounded-lg border border-border bg-surface text-sm font-semibold text-text hover:border-muted transition-colors cursor-pointer"
-          >
-            {WINDOWS.map((d) => (
-              <option key={d} value={d}>
-                Last {d} days
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            size={14}
-            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted"
-          />
-        </span>
+        <Select
+          ariaLabel="Window"
+          value={String(days)}
+          onChange={(v) => setDays(Number(v))}
+          options={WINDOWS.map((d) => ({ value: String(d), label: `Last ${d} days` }))}
+        />
       </div>
 
-      {error && <p className="text-sm text-[#e5484d] m-0">{error}</p>}
+      {error && <p className="text-sm text-danger m-0">{error}</p>}
       {!stats && !error && <p className="text-muted py-8 text-center">Loading…</p>}
 
       {stats && (
@@ -608,7 +604,7 @@ export function AdminPage() {
               <div className="relative">
                 <Trail
                   username={trailUser}
-                  entries={stats.trail}
+                  entries={trailFor === trailUser ? stats.trail : null}
                   onClose={() => setTrailUser("")}
                 />
               </div>

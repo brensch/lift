@@ -33,12 +33,7 @@ export function DeleteAccountPage() {
           text: "Authenticating with passkey...",
           type: "info",
         });
-        await login();
-        // After login, user state is updated — but we need the token now.
-        // Re-read from localStorage since state update is async.
-        const storedToken = localStorage.getItem("schlift_session_token");
-        if (!storedToken) throw new Error("Login succeeded but no token found.");
-        token = storedToken;
+        token = (await login()).sessionToken;
       }
 
       setStatus({ text: "Deleting your account data...", type: "info" });
