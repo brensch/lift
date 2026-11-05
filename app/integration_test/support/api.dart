@@ -296,13 +296,6 @@ class Peer {
     await _complete(pending.first, reps);
   }
 
-  /// Copy library templates (templates/library.yaml ids) onto the user's home.
-  Future<void> addLibraryTemplates(List<String> libraryIds) => _write(
-    'AddLibraryTemplates',
-    AddLibraryTemplatesRequest()..libraryIds.addAll(libraryIds),
-    AddLibraryTemplatesResponse.fromBuffer,
-  );
-
   /// Whether [exercise] has ever been performed (a session behind its
   /// plan). Before that, a loaded exercise opens with a calibration ramp
   /// instead of warmups + working sets.
