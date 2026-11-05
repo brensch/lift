@@ -20676,6 +20676,17 @@ public final class WorkoutOuterClass {
      * <code>repeated .workout.v1.ExerciseProgressPoint points = 2 [json_name = "points"];</code>
      */
     int getPointsCount();
+
+    /**
+     * <pre>
+     * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+     * when sets carry added weight.
+     * </pre>
+     *
+     * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+     * @return The bodyweight.
+     */
+    boolean getBodyweight();
   }
   /**
    * Protobuf type {@code workout.v1.ExerciseProgress}
@@ -20866,6 +20877,47 @@ public final class WorkoutOuterClass {
     private void removePoints(int index) {
       ensurePointsIsMutable();
       points_.remove(index);
+    }
+
+    public static final int BODYWEIGHT_FIELD_NUMBER = 3;
+    private boolean bodyweight_;
+    /**
+     * <pre>
+     * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+     * when sets carry added weight.
+     * </pre>
+     *
+     * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+     * @return The bodyweight.
+     */
+    @java.lang.Override
+    public boolean getBodyweight() {
+      return bodyweight_;
+    }
+    /**
+     * <pre>
+     * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+     * when sets carry added weight.
+     * </pre>
+     *
+     * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+     * @param value The bodyweight to set.
+     */
+    private void setBodyweight(boolean value) {
+      
+      bodyweight_ = value;
+    }
+    /**
+     * <pre>
+     * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+     * when sets carry added weight.
+     * </pre>
+     *
+     * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+     */
+    private void clearBodyweight() {
+      
+      bodyweight_ = false;
     }
 
     public static workout.v1.WorkoutOuterClass.ExerciseProgress parseFrom(
@@ -21159,6 +21211,49 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+       * when sets carry added weight.
+       * </pre>
+       *
+       * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+       * @return The bodyweight.
+       */
+      @java.lang.Override
+      public boolean getBodyweight() {
+        return instance.getBodyweight();
+      }
+      /**
+       * <pre>
+       * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+       * when sets carry added weight.
+       * </pre>
+       *
+       * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+       * @param value The bodyweight to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBodyweight(boolean value) {
+        copyOnWrite();
+        instance.setBodyweight(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+       * when sets carry added weight.
+       * </pre>
+       *
+       * <code>bool bodyweight = 3 [json_name = "bodyweight"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBodyweight() {
+        copyOnWrite();
+        instance.clearBodyweight();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ExerciseProgress)
     }
     @java.lang.Override
@@ -21178,10 +21273,11 @@ public final class WorkoutOuterClass {
               "exercise_",
               "points_",
               workout.v1.WorkoutOuterClass.ExerciseProgressPoint.class,
+              "bodyweight_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\f\u0002\u001b" +
-                "";
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\f\u0002\u001b" +
+                "\u0003\u0007";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

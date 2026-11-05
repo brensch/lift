@@ -1,7 +1,8 @@
+use crate::exercise_catalog::{load_style, LoadStyle};
 use crate::history::WorkoutRecord;
 use crate::pb::{
-    CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
-    WorkoutSummary,
+    CompletedSet, Exercise, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet,
+    Workout, WorkoutSummary,
 };
 use std::collections::{BTreeMap, HashMap};
 
@@ -126,7 +127,8 @@ pub fn compute_workout_summary(
 /// Per-exercise progress series built from every finished workout's working
 /// sets. Points are oldest-first per exercise; exercises are ordered
 /// most-improved first (by top-weight gain). One point per workout the exercise
-/// appears in.
+/// appears in. A bodyweight lift is marked so by its load style, not by the
+/// weight lifted: its estimated maxes are rep maxes even with added weight.
 pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExerciseProgress> {
     struct Acc {
         top_weight: f32,
@@ -181,6 +183,8 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
                 series.push(ExerciseProgress {
                     exercise: ex,
                     points: Vec::new(),
+                    bodyweight: Exercise::try_from(ex)
+                        .is_ok_and(|e| load_style(e) == LoadStyle::Bodyweight),
                 });
                 series.len() - 1
             });

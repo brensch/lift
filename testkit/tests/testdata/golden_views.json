@@ -5191,6 +5191,7 @@
   "progress": {
     "exercises": [
       {
+        "bodyweight": false,
         "exercise": 1,
         "points": [
           {
@@ -5520,6 +5521,7 @@
         ]
       },
       {
+        "bodyweight": false,
         "exercise": 5,
         "points": [
           {
@@ -5687,6 +5689,7 @@
         ]
       },
       {
+        "bodyweight": false,
         "exercise": 2,
         "points": [
           {
@@ -5854,6 +5857,7 @@
         ]
       },
       {
+        "bodyweight": false,
         "exercise": 3,
         "points": [
           {
@@ -6021,6 +6025,7 @@
         ]
       },
       {
+        "bodyweight": false,
         "exercise": 4,
         "points": [
           {
