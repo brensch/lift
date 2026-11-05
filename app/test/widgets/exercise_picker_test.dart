@@ -103,4 +103,24 @@ void main() {
     expect(find.text(copy.exercisePicker.discardTitle), findsNothing);
     expect(find.text(copy.exercisePicker.title), findsNothing);
   });
+
+  testWidgets('dragging the header down with a pick unsaved asks first', (
+    tester,
+  ) async {
+    final saved = await open(tester);
+    await tester.tap(find.text(exerciseCatalog.first.name));
+    await tester.pump();
+
+    await tester.drag(
+      find.text(copy.exercisePicker.title),
+      const Offset(0, 500),
+    );
+    await settle(tester);
+    expect(find.text(copy.exercisePicker.discardTitle), findsOneWidget);
+
+    await tester.tap(find.text(copy.exercisePicker.discardConfirm));
+    await settle(tester);
+    expect(find.text(copy.exercisePicker.title), findsNothing);
+    expect(saved, isEmpty);
+  });
 }

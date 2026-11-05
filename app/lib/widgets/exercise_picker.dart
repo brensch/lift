@@ -34,8 +34,8 @@ Future<void> showExercisePicker({
     isScrollControlled: true,
     useRootNavigator: true,
     // The sheet's own drag would pop without asking, so it is off: dragging
-    // the list down to the sheet's smallest size closes it instead, through
-    // _close, which asks first when there are changes.
+    // the list, handle or header down to the sheet's smallest size closes it
+    // instead, through _close, which asks first when there are changes.
     isDismissible: true,
     enableDrag: false,
     backgroundColor: Colors.transparent,
@@ -102,6 +102,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
   @override
   void dispose() {
     _searchController.dispose();
+    _sheet.dispose();
     super.dispose();
   }
 
@@ -173,6 +174,17 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     if (discard && mounted) Navigator.pop(context);
   }
 
+  final _sheet = DraggableScrollableController();
+
+  /// The handle and header move the sheet as the list does, so a drag on
+  /// them down to the smallest size closes it through [_onExtent] too.
+  void _dragSheet(BuildContext context, DragUpdateDetails details) {
+    final height = MediaQuery.sizeOf(context).height;
+    _sheet.jumpTo(
+      (_sheet.size - details.primaryDelta! / height).clamp(0.5, 0.95),
+    );
+  }
+
   /// Whether the sheet is held at its smallest size, so a drag that keeps
   /// it there asks once rather than on every frame.
   bool _atMinExtent = false;
@@ -198,6 +210,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
       child: NotificationListener<DraggableScrollableNotification>(
         onNotification: _onExtent,
         child: DraggableScrollableSheet(
+          controller: _sheet,
           initialChildSize: 0.9,
           minChildSize: 0.5,
           maxChildSize: 0.95,
@@ -208,21 +221,29 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
               decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
               child: Column(
                 children: [
-                  // grab handle
-                  AppTheme.sheetHandle(context),
-                  // header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                    child: Row(
+                  // grab handle and header: dragging them moves the sheet
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onVerticalDragUpdate: (d) => _dragSheet(context, d),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Text(
-                            copy.exercisePicker.title,
-                            style: TextStyle(
-                              fontSize: context.tokens.size.subtitle,
-                              fontWeight: context.tokens.weight.heavy,
-                              letterSpacing: -0.3,
-                            ),
+                        AppTheme.sheetHandle(context),
+                        // header
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  copy.exercisePicker.title,
+                                  style: TextStyle(
+                                    fontSize: context.tokens.size.subtitle,
+                                    fontWeight: context.tokens.weight.heavy,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
