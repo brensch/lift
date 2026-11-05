@@ -253,7 +253,7 @@ pub fn walk(ex: Exercise, sessions: &[SessionOutcome], over: Option<&Override>) 
             pending = None;
         }
         if let Some(max) = walk.max {
-            let days = (session.started_at - walk.last_at) / DAY;
+            let days = session.started_at.saturating_sub(walk.last_at) / DAY;
             walk.max = Some(max * time_off_factor(days));
         }
         step(&mut walk, session, bodyweight);
@@ -293,7 +293,7 @@ fn most_shown(sets: &[SetDone], extra: i32, bodyweight: bool) -> Option<(f32, &s
             (
                 shown_max(
                     set.weight,
-                    set.reps + extra,
+                    set.reps.saturating_add(extra),
                     if set.hit { 1.0 } else { 0.0 },
                     i + 1,
                     bodyweight,
@@ -515,7 +515,7 @@ pub fn plan_lift(
         return d;
     };
     d.reasons.extend(walk.reason.clone());
-    let days = (now - walk.last_at) / DAY;
+    let days = now.saturating_sub(walk.last_at) / DAY;
     let factor = time_off_factor(days);
     let mut max = max;
     let mut last = walk.last_weight;

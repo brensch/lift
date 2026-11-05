@@ -169,6 +169,34 @@ mod store {
         assert!(held(&db).await.is_empty());
     }
 
+    /// The largest push a phone may send, and the same again (an outbox
+    /// resent whole), each placed in seconds, not minutes: the write connection is
+    /// everyone's, so a push that holds it long stalls every other push.
+    #[tokio::test]
+    async fn the_largest_push_is_placed_quickly_and_once() {
+        let db = db().await;
+        let events: Vec<Event> = (0..schlift_core::sync::MAX_EVENTS_PER_PUSH)
+            .map(|n| Event {
+                seq: 0,
+                id: format!("{:036}", n),
+                at: 1_000,
+                fact: schlift_core::events::Fact::TemplateDeleted(
+                    schlift_core::events::TemplateDeleted {
+                        template_id: "t".into(),
+                    },
+                ),
+            })
+            .collect();
+        for expected in [events.len(), 0] {
+            let started = std::time::Instant::now();
+            let pushed = db.push_events("u1", events.clone()).await.unwrap();
+            assert_eq!(pushed.stored.len(), expected);
+            let took = started.elapsed();
+            assert!(took < Duration::from_secs(30), "a push took {took:?}");
+        }
+        assert_eq!(db.head("u1").await.unwrap(), events.len() as i64);
+    }
+
     #[tokio::test]
     async fn events_read_back_as_they_were_pushed() {
         let db = db().await;
@@ -767,6 +795,76 @@ mod stream {
         let seen = session.members[0].user.as_ref().unwrap();
         assert_eq!(seen.id, jo.id);
         assert_eq!(seen.body_weight_kg, 0.0, "the weight stays jo's");
+    }
+
+    /// A device signed out while another of the account's devices trains
+    /// is sent none of what that one records: the stream ends instead.
+    #[tokio::test]
+    async fn a_signed_out_stream_hears_nothing_of_another_device() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (hal, lost) = db
+            .get_or_create_user_with_auth_session("hal")
+            .await
+            .unwrap();
+        let kept = db.create_auth_session(&hal.id).await.unwrap();
+        let mut stolen = Link::open(channel.clone(), &lost).await;
+        stolen
+            .next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+        let mut phone = Link::open(channel, &kept).await;
+        phone
+            .next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+
+        db.delete_auth_session(&lost).await.unwrap();
+        let (_, events) = Phone::new().start_squats(1_000);
+        phone.push(events).await;
+        phone.events_through(1).await;
+        let status = tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match stolen.down.message().await {
+                    Ok(Some(message)) => assert!(
+                        !matches!(message.kind, Some(sync_response::Kind::Events(_))),
+                        "another device's events reached a signed-out stream"
+                    ),
+                    Ok(None) => panic!("closed without a status"),
+                    Err(status) => return status,
+                }
+            }
+        })
+        .await
+        .expect("the stream ends");
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    /// A login that expires while its stream is open is told of by no
+    /// change: once the stream last found it good longer ago than it
+    /// trusts (a second in tests, a minute in production), the next thing
+    /// it would send ends it instead.
+    #[tokio::test]
+    async fn an_expired_stream_hears_nothing_of_another_device() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (hal, token) = db
+            .get_or_create_user_with_auth_session("hal")
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &token).await;
+        link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+
+        sqlx::query("UPDATE logins SET expires_at = 0 WHERE user_id = ?")
+            .bind(&hal.id)
+            .execute(&db.read_pool)
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(1_200)).await;
+        // Another device's workout, placed as its push would be.
+        let (_, events) = Phone::new().start_squats(1_000);
+        db.push_events(&hal.id, events).await.unwrap();
+        let status = ends_unsent(&mut link).await;
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
     }
 
     /// A device that connects gets everything after what it holds, in
