@@ -517,8 +517,18 @@ class AccountSync extends ChangeNotifier
     _dial();
   }
 
+  bool _disposed = false;
+
+  /// Nothing is told once disposed: the sign-out [dispose] starts, and any
+  /// stream message still in hand, finish after it.
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     unawaited(signOut());
     super.dispose();
