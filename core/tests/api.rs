@@ -3149,6 +3149,50 @@ mod refused_writes {
             .unwrap();
         assert_eq!(bench, expected);
     }
+
+    /// A non-finite number would be stored as `null` and never read again
+    /// (on the phone, the server, or a partner's phone): an import or a
+    /// plate colour holding one is refused and records nothing. Finite
+    /// ones, even absurd, are taken.
+    #[test]
+    fn a_number_that_cant_be_stored_is_refused() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let logged = app.log.len();
+        let before = app.account.clone();
+        let import = |weight_lb| ImportHistory {
+            starting_weights: vec![ExerciseWeight {
+                exercise: Exercise::Squat as i32,
+                weight_lb,
+            }],
+            ..Default::default()
+        };
+        let plates = |weight| UpdateSettingRequest {
+            setting: Some(UserSetting {
+                setting: Some(user_setting::Setting::PlateColors(PlateColorsConfig {
+                    plates: vec![PlateColor {
+                        weight,
+                        hex_color: "#fff".into(),
+                    }],
+                })),
+            }),
+        };
+        for x in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            let refused = app.call().import_history(import(x)).unwrap_err();
+            assert!(matches!(refused, CoreError::InvalidArgument(_)), "{x}");
+            let refused = app.call().update_setting(plates(x)).unwrap_err();
+            assert!(matches!(refused, CoreError::InvalidArgument(_)), "{x}");
+        }
+        assert_eq!(app.log.len(), logged, "nothing recorded");
+        assert_eq!(app.account, before, "nor applied");
+        app.call().import_history(import(1e30)).unwrap();
+        app.call().update_setting(plates(-5.0)).unwrap();
+        assert_eq!(app.log.len(), logged + 2);
+        for event in &app.log {
+            let json = serde_json::to_string(event).unwrap();
+            assert_eq!(&serde_json::from_str::<Event>(&json).unwrap(), event);
+        }
+    }
 }
 
 mod settings {

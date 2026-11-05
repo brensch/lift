@@ -73,7 +73,8 @@ impl<'a> Call<'a> {
 
     /// Record one fact: applied to the account and kept, or (on an error)
     /// neither. Returns the event's id. It has no place in the account's
-    /// history until the server gives it one.
+    /// history until the server gives it one. One that would not read back
+    /// once stored (a NaN or infinite number in it) is refused.
     fn record(&mut self, fact: Fact) -> Result<String, CoreError> {
         let id = match self.events.len() {
             0 => self.event_id.clone(),
@@ -85,6 +86,11 @@ impl<'a> Call<'a> {
             at: self.now,
             fact,
         };
+        if !event.reads_back() {
+            return Err(CoreError::InvalidArgument(
+                "A number in it can't be stored".into(),
+            ));
+        }
         self.account.apply(&event)?;
         self.events.push(event);
         Ok(id)
