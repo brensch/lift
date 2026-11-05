@@ -81,9 +81,9 @@ impl ServerDb {
     }
 
     /// A workout of the user's as their session partners see it: its events
-    /// from its start, only those shared with partners, in order. The
-    /// latest workout when `workout_id` is empty. Empty if it did not start
-    /// within the last `WORKOUT_REACH` events (heart rate aside).
+    /// from its start, only those shared with partners, in order. Empty if
+    /// it did not start within the last `WORKOUT_REACH` events (heart rate
+    /// aside).
     pub async fn workout_events(&self, user_id: &str, workout_id: &str) -> DbResult<Vec<Event>> {
         let rows: Vec<String> = sqlx::query_scalar(
             "SELECT event FROM account_events
@@ -100,12 +100,10 @@ impl ServerDb {
             if !shared_with_partners(&event.fact) {
                 continue;
             }
-            let started = matches!(event.fact, Fact::WorkoutStarted(_))
-                && (workout_id.is_empty() || event.id == workout_id);
+            let started = matches!(event.fact, Fact::WorkoutStarted(_)) && event.id == workout_id;
             workout.push(event);
             if started {
-                let id = workout.last().map(|e| e.id.clone()).unwrap_or_default();
-                workout.retain(|e| e.workout_id() == Some(id.as_str()));
+                workout.retain(|e| e.workout_id() == Some(workout_id));
                 workout.reverse();
                 return Ok(workout);
             }
