@@ -83,6 +83,17 @@ impl Drop for App {
             return;
         }
         assert_eq!(Account::fold(&self.log), self.account, "replay rebuilds it");
+        // The server's fold is the same, less every heart-rate reading.
+        let mut server = self.account.clone();
+        server.without_heart_rate = true;
+        for record in &mut server.workouts {
+            record.heart_rate.clear();
+        }
+        assert_eq!(
+            Account::fold_without_heart_rate(&self.log),
+            server,
+            "the server's fold is the phone's without heart rate"
+        );
     }
 }
 
@@ -2924,4 +2935,731 @@ fn heart_rate_stays_within_the_workout() {
         1,
         "the end moved, the later reading with it"
     );
+}
+
+/// One batch of changes, its response.
+fn batch(app: &mut App, mutations: Vec<WorkoutMutation>) -> AppendWorkoutMutationsResponse {
+    app.call()
+        .append_workout_mutations(AppendWorkoutMutationsRequest { mutations })
+        .unwrap()
+}
+
+fn complete_set(set: &ProposedSet, reps: i32, weight: f32, at: i64) -> WorkoutMutation {
+    mutation(Mutation::CompleteSet(CompleteSetRequest {
+        workout_id: set.workout_id.clone(),
+        proposed_set_id: set.id.clone(),
+        actual_reps: reps,
+        actual_weight: weight,
+        completed_at: at,
+    }))
+}
+
+mod refused_writes {
+    use super::*;
+
+    /// An empty mutation (or a kind this build doesn't know) is skipped
+    /// like any other that can't apply: the rest of the batch still lands.
+    #[test]
+    fn an_empty_mutation_is_skipped() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let set = started.proposed_sets[0].clone();
+        let state = batch(
+            &mut app,
+            vec![
+                complete_set(&set, 10, 20.0, NOW + 100),
+                WorkoutMutation { mutation: None },
+            ],
+        )
+        .workout_state
+        .unwrap();
+        assert_eq!(state.completed_sets.len(), 1);
+        assert_eq!(app.log.len(), 3, "onboarding, the start and the set");
+    }
+
+    /// A done set's reps and weight are held to an edit's bounds: one out
+    /// of them (NaN included) is refused and records nothing.
+    #[test]
+    fn a_done_set_out_of_range_is_refused() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        import_session(
+            &mut app,
+            Exercise::LateralRaise,
+            20.0,
+            10,
+            &[10, 10],
+            NOW - DAY,
+        );
+        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let set = working(&started.proposed_sets, Exercise::LateralRaise)[0].clone();
+        let logged = app.log.len();
+        for (reps, weight) in [(10, f32::NAN), (10, -1.0), (10, 3000.0), (-1, 20.0)] {
+            let state = batch(&mut app, vec![complete_set(&set, reps, weight, NOW + 100)])
+                .workout_state
+                .unwrap();
+            assert!(state.completed_sets.is_empty(), "{reps} x {weight}");
+        }
+        assert_eq!(app.log.len(), logged, "nothing recorded");
+        // The bounds themselves are fine.
+        for (n, weight) in [0.0, 2000.0].into_iter().enumerate() {
+            let set = working(&started.proposed_sets, Exercise::LateralRaise)[n].clone();
+            batch(&mut app, vec![complete_set(&set, 0, weight, NOW + 200)]);
+        }
+        assert_eq!(app.log.len(), logged + 2);
+    }
+
+    /// A rung whose append has been lifted is not undone: undone, it would
+    /// keep that append, and done again append a second time.
+    #[test]
+    fn a_rung_whose_append_was_lifted_is_not_undone() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let rung1 = started.proposed_sets[0].clone();
+        let state = batch(
+            &mut app,
+            vec![complete_set(&rung1, 5, rung1.target_weight, NOW + 100)],
+        )
+        .workout_state
+        .unwrap();
+        let rung2 = state.proposed_sets[1].clone();
+        assert!(rung2.calibration);
+        let state = batch(
+            &mut app,
+            vec![complete_set(&rung2, 3, rung2.target_weight, NOW + 300)],
+        )
+        .workout_state
+        .unwrap();
+        let done_id = |state: &GetWorkoutResponse, set: &ProposedSet| {
+            state
+                .completed_sets
+                .iter()
+                .find(|c| c.proposed_set_id == set.id)
+                .unwrap()
+                .id
+                .clone()
+        };
+        let rung2_done = done_id(&state, &rung2);
+        let undo = |id: &str| {
+            mutation(Mutation::DeleteCompletedSet(DeleteCompletedSetRequest {
+                workout_id: started.id.clone(),
+                completed_set_id: id.to_string(),
+            }))
+        };
+
+        // Before any of its append is lifted, the rung can be undone (and
+        // takes the append back); done again, it appends once.
+        let undone = batch(&mut app, vec![undo(&rung2_done)])
+            .workout_state
+            .unwrap();
+        assert!(working(&undone.proposed_sets, Exercise::Squat).is_empty());
+        let state = batch(
+            &mut app,
+            vec![complete_set(&rung2, 3, rung2.target_weight, NOW + 400)],
+        )
+        .workout_state
+        .unwrap();
+        let rung2_done = done_id(&state, &rung2);
+        let sets = working(&state.proposed_sets, Exercise::Squat);
+        assert!(!sets.is_empty());
+
+        let lifted = batch(
+            &mut app,
+            vec![complete_set(&sets[0], 5, sets[0].target_weight, NOW + 600)],
+        )
+        .workout_state
+        .unwrap();
+        let logged = app.log.len();
+        let rung1_done = done_id(&lifted, &rung1);
+        let after = batch(&mut app, vec![undo(&rung2_done), undo(&rung1_done)])
+            .workout_state
+            .unwrap();
+        assert_eq!(app.log.len(), logged, "both refused");
+        assert_eq!(after.proposed_sets, lifted.proposed_sets);
+        assert_eq!(after.completed_sets, lifted.completed_sets);
+    }
+
+    /// A lift removed before any set and added again is planned around
+    /// once, by its latest decision: its first log is not counted again.
+    #[test]
+    fn a_lift_added_back_counts_once_in_the_budget() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        for exercise in [Exercise::Squat, Exercise::BarbellRow, Exercise::BenchPress] {
+            import_session(&mut app, exercise, 95.0, 5, &[5, 5, 5], NOW - DAY);
+        }
+        let started = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                exercises: vec![Exercise::Squat as i32, Exercise::BarbellRow as i32],
+                budget_minutes: 75,
+                ..Default::default()
+            })
+            .unwrap();
+        let add = |exercise: Exercise| {
+            mutation(Mutation::AddExercises(AddExercisesRequest {
+                workout_id: started.id.clone(),
+                exercises: vec![exercise as i32],
+                ..Default::default()
+            }))
+        };
+        batch(
+            &mut app,
+            vec![
+                mutation(Mutation::RemoveExercise(RemoveExerciseRequest {
+                    workout_id: started.id.clone(),
+                    exercise: Exercise::Squat as i32,
+                })),
+                add(Exercise::Squat),
+            ],
+        );
+        let record = app.account.workout(&started.id).unwrap();
+        assert_eq!(record.exercise_logs.len(), 3, "squat has two logs");
+        let planned: Vec<ExerciseDecision> = [Exercise::BarbellRow, Exercise::Squat]
+            .iter()
+            .map(|ex| record.decision(*ex as i32).cloned().unwrap())
+            .collect();
+        let expected = schlift_core::plan::Planner::new(&app.account, app.now)
+            .workout(&[Exercise::BenchPress], &planned, 75)
+            .pop()
+            .unwrap();
+        batch(&mut app, vec![add(Exercise::BenchPress)]);
+        let bench = app
+            .account
+            .workout(&started.id)
+            .unwrap()
+            .decision(Exercise::BenchPress as i32)
+            .cloned()
+            .unwrap();
+        assert_eq!(bench, expected);
+    }
+}
+
+mod settings {
+    use super::*;
+    use schlift_core::weight_units::{snap_loadable_lb, AppWeightUnit};
+
+    fn set(app: &mut App, setting: user_setting::Setting) {
+        app.call()
+            .update_setting(UpdateSettingRequest {
+                setting: Some(UserSetting {
+                    setting: Some(setting),
+                }),
+            })
+            .unwrap();
+    }
+
+    fn unit(unit: WeightUnit) -> user_setting::Setting {
+        user_setting::Setting::WeightUnit(WeightUnitConfig { unit: unit as i32 })
+    }
+
+    fn plates(n: usize) -> user_setting::Setting {
+        user_setting::Setting::PlateColors(PlateColorsConfig {
+            plates: vec![PlateColor::default(); n],
+        })
+    }
+
+    /// One setting of each kind: a new one replaces only its own kind.
+    #[test]
+    fn a_setting_replaces_only_its_own_kind() {
+        let mut app = App::new();
+        set(&mut app, plates(1));
+        set(&mut app, unit(WeightUnit::Kg));
+        set(&mut app, plates(2));
+        let settings = app.view().get_settings().settings;
+        assert_eq!(settings.len(), 2);
+        assert!(settings.contains(&UserSetting {
+            setting: Some(plates(2))
+        }));
+        assert!(settings.contains(&UserSetting {
+            setting: Some(unit(WeightUnit::Kg))
+        }));
+    }
+
+    /// A setting with nothing in it is refused and records nothing.
+    #[test]
+    fn an_empty_setting_is_refused() {
+        let mut app = App::new();
+        for setting in [None, Some(UserSetting { setting: None })] {
+            let refused = app
+                .call()
+                .update_setting(UpdateSettingRequest { setting })
+                .unwrap_err();
+            assert!(matches!(refused, CoreError::InvalidArgument(_)));
+        }
+        assert!(app.log.is_empty());
+        assert!(app.account.settings.is_empty());
+    }
+
+    /// A workout keeps rounding in the unit it started in when the unit
+    /// changes while it runs; the next one starts in the new unit, and
+    /// history imported after the change reads in it.
+    #[test]
+    fn a_unit_change_mid_workout_keeps_the_workouts_unit() {
+        // A squat started in `started_in`, moved to 137 lb (its warmups
+        // laid out again), with the unit changed first or not.
+        let moved = |started_in: WeightUnit, change: Option<WeightUnit>| {
+            let mut app = App::new();
+            onboard(&mut app, started_in);
+            import_session(&mut app, Exercise::Squat, 135.0, 5, &[5, 5, 5], NOW - DAY);
+            let started = start(&mut app, &[Exercise::Squat]);
+            if let Some(change) = change {
+                set(&mut app, unit(change));
+            }
+            let state = batch(
+                &mut app,
+                vec![mutation(Mutation::AdjustExerciseWeight(
+                    AdjustExerciseWeightRequest {
+                        workout_id: started.id.clone(),
+                        exercise: Exercise::Squat as i32,
+                        working_weight: 137.0,
+                        target_reps: 0,
+                    },
+                ))],
+            )
+            .workout_state
+            .unwrap();
+            let weights: Vec<f32> = state
+                .proposed_sets
+                .iter()
+                .map(|s| s.target_weight)
+                .collect();
+            (app, started, weights)
+        };
+        let (_, _, in_lb) = moved(WeightUnit::Lb, None);
+        let (_, _, in_kg) = moved(WeightUnit::Kg, None);
+        assert_ne!(in_lb, in_kg, "the warmups round differently in kg");
+        let (mut app, started, changed) = moved(WeightUnit::Lb, Some(WeightUnit::Kg));
+        assert_eq!(changed, in_lb, "still rounds in lb");
+        app.call()
+            .end_workout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: NOW + 200,
+            })
+            .unwrap();
+
+        app.now = NOW + DAY;
+        let next = start(&mut app, &[Exercise::Squat]);
+        assert_eq!(
+            app.account.workout(&next.id).unwrap().unit,
+            AppWeightUnit::Kg
+        );
+        for s in &next.proposed_sets {
+            let kg = snap_loadable_lb(s.target_weight, AppWeightUnit::Kg);
+            assert!((kg - s.target_weight).abs() < 1e-3, "{s:?}");
+        }
+        import_session(&mut app, Exercise::BenchPress, 95.0, 5, &[5], NOW - 2 * DAY);
+        let imported = app
+            .account
+            .workouts
+            .iter()
+            .find(|r| r.workout.end_time == NOW - 2 * DAY)
+            .unwrap();
+        assert_eq!(imported.unit, AppWeightUnit::Kg);
+        assert_eq!(
+            app.account.workout(&started.id).unwrap().unit,
+            AppWeightUnit::Lb
+        );
+    }
+
+    /// Onboarding again without a unit keeps the one set.
+    #[test]
+    fn onboarding_again_without_a_unit_keeps_it() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Kg);
+        onboard(&mut app, WeightUnit::Unspecified);
+        assert_eq!(app.account.unit(), AppWeightUnit::Kg);
+    }
+}
+
+mod imports {
+    use super::*;
+
+    fn imported(id: &str, end: i64, exercise: Exercise, weight: f32) -> ImportedWorkout {
+        let set_id = format!("{id}:0");
+        ImportedWorkout {
+            workout: Some(Workout {
+                id: id.to_string(),
+                name: "Imported".into(),
+                start_time: end - 3600,
+                end_time: end,
+                ..Default::default()
+            }),
+            proposed_sets: vec![ProposedSet {
+                id: set_id.clone(),
+                workout_id: id.to_string(),
+                exercise: exercise as i32,
+                target_reps: 5,
+                target_weight: weight,
+                ..Default::default()
+            }],
+            completed_sets: vec![CompletedSet {
+                id: format!("{set_id}:done"),
+                workout_id: id.to_string(),
+                proposed_set_id: set_id,
+                actual_reps: 5,
+                actual_weight: weight,
+                ended_at: end - 600,
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    fn import(app: &mut App, workouts: Vec<ImportedWorkout>, starting: Vec<ExerciseWeight>) {
+        app.call()
+            .import_history(ImportHistory {
+                workouts,
+                starting_weights: starting,
+            })
+            .unwrap();
+    }
+
+    /// An import lands in time order among the workouts already held, once
+    /// (a workout id already held is not imported again), with its heart
+    /// rate and the starting weights it brings.
+    #[test]
+    fn an_import_is_folded_once_and_in_time_order() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let first = start(&mut app, &[Exercise::LateralRaise]);
+        finish(&mut app, &first, |s| s.target_reps, NOW + 60);
+        let running = start(&mut app, &[Exercise::LateralRaise]);
+
+        let mut w1 = imported("W1", NOW - 10 * DAY, Exercise::Squat, 135.0);
+        w1.heart_rate = vec![WorkoutHeartRatePoint {
+            sampled_at: (NOW - 10 * DAY - 1800) * 1000,
+            bpm: 120.0,
+        }];
+        let w0 = imported("W0", NOW - 20 * DAY, Exercise::Squat, 125.0);
+        import(
+            &mut app,
+            vec![w1, w0, ImportedWorkout::default()],
+            vec![ExerciseWeight {
+                exercise: Exercise::Squat as i32,
+                weight_lb: 155.0,
+            }],
+        );
+        let starts: Vec<i64> = app
+            .account
+            .workouts
+            .iter()
+            .map(|r| r.workout.start_time)
+            .collect();
+        assert!(starts.windows(2).all(|w| w[0] <= w[1]), "{starts:?}");
+        assert_eq!(
+            app.account.workouts.len(),
+            4,
+            "an entry with no workout adds nothing"
+        );
+        assert_eq!(app.view().list_workout_summaries().workouts.len(), 3);
+        assert_eq!(
+            app.account.starting_weights[&(Exercise::Squat as i32)],
+            155.0
+        );
+        assert_eq!(app.account.active_workout_id, running.id);
+        let samples = app
+            .view()
+            .get_workout_heart_rate(GetWorkoutHeartRateRequest {
+                workout_id: "W1".into(),
+            })
+            .unwrap()
+            .samples;
+        assert_eq!(samples.len(), 1);
+
+        // Sent again, changed: the one held stays as it was.
+        let before = app.account.workout("W1").unwrap().clone();
+        import(
+            &mut app,
+            vec![imported("W1", NOW - 5 * DAY, Exercise::BenchPress, 95.0)],
+            vec![],
+        );
+        assert_eq!(app.account.workout("W1").unwrap(), &before);
+        assert_eq!(app.account.workouts.len(), 4);
+        assert_eq!(
+            app.account.active_workout().map(|r| r.workout.id.clone()),
+            Some(running.id.clone())
+        );
+    }
+}
+
+mod overrides {
+    use super::*;
+
+    fn set(app: &mut App, exercise: i32, weight: f32, reps: i32, sets: Option<i32>) -> bool {
+        app.call()
+            .set_override(SetOverrideRequest {
+                exercise,
+                weight,
+                reps,
+                sets,
+            })
+            .map_err(|e| assert!(matches!(e, CoreError::InvalidArgument(_)), "{e:?}"))
+            .is_ok()
+    }
+
+    /// The bounds an override must be within, which decide which stored
+    /// overrides fold.
+    #[test]
+    fn override_limits() {
+        let squat = Exercise::Squat as i32;
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        for (weight, reps, sets) in [
+            (0.0, 5, None),
+            (2000.0, 5, None),
+            (100.0, 100, Some(1)),
+            (100.0, 5, Some(20)),
+        ] {
+            assert!(
+                set(&mut app, squat, weight, reps, sets),
+                "{weight} {reps} {sets:?}"
+            );
+        }
+        let held = app.account.overrides.clone();
+        let logged = app.log.len();
+        for (exercise, weight, reps, sets) in [
+            (squat, 2000.5, 5, None),
+            (squat, -1.0, 5, None),
+            (squat, f32::NAN, 5, None),
+            (squat, 100.0, 101, None),
+            (squat, 100.0, 5, Some(0)),
+            (squat, 100.0, 5, Some(21)),
+            (0, 100.0, 5, None),
+            (9999, 100.0, 5, None),
+        ] {
+            assert!(
+                !set(&mut app, exercise, weight, reps, sets),
+                "{exercise} {weight} {reps} {sets:?}"
+            );
+            assert_eq!(app.account.overrides, held);
+            assert_eq!(app.log.len(), logged);
+        }
+        // Reps of 0 or less remove it, whatever the weight.
+        assert!(set(&mut app, squat, 99999.0, -1, None));
+        assert!(!app.account.overrides.contains_key(&squat));
+    }
+}
+
+mod heart_rate_fold {
+    use super::*;
+    use schlift_core::events::HeartRateRecorded;
+
+    fn event(id: &str, fact: Fact) -> Event {
+        Event {
+            seq: 0,
+            id: id.to_string(),
+            at: NOW,
+            fact,
+        }
+    }
+
+    /// Heart rate folds as recorded: a second recording replaces the first,
+    /// gaps that don't match the readings are refused, and a workout not
+    /// held is not found.
+    #[test]
+    fn heart_rate_events_fold_as_recorded() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let start_ms = app.account.workout(&started.id).unwrap().workout.start_time * 1000;
+        let at = |ms: i64, bpm: f32| WorkoutHeartRatePoint {
+            sampled_at: start_ms + ms,
+            bpm,
+        };
+        app.call()
+            .record_heart_rate(&started.id, &[at(1_000, 100.0), at(2_000, 110.0)])
+            .unwrap();
+        app.call()
+            .record_heart_rate(&started.id, &[at(3_000, 120.0)])
+            .unwrap();
+        assert_eq!(
+            app.account.workout(&started.id).unwrap().heart_rate,
+            vec![at(3_000, 120.0)],
+            "the second replaces the first"
+        );
+
+        let mut bad = HeartRateRecorded::new(&started.id, &[at(1_000, 100.0)]);
+        bad.gaps_ms.push(5);
+        let mut account = app.account.clone();
+        assert!(matches!(
+            account.apply(&event("bad", Fact::HeartRateRecorded(bad))),
+            Err(CoreError::InvalidArgument(_))
+        ));
+        assert_eq!(account, app.account);
+
+        let refused = app
+            .call()
+            .record_heart_rate("nope", &[at(1_000, 100.0)])
+            .unwrap_err();
+        assert!(matches!(refused, CoreError::NotFound(_)));
+        let unknown = HeartRateRecorded::new("nope", &[at(1_000, 100.0)]);
+        assert!(matches!(
+            account.apply(&event("unknown", Fact::HeartRateRecorded(unknown))),
+            Err(CoreError::NotFound(_))
+        ));
+    }
+}
+
+mod merges {
+    use super::*;
+
+    /// What a second device records, from the account as it last synced.
+    fn on_device(
+        log: &[Event],
+        at: i64,
+        write: impl FnOnce(&mut Call) -> Result<(), CoreError>,
+    ) -> Vec<Event> {
+        let mut account = Account::fold(log);
+        let mut call = Call::new(&mut account, at, Uuid::new_v4().to_string());
+        write(&mut call).unwrap();
+        call.events
+    }
+
+    fn own_template(app: &mut App, name: &str) -> WorkoutTemplate {
+        app.call()
+            .save_template(SaveTemplateRequest {
+                template: Some(WorkoutTemplate {
+                    name: name.into(),
+                    exercises: vec![Exercise::BarbellCurl as i32],
+                    ..Default::default()
+                }),
+                unlink: false,
+            })
+            .unwrap()
+            .template
+            .unwrap()
+    }
+
+    /// One device deletes a template while another, offline, edits it. A
+    /// save placed after the delete brings the template back, created anew
+    /// at the save; a delete placed after the save removes it. Pinned as it
+    /// is: a change to it is a change to every stored account.
+    #[test]
+    fn a_save_after_a_delete_keeps_the_template() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let arms = own_template(&mut app, "Arms");
+        let synced = app.log.clone();
+        let deleted = on_device(&synced, NOW + 10, |call| {
+            call.delete_template(DeleteTemplateRequest {
+                template_id: arms.id.clone(),
+            })
+            .map(|_| ())
+        });
+        let saved = on_device(&synced, NOW + 20, |call| {
+            let mut edited = arms.clone();
+            edited.name = "Big arms".into();
+            call.save_template(SaveTemplateRequest {
+                template: Some(edited),
+                unlink: false,
+            })
+            .map(|_| ())
+        });
+
+        let delete_then_save: Vec<Event> = synced
+            .iter()
+            .chain(&deleted)
+            .chain(&saved)
+            .cloned()
+            .collect();
+        let account = Account::fold(&delete_then_save);
+        let back = account.template(&arms.id).expect("brought back");
+        assert_eq!(back.name, "Big arms");
+        assert_eq!(back.created_at, NOW + 20);
+
+        let save_then_delete: Vec<Event> = synced
+            .iter()
+            .chain(&saved)
+            .chain(&deleted)
+            .cloned()
+            .collect();
+        assert!(Account::fold(&save_then_delete)
+            .template(&arms.id)
+            .is_none());
+    }
+
+    /// A reorder naming a template another device deleted skips that id;
+    /// the others still take their place in the list (counted with the
+    /// missing one) and the rotation count.
+    #[test]
+    fn a_reorder_naming_a_deleted_template_skips_it() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let gone = own_template(&mut app, "Gone");
+        let ids: Vec<String> = app.account.templates.iter().map(|t| t.id.clone()).collect();
+        let synced = app.log.clone();
+        let deleted = on_device(&synced, NOW + 10, |call| {
+            call.delete_template(DeleteTemplateRequest {
+                template_id: gone.id.clone(),
+            })
+            .map(|_| ())
+        });
+        let mut order: Vec<String> = vec![gone.id.clone()];
+        order.extend(ids.iter().rev().filter(|id| **id != gone.id).cloned());
+        let reordered = on_device(&synced, NOW + 20, |call| {
+            call.reorder_templates(ReorderTemplatesRequest {
+                template_ids: order.clone(),
+                rotation_count: Some(2),
+            })
+            .map(|_| ())
+        });
+        let log: Vec<Event> = synced
+            .iter()
+            .chain(&deleted)
+            .chain(&reordered)
+            .cloned()
+            .collect();
+        let account = Account::fold(&log);
+        assert!(account.template(&gone.id).is_none());
+        assert_eq!(
+            account
+                .templates
+                .iter()
+                .map(|t| t.id.clone())
+                .collect::<Vec<_>>(),
+            order[1..]
+        );
+        for (position, id) in order.iter().enumerate().skip(1) {
+            let t = account.template(id).unwrap();
+            assert_eq!(t.order, position as i32);
+            assert_eq!(t.in_rotation, position < 2, "{id}");
+        }
+    }
+}
+
+mod sessions {
+    use super::*;
+
+    fn set_session(workout_id: &str, session_id: &str) -> WorkoutMutation {
+        mutation(Mutation::SetSession(SetWorkoutSessionRequest {
+            workout_id: workout_id.into(),
+            session_id: session_id.into(),
+        }))
+    }
+
+    /// Who a workout was trained with is set on it, and goes to partners.
+    #[test]
+    fn a_session_is_set_on_the_workout() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::LateralRaise]);
+        batch(&mut app, vec![set_session(&started.id, "s1")]);
+        let read = app
+            .view()
+            .get_workout(GetWorkoutRequest {
+                workout_id: started.id.clone(),
+            })
+            .unwrap();
+        assert_eq!(read.workout.unwrap().session_id, "s1");
+        let recorded = &app.log.last().unwrap().fact;
+        assert!(matches!(recorded, Fact::SessionSet(_)));
+        assert!(schlift_core::session::shared_with_partners(recorded));
+
+        let logged = app.log.len();
+        batch(&mut app, vec![set_session("nope", "s2")]);
+        assert_eq!(app.log.len(), logged, "no such workout: nothing logged");
+    }
 }

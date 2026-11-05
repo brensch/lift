@@ -36,6 +36,13 @@ fn stored_events_read_the_same() {
     for value in &stored {
         let event: Event = serde_json::from_value(value.clone())
             .unwrap_or_else(|e| panic!("{value} no longer reads: {e}"));
+        // With every_fact_is_stored, this proves each variant is in
+        // Fact::KINDS: one missing would read back as Unknown and fold as
+        // nothing.
+        assert!(
+            !matches!(event.fact, Fact::Unknown(_)),
+            "{value} reads as a kind this version doesn't know: add it to Fact::KINDS"
+        );
         // Through text, as it is stored: a value would widen each f32.
         let read: Value = serde_json::from_str(&serde_json::to_string(&event).unwrap()).unwrap();
         if let Err(problem) = holds(&read, value, &event.id) {

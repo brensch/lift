@@ -31,8 +31,9 @@ use schlift_core::pb::{
     CompleteOnboardingRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
     EditCompletedSetRequest, EndWorkoutRequest, Exercise, ExerciseDecision, ExercisePlan,
     GetHomeRequest, GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
-    ReorderExercisesRequest, RepsLeft, SetOverrideRequest, SkipWarmupsRequest, StartSetRequest,
-    StartWorkoutRequest, WeightUnit, WorkoutMutation, WorkoutState,
+    ReorderExercisesRequest, RepsLeft, SetOverrideRequest, SetWorkoutSessionRequest,
+    SkipWarmupsRequest, StartSetRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation,
+    WorkoutState,
 };
 use schlift_core::plan::Planner;
 use schlift_core::workout::TOO_HEAVY_REPS;
@@ -40,7 +41,7 @@ use schlift_core::workout::TOO_HEAVY_REPS;
 #[derive(Parser, Debug)]
 #[command(about = "Randomised API sequence fuzzer with invariant checks")]
 struct Args {
-    /// Simulated users, run concurrently.
+    /// Simulated users, each with its own account and seed stream.
     #[arg(long, default_value_t = 6)]
     users: usize,
     /// Workouts per user.
@@ -600,6 +601,17 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     reps,
                     sets,
                 });
+            } else if action < 84 {
+                // Train with someone: the session is set on the workout.
+                let session_id = format!("session-{}", rng.gen_range(0..3));
+                step_name = format!("set_session({session_id})");
+                sim.mutate(
+                    now,
+                    Mutation::SetSession(SetWorkoutSessionRequest {
+                        workout_id: workout_id.clone(),
+                        session_id,
+                    }),
+                );
             } else if !done.is_empty() {
                 // Correct a done set after the fact.
                 let c = &done[rng.gen_range(0..done.len())];

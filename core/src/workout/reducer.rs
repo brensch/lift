@@ -432,8 +432,7 @@ fn resettle_rung(
     let Some(rung) = rung_of(workout_ref, completed_set_id) else {
         return;
     };
-    let ours: std::collections::HashSet<String> =
-        (0..64).map(|n| derived_id(completed_set_id, n)).collect();
+    let ours = appended_ids(completed_set_id);
     let done = done_set_ids(&workout_ref.completed_sets);
     let pending: Vec<&ProposedSet> = workout_ref
         .proposed_sets
@@ -711,10 +710,23 @@ fn failure_cap(
     completed_sets: &[CompletedSet],
     exercise: i32,
 ) -> f32 {
+    done_rungs(proposed_sets, completed_sets, exercise)
+        .filter(|(c, rung, _)| c.actual_reps < rung.target_reps)
+        .map(|(c, _, weight)| crate::plan::shown_max(weight, c.actual_reps.max(1), 0.0, 1, false))
+        .fold(f32::INFINITY, f32::min)
+}
+
+/// Each done calibration rung of `exercise`: the done set, its rung, and
+/// the weight lifted (as typed, or the rung's target).
+fn done_rungs<'a>(
+    proposed_sets: &'a [ProposedSet],
+    completed_sets: &'a [CompletedSet],
+    exercise: i32,
+) -> impl Iterator<Item = (&'a CompletedSet, &'a ProposedSet, f32)> {
     completed_sets
         .iter()
         .filter(|c| c.ended_at != 0)
-        .filter_map(|c| {
+        .filter_map(move |c| {
             let rung = proposed_sets.iter().find(|s| {
                 s.id == c.proposed_set_id && s.exercise == exercise && s.calibration && !s.cancelled
             })?;
@@ -723,10 +735,8 @@ fn failure_cap(
             } else {
                 rung.target_weight
             };
-            (c.actual_reps < rung.target_reps)
-                .then(|| crate::plan::shown_max(weight, c.actual_reps.max(1), 0.0, 1, false))
+            Some((c, rung, weight))
         })
-        .fold(f32::INFINITY, f32::min)
 }
 
 /// The heaviest calibration rung of `exercise` done in full, other than
@@ -737,18 +747,9 @@ fn heaviest_full_rung(
     exercise: i32,
     except: &str,
 ) -> Option<(f32, i32, i32)> {
-    completed_sets
-        .iter()
-        .filter(|c| c.id != except && c.ended_at != 0)
-        .filter_map(|c| {
-            let rung = proposed_sets.iter().find(|s| {
-                s.id == c.proposed_set_id && s.exercise == exercise && s.calibration && !s.cancelled
-            })?;
-            let weight = if c.actual_weight > 0.0 {
-                c.actual_weight
-            } else {
-                rung.target_weight
-            };
+    done_rungs(proposed_sets, completed_sets, exercise)
+        .filter(|(c, _, _)| c.id != except)
+        .filter_map(|(c, rung, weight)| {
             (c.actual_reps >= rung.target_reps).then_some((weight, c.actual_reps, c.reps_left))
         })
         .fold(None, |best: Option<(f32, i32, i32)>, next| match best {
@@ -776,17 +777,34 @@ pub fn apply_delete_completed_set_to_active(
     Ok(())
 }
 
+/// The ids of the sets a done set `completed_set_id` may append.
+fn appended_ids(completed_set_id: &str) -> std::collections::HashSet<String> {
+    (0..64).map(|n| derived_id(completed_set_id, n)).collect()
+}
+
+/// Whether one of the sets the done set `completed_set_id` appended has
+/// been lifted.
+fn append_lifted(workout_ref: &WorkoutRecord, ours: &std::collections::HashSet<String>) -> bool {
+    workout_ref
+        .completed_sets
+        .iter()
+        .any(|c| ours.contains(&c.proposed_set_id))
+}
+
+/// Whether `completed_set_id` is a done calibration rung whose append has
+/// been lifted: undone then, it would keep that append and append again
+/// when done anew, so it is not undone (the caller refuses it).
+pub fn rung_append_lifted(workout_ref: &WorkoutRecord, completed_set_id: &str) -> bool {
+    rung_of(workout_ref, completed_set_id).is_some()
+        && append_lifted(workout_ref, &appended_ids(completed_set_id))
+}
+
 /// Remove what the done set `completed_set_id` appended (its derived
 /// ids), and their log entries, unless one of them was lifted. Returns
 /// whether it did.
 fn take_back_append(workout_ref: &mut WorkoutRecord, completed_set_id: &str) -> bool {
-    let ours: std::collections::HashSet<String> =
-        (0..64).map(|n| derived_id(completed_set_id, n)).collect();
-    if workout_ref
-        .completed_sets
-        .iter()
-        .any(|c| ours.contains(&c.proposed_set_id))
-    {
+    let ours = appended_ids(completed_set_id);
+    if append_lifted(workout_ref, &ours) {
         return false;
     }
     workout_ref.proposed_sets.retain(|s| !ours.contains(&s.id));
