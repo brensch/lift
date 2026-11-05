@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart' as app_links;
 
+import 'gen/copy.dart';
 import 'services/app_logger.dart';
 import 'services/notification_service.dart';
 import 'services/permissions_service.dart';
@@ -129,7 +130,17 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   /// Open the account on this phone (restoring it from the server on a
   /// fresh install), then everything that reads it.
   Future<void> _openAccount(String userId) async {
-    await _accountSync.signIn(userId, _authProvider.username ?? '');
+    try {
+      await _accountSync.signIn(userId, _authProvider.username ?? '');
+    } catch (e) {
+      // The file wouldn't open: the startup error screen says so, rather
+      // than a spinner that never ends.
+      AppLogger.instance.error('Startup', 'account open failed', {
+        'error': e.toString(),
+      });
+      _workoutProvider.reportLoadError(e);
+      return;
+    }
     await _settingsProvider.load();
     await _workoutProvider.loadActiveWorkout(userId);
   }
@@ -153,6 +164,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
 
     // The account lives on this phone; the stream keeps the server level.
     _accountSync = AccountSync(_grpcClient);
+    // With no session the server would turn the stream down.
+    _accountSync.canDial = () => _authProvider.hasServerSession;
     _accountSync.onCaughtUp = () {
       unawaited(_reloadAccount());
     };
@@ -162,11 +175,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         unawaited(_authProvider.logout());
         return;
       }
-      unawaited(
-        _authProvider.expireSession(
-          message: 'Sign in again to sync this phone with your account.',
-        ),
-      );
+      unawaited(_authProvider.expireSession(message: copy.sessionExpired));
     };
     _account = WorkoutServiceWrapper(_accountSync);
     _settingsProvider = SettingsProvider(_account);
@@ -262,6 +271,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           _pendingJoinToken = null;
           _multiplayerProvider.joinViaInvite(token);
         }
+      }
+      // The session lapsed: multiplayer stops asking until signed in again.
+      if (userId != null && !hasServerSession && _hadServerSession) {
+        _multiplayerProvider.stopSync();
       }
       _hadServerSession = hasServerSession;
     });

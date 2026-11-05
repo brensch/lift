@@ -40,7 +40,6 @@ class AuthProvider extends ChangeNotifier {
 
   String? get userId => _userId;
   String? get username => _username;
-  String? get sessionToken => _sessionToken;
   String get profileEmoji => _profileEmoji;
   String get profileColorHex => _profileColorHex;
   double get bodyWeightKg => _bodyWeightKg;
@@ -138,17 +137,16 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Signs out of this phone at once; the server is told after, best
+  /// effort, so a bad connection doesn't hold it up.
   Future<void> logout() async {
-    if (_sessionToken != null) {
-      try {
-        await _authService.logout(_sessionToken!);
-      } catch (_) {}
-    }
+    final token = _sessionToken;
     _sessionToken = null;
     _userId = null;
     _username = null;
     _profileEmoji = defaultProfileEmoji;
     _profileColorHex = defaultProfileColorHex;
+    _bodyWeightKg = 0;
     _grpcClient.setToken(null);
 
     final prefs = await SharedPreferences.getInstance();
@@ -156,6 +154,10 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove(_userIdKey);
     await prefs.remove(_usernameKey);
     notifyListeners();
+
+    if (token != null) {
+      unawaited(_authService.logout(token).catchError((Object _) {}));
+    }
   }
 
   /// The server no longer accepts this phone's session: sign in again to
@@ -197,6 +199,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   bool _profileRefreshRetryScheduled = false;
+  int _profileRefreshFailures = 0;
 
   Future<void> refreshProfile({bool notify = true}) async {
     final userId = _userId;
@@ -209,7 +212,7 @@ class AuthProvider extends ChangeNotifier {
       _profileEmoji = normalizedProfileEmoji(user.profileEmoji);
       _profileColorHex = normalizedProfileColorHex(user.profileColorHex);
       _bodyWeightKg = user.bodyWeightKg.toDouble();
-      _profileRefreshRetryScheduled = false;
+      _profileRefreshFailures = 0;
       if (notify) {
         notifyListeners();
       }
@@ -224,7 +227,7 @@ class AuthProvider extends ChangeNotifier {
   void _scheduleProfileRetry() {
     if (_profileRefreshRetryScheduled) return;
     _profileRefreshRetryScheduled = true;
-    Timer(const Duration(seconds: 5), () {
+    Timer(retryDelay(_profileRefreshFailures++), () {
       _profileRefreshRetryScheduled = false;
       refreshProfile();
     });

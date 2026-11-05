@@ -2,6 +2,7 @@ import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:credential_manager/credential_manager.dart' as cm;
+import 'package:grpc/grpc.dart' show CallOptions;
 import 'package:passkeys/authenticator.dart';
 import 'package:passkeys/types.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
@@ -342,8 +343,16 @@ class AuthService {
     );
   }
 
+  /// Ends the session [token] on the server. The phone has already
+  /// forgotten it, so it's sent here rather than by the interceptor.
   Future<void> logout(String token) async {
-    await grpcClient.authService.logout(LogoutRequest());
+    await grpcClient.authService.logout(
+      LogoutRequest(),
+      options: CallOptions(
+        timeout: const Duration(seconds: 5),
+        metadata: {'x-session-token': token},
+      ),
+    );
   }
 
   static RegisterRequestType _registerRequestFromOptions(String optionsJson) {

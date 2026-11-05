@@ -1,5 +1,6 @@
 import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
+import '../gen/copy.dart';
 import '../theme/theme_spec.dart';
 import 'app_logger.dart';
 
@@ -22,14 +23,14 @@ class ErrorModalService {
         useRootNavigator: true,
         builder: (ctx) => AlertDialog(
           title: Text(
-            'Error',
+            copy.errorDialog.title,
             style: TextStyle(fontWeight: context.tokens.weight.heavy),
           ),
           content: Text(message),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
+              child: Text(copy.errorDialog.ok),
             ),
           ],
         ),

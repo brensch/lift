@@ -608,3 +608,36 @@ template_update:
 # Placeholders.
 participant:
   no_workout: No workout yet.
+# After a workout is written to the phone's health store. {store} is the
+# store's name, below. Placeholders, as the app had them.
+health:
+  store_android: Health Connect
+  store_ios: Apple Health
+  uploaded: "Successfully uploaded to {store}"
+  upload_failed: "Failed to sync workout to {store}"
+
+# The notification when a rest runs out. Placeholders, as the app had them.
+rest_notification:
+  # The notification channel, as Android's settings list it.
+  channel: Rest Timer
+  channel_description: Rest timer completion alert
+  title: Rest Complete
+  # The body: the next set. {exercise} is its name, {set} like "135 lb × 5".
+  next_up: "Next up: {exercise}, {set}"
+  next_up_warmup: "Next up: Warmup {exercise}, {set}"
+  all_done: All sets complete!
+
+# Joining a group from an invite code or link. Placeholders, as the app had
+# them.
+invite:
+  invalid: INVALID INVITE CODE
+  joined: JOINED GROUP
+
+# When the server stops accepting this phone's sign-in; the account stays
+# usable on the phone. Placeholder, as the app had it.
+session_expired: Sign in again to sync this phone with your account.
+
+# The error dialog. Placeholders, as the app had them.
+error_dialog:
+  title: "Error"
+  ok: "OK"

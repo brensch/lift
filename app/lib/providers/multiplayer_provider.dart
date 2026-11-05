@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart' show ToastGravity;
+import 'package:grpc/grpc.dart' show GrpcError, StatusCode;
 import '../services/toast.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/group.pb.dart';
+import '../logic/utils.dart' show retryDelay;
 import '../services/grpc_client.dart';
 import '../services/account_sync.dart';
 import '../services/app_logger.dart';
@@ -27,7 +30,6 @@ class MultiplayerProvider extends ChangeNotifier {
   String? _sessionId;
   List<ParticipantStatus> _participants = const [];
   String? _myInviteToken;
-  bool _isLoading = false;
   bool _disposed = false;
   bool _syncEnabled = false;
 
@@ -42,7 +44,6 @@ class MultiplayerProvider extends ChangeNotifier {
   /// The partners on show, each as their workout's events fold.
   List<ParticipantStatus> get participants => _participants;
   bool get isInSession => sessionId != null;
-  bool get isLoading => _isLoading;
   String? get myInviteToken => _myInviteToken;
 
   List<TrainingPartner> _trainingPartners = [];
@@ -151,7 +152,14 @@ class MultiplayerProvider extends ChangeNotifier {
     _heard();
   }
 
+  /// The server stopped accepting this phone's session: nothing more is
+  /// asked of it until [startSync] again.
+  void stopSync() {
+    _syncEnabled = false;
+  }
+
   bool _inviteTokenRetryScheduled = false;
+  int _inviteTokenFailures = 0;
 
   /// Lazily load the caller's invite token (stable across calls unless rotated).
   Future<String?> _ensureInviteToken() async {
@@ -159,16 +167,20 @@ class MultiplayerProvider extends ChangeNotifier {
     try {
       final token = await _service.getMyInviteToken();
       _myInviteToken = token;
-      _inviteTokenRetryScheduled = false;
+      _inviteTokenFailures = 0;
       if (!_disposed) notifyListeners();
       return token;
     } catch (e) {
+      // A lapsed session won't get better by asking again.
+      final retry = !(e is GrpcError && e.code == StatusCode.unauthenticated);
       AppLogger.instance.warn(
         'Multiplayer',
-        'getMyInviteToken failed, will retry',
+        retry
+            ? 'getMyInviteToken failed, will retry'
+            : 'getMyInviteToken failed',
         {'error': e.toString()},
       );
-      _scheduleInviteTokenRetry();
+      if (retry) _scheduleInviteTokenRetry();
       return null;
     }
   }
@@ -176,7 +188,7 @@ class MultiplayerProvider extends ChangeNotifier {
   void _scheduleInviteTokenRetry() {
     if (_inviteTokenRetryScheduled || _disposed || !_syncEnabled) return;
     _inviteTokenRetryScheduled = true;
-    Timer(const Duration(seconds: 5), () {
+    Timer(retryDelay(_inviteTokenFailures++), () {
       _inviteTokenRetryScheduled = false;
       if (!_disposed && _syncEnabled) {
         unawaited(_ensureInviteToken());
@@ -188,17 +200,15 @@ class MultiplayerProvider extends ChangeNotifier {
   Future<String?> joinViaInvite(String tokenOrUrl) async {
     final token = _extractToken(tokenOrUrl);
     if (token.isEmpty) {
-      final msg = 'INVALID INVITE CODE';
+      final msg = copy.invite.invalid;
       ErrorModalService.showError(msg);
       return msg;
     }
-    _isLoading = true;
-    notifyListeners();
     try {
       await _service.joinViaInvite(token);
       _syncEnabled = true;
       showToast(
-        msg: "JOINED GROUP",
+        msg: copy.invite.joined,
         backgroundColor: schliftSpec.success,
         textColor: schliftSpec.onPrimary,
         gravity: ToastGravity.TOP,
@@ -212,9 +222,6 @@ class MultiplayerProvider extends ChangeNotifier {
       final cleanError = cleanErrorMessage(e);
       ErrorModalService.showError(cleanError.toUpperCase());
       return cleanError;
-    } finally {
-      _isLoading = false;
-      if (!_disposed) notifyListeners();
     }
   }
 
@@ -243,6 +250,10 @@ class MultiplayerProvider extends ChangeNotifier {
     _syncEnabled = false;
     _clearSession();
     _myInviteToken = null;
+    // The next account on this phone sees nothing of this one's.
+    _trainingPartners = [];
+    _incomingRequests = [];
+    if (!_disposed) notifyListeners();
   }
 
   @override
