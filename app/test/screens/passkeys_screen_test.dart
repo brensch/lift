@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -8,17 +10,20 @@ import 'package:schlift/services/auth_service.dart';
 import 'package:schlift/theme/app_icons.dart';
 import 'package:schlift/theme/app_theme.dart';
 
-/// The server's passkeys, in memory; a delete fails while [failDelete].
+/// The server's passkeys, in memory; a delete fails while [failDelete], and
+/// a list waits for [gate] while one is set.
 class _FakeAuthService implements AuthService {
   List<PasskeyInfo> passkeys;
   bool failDelete = false;
   int lists = 0;
+  Completer<void>? gate;
 
   _FakeAuthService(this.passkeys);
 
   @override
   Future<List<PasskeyInfo>> listPasskeys() async {
     lists++;
+    await gate?.future;
     return List.of(passkeys);
   }
 
@@ -83,12 +88,17 @@ void main() {
     await tester.pumpWidget(_screen(auth));
     await tester.pumpAndSettle();
 
+    auth.gate = Completer<void>();
     await tester.fling(find.text('phone'), const Offset(0, 400), 1000);
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('phone'), findsOneWidget);
-    await tester.pumpAndSettle();
+    // The read is in flight: the list stays, with no full-screen spinner.
     expect(auth.lists, 2);
+    expect(find.text('phone'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    auth.gate!.complete();
+    await tester.pumpAndSettle();
     expect(find.text('laptop'), findsOneWidget);
   });
 }

@@ -29,23 +29,7 @@ void main() {
         -7,
       );
     });
-
-    test('is not a day short across a spring-forward change', () {
-      // US clocks went forward on 2026-03-08 and Europe's on 2026-03-29:
-      // local midnight to local midnight is 23 hours there.
-      expect(
-        calendarDaysBetween(DateTime(2026, 3, 8), DateTime(2026, 3, 9)),
-        1,
-      );
-      expect(
-        calendarDaysBetween(DateTime(2026, 3, 29), DateTime(2026, 3, 30)),
-        1,
-      );
-      expect(
-        calendarDaysBetween(DateTime(2026, 3, 1), DateTime(2026, 4, 1)),
-        31,
-      );
-    });
+    // Across a daylight-saving change: dst_test.dart.
   });
 
   test('shortMonth and monthYear', () {

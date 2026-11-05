@@ -185,7 +185,7 @@ needs challenges in shared storage.
 |---|---|
 | `AddPasskeyStart` / `AddPasskeyFinish` | Register an extra passkey for the logged-in user; excludes already-registered credentials |
 | `ListPasskeys` | Metadata only — created-at, IP, optional `cred_name` |
-| `DeletePasskey` | Removes one credential; the last one is refused (`FailedPrecondition`), and `PasskeysScreen` disables it |
+| `DeletePasskey` | Removes one credential and signs out every other login of the user (logins aren't tied to a passkey; the caller's stays); the last one is refused (`FailedPrecondition`), and `PasskeysScreen` disables it |
 
 A friendly name is stored by injecting a `cred_name` key into the serialised
 credential JSON rather than as its own column
