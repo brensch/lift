@@ -207,6 +207,8 @@ class AccountSync extends ChangeNotifier
     _session = Session();
     _joinRequests = GetJoinRequestsResponse();
     _unsynced = 0;
+    // The next account asks the server afresh; a refusal sets it again.
+    _updateRequired = false;
     notifyListeners();
     // Closed before returning: importFile writes over the file next.
     await core?.close();
@@ -226,8 +228,14 @@ class AccountSync extends ChangeNotifier
       final int confirmed;
       try {
         confirmed = await core.confirmed();
-      } catch (_) {
+      } catch (e) {
         // Closed by a sign-out meanwhile: this stream is already hung up.
+        // Anything else is a real failure reading this phone's file.
+        if (identical(_core, core)) {
+          AppLogger.instance.warn(_tag, 'opening read failed', {
+            'error': e.toString(),
+          });
+        }
         return;
       }
       if (generation != _generation || up.isClosed) return;
