@@ -532,6 +532,9 @@ join_request:
   someone: A friend
   decline: Decline
   accept: Accept
+  # Accept on a request that can no longer be answered (it timed out or
+  # was taken back).
+  expired: That request has expired
 
 # The multiplayer sheet: scan a friend's code, show yours, and ask people
 # you've trained with. {…} are substituted. Placeholders.
