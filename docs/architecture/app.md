@@ -328,7 +328,7 @@ it is specific to one screen; otherwise it lives with its screen.
   in-memory account. Build it first: `make test-app` does
   `cargo build -p schlift_native` then `flutter test`.
 - `test/logic/` — the display helpers: plate calculator, weight units,
-  exercise blocks, plan wording, starting weights.
+  exercise blocks, plan wording, rotation text, session state, utils.
 - `test/screenshots/` — real screens at phone size; see
   [`docs/testing/app-harness.md`](../testing/app-harness.md).
 - `test/grpc_recovery_test.dart` — channel reset/retry behaviour.

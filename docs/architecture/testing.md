@@ -127,13 +127,16 @@ confirm it trips.
 
 ## Server tests
 
-- `src/server/sync_tests.rs` — over a real server on a local port: pushed
-  events fold into the same account, a resent batch is skipped and a gap
-  waits, heart rate alone is not progress, a push after the account is
-  deleted stores nothing, a second device's different log is refused, a
-  start without its decisions is refused, the pull is the whole log, a
-  partner's progress arrives on the stream, a heartbeat is answered, a
-  signed-out stream is sent nothing more, a stranger is turned away.
+- `src/server/sync_tests.rs` — pushed events fold into the same account, a
+  resent batch is placed once, two devices' events are placed in the order
+  they arrive, a push after the account is deleted stores nothing, events
+  read back as they were pushed; and over a real server on a local port: a
+  partner's progress arrives as it happens, a late partner gets the workout
+  so far and only the workout, discarding the workout leaves the session, a
+  heartbeat is answered, a deleted account cannot push again, a signed-out
+  stream is sent nothing more, a deleted partner leaves the others'
+  session, a new profile reaches partners without the body weight, a device
+  catches up and hears the others, a stranger is turned away.
 - `src/server/multiplayer_tests.rs` — the session roster and
   training-together history through the real handlers.
 - `src/db/auth.rs` — every table with a `user_id` column references
