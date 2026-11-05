@@ -515,6 +515,9 @@ message ExerciseProgressPoint {
 message ExerciseProgress {
   Exercise exercise = 1;
   repeated ExerciseProgressPoint points = 2; // oldest first
+  // A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+  // when sets carry added weight.
+  bool bodyweight = 3;
 }
 
 message GetExerciseProgressRequest {}

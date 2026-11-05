@@ -35,6 +35,10 @@ const _shortestSpan = Duration(days: 7);
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     with ReloadOnAccountChange {
   List<_Session>? _sessions;
+
+  /// A bodyweight lift, by its load style (the core says): its max is a rep
+  /// max and its heaviest set is reps, even with added weight.
+  bool _bodyweight = false;
   bool _isLoading = true;
   int _windowIdx = 0; // default: All, the first
 
@@ -82,6 +86,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
       if (!mounted) return;
       setState(() {
         _sessions = sessions;
+        _bodyweight = ep.bodyweight;
         _isLoading = false;
       });
     } catch (e) {
@@ -119,8 +124,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
 
     final suffix = weightUnitSuffix(unit);
     final current = sessions.last.topWeight;
-    // A bodyweight lift's max is a rep max, and its heaviest set is reps.
-    final bodyweight = sessions.every((s) => s.topWeight <= 0);
+    final bodyweight = _bodyweight;
     final maxNow = sessions.last.estimatedMax;
     final (:from, :to) = _custom ?? chartSpan(_windowIdx, sessions.first.date);
     final inSpan = sessions

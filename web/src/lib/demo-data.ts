@@ -183,6 +183,7 @@ export function generateDemoData(): DashboardData {
   const exercises: ExerciseSeries[] = LIFTS.map((l) => ({
     key: l.key,
     name: l.name,
+    bodyweight: false, // every demo lift is a barbell lift
     points: series[l.key],
   }));
 

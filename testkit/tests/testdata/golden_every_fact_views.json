@@ -6736,6 +6736,7 @@
     "progress": {
       "exercises": [
         {
+          "bodyweight": false,
           "exercise": 1,
           "points": [
             {
@@ -6759,6 +6760,7 @@
           ]
         },
         {
+          "bodyweight": false,
           "exercise": 33,
           "points": [
             {
@@ -6782,6 +6784,7 @@
           ]
         },
         {
+          "bodyweight": false,
           "exercise": 2,
           "points": [
             {
@@ -6805,6 +6808,7 @@
           ]
         },
         {
+          "bodyweight": false,
           "exercise": 38,
           "points": [
             {
@@ -6819,6 +6823,7 @@
           ]
         },
         {
+          "bodyweight": false,
           "exercise": 4,
           "points": [
             {
@@ -6833,6 +6838,7 @@
           ]
         },
         {
+          "bodyweight": false,
           "exercise": 14,
           "points": [
             {
@@ -6847,6 +6853,7 @@
           ]
         },
         {
+          "bodyweight": false,
           "exercise": 45,
           "points": [
             {

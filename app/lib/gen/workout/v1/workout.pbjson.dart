@@ -1115,6 +1115,7 @@ const ExerciseProgress$json = {
       '6': '.workout.v1.ExerciseProgressPoint',
       '10': 'points'
     },
+    {'1': 'bodyweight', '3': 3, '4': 1, '5': 8, '10': 'bodyweight'},
   ],
 };
 
@@ -1122,7 +1123,7 @@ const ExerciseProgress$json = {
 final $typed_data.Uint8List exerciseProgressDescriptor = $convert.base64Decode(
     'ChBFeGVyY2lzZVByb2dyZXNzEjAKCGV4ZXJjaXNlGAEgASgOMhQud29ya291dC52MS5FeGVyY2'
     'lzZVIIZXhlcmNpc2USOQoGcG9pbnRzGAIgAygLMiEud29ya291dC52MS5FeGVyY2lzZVByb2dy'
-    'ZXNzUG9pbnRSBnBvaW50cw==');
+    'ZXNzUG9pbnRSBnBvaW50cxIeCgpib2R5d2VpZ2h0GAMgASgIUgpib2R5d2VpZ2h0');
 
 @$core.Deprecated('Use getExerciseProgressRequestDescriptor instead')
 const GetExerciseProgressRequest$json = {
