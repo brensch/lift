@@ -79,7 +79,10 @@ void main() {
 
   test('a reload mid-workout restores the samples; resends add none', () async {
     h.provider.ingestWearHeartRateBatch(batch('a', [10, 20]));
-    await Future<void>.delayed(const Duration(milliseconds: 100));
+    // The save is unawaited and the core runs on another thread: poll.
+    for (var i = 0; i < 500 && (await stored()).length < 2; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
     expect(await stored(), [10, 20]);
 
     final reloaded = WorkoutProvider(h.service, h.settings, sandbox: true);
