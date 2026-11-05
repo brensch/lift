@@ -34,9 +34,14 @@ pub fn close_account(handle: u32) {
 }
 
 /// Answer one RPC by its gRPC method name, request and response as proto
-/// bytes. Errors read `code: message`.
-pub fn call(handle: u32, method: String, request: Vec<u8>) -> StoreResult<Vec<u8>> {
-    with_store(handle, |store| store.call(&method, &request, now_unix()))
+/// bytes, and whether it stored events for the server: a write, or a read
+/// that recorded an ended workout's heart rate. Errors read `code: message`.
+pub fn call(handle: u32, method: String, request: Vec<u8>) -> StoreResult<(Vec<u8>, bool)> {
+    with_store(handle, |store| {
+        let before = store.pending_count()?;
+        let response = store.call(&method, &request, now_unix())?;
+        Ok((response, store.pending_count()? > before))
+    })
 }
 
 /// The last seq the file holds: what the Sync stream opens with.
