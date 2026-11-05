@@ -42,24 +42,16 @@ class FlatSection extends StatelessWidget {
   final String? label;
   final Widget child;
 
-  /// Lets the child run to the edges (a list, a chart) instead of sitting
-  /// in the margins.
-  final bool bleed;
-
-  /// The child runs to the divider (a grid whose vertical lines must meet
-  /// it) rather than sitting above a margin.
-  final bool flushBottom;
-
-  /// The child starts right under the [label]'s band, for the same reason.
-  final bool flushTop;
+  /// The child runs edge to edge, from right under the [label]'s band to
+  /// the divider (a chart, a grid whose vertical lines must meet both),
+  /// instead of sitting in the margins.
+  final bool flush;
 
   const FlatSection({
     super.key,
     this.label,
     required this.child,
-    this.bleed = false,
-    this.flushBottom = false,
-    this.flushTop = false,
+    this.flush = false,
   });
 
   static const double margin = 16;
@@ -76,12 +68,9 @@ class FlatSection extends StatelessWidget {
         children: [
           if (label != null) FlatHeading(label!),
           Padding(
-            padding: EdgeInsets.only(
-              top: flushTop ? 0 : 14,
-              bottom: flushBottom ? 0 : 14,
-              left: bleed ? 0 : margin,
-              right: bleed ? 0 : margin,
-            ),
+            padding: flush
+                ? EdgeInsets.zero
+                : const EdgeInsets.symmetric(horizontal: margin, vertical: 14),
             child: child,
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/theme_spec.dart';
@@ -15,14 +16,17 @@ class JoinRequestBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final t = context.tokens;
     final name = request.fromUser.name.isNotEmpty
         ? request.fromUser.name
-        : 'A friend';
+        : copy.joinRequest.someone;
     final mp = context.read<MultiplayerProvider>();
 
+    // A panel with an orange rule under it, so the orange Accept button
+    // stands out from it.
     return Material(
-      color: cs.primaryContainer,
+      color: t.panel,
+      shape: Border(bottom: BorderSide(color: t.primary, width: 2)),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -30,17 +34,17 @@ class JoinRequestBanner extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                '🏋️',
-                style: TextStyle(fontSize: context.tokens.size.title),
+                copy.joinRequest.icon,
+                style: TextStyle(fontSize: t.size.title),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '$name wants to train with you',
+                  copy.joinRequest.wants.replaceAll('{name}', name),
                   style: TextStyle(
-                    color: cs.onPrimaryContainer,
-                    fontWeight: context.tokens.weight.bold,
-                    fontSize: context.tokens.size.body,
+                    color: t.text,
+                    fontWeight: t.weight.bold,
+                    fontSize: t.size.body,
                   ),
                 ),
               ),
@@ -48,15 +52,15 @@ class JoinRequestBanner extends StatelessWidget {
                 onPressed: () =>
                     mp.respondToJoinRequest(request.requestId, false),
                 child: Text(
-                  'Decline',
-                  style: TextStyle(color: cs.onPrimaryContainer),
+                  copy.joinRequest.decline,
+                  style: TextStyle(color: t.text),
                 ),
               ),
               const SizedBox(width: 4),
               FilledButton(
                 onPressed: () =>
                     mp.respondToJoinRequest(request.requestId, true),
-                child: const Text('Accept'),
+                child: Text(copy.joinRequest.accept),
               ),
             ],
           ),

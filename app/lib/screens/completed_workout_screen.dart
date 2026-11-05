@@ -195,9 +195,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
           children: [
             FlatSection(
               label: 'Session',
-              bleed: true,
-              flushTop: true,
-              flushBottom: true,
+              flush: true,
               child: FlatMetricGrid(
                 metrics: [
                   ('Duration', summary.durationLabel, null),
@@ -224,9 +222,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
             if (hasHeartRateChart)
               FlatSection(
                 label: 'Heart',
-                bleed: true,
-                flushTop: true,
-                flushBottom: true,
+                flush: true,
                 // The plot nearly edge to edge; its figures' grid all of it,
                 // ending the section.
                 child: HeartRateChart(

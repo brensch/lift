@@ -463,3 +463,148 @@ your_data:
   import_confirm_body: This phone's copy of your account is replaced by the file. Anything the server already has comes back when it syncs.
   import_confirm: Import
   import_cancel: Cancel
+
+# Ending a workout: the prompt the End workout button asks first.
+# Placeholders.
+end_workout_dialog:
+  title: End Workout?
+  body: This will end your current workout.
+  confirm: End Workout
+  cancel: Cancel
+
+# The exercise picker: the full-height sheet for adding lifts to a workout
+# or a template. Placeholders.
+exercise_picker:
+  title: Select exercises
+  search_hint: Search exercises…
+  # The first filter chip: every body part.
+  all: ALL
+  hide_machines: HIDE MACHINES
+  show_machines: SHOW MACHINES
+  empty: No exercises found
+  save: SAVE
+  # Asked when the sheet is closed with picks that weren't saved.
+  discard_title: Discard changes?
+  discard_body: Your selection has not been saved.
+  discard_confirm: Discard
+  discard_cancel: Keep editing
+
+# The live heart-rate chart on the workout screen. Placeholders.
+heart_rate:
+  title: HEART RATE
+  bpm: BPM
+  # Beside the zone: how the zones were worked out, from the heart-rate
+  # reserve (a resting heart rate is known) or from max heart rate.
+  zones_by_reserve: HRR
+  zones_by_max: "%MAX"
+  # The resting heart rate. {bpm} is substituted.
+  resting: "zzz {bpm}"
+  # The buttons that set how much time the live chart shows.
+  window_5m: 5m
+  window_10m: 10m
+
+# The banner at the top of the app when someone asks to train with you.
+# {name} is substituted. Placeholders.
+join_request:
+  icon: 🏋️
+  wants: "{name} wants to train with you"
+  # When the asker has no name.
+  someone: A friend
+  decline: Decline
+  accept: Accept
+
+# The multiplayer sheet: scan a friend's code, show yours, and ask people
+# you've trained with. {…} are substituted. Placeholders.
+multiplayer:
+  title: Multiplayer
+  scan: Scan
+  scan_prompt: Point at your friend’s code
+  scan_cancel: Cancel
+  share_link: Share link
+  # The text shared with the link. {url} is the invite link.
+  share_text: "Join my workout on Schlift: {url}"
+  in_session: In your session
+  friends: Friends
+  friends_body: People you’ve trained with. Tap Ask and they get a request to join your session.
+  friends_empty: No training partners yet. Do a session with someone (scan their code or open their link) and they’ll show up here to re-invite in one tap.
+  ask: Ask
+  asked: "Asked {name} to train. Waiting for them to accept"
+  # Under a friend's name: sessions together, then when you last trained.
+  sessions_one: 1 session
+  sessions: "{n} sessions"
+  recently: recently
+  today: today
+  yesterday: yesterday
+  days_ago: "{n} days ago"
+  weeks_ago: "{n}w ago"
+  months_ago: "{n}mo ago"
+
+# The side menu. Placeholders.
+menu:
+  workout: Workout
+  progress: Progress
+  history: History
+  learn: Learn
+  logout: Logout
+  settings: Settings
+  multiplayer: Multiplayer
+  # The watch button in the app bar, and what it says when tapped.
+  open_watch: Open watch app
+  watch_missing: No paired watch with Schlift installed
+  watch_already_open: Schlift is already open on your watch
+  watch_opening: Open Schlift on your wrist to connect
+
+# The log of done sets on the workout screen. {…} are substituted.
+# Placeholders.
+set_log:
+  heading: "Completed sets · {n}"
+  empty_title: NO SETS YET
+  empty_body: Get schlifting mate
+  delete_title: Delete Completed Set?
+  delete_body: "Remove set {weight} × {reps}? This cannot be undone."
+  delete_confirm: Delete
+  delete_cancel: Cancel
+
+# The plate sheet: what to load for a weight. Placeholders.
+plates:
+  plates: Plates
+  bar: Bar
+  total: Total
+  # Under Plates when nothing goes on the bar.
+  none: None
+  # In place of the bar for a weight under it.
+  dumbbells: Dumbbells
+  loading_order: Each side, in loading order
+
+# The sheet for changing a lift's weight and reps mid-workout. {…} are
+# substituted. Placeholders.
+adjust_weight:
+  body: "Changes {name} for the rest of this workout and for next time."
+  reps: Reps
+  save: SAVE
+  done: DONE
+  remove_tooltip: Remove from this workout
+  remove_title: "Remove {exercise}?"
+  remove_body: This will remove its remaining sets. Sets you already did stay.
+  remove_confirm: Remove
+  remove_cancel: Cancel
+
+# After a workout: offered when it was new (save it as a template) or
+# didn't match its template (update it). {…} are substituted. Placeholders.
+template_update:
+  new_title: Save as a template?
+  new_body: "Keep this session one tap away next time:"
+  new_confirm: Save template
+  new_decline: No thanks
+  update_title: "Update '{name}'?"
+  update_body: "This session did not match the template. Make the template match what you did:"
+  update_confirm: Update template
+  update_decline: Keep as is
+  name_label: Template name
+  name_hint: e.g. Push, Tuesday
+  save_failed: "Could not save: {error}"
+
+# A partner's workout, opened from their box in the bottom bar.
+# Placeholders.
+participant:
+  no_workout: No workout yet.
