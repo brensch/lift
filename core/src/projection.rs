@@ -105,6 +105,18 @@ CREATE TABLE IF NOT EXISTS workout_templates (
 );
 "#;
 
+/// Every table the two schemas create. An export drops them before writing
+/// them afresh, so a file that already has them (an account opened from an
+/// export, perhaps from an older build) is exported again cleanly.
+pub const READABLE_TABLES: &[&str] = &[
+    "workouts",
+    "proposed_sets",
+    "completed_sets",
+    "workout_heart_rate_samples",
+    "exercise_decisions",
+    "workout_templates",
+];
+
 /// A value to bind.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {

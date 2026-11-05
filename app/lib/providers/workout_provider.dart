@@ -274,6 +274,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String? get lastLoadError => _lastLoadError;
 
+  /// What the startup error screen's Retry runs: opening the account again
+  /// (set by the app shell), not just a load, since a load waits on an
+  /// account that may never have opened.
+  Future<void> Function()? onRetryStartup;
+
   /// The account couldn't be opened at all: shown as a failed load.
   void reportLoadError(Object error) {
     _lastLoadError = cleanErrorMessage(error);

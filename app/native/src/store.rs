@@ -18,7 +18,7 @@ use schlift_core::pb::{
     WorkoutHeartRatePoint,
 };
 use schlift_core::projection::{
-    account_export_statements, Statement, Value, ACCOUNT_SCHEMA, WORKOUT_SCHEMA,
+    account_export_statements, Statement, Value, ACCOUNT_SCHEMA, READABLE_TABLES, WORKOUT_SCHEMA,
 };
 
 const SCHEMA: &str = r#"
@@ -525,6 +525,10 @@ impl Store {
             .map_err(storage)?;
         let mut conn = Connection::open(dest).map_err(storage)?;
         let tx = conn.transaction().map_err(storage)?;
+        for table in READABLE_TABLES {
+            tx.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+                .map_err(storage)?;
+        }
         tx.execute_batch(&format!("{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
             .map_err(storage)?;
         for statement in account_export_statements(&self.user_id, &self.account) {
@@ -967,25 +971,78 @@ mod tests {
         let dest = temp("export");
         store.export(&dest).unwrap();
         assert_eq!(file_owner(&dest).unwrap(), (U1.into(), "una".into()));
-        let exported = Connection::open(&dest).unwrap();
-        let samples: i64 = exported
-            .query_row(
-                "SELECT COUNT(*) FROM workout_heart_rate_samples WHERE workout_id = ?",
-                [&started.id],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(samples, 3, "the export has the readable tables");
-        let in_rotation: i64 = exported
-            .query_row(
-                "SELECT in_rotation FROM workout_templates WHERE id = ?",
-                [&home.templates[0].id],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(in_rotation, i64::from(home.templates[0].in_rotation));
+        let readable = |path: &Path| {
+            let exported = Connection::open(path).unwrap();
+            let samples: i64 = exported
+                .query_row(
+                    "SELECT COUNT(*) FROM workout_heart_rate_samples WHERE workout_id = ?",
+                    [&started.id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(samples, 3, "the export has the readable tables");
+            let in_rotation: i64 = exported
+                .query_row(
+                    "SELECT in_rotation FROM workout_templates WHERE id = ?",
+                    [&home.templates[0].id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(in_rotation, i64::from(home.templates[0].in_rotation));
+        };
+        readable(&dest);
         let reopened = Store::open(&dest, U1, "").unwrap();
         assert_eq!(reopened.account, store.account);
+
+        // An account opened from an export exports again.
+        let again = temp("export-again");
+        reopened.export(&again).unwrap();
+        readable(&again);
+    }
+
+    #[test]
+    fn an_export_from_an_older_build_exports_again() {
+        let path = temp("older");
+        let mut store = Store::open(&path, U1, "una").unwrap();
+        let home = onboard(&mut store);
+        let started = start(&mut store, &home.templates[0].id);
+        end(&mut store, &started.id, 2_006);
+        drop(store);
+        // An older build's export: the readable tables without the columns
+        // added since.
+        Connection::open(&path)
+            .unwrap()
+            .execute_batch(
+                "CREATE TABLE completed_sets (user_id TEXT, id TEXT, PRIMARY KEY (user_id, id));
+                 CREATE TABLE workout_templates (id TEXT PRIMARY KEY, user_id TEXT);",
+            )
+            .unwrap();
+        let reopened = Store::open(&path, U1, "").unwrap();
+        let dest = temp("older-export");
+        reopened.export(&dest).unwrap();
+        let templates: i64 = Connection::open(&dest)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM workout_templates", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(templates, home.templates.len() as i64);
+    }
+
+    #[test]
+    fn readable_tables_names_every_exported_table() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(&format!("{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
+            .unwrap();
+        let mut created: Vec<String> = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        created.sort();
+        let mut listed: Vec<String> = READABLE_TABLES.iter().map(|t| t.to_string()).collect();
+        listed.sort();
+        assert_eq!(created, listed);
     }
 
     fn home(store: &mut Store) -> GetHomeResponse {
