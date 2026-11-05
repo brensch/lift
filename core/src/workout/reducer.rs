@@ -189,20 +189,13 @@ pub fn start_workout_response_from_active(
 /// "Skip all warmups": the exercise's undone warmups are marked skipped.
 /// Nothing is removed; they stay in the plan, nothing waits on them
 /// (`is_passed_warmup`), and doing one later still records it.
-pub fn apply_skip_warmups_to_active(
-    workout_ref: &mut WorkoutRecord,
-    req: &WarmupsSkipped,
-) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
+pub fn apply_skip_warmups_to_active(workout_ref: &mut WorkoutRecord, req: &WarmupsSkipped) {
     let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
         s.exercise == req.exercise && s.warmup && !s.cancelled && !done.contains(s.id.as_str())
     }) {
         set.skipped = true;
     }
-    Ok(())
 }
 
 /// Begin a set: the workout is LIFTING it until its Done. Open questions
@@ -210,13 +203,7 @@ pub fn apply_skip_warmups_to_active(
 /// started. Starting a set already being lifted keeps its first start;
 /// starting another moves the start; a done, cancelled or unknown set is a
 /// no-op.
-pub fn apply_start_set_to_active(
-    workout_ref: &mut WorkoutRecord,
-    req: &SetStarted,
-) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
+pub fn apply_start_set_to_active(workout_ref: &mut WorkoutRecord, req: &SetStarted) {
     let pending = workout_ref
         .proposed_sets
         .iter()
@@ -226,11 +213,10 @@ pub fn apply_start_set_to_active(
             .iter()
             .any(|c| c.proposed_set_id == req.proposed_set_id);
     if !pending || workout_ref.workout.lifting_set_id == req.proposed_set_id {
-        return Ok(());
+        return;
     }
     workout_ref.workout.lifting_set_id = req.proposed_set_id.clone();
     workout_ref.workout.lifting_started_at = req.started_at;
-    Ok(())
 }
 
 /// Log a set as done. A calibration rung settles there and then: it
@@ -240,10 +226,7 @@ pub fn apply_complete_set_to_active(
     req: &SetCompleted,
     unit: AppWeightUnit,
     ids: &mut Ids,
-) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
+) {
     // Done is idempotent: a set already logged is never logged twice (a
     // re-sent watch intent, a double tap that raced the snapshot).
     if workout_ref
@@ -251,7 +234,7 @@ pub fn apply_complete_set_to_active(
         .iter()
         .any(|c| c.proposed_set_id == req.proposed_set_id)
     {
-        return Ok(());
+        return;
     }
     let proposed = match workout_ref
         .proposed_sets
@@ -263,7 +246,7 @@ pub fn apply_complete_set_to_active(
         // Set gone (skipped/cancelled, or a stale/duplicate at-least-once intent). No-op
         // rather than erroring — erroring permanently desynced the watch. The next snapshot
         // reconciles the watch to the real state.
-        None => return Ok(()),
+        None => return,
     };
     let ended_at = req.completed_at;
     let is_final_set_of_exercise = is_final_set_of_exercise_after_completion(
@@ -297,7 +280,6 @@ pub fn apply_complete_set_to_active(
     if proposed.calibration {
         settle_rung(workout_ref, &completed_set_id, unit, ended_at);
     }
-    Ok(())
 }
 
 /// How long to rest after a set: its own rest, or the short
@@ -320,9 +302,6 @@ pub fn apply_edit_completed_set_to_active(
     unit: AppWeightUnit,
     at: i64,
 ) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
     if req.actual_reps < 0 {
         return Err(WorkoutError::FailedPrecondition("Reps out of range"));
     }
@@ -495,17 +474,14 @@ pub fn apply_answer_rung_to_active(
     req: &RungAnswered,
     unit: AppWeightUnit,
     at: i64,
-) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
+) {
     let ranged = req.reps_left != RepsLeft::Unspecified as i32;
     let jumped = req.jump_lb != 0.0;
     if ranged == jumped
         || (ranged && RepsLeft::try_from(req.reps_left).is_err())
         || rung_question(workout_ref).as_deref() != Some(req.proposed_set_id.as_str())
     {
-        return Ok(());
+        return;
     }
     let Some(done) = workout_ref
         .completed_sets
@@ -513,7 +489,7 @@ pub fn apply_answer_rung_to_active(
         .filter(|c| c.proposed_set_id == req.proposed_set_id && c.ended_at != 0)
         .max_by_key(|c| c.ended_at)
     else {
-        return Ok(());
+        return;
     };
     if jumped {
         let lifted = if done.actual_weight > 0.0 {
@@ -526,7 +502,7 @@ pub fn apply_answer_rung_to_active(
                 .map_or(0.0, |s| s.target_weight)
         };
         if !jump_in_range(req.jump_lb, lifted) {
-            return Ok(());
+            return;
         }
     }
     let Some(done) = workout_ref
@@ -535,13 +511,12 @@ pub fn apply_answer_rung_to_active(
         .filter(|c| c.proposed_set_id == req.proposed_set_id && c.ended_at != 0)
         .max_by_key(|c| c.ended_at)
     else {
-        return Ok(());
+        return;
     };
     done.reps_left = req.reps_left;
     done.jump_lb = req.jump_lb;
     let completed_set_id = done.id.clone();
     resettle_rung(workout_ref, &completed_set_id, unit, at);
-    Ok(())
 }
 
 /// The largest specific jump a rung's answer takes, as a fraction of the
@@ -758,13 +733,7 @@ fn heaviest_full_rung(
         })
 }
 
-pub fn apply_delete_completed_set_to_active(
-    workout_ref: &mut WorkoutRecord,
-    req: &SetUndone,
-) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != req.workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
+pub fn apply_delete_completed_set_to_active(workout_ref: &mut WorkoutRecord, req: &SetUndone) {
     let rung = rung_of(workout_ref, &req.completed_set_id);
     workout_ref
         .completed_sets
@@ -774,7 +743,6 @@ pub fn apply_delete_completed_set_to_active(
     if rung.is_some() {
         take_back_append(workout_ref, &req.completed_set_id);
     }
-    Ok(())
 }
 
 /// The ids of the sets a done set `completed_set_id` may append.
@@ -871,8 +839,7 @@ mod tests {
             },
             AppWeightUnit::Lb,
             &mut Ids::new(&Uuid::new_v4().to_string()),
-        )
-        .unwrap();
+        );
     }
 
     fn start(active: &mut WorkoutRecord, set_id: &str, at: i64) {
@@ -883,8 +850,7 @@ mod tests {
                 proposed_set_id: set_id.to_string(),
                 started_at: at,
             },
-        )
-        .unwrap();
+        );
     }
 
     // ── StartSet ────────────────────────────────────────────────────────────
@@ -965,25 +931,6 @@ mod tests {
         assert_eq!(c.proposed_set_id, "s1");
         assert_eq!(c.ended_at, 2_040);
         assert_eq!(c.actual_reps, 5);
-    }
-
-    #[test]
-    fn complete_set_rejects_the_wrong_workout() {
-        let mut active = active_with(vec![proposed("s1", 0, false)]);
-        let err = apply_complete_set_to_active(
-            &mut active,
-            &SetCompleted {
-                workout_id: "other".to_string(),
-                proposed_set_id: "s1".to_string(),
-                actual_reps: 5,
-                actual_weight: 135.0,
-                completed_at: 2_000,
-            },
-            AppWeightUnit::Lb,
-            &mut Ids::new(&Uuid::new_v4().to_string()),
-        );
-        assert!(err.is_err());
-        assert!(active.completed_sets.is_empty());
     }
 
     #[test]
@@ -1088,8 +1035,7 @@ mod tests {
                 workout_id: "w1".to_string(),
                 exercise: 1,
             },
-        )
-        .unwrap();
+        );
         let by_id = |id: &str| active.proposed_sets.iter().find(|p| p.id == id).unwrap();
         assert!(!by_id("w1").skipped, "a done warmup isn't skipped");
         assert!(by_id("w2").skipped);
@@ -1142,8 +1088,7 @@ mod tests {
                 workout_id: "w1".to_string(),
                 completed_set_id: completed_id,
             },
-        )
-        .unwrap();
+        );
 
         assert!(active.completed_sets.is_empty());
         let snap = workout_state_snapshot(
@@ -1917,8 +1862,7 @@ mod tests {
                 workout_id: "w1".to_string(),
                 completed_set_id: done,
             },
-        )
-        .unwrap();
+        );
         assert_eq!(squat_plan(&active), Vec::<(f32, bool)>::new());
         assert!(causes(&active).is_empty(), "and its log entry");
         complete(&mut active, "c1", 5, 2_100);
@@ -1953,8 +1897,7 @@ mod tests {
             },
             unit,
             3_000,
-        )
-        .unwrap();
+        );
     }
 
     /// A specific jump: the next rung is the rung plus it, snapped to
