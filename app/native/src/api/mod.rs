@@ -55,8 +55,9 @@ pub fn opens_after(handle: u32) -> StoreResult<i64> {
     with_store(handle, |store| store.opens_after())
 }
 
-/// Bring in the export at `path`: what in it the file lacks waits to be
-/// placed; nothing is removed. Returns how many events it added.
+/// Bring in the export at `path`: what in it the file lacks is added, in
+/// its places where its history carries on from the file's, otherwise to
+/// wait to be placed; nothing is removed. Returns how many events it added.
 pub fn import_file(handle: u32, path: String) -> StoreResult<i64> {
     with_store(handle, |store| {
         store.import(&PathBuf::from(path)).map(|added| added as i64)
