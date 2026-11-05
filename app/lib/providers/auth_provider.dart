@@ -12,6 +12,28 @@ import '../services/health_service.dart';
 import '../services/user_service.dart';
 import '../logic/utils.dart';
 
+/// What a body-weight sync from Health came to.
+sealed class BodyWeightSync {
+  const BodyWeightSync();
+}
+
+/// The profile holds Health's latest body weight, [kg].
+final class BodyWeightSynced extends BodyWeightSync {
+  final double kg;
+  const BodyWeightSynced(this.kg);
+}
+
+/// Health has no body weight.
+final class BodyWeightNotInHealth extends BodyWeightSync {
+  const BodyWeightNotInHealth();
+}
+
+/// Not synced: signed out of the server, another sync running, or the
+/// profile update failed.
+final class BodyWeightSyncFailed extends BodyWeightSync {
+  const BodyWeightSyncFailed();
+}
+
 class AuthProvider extends ChangeNotifier {
   static const _sessionTokenKey = 'liftSessionToken';
   static const _userIdKey = 'liftUserId';
@@ -40,7 +62,6 @@ class AuthProvider extends ChangeNotifier {
 
   String? get userId => _userId;
   String? get username => _username;
-  String? get sessionToken => _sessionToken;
   String get profileEmoji => _profileEmoji;
   String get profileColorHex => _profileColorHex;
   double get bodyWeightKg => _bodyWeightKg;
@@ -92,7 +113,7 @@ class AuthProvider extends ChangeNotifier {
       await _saveSession(response);
     } catch (e) {
       if (e is! PasskeyAuthCancelledException) {
-        _error = _formatError(e);
+        _error = formatAuthError(e);
       }
     } finally {
       _isLoading = false;
@@ -110,7 +131,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _authService.testLogin(username);
       await _saveSession(response);
     } catch (e) {
-      _error = _formatError(e);
+      _error = formatAuthError(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -130,7 +151,7 @@ class AuthProvider extends ChangeNotifier {
       // Cancellation is user-initiated (or the OS dismissed the sheet) — clear
       // silently so the button just becomes tappable again without an error.
       if (e is! PasskeyAuthCancelledException) {
-        _error = _formatError(e);
+        _error = formatAuthError(e);
       }
     } finally {
       _isLoading = false;
@@ -138,17 +159,16 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Signs out of this phone at once; the server is told after, best
+  /// effort, so a bad connection doesn't hold it up.
   Future<void> logout() async {
-    if (_sessionToken != null) {
-      try {
-        await _authService.logout(_sessionToken!);
-      } catch (_) {}
-    }
+    final token = _sessionToken;
     _sessionToken = null;
     _userId = null;
     _username = null;
     _profileEmoji = defaultProfileEmoji;
     _profileColorHex = defaultProfileColorHex;
+    _bodyWeightKg = 0;
     _grpcClient.setToken(null);
 
     final prefs = await SharedPreferences.getInstance();
@@ -156,6 +176,10 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove(_userIdKey);
     await prefs.remove(_usernameKey);
     notifyListeners();
+
+    if (token != null) {
+      unawaited(_authService.logout(token).catchError((Object _) {}));
+    }
   }
 
   /// The server no longer accepts this phone's session: sign in again to
@@ -197,6 +221,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   bool _profileRefreshRetryScheduled = false;
+  int _profileRefreshFailures = 0;
 
   Future<void> refreshProfile({bool notify = true}) async {
     final userId = _userId;
@@ -209,7 +234,7 @@ class AuthProvider extends ChangeNotifier {
       _profileEmoji = normalizedProfileEmoji(user.profileEmoji);
       _profileColorHex = normalizedProfileColorHex(user.profileColorHex);
       _bodyWeightKg = user.bodyWeightKg.toDouble();
-      _profileRefreshRetryScheduled = false;
+      _profileRefreshFailures = 0;
       if (notify) {
         notifyListeners();
       }
@@ -224,7 +249,7 @@ class AuthProvider extends ChangeNotifier {
   void _scheduleProfileRetry() {
     if (_profileRefreshRetryScheduled) return;
     _profileRefreshRetryScheduled = true;
-    Timer(const Duration(seconds: 5), () {
+    Timer(retryDelay(_profileRefreshFailures++), () {
       _profileRefreshRetryScheduled = false;
       refreshProfile();
     });
@@ -246,14 +271,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<double?> syncBodyWeightFromHealth() async {
-    if (_bodyWeightHealthSyncInFlight || _sessionToken == null) return null;
+  Future<BodyWeightSync> syncBodyWeightFromHealth() async {
+    if (_bodyWeightHealthSyncInFlight || _sessionToken == null) {
+      return const BodyWeightSyncFailed();
+    }
     _bodyWeightHealthSyncInFlight = true;
     try {
       // Compare against the server's body weight, not the 0 we start with.
       await _initialProfileLoad;
       final importedKg = await HealthService.readLatestBodyWeightKg();
-      if (importedKg == null || importedKg <= 0) return null;
+      if (importedKg == null || importedKg <= 0) {
+        return const BodyWeightNotInHealth();
+      }
 
       final changed = (_bodyWeightKg - importedKg).abs() >= 0.05;
       if (!changed) {
@@ -261,7 +290,7 @@ class AuthProvider extends ChangeNotifier {
           'reason': 'unchanged',
           'bodyWeightKg': importedKg,
         });
-        return importedKg;
+        return BodyWeightSynced(importedKg);
       }
 
       final user = await UserServiceWrapper(
@@ -272,12 +301,12 @@ class AuthProvider extends ChangeNotifier {
         'bodyWeightKg': _bodyWeightKg,
       });
       notifyListeners();
-      return _bodyWeightKg;
+      return BodyWeightSynced(_bodyWeightKg);
     } catch (e) {
       AppLogger.instance.warn('Auth', 'bodyweight sync failed', {
         'error': e.toString(),
       });
-      return null;
+      return const BodyWeightSyncFailed();
     } finally {
       _bodyWeightHealthSyncInFlight = false;
     }
@@ -292,14 +321,16 @@ class AuthProvider extends ChangeNotifier {
     _error = message;
     notifyListeners();
   }
+}
 
-  static String _formatError(Object e) {
-    if (e is AuthenticatorException) {
-      return formatPasskeyError(e);
-    }
-    if (e is PlatformException) {
-      return formatPlatformError(e);
-    }
-    return cleanErrorMessage(e);
+/// An auth failure as the user reads it: a passkey's or the platform's
+/// error with its code, a server error's own message.
+String formatAuthError(Object e) {
+  if (e is AuthenticatorException) {
+    return formatPasskeyError(e);
   }
+  if (e is PlatformException) {
+    return formatPlatformError(e);
+  }
+  return cleanErrorMessage(e);
 }

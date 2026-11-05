@@ -7,6 +7,7 @@ import '../gen/workout/v1/settings.pb.dart';
 import '../logic/weight_units.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/workout_provider.dart';
 
 import '../services/account_sync.dart';
 import '../services/grpc_client.dart';
@@ -23,54 +24,54 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final auth = context.watch<AuthProvider>();
+    final c = copy.settings;
     final unitLabel = isMetricUnit(settings.weightUnit)
-        ? 'Kilograms (🌍)'
-        : 'Pounds (🦅)';
+        ? c.kilograms
+        : c.pounds;
     final bodyWeightLabel = auth.bodyWeightKg > 0
-        ? isMetricUnit(settings.weightUnit)
-              ? '${auth.bodyWeightKg.toStringAsFixed(1)} kg'
-              : '${kilogramsToPounds(auth.bodyWeightKg).toStringAsFixed(1)} lb'
-        : 'Not set';
+        ? _bodyWeightText(auth.bodyWeightKg, settings.weightUnit)
+        : c.bodyWeightNotSet;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(AppIcons.back),
           onPressed: () => context.go('/'),
         ),
-        title: PageTitle('Settings'),
+        title: PageTitle(c.title),
       ),
       body: ListView(
         // A pixel on top: room for the first heading band's top line.
         padding: const EdgeInsets.only(top: 1, bottom: 24),
         children: [
-          const FlatHeading('You'),
+          FlatHeading(c.youHeading),
           FlatRow(
             icon: AppIcons.bodyWeight,
-            label: 'Body weight',
+            label: c.bodyWeight,
             subtitle: bodyWeightLabel,
             trailing: IconButton(
               icon: const Icon(AppIcons.refresh),
-              tooltip: 'Sync from health data',
-              onPressed: () => _syncBodyWeightFromHealth(context, auth),
+              tooltip: c.bodyWeightSync,
+              onPressed: () =>
+                  _syncBodyWeightFromHealth(context, auth, settings.weightUnit),
             ),
             onTap: () => _showBodyWeightPicker(context, auth, settings),
           ),
           FlatRow(
             icon: AppIcons.weightUnit,
-            label: 'Weight unit',
+            label: c.weightUnit,
             subtitle: unitLabel,
             onTap: () => _showWeightUnitPicker(context, settings),
           ),
           FlatRow(
             icon: AppIcons.palette,
-            label: 'Plate colours',
-            subtitle: 'Assign colours to plate weights',
+            label: c.plateColours,
+            subtitle: c.plateColoursSub,
             onTap: () => context.push('/settings/plate-colors'),
           ),
-          const FlatHeading('Account'),
+          FlatHeading(c.accountHeading),
           FlatRow(
             icon: AppIcons.cloud,
-            label: 'Sync',
+            label: c.sync,
             subtitle: _syncLabel(context.watch<AccountSync>()),
           ),
           FlatRow(
@@ -81,34 +82,34 @@ class SettingsScreen extends StatelessWidget {
           ),
           FlatRow(
             icon: AppIcons.key,
-            label: 'Passkeys',
-            subtitle: 'Manage your login credentials',
+            label: c.passkeys,
+            subtitle: c.passkeysSub,
             onTap: () => context.push('/passkeys'),
           ),
-          const FlatHeading('Sounds'),
+          FlatHeading(c.soundsHeading),
           FlatRow(
             icon: AppIcons.notifications,
-            label: 'Pick sound',
-            subtitle: 'Choose notification sound',
+            label: c.sound,
+            subtitle: c.soundSub,
             onTap: () => context.push('/sound-settings'),
           ),
-          const FlatHeading('Behind the scenes'),
+          FlatHeading(c.behindHeading),
           FlatRow(
             icon: AppIcons.debug,
-            label: 'Debug',
-            subtitle: 'Notification debugging',
+            label: c.debug,
+            subtitle: c.debugSub,
             onTap: () => context.push('/debug-notifications'),
           ),
           FlatRow(
             icon: AppIcons.article,
-            label: 'App Logs',
-            subtitle: 'View and share diagnostic logs',
+            label: c.logs,
+            subtitle: c.logsSub,
             onTap: () => context.push('/debug-logs'),
           ),
           FlatRow(
             icon: AppIcons.info,
-            label: 'Build info',
-            subtitle: 'Version, device, and watch details',
+            label: c.buildInfo,
+            subtitle: c.buildInfoSub,
             onTap: () => context.push('/build-info'),
           ),
         ],
@@ -118,13 +119,18 @@ class SettingsScreen extends StatelessWidget {
 
   /// Where the server's copy of the account is up to.
   static String _syncLabel(AccountSync sync) {
+    final c = copy.settings;
     final waiting = sync.unsynced;
-    if (sync.connected) {
-      return waiting == 0 ? 'Up to date' : 'Sending $waiting changes';
-    }
-    return waiting == 0
-        ? 'Offline, nothing waiting'
-        : 'Offline, $waiting changes waiting';
+    final label = sync.connected
+        ? (waiting == 0 ? c.syncUpToDate : c.syncSending)
+        : (waiting == 0 ? c.syncOffline : c.syncOfflineWaiting);
+    return label.replaceAll('{n}', '$waiting');
+  }
+
+  /// A body weight in the unit the user picked: "81.2 kg", "179.0 lb".
+  static String _bodyWeightText(double kg, WeightUnit unit) {
+    final value = isMetricUnit(unit) ? kg : kilogramsToPounds(kg);
+    return '${value.toStringAsFixed(1)} ${weightUnitSuffix(unit)}';
   }
 
   /// Open one of the full-screen reading pages over everything.
@@ -157,7 +163,7 @@ class SettingsScreen extends StatelessWidget {
       debugPrint('Body weight save failed: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save body weight')),
+          SnackBar(content: Text(copy.settings.bodyWeightSaveFailed)),
         );
       }
     }
@@ -166,23 +172,20 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _syncBodyWeightFromHealth(
     BuildContext context,
     AuthProvider auth,
+    WeightUnit unit,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-    final syncedKg = await auth.syncBodyWeightFromHealth();
+    final synced = await auth.syncBodyWeightFromHealth();
     if (!context.mounted) return;
-    if (syncedKg != null && syncedKg > 0) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Synced body weight to ${syncedKg.toStringAsFixed(1)} kg',
-          ),
-        ),
-      );
-    } else {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('No body weight found in health data')),
-      );
-    }
+    final message = switch (synced) {
+      BodyWeightSynced(:final kg) => copy.settings.bodyWeightSynced.replaceAll(
+        '{weight}',
+        _bodyWeightText(kg, unit),
+      ),
+      BodyWeightNotInHealth() => copy.settings.bodyWeightNotFound,
+      BodyWeightSyncFailed() => copy.settings.bodyWeightSyncFailed,
+    };
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showWeightUnitPicker(
@@ -204,16 +207,16 @@ class SettingsScreen extends StatelessWidget {
             children: [
               AppTheme.sheetHandle(context),
               ListTile(
-                title: const Text('Pounds (🦅)'),
-                subtitle: const Text('Standard US gym loading'),
+                title: Text(copy.settings.pounds),
+                subtitle: Text(copy.settings.poundsSub),
                 trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_LB
                     ? const Icon(AppIcons.check)
                     : null,
                 onTap: () => Navigator.pop(context, WeightUnit.WEIGHT_UNIT_LB),
               ),
               ListTile(
-                title: const Text('Kilograms (🌍)'),
-                subtitle: const Text('Standard international gym loading'),
+                title: Text(copy.settings.kilograms),
+                subtitle: Text(copy.settings.kilogramsSub),
                 trailing: settings.weightUnit == WeightUnit.WEIGHT_UNIT_KG
                     ? const Icon(AppIcons.check)
                     : null,
@@ -226,6 +229,8 @@ class SettingsScreen extends StatelessWidget {
     );
     if (choice != null) {
       await settings.updateWeightUnit(choice);
+      // The core plans in the account's unit: replan home in the new one.
+      if (context.mounted) await context.read<WorkoutProvider>().refreshHome();
     }
   }
 }
@@ -269,7 +274,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
   }
 
   Future<void> _save() async {
-    final raw = double.tryParse(_controller.text.trim());
+    final raw = parseDisplayWeight(_controller.text);
     if (raw == null || raw <= 0) {
       Navigator.pop(context);
       return;
@@ -285,7 +290,6 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isKg = isMetricUnit(widget.weightUnit);
     final cs = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return SafeArea(
@@ -300,7 +304,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
             children: [
               Center(child: AppTheme.sheetHandle(context, inset: 20)),
               Text(
-                'Body weight',
+                copy.settings.bodyWeight,
                 style: TextStyle(
                   fontSize: context.tokens.size.subtitle,
                   fontWeight: context.tokens.weight.heavy,
@@ -308,7 +312,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Used to estimate calories burned. Stored on your profile.',
+                copy.settings.bodyWeightBody,
                 style: TextStyle(
                   fontSize: context.tokens.size.body,
                   color: cs.onSurface.withValues(alpha: 0.6),
@@ -321,9 +325,9 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
                   decimal: true,
                 ),
                 decoration: InputDecoration(
-                  suffixText: isKg ? 'kg' : 'lb',
+                  suffixText: weightUnitSuffix(widget.weightUnit),
                   border: const OutlineInputBorder(),
-                  labelText: 'Weight',
+                  labelText: copy.settings.bodyWeightField,
                 ),
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _save(),
@@ -335,7 +339,7 @@ class _BodyWeightBottomSheetState extends State<_BodyWeightBottomSheet> {
                 child: FilledButton(
                   onPressed: _save,
                   child: Text(
-                    'SAVE',
+                    copy.settings.save,
                     style: TextStyle(fontWeight: context.tokens.weight.heavy),
                   ),
                 ),

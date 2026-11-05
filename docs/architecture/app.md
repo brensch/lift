@@ -13,7 +13,7 @@ graph TD
     widgets["widgets/<br/>reusable UI components"]
     providers["providers/<br/>app state — ChangeNotifier"]
     services["services/<br/>the core doorway, sync, transport, platform"]
-    logic["logic/<br/>pure functions, no Flutter imports"]
+    logic["logic/<br/>display helpers, no widgets or platform I/O"]
     gen["gen/<br/>generated protobuf + flutter_rust_bridge — do not edit"]
     native["app/native (Rust)<br/>Store + core"]
 
@@ -37,9 +37,11 @@ The rules that matter:
   answer; Dart only words the reasons (`logic/plan_text.dart`) and the
   suggestion's reason, the rotation check's warnings and what a workout
   would add (`logic/rotation_text.dart`).
-- **`logic/` must not import Flutter.** It is display-side helpers only —
-  plate maths for the bar picture, unit formatting, grouping sets into
-  exercise blocks — testable without a widget harness.
+- **`logic/` has no widgets and no platform I/O.** It is display-side
+  helpers only — plate maths for the bar picture, unit formatting, grouping
+  sets into exercise blocks, profile colours, error wording — testable
+  without a widget harness. Anything that plays sound, reads preferences or
+  touches files is a service.
 
 ## The core on the phone
 
@@ -220,8 +222,8 @@ template editor.
 
 Settings → Your data (`YourDataScreen`) has both ways a copy moves: Export
 shares the account file whole, gzipped (`schlift-<name>-<day>.sqlite.gz`),
-and Import a file replaces this phone's copy with an export of the same
-account, gzipped or not. Each shows what it's doing while it does it. On the login screen, "Open an account file" opens an export with
+and Import a file adds to this phone's copy whatever an export of the same
+account (gzipped or not) has that it lacks, removing nothing. Each shows what it's doing while it does it. On the login screen, "Open an account file" opens an export with
 no server at all; signing in later lets it sync again (see
 [auth.md](auth.md#the-account-and-the-server-session)).
 
@@ -328,7 +330,7 @@ it is specific to one screen; otherwise it lives with its screen.
   in-memory account. Build it first: `make test-app` does
   `cargo build -p schlift_native` then `flutter test`.
 - `test/logic/` — the display helpers: plate calculator, weight units,
-  exercise blocks, plan wording, starting weights.
+  exercise blocks, plan wording, rotation text, session state, utils.
 - `test/screenshots/` — real screens at phone size; see
   [`docs/testing/app-harness.md`](../testing/app-harness.md).
 - `test/grpc_recovery_test.dart` — channel reset/retry behaviour.

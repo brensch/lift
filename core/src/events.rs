@@ -100,6 +100,45 @@ impl<'de> Deserialize<'de> for Event {
     }
 }
 
+impl Event {
+    /// The workout the event is about: one it starts (the event's own id)
+    /// or one its fact names.
+    pub fn workout_id(&self) -> Option<&str> {
+        match self.fact {
+            Fact::WorkoutStarted(_) => Some(&self.id),
+            _ => self.fact.workout_id(),
+        }
+    }
+
+    /// Whether the event, stored, reads back. One holding a non-finite
+    /// number (NaN, infinity, or a JSON number past f32's range, which
+    /// reads as infinity) is written as `null` and never reads again, so
+    /// every read of the account would fail: it must not be recorded or
+    /// stored.
+    pub fn reads_back(&self) -> bool {
+        serde_json::to_string(self).is_ok_and(|json| serde_json::from_str::<Event>(&json).is_ok())
+    }
+
+    /// Whether the plans it holds are ones an app could have made, by a wide
+    /// margin (a workout has each lift once; an override asks for at most 20
+    /// sets; no history leads past a few thousand pounds). Folding costs grow
+    /// with what a plan holds, and a pushed event is folded on the server and
+    /// on every partner's phone, so the server takes no more than this.
+    pub fn plans_are_sane(&self) -> bool {
+        let sane = |decisions: &[ExerciseDecision]| {
+            decisions.len() <= 100
+                && decisions
+                    .iter()
+                    .all(|d| d.sets <= 100 && d.weight.abs() <= 100_000.0)
+        };
+        match &self.fact {
+            Fact::WorkoutStarted(started) => sane(&started.decisions),
+            Fact::ExercisesAdded(added) => sane(&added.decisions),
+            _ => true,
+        }
+    }
+}
+
 /// A fact of a kind this version doesn't know, as it came.
 #[derive(Clone, Debug, PartialEq)]
 pub struct UnknownFact {
@@ -358,7 +397,7 @@ impl HeartRateRecorded {
         Some(
             gaps.zip(&self.bpm)
                 .map(|(gap, &bpm)| {
-                    at += i64::from(gap);
+                    at = at.saturating_add(i64::from(gap));
                     WorkoutHeartRatePoint {
                         sampled_at: at,
                         bpm: f32::from(bpm),

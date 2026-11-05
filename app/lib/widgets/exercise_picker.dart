@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../gen/copy.dart';
 import '../gen/workout/v1/workout.pb.dart' show ExercisePlan;
 import '../gen/workout/v1/workout.pbenum.dart';
 import '../logic/exercises.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
+import 'dialogs/confirm_dialog.dart';
 import 'exercise_graphic.dart';
 import '../theme/app_icons.dart';
 
@@ -31,9 +33,11 @@ Future<void> showExercisePicker({
     routeSettings: const RouteSettings(name: 'sheet/exercise-picker'),
     isScrollControlled: true,
     useRootNavigator: true,
-    // Dismissal goes through the X so unsaved changes can ask first.
+    // The sheet's own drag would pop without asking, so it is off: dragging
+    // the list, handle or header down to the sheet's smallest size closes it
+    // instead, through _close, which asks first when there are changes.
     isDismissible: true,
-    enableDrag: true,
+    enableDrag: false,
     backgroundColor: Colors.transparent,
     builder: (ctx) => _ExercisePickerSheet(
       initialSelected: initialSelected,
@@ -98,6 +102,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
   @override
   void dispose() {
     _searchController.dispose();
+    _sheet.dispose();
     super.dispose();
   }
 
@@ -159,27 +164,36 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
       Navigator.pop(context);
       return;
     }
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Discard changes?',
-          style: TextStyle(fontWeight: context.tokens.weight.heavy),
-        ),
-        content: const Text('Your selection has not been saved.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Keep editing'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Discard'),
-          ),
-        ],
-      ),
+    final discard = await confirmDialog(
+      context,
+      title: copy.exercisePicker.discardTitle,
+      body: copy.exercisePicker.discardBody,
+      confirm: copy.exercisePicker.discardConfirm,
+      cancel: copy.exercisePicker.discardCancel,
     );
-    if (discard == true && mounted) Navigator.pop(context);
+    if (discard && mounted) Navigator.pop(context);
+  }
+
+  final _sheet = DraggableScrollableController();
+
+  /// The handle and header move the sheet as the list does, so a drag on
+  /// them down to the smallest size closes it through [_onExtent] too.
+  void _dragSheet(BuildContext context, DragUpdateDetails details) {
+    final height = MediaQuery.sizeOf(context).height;
+    _sheet.jumpTo(
+      (_sheet.size - details.primaryDelta! / height).clamp(0.5, 0.95),
+    );
+  }
+
+  /// Whether the sheet is held at its smallest size, so a drag that keeps
+  /// it there asks once rather than on every frame.
+  bool _atMinExtent = false;
+
+  bool _onExtent(DraggableScrollableNotification n) {
+    final atMin = n.extent <= n.minExtent + 0.001;
+    if (atMin && !_atMinExtent) unawaited(_close());
+    _atMinExtent = atMin;
+    return false;
   }
 
   @override
@@ -193,148 +207,162 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _close();
       },
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) {
-          return Container(
-            decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
-            child: Column(
-              children: [
-                // grab handle
-                AppTheme.sheetHandle(context),
-                // header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Select exercises',
-                          style: TextStyle(
-                            fontSize: context.tokens.size.subtitle,
-                            fontWeight: context.tokens.weight.heavy,
-                            letterSpacing: -0.3,
+      child: NotificationListener<DraggableScrollableNotification>(
+        onNotification: _onExtent,
+        child: DraggableScrollableSheet(
+          controller: _sheet,
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          shouldCloseOnMinExtent: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(color: AppTheme.sheetColor(context)),
+              child: Column(
+                children: [
+                  // grab handle and header: dragging them moves the sheet
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onVerticalDragUpdate: (d) => _dragSheet(context, d),
+                    child: Column(
+                      children: [
+                        AppTheme.sheetHandle(context),
+                        // header
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  copy.exercisePicker.title,
+                                  style: TextStyle(
+                                    fontSize: context.tokens.size.subtitle,
+                                    fontWeight: context.tokens.weight.heavy,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                // search: on the same 20 inset as the filters and the list
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search exercises…',
-                      prefixIcon: const Icon(AppIcons.search, size: 20),
-                      isDense: true,
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.3,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: context.tokens.brSm,
-                        borderSide: BorderSide(color: colorScheme.outline),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
+                      ],
                     ),
                   ),
-                ),
-                // body-part filters
-                SizedBox(
-                  height: 40,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      _FilterChip(
-                        label: 'ALL',
-                        color: colorScheme.primary,
-                        selected: _filter == null,
-                        onTap: () => setState(() => _filter = null),
-                      ),
-                      for (final part in BodyPart.values)
-                        _FilterChip(
-                          label: bodyPartLabels[part]!.toUpperCase(),
-                          color: bodyPartColor(context, part),
-                          selected: _filter == part,
-                          // In its colour, like the tags on the rows below.
-                          alwaysOutlined: true,
-                          onTap: () => setState(
-                            () => _filter = _filter == part ? null : part,
-                          ),
-                        ),
-                      if (_equipment != null)
-                        _FilterChip(
-                          label: _showMachines
-                              ? 'HIDE MACHINES'
-                              : 'SHOW MACHINES',
-                          color: colorScheme.tertiary,
-                          selected: _showMachines,
-                          onTap: () => _setShowMachines(!_showMachines),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                // list
-                Expanded(
-                  child: filtered.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No exercises found',
-                            style: TextStyle(color: colorScheme.outline),
-                          ),
-                        )
-                      : ListView.separated(
-                          controller: scrollController,
-                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                          itemCount: filtered.length,
-                          separatorBuilder: (_, __) => Divider(
-                            height: 1,
-                            color: colorScheme.outline.withValues(alpha: 0.15),
-                          ),
-                          itemBuilder: (context, i) {
-                            final info = filtered[i];
-                            return _ExerciseRow(
-                              info: info,
-                              selected: _selected.contains(info.exercise),
-                              onTap: () => _toggle(info.exercise),
-                            );
-                          },
-                        ),
-                ),
-                SafeArea(
-                  top: false,
-                  child: Padding(
+                  // search: on the same 20 inset as the filters and the list
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: FilledButton(
-                        onPressed: _dirty ? _save : null,
-                        child: Text(
-                          'SAVE',
-                          style: TextStyle(
-                            fontSize: context.tokens.size.bodyLg,
-                            fontWeight: context.tokens.weight.heavy,
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: copy.exercisePicker.searchHint,
+                        prefixIcon: const Icon(AppIcons.search, size: 20),
+                        isDense: true,
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                        border: OutlineInputBorder(
+                          borderRadius: context.tokens.brSm,
+                          borderSide: BorderSide(color: colorScheme.outline),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // body-part filters
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children: [
+                        _FilterChip(
+                          label: copy.exercisePicker.all,
+                          color: colorScheme.primary,
+                          selected: _filter == null,
+                          onTap: () => setState(() => _filter = null),
+                        ),
+                        for (final part in BodyPart.values)
+                          _FilterChip(
+                            label: bodyPartLabels[part]!.toUpperCase(),
+                            color: bodyPartColor(context, part),
+                            selected: _filter == part,
+                            // In its colour, like the tags on the rows below.
+                            alwaysOutlined: true,
+                            onTap: () => setState(
+                              () => _filter = _filter == part ? null : part,
+                            ),
+                          ),
+                        if (_equipment != null)
+                          _FilterChip(
+                            label: _showMachines
+                                ? copy.exercisePicker.hideMachines
+                                : copy.exercisePicker.showMachines,
+                            color: colorScheme.tertiary,
+                            selected: _showMachines,
+                            onTap: () => _setShowMachines(!_showMachines),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // list
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text(
+                              copy.exercisePicker.empty,
+                              style: TextStyle(color: colorScheme.outline),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => Divider(
+                              height: 1,
+                              color: colorScheme.outline.withValues(
+                                alpha: 0.15,
+                              ),
+                            ),
+                            itemBuilder: (context, i) {
+                              final info = filtered[i];
+                              return _ExerciseRow(
+                                info: info,
+                                selected: _selected.contains(info.exercise),
+                                onTap: () => _toggle(info.exercise),
+                              );
+                            },
+                          ),
+                  ),
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: FilledButton(
+                          onPressed: _dirty ? _save : null,
+                          child: Text(
+                            copy.exercisePicker.save,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.bodyLg,
+                              fontWeight: context.tokens.weight.heavy,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

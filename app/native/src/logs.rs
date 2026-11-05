@@ -7,6 +7,7 @@ use std::path::Path;
 
 use rusqlite::{params, Connection, OptionalExtension};
 
+use crate::api::logs::{KeptLogLine, LogLine};
 use crate::store::StoreResult;
 
 /// The most the debug and info entries hold between them, in bytes of tag,
@@ -29,25 +30,6 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 CREATE INDEX IF NOT EXISTS logs_level ON logs(level, id);
 ";
-
-/// One entry, as the app logged it.
-pub struct LogRecord {
-    pub at_ms: i64,
-    pub level: i32,
-    pub tag: String,
-    pub message: String,
-    pub fields: String,
-}
-
-/// One entry as kept, with its place in the log.
-pub struct StoredLog {
-    pub id: i64,
-    pub at_ms: i64,
-    pub level: i32,
-    pub tag: String,
-    pub message: String,
-    pub fields: String,
-}
 
 pub struct LogStore {
     conn: Connection,
@@ -78,7 +60,7 @@ impl LogStore {
     }
 
     /// Keep `records`, then drop the oldest debug and info past the budget.
-    pub fn append(&mut self, records: Vec<LogRecord>) -> StoreResult<()> {
+    pub fn append(&mut self, records: Vec<LogLine>) -> StoreResult<()> {
         let tx = self.conn.transaction().map_err(storage)?;
         for r in &records {
             let size = (r.tag.len() + r.message.len() + r.fields.len()) as i64;
@@ -126,9 +108,15 @@ impl LogStore {
         text: &str,
         before: i64,
         limit: u32,
-    ) -> StoreResult<Vec<StoredLog>> {
+    ) -> StoreResult<Vec<KeptLogLine>> {
         let before = if before > 0 { before } else { i64::MAX };
-        let pattern = format!("%{}%", text.replace('%', "\\%").replace('_', "\\_"));
+        // The escape character itself first, or a `\` in the search (JSON
+        // fields hold plenty) would escape whatever follows it.
+        let escaped = text
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_");
+        let pattern = format!("%{escaped}%");
         let mut query = self
             .conn
             .prepare_cached(
@@ -143,7 +131,7 @@ impl LogStore {
             .map_err(storage)?;
         let rows = query
             .query_map(params![min_level, before, tag, text, pattern, limit], |r| {
-                Ok(StoredLog {
+                Ok(KeptLogLine {
                     id: r.get(0)?,
                     at_ms: r.get(1)?,
                     level: r.get(2)?,
@@ -169,8 +157,8 @@ impl LogStore {
 mod tests {
     use super::*;
 
-    fn record(level: i32, message: &str) -> LogRecord {
-        LogRecord {
+    fn record(level: i32, message: &str) -> LogLine {
+        LogLine {
             at_ms: 1,
             level,
             tag: "t".into(),
@@ -212,24 +200,29 @@ mod tests {
         logs.append(vec![
             record(0, "one"),
             record(1, "two"),
-            LogRecord {
+            LogLine {
                 tag: "gRPC".into(),
                 ..record(3, "three 100%")
             },
+            record(0, r"at C:\x"),
+            record(0, "at C:x"),
         ])
         .unwrap();
         let all = logs.read(0, "", "", 0, 2).unwrap();
         assert_eq!(
             all.iter().map(|l| l.message.as_str()).collect::<Vec<_>>(),
-            ["three 100%", "two"]
+            [r"at C:x", r"at C:\x"]
         );
         let older = logs.read(0, "", "", all[1].id, 10).unwrap();
-        assert_eq!(older.len(), 1);
-        assert_eq!(older[0].message, "one");
+        assert_eq!(older.len(), 3);
+        assert_eq!(older[2].message, "one");
         assert_eq!(logs.read(1, "", "", 0, 10).unwrap().len(), 2);
         assert_eq!(logs.read(0, "gRPC", "", 0, 10).unwrap().len(), 1);
         assert_eq!(logs.read(0, "", "TWO", 0, 10).unwrap().len(), 1);
         assert_eq!(logs.read(0, "", "0%", 0, 10).unwrap().len(), 1);
         assert_eq!(logs.read(0, "", "_", 0, 10).unwrap().len(), 0);
+        let slashed = logs.read(0, "", r"C:\x", 0, 10).unwrap();
+        assert_eq!(slashed.len(), 1);
+        assert_eq!(slashed[0].message, r"at C:\x");
     }
 }

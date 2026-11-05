@@ -469,7 +469,7 @@ sequenceDiagram
     P->>P: show it, notifyListeners()
 ```
 
-`Account::mutate_workout` changes a copy of the workout and puts it back
+`Account::change_workout` changes a copy of the workout and puts it back
 only if the whole mutation applied, so an event is all or nothing. A batch
 (`AppendWorkoutMutations` with several) records one event per mutation; one
 that can't apply is skipped and the rest still land.
@@ -539,7 +539,8 @@ The summary shows, per lift, what was planned and why, the weight changes,
 and the max after the session (the walk through it).
 
 On the server, ending stamps the member's `left_at` and `ended_at`, so they
-stay on show a while (`SHOWN_FOR_SECONDS`). Partners' phones fold their
+stay on show a while (`SHOWN_FOR_SECONDS`); from then on partners get only
+what comes late of that workout, never the next. Partners' phones fold their
 status from their workout's events: with no workout under way it is the
 last one to end since they joined, so partners keep seeing the finished
 workout rather than an empty slot.

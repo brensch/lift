@@ -36,7 +36,7 @@ class CoreException implements Exception {
 class LocalCore {
   final int _handle;
 
-  /// Fires after every call that may have recorded something, so the sync
+  /// Fires after every call that stored events for the server, so the sync
   /// can push it.
   final _writes = StreamController<void>.broadcast();
 
@@ -76,8 +76,9 @@ class LocalCore {
     T Function(List<int>) parse,
   ) async {
     final List<int> response;
+    final bool recorded;
     try {
-      response = await native.call(
+      (response, recorded) = await native.call(
         handle: _handle,
         method: method,
         request: request.writeToBuffer(),
@@ -85,15 +86,19 @@ class LocalCore {
     } catch (e) {
       throw CoreException.from(e);
     }
-    if (!_isRead(method)) _writes.add(null);
+    // Something for the server: a write, or a read that recorded an ended
+    // workout's heart rate. One that finished as the file was closed has no
+    // one to tell.
+    if (recorded && !_writes.isClosed) _writes.add(null);
     return parse(response);
   }
 
-  static bool _isRead(String method) =>
-      method.startsWith('Get') || method.startsWith('List');
-
-  /// The last seq this file holds: where the server picks up.
+  /// The last seq this file holds.
   Future<int> confirmed() => native.confirmed(handle: _handle);
+
+  /// What a Sync stream opens with: a seq before the last this file holds,
+  /// so the server's first event shows whether their histories agree.
+  Future<int> opensAfter() => native.opensAfter(handle: _handle);
 
   /// What this phone recorded that the server hasn't placed, after the
   /// pending event numbered [after] (the last one this stream sent): packed
@@ -180,6 +185,18 @@ class LocalCore {
     }
   }
 
+  /// Bring in the export at [path]: whatever in it this file lacks waits
+  /// to be placed; nothing is removed. Returns how many events it added.
+  Future<int> importFile(String path) async {
+    try {
+      final added = await native.importFile(handle: _handle, path: path);
+      if (added > 0 && !_writes.isClosed) _writes.add(null);
+      return added;
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
   /// Whose account the file at [path] holds: the user's id and name.
   static Future<(String, String)> fileOwner(String path) async {
     await init();
@@ -190,8 +207,9 @@ class LocalCore {
     }
   }
 
-  void close() {
-    _writes.close();
-    native.closeAccount(handle: _handle);
+  /// Done once the file is closed: after any call still running on it.
+  Future<void> close() async {
+    await native.closeAccount(handle: _handle);
+    await _writes.close();
   }
 }

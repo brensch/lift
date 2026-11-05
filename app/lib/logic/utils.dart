@@ -96,6 +96,18 @@ const _monthNames = [
   'December',
 ];
 
+/// "Oct": a month, short.
+String shortMonth(DateTime d) => _months[d.month - 1];
+
+/// Whole calendar days from [a]'s date to [b]'s, ignoring the time of day.
+/// Counted on UTC dates, so a daylight-saving change (a 23- or 25-hour
+/// day) never makes it one short.
+int calendarDaysBetween(DateTime a, DateTime b) => DateTime.utc(
+  b.year,
+  b.month,
+  b.day,
+).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
+
 /// "Oct 3": a day as the charts and plan reasons show it.
 String shortDate(DateTime d) => '${_months[d.month - 1]} ${d.day}';
 
@@ -131,4 +143,12 @@ const chartWindows = <({String label, int? days})>[
     from = to.subtract(const Duration(days: 1));
   }
   return (from: from, to: to);
+}
+
+/// How long to wait before retry number [failures] (from 0) of a call to
+/// the server that failed: 5 s, doubling, at most 5 minutes.
+Duration retryDelay(int failures) {
+  const most = Duration(minutes: 5);
+  final wait = Duration(seconds: 5 << failures.clamp(0, 6));
+  return wait > most ? most : wait;
 }

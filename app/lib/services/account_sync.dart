@@ -70,6 +70,13 @@ class AccountSync extends ChangeNotifier
   bool get connected => _connected;
   bool _connected = false;
 
+  /// The server turned this app version away (`MIN_APP_VERSION`): the
+  /// stream is not dialled again until the app is back in the foreground,
+  /// when the server is asked once more (it may have stopped turning it
+  /// away). Everything but sync works meanwhile.
+  bool get updateRequired => _updateRequired;
+  bool _updateRequired = false;
+
   /// Events recorded here that the server hasn't placed yet.
   int get unsynced => _unsynced;
   int _unsynced = 0;
@@ -82,14 +89,24 @@ class AccountSync extends ChangeNotifier
   Timer? _redial;
   DateTime _lastHeard = DateTime.now();
 
-  /// The last pending event sent on this stream; null until the stream has
-  /// opened (said what this phone holds), before which nothing goes up.
+  /// The last pending event sent on this stream; null until the server's
+  /// first events on it are taken, before which nothing goes up: a server
+  /// restored from an older backup could place this phone's new events
+  /// ahead of older ones it lost.
   int? _sentUpTo;
   int _failures = 0;
 
   /// Bumped on every hang-up, so a dropped stream's late callbacks are
   /// ignored rather than taken for the new one's.
   int _generation = 0;
+
+  /// The messages from the stream, handled in turn.
+  Future<void> _inbox = Future.value();
+
+  /// Whether there is a session to open the stream with. Without one the
+  /// server would turn it down, so nothing is dialled; [redial] starts it
+  /// once there is.
+  bool Function() canDial = () => true;
 
   static Future<File> _fileFor(String userId) async {
     final dir = await getApplicationSupportDirectory();
@@ -106,10 +123,20 @@ class AccountSync extends ChangeNotifier
     if (_userId == userId) return;
     await signOut();
     _userId = userId;
-    final file = await _fileFor(userId);
-    final core = await LocalCore.open(file.path, userId, name: name);
+    final LocalCore core;
+    try {
+      core = await LocalCore.open(
+        (await _fileFor(userId)).path,
+        userId,
+        name: name,
+      );
+    } catch (_) {
+      // Nothing open: a later sign-in for this user tries again.
+      if (_userId == userId) _userId = null;
+      rethrow;
+    }
     if (_userId != userId) {
-      core.close();
+      await core.close();
       return;
     }
     _core = core;
@@ -121,10 +148,11 @@ class AccountSync extends ChangeNotifier
     _dial();
   }
 
-  /// Put the account file at [path] (an export) on this phone, replacing
-  /// this phone's copy of that account. Returns whose it is (id, name).
-  /// While an account is open only its own file is accepted; it's reopened
-  /// from the file.
+  /// Bring the account file at [path] (an export) onto this phone: what in
+  /// it this phone's copy lacks is added, and goes to the server, which
+  /// skips what it holds. Nothing is removed, and the same file twice adds
+  /// nothing the second time. Returns whose it is (id, name). While an
+  /// account is open only its own file is accepted.
   Future<(String, String)> importFile(String path) async {
     path = await _unzipped(path);
     final (owner, name) = await LocalCore.fileOwner(path);
@@ -135,9 +163,23 @@ class AccountSync extends ChangeNotifier
         'That file is a different account. Sign out to open it.',
       );
     }
-    if (open != null) await signOut();
-    await File(path).copy((await _fileFor(owner)).path);
-    if (open != null) await signIn(owner, name);
+    // A file that won't read whole adds nothing.
+    final core = _core;
+    if (core != null) {
+      if (await core.importFile(path) > 0) _changed();
+      return (owner, name);
+    }
+    // No account open: into this phone's copy of it, made if there's none.
+    final account = await LocalCore.open(
+      (await _fileFor(owner)).path,
+      owner,
+      name: name,
+    );
+    try {
+      await account.importFile(path);
+    } finally {
+      await account.close();
+    }
     return (owner, name);
   }
 
@@ -176,45 +218,73 @@ class AccountSync extends ChangeNotifier
     _redial?.cancel();
     await _writesSub?.cancel();
     _writesSub = null;
-    _core?.close();
+    final core = _core;
     _core = null;
     if (_ready.isCompleted) _ready = Completer<LocalCore>();
     _session = Session();
     _joinRequests = GetJoinRequestsResponse();
     _unsynced = 0;
+    // The next account asks the server afresh; a refusal sets it again.
+    _updateRequired = false;
     notifyListeners();
+    // Closed before returning: the file may be opened again at once.
+    await core?.close();
   }
 
   void _dial() {
     final core = _core;
-    if (core == null || _up != null) return;
+    if (core == null || _up != null || _updateRequired || !canDial()) return;
     _redial?.cancel();
     final up = StreamController<SyncRequest>();
     _up = up;
     _sentUpTo = null;
     _lastHeard = DateTime.now();
     final generation = _generation;
-    // The stream opens with what this phone holds; the server sends the rest.
-    unawaited(
-      core.confirmed().then((confirmed) {
-        if (generation != _generation || up.isClosed) return;
-        up.add(SyncRequest(afterSeq: Int64(confirmed)));
-        _sentUpTo = 0;
-        unawaited(_push());
-      }),
-    );
+    // The stream opens with what this phone holds (from a little before its
+    // last, so the two histories can be seen to agree); the server sends
+    // the rest.
+    unawaited(() async {
+      final int after;
+      try {
+        after = await core.opensAfter();
+      } catch (e) {
+        // Closed by a sign-out meanwhile: this stream is already hung up.
+        // Anything else is a real failure reading this phone's file.
+        if (identical(_core, core)) {
+          AppLogger.instance.warn(_tag, 'opening read failed', {
+            'error': e.toString(),
+          });
+        }
+        return;
+      }
+      if (generation != _generation || up.isClosed) return;
+      up.add(SyncRequest(afterSeq: Int64(after)));
+    }());
     final down = _grpc.syncService.sync(up.stream);
     _down = down;
+    // One at a time, in the order sent (a restore comes in chunks the store
+    // takes only in order), and the end of the stream after them.
+    void inTurn(Future<void> Function() handle) {
+      _inbox = _inbox.then((_) async {
+        if (generation != _generation) return;
+        try {
+          await handle();
+        } catch (e) {
+          AppLogger.instance.warn(_tag, 'message failed', {
+            'error': e.toString(),
+          });
+        }
+      });
+    }
+
     down.listen(
       (message) {
-        if (generation == _generation) unawaited(_heard(message));
+        // Heard now, however long the messages ahead of it take.
+        if (generation == _generation) _lastHeard = DateTime.now();
+        inTurn(() => _heard(message));
       },
-      onError: (Object e) {
-        if (generation == _generation) _lost(e);
-      },
-      onDone: () {
-        if (generation == _generation) _lost(null);
-      },
+      onError: (Object e) => inTurn(() async => _lost(e)),
+      onDone: () => inTurn(() async => _lost(null)),
       cancelOnError: true,
     );
     _heartbeat = Timer.periodic(_heartbeatEvery, (_) => _beat());
@@ -265,6 +335,7 @@ class AccountSync extends ChangeNotifier
   /// device's. A file that had nothing becomes usable once it has caught up.
   Future<void> _received(Events events) async {
     final core = _core;
+    final up = _up;
     if (core == null) return;
     final head = events.head.toInt();
     try {
@@ -275,7 +346,12 @@ class AccountSync extends ChangeNotifier
       return;
     }
     await _refreshUnsynced();
-    if (!_ready.isCompleted && await core.confirmed() >= head) {
+    // The server's first events taken: this stream may send.
+    if (identical(_core, core) && identical(_up, up)) _sentUpTo ??= 0;
+    if (!_ready.isCompleted &&
+        await core.confirmed() >= head &&
+        !_ready.isCompleted &&
+        identical(_core, core)) {
       _ready.complete(core);
       notifyListeners();
     }
@@ -290,8 +366,11 @@ class AccountSync extends ChangeNotifier
 
   /// Called after the server changed what the account shows (another
   /// device's events, or a new template library): what's on screen may
-  /// have changed.
-  VoidCallback? onCaughtUp;
+  /// have changed. Never run twice at once: changes while it runs (a
+  /// restore lands in many pieces) run it once more after, not once each.
+  Future<void> Function()? onCaughtUp;
+  Future<void>? _catchingUp;
+  bool _caughtUpAgain = false;
 
   /// Moves each time the server changes what the account shows: a screen
   /// that read the account reads it again when it does.
@@ -301,7 +380,23 @@ class AccountSync extends ChangeNotifier
   void _changed() {
     _revision++;
     notifyListeners();
-    onCaughtUp?.call();
+    if (_catchingUp != null) {
+      _caughtUpAgain = true;
+      return;
+    }
+    _catchingUp = _catchUp();
+  }
+
+  Future<void> _catchUp() async {
+    do {
+      _caughtUpAgain = false;
+      try {
+        await onCaughtUp?.call();
+      } catch (e) {
+        AppLogger.instance.warn(_tag, 'reload failed', {'error': e.toString()});
+      }
+    } while (_caughtUpAgain);
+    _catchingUp = null;
   }
 
   /// Send what this phone recorded that hasn't been sent on this stream, in
@@ -315,15 +410,23 @@ class AccountSync extends ChangeNotifier
       _dial();
       return;
     }
-    await _refreshUnsynced();
-    while (true) {
-      final after = _sentUpTo;
-      if (after == null) return;
-      final (packed, last) = await core.outbox(after);
-      // Another push may have sent them meanwhile.
-      if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
-      _sentUpTo = last;
-      up.add(SyncRequest(events: packed));
+    try {
+      await _refreshUnsynced();
+      while (true) {
+        final after = _sentUpTo;
+        if (after == null) return;
+        final (packed, last) = await core.outbox(after);
+        // Another push may have sent them meanwhile.
+        if (packed.isEmpty || up.isClosed || _sentUpTo != after) return;
+        _sentUpTo = last;
+        up.add(SyncRequest(events: packed));
+      }
+    } catch (e) {
+      // Signed out meanwhile: the file is closed and nothing waits to go
+      // up on this stream. Otherwise the events stay pending for the next.
+      if (identical(_core, core)) {
+        AppLogger.instance.warn(_tag, 'push failed', {'error': e.toString()});
+      }
     }
   }
 
@@ -356,6 +459,16 @@ class AccountSync extends ChangeNotifier
       // The session lapsed: nothing to dial until the user signs in again.
       _hangUp();
       onSessionRejected?.call();
+      notifyListeners();
+      return;
+    }
+    if (error is GrpcError &&
+        error.code == StatusCode.failedPrecondition &&
+        error.message == 'app_update_required') {
+      // Too old for the server: dialling again would be turned away too.
+      AppLogger.instance.warn(_tag, 'app update required');
+      _hangUp();
+      _updateRequired = true;
       notifyListeners();
       return;
     }
@@ -400,13 +513,25 @@ class AccountSync extends ChangeNotifier
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed || _core == null) return;
+    // Asked again: a refusal sets it straight back.
+    _updateRequired = false;
     _hangUp();
     _failures = 0;
     _dial();
   }
 
+  bool _disposed = false;
+
+  /// Nothing is told once disposed: the sign-out [dispose] starts, and any
+  /// stream message still in hand, finish after it.
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     WidgetsBinding.instance.removeObserver(this);
     unawaited(signOut());
     super.dispose();

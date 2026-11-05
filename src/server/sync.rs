@@ -1,9 +1,10 @@
 use super::*;
-use crate::db::{Change, Pushed, Topic};
+use crate::db::{Change, Topic};
 use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
 use schlift_core::sync::{pack, unpack_push};
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Streaming;
@@ -17,13 +18,20 @@ use tonic::Streaming;
 // with the others, and heartbeats, answered with the head. Also down, on
 // connect and whenever they change: the caller's session (who else is in it)
 // and requests to join them, whole; on connect the template library, which
-// coupled templates follow. And for each session partner, their workout as
-// events: the workout so far when they first appear, then each event as
-// they record it. The phone folds those (schlift_core::session); the server
-// keeps nothing of where anyone is up to.
+// coupled templates follow. And for each session partner, their workout in
+// the session as events: the workout so far when they first appear (or it
+// first does), then each event of it as they record it, and nothing of any
+// other workout of theirs. The phone folds those (schlift_core::session);
+// the server keeps nothing of where anyone is up to.
 
 /// Events per message down: a whole account's history arrives in pieces.
 const EVENTS_PER_MESSAGE: i64 = 500;
+
+/// How long a stream sends what it is told without asking again whether its
+/// login is still good: an expired login sends nothing more after this.
+/// (Signing out and deleting the account are told at once, as
+/// `Change::SignedOut`.) Short in tests, so expiry can be seen.
+const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 60 });
 
 // What one event in a push may hold (the batch's size and event count are
 // limited as it is decoded, in schlift_core::sync). Far above anything a
@@ -33,12 +41,29 @@ const MAX_HEART_RATE_SAMPLES_PER_EVENT: usize = 100_000;
 const MAX_IMPORTED_WORKOUTS: usize = 10_000;
 const MAX_IMPORTED_HEART_RATE_SAMPLES: usize = 2_000_000;
 
-/// Refuse a push larger than any phone makes.
+/// Refuse a push larger than any phone makes, or holding an event that
+/// would not read back once stored (a number past f32's range reads as
+/// infinity, which is stored as `null`): every later read of the account,
+/// and each partner's stream, would fail on it.
 fn check_push(events: &[Event]) -> ServerResult<()> {
     let too_big = |what: &str, limit: usize| -> ServerResult<()> {
         Err(Status::invalid_argument(format!("push too large: more than {limit} {what}")).into())
     };
     for event in events {
+        if !event.reads_back() {
+            return Err(Status::invalid_argument(format!(
+                "event {} holds a number that can't be stored",
+                event.id
+            ))
+            .into());
+        }
+        if !event.plans_are_sane() {
+            return Err(Status::invalid_argument(format!(
+                "event {} holds a plan no app makes",
+                event.id
+            ))
+            .into());
+        }
         match &event.fact {
             Fact::HeartRateRecorded(recorded)
                 if recorded.bpm.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
@@ -100,9 +125,11 @@ impl SyncService for ServerSyncService {
                 tx,
                 session: None,
                 partners: HashMap::new(),
+                workouts: HashMap::new(),
                 sent: 0,
                 last_session: None,
                 last_requests: None,
+                checked: Instant::now(),
             };
             if let Err(error) = stream.run(inbound, changes).await {
                 let _ = stream.tx.send(Err(error.into())).await;
@@ -117,8 +144,9 @@ struct Stream {
     db: ServerDb,
     user_id: String,
     /// The session the stream was opened with: signing out, expiry or
-    /// deleting the account ends it, and the stream with it, checked before
-    /// anything is stored or sent.
+    /// deleting the account ends it, and the stream with it: checked before
+    /// anything is stored, as soon as a sign-out or deletion is told, and
+    /// otherwise at most `RECHECK_SIGNED_IN` before anything is sent.
     token: String,
     tx: mpsc::Sender<SyncResult>,
     /// The session the user's pointer named when the session was last sent,
@@ -127,11 +155,16 @@ struct Stream {
     /// The partners in that session, and their accounts' changes: whose
     /// workout events go down this stream.
     partners: HashMap<String, broadcast::Receiver<Change>>,
+    /// Each partner's workout in the session (empty before they have one):
+    /// the only one of theirs whose events go down this stream.
+    workouts: HashMap<String, String>,
     /// The last seq sent down.
     sent: i64,
     /// What was last sent, so an unchanged view isn't sent again.
     last_session: Option<Session>,
     last_requests: Option<GetJoinRequestsResponse>,
+    /// When the login was last found good.
+    checked: Instant,
 }
 
 /// The phone hung up.
@@ -161,6 +194,20 @@ impl Stream {
             }
             Ok(None) | Err(_) => return Ok(()),
         };
+        // It holds more than this server (restored from an older backup):
+        // told the head, it queues what the server lacks ahead of what it
+        // has waiting. What it pushed on opening, before it heard, would be
+        // placed ahead of those older events, so the stream ends unread and
+        // the device dials again from the head.
+        let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
+        if self.sent > head {
+            let message = schlift::workout::v1::Events {
+                packed: Vec::new(),
+                head,
+            };
+            let _ = self.send(sync_response::Kind::Events(message)).await;
+            return Ok(());
+        }
         if self.send_events(true).await?.is_err() {
             return Ok(());
         }
@@ -202,6 +249,14 @@ impl Stream {
                 } => Woke::Partner(partner, change),
                 up = inbound.message() => Woke::Up(up),
             };
+            // A login that expired since it was last checked sends nothing
+            // more: not the account's other devices' events, nor a
+            // partner's. (Signing out is heard at once, as a change, unless
+            // the stream fell behind and missed it.)
+            let stale = self.checked.elapsed() > RECHECK_SIGNED_IN;
+            if matches!(woke, Woke::Mine(Err(_))) || (stale && !matches!(woke, Woke::Up(_))) {
+                self.ensure_signed_in().await?;
+            }
             let sent = match woke {
                 Woke::Up(Ok(Some(up))) => self.receive(up).await?,
                 // The phone closed its side, or the link died.
@@ -248,7 +303,7 @@ impl Stream {
     }
 
     /// Ends the stream once its session is signed out, expired or deleted.
-    async fn ensure_signed_in(&self) -> ServerResult<()> {
+    async fn ensure_signed_in(&mut self) -> ServerResult<()> {
         let signed_in = self
             .db
             .validate_auth_session(&self.token)
@@ -257,6 +312,7 @@ impl Stream {
         if signed_in.as_ref() != Some(&self.user_id) {
             return Err(Status::unauthenticated("Invalid session token").into());
         }
+        self.checked = Instant::now();
         Ok(())
     }
 
@@ -268,12 +324,10 @@ impl Stream {
             Some(sync_request::Kind::Events(packed)) => {
                 let events = unpack_push(&packed).map_err(core_status)?;
                 check_push(&events)?;
-                let pushed = self
-                    .db
+                self.db
                     .push_events(&self.user_id, events)
                     .await
                     .map_err(internal_error)?;
-                self.after_push(&pushed).await?;
                 Ok(Ok(()))
             }
             Some(sync_request::Kind::Heartbeat(_)) | None => {
@@ -293,6 +347,11 @@ impl Stream {
         let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
         let mut sent_any = false;
         loop {
+            // A restore can run for many messages: a login revoked partway
+            // through gets no more than one of them.
+            if sent_any {
+                self.ensure_signed_in().await?;
+            }
             let events = self
                 .db
                 .events_after(&self.user_id, self.sent, EVENTS_PER_MESSAGE)
@@ -345,40 +404,23 @@ impl Stream {
         Ok(self.send(sync_response::Kind::Events(message)).await)
     }
 
-    /// A workout ending takes the caller out of their session, its final
-    /// state left on show to the others a while; one thrown away takes them
-    /// out with nothing to show.
-    async fn after_push(&self, pushed: &Pushed) -> ServerResult<()> {
-        if !pushed.ended_workout && !pushed.discarded_workout {
-            return Ok(());
-        }
-        let Some(session_id) = self
-            .db
-            .get_user_session_pointer(&self.user_id)
-            .await
-            .map_err(internal_error)?
-        else {
-            return Ok(());
-        };
-        let left = if pushed.discarded_workout {
-            self.db.leave_session(&session_id, &self.user_id).await
-        } else {
-            self.db.end_session(&session_id, &self.user_id).await
-        };
-        left.map_err(internal_error)
-    }
-
-    /// A partner's workout events, of those just stored: what of them their
-    /// partners see.
+    /// A partner's events, of those just stored: those of their workout in
+    /// the session are what the caller sees of them. Nothing of a workout
+    /// before or after it, nor anything else of their account.
     async fn send_partner(
         &self,
         partner: &str,
         events: &[Event],
         whole: bool,
     ) -> Result<(), Closed> {
+        let workout = self.workouts.get(partner).map_or("", String::as_str);
         let shared: Vec<Event> = events
             .iter()
-            .filter(|e| shared_with_partners(&e.fact))
+            .filter(|e| {
+                !workout.is_empty()
+                    && e.workout_id() == Some(workout)
+                    && shared_with_partners(&e.fact)
+            })
             .cloned()
             .collect();
         if shared.is_empty() && !whole {
@@ -392,13 +434,17 @@ impl Stream {
         self.send(sync_response::Kind::PartnerEvents(message)).await
     }
 
-    /// A partner's latest workout so far, replacing what the phone had.
+    /// A partner's workout in the session so far (all of it, once it has
+    /// ended), replacing what the phone had: nothing before they have one.
     async fn send_partner_whole(&self, partner: &str) -> ServerResult<Result<(), Closed>> {
-        let events = self
-            .db
-            .latest_workout_events(partner)
-            .await
-            .map_err(internal_error)?;
+        let events = match self.workouts.get(partner) {
+            Some(workout) if !workout.is_empty() => self
+                .db
+                .workout_events(partner, workout)
+                .await
+                .map_err(internal_error)?,
+            _ => Vec::new(),
+        };
         Ok(self.send_partner(partner, &events, true).await)
     }
 
@@ -407,6 +453,7 @@ impl Stream {
             Change::Account(events) => self.send_new(events).await,
             Change::JoinRequests => self.send_requests().await,
             Change::Membership | Change::Session => self.send_session().await,
+            Change::SignedOut => self.ensure_signed_in().await.map(Ok),
         }
     }
 
@@ -438,19 +485,33 @@ impl Stream {
         }
         // Each partner watched, before their workout so far is read, so
         // nothing they record between is missed (the phone skips an event
-        // it already has).
+        // it already has). Sent whole when they first appear, and again
+        // once their workout in the session is known.
         let members: Vec<String> = session
             .members
             .iter()
             .filter_map(|m| m.user.as_ref().map(|u| u.id.clone()))
             .collect();
+        let mut workouts = if session.session_id.is_empty() {
+            HashMap::new()
+        } else {
+            self.db
+                .session_workouts(&session.session_id)
+                .await
+                .map_err(internal_error)?
+        };
         self.partners.retain(|partner, _| members.contains(partner));
+        self.workouts.retain(|partner, _| members.contains(partner));
         for partner in members {
-            if self.partners.contains_key(&partner) {
+            let workout = workouts.remove(&partner).unwrap_or_default();
+            if self.workouts.get(&partner) == Some(&workout) {
                 continue;
             }
-            self.partners
-                .insert(partner.clone(), self.db.watch(Topic::User(partner.clone())));
+            if !self.partners.contains_key(&partner) {
+                self.partners
+                    .insert(partner.clone(), self.db.watch(Topic::User(partner.clone())));
+            }
+            self.workouts.insert(partner.clone(), workout);
             if let Err(closed) = self.send_partner_whole(&partner).await? {
                 return Ok(Err(closed));
             }
@@ -515,5 +576,56 @@ mod tests {
             },
         ));
         assert!(check_push(&[import]).is_ok());
+    }
+
+    /// A pushed number past f32's range reads as infinity, which would be
+    /// stored as `null` and never read again: the push is refused whole.
+    #[test]
+    fn a_push_with_a_number_that_cant_be_stored_is_refused() {
+        let pushed = |weight: &str| -> Vec<Event> {
+            let json = format!(
+                r#"[{{"id":"ok","at":1,"TemplateDeleted":{{"template_id":"t"}}}},
+                {{"id":"e","at":1,"SetCompleted":{{"workout_id":"w",
+                "proposed_set_id":"s","actual_reps":5,"actual_weight":{weight},
+                "completed_at":1}}}}]"#
+            );
+            // Read as unpack_push reads a push: the same deserialiser.
+            serde_json::from_str(&json).unwrap()
+        };
+        assert!(check_push(&pushed("3.4e38")).is_ok());
+        let error = check_push(&pushed("1e39")).err();
+        let status = Status::from(error.unwrap());
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        let not_a_number = event(Fact::SetCompleted(schlift_core::events::SetCompleted {
+            actual_weight: f32::NAN,
+            ..Default::default()
+        }));
+        assert!(check_push(&[not_a_number]).is_err());
+    }
+
+    /// A plan folds on the server and every partner's phone, so one no app
+    /// makes (far too many lifts, sets or pounds) is turned away; what an app
+    /// plans goes through.
+    #[test]
+    fn a_push_with_a_plan_no_app_makes_is_refused() {
+        use schlift_core::events::WorkoutStarted;
+        use schlift_core::pb::ExerciseDecision;
+        let started = |count: usize, sets: i32, weight: f32| {
+            event(Fact::WorkoutStarted(WorkoutStarted {
+                decisions: vec![
+                    ExerciseDecision {
+                        sets,
+                        weight,
+                        ..Default::default()
+                    };
+                    count
+                ],
+                ..Default::default()
+            }))
+        };
+        assert!(check_push(&[started(76, 20, 8_700.0)]).is_ok());
+        assert!(check_push(&[started(101, 3, 135.0)]).is_err());
+        assert!(check_push(&[started(1, 10_000, 135.0)]).is_err());
+        assert!(check_push(&[started(1, 3, 2.1e9)]).is_err());
     }
 }

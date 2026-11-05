@@ -9,10 +9,11 @@ import '../logic/exercises.dart';
 import '../logic/utils.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../services/account_sync.dart';
+import '../gen/copy.dart';
 import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
+import 'reload_on_account_change.dart';
 import '../theme/app_icons.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
@@ -25,23 +26,13 @@ class ProgressScreen extends StatefulWidget {
   State<ProgressScreen> createState() => _ProgressScreenState();
 }
 
-class _ProgressScreenState extends State<ProgressScreen> {
+class _ProgressScreenState extends State<ProgressScreen>
+    with ReloadOnAccountChange {
   List<_ExerciseProgress>? _series;
   int _workoutCount = 0;
   double _totalVolume = 0;
   DateTime _since = DateTime.fromMillisecondsSinceEpoch(0);
   bool _isLoading = true;
-
-  // Another device's changes (or a seeded history) arriving while this is
-  // open: read the account again.
-  late final AccountSync _sync = context.read<AccountSync>();
-  late int _revision = _sync.revision;
-
-  void _onSync() {
-    if (_sync.revision == _revision) return;
-    _revision = _sync.revision;
-    _loadData();
-  }
 
   int _windowIdx = 0; // default: All, the first
 
@@ -58,6 +49,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       out.add(
         _ExerciseProgress(
           exercise: s.exercise,
+          bodyweight: s.bodyweight,
           points: pts,
           history: s.points,
           colorIndex: s.colorIndex,
@@ -70,15 +62,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
   @override
   void initState() {
     super.initState();
-    _sync.addListener(_onSync);
     _loadData();
   }
 
   @override
-  void dispose() {
-    _sync.removeListener(_onSync);
-    super.dispose();
-  }
+  void reload() => _loadData();
 
   Future<void> _loadData() async {
     final service = context.read<WorkoutServiceWrapper>();
@@ -92,6 +80,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         series.add(
           _ExerciseProgress(
             exercise: ep.exercise,
+            bodyweight: ep.bodyweight,
             points: ep.points
                 .map(
                   (p) => _Point(
@@ -105,6 +94,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           ),
         );
       }
+      if (!mounted) return;
       setState(() {
         _series = series;
         _workoutCount = resp.workoutCount;
@@ -113,8 +103,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
       debugPrint('Error loading progress: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -129,7 +119,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
           icon: const Icon(AppIcons.back),
           onPressed: () => context.go('/'),
         ),
-        title: PageTitle('Progress'),
+        title: PageTitle(copy.progress.title),
       ),
       body: body,
     );
@@ -176,7 +166,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
               padding: const EdgeInsets.only(top: 40),
               child: Center(
                 child: Text(
-                  'No lifts in the last ${chartWindows[_windowIdx].label}.',
+                  copy.progress.noneInSpan.replaceAll(
+                    '{span}',
+                    chartWindows[_windowIdx].label,
+                  ),
                   style: TextStyle(
                     color: cs.tertiary,
                     fontSize: context.tokens.size.body,
@@ -221,17 +214,17 @@ class _SummaryHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        HeadStat('$workoutCount', 'workouts'),
+        HeadStat('$workoutCount', copy.progress.workouts),
         const SizedBox(width: 24),
         HeadStat(
           compactVolume(totalVolume, unit),
-          '${weightUnitSuffix(unit)} lifted',
+          copy.progress.lifted.replaceAll('{unit}', weightUnitSuffix(unit)),
         ),
         const Spacer(),
         Padding(
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(
-            'since ${shortDate(since)}',
+            copy.progress.since.replaceAll('{date}', shortDate(since)),
             style: TextStyle(
               color: cs.tertiary,
               fontSize: context.tokens.size.small,
@@ -342,7 +335,7 @@ class _ExerciseCard extends StatelessWidget {
                     children: [
                       _rightStat(
                         context,
-                        'MAX',
+                        copy.progress.max,
                         series.bodyweight
                             ? '${series.maxNow.round()}'
                             : formatWeight(series.maxNow, unit),
@@ -351,7 +344,7 @@ class _ExerciseCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       _rightStat(
                         context,
-                        'BEST',
+                        copy.progress.best,
                         formatWeight(series.best, unit),
                         cs,
                       ),
@@ -508,7 +501,7 @@ class _EmptyState extends StatelessWidget {
         Text('📈', style: TextStyle(fontSize: context.tokens.size.display)),
         const SizedBox(height: 12),
         Text(
-          'No workout history yet',
+          copy.progress.empty,
           style: TextStyle(
             color: cs.onSurface,
             fontWeight: context.tokens.weight.heavy,
@@ -516,7 +509,7 @@ class _EmptyState extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Finish a workout and your progress shows up here.',
+          copy.progress.emptyBody,
           style: TextStyle(
             color: cs.tertiary,
             fontSize: context.tokens.size.body,
@@ -538,6 +531,10 @@ class _Point {
 
 class _ExerciseProgress {
   final Exercise exercise;
+
+  /// A bodyweight lift, by its load style: its maxes are rep maxes, even
+  /// with added weight.
+  final bool bodyweight;
   final List<_Point> points;
 
   /// Every session of the lift, whatever the span: what the chart plots.
@@ -547,6 +544,7 @@ class _ExerciseProgress {
   final int colorIndex;
   _ExerciseProgress({
     required this.exercise,
+    required this.bodyweight,
     required this.points,
     List<_Point>? history,
     required this.colorIndex,
@@ -560,6 +558,5 @@ class _ExerciseProgress {
   double get best =>
       points.map((p) => p.weight).reduce((a, b) => a > b ? a : b);
   double get maxNow => points.last.estimatedMax;
-  bool get bodyweight => points.every((p) => p.weight <= 0);
   double get gain => current - start;
 }

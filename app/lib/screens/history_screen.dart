@@ -5,13 +5,15 @@ import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/exercises.dart';
+import '../logic/utils.dart';
+import '../gen/copy.dart';
+import 'reload_on_account_change.dart';
 import '../logic/session_state.dart';
 import '../logic/weight_units.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../providers/settings_provider.dart';
 import '../services/grpc_client.dart';
 import '../services/multiplayer_service.dart';
-import '../services/account_sync.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
 import '../theme/theme_spec.dart';
@@ -26,34 +28,20 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State<HistoryScreen>
+    with ReloadOnAccountChange {
   List<_HistoryItem>? _items;
   Map<String, List<String>> _partners = const {};
   bool _isLoading = true;
 
-  // Another device's changes (or a seeded history) arriving while this is
-  // open: read the account again.
-  late final AccountSync _sync = context.read<AccountSync>();
-  late int _revision = _sync.revision;
-
-  void _onSync() {
-    if (_sync.revision == _revision) return;
-    _revision = _sync.revision;
-    _load();
-  }
-
   @override
   void initState() {
     super.initState();
-    _sync.addListener(_onSync);
     _load();
   }
 
   @override
-  void dispose() {
-    _sync.removeListener(_onSync);
-    super.dispose();
-  }
+  void reload() => _load();
 
   Future<void> _load() async {
     final grpc = context.read<GrpcClient>();
@@ -73,8 +61,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
       ];
     } catch (e) {
-      setState(() => _isLoading = false);
       debugPrint('Error loading history: $e');
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
     if (!mounted) return;
@@ -118,7 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           icon: const Icon(AppIcons.back),
           onPressed: () => context.go('/'),
         ),
-        title: PageTitle('History'),
+        title: PageTitle(copy.history.title),
       ),
       body: body,
     );
@@ -138,7 +126,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'No completed workouts yet',
+                copy.history.empty,
                 style: TextStyle(
                   color: cs.onSurface,
                   fontWeight: context.tokens.weight.heavy,
@@ -166,9 +154,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return FlatSection(
               child: Row(
                 children: [
-                  HeadStat('${_items!.length}', 'workouts'),
+                  HeadStat('${_items!.length}', copy.history.workouts),
                   const SizedBox(width: 24),
-                  HeadStat('$thisWeek', 'this week'),
+                  HeadStat('$thisWeek', copy.history.thisWeek),
                 ],
               ),
             );
@@ -191,24 +179,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// Full-width rows grouped under a month heading, so a long history stays
   /// scannable: each heading (a String) followed by its workouts.
   List<Object> _rows() {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
     final out = <Object>[];
     String? currentMonth;
     for (final item in _items!) {
-      final label = '${months[item.date.month - 1]} ${item.date.year}';
+      final label = monthYear(item.date);
       if (label != currentMonth) {
         out.add(label);
         currentMonth = label;
@@ -240,7 +214,9 @@ class _HistoryCard extends StatelessWidget {
     final date = item.date;
     final title = item.exercises.isNotEmpty
         ? item.exercises.take(3).map(exerciseName).join(' · ')
-        : (item.workout.name.isNotEmpty ? item.workout.name : 'Workout');
+        : (item.workout.name.isNotEmpty
+              ? item.workout.name
+              : copy.history.untitled);
     final more = item.exercises.length > 3
         ? ' +${item.exercises.length - 3}'
         : '';
@@ -248,8 +224,10 @@ class _HistoryCard extends StatelessWidget {
     final details = [
       if (item.volume > 0)
         '${_thousands(displayWeightFromPounds(item.volume, unit))} ${weightUnitSuffix(unit)}',
-      if (item.workingSets > 0) '${item.workingSets} sets',
-      if (partners.isNotEmpty) 'with ${_names(partners)}',
+      if (item.workingSets > 0)
+        copy.history.sets.replaceAll('{n}', '${item.workingSets}'),
+      if (partners.isNotEmpty)
+        copy.history.withPartners.replaceAll('{names}', _names(partners)),
     ].join(' · ');
 
     // A full-width row, split from the next by a hairline.
@@ -354,20 +332,6 @@ class _DateBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
-    ];
     // As wide as the row is tall: a square cell, the vertical hairline on
     // its right the only line around it.
     return Container(
@@ -380,7 +344,7 @@ class _DateBadge extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            months[date.month - 1],
+            shortMonth(date).toUpperCase(),
             style: TextStyle(
               color: cs.primary,
               fontSize: context.tokens.size.small,
@@ -404,23 +368,23 @@ class _DateBadge extends StatelessWidget {
 
 String _names(List<String> names) {
   final clean = names.where((n) => n.isNotEmpty).toList();
-  if (clean.isEmpty) return 'friends';
+  if (clean.isEmpty) return copy.history.friends;
   if (clean.length == 1) return clean[0];
-  if (clean.length == 2) return '${clean[0]} & ${clean[1]}';
+  if (clean.length == 2) {
+    return copy.history.twoNames
+        .replaceAll('{a}', clean[0])
+        .replaceAll('{b}', clean[1]);
+  }
   return '${clean[0]}, ${clean[1]} +${clean.length - 2}';
 }
 
 String _relativeDay(DateTime d) {
-  final now = DateTime.now();
-  final days = DateTime(
-    now.year,
-    now.month,
-    now.day,
-  ).difference(DateTime(d.year, d.month, d.day)).inDays;
-  if (days == 0) return 'Today';
-  if (days == 1) return 'Yesterday';
-  if (days < 7) return '$days days ago';
-  if (days < 14) return 'Last week';
+  final days = calendarDaysBetween(d, DateTime.now());
+  final h = copy.history;
+  if (days == 0) return h.today;
+  if (days == 1) return h.yesterday;
+  if (days < 7) return h.daysAgo.replaceAll('{days}', '$days');
+  if (days < 14) return h.lastWeek;
   return '${d.month}/${d.day}/${d.year}';
 }
 

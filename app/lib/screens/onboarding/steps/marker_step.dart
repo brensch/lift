@@ -1,4 +1,4 @@
-/// Onboarding step 5: pick a profile emoji, colour and body weight.
+/// Onboarding step 1: pick a profile emoji and colour.
 library;
 
 import 'package:flutter/material.dart';
@@ -7,7 +7,7 @@ import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
 import '../../../theme/theme_spec.dart';
 import '../widgets/profile_marker_widgets.dart'
-    show EmojiChoiceChip, ColorChoiceDot;
+    show EmojiChoiceWrap, ColorChoiceWrap;
 import '../../../theme/app_icons.dart';
 
 class MarkerStep extends StatelessWidget {
@@ -88,32 +88,15 @@ class MarkerStep extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: emojiChoices
-                        .map(
-                          (emoji) => EmojiChoiceChip(
-                            emoji: emoji,
-                            selected: emoji == selectedEmoji,
-                            onTap: () => onSelectEmoji(emoji),
-                          ),
-                        )
-                        .toList(),
+                  EmojiChoiceWrap(
+                    choices: emojiChoices,
+                    selected: selectedEmoji,
+                    onSelect: onSelectEmoji,
                   ),
                   const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: profileColorHexOptions
-                        .map(
-                          (hex) => ColorChoiceDot(
-                            hex: hex,
-                            selected: hex == selectedColorHex,
-                            onTap: () => onSelectColor(hex),
-                          ),
-                        )
-                        .toList(),
+                  ColorChoiceWrap(
+                    selected: selectedColorHex,
+                    onSelect: onSelectColor,
                   ),
                 ],
               ),

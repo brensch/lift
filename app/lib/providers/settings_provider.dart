@@ -32,6 +32,9 @@ class SettingsProvider extends ChangeNotifier {
           2.5: const Color(0xFFBDBDBD),
         };
 
+  /// The colours the user recorded, keyed by plate (of whichever unit they
+  /// chose them in).
+  Map<double, Color> _chosenColors = {};
   Map<double, Color> _plateColors = defaultPlateColors();
   WeightUnit _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
 
@@ -44,31 +47,48 @@ class SettingsProvider extends ChangeNotifier {
     return _plateColors[weight] ?? Colors.purple;
   }
 
+  /// Every plate of [unit]: the user's colour where they chose one, the
+  /// unit's default otherwise.
+  static Map<double, Color> _colorsFor(
+    WeightUnit unit,
+    Map<double, Color> chosen,
+  ) => {
+    for (final MapEntry(key: plate, value: fallback) in defaultPlateColors(
+      unit,
+    ).entries)
+      plate: chosen[plate] ?? fallback,
+  };
+
+  /// Reads the settings from the account. If that fails, what is shown
+  /// stays as it was.
   Future<void> load() async {
-    _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
-    _plateColors = defaultPlateColors(_weightUnit);
-    notifyListeners();
+    final List<UserSetting> settings;
     try {
-      for (final setting in await _account.getSettings()) {
-        if (setting.whichSetting() == UserSetting_Setting.plateColors) {
-          _applyPlateColors(setting.plateColors);
-        } else if (setting.whichSetting() == UserSetting_Setting.weightUnit) {
-          _weightUnit = setting.weightUnit.unit;
-        }
-      }
-      if (_plateColors.isEmpty) {
-        _plateColors = defaultPlateColors(_weightUnit);
-      }
+      settings = await _account.getSettings();
     } catch (e) {
       AppLogger.instance.warn('Settings', 'load failed', {
         'error': e.toString(),
       });
+      return;
     }
+    var unit = WeightUnit.WEIGHT_UNIT_LB;
+    var chosen = <double, Color>{};
+    for (final setting in settings) {
+      if (setting.whichSetting() == UserSetting_Setting.plateColors) {
+        chosen = _parsePlateColors(setting.plateColors);
+      } else if (setting.whichSetting() == UserSetting_Setting.weightUnit) {
+        unit = setting.weightUnit.unit;
+      }
+    }
+    _weightUnit = unit;
+    _chosenColors = chosen;
+    _plateColors = _colorsFor(unit, chosen);
     notifyListeners();
   }
 
   void clear() {
     _weightUnit = WeightUnit.WEIGHT_UNIT_LB;
+    _chosenColors = {};
     _plateColors = defaultPlateColors(_weightUnit);
     notifyListeners();
   }
@@ -78,12 +98,7 @@ class SettingsProvider extends ChangeNotifier {
   void applyWeightUnitLocally(WeightUnit unit) {
     if (_weightUnit == unit) return;
     _weightUnit = unit;
-    if (_plateColors.isEmpty ||
-        _plateColors.keys.every(
-          (k) => !defaultPlateColors(unit).containsKey(k),
-        )) {
-      _plateColors = defaultPlateColors(unit);
-    }
+    _plateColors = _colorsFor(unit, _chosenColors);
     notifyListeners();
   }
 
@@ -102,12 +117,15 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updatePlateColors(Map<double, Color> colors) async {
-    _plateColors = Map.from(colors);
+  /// Records [color] for [plate] alongside the user's other choices (of
+  /// either unit); plates they never chose keep following the defaults.
+  Future<void> choosePlateColor(double plate, Color color) async {
+    _chosenColors = {..._chosenColors, plate: color};
+    _plateColors = _colorsFor(_weightUnit, _chosenColors);
     notifyListeners();
 
     final config = PlateColorsConfig(
-      plates: colors.entries
+      plates: _chosenColors.entries
           .map((e) => PlateColor(weight: e.key, hexColor: colorHex(e.value)))
           .toList(),
     );
@@ -121,16 +139,8 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  void _applyPlateColors(PlateColorsConfig config) {
-    final Map<double, Color> colors = {};
-    for (final plate in config.plates) {
-      final color = colorFromHex(plate.hexColor);
-      if (color != null) {
-        colors[plate.weight] = color;
-      }
-    }
-    if (colors.isNotEmpty) {
-      _plateColors = colors;
-    }
-  }
+  static Map<double, Color> _parsePlateColors(PlateColorsConfig config) => {
+    for (final plate in config.plates)
+      plate.weight: ?colorFromHex(plate.hexColor),
+  };
 }

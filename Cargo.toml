@@ -10,7 +10,7 @@ tonic-web = "0.12.3"
 prost = "0.13.4"
 tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }
 futures-util = "0.3.31"
-sqlx = { version = "0.8.2", features = ["runtime-tokio", "tls-native-tls", "sqlite"] }
+sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite"] }
 uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
 tower-http = { version = "0.6.2", features = ["cors"] }
 axum = "0.7.9"
@@ -19,10 +19,13 @@ tokio-stream = "0.1.17"
 webauthn-rs = { version = "0.5", features = ["conditional-ui"] }
 serde_json = "1"
 url = "2"
-base64 = "0.22"
 sha2 = "0.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+
+[dev-dependencies]
+# A software passkey, to run the WebAuthn ceremonies in tests.
+webauthn-authenticator-rs = { version = "0.5", default-features = false, features = ["softpasskey"] }
 
 [features]
 test-auth = []

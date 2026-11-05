@@ -6,11 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart' show Toast, ToastGravity;
 import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
+import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
-import '../logic/first_workout.dart';
-import '../logic/audio.dart';
+import '../services/first_workout.dart';
+import '../services/audio.dart';
 import '../logic/exercise_blocks.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
@@ -41,9 +42,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   double _bodyWeightKg = 0;
 
   /// Called after endWorkout() completes successfully, with the finished
-  /// workout's id. Used by the app shell to navigate to the summary screen
-  /// when the workout is ended from a source that can't navigate itself
-  /// (e.g. the watch).
+  /// workout's id. The app shell opens the summary and any template offer
+  /// over it, for an end on the phone or the watch alike.
   void Function(String workoutId)? onWorkoutEnded;
 
   /// Called once for each ramp set whose "how many more could you have
@@ -53,7 +53,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
-  bool _isLoading = false;
   String? _lastLoadError;
 
   // The workout on screen: the active one, or the one just ended.
@@ -77,9 +76,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   final Set<int> _wearHeartRateSampleTimestamps = <int>{};
   final List<WorkoutHeartRatePoint> _unsavedHeartRate = [];
   DateTime? _lastHeartRateSave;
-  bool _heartRateSaveInFlight = false;
+  Future<void>? _heartRateSaveInFlight;
 
   bool _wasResting = false;
+  // Who gives the rest-end cue: the app while it is on screen (resumed, or
+  // inactive behind Control Center, a call banner or the app switcher: it
+  // still ticks, and iOS shows no notification then), the OS notification
+  // (scheduled as the app goes hidden) otherwise. Never both.
+  bool _onScreen = _isOnScreen(WidgetsBinding.instance.lifecycleState);
+  // Whether a rest's notification is scheduled. As the app leaves the
+  // screen on Android; on iOS as soon as it leaves resumed, since a kill
+  // from the app switcher goes from inactive straight to gone, and iOS shows
+  // no notification while the app is inactive, so it never doubles the cue.
+  bool _notifying = _wantsNotification(WidgetsBinding.instance.lifecycleState);
   Timer? _timer;
   DateTime _now = DateTime.now();
   late final ValueNotifier<DateTime> _clock = ValueNotifier<DateTime>(_now);
@@ -114,11 +123,37 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _soundProvider = provider;
   }
 
+  static bool _isOnScreen(AppLifecycleState? state) =>
+      state == AppLifecycleState.resumed || state == AppLifecycleState.inactive;
+
+  static bool _wantsNotification(AppLifecycleState? state) => Platform.isIOS
+      ? state != null && state != AppLifecycleState.resumed
+      : !_isOnScreen(state);
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _setNow(DateTime.now());
-      notifyListeners();
+    final onScreen = _isOnScreen(state);
+    if (onScreen != _onScreen) {
+      _onScreen = onScreen;
+      if (onScreen) {
+        _setNow(DateTime.now());
+        notifyListeners();
+      }
+    }
+    final notifying = _wantsNotification(state);
+    if (notifying == _notifying) return;
+    _notifying = notifying;
+    if (!notifying) {
+      // The app has the cue again: drop the notification, rung or not.
+      if (!_sandbox) unawaited(NotificationService.cancelRest());
+    } else {
+      final snapshot = _snapshot;
+      final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if (!_sandbox &&
+          snapshot != null &&
+          stateAt(snapshot, nowSecs) == WorkoutState.WORKOUT_STATE_RESTING) {
+        _scheduleRestNotification(snapshot.restUntil.toInt());
+      }
     }
   }
 
@@ -184,8 +219,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Rest end: sound and state ──
 
-  /// Called every second. The in-app sound at rest end is the primary
-  /// path; the OS notification is the fallback for when the app is killed.
+  /// Called every second. On screen the app plays the rest-end cue; off
+  /// it the OS notification does, so this leaves it alone.
   Future<void> _checkRestSound() async {
     final snapshot = _snapshot;
     if (snapshot == null) {
@@ -194,10 +229,17 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     final isCurrentlyResting =
         stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
-    if (_wasResting && !isCurrentlyResting && !_sandbox) {
+    if (_wasResting && !isCurrentlyResting && !_sandbox && _onScreen) {
+      // Back after the rest ran out off screen: the notification already
+      // rang for it.
+      final cue = restEndedJustNow(snapshot, _nowSecs);
+      // Nothing should be scheduled while on screen; this covers a
+      // schedule from leaving it that landed after the cancel on return.
       await NotificationService.cancelRest();
-      _soundProvider?.playCurrentSound();
-      unawaited(NotificationService.playRestCompletionHaptic());
+      if (cue) {
+        _soundProvider?.playCurrentSound();
+        unawaited(NotificationService.playRestCompletionHaptic());
+      }
     }
     _wasResting = isCurrentlyResting;
   }
@@ -235,22 +277,33 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (isResting) {
       if (restUntil > 0) {
         _wasResting = true;
-        if (restUntil != oldRestUntil ||
-            oldState != WorkoutState.WORKOUT_STATE_RESTING) {
-          final presetId = knownSoundPreset(_soundProvider?.currentPreset);
-          unawaited(
-            NotificationService.scheduleRest(
-              restUntilUnix: restUntil,
-              soundPresetId: presetId,
-              body: _nextSetBody(),
-            ),
-          );
+        // On screen the app gives the cue; leaving the screen schedules.
+        if (_notifying &&
+            (restUntil != oldRestUntil ||
+                oldState != WorkoutState.WORKOUT_STATE_RESTING)) {
+          _scheduleRestNotification(restUntil);
         }
       }
     } else if (oldState == WorkoutState.WORKOUT_STATE_RESTING) {
-      unawaited(NotificationService.cancelRest());
+      // A rest cut short (the next set started) takes its notification with
+      // it. One that ran out leaves it be: off screen it is ringing now, and
+      // on screen nothing is scheduled.
+      final nowSecs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      if ((oldRestUntil ?? 0) > nowSecs) {
+        unawaited(NotificationService.cancelRest());
+      }
       _wasResting = false;
     }
+  }
+
+  void _scheduleRestNotification(int restUntil) {
+    unawaited(
+      NotificationService.scheduleRest(
+        restUntilUnix: restUntil,
+        soundPresetId: knownSoundPreset(_soundProvider?.currentPreset),
+        body: _nextSetBody(),
+      ),
+    );
   }
 
   void _startTimer() {
@@ -272,8 +325,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Reads ──
 
-  bool get isLoading => _isLoading;
   String? get lastLoadError => _lastLoadError;
+
+  /// What the startup error screen's Retry runs: opening the account again
+  /// (set by the app shell), not just a load, since a load waits on an
+  /// account that may never have opened.
+  Future<void> Function()? onRetryStartup;
+
+  /// The account couldn't be opened at all: shown as a failed load.
+  void reportLoadError(Object error) {
+    _lastLoadError = cleanErrorMessage(error);
+    notifyListeners();
+  }
 
   Workout? get workout => _workout;
   List<ProposedSet> get proposedSets => _proposed;
@@ -357,10 +420,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const _budgetSettle = Duration(milliseconds: 250);
   Timer? _budgetReplan;
   Completer<void>? _budgetReplanned;
-
-  /// Each lift of the workout on screen: the decision it started from and
-  /// the weight changes since, in workout order.
-  List<ExerciseLog> get exerciseLogs => _logs;
 
   /// The core's totals for the workout on screen: working-set volume and
   /// sets per exercise, and its time.
@@ -457,11 +516,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String _nextSetBody() {
     final next = nextPendingSet;
-    if (next == null) return 'All sets complete!';
-    final name = exerciseName(next.exercise);
-    final prefix = next.warmup ? 'Warmup ' : '';
-    final set = setTextFor(next, _settingsProvider.weightUnit);
-    return 'Next up: $prefix$name, $set';
+    final text = copy.restNotification;
+    if (next == null) return text.allDone;
+    return (next.warmup ? text.nextUpWarmup : text.nextUp)
+        .replaceAll('{exercise}', exerciseName(next.exercise))
+        .replaceAll('{set}', setTextFor(next, _settingsProvider.weightUnit));
   }
 
   /// True until this account has finished a workout: the banner explains
@@ -486,7 +545,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> loadActiveWorkout(String userId) async {
     _userId = userId;
     if (!_sandbox) unawaited(_loadFirstWorkout(userId));
-    _isLoading = true;
     _lastLoadError = null;
     notifyListeners();
     try {
@@ -505,7 +563,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       _lastLoadError = cleanErrorMessage(e);
       _handleError(e);
     } finally {
-      _isLoading = false;
       notifyListeners();
     }
   }
@@ -796,14 +853,25 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> recordSession(String sessionId) async {
     final workout = _workout;
     if (workout == null || !hasActiveWorkout) return;
-    if (workout.sessionId == sessionId) return;
-    await _mutate(
-      WorkoutMutation()
-        ..setSession = (SetWorkoutSessionRequest()
-          ..workoutId = _workoutId
-          ..sessionId = sessionId),
-    );
+    // Called on every sync notice: once per session, even while the first
+    // is still being recorded.
+    if (workout.sessionId == sessionId || _sessionRecording == sessionId) {
+      return;
+    }
+    _sessionRecording = sessionId;
+    try {
+      await _mutate(
+        WorkoutMutation()
+          ..setSession = (SetWorkoutSessionRequest()
+            ..workoutId = _workoutId
+            ..sessionId = sessionId),
+      );
+    } finally {
+      _sessionRecording = null;
+    }
   }
+
+  String? _sessionRecording;
 
   Future<void> reorderExercises(List<Exercise> exercises) async {
     if (_workout == null) return;
@@ -829,11 +897,12 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// End the workout. The health write happens in the background.
   ///
   /// [fireEndedCallback] controls whether [onWorkoutEnded] is called after
-  /// completion. Pass false when the caller (e.g. the phone UI) will handle
-  /// navigation itself.
+  /// completion. Pass false when nothing should open (tests, scenarios).
   Future<void> endWorkout({bool fireEndedCallback = true}) async {
     if (_workout == null) return;
     try {
+      // Samples heard while a save was in flight are written after it.
+      await _heartRateSaveInFlight;
       await _saveHeartRate(force: true);
       if (!_sandbox) await NotificationService.cancelAll();
       _wasResting = false;
@@ -889,6 +958,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     final heartRate = _wearHeartRateSamples
         .where((s) => s.sampledAt.toInt() <= endMs)
         .toList();
+    final healthStore = Platform.isAndroid
+        ? copy.health.storeAndroid
+        : copy.health.storeIos;
     try {
       final startTime = DateTime.fromMillisecondsSinceEpoch(
         workout.startTime.toInt() * 1000,
@@ -910,11 +982,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         bodyWeightKg: _bodyWeightKg,
       );
       if (stored) {
-        final storeName = Platform.isAndroid
-            ? 'Health Connect'
-            : 'Apple Health';
         showToast(
-          msg: 'Successfully uploaded to $storeName',
+          msg: copy.health.uploaded.replaceAll('{store}', healthStore),
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           backgroundColor: schliftSpec.success,
@@ -924,7 +993,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e, st) {
       debugPrint('Health: write failed: $e\n$st');
       showToast(
-        msg: 'Failed to sync workout to Health Connect',
+        msg: copy.health.uploadFailed.replaceAll('{store}', healthStore),
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: schliftSpec.error,
@@ -975,7 +1044,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _wearHeartRateSampleTimestamps.clear();
     _unsavedHeartRate.clear();
     _lastHeartRateSave = null;
-    _heartRateSaveInFlight = false;
+    _heartRateSaveInFlight = null;
   }
 
   void _resetWearHeartRateBufferIfWorkoutChanged(String? nextWorkoutId) {
@@ -1062,7 +1131,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Write the heart rate heard since the last save into the account, in
   /// batches rather than an event per sample.
   Future<void> _saveHeartRate({bool force = false}) async {
-    if (_heartRateSaveInFlight || _unsavedHeartRate.isEmpty) return;
+    if (_heartRateSaveInFlight != null || _unsavedHeartRate.isEmpty) return;
     final workout = _workout;
     if (workout == null || workout.endTime != Int64.ZERO) return;
     final now = DateTime.now();
@@ -1070,17 +1139,24 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!force && last != null && now.difference(last) < _heartRateBatchEvery) {
       return;
     }
-    _heartRateSaveInFlight = true;
     _lastHeartRateSave = now;
     final batch = List<WorkoutHeartRatePoint>.of(_unsavedHeartRate);
     _unsavedHeartRate.clear();
+    final save = _appendHeartRate(workout.id, batch);
+    _heartRateSaveInFlight = save;
+    await save;
+    if (identical(_heartRateSaveInFlight, save)) _heartRateSaveInFlight = null;
+  }
+
+  Future<void> _appendHeartRate(
+    String workoutId,
+    List<WorkoutHeartRatePoint> batch,
+  ) async {
     try {
-      await _service.appendWorkoutHeartRate(workout.id, batch);
+      await _service.appendWorkoutHeartRate(workoutId, batch);
     } catch (e) {
       _unsavedHeartRate.insertAll(0, batch);
       debugPrint('Heart rate save failed: $e');
-    } finally {
-      _heartRateSaveInFlight = false;
     }
   }
 

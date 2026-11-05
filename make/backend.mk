@@ -49,11 +49,14 @@ agent-backend-start:
 				exit 0; \
 			fi; \
 		fi; \
+		if (exec 3<>/dev/tcp/127.0.0.1/50051) 2>/dev/null; then echo "port 50051 is in use (make dev?): stop it first"; exit 1; fi; \
 		echo "Starting backend on localhost:50051"; \
 		DATA_DIR="$(AGENT_BACKEND_DATA_DIR)" $(BACKEND_DEV_ENV) \
 		cargo run --bin schlift --features test-auth > "$(AGENT_BACKEND_LOG)" 2>&1 & \
-		echo $$! > "$(AGENT_TMP_DIR)/backend.pid"; \
+		pid=$$!; \
+		echo $$pid > "$(AGENT_TMP_DIR)/backend.pid"; \
 		for i in $$(seq 1 120); do \
+			if ! kill -0 $$pid 2>/dev/null; then break; fi; \
 			if curl -fsS http://127.0.0.1:50051/api/health >/dev/null 2>&1; then \
 				echo "Backend ready: http://127.0.0.1:50051/api/health"; \
 				exit 0; \

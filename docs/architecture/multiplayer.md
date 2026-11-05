@@ -9,13 +9,27 @@ breaks.
 
 ## The invariant
 
-`session_members(session_id, user_id, joined_at, left_at, ended_at)` is the
-single source of truth for "is this user in a group right now?". The user's
-current session is their row with `left_at = 0`, and a partial unique index on
-`user_id WHERE left_at = 0` makes a second one impossible. Rows are written
-when someone joins, leaves or ends a workout — never per set. `ended_at` is
-when ending their workout took them out: their finished workout stays on show
-to the others for `SHOWN_FOR_SECONDS` (3 h, `schlift_core::session`).
+`session_members(session_id, user_id, joined_at, left_at, ended_at,
+workout_id)` is the single source of truth for "is this user in a group right
+now?". The user's current session is their row with `left_at = 0`, and a
+partial unique index on `user_id WHERE left_at = 0` makes a second one
+impossible. Rows are written when someone joins, leaves, first trains in the
+session or ends that workout — never per set. `ended_at` is when ending their
+workout took them out: their finished workout stays on show to the others for
+`SHOWN_FOR_SECONDS` (3 h, `schlift_core::session`).
+
+**A member's part in a session is one workout**, `workout_id`: the first
+they train in after joining (the one under way when they join, or the next
+they start). It is set from the first of their pushed events that starts it,
+puts it in the session (`SetWorkoutSession`) or does a set of it, as long as
+that comes within `SHOWN_FOR_SECONDS` of joining (`ServerDb::follow_session`,
+`src/db/session.rs`). A workout left open from earlier is not under way: one
+with nothing in it for `SHOWN_FOR_SECONDS` before it is put in the session,
+ended or thrown away stays the member's own, and ending or throwing it away
+leaves them in the session for the next one they start. Only that workout's events go to the others — all of
+them, late ones and catch-up after a reconnect included, until the member is
+off the roster — and nothing of any workout before or after it. Ending it is
+leaving.
 
 Everything else is derived, and none of it on the server:
 
@@ -38,8 +52,8 @@ the last one to end since they joined, from the events of that workout alone.
 A workout carries everything it needs to fold — its name and unit are on its
 `WorkoutStarted` — so the rest of their account is never needed, and never
 sent. A partner is off show once their workout ended `SHOWN_FOR_SECONDS` ago,
-or once they have recorded nothing for that long (walked off without ending,
-or joined and never started).
+or once it (or, before they have one, their joining) has gone that long
+without an event (walked off without ending, or joined and never started).
 
 ## Transitions
 
@@ -48,9 +62,10 @@ stateDiagram-v2
     [*] --> Solo
     Solo --> InSession: JoinViaInvite / RespondJoinRequest(accept)<br/>(both users gathered into one session)
     InSession --> Solo: LeaveCurrentSession<br/>(left_at stamped, off show)
-    InSession --> Solo: EndWorkout pushed<br/>(left_at and ended_at stamped, still on show)
-    InSession --> Solo: WorkoutDiscarded pushed<br/>(left_at stamped, off show)
-    InSession --> Solo: nothing recorded for SHOWN_FOR_SECONDS<br/>(read from their events, never written)
+    InSession --> InSession: first trains in a workout<br/>(workout_id set)
+    InSession --> Solo: their workout ended<br/>(left_at and ended_at stamped, still on show)
+    InSession --> Solo: their workout discarded, or another started<br/>(left_at stamped, off show)
+    InSession --> Solo: idle SHOWN_FOR_SECONDS<br/>(left_at stamped when first noticed)
     note right of Solo
         After EndWorkout the finished
         workout stays on show a while,
@@ -58,11 +73,20 @@ stateDiagram-v2
     end note
 ```
 
+Idle is measured on the member's workout, not on reads: they are out once
+their workout in the session has had no event for `SHOWN_FOR_SECONDS`, or,
+with none yet, once they joined that long ago. It is written (`left_at`) the
+first time it is noticed — when their phone connects, someone joins them, they
+join someone (so rejoining a session they went idle in is a fresh join), or
+they push the event that would start training late — so a member who walked
+off without ending, or never started, is never pulled back in by what they do
+days later, and no one joining them later lands in the old group.
+
 | Transition | Where |
 |---|---|
 | `JoinViaInvite`, `RespondJoinRequest`, `LeaveCurrentSession` | `src/server/multiplayer.rs` |
-| Leaving on `EndWorkout` | `after_push` in `src/server/sync.rs` |
-| Rows and the idle cut-off | `src/db/session.rs` |
+| Their workout set, ended, discarded or replaced | `follow_session` in `src/db/session.rs`, on every push |
+| Rows and the idle cut-off | `get_user_current_session` in `src/db/session.rs` |
 | A partner's status, on the phone | `schlift_core::session` |
 
 ## Joining
@@ -104,14 +128,16 @@ There is no polling. Each phone holds one `SyncService.Sync` stream open (see
 - **The roster** (`Session`): who else is in the caller's session, with when
   each joined and ended — on connect and whenever it changes (someone joins,
   leaves or ends; a profile changes). Whole, and only when different.
-- **Each partner's workout, as events** (`PartnerEvents`). When a partner
-  first appears — on connect, or when they join — their latest workout so far
-  (`latest_workout_events`: back from their newest event to their latest
-  `WorkoutStarted`, from `account_events`), marked `whole`. Then each event
-  of it as they record it: the stream watches every partner's account
-  (`ServerDb::watch(Topic::User)`) and forwards what concerns their workout.
-  Only workout facts go (`shared_with_partners`): never heart rate,
-  templates, settings or history.
+- **Each partner's workout in the session, as events** (`PartnerEvents`).
+  When a partner first appears — on connect, or when they join — and again
+  when their `workout_id` is first set, that workout so far (`workout_events`:
+  back from their newest event to its `WorkoutStarted`, from
+  `account_events`), marked `whole`; empty before they have one. Then each
+  event of it as they record it: the stream watches every partner's account
+  (`ServerDb::watch(Topic::User)`) and forwards only what concerns that one
+  workout, so a member who ended still sends what comes late of it, and
+  nothing of their next. Only workout facts go (`shared_with_partners`):
+  never heart rate, templates, settings or history.
 
 ```mermaid
 sequenceDiagram
@@ -158,6 +184,11 @@ trained with, not what they did: their workouts stay in their own accounts.
 
 - **A partner who goes offline stops updating** where they were, until they
   come back or go off show; there is no staleness marker.
+- **Idle is noticed, not scheduled.** A member who has gone idle is written
+  out the next time their phone connects, someone joins them, they join
+  someone, or they push;
+  until then the others' rosters still list them, and their phones show
+  them off show.
 - **`session_members` grows forever.** Its rows are the record of who trained
   together; only deleting an account removes them.
 - **Changes are told in process.** A second backend instance would not hear

@@ -11,6 +11,7 @@ graph TD
     AS["AuthState (src/auth.rs)"]
     AS --> wa["Arc&lt;Webauthn&gt;<br/>configured from env"]
     AS --> rc["reg_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
+    AS --> adc["add_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> ac["auth_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> db["ServerDb"]
     db --> pc[("passkeys")]
@@ -56,18 +57,21 @@ sequenceDiagram
     S->>A: finish_registration
     A->>A: remove challenge (single use)
     A->>A: finish_passkey_registration → Passkey
-    A->>DB: create_user_with_id(user_id, username)
-    A->>DB: store_credential(cred_id, user_id, cred_json)
+    A->>DB: create_user_with_passkey(user_id, username, cred_id, cred_json)
     S->>DB: create_auth_session(user_id)
     S-->>App: AuthResponse{token, user}
 ```
 
 Note the ordering: **the user row is created in `finish_registration`, not
-`start`**. An abandoned registration leaves nothing behind except an in-memory
-challenge that expires.
+`start`**, in one transaction with its passkey. An abandoned registration
+leaves nothing behind except an in-memory challenge that expires, and a
+failed one leaves no account without a passkey holding the name.
 
 Challenges are single-use — `finish` removes the entry before verifying, so a
-replayed `RegisterFinish` finds no challenge.
+replayed `RegisterFinish` finds no challenge. Its attempt's verdict stands:
+`finish_auth_attempt` never rewrites an earlier one. Add-passkey challenges
+are kept apart from sign-ups (`add_challenges`), so an unauthenticated
+`RegisterFinish` naming a user's id can't spend theirs.
 
 ## Login
 
@@ -104,7 +108,8 @@ sequenceDiagram
 
 `AuthChallengeState` is an enum over the two flows so a single challenge map can
 serve both. The signature counter is written back on every successful login —
-`webauthn-rs` uses it to detect cloned authenticators.
+`webauthn-rs` uses it to detect cloned authenticators. A failure to write it
+is logged at `warn`; the login still succeeds.
 
 ## Sessions
 
@@ -135,7 +140,8 @@ one.
 `user_id` references `users(id) ON DELETE CASCADE`, so the account's event
 log, passkeys, logins, session memberships and page views go with it. It
 also deletes the registration's `auth_attempts` row and drops any join
-requests to or from it.
+requests to or from it; the streams of those it asked, and of its session's
+other members, hear the change.
 
 ## The account and the server session
 
@@ -149,9 +155,17 @@ the phone (`AuthProvider`):
 
 A passkey sign-in sets both: the token, and the user id whose file
 `AccountSync` then opens (pulling the log from the server first on a fresh
-install). If the server later refuses the token, `expireSession` clears only
-the token; the account stays open and usable, and signing in again from
-`/login` resumes sync.
+install). A login stays signed in while it is used: each
+use slides its expiry to 30 days out (`validate_auth_session`, written at most
+once a day), so only a login left unused for 30 days lapses. If
+the server refuses the token (lapsed, its passkey deleted, the account
+deleted), `expireSession` clears only the token; the account stays open and
+usable. While an account is open with no session (this, or one opened from a
+file), `SessionExpiredBanner` sits over the app's pages (around `MainLayout`
+in the shell route: not over `/login`, onboarding or the tutorial, and not
+while the update banner shows) with a sign-in button to `/login`; signing in
+there resumes sync, and the login screen's back arrow returns home without
+signing in.
 
 "Open an account file" on the login screen opens an exported account with no
 server at all (`AuthProvider.openLocalAccount`): the file names its owner, so
@@ -179,14 +193,15 @@ needs challenges in shared storage.
 |---|---|
 | `AddPasskeyStart` / `AddPasskeyFinish` | Register an extra passkey for the logged-in user; excludes already-registered credentials |
 | `ListPasskeys` | Metadata only — created-at, IP, optional `cred_name` |
-| `DeletePasskey` | Removes one credential |
+| `DeletePasskey` | Removes one credential and signs out every other login of the user (logins aren't tied to a passkey; the caller's stays); the last one is refused (`FailedPrecondition`), and `PasskeysScreen` disables it |
 
 A friendly name is stored by injecting a `cred_name` key into the serialised
 credential JSON rather than as its own column
 (`stored_passkey_json` in `src/auth.rs`). It travels with the credential, but it is not queryable.
 
-> Deleting your last passkey locks you out permanently — there is no recovery
-> channel. The client warns about this in `PasskeysScreen`.
+> You cannot delete your last passkey, but losing every device or password
+> manager that holds one still locks you out: there is no self-serve recovery
+> (`LostPasskeyScreen` points the user to the owner).
 
 ## Test login
 
@@ -226,4 +241,4 @@ Passkeys need a valid RP configuration even locally. See
 [`docs/android_dev.md`](../android_dev.md) for connecting an emulator to a local
 backend, and [`docs/releasing.md`](../releasing.md) for the production
 `.well-known/assetlinks.json` and `apple-app-site-association` values — both
-served by `server/support.rs` and routed by Caddy.
+served by `src/main.rs` and routed by Caddy.

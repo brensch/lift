@@ -135,10 +135,10 @@ pub(super) fn client_labels<T>(request: &Request<T>) -> (String, String) {
 }
 
 /// Answer a read from the user's account, through the core.
-pub(super) async fn read_api<R>(
+pub(super) async fn read_api<R: Send + 'static>(
     db: &ServerDb,
     user_id: &str,
-    read: impl FnOnce(View) -> R,
+    read: impl FnOnce(View) -> R + Send + 'static,
 ) -> ServerResult<R> {
     db.read_account(user_id, |account| read(View::new(account, now_unix())))
         .await

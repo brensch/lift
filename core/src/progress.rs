@@ -1,7 +1,8 @@
+use crate::exercise_catalog::{load_style, LoadStyle};
 use crate::history::WorkoutRecord;
 use crate::pb::{
-    CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
-    WorkoutSummary,
+    CompletedSet, Exercise, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet,
+    Workout, WorkoutSummary,
 };
 use std::collections::{BTreeMap, HashMap};
 
@@ -62,7 +63,7 @@ pub fn compute_workout_summary(
         // Resting — Done to the rest's end, cut short by the next set.
         let rest_end = cap(next_start.map_or(c.rest_until, |n| n.min(c.rest_until)));
         if rest_end > c.ended_at {
-            resting_seconds += rest_end - c.ended_at;
+            resting_seconds = resting_seconds.saturating_add(rest_end.saturating_sub(c.ended_at));
         }
 
         // Yapping — once the rest has run out, until the next set began.
@@ -102,7 +103,7 @@ pub fn compute_workout_summary(
     }
 
     let duration_seconds = if workout.end_time != 0 && workout.start_time != 0 {
-        workout.end_time - workout.start_time
+        workout.end_time.saturating_sub(workout.start_time)
     } else {
         0
     };
@@ -126,7 +127,8 @@ pub fn compute_workout_summary(
 /// Per-exercise progress series built from every finished workout's working
 /// sets. Points are oldest-first per exercise; exercises are ordered
 /// most-improved first (by top-weight gain). One point per workout the exercise
-/// appears in.
+/// appears in. A bodyweight lift is marked so by its load style, not by the
+/// weight lifted: its estimated maxes are rep maxes even with added weight.
 pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExerciseProgress> {
     struct Acc {
         top_weight: f32,
@@ -181,6 +183,8 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
                 series.push(ExerciseProgress {
                     exercise: ex,
                     points: Vec::new(),
+                    bodyweight: Exercise::try_from(ex)
+                        .is_ok_and(|e| load_style(e) == LoadStyle::Bodyweight),
                 });
                 series.len() - 1
             });
@@ -393,5 +397,71 @@ mod summary_tests {
         let completed_sets = vec![completed("a", 5, 100.0, 1180, 1300)];
         let s = compute_workout_summary(&workout, &proposed_sets, &completed_sets);
         assert_eq!(s.resting_seconds, 20);
+    }
+
+    fn record(id: &str, start: i64, sets: &[(ProposedSet, CompletedSet)]) -> WorkoutRecord {
+        let (proposed_sets, completed_sets) = sets.iter().cloned().unzip();
+        WorkoutRecord::new(
+            Workout {
+                id: id.to_string(),
+                start_time: start,
+                end_time: start + 600,
+                ..Default::default()
+            },
+            proposed_sets,
+            completed_sets,
+        )
+    }
+
+    fn set(id: &str, ex: i32, reps: i32, weight: f32) -> (ProposedSet, CompletedSet) {
+        (proposed(id, ex, false), completed(id, reps, weight, 1, 0))
+    }
+
+    /// Points run oldest first whatever order the workouts come in, the
+    /// lift that gained most comes first, and the top weight is the
+    /// heaviest working set's (its reps the top reps): a warmup or a rung
+    /// heavier than the working sets is not.
+    #[test]
+    fn progress_is_oldest_first_and_most_improved_first() {
+        let (squat, bench) = (1, 2);
+        let mut rung = set("rung", squat, 1, 300.0);
+        rung.0.calibration = true;
+        let mut warmup = set("warm", squat, 1, 250.0);
+        warmup.0.warmup = true;
+        let newer = record(
+            "new",
+            2_000,
+            &[
+                warmup,
+                rung,
+                set("s1", squat, 5, 200.0),
+                set("s2", squat, 3, 200.0),
+                set("s3", squat, 8, 180.0),
+                set("b1", bench, 5, 105.0),
+            ],
+        );
+        let older = record(
+            "old",
+            1_000,
+            &[set("s0", squat, 5, 150.0), set("b0", bench, 5, 100.0)],
+        );
+        let series = compute_exercise_progress(&[&newer, &older]);
+        assert_eq!(
+            series.iter().map(|s| s.exercise).collect::<Vec<_>>(),
+            [squat, bench],
+            "squat gained 50, bench 5"
+        );
+        let points = &series[0].points;
+        assert_eq!(
+            points
+                .iter()
+                .map(|p| p.workout_id.as_str())
+                .collect::<Vec<_>>(),
+            ["old", "new"]
+        );
+        let last = &points[1];
+        assert_eq!((last.top_weight, last.top_reps), (200.0, 5));
+        assert_eq!(last.sets, 3, "working sets only");
+        assert_eq!(last.volume, 5.0 * 200.0 + 3.0 * 200.0 + 8.0 * 180.0);
     }
 }

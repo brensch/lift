@@ -14,14 +14,13 @@ on:
 # Every language is format-checked and linted, and all of it goes through
 # scripts/lint.sh — the same command a person or an agent runs locally — with
 # tool versions pinned (scripts/install_lint_tools.sh, FLUTTER_VERSION,
-# BUF_VERSION, web/package.json). Anything unformatted or unlinted fails.
+# web/package.json). Anything unformatted or unlinted fails.
 
 env:
   # dart format's output changes between SDK releases, so the version that
   # formats the code has to be the version that checks it. Bump this together
   # with the local SDK, and re-run `scripts/lint.sh fmt dart` when you do.
   FLUTTER_VERSION: "3.44.8"
-  BUF_VERSION: "1.64.0"
 
 jobs:
   # Store text is committed: release-notes/<version>.md (read by
@@ -60,6 +59,7 @@ jobs:
               - 'core/**'
               - 'app/native/**'
               - 'loadtest/**'
+              - 'testkit/**'
               - 'templates/library.yaml'
               - 'proto/**'
               - 'testdata/**'
@@ -68,6 +68,7 @@ jobs:
               - 'Cargo.lock'
               - 'Makefile'
               - 'make/**'
+              - 'scripts/lint.sh'
               - '.github/workflows/tests.yml'
             flutter:
               - 'app/**'
@@ -76,6 +77,8 @@ jobs:
               - 'scripts/gen_copy.py'
               - 'scripts/sync_sounds.py'
               - 'scripts/lint.sh'
+              - 'scripts/run_e2e.sh'
+              - 'scripts/build_e2e_report.py'
               - 'proto/**'
               - '.github/workflows/tests.yml'
             web:
@@ -97,11 +100,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Install pinned formatters and linters
         run: scripts/install_lint_tools.sh
-      - name: Install buf
-        uses: bufbuild/buf-action@v1
-        with:
-          setup_only: true
-          version: ${{ env.BUF_VERSION }}
       - name: Format check and lint (python, shell, kotlin, swift, proto)
         run: scripts/lint.sh check python shell kotlin swift proto
       # The Xcode project is committed and built as-is, so a Swift file that is
@@ -254,7 +252,10 @@ jobs:
 
       - name: Run Flutter tests
         working-directory: app
-        run: flutter test
+        # The `dst` tests need a zone with daylight saving (the runner is UTC).
+        run: |
+          flutter test --exclude-tags dst
+          TZ=America/Los_Angeles flutter test --tags dst
 
   web:
     needs: changes
@@ -279,6 +280,10 @@ jobs:
 
       - name: Format check (prettier), lint (eslint) and typecheck (tsc)
         run: scripts/lint.sh check web
+
+      - name: Test
+        working-directory: web
+        run: npm test
 
       - name: Build
         working-directory: web

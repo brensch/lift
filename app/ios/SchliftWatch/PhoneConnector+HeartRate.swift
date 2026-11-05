@@ -4,7 +4,6 @@ import WatchKit
 
 extension PhoneConnector {
     func bufferAndFlushHRSample(_ sample: Workout_V1_HeartRateSample) {
-        lastHRSampleAtMs = Int64(Date().timeIntervalSince1970 * 1000)
         hrLock.lock()
         let workoutID = pendingHRWorkoutID
         pendingHRSamples.append(sample)
@@ -19,12 +18,7 @@ extension PhoneConnector {
         batch.workoutID = workoutID
         batch.heartRateSamples = samples
 
-        let enqueued = enqueueSensorBatch(batch)
-        if !enqueued {
-            hrLock.lock()
-            pendingHRSamples.insert(contentsOf: samples, at: 0)
-            hrLock.unlock()
-        }
+        enqueueSensorBatch(batch)
     }
 
     /// Periodic safety net: while a workout is active, re-assert that the HK session is
@@ -41,8 +35,6 @@ extension PhoneConnector {
     func stopHRWatchdog() {
         hrWatchdogTimer?.invalidate()
         hrWatchdogTimer = nil
-        lastHRSampleAtMs = 0
-        hrMonitoringStartedAtMs = 0
     }
 
     private func runHRWatchdog() {

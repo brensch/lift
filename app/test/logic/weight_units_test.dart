@@ -54,6 +54,21 @@ void main() {
     });
   });
 
+  group('parseDisplayWeight', () {
+    test('reads a point or a comma as the decimal mark', () {
+      expect(parseDisplayWeight('62.5'), 62.5);
+      expect(parseDisplayWeight('62,5'), 62.5);
+      expect(parseDisplayWeight(' 100 '), 100);
+    });
+
+    test('is null for blank or non-numbers', () {
+      expect(parseDisplayWeight(''), isNull);
+      expect(parseDisplayWeight('   '), isNull);
+      expect(parseDisplayWeight('abc'), isNull);
+      expect(parseDisplayWeight('1,2,3'), isNull);
+    });
+  });
+
   group('bar and plates', () {
     test('bar weight matches the unit', () {
       expect(standardBarWeight(lb), 45);

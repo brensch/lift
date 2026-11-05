@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:app_links/app_links.dart' as app_links;
 
+import 'gen/copy.dart';
 import 'services/app_logger.dart';
 import 'services/notification_service.dart';
 import 'services/permissions_service.dart';
@@ -23,6 +24,7 @@ import 'services/platform_wearable_bridge_service.dart';
 import 'services/wearable_bridge_service.dart';
 import 'services/wearable_sync_coordinator.dart';
 import 'providers/auth_provider.dart';
+import 'widgets/update_required_banner.dart';
 import 'providers/workout_provider.dart';
 import 'providers/multiplayer_provider.dart';
 import 'providers/settings_provider.dart';
@@ -49,6 +51,7 @@ import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/build_info_screen.dart';
 import 'widgets/main_layout.dart';
+import 'widgets/session_expired_banner.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
 // overridden with --dart-define=SERVER_HOST=... and --dart-define=SERVER_PORT=...
@@ -112,9 +115,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   bool _hadServerSession = false;
 
   Future<void> _syncBodyWeightOnAppLoad() async {
-    final importedKg = await _authProvider.syncBodyWeightFromHealth();
-    if (importedKg != null) {
-      _workoutProvider.setBodyWeightKg(importedKg);
+    final synced = await _authProvider.syncBodyWeightFromHealth();
+    if (synced is BodyWeightSynced) {
+      _workoutProvider.setBodyWeightKg(synced.kg);
     }
   }
 
@@ -129,7 +132,17 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
   /// Open the account on this phone (restoring it from the server on a
   /// fresh install), then everything that reads it.
   Future<void> _openAccount(String userId) async {
-    await _accountSync.signIn(userId, _authProvider.username ?? '');
+    try {
+      await _accountSync.signIn(userId, _authProvider.username ?? '');
+    } catch (e) {
+      // The file wouldn't open: the startup error screen says so, rather
+      // than a spinner that never ends.
+      AppLogger.instance.error('Startup', 'account open failed', {
+        'error': e.toString(),
+      });
+      _workoutProvider.reportLoadError(e);
+      return;
+    }
     await _settingsProvider.load();
     await _workoutProvider.loadActiveWorkout(userId);
   }
@@ -153,26 +166,28 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
 
     // The account lives on this phone; the stream keeps the server level.
     _accountSync = AccountSync(_grpcClient);
-    _accountSync.onCaughtUp = () {
-      unawaited(_reloadAccount());
-    };
+    // With no session the server would turn the stream down.
+    _accountSync.canDial = () => _authProvider.hasServerSession;
+    _accountSync.onCaughtUp = _reloadAccount;
     _accountSync.onSessionRejected = () {
       // Nothing of the account on this phone yet: sign in from the start.
       if (!_accountSync.isReady) {
         unawaited(_authProvider.logout());
         return;
       }
-      unawaited(
-        _authProvider.expireSession(
-          message: 'Sign in again to sync this phone with your account.',
-        ),
-      );
+      unawaited(_authProvider.expireSession(message: copy.sessionExpired));
     };
     _account = WorkoutServiceWrapper(_accountSync);
     _settingsProvider = SettingsProvider(_account);
     _soundProvider = SoundProvider();
     _workoutProvider = WorkoutProvider(_account, _settingsProvider);
     _workoutProvider.setSoundProvider(_soundProvider);
+    // The startup error's Retry opens the account again (a no-op when it is
+    // open), then loads; a load alone would wait on an account never opened.
+    _workoutProvider.onRetryStartup = () async {
+      final userId = _openUserId;
+      if (userId != null) await _openAccount(userId);
+    };
     _multiplayerProvider = MultiplayerProvider(
       MultiplayerServiceWrapper(_grpcClient),
       feed: _accountSync,
@@ -188,6 +203,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     _wearableSyncCoordinator = WearableSyncCoordinator(
       workoutProvider: _workoutProvider,
       multiplayerProvider: _multiplayerProvider,
+      settingsProvider: _settingsProvider,
       bridgeService: _wearableBridgeService,
       myUserId: () => _authProvider.userId ?? '',
     );
@@ -235,9 +251,12 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           // Before the workout is cleared: the watch needs its id.
           unawaited(_wearableSyncCoordinator.signOut());
           PageTracker.instance.onLogout();
+          // The workout goes before the settings: clearing settings tells
+          // the watch coordinator, which would otherwise republish the old
+          // workout after the watch was told it had ended.
+          _workoutProvider.clear();
           _settingsProvider.clear();
           unawaited(_soundProvider.reset());
-          _workoutProvider.clear();
           unawaited(_accountSync.signOut());
           _multiplayerProvider.clear();
         }
@@ -262,6 +281,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           _pendingJoinToken = null;
           _multiplayerProvider.joinViaInvite(token);
         }
+      }
+      // The session lapsed: multiplayer stops asking until signed in again.
+      if (userId != null && !hasServerSession && _hadServerSession) {
+        _multiplayerProvider.stopSync();
       }
       _hadServerSession = hasServerSession;
     });
@@ -328,8 +351,11 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         ),
         ShellRoute(
           observers: [PageTrackObserver()],
-          builder: (context, state, child) =>
-              MainLayout(currentPath: state.matchedLocation, child: child),
+          // The banner here, not in MainLayout: the tutorial's sandbox
+          // layout has no session to lose.
+          builder: (context, state, child) => SessionExpiredBanner(
+            child: MainLayout(currentPath: state.matchedLocation, child: child),
+          ),
           routes: [
             GoRoute(path: '/', builder: (_, __) => const WorkoutTab()),
             GoRoute(
@@ -485,6 +511,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         routerConfig: _router,
+        builder: (context, child) =>
+            UpdateRequiredBanner(child: child ?? const SizedBox.shrink()),
       ),
     );
   }

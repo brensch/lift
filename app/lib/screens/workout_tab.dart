@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../gen/copy.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -17,28 +20,32 @@ class WorkoutTab extends StatefulWidget {
 }
 
 class _WorkoutTabState extends State<WorkoutTab> {
-  /// The app shell loads the account once it is open; this only retries.
+  /// The app shell opens and loads the account; this only retries.
   void _retry() {
-    final userId = context.read<AuthProvider>().userId;
-    if (userId != null) {
-      context.read<WorkoutProvider>().loadActiveWorkout(userId);
+    final wp = context.read<WorkoutProvider>();
+    final retry = wp.onRetryStartup;
+    if (retry != null) {
+      unawaited(retry());
+      return;
     }
+    final userId = context.read<AuthProvider>().userId;
+    if (userId != null) wp.loadActiveWorkout(userId);
   }
 
   Future<bool> _confirmExit() async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Exit app?'),
-        content: const Text('Are you sure you want to quit?'),
+        title: Text(copy.startup.exitTitle),
+        content: Text(copy.startup.exitBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
+            child: Text(copy.startup.exitCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('EXIT'),
+            child: Text(copy.startup.exitConfirm),
           ),
         ],
       ),
@@ -70,7 +77,7 @@ class _WorkoutTabState extends State<WorkoutTab> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Could not finish startup',
+                    copy.startup.failed,
                     style: TextStyle(
                       fontSize: context.tokens.size.title,
                       fontWeight: context.tokens.weight.bold,
@@ -80,7 +87,10 @@ class _WorkoutTabState extends State<WorkoutTab> {
                   const SizedBox(height: 12),
                   Text(startupError, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
-                  FilledButton(onPressed: _retry, child: const Text('Retry')),
+                  FilledButton(
+                    onPressed: _retry,
+                    child: Text(copy.startup.retry),
+                  ),
                 ],
               ),
             ),

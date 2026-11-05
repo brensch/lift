@@ -95,8 +95,8 @@ class NotificationService {
 
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      'Rest Timer',
-      channelDescription: 'Rest timer completion alert',
+      copy.restNotification.channel,
+      channelDescription: copy.restNotification.channelDescription,
       importance: Importance.high,
       priority: Priority.high,
       sound: androidSound,
@@ -120,7 +120,7 @@ class NotificationService {
     );
     Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
       id: _restNotificationId,
-      title: 'Rest Complete',
+      title: copy.restNotification.title,
       body: body,
       scheduledDate: scheduledTime,
       notificationDetails: details,

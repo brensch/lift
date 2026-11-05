@@ -369,7 +369,7 @@ class _Plates extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: t.lightBackdrop,
           border: Border.all(color: t.outline),
         ),
         child: isEmptyBar(weight, unit)
@@ -378,7 +378,7 @@ class _Plates extends StatelessWidget {
                 style: TextStyle(
                   fontSize: t.size.body,
                   fontWeight: t.weight.heavy,
-                  color: Colors.black,
+                  color: t.inkOn(t.lightBackdrop),
                 ),
               )
             : FittedBox(child: PlateVisualization(weightLb: weight)),

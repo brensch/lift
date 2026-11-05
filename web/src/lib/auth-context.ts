@@ -9,8 +9,8 @@ export interface User {
 export interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: () => Promise<void>;
-  devLogin?: (username: string) => Promise<void>;
+  login: () => Promise<User>;
+  devLogin?: (username: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 

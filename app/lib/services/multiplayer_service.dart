@@ -81,11 +81,4 @@ class MultiplayerServiceWrapper {
     );
     return response.rosters;
   }
-
-  Future<void> leaveCurrentSession() async {
-    await _client.multiplayerService.leaveCurrentSession(
-      LeaveCurrentSessionRequest(),
-      options: _defaultCallOptions,
-    );
-  }
 }

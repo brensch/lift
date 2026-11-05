@@ -14,8 +14,8 @@ library first — `make test-app` runs `cargo build -p schlift_native` and then
 `flutter test`.
 
 Nothing is canned: a test makes the same calls the app does and reads the
-core's answers. Used by `test/providers/workout_provider_test.dart`. The
-rules themselves are tested in Rust (`core/tests/api.rs`).
+core's answers. The rules themselves are tested in Rust
+(`core/tests/api.rs`).
 
 Gotchas encoded in the harness:
 

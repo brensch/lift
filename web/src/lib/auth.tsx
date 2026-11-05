@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { authClient, authHeaders } from "./grpc";
 import { AuthContext, type User } from "./auth-context";
 
@@ -63,7 +64,7 @@ function serializeAssertion(credential: PublicKeyCredential) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(loadSession);
   const [loading, setLoading] = useState(() => !!loadSession());
-  const loginRequestRef = useRef<Promise<void> | null>(null);
+  const loginRequestRef = useRef<Promise<User> | null>(null);
 
   // Validate existing session on mount
   useEffect(() => {
@@ -75,9 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(() => {
         setUser(existing);
       })
-      .catch(() => {
-        clearSession();
-        setUser(null);
+      .catch((err) => {
+        // Only a rejected session signs out; an outage or a deploy keeps it.
+        if (err instanceof ConnectError && err.code === Code.Unauthenticated) {
+          clearSession();
+          setUser(null);
+        } else {
+          setUser(existing);
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -146,12 +152,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       saveSession(newUser);
       setUser(newUser);
+      return newUser;
     })();
 
     loginRequestRef.current = loginPromise;
 
     try {
-      await loginPromise;
+      return await loginPromise;
     } finally {
       if (loginRequestRef.current === loginPromise) {
         loginRequestRef.current = null;
@@ -159,12 +166,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const devLogin: ((username: string) => Promise<void>) | undefined = import.meta.env.DEV
+  const devLogin: ((username: string) => Promise<User>) | undefined = import.meta.env.DEV
     ? async (username: string) => {
         const { performDevLogin } = await import("./auth-dev");
         const newUser = await performDevLogin(username);
         saveSession(newUser);
         setUser(newUser);
+        return newUser;
       }
     : undefined;
 

@@ -33,6 +33,7 @@ import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
 import '../../widgets/common/flat.dart';
+import '../../widgets/dialogs/confirm_dialog.dart';
 import '../../widgets/template_row.dart';
 import '../../theme/app_icons.dart';
 
@@ -79,18 +80,13 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final wearableBridge = context.read<WearableBridgeService>();
       final workoutProvider = context.read<WorkoutProvider>();
+      // No name: the core names it after the template, or 'Workout'.
       final workoutId = await workoutProvider.startWorkout(
-        templateId.isEmpty ? 'Workout' : '',
+        '',
         templateId: templateId,
       );
       if (workoutId != null && mounted) {
         unawaited(_setUpHealthAndWatch(wearableBridge));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to start workout: $e')));
       }
     } finally {
       if (mounted) setState(() => _isStarting = false);
@@ -128,34 +124,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _confirmDeleteTemplate(WorkoutTemplate template) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Delete ${template.name}?',
-          style: TextStyle(fontWeight: context.tokens.weight.heavy),
-        ),
-        content: const Text(
-          'Your weights are safe. They live on the exercises, not the '
-          'template.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: copy.home.deleteTitle.replaceAll('{name}', template.name),
+      body: copy.home.deleteBody,
+      confirm: copy.home.deleteConfirm,
+      cancel: copy.home.deleteCancel,
+      destructive: true,
     );
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       await context.read<WorkoutProvider>().deleteTemplate(template.id);
     }
   }
@@ -166,23 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final home = wp.home;
 
-    if (home == null) {
-      return Center(
-        child: wp.lastLoadError != null
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Could not reach the gym computer.'),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: _refresh,
-                    child: const Text('RETRY'),
-                  ),
-                ],
-              )
-            : const CircularProgressIndicator(),
-      );
-    }
+    // WorkoutTab shows the loading and startup-error states; it builds
+    // Home only once there is one.
+    if (home == null) return const SizedBox.shrink();
 
     if (home.onboarded && !_tutorialChecked) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowTutorial());
@@ -247,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (!template.inRotation) chip(template),
                   _ActionChip(
                     icon: AppIcons.lightning,
-                    label: 'Empty',
+                    label: copy.home.emptyChip,
                     selected: emptySelected,
                     onTap: () =>
                         setState(() => _selectedTemplateId = _emptyWorkoutId),
@@ -378,7 +341,7 @@ class _EmptyWorkoutCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Don't tell me what to do",
+            copy.home.emptyTitle,
             style: TextStyle(
               fontSize: context.tokens.size.titleLg,
               fontWeight: context.tokens.weight.heavy,
@@ -387,8 +350,7 @@ class _EmptyWorkoutCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            "I'll add exercises as I go. The app still brings the "
-            'weights, sets and reps for whatever you pick.',
+            copy.home.emptyBody,
             style: TextStyle(
               fontSize: context.tokens.size.bodyLg,
               height: 1.4,
@@ -396,27 +358,75 @@ class _EmptyWorkoutCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: FilledButton(
-              onPressed: isStarting ? null : onStart,
-              child: isStarting
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      'START',
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.heavy,
-                        fontSize: context.tokens.size.subtitle,
-                      ),
-                    ),
-            ),
-          ),
+          _StartButton(isStarting: isStarting, onStart: onStart),
         ],
+      ),
+    );
+  }
+}
+
+/// A workout card's START, a spinner while the workout starts.
+class _StartButton extends StatelessWidget {
+  final bool isStarting;
+  final VoidCallback onStart;
+  const _StartButton({required this.isStarting, required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: FilledButton(
+        onPressed: isStarting ? null : onStart,
+        child: isStarting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                copy.home.start,
+                style: TextStyle(
+                  fontWeight: context.tokens.weight.heavy,
+                  fontSize: context.tokens.size.subtitle,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+/// The shell every Home chip shares: tinted and framed in the primary
+/// colour when [selected].
+class _ChipShell extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+  final List<Widget> children;
+
+  const _ChipShell({
+    required this.selected,
+    required this.onTap,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected
+              ? cs.primary.withValues(alpha: 0.12)
+              : context.tokens.panel,
+          borderRadius: context.tokens.brSm,
+          border: Border.all(
+            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }
@@ -439,35 +449,20 @@ class _ActionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return _ChipShell(
+      selected: selected,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? cs.primary.withValues(alpha: 0.12)
-              : context.tokens.panel,
-          borderRadius: context.tokens.brSm,
-          border: Border.all(
-            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
-            width: selected ? 2 : 1,
+      children: [
+        Icon(icon, size: 14, color: cs.onSurface.withValues(alpha: 0.7)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: context.tokens.size.body,
+            fontWeight: context.tokens.weight.heavy,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: cs.onSurface.withValues(alpha: 0.7)),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: context.tokens.size.body,
-                fontWeight: context.tokens.weight.heavy,
-              ),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
@@ -512,7 +507,7 @@ class _EmptyState extends StatelessWidget {
           Text('🏗️', style: TextStyle(fontSize: context.tokens.size.display)),
           const SizedBox(height: 12),
           Text(
-            'No templates yet',
+            copy.home.noTemplates,
             style: TextStyle(
               fontSize: context.tokens.size.title,
               fontWeight: context.tokens.weight.heavy,
@@ -520,13 +515,12 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'A template is just a list of exercises. The app handles the '
-            'sets, reps and weight.',
+            copy.home.noTemplatesBody,
             textAlign: TextAlign.center,
             style: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onCreate, child: const Text('CREATE ONE')),
+          FilledButton(onPressed: onCreate, child: Text(copy.home.createOne)),
         ],
       ),
     );
@@ -875,45 +869,29 @@ class TemplateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
-    return GestureDetector(
+    return _ChipShell(
+      selected: selected,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? cs.primary.withValues(alpha: 0.12)
-              : context.tokens.panel,
-          borderRadius: context.tokens.brSm,
-          border: Border.all(
-            color: selected ? cs.primary : cs.outline.withValues(alpha: 0.5),
-            width: selected ? 2 : 1,
+      children: [
+        if (recommended)
+          Padding(
+            padding: const EdgeInsets.only(right: 3),
+            child: Icon(AppIcons.star, size: 14, color: cs.primary),
+          ),
+        if (!template.coupled)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Icon(AppIcons.copy, size: 14, color: cs.primary),
+          ),
+        Text(
+          template.name,
+          style: TextStyle(
+            fontSize: context.tokens.size.body,
+            fontWeight: context.tokens.weight.heavy,
+            letterSpacing: -0.2,
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (recommended)
-              Padding(
-                padding: const EdgeInsets.only(right: 3),
-                child: Icon(AppIcons.star, size: 14, color: cs.primary),
-              ),
-            if (!template.coupled)
-              Padding(
-                padding: const EdgeInsets.only(right: 4),
-                child: Icon(AppIcons.copy, size: 14, color: cs.primary),
-              ),
-            Text(
-              template.name,
-              style: TextStyle(
-                fontSize: context.tokens.size.body,
-                fontWeight: context.tokens.weight.heavy,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
@@ -1037,7 +1015,7 @@ class SelectedTemplateCard extends StatelessWidget {
                       child: Text(copy.library.remove),
                     ),
                   ] else ...[
-                    const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    PopupMenuItem(value: 'edit', child: Text(copy.home.edit)),
                     PopupMenuItem(
                       value: 'delete',
                       child: Text(copy.library.delete),
@@ -1068,26 +1046,7 @@ class SelectedTemplateCard extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: TutorialTarget(
               id: 'home_start',
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  onPressed: isStarting ? null : onStart,
-                  child: isStarting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          'START',
-                          style: TextStyle(
-                            fontWeight: context.tokens.weight.heavy,
-                            fontSize: context.tokens.size.subtitle,
-                          ),
-                        ),
-                ),
-              ),
+              child: _StartButton(isStarting: isStarting, onStart: onStart),
             ),
           ),
         ],

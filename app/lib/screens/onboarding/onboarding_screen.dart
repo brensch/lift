@@ -31,6 +31,8 @@ import 'steps/strength_step.dart';
 import 'steps/templates_step.dart';
 import 'steps/unit_step.dart';
 import 'steps/weight_step.dart';
+import 'widgets/profile_marker_widgets.dart'
+    show emojiWindowSize, shuffledEmojiWindow, withSelectedVisible;
 import '../../theme/theme_spec.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -41,7 +43,6 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  static const int _emojiWindowSize = 18;
   int _step = 0;
 
   // Page-view names for the steps, in the order build() lists them. Numbered
@@ -83,8 +84,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.initState();
     final rng = Random();
     final shuffled = [...whimsicalEmojiCatalog]..shuffle(rng);
-    _emojiChoices = shuffled.take(_emojiWindowSize).toList();
-    _selectedEmoji = _emojiChoices[rng.nextInt(_emojiWindowSize)];
+    _emojiChoices = shuffled.take(emojiWindowSize).toList();
+    _selectedEmoji = _emojiChoices[rng.nextInt(emojiWindowSize)];
     _selectedColorHex =
         profileColorHexOptions[rng.nextInt(profileColorHexOptions.length)];
     unawaited(_loadProfile());
@@ -120,17 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _refreshEmojiChoices() {
-    final pool = <String>{...whimsicalEmojiCatalog, _selectedEmoji}.toList();
-    pool.shuffle(Random());
-    setState(() {
-      _emojiChoices = pool.take(_emojiWindowSize).toList();
-      if (!_emojiChoices.contains(_selectedEmoji)) {
-        _emojiChoices = [
-          _selectedEmoji,
-          ..._emojiChoices.take(_emojiWindowSize - 1),
-        ];
-      }
-    });
+    setState(() => _emojiChoices = shuffledEmojiWindow(_selectedEmoji));
   }
 
   Future<void> _loadProfile() async {
@@ -153,12 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       setState(() {
         _selectedEmoji = emoji;
         _selectedColorHex = normalizedProfileColorHex(user.profileColorHex);
-        if (!_emojiChoices.contains(_selectedEmoji)) {
-          _emojiChoices = [
-            _selectedEmoji,
-            ..._emojiChoices.take(_emojiWindowSize - 1),
-          ];
-        }
+        _emojiChoices = withSelectedVisible(_emojiChoices, _selectedEmoji);
       });
     } catch (_) {
       // Keep onboarding defaults if the profile fetch fails.
@@ -166,36 +152,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   double _parsedBodyWeightKg() {
-    final text = _bodyWeightController.text.trim();
-    final value = double.tryParse(text);
+    final value = parseDisplayWeight(_bodyWeightController.text);
     if (value == null || value <= 0) return 0;
     return isMetricUnit(_unit) ? value : poundsToKilograms(value);
+  }
+
+  /// The marker and bodyweight live on the server. Best effort: setup is
+  /// local and finishes without it, so a failure is only a note.
+  Future<void> _sendProfile() async {
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    void failed() => messenger.showSnackBar(
+      SnackBar(content: Text(copy.onboarding.profileFailed)),
+    );
+    // The marker and bodyweight are kept only on the server: with no
+    // session they are not saved, so say so.
+    if (!auth.hasServerSession) {
+      failed();
+      return;
+    }
+    try {
+      final updatedUser = await UserServiceWrapper(context.read<GrpcClient>())
+          .updateMyProfile(
+            profileEmoji: _selectedEmoji,
+            profileColorHex: _selectedColorHex,
+            bodyWeightKg: _parsedBodyWeightKg(),
+          );
+      auth.setProfile(
+        profileEmoji: updatedUser.profileEmoji,
+        profileColorHex: updatedUser.profileColorHex,
+        bodyWeightKg: updatedUser.bodyWeightKg.toDouble(),
+      );
+    } catch (e) {
+      debugPrint('Onboarding profile update failed: $e');
+      failed();
+    }
   }
 
   Future<void> _finish() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
     try {
-      final bodyWeightKg = _parsedBodyWeightKg();
-
-      // Profile marker (and bodyweight, for calorie estimates).
-      final updatedUser = await UserServiceWrapper(context.read<GrpcClient>())
-          .updateMyProfile(
-            profileEmoji: _selectedEmoji,
-            profileColorHex: _selectedColorHex,
-            bodyWeightKg: bodyWeightKg,
-          );
-      if (mounted) {
-        context.read<AuthProvider>().setProfile(
-          profileEmoji: updatedUser.profileEmoji,
-          profileColorHex: updatedUser.profileColorHex,
-          bodyWeightKg: updatedUser.bodyWeightKg.toDouble(),
-        );
-        context.read<SettingsProvider>().applyWeightUnitLocally(_unit);
-      }
-
-      // The core records the starting weights and the chosen templates.
-      if (!mounted) return;
+      // The core records the starting weights and the chosen templates:
+      // this is what decides the onboarded gate, and it needs no server.
       final service = context.read<WorkoutServiceWrapper>();
       await service.completeOnboarding(
         unit: _unit,
@@ -204,6 +203,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         strength: (_strength.clamp(0.0, 1.0) * 100).round() / 100,
         libraryIds: _selectedLibraryIds.toList(),
       );
+      if (!mounted) return;
+      context.read<SettingsProvider>().applyWeightUnitLocally(_unit);
+
+      // Profile marker (and bodyweight, for calorie estimates).
+      await _sendProfile();
 
       if (!mounted) return;
       // Refresh home so the router's onboarded gate flips.

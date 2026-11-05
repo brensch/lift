@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useAuth } from "@/lib/use-auth";
-import { LogOut, ArrowRight, Trophy, ChevronDown } from "lucide-react";
+import { LogOut, ArrowRight, Trophy } from "lucide-react";
 import { loadDashboardData, type DashboardData } from "@/lib/dashboard-data";
 import { generateDemoData } from "@/lib/demo-data";
 import { ChartCard } from "@/components/charts/chart-card";
@@ -18,6 +19,7 @@ import {
   formatDate,
   formatDateFull,
   formatDuration,
+  formatMax,
   formatNumber,
   formatWeight,
   lbToDisplay,
@@ -27,15 +29,13 @@ import {
 import {
   DAY_S,
   exercisesInRange,
+  heaviestMax,
   resolveRange,
   weeklyVolume,
   workoutsInRange,
   type RangeState,
 } from "@/lib/range";
 import { cn } from "@/lib/utils";
-
-// Captured at module load — "last 30 days" doesn't need to tick live.
-const NOW_S = Math.floor(Date.now() / 1000);
 
 /** A one-line stat: label left, value right. Five of these make one strip. */
 function Stat({
@@ -62,39 +62,6 @@ function Stat({
         {value}
       </p>
     </div>
-  );
-}
-
-function Select({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  ariaLabel: string;
-}) {
-  return (
-    <span className="relative inline-flex">
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-9 appearance-none pl-3 pr-8 rounded-lg border border-border bg-surface text-sm font-semibold text-text hover:border-muted transition-colors cursor-pointer"
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={14}
-        className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted"
-      />
-    </span>
   );
 }
 
@@ -126,8 +93,10 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
 
   // Every number below is scoped to the same range. Hooks run unconditionally.
   const unit: DisplayUnit = data?.unit ?? "lb";
-  const sinceS = data?.sinceS ?? NOW_S;
-  const { startS, endS, label: rangeLabel } = resolveRange(range, NOW_S, sinceS);
+  // "Now" is when the data loaded: each visit refetches, so its ranges reach
+  // the newest workout. "Last 30 days" doesn't need to tick live.
+  const nowS = data?.nowS ?? 0;
+  const { startS, endS, label: rangeLabel } = resolveRange(range, nowS, data?.sinceS ?? nowS);
   const workouts = useMemo(
     () => (data ? workoutsInRange(data, startS, endS) : []),
     [data, startS, endS],
@@ -146,10 +115,10 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
   const spanDays = Math.max(1, (endS - startS) / DAY_S);
   const perWeek = (workouts.length / spanDays) * 7;
   const prs = exercises.filter((e) => e.isPr);
-  const best = exercises.reduce<{ name: string; lb: number } | null>(
-    (acc, e) => (!acc || e.bestLb > acc.lb ? { name: e.series.name, lb: e.bestLb } : acc),
-    null,
-  );
+  const best = heaviestMax(exercises);
+  // A bodyweight lift's maxes and top sets are reps, never converted.
+  const shown = (lb: number, bodyweight: boolean) => (bodyweight ? lb : lbToDisplay(lb, unit));
+  const bw = selected?.bodyweight ?? false;
 
   if (!demo) {
     if (loading) {
@@ -230,7 +199,7 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
             />
           )}
           {hasData && (
-            <RangePicker value={range} onChange={setRange} nowS={NOW_S} sinceS={data.sinceS} />
+            <RangePicker value={range} onChange={setRange} nowS={data.nowS} sinceS={data.sinceS} />
           )}
           {demo ? (
             <Link to="/" className="no-underline">
@@ -316,29 +285,39 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                 <ChartCard
                   fill
                   title={selected.series.name}
-                  subtitle={`Est. 1RM and heaviest working set, ${unit}`}
+                  subtitle={
+                    bw
+                      ? "Rep max and most reps in a set"
+                      : `Est. 1RM and heaviest working set, ${unit}`
+                  }
                   legend={[
-                    { label: "Est. 1RM", color: SERIES_1, shape: "line" },
-                    { label: "Top set", color: CONTEXT, shape: "line" },
+                    { label: bw ? "Rep max" : "Est. 1RM", color: SERIES_1 },
+                    { label: "Top set", color: CONTEXT },
                   ]}
                   table={{
-                    head: [
-                      "Date",
-                      `Top set (${unit})`,
-                      "Reps",
-                      `Est. 1RM (${unit})`,
-                      `Volume (${unit})`,
-                    ],
-                    numeric: [1, 2, 3, 4],
+                    head: bw
+                      ? ["Date", "Reps", "Rep max"]
+                      : [
+                          "Date",
+                          `Top set (${unit})`,
+                          "Reps",
+                          `Est. 1RM (${unit})`,
+                          `Volume (${unit})`,
+                        ],
+                    numeric: bw ? [1, 2] : [1, 2, 3, 4],
                     rows: [...selected.points]
                       .reverse()
-                      .map((p) => [
-                        formatDateFull(p.dateS),
-                        formatNumber(lbToDisplay(p.topWeightLb, unit)),
-                        String(p.topReps),
-                        formatNumber(lbToDisplay(p.e1rmLb, unit)),
-                        formatNumber(lbToDisplay(p.volumeLb, unit), 0),
-                      ]),
+                      .map((p) =>
+                        bw
+                          ? [formatDateFull(p.dateS), String(p.topReps), formatNumber(p.e1rmLb, 0)]
+                          : [
+                              formatDateFull(p.dateS),
+                              formatNumber(lbToDisplay(p.topWeightLb, unit)),
+                              String(p.topReps),
+                              formatNumber(lbToDisplay(p.e1rmLb, unit)),
+                              formatNumber(lbToDisplay(p.volumeLb, unit), 0),
+                            ],
+                      ),
                   }}
                 >
                   <LineChart
@@ -350,15 +329,15 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                         context: true,
                         points: selected.points.map((p) => ({
                           x: p.dateS,
-                          y: lbToDisplay(p.topWeightLb, unit),
+                          y: bw ? p.topReps : lbToDisplay(p.topWeightLb, unit),
                         })),
                       },
                       {
-                        label: "Est. 1RM",
+                        label: bw ? "Rep max" : "Est. 1RM",
                         color: SERIES_1,
                         points: selected.points.map((p) => ({
                           x: p.dateS,
-                          y: lbToDisplay(p.e1rmLb, unit),
+                          y: shown(p.e1rmLb, bw),
                         })),
                       },
                     ]}
@@ -384,7 +363,7 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
               <ul className="m-0 p-0 list-none overflow-y-auto min-h-0 flex-1 max-h-[22rem] lg:max-h-none divide-y divide-border/40">
                 {exercises.map((e) => {
                   const active = selected?.series.key === e.series.key;
-                  const delta = lbToDisplay(e.deltaLb, unit);
+                  const delta = shown(e.deltaLb, e.bodyweight);
                   return (
                     <li key={e.series.key}>
                       <button
@@ -410,7 +389,7 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                             }}
                           >
                             {delta > 0 ? "+" : ""}
-                            {formatNumber(delta)} {unit}
+                            {formatNumber(delta)} {e.bodyweight ? "reps" : unit}
                           </span>
                         </span>
                         <span className="w-16">
@@ -420,13 +399,13 @@ export function DashboardPage({ demo = false }: { demo?: boolean }) {
                               color={active ? SERIES_1 : CONTEXT}
                               points={e.points.map((p) => ({
                                 x: p.dateS,
-                                y: lbToDisplay(p.e1rmLb, unit),
+                                y: shown(p.e1rmLb, e.bodyweight),
                               }))}
                             />
                           )}
                         </span>
                         <span className="font-display text-lg font-bold tracking-tight [font-variant-numeric:tabular-nums] text-right w-20">
-                          {formatWeight(e.bestLb, unit)}
+                          {formatMax(e.bestLb, unit, e.bodyweight)}
                         </span>
                       </button>
                     </li>
