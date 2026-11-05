@@ -225,17 +225,6 @@ class MultiplayerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> leaveCurrentSession() async {
-    try {
-      await _service.leaveCurrentSession();
-    } catch (e) {
-      AppLogger.instance.warn('Multiplayer', 'leaveCurrentSession failed', {
-        'error': e.toString(),
-      });
-    }
-    _clearSession();
-  }
-
   String _extractToken(String input) {
     final trimmed = input.trim();
     if (trimmed.isEmpty) return '';
