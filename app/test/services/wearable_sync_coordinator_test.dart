@@ -1,6 +1,7 @@
 /// What the watch sends the phone (intents, heart-rate batches) and what the
 /// phone sends back (a snapshot after every intent, the end command once).
-/// Signing out ends the workout on the watch: the last thing the watch hears
+/// Signing out, or the workout going away unfinished (discarded here or
+/// elsewhere), ends the workout on the watch: the last thing the watch hears
 /// for it is an ended snapshot (ALL_DONE, no End action), then the end command.
 library;
 
@@ -91,6 +92,36 @@ void main() {
 
     expect(bridge.snapshots.last.workoutId, workoutId);
     expect(endsTheWatch(bridge.snapshots.last), isTrue);
+    expect(bridge.ended, [workoutId]);
+  });
+
+  test('discarding a workout ends it on the watch, once', () async {
+    await h.start([Exercise.EXERCISE_SQUAT]);
+    final workoutId = h.provider.workout!.id;
+    final before = bridge.snapshots.length;
+
+    expect(await h.provider.discardWorkout(), isTrue);
+    await pumpEventQueue();
+
+    final sent = bridge.snapshots.sublist(before);
+    expect(sent, hasLength(1));
+    expect(sent.single.workoutId, workoutId);
+    expect(endsTheWatch(sent.single), isTrue);
+    expect(bridge.ended, [workoutId]);
+  });
+
+  test('a finished workout left behind is not ended twice', () async {
+    await h.start([Exercise.EXERCISE_SQUAT]);
+    final workoutId = h.provider.workout!.id;
+    await h.provider.endWorkout();
+    await pumpEventQueue();
+    expect(bridge.ended, [workoutId]);
+    final before = bridge.snapshots.length;
+
+    await h.provider.dismissEndedWorkout();
+    await pumpEventQueue();
+
+    expect(bridge.snapshots.length, before);
     expect(bridge.ended, [workoutId]);
   });
 

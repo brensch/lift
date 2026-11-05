@@ -44,11 +44,8 @@ class PlateColorsScreen extends StatelessWidget {
         )
         .key;
 
-    void pick(double plate, Color color) {
-      final colors = Map<double, Color>.from(settings.plateColors);
-      colors[plate] = color;
-      settings.updatePlateColors(colors);
-    }
+    void pick(double plate, Color color) =>
+        settings.choosePlateColor(plate, color);
 
     return Scaffold(
       appBar: AppBar(title: PageTitle(copy.plateColours.title)),
