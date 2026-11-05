@@ -172,6 +172,10 @@ impl ServerDb {
     /// that workout's events reach the others. Ending it takes the member
     /// out with it on show; throwing it away, or starting another, takes
     /// them out. One who first trains later than that is out of it first.
+    /// A workout left open from earlier (nothing in it for
+    /// `SHOWN_FOR_SECONDS` before it is put in the session, ended or thrown
+    /// away) stays the member's own: it is not under way, so it neither
+    /// becomes theirs in the session nor takes them out of it.
     pub(super) async fn follow_session(&self, user_id: &str, events: &[Event]) -> DbResult<()> {
         let Some(mut member) = self.membership(user_id).await? else {
             return Ok(());
@@ -190,7 +194,7 @@ impl ServerDb {
                     | Fact::WorkoutDiscarded(_) => true,
                     _ => false,
                 };
-                if !trains {
+                if !trains || !self.under_way(user_id, workout, event).await? {
                     continue;
                 }
                 if member.joined_at <= now_unix() - SHOWN_FOR_SECONDS {
@@ -216,6 +220,26 @@ impl ServerDb {
             }
         }
         Ok(())
+    }
+
+    /// Whether `workout` is under way at `event`: a start or a set is, and
+    /// otherwise its last event before `event`, putting it in a session
+    /// aside, is within `SHOWN_FOR_SECONDS` of it.
+    async fn under_way(&self, user_id: &str, workout: &str, event: &Event) -> DbResult<bool> {
+        if matches!(
+            event.fact,
+            Fact::WorkoutStarted(_) | Fact::SetStarted(_) | Fact::SetCompleted(_)
+        ) {
+            return Ok(true);
+        }
+        let events = self.workout_events(user_id, workout).await?;
+        let last = events
+            .iter()
+            .take_while(|e| e.id != event.id)
+            .filter(|e| !matches!(e.fact, Fact::SessionSet(_)))
+            .last()
+            .map_or(i64::MIN, |e| e.at);
+        Ok(last > event.at - SHOWN_FOR_SECONDS)
     }
 
     async fn put_workout_in_session(

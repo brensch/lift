@@ -23,7 +23,10 @@ they train in after joining (the one under way when they join, or the next
 they start). It is set from the first of their pushed events that starts it,
 puts it in the session (`SetWorkoutSession`) or does a set of it, as long as
 that comes within `SHOWN_FOR_SECONDS` of joining (`ServerDb::follow_session`,
-`src/db/session.rs`). Only that workout's events go to the others — all of
+`src/db/session.rs`). A workout left open from earlier is not under way: one
+with nothing in it for `SHOWN_FOR_SECONDS` before it is put in the session,
+ended or thrown away stays the member's own, and ending or throwing it away
+leaves them in the session for the next one they start. Only that workout's events go to the others — all of
 them, late ones and catch-up after a reconnect included, until the member is
 off the roster — and nothing of any workout before or after it. Ending it is
 leaving.
@@ -73,7 +76,8 @@ stateDiagram-v2
 Idle is measured on the member's workout, not on reads: they are out once
 their workout in the session has had no event for `SHOWN_FOR_SECONDS`, or,
 with none yet, once they joined that long ago. It is written (`left_at`) the
-first time it is noticed — when their phone connects, someone joins them, or
+first time it is noticed — when their phone connects, someone joins them, they
+join someone (so rejoining a session they went idle in is a fresh join), or
 they push the event that would start training late — so a member who walked
 off without ending, or never started, is never pulled back in by what they do
 days later, and no one joining them later lands in the old group.
@@ -181,7 +185,8 @@ trained with, not what they did: their workouts stay in their own accounts.
 - **A partner who goes offline stops updating** where they were, until they
   come back or go off show; there is no staleness marker.
 - **Idle is noticed, not scheduled.** A member who has gone idle is written
-  out the next time their phone connects, someone joins them, or they push;
+  out the next time their phone connects, someone joins them, they join
+  someone, or they push;
   until then the others' rosters still list them, and their phones show
   them off show.
 - **`session_members` grows forever.** Its rows are the record of who trained
