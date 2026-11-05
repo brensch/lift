@@ -862,7 +862,8 @@ passkeys:
   load_failed: Failed to load passkeys
   delete_failed: Failed to delete passkey
   delete_title: Delete Passkey
-  delete_warning: Make sure you have one of the remaining passkeys before deleting anything. If you don't have a valid passkey you cannot recover your account.
+  # The last sentence (other devices signed out) is a placeholder.
+  delete_warning: Make sure you have one of the remaining passkeys before deleting anything. If you don't have a valid passkey you cannot recover your account. Your other devices will need to sign in again.
   delete_body: Are you sure? This cannot be undone.
   delete_cancel: Cancel
   delete_confirm: Delete
