@@ -26,11 +26,13 @@ pub struct Pushed {
 
 impl ServerDb {
     /// Look at a user's account, folded from its history (without heart
-    /// rate, which the server never reads).
-    pub async fn read_account<R>(
+    /// rate, which the server never reads). The fold and the read run on
+    /// the blocking pool: a large account takes a while to fold, and the
+    /// runtime's few workers also serve every stream.
+    pub async fn read_account<R: Send + 'static>(
         &self,
         user_id: &str,
-        read: impl FnOnce(&Account) -> R,
+        read: impl FnOnce(&Account) -> R + Send + 'static,
     ) -> DbResult<R> {
         // Heart-rate rows are most of a log and change nothing in a fold
         // without heart rate, so they are not read (or parsed) at all.
@@ -41,11 +43,14 @@ impl ServerDb {
         .bind(user_id)
         .fetch_all(&self.read_pool)
         .await?;
-        let events = rows
-            .iter()
-            .map(|json| serde_json::from_str(json))
-            .collect::<Result<Vec<Event>, _>>()?;
-        Ok(read(&Account::fold_without_heart_rate(&events)))
+        tokio::task::spawn_blocking(move || {
+            let events = rows
+                .iter()
+                .map(|json| serde_json::from_str(json))
+                .collect::<Result<Vec<Event>, _>>()?;
+            Ok(read(&Account::fold_without_heart_rate(&events)))
+        })
+        .await?
     }
 
     /// The last seq the server holds for the user.
