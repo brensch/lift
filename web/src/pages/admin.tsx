@@ -294,11 +294,14 @@ function failureSummary(r: PasskeyRow): string {
 function Trail({
   username,
   entries,
+  failed,
   onClose,
 }: {
   username: string;
   /** Null while this user's trail is still loading. */
   entries: TrailEntry[] | null;
+  /** The fetch for it failed (the page shows why). */
+  failed: boolean;
   onClose: () => void;
 }) {
   // Newest sitting first; within a sitting, in the order it happened.
@@ -325,7 +328,9 @@ function Trail({
         <X size={16} />
       </button>
       {entries === null ? (
-        <p className="text-sm text-muted m-0">Loading…</p>
+        <p className="text-sm text-muted m-0">
+          {failed ? "Couldn't load this trail." : "Loading…"}
+        </p>
       ) : sittings.length === 0 ? (
         <p className="text-sm text-muted m-0">No page views recorded for this user.</p>
       ) : (
@@ -605,6 +610,7 @@ export function AdminPage() {
                 <Trail
                   username={trailUser}
                   entries={trailFor === trailUser ? stats.trail : null}
+                  failed={error !== null}
                   onClose={() => setTrailUser("")}
                 />
               </div>
