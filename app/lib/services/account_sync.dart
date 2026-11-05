@@ -89,8 +89,10 @@ class AccountSync extends ChangeNotifier
   Timer? _redial;
   DateTime _lastHeard = DateTime.now();
 
-  /// The last pending event sent on this stream; null until the stream has
-  /// opened (said what this phone holds), before which nothing goes up.
+  /// The last pending event sent on this stream; null until the server's
+  /// first events on it are taken, before which nothing goes up: a server
+  /// restored from an older backup could place this phone's new events
+  /// ahead of older ones it lost.
   int? _sentUpTo;
   int _failures = 0;
 
@@ -146,10 +148,11 @@ class AccountSync extends ChangeNotifier
     _dial();
   }
 
-  /// Put the account file at [path] (an export) on this phone, replacing
-  /// this phone's copy of that account. Returns whose it is (id, name).
-  /// While an account is open only its own file is accepted; it's reopened
-  /// from the file.
+  /// Bring the account file at [path] (an export) onto this phone: what in
+  /// it this phone's copy lacks is added, and goes to the server, which
+  /// skips what it holds. Nothing is removed, and the same file twice adds
+  /// nothing the second time. Returns whose it is (id, name). While an
+  /// account is open only its own file is accepted.
   Future<(String, String)> importFile(String path) async {
     path = await _unzipped(path);
     final (owner, name) = await LocalCore.fileOwner(path);
@@ -160,25 +163,22 @@ class AccountSync extends ChangeNotifier
         'That file is a different account. Sign out to open it.',
       );
     }
-    // Staged beside the account file and opened once first, so a file that
-    // is damaged past its first pages is turned away before it replaces
-    // anything.
-    final account = await _fileFor(owner);
-    final staged = File('${account.parent.path}/$owner.import.sqlite');
-    if (await staged.exists()) await staged.delete();
-    await File(path).copy(staged.path);
-    try {
-      await (await LocalCore.open(staged.path, owner, name: name)).close();
-    } catch (_) {
-      await staged.delete();
-      rethrow;
+    // A file that won't read whole adds nothing.
+    final core = _core;
+    if (core != null) {
+      if (await core.importFile(path) > 0) _changed();
+      return (owner, name);
     }
+    // No account open: into this phone's copy of it, made if there's none.
+    final account = await LocalCore.open(
+      (await _fileFor(owner)).path,
+      owner,
+      name: name,
+    );
     try {
-      if (open != null) await signOut();
-      await staged.rename(account.path);
+      await account.importFile(path);
     } finally {
-      // Whatever happened, the account that was open is open again.
-      if (open != null) await signIn(owner, name);
+      await account.close();
     }
     return (owner, name);
   }
@@ -227,7 +227,7 @@ class AccountSync extends ChangeNotifier
     // The next account asks the server afresh; a refusal sets it again.
     _updateRequired = false;
     notifyListeners();
-    // Closed before returning: importFile writes over the file next.
+    // Closed before returning: the file may be opened again at once.
     await core?.close();
   }
 
@@ -240,11 +240,13 @@ class AccountSync extends ChangeNotifier
     _sentUpTo = null;
     _lastHeard = DateTime.now();
     final generation = _generation;
-    // The stream opens with what this phone holds; the server sends the rest.
+    // The stream opens with what this phone holds (from a little before its
+    // last, so the two histories can be seen to agree); the server sends
+    // the rest.
     unawaited(() async {
-      final int confirmed;
+      final int after;
       try {
-        confirmed = await core.confirmed();
+        after = await core.opensAfter();
       } catch (e) {
         // Closed by a sign-out meanwhile: this stream is already hung up.
         // Anything else is a real failure reading this phone's file.
@@ -256,9 +258,7 @@ class AccountSync extends ChangeNotifier
         return;
       }
       if (generation != _generation || up.isClosed) return;
-      up.add(SyncRequest(afterSeq: Int64(confirmed)));
-      _sentUpTo = 0;
-      await _push();
+      up.add(SyncRequest(afterSeq: Int64(after)));
     }());
     final down = _grpc.syncService.sync(up.stream);
     _down = down;
@@ -335,6 +335,7 @@ class AccountSync extends ChangeNotifier
   /// device's. A file that had nothing becomes usable once it has caught up.
   Future<void> _received(Events events) async {
     final core = _core;
+    final up = _up;
     if (core == null) return;
     final head = events.head.toInt();
     try {
@@ -345,6 +346,8 @@ class AccountSync extends ChangeNotifier
       return;
     }
     await _refreshUnsynced();
+    // The server's first events taken: this stream may send.
+    if (identical(_core, core) && identical(_up, up)) _sentUpTo ??= 0;
     if (!_ready.isCompleted &&
         await core.confirmed() >= head &&
         !_ready.isCompleted &&

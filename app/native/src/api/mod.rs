@@ -44,9 +44,23 @@ pub fn call(handle: u32, method: String, request: Vec<u8>) -> StoreResult<(Vec<u
     })
 }
 
-/// The last seq the file holds: what the Sync stream opens with.
+/// The last seq the file holds.
 pub fn confirmed(handle: u32) -> StoreResult<i64> {
     with_store(handle, |store| store.confirmed())
+}
+
+/// What the Sync stream opens with: a seq before the last the file holds,
+/// so the server's first event shows whether the histories agree.
+pub fn opens_after(handle: u32) -> StoreResult<i64> {
+    with_store(handle, |store| store.opens_after())
+}
+
+/// Bring in the export at `path`: what in it the file lacks waits to be
+/// placed; nothing is removed. Returns how many events it added.
+pub fn import_file(handle: u32, path: String) -> StoreResult<i64> {
+    with_store(handle, |store| {
+        store.import(&PathBuf::from(path)).map(|added| added as i64)
+    })
 }
 
 /// What this device recorded that the server hasn't placed, after the
