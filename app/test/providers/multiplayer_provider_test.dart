@@ -45,5 +45,6 @@ void main() {
     expect(notified, greaterThanOrEqualTo(2));
 
     mp.dispose();
+    feed.dispose();
   });
 }
