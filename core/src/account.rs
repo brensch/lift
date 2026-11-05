@@ -2,7 +2,7 @@
 //! events. `apply` is the only way it changes, and it runs the same on the
 //! phone (to show a write now) and on the server (to keep its copy).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use crate::events::{Event, Fact, HistoryImported, Onboarded, OverrideSet, WorkoutStarted};
 use crate::history::WorkoutRecord;
@@ -257,7 +257,7 @@ impl Account {
         let unit = unit_from_proto(req.unit);
         record.unit = unit;
         require_decisions(&record, &req.exercises, &req.decisions)?;
-        reducer::apply_add_exercises(&mut record, workout_id, &req.decisions, unit, ids)?;
+        reducer::apply_add_exercises(&mut record, &req.decisions, unit, ids)?;
         self.workouts.push(record);
         self.active_workout_id = workout_id.to_string();
         Ok(())
@@ -280,7 +280,7 @@ impl Account {
         let unit = record.unit;
         match fact {
             Fact::SetCompleted(completed) => {
-                reducer::apply_complete_set_to_active(&mut record, completed, unit, ids)?;
+                reducer::apply_complete_set_to_active(&mut record, completed, unit, ids);
                 // The target may be one the resolution just appended (a
                 // rung's `{done_id}:0`), so it is checked after applying.
                 if !record
@@ -293,15 +293,15 @@ impl Account {
                     ));
                 }
             }
-            Fact::SetStarted(started) => reducer::apply_start_set_to_active(&mut record, started)?,
+            Fact::SetStarted(started) => reducer::apply_start_set_to_active(&mut record, started),
             Fact::WarmupsSkipped(skipped) => {
-                reducer::apply_skip_warmups_to_active(&mut record, skipped)?
+                reducer::apply_skip_warmups_to_active(&mut record, skipped)
             }
             Fact::RungAnswered(answered) => {
-                reducer::apply_answer_rung_to_active(&mut record, answered, unit, at)?
+                reducer::apply_answer_rung_to_active(&mut record, answered, unit, at)
             }
             Fact::SetUndone(undone) => {
-                reducer::apply_delete_completed_set_to_active(&mut record, undone)?
+                reducer::apply_delete_completed_set_to_active(&mut record, undone)
             }
             Fact::WorkoutEnded(ended) => {
                 // Ending twice changes nothing.
@@ -315,13 +315,7 @@ impl Account {
             }
             Fact::ExercisesAdded(added) => {
                 require_decisions(&record, &added.exercises, &added.decisions)?;
-                reducer::apply_add_exercises(
-                    &mut record,
-                    &added.workout_id,
-                    &added.decisions,
-                    unit,
-                    ids,
-                )?
+                reducer::apply_add_exercises(&mut record, &added.decisions, unit, ids)?
             }
             Fact::ExerciseAdjusted(adjusted) => {
                 reducer::apply_adjust_exercise_weight(&mut record, adjusted, unit, ids, at)?
@@ -451,11 +445,13 @@ impl Account {
     }
 
     fn import(&mut self, req: &HistoryImported) {
+        let mut held: HashSet<String> =
+            self.workouts.iter().map(|r| r.workout.id.clone()).collect();
         for imported in &req.workouts {
             let Some(workout) = imported.workout.clone() else {
                 continue;
             };
-            if self.workout(&workout.id).is_some() {
+            if !held.insert(workout.id.clone()) {
                 continue;
             }
             self.workouts.push(WorkoutRecord {

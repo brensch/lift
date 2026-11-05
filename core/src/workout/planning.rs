@@ -312,11 +312,8 @@ fn block_sets(
     sets
 }
 
-/// Plan ops only make sense on a live workout that the request names.
-fn require_open_workout(workout_ref: &WorkoutRecord, workout_id: &str) -> Result<(), WorkoutError> {
-    if workout_ref.workout.id != workout_id {
-        return Err(WorkoutError::FailedPrecondition("Workout ID mismatch"));
-    }
+/// Plan ops only make sense on a live workout.
+fn require_open_workout(workout_ref: &WorkoutRecord) -> Result<(), WorkoutError> {
     if workout_ref.workout.end_time > 0 {
         return Err(WorkoutError::FailedPrecondition("Workout already ended"));
     }
@@ -327,17 +324,17 @@ fn require_open_workout(workout_ref: &WorkoutRecord, workout_id: &str) -> Result
 /// its lift's weight log.
 pub fn apply_add_exercises(
     workout_ref: &mut WorkoutRecord,
-    workout_id: &str,
     decisions: &[ExerciseDecision],
     unit: AppWeightUnit,
     ids: &mut Ids,
 ) -> Result<(), WorkoutError> {
-    require_open_workout(workout_ref, workout_id)?;
+    require_open_workout(workout_ref)?;
+    let workout_id = workout_ref.workout.id.clone();
     for decision in decisions {
         if !Exercise::try_from(decision.exercise).is_ok_and(|ex| ex != Exercise::Unspecified) {
             continue;
         }
-        let generated = block_sets(workout_id, decision, unit, ids);
+        let generated = block_sets(&workout_id, decision, unit, ids);
         workout_ref.proposed_sets.extend(generated);
         workout_ref.exercise_logs.push(ExerciseLog {
             decision: Some(decision.clone()),
@@ -360,7 +357,7 @@ pub fn apply_adjust_exercise_weight(
     ids: &mut Ids,
     at: i64,
 ) -> Result<(), WorkoutError> {
-    require_open_workout(workout_ref, &req.workout_id)?;
+    require_open_workout(workout_ref)?;
     if !(0.0..=2000.0).contains(&req.working_weight) {
         return Err(WorkoutError::FailedPrecondition("Weight out of range"));
     }
@@ -428,24 +425,16 @@ pub fn apply_adjust_exercise_weight(
         .fold(f32::MIN, f32::max);
     let has_done_warmup = max_done_weight > f32::MIN;
 
-    let ladder = generate_warmup_defs(req.working_weight, unit);
-    let rung_count = ladder.len();
-    let fresh_rungs: Vec<ProposedSet> = ladder
+    let ladder = warmup_sets(&req.workout_id, exercise, req.working_weight, rest, unit);
+    let skip = ladder.len().saturating_sub(pending_warmups);
+    let mut fresh_rungs: Vec<ProposedSet> = ladder
         .into_iter()
-        .enumerate()
-        .skip(rung_count.saturating_sub(pending_warmups))
-        .filter(|(_, (weight, _))| !has_done_warmup || *weight > max_done_weight + 1e-3)
-        .map(|(idx, (weight, reps))| {
-            let rest = if idx + 1 == rung_count {
-                rest
-            } else {
-                WARMUP_REST_SECONDS
-            };
-            let mut set = make_set(&req.workout_id, exercise, reps, weight, true, rest);
-            set.id = ids.new_id();
-            set
-        })
+        .skip(skip)
+        .filter(|s| !has_done_warmup || s.target_weight > max_done_weight + 1e-3)
         .collect();
+    for set in &mut fresh_rungs {
+        set.id = ids.new_id();
+    }
 
     // Splice: the fresh rungs take the position of the first pending warmup;
     // every old pending warmup goes away (never lifted, safe to hard-remove).
@@ -487,7 +476,7 @@ pub fn apply_remove_exercise(
     workout_ref: &mut WorkoutRecord,
     req: &ExerciseRemoved,
 ) -> Result<(), WorkoutError> {
-    require_open_workout(workout_ref, &req.workout_id)?;
+    require_open_workout(workout_ref)?;
     let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref
         .proposed_sets
@@ -505,7 +494,7 @@ pub fn apply_reorder_exercises(
     workout_ref: &mut WorkoutRecord,
     req: &ExercisesReordered,
 ) -> Result<(), WorkoutError> {
-    require_open_workout(workout_ref, &req.workout_id)?;
+    require_open_workout(workout_ref)?;
     let rank: std::collections::HashMap<i32, usize> = req
         .exercises
         .iter()
@@ -648,7 +637,7 @@ mod plan_op_tests {
 
     fn workout_with(plans: &[ExerciseDecision]) -> WorkoutRecord {
         let mut active = empty_workout();
-        apply_add_exercises(&mut active, "w1", plans, AppWeightUnit::Lb, &mut test_ids()).unwrap();
+        apply_add_exercises(&mut active, plans, AppWeightUnit::Lb, &mut test_ids()).unwrap();
         active
     }
 
@@ -887,7 +876,6 @@ mod plan_op_tests {
         let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
         apply_add_exercises(
             &mut active,
-            "w1",
             &[plan(BENCH, 135.0, false)],
             AppWeightUnit::Lb,
             &mut test_ids(),
@@ -903,7 +891,6 @@ mod plan_op_tests {
         active.workout.end_time = 9_999;
         assert!(apply_add_exercises(
             &mut active,
-            "w1",
             &[plan(BENCH, 135.0, false)],
             AppWeightUnit::Lb,
             &mut test_ids(),
@@ -1054,7 +1041,6 @@ mod plan_op_tests {
         .unwrap();
         apply_add_exercises(
             &mut active,
-            "w1",
             &[plan(SQUAT, 200.0, true)],
             AppWeightUnit::Lb,
             &mut test_ids(),
@@ -1215,47 +1201,5 @@ mod plan_op_tests {
             exercises,
             vec![3, 3, 3, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
         );
-    }
-
-    #[test]
-    fn every_op_rejects_the_wrong_workout() {
-        let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
-        assert!(apply_add_exercises(
-            &mut active,
-            "other",
-            &[],
-            AppWeightUnit::Lb,
-            &mut test_ids()
-        )
-        .is_err());
-        assert!(apply_adjust_exercise_weight(
-            &mut active,
-            &ExerciseAdjusted {
-                workout_id: "other".to_string(),
-                exercise: SQUAT,
-                working_weight: 100.0,
-                target_reps: 0,
-            },
-            AppWeightUnit::Lb,
-            &mut test_ids(),
-            0,
-        )
-        .is_err());
-        assert!(apply_remove_exercise(
-            &mut active,
-            &ExerciseRemoved {
-                workout_id: "other".to_string(),
-                exercise: SQUAT,
-            },
-        )
-        .is_err());
-        assert!(apply_reorder_exercises(
-            &mut active,
-            &ExercisesReordered {
-                workout_id: "other".to_string(),
-                exercises: vec![SQUAT],
-            },
-        )
-        .is_err());
     }
 }

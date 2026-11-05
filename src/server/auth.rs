@@ -316,10 +316,11 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<DeletePasskeyResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "DeletePasskey", %user_id, "request");
+        let token = session_token(&request).unwrap_or_default().to_string();
         let req = request.into_inner();
         let deleted = self
             .db
-            .delete_credential(&user_id, &req.credential_id)
+            .delete_credential(&user_id, &req.credential_id, &token)
             .await
             .map_err(internal_error)?;
         if !deleted {
@@ -875,12 +876,25 @@ mod ceremony_tests {
         let held = passkeys(&svc, token).await;
         assert_eq!(held.len(), 2);
         // The added one signs in.
-        assert!(sign_in(&svc, &mut laptop, "ann").await.1.is_ok());
+        let laptop_login = sign_in(&svc, &mut laptop, "ann")
+            .await
+            .1
+            .unwrap()
+            .session_token;
+        let signed_in = |token: String| {
+            let db = svc.db.clone();
+            async move { db.validate_auth_session(&token).await.unwrap().is_some() }
+        };
+        assert!(signed_in(laptop_login.clone()).await);
 
         let delete = |credential_id: String| {
             svc.delete_passkey(authed(token, DeletePasskeyRequest { credential_id }))
         };
         delete(held[0].credential_id.clone()).await.unwrap();
+        // Deleting a passkey signs out every other login (a lost phone's),
+        // and keeps the one that deleted it.
+        assert!(!signed_in(laptop_login).await, "the other login is gone");
+        assert!(signed_in(token.to_string()).await, "the caller's stays");
         let last = delete(held[1].credential_id.clone()).await;
         assert_eq!(last.unwrap_err().code(), tonic::Code::FailedPrecondition);
         assert_eq!(passkeys(&svc, token).await.len(), 1, "still there");
