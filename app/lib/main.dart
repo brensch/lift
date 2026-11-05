@@ -251,9 +251,12 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           // Before the workout is cleared: the watch needs its id.
           unawaited(_wearableSyncCoordinator.signOut());
           PageTracker.instance.onLogout();
+          // The workout goes before the settings: clearing settings tells
+          // the watch coordinator, which would otherwise republish the old
+          // workout after the watch was told it had ended.
+          _workoutProvider.clear();
           _settingsProvider.clear();
           unawaited(_soundProvider.reset());
-          _workoutProvider.clear();
           unawaited(_accountSync.signOut());
           _multiplayerProvider.clear();
         }
