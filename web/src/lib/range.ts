@@ -4,7 +4,6 @@ import type { DashboardData, ExerciseSeries, WorkoutRow } from "./dashboard-data
 // numbers always agree with each other.
 
 export const DAY_S = 86_400;
-export const WEEK_S = 7 * DAY_S;
 
 export type RangeKey = "1m" | "3m" | "6m" | "1y" | "all";
 
@@ -87,12 +86,14 @@ export function resolveRange(
 /** Bucket working-set volume by week (Monday start), zero-filling gaps. */
 export function weeklyVolume(workouts: WorkoutRow[], startS: number, endS: number) {
   const nowS = endS;
-  const weekOf = (s: number) => {
+  // Local-midnight Monday of the week. Weeks are stepped by calendar date, not
+  // a fixed 7 * DAY_S, so they still line up after a DST change.
+  const mondayOf = (s: number) => {
     const d = new Date(s * 1000);
     const day = (d.getDay() + 6) % 7; // Monday = 0
-    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
-    return Math.floor(monday.getTime() / 1000);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
   };
+  const weekOf = (s: number) => Math.floor(mondayOf(s).getTime() / 1000);
   const sums = new Map<number, { volumeLb: number; sessions: number }>();
   for (const w of workouts) {
     const k = weekOf(w.startS);
@@ -100,12 +101,13 @@ export function weeklyVolume(workouts: WorkoutRow[], startS: number, endS: numbe
     sums.set(k, { volumeLb: cur.volumeLb + w.volumeLb, sessions: cur.sessions + 1 });
   }
   if (sums.size === 0) return [];
-  const firstWeek = weekOf(Math.max(startS, Math.min(...workouts.map((w) => w.startS))));
   const lastWeek = weekOf(nowS);
   const out: { weekS: number; volumeLb: number; sessions: number }[] = [];
-  for (let k = firstWeek; k <= lastWeek; k += WEEK_S) {
+  const monday = mondayOf(Math.max(startS, Math.min(...workouts.map((w) => w.startS))));
+  for (let k = monday.getTime() / 1000; k <= lastWeek; k = monday.getTime() / 1000) {
     const v = sums.get(k);
     out.push({ weekS: k, volumeLb: v?.volumeLb ?? 0, sessions: v?.sessions ?? 0 });
+    monday.setDate(monday.getDate() + 7);
   }
   return out;
 }

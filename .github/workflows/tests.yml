@@ -280,6 +280,10 @@ jobs:
       - name: Format check (prettier), lint (eslint) and typecheck (tsc)
         run: scripts/lint.sh check web
 
+      - name: Test
+        working-directory: web
+        run: npm test
+
       - name: Build
         working-directory: web
         run: npm run build
