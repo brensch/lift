@@ -93,29 +93,42 @@ pub fn loadable_step(plates: &[f32]) -> f32 {
 /// any remainder that can't be plated. Pure; `weight`, `bar`, `plates` share a
 /// unit. Mirrors `calcPlatesPerSide` in Dart.
 pub fn plates_per_side(weight: f32, bar: f32, plates: &[f32]) -> (Vec<f32>, f32) {
+    let mut out = Vec::new();
+    let remainder = load_side(weight, bar, plates, |p| out.push(p));
+    (out, remainder)
+}
+
+/// Walks `plates_per_side`'s plates, handing each to `plate`, and returns the
+/// remainder. A load so heavy that taking a plate off leaves it unchanged
+/// (past about 2^30 in f32, or infinite) is never plated: it is all
+/// remainder, so it is not loadable, where the loop would never end.
+fn load_side(weight: f32, bar: f32, plates: &[f32], mut plate: impl FnMut(f32)) -> f32 {
     if weight <= bar {
-        return (Vec::new(), 0.0);
+        return 0.0;
     }
     let mut remaining = (weight - bar) / 2.0;
-    let mut out = Vec::new();
     for &p in plates {
+        if remaining - p == remaining {
+            return remaining;
+        }
         while remaining + 1e-4 >= p {
-            out.push(p);
+            plate(p);
             remaining -= p;
         }
     }
-    (out, remaining.max(0.0))
+    remaining.max(0.0)
 }
 
 /// "Simplicity" score for a load: plates per side (fewer = bigger plates = the
 /// step-up the user asked for). A weight that can't be loaded exactly scores
 /// `INFINITY`, so it's never chosen as simplest.
 pub fn plate_count_per_side(weight: f32, bar: f32, plates: &[f32]) -> f32 {
-    let (used, remainder) = plates_per_side(weight, bar, plates);
+    let mut used = 0_u64;
+    let remainder = load_side(weight, bar, plates, |_| used += 1);
     if remainder > 1e-3 {
         f32::INFINITY
     } else {
-        used.len() as f32
+        used as f32
     }
 }
 
