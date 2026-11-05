@@ -42,16 +42,6 @@ class HeartRateChart extends StatefulWidget {
     this.closeGrid = true,
   });
 
-  // Standard fallback when a personalized max HR isn't available.
-  static const int _maxHr = 200;
-  static const List<HeartRateZonePercent> _zonePercents = [
-    HeartRateZonePercent('Z1', '50-60%', 0.50, 0.60),
-    HeartRateZonePercent('Z2', '60-70%', 0.60, 0.70),
-    HeartRateZonePercent('Z3', '70-80%', 0.70, 0.80),
-    HeartRateZonePercent('Z4', '80-90%', 0.80, 0.90),
-    HeartRateZonePercent('Z5', '90-100%', 0.90, 1.00),
-  ];
-
   @override
   State<HeartRateChart> createState() => _HeartRateChartState();
 }
@@ -79,8 +69,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
   }
 
   static const double _liveNowAnchorFraction = 0.75; // 3/4 across
-  static const double _minWindowSeconds = 60;
-  static const double _maxWindowSeconds = 3600;
 
   Timer? _repaintTimer;
   HeartRateZoneProfile? _zoneProfile;
@@ -211,50 +199,48 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final viewport = (widget.followLiveClock && _isLiveViewport)
         ? liveWindow
         : _hasManualViewport
-        ? _clampViewport(
+        ? clampViewport(
             startSec: _manualWindowStartSec,
             spanSec: _manualWindowSpanSec,
             domainMaxX: domainMaxX,
           )
         : widget.followLiveClock
         ? liveWindow
-        : _clampViewport(
+        : clampViewport(
             startSec: 0,
-            spanSec: max(domainMaxX, _minWindowSeconds),
+            spanSec: max(domainMaxX, minWindowSeconds),
             domainMaxX: domainMaxX,
           );
     final minX = viewport.startSec;
     final maxX = viewport.endSec;
-    final viewportSamples = _samplesInRange(
+    final viewportSamples = samplesInRange(
       heartRateSamples,
       startMs: startMs,
       minX: minX,
       maxX: maxX,
       marginSec: 30,
     );
-    final downsampled = _downsample(viewportSamples, startMs, 500);
-    final spots = _extendSpotsToNow(downsampled, nowSec);
-
     const minY = 0.0;
     final effectiveMaxHr =
-        _zoneProfile?.estimatedMaxHeartRateBpm ?? HeartRateChart._maxHr;
-    final zones = _zonesForConfig(
+        _zoneProfile?.estimatedMaxHeartRateBpm ?? defaultMaxHr;
+    final zones = zonesForConfig(
       maxHr: effectiveMaxHr,
       restingHr: _zoneProfile?.restingHeartRateBpm,
     );
-    final maxY = max(
-      HeartRateChart._maxHr.toDouble(),
-      effectiveMaxHr.toDouble(),
-    );
+    final maxY = max(defaultMaxHr.toDouble(), effectiveMaxHr.toDouble());
+    final downsampled = _downsample(viewportSamples, startMs, 500, maxY);
+    final spots = _extendSpotsToNow(downsampled, nowSec);
 
-    final currentBpm = spots.last.y;
+    // The latest reading, wherever the window is (the header shows only
+    // live).
+    final currentBpm = heartRateSamples.last.bpm;
     final currentZone = zoneFor(currentBpm, zones);
     final zoneColor = zoneColorByName(
       currentZone?.name ?? 'Z1',
       context.tokens.heartZones,
     );
     final restBands = _clipVerticalAnnotations(
-      _buildPhaseBands(startMs, nowSec),
+      _phaseAnnotations(context, startMs, nowSec),
       minX: minX,
       maxX: maxX,
     );
@@ -273,7 +259,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
     final header = Row(
       children: [
         Text(
-          'HEART RATE',
+          copy.heartRate.title,
           style: TextStyle(
             fontSize: context.tokens.size.small,
             fontWeight: context.tokens.weight.bold,
@@ -293,7 +279,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
         ),
         const SizedBox(width: 4),
         Text(
-          'BPM',
+          copy.heartRate.bpm,
           style: TextStyle(
             fontSize: context.tokens.size.small,
             fontWeight: context.tokens.weight.bold,
@@ -324,7 +310,9 @@ class _HeartRateChartState extends State<HeartRateChart> {
             _zoneProfile!.ageYears != null) ...[
           const SizedBox(width: 8),
           Text(
-            _zoneProfile!.hasRestingHeartRate ? 'HRR' : '%MAX',
+            _zoneProfile!.hasRestingHeartRate
+                ? copy.heartRate.zonesByReserve
+                : copy.heartRate.zonesByMax,
             style: TextStyle(
               fontSize: context.tokens.size.caption,
               fontWeight: context.tokens.weight.bold,
@@ -342,7 +330,10 @@ class _HeartRateChartState extends State<HeartRateChart> {
               borderRadius: context.tokens.brXs,
             ),
             child: Text(
-              'zzz ${_zoneProfile!.restingHeartRateBpm!.round()}',
+              copy.heartRate.resting.replaceAll(
+                '{bpm}',
+                '${_zoneProfile!.restingHeartRateBpm!.round()}',
+              ),
               style: TextStyle(
                 fontSize: context.tokens.size.caption,
                 fontWeight: context.tokens.weight.bold,
@@ -391,8 +382,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
 
                   final clampedScale = details.scale.clamp(0.5, 4.0);
                   var newSpan = (startSpan / clampedScale).clamp(
-                    _minWindowSeconds,
-                    _maxWindowSeconds,
+                    minWindowSeconds,
+                    maxWindowSeconds,
                   );
 
                   final startFrac = (startFocalX / width).clamp(0.0, 1.0);
@@ -403,7 +394,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
                   final focalTimeAtStart = startStart + startSpan * startFrac;
                   var newStart = focalTimeAtStart - newSpan * currFrac;
 
-                  final clamped = _clampViewport(
+                  final clamped = clampViewport(
                     startSec: newStart,
                     spanSec: newSpan,
                     domainMaxX: domainMaxX,
@@ -572,9 +563,17 @@ class _HeartRateChartState extends State<HeartRateChart> {
               ),
               if (widget.followLiveClock) ...[
                 const SizedBox(width: 8),
-                _buildLiveWindowButton(context, label: '5m', spanSec: 300),
+                _buildLiveWindowButton(
+                  context,
+                  label: copy.heartRate.window5m,
+                  spanSec: 300,
+                ),
                 const SizedBox(width: 6),
-                _buildLiveWindowButton(context, label: '10m', spanSec: 600),
+                _buildLiveWindowButton(
+                  context,
+                  label: copy.heartRate.window10m,
+                  spanSec: 600,
+                ),
               ],
             ],
           ),
@@ -594,13 +593,14 @@ class _HeartRateChartState extends State<HeartRateChart> {
     List<HeartRateSample> samples,
     int startMs,
     int maxPoints,
+    double maxBpm,
   ) {
     if (samples.length <= maxPoints) {
       return samples
           .map(
             (s) => FlSpot(
               (s.sampledAt.toInt() - startMs) / 1000.0,
-              s.bpm.clamp(0, HeartRateChart._maxHr.toDouble()),
+              s.bpm.clamp(0, maxBpm),
             ),
           )
           .toList();
@@ -613,7 +613,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
       result.add(
         FlSpot(
           (s.sampledAt.toInt() - startMs) / 1000.0,
-          s.bpm.clamp(0, HeartRateChart._maxHr.toDouble()),
+          s.bpm.clamp(0, maxBpm),
         ),
       );
     }
@@ -630,95 +630,45 @@ class _HeartRateChartState extends State<HeartRateChart> {
     return out;
   }
 
-  List<HeartRateSample> _samplesInRange(
-    List<HeartRateSample> samples, {
-    required int startMs,
-    required double minX,
-    required double maxX,
-    double marginSec = 0,
-  }) {
-    final minRange = minX - marginSec;
-    final maxRange = maxX + marginSec;
-    final filtered = samples.where((s) {
-      final x = (s.sampledAt.toInt() - startMs) / 1000.0;
-      return x >= minRange && x <= maxRange;
-    }).toList();
-    return filtered.isEmpty ? samples.take(2).toList() : filtered;
-  }
-
-  /// The workout's phases as shaded bands: lifting (a set's start to its
-  /// end), resting (the end to the rest's end) and yapping (rest over, next
-  /// set not started). Live, the phase in progress runs to [nowSec].
-  List<VerticalRangeAnnotation> _buildPhaseBands(int startMs, double nowSec) {
-    final sorted = _uiCompletedSets.toList()
-      ..sort((a, b) => a.endedAt.compareTo(b.endedAt));
-    final deduped = <CompletedSet>[];
-    final seenKeys = <String>{};
-    for (final c in sorted) {
-      if (seenKeys.add('${c.endedAt.toInt()}:${c.restUntil.toInt()}')) {
-        deduped.add(c);
-      }
-    }
-    double at(Int64 unixSec) => (unixSec.toInt() * 1000 - startMs) / 1000.0;
-
+  /// The workout's phases as shaded bands; see [phaseBands]. Lifting is
+  /// the short, important stretch: it gets the stronger tint.
+  List<VerticalRangeAnnotation> _phaseAnnotations(
+    BuildContext context,
+    int startMs,
+    double nowSec,
+  ) {
     final snapshot = _uiStateSnapshot;
     final live = widget.followLiveClock && snapshot != null;
-    final liveLiftStart =
+    final liftStart =
         live &&
             snapshot.state == WorkoutState.WORKOUT_STATE_LIFTING &&
             snapshot.liftingStartedAt > Int64.ZERO
-        ? at(snapshot.liftingStartedAt)
+        ? (snapshot.liftingStartedAt.toInt() * 1000 - startMs) / 1000.0
         : null;
-
-    final bands = <VerticalRangeAnnotation>[];
-    // Lifting is the short, important stretch: it gets the stronger tint.
-    void band(double x1, double x2, Color color, {double alpha = 0.16}) {
-      if (x2 > x1) {
-        bands.add(
-          VerticalRangeAnnotation(
-            x1: x1,
-            x2: x2,
-            color: color.withValues(alpha: alpha),
-          ),
-        );
-      }
-    }
-
-    for (var i = 0; i < deduped.length; i++) {
-      final c = deduped[i];
-      final ended = at(c.endedAt);
-      if (c.startedAt > Int64.ZERO) {
-        band(at(c.startedAt), ended, context.tokens.lifting, alpha: 0.4);
-      }
-      // Where this set's rest-and-chat stops: the next set's start (its end
-      // when its start wasn't recorded), or, live, the set now being lifted
-      // or now itself. A finished workout stops at the rest's end.
-      final next = i + 1 < deduped.length ? deduped[i + 1] : null;
-      final double? stop = next != null
-          ? at(next.startedAt > Int64.ZERO ? next.startedAt : next.endedAt)
-          : live
-          ? (liveLiftStart ?? nowSec)
-          : null;
-      final restEnd = c.restUntil == Int64.ZERO ? ended : at(c.restUntil);
-      band(
-        ended,
-        stop == null ? restEnd : min(restEnd, stop),
-        context.tokens.resting,
-      );
-      if (stop != null) {
-        band(max(restEnd, ended), stop, context.tokens.yapping);
-      }
-    }
-    if (liveLiftStart != null) {
-      band(liveLiftStart, nowSec, context.tokens.lifting, alpha: 0.4);
-    }
-    return bands;
+    final t = context.tokens;
+    return [
+      for (final b in phaseBands(
+        _uiCompletedSets,
+        startMs: startMs,
+        liveNowSec: live ? nowSec : null,
+        liveLiftStartSec: liftStart,
+      ))
+        VerticalRangeAnnotation(
+          x1: b.x1,
+          x2: b.x2,
+          color: switch (b.phase) {
+            WorkoutPhase.lifting => t.lifting.withValues(alpha: 0.4),
+            WorkoutPhase.resting => t.resting.withValues(alpha: 0.16),
+            WorkoutPhase.yapping => t.yapping.withValues(alpha: 0.16),
+          },
+        ),
+    ];
   }
 
   ChartViewport _computeLiveViewport(double nowSec, double domainMaxX) {
     final span = _selectedLiveWindowSpanSec;
     final start = max(0.0, nowSec - span * _liveNowAnchorFraction);
-    return _clampViewport(
+    return clampViewport(
       startSec: start,
       spanSec: span,
       domainMaxX: domainMaxX,
@@ -763,23 +713,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
     );
   }
 
-  ChartViewport _clampViewport({
-    required double startSec,
-    required double spanSec,
-    required double domainMaxX,
-  }) {
-    final clampedSpan = spanSec
-        .clamp(_minWindowSeconds, _maxWindowSeconds)
-        .toDouble();
-    final maxStart = max(0.0, domainMaxX - clampedSpan * 0.05);
-    final clampedStart = startSec.clamp(0.0, maxStart).toDouble();
-    return ChartViewport(
-      startSec: clampedStart,
-      endSec: clampedStart + clampedSpan,
-      spanSec: clampedSpan,
-    );
-  }
-
   double? _predictedCurrentRestEndSec(int startMs) {
     final snapshot = _uiStateSnapshot;
     if (snapshot == null) return null;
@@ -811,36 +744,5 @@ class _HeartRateChartState extends State<HeartRateChart> {
     if (maxX <= 1800) return 300;
     if (maxX <= 3600) return 600;
     return 900;
-  }
-
-  List<HeartRateZone> _zonesForMaxHr(int maxHr) {
-    return HeartRateChart._zonePercents.map((z) {
-      final low = (z.lowPct * maxHr).round();
-      final high = (z.highPct * maxHr).round();
-      return HeartRateZone(z.name, z.label, low, high);
-    }).toList();
-  }
-
-  List<HeartRateZone> _zonesForConfig({required int maxHr, double? restingHr}) {
-    if (restingHr == null || !restingHr.isFinite || restingHr <= 0) {
-      return _zonesForMaxHr(maxHr);
-    }
-
-    final reserve = maxHr - restingHr;
-    if (reserve <= 0) return _zonesForMaxHr(maxHr);
-
-    final out = <HeartRateZone>[];
-    var lastHigh = 0;
-    for (final z in HeartRateChart._zonePercents) {
-      var low = (restingHr + reserve * z.lowPct).round();
-      var high = (restingHr + reserve * z.highPct).round();
-      low = low.clamp(0, maxHr);
-      high = high.clamp(0, maxHr);
-      if (low < lastHigh) low = lastHigh;
-      if (high <= low) high = min(maxHr, low + 1);
-      out.add(HeartRateZone(z.name, z.label, low, high));
-      lastHigh = high;
-    }
-    return out;
   }
 }

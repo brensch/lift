@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercises.dart';
 import '../../providers/workout_provider.dart';
@@ -65,9 +66,13 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not save: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              copy.templateUpdate.saveFailed.replaceAll('{error}', '$e'),
+            ),
+          ),
+        );
         setState(() => _isSaving = false);
       }
     }
@@ -81,8 +86,11 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
     return AlertDialog(
       title: Text(
         _isNew
-            ? 'Save as a template?'
-            : "Update '${widget.offer.templateName}'?",
+            ? copy.templateUpdate.newTitle
+            : copy.templateUpdate.updateTitle.replaceAll(
+                '{name}',
+                widget.offer.templateName,
+              ),
         style: TextStyle(fontWeight: context.tokens.weight.heavy),
       ),
       content: Column(
@@ -91,9 +99,8 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
         children: [
           Text(
             _isNew
-                ? 'Keep this session one tap away next time:'
-                : 'This session did not match the template. Make the '
-                      'template match what you did:',
+                ? copy.templateUpdate.newBody
+                : copy.templateUpdate.updateBody,
             style: TextStyle(color: cs.onSurface.withValues(alpha: 0.7)),
           ),
           const SizedBox(height: 8),
@@ -110,9 +117,9 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
               controller: _nameController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Template name',
-                hintText: 'e.g. Push, Tuesday',
+              decoration: InputDecoration(
+                labelText: copy.templateUpdate.nameLabel,
+                hintText: copy.templateUpdate.nameHint,
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
@@ -124,7 +131,11 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
       actions: [
         TextButton(
           onPressed: _isSaving ? null : () => Navigator.pop(context),
-          child: Text(_isNew ? 'No thanks' : 'Keep as is'),
+          child: Text(
+            _isNew
+                ? copy.templateUpdate.newDecline
+                : copy.templateUpdate.updateDecline,
+          ),
         ),
         FilledButton(
           onPressed:
@@ -137,7 +148,11 @@ class _TemplateUpdateDialogState extends State<_TemplateUpdateDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(_isNew ? 'Save template' : 'Update template'),
+              : Text(
+                  _isNew
+                      ? copy.templateUpdate.newConfirm
+                      : copy.templateUpdate.updateConfirm,
+                ),
         ),
       ],
     );
