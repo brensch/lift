@@ -245,6 +245,7 @@ const GetStatsResponse$json = {
     },
     {'1': 'total_users', '3': 7, '4': 1, '5': 3, '10': 'totalUsers'},
     {'1': 'new_users', '3': 8, '4': 1, '5': 3, '10': 'newUsers'},
+    {'1': 'active_users', '3': 9, '4': 1, '5': 3, '10': 'activeUsers'},
   ],
 };
 
@@ -256,4 +257,4 @@ final $typed_data.Uint8List getStatsResponseDescriptor = $convert.base64Decode(
     'RoQXR0ZW1wdFN0YXRSDGF1dGhBdHRlbXB0cxIuCgV1c2VycxgFIAMoCzIYLndvcmtvdXQudjEu'
     'VXNlckFjdGl2aXR5UgV1c2VycxIsCgV0cmFpbBgGIAMoCzIWLndvcmtvdXQudjEuVHJhaWxFbn'
     'RyeVIFdHJhaWwSHwoLdG90YWxfdXNlcnMYByABKANSCnRvdGFsVXNlcnMSGwoJbmV3X3VzZXJz'
-    'GAggASgDUghuZXdVc2Vycw==');
+    'GAggASgDUghuZXdVc2VycxIhCgxhY3RpdmVfdXNlcnMYCSABKANSC2FjdGl2ZVVzZXJz');

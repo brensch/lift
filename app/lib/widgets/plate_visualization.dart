@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../gen/copy.dart';
+import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../logic/plate_calculator.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
@@ -50,10 +54,10 @@ class _PlateSheet extends StatelessWidget {
     final plateText = weight < barWeight
         ? '—'
         : plates.isEmpty
-        ? 'None'
+        ? copy.plates.none
         : '${plateLabel(perSide)} $suffix';
     final barText = weight < barWeight
-        ? 'Dumbbells'
+        ? copy.plates.dumbbells
         : '${plateLabel(barWeight)} $suffix';
 
     Widget column(
@@ -112,10 +116,10 @@ class _PlateSheet extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                column('Plates', plateText, 'each side'),
-                column('Bar', barText, null),
+                column(copy.plates.plates, plateText, copy.plates.eachSide),
+                column(copy.plates.bar, barText, null),
                 column(
-                  'Total',
+                  copy.plates.total,
                   formatWeight(weightLb, unit, includeUnit: true),
                   null,
                   last: true,
@@ -123,12 +127,12 @@ class _PlateSheet extends StatelessWidget {
               ],
             ),
           ),
-          // The bar, big, on white.
+          // The bar, big, on the light backdrop.
           Container(
             height: 150,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: t.lightBackdrop,
               border: Border.symmetric(
                 horizontal: BorderSide(color: t.outline),
               ),
@@ -142,9 +146,9 @@ class _PlateSheet extends StatelessWidget {
             ),
           ),
           if (sizes.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: FlatHeading('Each side, in loading order'),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: FlatHeading(copy.plates.loadingOrder),
             ),
             for (final size in sizes)
               Container(
@@ -273,18 +277,22 @@ class PlateVisualization extends StatelessWidget {
       fit: BoxFit.scaleDown,
       child: weight < standardBarWeight(unit)
           ? _buildDumbbell(context.tokens)
-          : _buildBarbell(context, plates),
+          : _buildBarbell(context, plates, unit),
     );
   }
 
-  Widget _buildBarbell(BuildContext context, List<double> plates) {
+  Widget _buildBarbell(
+    BuildContext context,
+    List<double> plates,
+    WeightUnit unit,
+  ) {
     final t = context.tokens;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Left side plates.
         ...plates.reversed.map((plate) {
-          final width = _plateWidth(plate);
+          final width = inlinePlateWidth(plate, unit);
           final color = _plateColor(context, plate);
           return Padding(
             padding: const EdgeInsets.only(left: 1),
@@ -310,7 +318,7 @@ class PlateVisualization extends StatelessWidget {
         const SizedBox(width: 1),
         // Right side plates.
         ...plates.map((plate) {
-          final width = _plateWidth(plate);
+          final width = inlinePlateWidth(plate, unit);
           final color = _plateColor(context, plate);
           return Padding(
             padding: const EdgeInsets.only(right: 1),
@@ -356,23 +364,14 @@ class PlateVisualization extends StatelessWidget {
       ],
     );
   }
+}
 
-  double _plateWidth(double plate) {
-    switch (plate) {
-      case 45:
-        return 10;
-      case 35:
-        return 9;
-      case 25:
-        return 8;
-      case 10:
-        return 6;
-      case 5:
-        return 4;
-      case 2.5:
-        return 2;
-      default:
-        return 3;
-    }
-  }
+/// How thick [plate] (in [unit]) is drawn in [PlateVisualization]: by its
+/// place among the unit's plates, heaviest thickest, so a 20 kg plate is
+/// drawn like a 35 lb one.
+double inlinePlateWidth(double plate, WeightUnit unit) {
+  const widths = <double>[10, 9, 8, 6, 4, 2];
+  final rank = standardPlates(unit).indexOf(plate);
+  if (rank < 0) return 3;
+  return widths[min(rank, widths.length - 1)];
 }

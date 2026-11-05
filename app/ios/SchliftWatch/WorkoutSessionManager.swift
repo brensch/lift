@@ -4,9 +4,6 @@ import HealthKit
 class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBuilderDelegate {
     var onLatestHeartRateChanged: ((Double?) -> Void)?
     var onHeartRateSample: ((Workout_V1_HeartRateSample) -> Void)?
-    /// Reports the raw HKWorkoutSessionState on every transition, so the UI can surface what
-    /// the session is actually doing (running/stopped/ended) instead of us guessing.
-    var onSessionStateChanged: ((Int) -> Void)?
 
     private let healthStore = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -37,7 +34,7 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
                 "SchliftWatch: Resetting unhealthy workout session before restart " +
                     "state=\(currentSessionState.rawValue) collectionStarted=\(builderCollectionStarted)"
             )
-            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
+            tearDownCurrentSession(endUnderlyingSession: true)
         }
         // HealthKit authorization is requested ONCE by the phone (the Flutter `health`
         // plugin) before the watch is launched; auth is shared across the paired app, so we
@@ -46,11 +43,6 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         // start — HK silently yields no samples if access was actually denied, which the HR
         // watchdog surfaces.
         startSession()
-    }
-
-    func restart() {
-        tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
-        ensureSessionActive()
     }
 
     private func startSession() {
@@ -82,10 +74,10 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
                 self.starting = false
                 if let error = error {
                     print("SchliftWatch: Failed to begin workout collection: \(error)")
-                    self.tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
+                    self.tearDownCurrentSession(endUnderlyingSession: true)
                 } else if !success {
                     print("SchliftWatch: Workout collection reported success=false")
-                    self.tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
+                    self.tearDownCurrentSession(endUnderlyingSession: true)
                 } else {
                     self.builderCollectionStarted = true
                     print("SchliftWatch: Workout collection started success=\(success)")
@@ -107,7 +99,7 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         } catch {
             print("SchliftWatch: Failed to create workout session: \(error)")
             starting = false
-            tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: true)
+            tearDownCurrentSession(endUnderlyingSession: true)
         }
     }
 
@@ -163,7 +155,6 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     ) {
         currentSessionState = toState
         print("SchliftWatch: Workout session state \(fromState.rawValue) → \(toState.rawValue)")
-        DispatchQueue.main.async { [weak self] in self?.onSessionStateChanged?(toState.rawValue) }
         // Only drive teardown for the session we currently own. The force path
         // (tearDownCurrentSession) nils `session` first, so its transitions fall through here.
         guard workoutSession === session else { return }
@@ -182,9 +173,9 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
     func workoutSession(_: HKWorkoutSession, didFailWithError error: Error) {
         print("SchliftWatch: Workout session failed: \(error)")
         starting = false
-        tearDownCurrentSession(clearDisplayedHeartRate: false, endUnderlyingSession: false)
-        // Auto-retry once on next watchdog tick by leaving state clean; the
-        // PhoneConnector watchdog will call ensureSessionActive again within 10s.
+        tearDownCurrentSession(endUnderlyingSession: false)
+        // Left clean for a retry: the watchdog's snapshot poll (every 10s) reaches
+        // handleSnapshot, which calls ensureSessionActive.
     }
 
     // MARK: - HKLiveWorkoutBuilderDelegate
@@ -220,13 +211,13 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         }
     }
 
-    /// Immediate, forced teardown — used for restart/error paths (NOT the user-initiated end,
+    /// Immediate, forced teardown — used for reset/error paths (NOT the user-initiated end,
     /// which uses the graceful stopActivity flow above). Order matters: discard the live builder
     /// FIRST (stops the data source) so the session can actually reach .ended when we end() it;
     /// ending before the source stops can strand the session in .stopped (a zombie that keeps
     /// the app's background runtime alive). References are nil'd up front, so this session's
     /// later delegate transitions fall through (workoutSession !== session).
-    private func tearDownCurrentSession(clearDisplayedHeartRate: Bool, endUnderlyingSession: Bool) {
+    private func tearDownCurrentSession(endUnderlyingSession: Bool) {
         let existingSession = session
         let existingBuilder = builder
 
@@ -240,11 +231,6 @@ class WorkoutSessionManager: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutBu
         existingBuilder?.discardWorkout()
         if endUnderlyingSession {
             existingSession?.end()
-        }
-
-        guard clearDisplayedHeartRate else { return }
-        DispatchQueue.main.async { [weak self] in
-            self?.onLatestHeartRateChanged?(nil)
         }
     }
 }

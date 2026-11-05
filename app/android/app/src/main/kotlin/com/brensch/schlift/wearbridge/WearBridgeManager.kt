@@ -37,22 +37,33 @@ object WearBridgeManager {
     private val intentSinkRef = AtomicReference<EventChannel.EventSink?>(null)
     private val sensorSinkRef = AtomicReference<EventChannel.EventSink?>(null)
     private val pendingIntentPayloads = ConcurrentLinkedQueue<ByteArray>()
-    private val pendingSensorPayloads = ConcurrentLinkedQueue<ByteArray>()
+
+    // By batch id: the watch re-sends every unacked batch on each flush, so
+    // this holds one copy of each. Touched only under sinkLock.
+    private val pendingSensorPayloads = LinkedHashMap<String, ByteArray>()
     private val lastWatchUiHeartbeatAtMs = AtomicLong(0L)
     private val pendingClockSyncs = ConcurrentHashMap<String, CompletableDeferred<Long>>()
     private val lastSnapshotBytes = AtomicReference<ByteArray?>(null)
 
+    // Messages arrive on a binder thread and the sinks are set on the main
+    // thread: one lock keeps a message from landing in a queue just flushed.
+    private val sinkLock = Any()
+
     fun setIntentSink(sink: EventChannel.EventSink?) {
-        intentSinkRef.set(sink)
-        if (sink != null) {
-            flushPendingIntentPayloads(sink)
+        synchronized(sinkLock) {
+            intentSinkRef.set(sink)
+            if (sink != null) {
+                flushPendingIntentPayloads(sink)
+            }
         }
     }
 
     fun setSensorSink(sink: EventChannel.EventSink?) {
-        sensorSinkRef.set(sink)
-        if (sink != null) {
-            flushPendingSensorPayloads(sink)
+        synchronized(sinkLock) {
+            sensorSinkRef.set(sink)
+            if (sink != null) {
+                flushPendingSensorPayloads(sink)
+            }
         }
     }
 
@@ -181,8 +192,11 @@ object WearBridgeManager {
                     val batch =
                         workout.v1.Wearable.WearSensorBatch
                             .parseFrom(bytes)
-                    emitSensor(bytes)
-                    sendSensorBatchAck(context, sourceNodeId, batch)
+                    // Acked only once Dart has it: queued here, it would die
+                    // with the process, and the watch keeps it until acked.
+                    if (emitSensor(batch.batchId, bytes)) {
+                        sendSensorBatchAck(context, sourceNodeId, batch)
+                    }
                     Log.d("SchliftWearBridge", "Received wear sensor batch id=${batch.batchId} bytes=${bytes.size}")
                 }.onFailure { Log.e("SchliftWearBridge", "Failed to parse wear sensor batch", it) }
             }
@@ -214,21 +228,33 @@ object WearBridgeManager {
     }
 
     private fun emitIntent(bytes: ByteArray) {
-        val sink = intentSinkRef.get()
-        if (sink == null) {
-            pendingIntentPayloads.add(bytes)
-            return
+        synchronized(sinkLock) {
+            val sink = intentSinkRef.get()
+            if (sink == null) {
+                pendingIntentPayloads.add(bytes)
+                return
+            }
+            mainHandler.post { sink.success(bytes) }
         }
-        mainHandler.post { sink.success(bytes) }
     }
 
-    private fun emitSensor(bytes: ByteArray) {
-        val sink = sensorSinkRef.get()
-        if (sink == null) {
-            pendingSensorPayloads.add(bytes)
-            return
+    /**
+     * Whether a Dart listener took [bytes]; otherwise they are queued for one,
+     * once per [batchId] (a batch with no id is left to the watch to re-send).
+     */
+    private fun emitSensor(
+        batchId: String,
+        bytes: ByteArray,
+    ): Boolean {
+        synchronized(sinkLock) {
+            val sink = sensorSinkRef.get()
+            if (sink == null) {
+                if (batchId.isNotBlank()) pendingSensorPayloads[batchId] = bytes
+                return false
+            }
+            mainHandler.post { sink.success(bytes) }
+            return true
         }
-        mainHandler.post { sink.success(bytes) }
     }
 
     private fun flushPendingIntentPayloads(sink: EventChannel.EventSink) {
@@ -241,11 +267,9 @@ object WearBridgeManager {
     }
 
     private fun flushPendingSensorPayloads(sink: EventChannel.EventSink) {
-        var payload = pendingSensorPayloads.poll()
-        while (payload != null) {
-            val bytes = payload
+        for (bytes in pendingSensorPayloads.values) {
             mainHandler.post { sink.success(bytes) }
-            payload = pendingSensorPayloads.poll()
         }
+        pendingSensorPayloads.clear()
     }
 }

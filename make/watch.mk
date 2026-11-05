@@ -17,7 +17,7 @@ watch-setup:
 WATCH_SIM_DEST ?= platform=watchOS Simulator,name=Apple Watch Series 10 (46mm)
 
 watch-build:
-	cd app/ios && xcodebuild build \
+	set -o pipefail; cd app/ios && xcodebuild build \
 		-project Runner.xcodeproj \
 		-scheme SchliftWatch \
 		-destination '$(WATCH_SIM_DEST)' \

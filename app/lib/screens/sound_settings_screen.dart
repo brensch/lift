@@ -16,7 +16,7 @@ class SoundSettingsScreen extends StatelessWidget {
     final presets = copy.sounds;
 
     return Scaffold(
-      appBar: AppBar(title: PageTitle('Pick sound')),
+      appBar: AppBar(title: PageTitle(copy.settings.sound)),
       body: ListView.separated(
         itemCount: presets.length,
         separatorBuilder: (_, __) =>

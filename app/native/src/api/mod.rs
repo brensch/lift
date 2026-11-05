@@ -34,14 +34,34 @@ pub fn close_account(handle: u32) {
 }
 
 /// Answer one RPC by its gRPC method name, request and response as proto
-/// bytes. Errors read `code: message`.
-pub fn call(handle: u32, method: String, request: Vec<u8>) -> StoreResult<Vec<u8>> {
-    with_store(handle, |store| store.call(&method, &request, now_unix()))
+/// bytes, and whether it stored events for the server: a write, or a read
+/// that recorded an ended workout's heart rate. Errors read `code: message`.
+pub fn call(handle: u32, method: String, request: Vec<u8>) -> StoreResult<(Vec<u8>, bool)> {
+    with_store(handle, |store| {
+        let before = store.pending_count()?;
+        let response = store.call(&method, &request, now_unix())?;
+        Ok((response, store.pending_count()? > before))
+    })
 }
 
-/// The last seq the file holds: what the Sync stream opens with.
+/// The last seq the file holds.
 pub fn confirmed(handle: u32) -> StoreResult<i64> {
     with_store(handle, |store| store.confirmed())
+}
+
+/// What the Sync stream opens with: a seq before the last the file holds,
+/// so the server's first event shows whether the histories agree.
+pub fn opens_after(handle: u32) -> StoreResult<i64> {
+    with_store(handle, |store| store.opens_after())
+}
+
+/// Bring in the export at `path`: what in it the file lacks is added, in
+/// its places where its history carries on from the file's, otherwise to
+/// wait to be placed; nothing is removed. Returns how many events it added.
+pub fn import_file(handle: u32, path: String) -> StoreResult<i64> {
+    with_store(handle, |store| {
+        store.import(&PathBuf::from(path)).map(|added| added as i64)
+    })
 }
 
 /// What this device recorded that the server hasn't placed, after the

@@ -129,7 +129,7 @@ export function RangePicker({
                 min={toInput(sinceS)}
                 max={toInput(nowS)}
                 onChange={(e) => setFrom(e.target.value)}
-                className="flex-1 min-w-0 h-8 px-2 rounded-md bg-surface border border-border text-xs text-text [color-scheme:dark]"
+                className="flex-1 min-w-0 h-8 px-2 rounded-md bg-surface border border-border text-xs text-text"
               />
               <span className="text-muted text-xs">to</span>
               <input
@@ -139,7 +139,7 @@ export function RangePicker({
                 min={toInput(sinceS)}
                 max={toInput(nowS)}
                 onChange={(e) => setTo(e.target.value)}
-                className="flex-1 min-w-0 h-8 px-2 rounded-md bg-surface border border-border text-xs text-text [color-scheme:dark]"
+                className="flex-1 min-w-0 h-8 px-2 rounded-md bg-surface border border-border text-xs text-text"
               />
             </div>
             <button

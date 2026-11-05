@@ -38,9 +38,11 @@ dev:
 STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS)
 
 # The Dart tests, against the real core: the host build of app/native first.
+# The `dst` ones need a zone with daylight saving, so run on their own in one.
 test-app:
 	cargo build -p schlift_native
-	cd app && $(FLUTTER) test
+	cd app && $(FLUTTER) test --exclude-tags dst
+	cd app && TZ=America/Los_Angeles $(FLUTTER) test --tags dst
 
 # Backend + web dashboard dev server. `run-frontend` is the web half.
 run-web-dev:
@@ -165,7 +167,7 @@ install-deps:
 	sudo apt-get install -y cmake ninja-build clang lld libgtk-3-dev pkg-config protobuf-compiler curl git unzip openjdk-17-jdk
 	@echo "=== Installing Flutter SDK ==="
 	@if [ ! -d "$(HOME)/flutter-sdk" ]; then \
-		git clone --depth 1 --branch stable https://github.com/flutter/flutter.git $(HOME)/flutter-sdk; \
+		git clone --depth 1 --branch $(FLUTTER_VERSION) https://github.com/flutter/flutter.git $(HOME)/flutter-sdk; \
 	else \
 		echo "Flutter SDK already installed at $(HOME)/flutter-sdk"; \
 	fi

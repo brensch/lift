@@ -8,20 +8,18 @@
 
 use std::collections::HashMap;
 
-use crate::exercise_catalog::{muscles, ALL_MUSCLES};
+use crate::exercise_catalog::ALL_MUSCLES;
 use crate::pb::{
-    Exercise, LibraryTemplate, MuscleGroup, MuscleVolume, RotationAddition, RotationCheck,
-    RotationWarning, RotationWarningKind, WorkoutTemplate,
+    Exercise, LibraryTemplate, MuscleGroup, RotationAddition, RotationCheck, RotationWarning,
+    RotationWarningKind, WorkoutTemplate,
 };
-use crate::volume::{primary_muscles, VOLUME_TARGET_HIGH, VOLUME_TARGET_LOW};
+use crate::volume::{credit, primary_muscles, volume_rows};
 
 /// Working sets each lift counts in a pass.
 pub const SETS_PER_LIFT: f32 = 3.0;
 /// Two templates sharing more than this fraction of the smaller one's
 /// lifts overlap.
 pub const OVERLAP_FRACTION: f32 = 0.7;
-
-const SECONDARY_WEIGHT: f32 = 0.5;
 
 /// A template's valid lifts, each once.
 fn lifts(template: &WorkoutTemplate) -> Vec<Exercise> {
@@ -48,21 +46,12 @@ pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]
     let mut sets: HashMap<MuscleGroup, f32> = HashMap::new();
     for template in &rotation {
         for ex in lifts(template) {
-            for (idx, muscle) in muscles(ex).iter().enumerate() {
-                let credit = if idx == 0 { 1.0 } else { SECONDARY_WEIGHT };
-                *sets.entry(*muscle).or_insert(0.0) += credit * SETS_PER_LIFT;
+            for (muscle, credit) in credit(ex) {
+                *sets.entry(muscle).or_insert(0.0) += credit * SETS_PER_LIFT;
             }
         }
     }
-    let volume: Vec<MuscleVolume> = ALL_MUSCLES
-        .iter()
-        .map(|muscle| MuscleVolume {
-            muscle: *muscle as i32,
-            completed_sets_7d: sets.get(muscle).copied().unwrap_or(0.0),
-            target_low: VOLUME_TARGET_LOW,
-            target_high: VOLUME_TARGET_HIGH,
-        })
-        .collect();
+    let volume = volume_rows(&sets);
     let untrained: Vec<MuscleGroup> = ALL_MUSCLES
         .iter()
         .copied()

@@ -7,11 +7,13 @@ import '../gen/copy.dart';
 import 'lost_passkey_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/account_sync.dart';
 import '../widgets/wordmark.dart';
 import '../widgets/common/primary_button.dart';
+import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -31,6 +33,9 @@ class _LoginScreenState extends State<LoginScreen>
   final List<String> _usernameExamples = copy.login.usernameExamples;
   int _exampleIndex = 0;
   Timer? _exampleTimer;
+
+  /// An account file is being copied in and opened: one at a time.
+  bool _opening = false;
 
   @override
   void initState() {
@@ -89,6 +94,17 @@ class _LoginScreenState extends State<LoginScreen>
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      // An account is already open (its session lapsed, or it came from a
+      // file): signing in is for sync, so the way back is always there.
+      appBar: auth.isLoggedIn
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(AppIcons.back),
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                onPressed: () => context.go('/'),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -357,20 +373,26 @@ class _LoginScreenState extends State<LoginScreen>
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: auth.isLoading ? null : _openFile,
+            onPressed: auth.isLoading || _opening ? null : _openFile,
             style: TextButton.styleFrom(
               foregroundColor: colorScheme.onSurface.withValues(alpha: 0.6),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: Text(
-              copy.login.openFile,
-              style: TextStyle(
-                fontSize: context.tokens.size.small,
-                fontWeight: context.tokens.weight.bold,
-              ),
-            ),
+            child: _opening
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    copy.login.openFile,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.small,
+                      fontWeight: context.tokens.weight.bold,
+                    ),
+                  ),
           ),
         ),
       ],
@@ -384,12 +406,17 @@ class _LoginScreenState extends State<LoginScreen>
     final sync = context.read<AccountSync>();
     // A document picker only: no photo library, so no purpose string.
     final path = (await openFile())?.path;
-    if (path == null) return;
+    if (path == null || _opening || !mounted) return;
+    setState(() => _opening = true);
     try {
       final (userId, name) = await sync.importFile(path);
       await auth.openLocalAccount(userId, name);
+      // Opened: in. The router still stops at permissions or onboarding.
+      if (mounted) context.go('/');
     } catch (e) {
       auth.setError('${copy.login.openFileFailed}: $e');
+    } finally {
+      if (mounted) setState(() => _opening = false);
     }
   }
 }

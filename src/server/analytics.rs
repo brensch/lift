@@ -104,20 +104,23 @@ impl AdminService for ServerAdminService {
         let since = now_unix() - days as i64 * 86_400;
         let since_ms = since * 1000;
 
-        let trail = match req.trail_username.trim() {
-            "" => Vec::new(),
-            username => {
-                let user = self
-                    .db
-                    .get_user_by_name(username)
-                    .await
-                    .map_err(internal_error)?
-                    .ok_or_else(|| Status::not_found("User not found"))?;
-                self.db
-                    .user_trail(&user.id, TRAIL_LIMIT)
-                    .await
-                    .map_err(internal_error)?
-            }
+        // A trail link can outlive its user (a deleted account): an unknown
+        // name is an empty trail, not a failed page.
+        let trail_user = match req.trail_username.trim() {
+            "" => None,
+            username => self
+                .db
+                .get_user_by_name(username)
+                .await
+                .map_err(internal_error)?,
+        };
+        let trail = match trail_user {
+            Some(user) => self
+                .db
+                .user_trail(&user.id, TRAIL_LIMIT)
+                .await
+                .map_err(internal_error)?,
+            None => Vec::new(),
         };
 
         let auth_attempts = self
@@ -146,6 +149,11 @@ impl AdminService for ServerAdminService {
                 .await
                 .map_err(internal_error)?,
             trail,
+            active_users: self
+                .db
+                .active_users(since_ms)
+                .await
+                .map_err(internal_error)?,
             total_users: self.db.total_users().await.map_err(internal_error)?,
             new_users,
         }))
@@ -338,6 +346,69 @@ mod tests {
         assert_eq!(stats.trail.len(), 3);
         assert_eq!(stats.users[0].username, "lifter");
         assert_eq!(stats.total_users, 2);
+        assert_eq!(stats.active_users, 1, "the admin opened nothing");
+    }
+
+    /// The user list stops at 200; the active-user count does not.
+    #[tokio::test]
+    async fn active_users_count_past_the_listed_users() {
+        let db = temp_db().await;
+        let (_, admin_token) = db
+            .get_or_create_user_with_auth_session("boss")
+            .await
+            .unwrap();
+        db.grant_admin("boss").await.unwrap();
+        let now_ms = now_unix() * 1000;
+        for n in 0..201 {
+            let (user, _) = db
+                .get_or_create_user_with_auth_session(&format!("lifter{n}"))
+                .await
+                .unwrap();
+            db.record_page_views(&user.id, "android", "1.0.0", &[view(1, "/", now_ms)])
+                .await
+                .unwrap();
+        }
+
+        let stats = ServerAdminService { db }
+            .get_stats(authed(GetStatsRequest::default(), &admin_token))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert_eq!(stats.users.len(), 200);
+        assert_eq!(stats.active_users, 201);
+    }
+
+    /// A linked trail can name an account that has since been deleted: the
+    /// stats still come back, with an empty trail.
+    #[tokio::test]
+    async fn a_trail_for_a_deleted_user_is_empty_not_an_error() {
+        let db = temp_db().await;
+        let (_, admin_token) = db
+            .get_or_create_user_with_auth_session("boss")
+            .await
+            .unwrap();
+        db.grant_admin("boss").await.unwrap();
+        let (gone, _) = db
+            .get_or_create_user_with_auth_session("lifter")
+            .await
+            .unwrap();
+        db.delete_user_account_and_data(&gone.id).await.unwrap();
+
+        let stats = ServerAdminService { db }
+            .get_stats(authed(
+                GetStatsRequest {
+                    days: 7,
+                    trail_username: "lifter".to_string(),
+                },
+                &admin_token,
+            ))
+            .await
+            .unwrap()
+            .into_inner();
+
+        assert!(stats.trail.is_empty());
+        assert_eq!(stats.total_users, 1);
     }
 
     /// Admin is keyed by user id, so it can neither be granted to a name

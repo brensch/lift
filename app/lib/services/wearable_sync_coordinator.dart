@@ -5,6 +5,7 @@ import 'package:fixnum/fixnum.dart';
 import '../gen/workout/v1/wearable.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../providers/multiplayer_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../screens/workout/live_set_circle.dart';
 import '../screens/workout/section_workout.dart';
@@ -14,6 +15,8 @@ import 'wearable_snapshot_builder.dart';
 class WearableSyncCoordinator {
   final WorkoutProvider _workoutProvider;
   final MultiplayerProvider _multiplayerProvider;
+  // The unit and plate colours every weight on the watch is drawn in.
+  final SettingsProvider _settingsProvider;
   final WearableBridgeService _bridgeService;
   final String Function() _myUserId;
 
@@ -22,6 +25,11 @@ class WearableSyncCoordinator {
 
   /// Intents that arrived before the workout was loaded.
   final List<WearIntent> _pendingIntents = [];
+
+  /// Heart-rate batches that arrived before the workout first loaded (a cold
+  /// start mid-workout), by batch id: the bridge has already acked them, so
+  /// the watch will not send them again.
+  final Map<String, WearSensorBatch> _pendingSensorBatches = {};
   final Set<String> _handledIntentIds = <String>{};
   bool _workoutEverLoaded = false;
   String? _lastPublishedSnapshotKey;
@@ -39,22 +47,25 @@ class WearableSyncCoordinator {
   WearableSyncCoordinator({
     required WorkoutProvider workoutProvider,
     required MultiplayerProvider multiplayerProvider,
+    required SettingsProvider settingsProvider,
     required WearableBridgeService bridgeService,
     required String Function() myUserId,
   }) : _workoutProvider = workoutProvider,
        _multiplayerProvider = multiplayerProvider,
+       _settingsProvider = settingsProvider,
        _bridgeService = bridgeService,
        _myUserId = myUserId;
 
   Future<void> init() async {
-    await _bridgeService.init();
-
     _intentSub = _bridgeService.intentStream.listen((intent) async {
       await _handleIntent(intent);
     });
 
     _sensorSub = _bridgeService.sensorBatchStream.listen((batch) {
-      if (!_workoutProvider.hasActiveWorkout) return;
+      if (!_workoutProvider.hasActiveWorkout) {
+        if (!_workoutEverLoaded) _pendingSensorBatches[batch.batchId] = batch;
+        return;
+      }
       final workoutId = _workoutProvider.workout?.id;
       if (workoutId == null || batch.workoutId != workoutId) return;
       _workoutProvider.ingestWearHeartRateBatch(batch);
@@ -62,18 +73,29 @@ class WearableSyncCoordinator {
 
     _workoutProvider.addListener(_onWorkoutChanged);
     _multiplayerProvider.addListener(_publishSnapshot);
+    _settingsProvider.addListener(_publishSnapshot);
     _publishSnapshot();
   }
 
   void _onWorkoutChanged() {
     final workoutId = _workoutProvider.workout?.id;
-    if (_lastWorkoutId != workoutId) {
+    final previousId = _lastWorkoutId;
+    if (previousId != workoutId) {
       _handledIntentIds.clear();
       _lastWorkoutId = workoutId;
     }
+    // The workout on show went away unfinished (discarded here, or ended or
+    // discarded on another device): the watch is still tracking it. A
+    // workout that ended while on show was already told (below).
+    if (previousId != null &&
+        workoutId == null &&
+        _endCommandSentForWorkoutId != previousId) {
+      unawaited(_tellWatchEnded(previousId));
+    }
     if (!_workoutEverLoaded && _workoutProvider.hasActiveWorkout) {
       _workoutEverLoaded = true;
-      _replayPendingIntents();
+      _replayPendingSensorBatches();
+      unawaited(_replayPendingIntents());
     }
     // When the workout becomes ended, tell the watch to stop its HK session (exactly once).
     // The phone cannot end the watch's session directly — this dedicated, guaranteed-delivery
@@ -96,12 +118,24 @@ class WearableSyncCoordinator {
     await _executeIntent(intent);
   }
 
-  void _replayPendingIntents() {
-    if (_pendingIntents.isEmpty) return;
+  /// One at a time, in the order the watch sent them: a set's start must
+  /// land before its completion.
+  Future<void> _replayPendingIntents() async {
     final intents = List<WearIntent>.from(_pendingIntents);
     _pendingIntents.clear();
     for (final intent in intents) {
-      _executeIntent(intent);
+      await _executeIntent(intent);
+    }
+  }
+
+  void _replayPendingSensorBatches() {
+    final batches = _pendingSensorBatches.values.toList();
+    _pendingSensorBatches.clear();
+    final workoutId = _workoutProvider.workout?.id;
+    for (final batch in batches) {
+      if (batch.workoutId == workoutId) {
+        _workoutProvider.ingestWearHeartRateBatch(batch);
+      }
     }
   }
 
@@ -152,13 +186,19 @@ class WearableSyncCoordinator {
   }
 
   /// Signing out ends what the watch is tracking: the workout belongs to the
-  /// account that is leaving. Call before the workout is cleared. An ALL_DONE
-  /// snapshot with no End action is what both watches read as ended; iOS also
-  /// gets its dedicated end command for the HealthKit session.
+  /// account that is leaving. Call before the workout is cleared.
   Future<void> signOut() async {
     final workoutId = _workoutProvider.workout?.id;
     _pendingIntents.clear();
+    _pendingSensorBatches.clear();
     if (workoutId == null) return;
+    await _tellWatchEnded(workoutId);
+  }
+
+  /// An ALL_DONE snapshot with no End action is what both watches read as
+  /// ended; iOS also gets its dedicated end command for the HealthKit
+  /// session. Recorded first, so it is sent once per workout.
+  Future<void> _tellWatchEnded(String workoutId) async {
     _endCommandSentForWorkoutId = workoutId;
     _lastPublishedSnapshotKey = null;
     await _bridgeService.publishSnapshot(
@@ -174,9 +214,9 @@ class WearableSyncCoordinator {
   Future<void> dispose() async {
     _workoutProvider.removeListener(_onWorkoutChanged);
     _multiplayerProvider.removeListener(_publishSnapshot);
+    _settingsProvider.removeListener(_publishSnapshot);
     await _intentSub?.cancel();
     await _sensorSub?.cancel();
-    await _bridgeService.dispose();
   }
 
   void _publishSnapshot({bool force = false}) {

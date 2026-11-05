@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import androidx.health.services.client.HealthServices
 import androidx.health.services.client.data.ExerciseConfig
 import androidx.health.services.client.data.ExerciseType
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,6 +43,7 @@ class WearExerciseSessionManager(
                         active = true
                         Log.i("SchliftWear", "Exercise session started")
                     }.onFailure {
+                        if (it is CancellationException) throw it
                         if (it is SecurityException) {
                             Log.e("SchliftWear", "Missing permissions for exercise session, stopping retries", it)
                             return@launch
@@ -56,10 +58,15 @@ class WearExerciseSessionManager(
     }
 
     fun endSessionIfActive() {
-        ensureJob?.cancel()
+        val job = ensureJob
+        val starting = job?.isActive == true
         ensureJob = null
-        if (!active) return
+        job?.cancel()
+        // A start still in flight may have started the exercise in Health
+        // Services before it was cancelled: end it too.
+        if (!active && !starting) return
         scope.launch {
+            job?.join()
             runCatching {
                 exerciseClient.endExerciseAsync().await()
                 Log.i("SchliftWear", "Exercise session ended")

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../logic/audio.dart';
+import '../services/audio.dart';
 
 class SoundProvider extends ChangeNotifier {
   String _currentPreset = defaultSoundPreset;

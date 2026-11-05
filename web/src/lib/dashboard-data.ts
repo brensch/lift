@@ -18,6 +18,9 @@ export interface ProgressPoint {
 export interface ExerciseSeries {
   key: string;
   name: string;
+  /** A bodyweight lift (by load style, as the core says): its maxes are rep
+   *  maxes, a count of reps, not pounds — even with added weight. */
+  bodyweight: boolean;
   points: ProgressPoint[]; // oldest first
 }
 
@@ -37,6 +40,9 @@ export interface DashboardData {
   workoutCount: number;
   totalVolumeLb: number;
   sinceS: number;
+  /** When the data was loaded: ranges end here, so a fresh load includes
+   *  every workout it fetched. */
+  nowS: number;
   exercises: ExerciseSeries[]; // most-improved first
   workouts: WorkoutRow[]; // newest first
 }
@@ -60,6 +66,7 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
   const exercises: ExerciseSeries[] = progress.exercises.map((ex) => ({
     key: String(ex.exercise),
     name: exerciseName(ex.exercise),
+    bodyweight: ex.bodyweight,
     points: ex.points.map((p) => ({
       dateS: Number(p.date),
       topWeightLb: p.topWeight,
@@ -93,6 +100,7 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
     workoutCount: progress.workoutCount,
     totalVolumeLb: progress.totalVolume,
     sinceS: Number(progress.since),
+    nowS: Math.floor(Date.now() / 1000),
     exercises,
     workouts,
   };

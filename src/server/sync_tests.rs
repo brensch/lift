@@ -9,7 +9,7 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::sync_service_server::SyncServiceServer;
 use schlift_core::account::Account;
 use schlift_core::api::Call;
-use schlift_core::events::Event;
+use schlift_core::events::{Event, Fact};
 use schlift_core::sync::{pack, unpack};
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -167,6 +167,34 @@ mod store {
         let (_, events) = Phone::new().start_squats(1_000);
         assert!(db.push_events("u1", events).await.is_err());
         assert!(held(&db).await.is_empty());
+    }
+
+    /// The largest push a phone may send, and the same again (an outbox
+    /// resent whole), each placed in seconds, not minutes: the write connection is
+    /// everyone's, so a push that holds it long stalls every other push.
+    #[tokio::test]
+    async fn the_largest_push_is_placed_quickly_and_once() {
+        let db = db().await;
+        let events: Vec<Event> = (0..schlift_core::sync::MAX_EVENTS_PER_PUSH)
+            .map(|n| Event {
+                seq: 0,
+                id: format!("{:036}", n),
+                at: 1_000,
+                fact: schlift_core::events::Fact::TemplateDeleted(
+                    schlift_core::events::TemplateDeleted {
+                        template_id: "t".into(),
+                    },
+                ),
+            })
+            .collect();
+        for expected in [events.len(), 0] {
+            let started = std::time::Instant::now();
+            let pushed = db.push_events("u1", events.clone()).await.unwrap();
+            assert_eq!(pushed.stored.len(), expected);
+            let took = started.elapsed();
+            assert!(took < Duration::from_secs(30), "a push took {took:?}");
+        }
+        assert_eq!(db.head("u1").await.unwrap(), events.len() as i64);
     }
 
     #[tokio::test]
@@ -563,6 +591,141 @@ mod stream {
         );
     }
 
+    /// Once Alice has ended the workout she trained with Bob, her next one
+    /// is hers alone: her phone hears she's in no session (so the new one
+    /// is never put in the old), and Bob gets nothing of it, though what
+    /// comes late of the one they trained together still reaches him.
+    #[tokio::test]
+    async fn an_ended_members_next_workout_is_their_own() {
+        let db = db().await;
+        let (alice, alice_token) = db
+            .get_or_create_user_with_auth_session("alice")
+            .await
+            .unwrap();
+        let (bob, bob_token) = db
+            .get_or_create_user_with_auth_session("bob")
+            .await
+            .unwrap();
+        db.join_session("s", &alice.id).await.unwrap();
+        db.join_session("s", &bob.id).await.unwrap();
+        let channel = serve(db.clone()).await;
+        let mut alice_link = Link::open(channel.clone(), &alice_token).await;
+        let mut bob_link = Link::open(channel, &bob_token).await;
+        let mut phone = Phone::new();
+        let (first, events) = phone.start_squats(now_unix());
+        alice_link.push(events).await;
+        alice_link.events_through(1).await;
+        let mut alices = Vec::new();
+        bob_link
+            .partner(&alice.id, &mut alices, |p| p.active_workout_id == first.id)
+            .await;
+        let (_, ended) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: first.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        alice_link.push(ended).await;
+        alice_link.session(|s| s.session_id.is_empty()).await;
+
+        // She trains again, on her own.
+        let (_, events) = phone.start_squats(now_unix());
+        alice_link.push(events).await;
+        alice_link.events_through(3).await;
+        // And corrects the first one's end: Alice's events reach Bob in
+        // order, so anything of the second would have come before it.
+        let (_, moved) = phone.write(now_unix(), |call| {
+            call.move_workout_end(&first.id, now_unix()).unwrap()
+        });
+        alice_link.push(moved).await;
+        loop {
+            let events = bob_link
+                .next(|kind| match kind {
+                    sync_response::Kind::PartnerEvents(p) if p.user_id == alice.id => {
+                        Some(unpack(&p.packed).unwrap())
+                    }
+                    _ => None,
+                })
+                .await;
+            assert!(
+                events
+                    .iter()
+                    .all(|e| e.workout_id() == Some(first.id.as_str())),
+                "only the workout they trained together: {events:?}"
+            );
+            if events
+                .iter()
+                .any(|e| matches!(e.fact, Fact::WorkoutEndMoved(_)))
+            {
+                break;
+            }
+        }
+        assert!(db
+            .get_user_session_pointer(&alice.id)
+            .await
+            .unwrap()
+            .is_none());
+        let workouts = db.session_workouts("s").await.unwrap();
+        assert_eq!(workouts[&alice.id], first.id, "the old session keeps hers");
+    }
+
+    /// Bob connects only after Alice has ended her workout with him and
+    /// started another: he gets the finished one, whole, and not the new.
+    #[tokio::test]
+    async fn a_partner_who_connects_late_gets_the_finished_workout() {
+        let db = db().await;
+        let (alice, _) = db
+            .get_or_create_user_with_auth_session("alice")
+            .await
+            .unwrap();
+        let (bob, bob_token) = db
+            .get_or_create_user_with_auth_session("bob")
+            .await
+            .unwrap();
+        db.join_session("s", &alice.id).await.unwrap();
+        db.join_session("s", &bob.id).await.unwrap();
+        let mut phone = Phone::new();
+        let (first, mut events) = phone.start_squats(now_unix());
+        let (_, ended) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: first.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        events.extend(ended);
+        db.push_events(&alice.id, events).await.unwrap();
+        let (_, next) = phone.start_squats(now_unix());
+        db.push_events(&alice.id, next).await.unwrap();
+
+        let channel = serve(db.clone()).await;
+        let mut bob_link = Link::open(channel, &bob_token).await;
+        let roster = bob_link.session(|s| !s.members.is_empty()).await;
+        assert!(roster.members[0].ended_at > 0, "alice, ended");
+        let whole = bob_link
+            .next(|kind| match kind {
+                sync_response::Kind::PartnerEvents(p) if p.user_id == alice.id => Some(p),
+                _ => None,
+            })
+            .await;
+        assert!(whole.whole);
+        let events = unpack(&whole.packed).unwrap();
+        assert_eq!(events.len(), 2, "the start and the end: {events:?}");
+        assert!(events
+            .iter()
+            .all(|e| e.workout_id() == Some(first.id.as_str())));
+        let seen = schlift_core::session::partner_status(
+            &events,
+            roster.members[0].joined_at,
+            roster.members[0].ended_at,
+            now_unix(),
+        )
+        .unwrap();
+        assert_eq!(seen.active_workout_id, first.id);
+        assert_ne!(seen.active_workout.unwrap().end_time, 0);
+    }
+
     /// A heartbeat is answered with the head, so the phone knows the link
     /// is alive.
     #[tokio::test]
@@ -621,13 +784,27 @@ mod stream {
             .is_empty());
     }
 
+    /// The status a stream ends with, failing if anything comes down first.
+    async fn ends_unsent(link: &mut Link) -> Status {
+        let next = tokio::time::timeout(Duration::from_secs(5), link.down.message())
+            .await
+            .expect("the stream ends");
+        match next {
+            Ok(Some(message)) => panic!("sent to a signed-out stream: {:?}", message.kind),
+            Ok(None) => panic!("closed without a status"),
+            Err(status) => status,
+        }
+    }
+
     /// Signing out ends the stream even when the phone sends nothing more:
-    /// the next view it would be sent is refused instead.
+    /// whatever it would be sent next (a request to join, the account's
+    /// new events from another device, a partner's workout) is refused
+    /// instead.
     #[tokio::test]
     async fn a_signed_out_stream_is_sent_nothing_more() {
         let db = db().await;
         let channel = serve(db.clone()).await;
-        let (erin, token) = db
+        let (erin, _) = db
             .get_or_create_user_with_auth_session("erin")
             .await
             .unwrap();
@@ -635,20 +812,156 @@ mod stream {
             .get_or_create_user_with_auth_session("frank")
             .await
             .unwrap();
-        let mut link = Link::open(channel, &token).await;
-        link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
-            .await;
+        db.join_session("s", &erin.id).await.unwrap();
+        db.join_session("s", &frank.id).await.unwrap();
 
-        db.delete_auth_session(&token).await.unwrap();
-        db.create_join_request("r1", &frank.id, &erin.id)
+        for wake in ["join request", "own events", "partner events"] {
+            let token = db.create_auth_session(&erin.id).await.unwrap();
+            let mut link = Link::open(channel.clone(), &token).await;
+            // Everything sent on connect has gone once the requests have.
+            link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+                .await;
+
+            db.delete_auth_session(&token).await.unwrap();
+            let (_, events) = Phone::new().start_squats(now_unix());
+            match wake {
+                "join request" => db
+                    .create_join_request("r1", &frank.id, &erin.id)
+                    .await
+                    .unwrap(),
+                "own events" => {
+                    db.push_events(&erin.id, events).await.unwrap();
+                }
+                _ => {
+                    db.push_events(&frank.id, events).await.unwrap();
+                }
+            }
+            let status = ends_unsent(&mut link).await;
+            assert_eq!(status.code(), tonic::Code::Unauthenticated, "{wake}");
+        }
+    }
+
+    /// Deleting an account takes it out of its partners' session at once,
+    /// and the requests to join it made go from their screens.
+    #[tokio::test]
+    async fn a_deleted_partner_leaves_the_others_session() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (hal, _) = db
+            .get_or_create_user_with_auth_session("hal")
             .await
             .unwrap();
+        let (ida, ida_token) = db
+            .get_or_create_user_with_auth_session("ida")
+            .await
+            .unwrap();
+        db.join_session("s", &hal.id).await.unwrap();
+        db.join_session("s", &ida.id).await.unwrap();
+        db.create_join_request("r1", &hal.id, &ida.id)
+            .await
+            .unwrap();
+
+        let mut link = Link::open(channel, &ida_token).await;
+        link.session(|s| s.members.len() == 1).await;
+        link.next(|kind| match kind {
+            sync_response::Kind::JoinRequests(r) if r.requests.len() == 1 => Some(()),
+            _ => None,
+        })
+        .await;
+
+        db.delete_user_account_and_data(&hal.id).await.unwrap();
+        // Her own changes come first, then her session's.
+        let requests = link
+            .next(|kind| match kind {
+                sync_response::Kind::JoinRequests(r) => Some(r),
+                _ => None,
+            })
+            .await;
+        assert!(requests.requests.is_empty(), "hal's request is gone");
+        let session = link.session(|_| true).await;
+        assert_eq!(session.session_id, "s", "ida is still in it");
+        assert!(session.members.is_empty(), "hal is gone: {session:?}");
+    }
+
+    /// A new profile reaches the partners at once, still without the body
+    /// weight, which is the owner's alone.
+    #[tokio::test]
+    async fn a_new_profile_reaches_partners_without_the_body_weight() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (jo, jo_token) = db.get_or_create_user_with_auth_session("jo").await.unwrap();
+        let (_, kim_token) = db
+            .get_or_create_user_with_auth_session("kim")
+            .await
+            .unwrap();
+        let invite = db.get_invite_token(&jo.id).await.unwrap().unwrap();
+        MultiplayerServiceClient::new(channel.clone())
+            .join_via_invite(authed(
+                &kim_token,
+                JoinViaInviteRequest {
+                    invite_token: invite,
+                },
+            ))
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &kim_token).await;
+        link.session(|s| s.members.len() == 1).await;
+
+        ServerUserService { db: db.clone() }
+            .update_my_profile(authed(
+                &jo_token,
+                UpdateMyProfileRequest {
+                    profile_emoji: "X".to_string(),
+                    profile_color_hex: String::new(),
+                    body_weight_kg: 82.5,
+                },
+            ))
+            .await
+            .unwrap();
+
+        let session = link
+            .session(|s| {
+                s.members
+                    .first()
+                    .and_then(|m| m.user.as_ref())
+                    .is_some_and(|u| u.profile_emoji == "X")
+            })
+            .await;
+        let seen = session.members[0].user.as_ref().unwrap();
+        assert_eq!(seen.id, jo.id);
+        assert_eq!(seen.body_weight_kg, 0.0, "the weight stays jo's");
+    }
+
+    /// A device signed out while another of the account's devices trains
+    /// is sent none of what that one records: the stream ends instead.
+    #[tokio::test]
+    async fn a_signed_out_stream_hears_nothing_of_another_device() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (hal, lost) = db
+            .get_or_create_user_with_auth_session("hal")
+            .await
+            .unwrap();
+        let kept = db.create_auth_session(&hal.id).await.unwrap();
+        let mut stolen = Link::open(channel.clone(), &lost).await;
+        stolen
+            .next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+        let mut phone = Link::open(channel, &kept).await;
+        phone
+            .next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+
+        db.delete_auth_session(&lost).await.unwrap();
+        let (_, events) = Phone::new().start_squats(1_000);
+        phone.push(events).await;
+        phone.events_through(1).await;
         let status = tokio::time::timeout(Duration::from_secs(5), async {
             loop {
-                match link.down.message().await {
+                match stolen.down.message().await {
                     Ok(Some(message)) => assert!(
-                        !matches!(message.kind, Some(sync_response::Kind::JoinRequests(_))),
-                        "a join request reached a signed-out stream"
+                        !matches!(message.kind, Some(sync_response::Kind::Events(_))),
+                        "another device's events reached a signed-out stream"
                     ),
                     Ok(None) => panic!("closed without a status"),
                     Err(status) => return status,
@@ -657,6 +970,35 @@ mod stream {
         })
         .await
         .expect("the stream ends");
+        assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    /// A login that expires while its stream is open is told of by no
+    /// change: once the stream last found it good longer ago than it
+    /// trusts (a second in tests, a minute in production), the next thing
+    /// it would send ends it instead.
+    #[tokio::test]
+    async fn an_expired_stream_hears_nothing_of_another_device() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (hal, token) = db
+            .get_or_create_user_with_auth_session("hal")
+            .await
+            .unwrap();
+        let mut link = Link::open(channel, &token).await;
+        link.next(|kind| matches!(kind, sync_response::Kind::JoinRequests(_)).then_some(()))
+            .await;
+
+        sqlx::query("UPDATE logins SET expires_at = 0 WHERE user_id = ?")
+            .bind(&hal.id)
+            .execute(&db.read_pool)
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(1_200)).await;
+        // Another device's workout, placed as its push would be.
+        let (_, events) = Phone::new().start_squats(1_000);
+        db.push_events(&hal.id, events).await.unwrap();
+        let status = ends_unsent(&mut link).await;
         assert_eq!(status.code(), tonic::Code::Unauthenticated);
     }
 
@@ -712,6 +1054,65 @@ mod stream {
         db.push_events(&gil.id, end).await.unwrap();
         assert_eq!(tablet.events_through(1_202).await.len(), 1);
         assert_eq!(laptop.events_through(1_202).await.len(), 1);
+    }
+
+    /// A server restored from an older backup holds less than the phone.
+    /// Every app pushes what waits as it opens, before it hears the head;
+    /// placed then, those events would go ahead of the older ones the server
+    /// lost, which the phone sends again once it hears. So the stream tells
+    /// the head and ends unread, and the phone's next stream, opened at the
+    /// head, has its events placed in the order it recorded them, and sent
+    /// back.
+    #[tokio::test]
+    async fn a_server_behind_the_phone_gets_its_events_back_in_order() {
+        let db = db().await;
+        let channel = serve(db.clone()).await;
+        let (gil, token) = db
+            .get_or_create_user_with_auth_session("gil")
+            .await
+            .unwrap();
+        let mut phone = Phone::new();
+        let (started, held) = phone.start_squats(now_unix());
+        let (_, lost) = phone.write(now_unix(), |call| {
+            for n in 0..2 {
+                call.record_heart_rate(
+                    &started.id,
+                    &[WorkoutHeartRatePoint {
+                        sampled_at: n,
+                        bpm: 100.0,
+                    }],
+                )
+                .unwrap();
+            }
+        });
+        let (_, waiting) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: started.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        db.push_events(&gil.id, held.clone()).await.unwrap();
+        let head = held.len() as i64;
+
+        let confirmed = head + lost.len() as i64;
+        let mut link = Link::open_after(channel.clone(), &token, confirmed).await;
+        link.push(waiting.clone()).await;
+        assert_eq!(link.head().await, head);
+        let end = tokio::time::timeout(Duration::from_secs(5), link.down.message())
+            .await
+            .expect("the stream ends");
+        assert!(matches!(end, Ok(None)), "ended, not {end:?}");
+        assert_eq!(db.head(&gil.id).await.unwrap(), head, "nothing placed");
+
+        // What the server lacks, then what waited, as the phone queues them.
+        let mut link = Link::open_after(channel, &token, head).await;
+        link.push([lost, waiting].concat()).await;
+        let back = link.events_through(phone.log.len() as i64).await;
+        let ids = |events: &[Event]| events.iter().map(|e| e.id.clone()).collect::<Vec<_>>();
+        assert_eq!(ids(&back), ids(&phone.log[held.len()..]));
+        let server = db.events_after(&gil.id, 0, i64::MAX).await.unwrap();
+        assert_eq!(ids(&server), ids(&phone.log));
     }
 
     /// The stream needs a signed-in caller.

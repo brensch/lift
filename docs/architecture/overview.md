@@ -67,11 +67,11 @@ app/                Flutter app
   lib/widgets/      Reusable UI
   lib/providers/    App state (ChangeNotifier)
   lib/services/     The core doorway, sync, transport, platform integration
-  lib/logic/        Pure functions (no Flutter imports)
+  lib/logic/        Display helpers (no widgets, no platform I/O)
   lib/gen/          Generated Dart (protobuf, flutter_rust_bridge) — do not edit
   android/wear/     Wear OS companion (Kotlin)
   ios/SchliftWatch/ Apple Watch companion (SwiftUI)
-web/                React landing / privacy / account deletion
+web/                React landing, routines, sign-in + dashboard, admin, privacy, account deletion
 proto/workout/v1/   Protobuf contracts — source of truth
 ```
 
@@ -125,7 +125,7 @@ sequenceDiagram
     Note over P: on screen; no network involved
     N-->>Y: writes stream fires
     Y->>S: SyncRequest{events: pending, zstd JSON}
-    S->>S: push_events: place, fold, store
+    S->>S: push_events: place, store
     S-->>Y: Events{the placed events, head}
     Y->>N: receive — they leave pending
 ```

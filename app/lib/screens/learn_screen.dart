@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../gen/copy.dart';
 import '../theme/app_icons.dart';
 import '../widgets/common/flat.dart';
 import 'maths_screen.dart';
@@ -20,27 +21,27 @@ class LearnScreen extends StatelessWidget {
           icon: const Icon(AppIcons.back),
           onPressed: () => context.go('/'),
         ),
-        title: PageTitle('Learn'),
+        title: PageTitle(copy.learn.title),
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
           FlatRow(
             icon: AppIcons.tutorial,
-            label: 'Tutorial',
-            subtitle: 'The walkthrough again',
+            label: copy.learn.tutorial,
+            subtitle: copy.learn.tutorialSub,
             onTap: () => _push(context, 'tutorial', const TutorialScreen()),
           ),
           FlatRow(
             icon: AppIcons.science,
-            label: 'Workout science',
-            subtitle: 'The papers behind the app',
+            label: copy.learn.science,
+            subtitle: copy.learn.scienceSub,
             onTap: () => _push(context, 'science', const ScienceScreen()),
           ),
           FlatRow(
             icon: AppIcons.maths,
-            label: 'Calorie maths',
-            subtitle: 'How burn is worked out',
+            label: copy.learn.maths,
+            subtitle: copy.learn.mathsSub,
             onTap: () => _push(context, 'maths', const MathsScreen()),
           ),
         ],

@@ -86,6 +86,14 @@ muscle is recovering and another was ready, or if Full Body takes over
 a short template whose muscles a bigger one also trains (StrongLifts B
 beside Lower and Full Body) rarely comes within a fifth of its score.
 
+## Events no phone writes
+
+`core/tests/hostile_fold.rs` folds what only a hand-made or corrupt event
+holds, as a partner's phone or the server would: a decision at an absurd
+weight or with billions of sets folds in seconds and bounded memory, and
+every time in the stored events pushed to the ends of i64 folds and reads
+without overflowing.
+
 ## Invariant fuzzer
 
 `core/examples/fuzz.rs` runs the core in-process, as the phone does, with
@@ -127,13 +135,23 @@ confirm it trips.
 
 ## Server tests
 
-- `src/server/sync_tests.rs` — over a real server on a local port: pushed
-  events fold into the same account, a resent batch is skipped and a gap
-  waits, heart rate alone is not progress, a push after the account is
-  deleted stores nothing, a second device's different log is refused, a
-  start without its decisions is refused, the pull is the whole log, a
-  partner's progress arrives on the stream, a heartbeat is answered, a
-  signed-out stream is sent nothing more, a stranger is turned away.
+- `src/server/sync_tests.rs` — pushed events fold into the same account, a
+  resent batch is placed once, two devices' events are placed in the order
+  they arrive, the largest push (and the same again) is placed in seconds,
+  a push after the account is deleted stores nothing, events read back as
+  they were pushed; and over a real server on a local port: a partner's
+  progress arrives as it happens, a late partner gets the workout so far
+  and only the workout, discarding the workout leaves the session, a
+  heartbeat is answered, a deleted account cannot push again, a signed-out
+  stream is sent nothing more (not even another device's events), an
+  expired one likewise once its recheck is due, a deleted partner leaves
+  the others' session, a new profile reaches partners without the body
+  weight, a device catches up and hears the others, a stranger is turned
+  away.
+- `testkit/tests/devices.rs` — three devices of one account training
+  offline and syncing in random pieces and orders: each always shows what
+  its events fold to, and all end on the server's log and account
+  (`DEVICE_SEEDS=300` for more interleavings than CI).
 - `src/server/multiplayer_tests.rs` — the session roster and
   training-together history through the real handlers.
 - `src/db/auth.rs` — every table with a `user_id` column references
@@ -160,7 +178,12 @@ confirm it trips.
   ending or going idle.
 - `src/server/sync_tests.rs` (`stream`) — a partner's sets reach the others
   as events as they happen; one who opens the app mid-workout gets the
-  workout so far; heart rate and the rest of an account never leave it.
+  workout so far; heart rate and the rest of an account never leave it;
+  one who ended keeps sending that workout, late events and catch-up
+  included, and nothing of their next.
+- `src/server/multiplayer_tests.rs` — a member who never trained, or never
+  pressed End, is out of the session days later and their next workout is
+  their own; starting another workout leaves.
 - `src/server/auth.rs` — the `test-auth` gate on `TestLogin`, both branches.
 - `src/demo_seed.rs` — the demo users seed (`test-auth`), and the walk over
   their history rises.
@@ -179,11 +202,24 @@ of `app/native` from `target/debug/` and gives each test an in-memory
 account. So `cargo build -p schlift_native` must run first — `make test-app`
 does it, and so does CI before `flutter test`.
 
-- `test/providers/workout_provider_test.dart` — the provider as a view over
-  the core: a start lays out the blocks, done/undo taps, skipped warmups,
-  ending a session and the next plan following it on Home, the session is
-  recorded on the workout, an adjusted weight moves the pending sets.
-- `test/logic/` — display helpers. `test/screenshots/` — real screens
+Most of them run on the harness; a few need no core at all.
+
+- `test/providers/` — the providers as views over the core: the workout
+  (start, done/undo taps, warmups, ending and the next plan on Home, the
+  session recorded once, a ramp question not asked again after a reload),
+  settings (the unit read back, every plate coloured in either unit), and
+  auth with no server (a saved session published at once, what sign-out
+  and a lapsed session keep).
+- `test/services/` — the watch snapshot and the coordinator's sign-out,
+  page tracking.
+- `test/screens/`, `test/widgets/` — real screens and widgets on the
+  harness: Home's rotation and time control, the template editor, the
+  status box, the ramp question dialog, the partner ticker, the heart-rate
+  chart's labels.
+- `test/logic/` — display helpers and the "who lifts next" rules.
+- `test/tutorial/`, `test/grpc_recovery_test.dart` — the tutorial's seen
+  flag, and retrying a read after a reconnect.
+- `test/screenshots/` — real screens at phone size
   ([`docs/testing/app-harness.md`](../testing/app-harness.md)).
 
 ## E2E scenarios

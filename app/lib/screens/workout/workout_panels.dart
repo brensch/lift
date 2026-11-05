@@ -2,6 +2,7 @@
 /// strip, page tabs, the add-exercise row.
 library;
 
+import '../../gen/copy.dart';
 import 'package:flutter/material.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
@@ -21,7 +22,7 @@ class NoHeartRateMonitor extends StatelessWidget {
             Icon(AppIcons.watch, size: 52, color: colorScheme.tertiary),
             const SizedBox(height: 18),
             Text(
-              'No heart rate yet',
+              copy.workoutPage.noHeartRate,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: context.tokens.size.subtitle,
@@ -31,8 +32,7 @@ class NoHeartRateMonitor extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Get the watch app and you can see how hard you are pumping '
-              'your heart while schlifting.',
+              copy.workoutPage.noHeartRateBody,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: context.tokens.size.body,
@@ -258,7 +258,7 @@ class AddExerciseRow extends StatelessWidget {
             Icon(AppIcons.add, size: t.size.title, color: t.muted),
             const SizedBox(width: 8),
             Text(
-              'Add exercise',
+              copy.workoutPage.addExercise,
               style: TextStyle(
                 fontSize: t.size.bodyLg,
                 fontWeight: t.weight.bold,

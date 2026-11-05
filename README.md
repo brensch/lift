@@ -20,7 +20,8 @@ A strength-training app for phone and watch, with live group sessions.
   multiplayer sessions. Every handler authenticates itself.
 - **Contract** (`proto/workout/v1/`): the only interface between all of the
   above. Generated code is committed, except Swift, which CI generates.
-- **Web** (`web/`, React): landing page, privacy, account deletion.
+- **Web** (`web/`, React): landing page, the routines library, sign-in and a
+  read-only training dashboard, admin stats, privacy, account deletion.
 
 Run: `make dev` (local backend + app with hot reload). Check: `make fmt`,
 `make lint-check`, `cargo test --workspace`, `make test-app`.

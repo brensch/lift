@@ -4,7 +4,6 @@ import type { DashboardData, ExerciseSeries, WorkoutRow } from "./dashboard-data
 // numbers always agree with each other.
 
 export const DAY_S = 86_400;
-export const WEEK_S = 7 * DAY_S;
 
 export type RangeKey = "1m" | "3m" | "6m" | "1y" | "all";
 
@@ -25,6 +24,8 @@ export function rangeStart(key: RangeKey, nowS: number, sinceS: number): number 
 export interface ExerciseInRange {
   series: ExerciseSeries;
   points: ExerciseSeries["points"];
+  /** The lift is bodyweight: the maxes are rep maxes, not pounds. */
+  bodyweight: boolean;
   /** Best e1RM in range minus the best before the range started; with no
    *  history before, last minus first in range. */
   deltaLb: number;
@@ -50,6 +51,7 @@ export function exercisesInRange(
     const last = points[points.length - 1].e1rmLb;
     out.push({
       series,
+      bodyweight: series.bodyweight,
       points,
       deltaLb: before.length ? bestLb - bestBefore : last - first,
       bestLb,
@@ -59,6 +61,17 @@ export function exercisesInRange(
   }
   // Most improved first; ties by most recent.
   return out.sort((a, b) => b.deltaLb - a.deltaLb || b.lastDateS - a.lastDateS);
+}
+
+/** The lift with the best estimated max by weight; bodyweight lifts, whose
+ *  maxes are reps, are left out. */
+export function heaviestMax(exercises: ExerciseInRange[]): { name: string; lb: number } | null {
+  return exercises
+    .filter((e) => !e.bodyweight)
+    .reduce<{ name: string; lb: number } | null>(
+      (acc, e) => (!acc || e.bestLb > acc.lb ? { name: e.series.name, lb: e.bestLb } : acc),
+      null,
+    );
 }
 
 export function workoutsInRange(
@@ -87,12 +100,14 @@ export function resolveRange(
 /** Bucket working-set volume by week (Monday start), zero-filling gaps. */
 export function weeklyVolume(workouts: WorkoutRow[], startS: number, endS: number) {
   const nowS = endS;
-  const weekOf = (s: number) => {
+  // Local-midnight Monday of the week. Weeks are stepped by calendar date, not
+  // a fixed 7 * DAY_S, so they still line up after a DST change.
+  const mondayOf = (s: number) => {
     const d = new Date(s * 1000);
     const day = (d.getDay() + 6) % 7; // Monday = 0
-    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
-    return Math.floor(monday.getTime() / 1000);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
   };
+  const weekOf = (s: number) => Math.floor(mondayOf(s).getTime() / 1000);
   const sums = new Map<number, { volumeLb: number; sessions: number }>();
   for (const w of workouts) {
     const k = weekOf(w.startS);
@@ -100,12 +115,13 @@ export function weeklyVolume(workouts: WorkoutRow[], startS: number, endS: numbe
     sums.set(k, { volumeLb: cur.volumeLb + w.volumeLb, sessions: cur.sessions + 1 });
   }
   if (sums.size === 0) return [];
-  const firstWeek = weekOf(Math.max(startS, Math.min(...workouts.map((w) => w.startS))));
   const lastWeek = weekOf(nowS);
   const out: { weekS: number; volumeLb: number; sessions: number }[] = [];
-  for (let k = firstWeek; k <= lastWeek; k += WEEK_S) {
+  const monday = mondayOf(Math.max(startS, Math.min(...workouts.map((w) => w.startS))));
+  for (let k = monday.getTime() / 1000; k <= lastWeek; k = monday.getTime() / 1000) {
     const v = sums.get(k);
     out.push({ weekS: k, volumeLb: v?.volumeLb ?? 0, sessions: v?.sessions ?? 0 });
+    monday.setDate(monday.getDate() + 7);
   }
   return out;
 }

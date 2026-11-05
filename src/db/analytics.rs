@@ -81,7 +81,9 @@ impl ServerDb {
         Ok(())
     }
 
-    /// The server's own verdict. Overrides anything the client reported.
+    /// The server's own verdict. Overrides anything the client reported,
+    /// but never an earlier verdict: a finish replayed for a settled attempt
+    /// (anyone can send one, naming a user id) changes nothing.
     pub async fn finish_auth_attempt(
         &self,
         attempt_id: &str,
@@ -89,7 +91,8 @@ impl ServerDb {
         reason: &str,
     ) -> DbResult<()> {
         sqlx::query(
-            "UPDATE auth_attempts SET outcome = ?, reason = ?, finished_at = ? WHERE attempt_id = ?",
+            "UPDATE auth_attempts SET outcome = ?, reason = ?, finished_at = ?
+             WHERE attempt_id = ? AND outcome IN ('started', 'client_error')",
         )
         .bind(outcome)
         .bind(reason)
@@ -271,6 +274,17 @@ impl ServerDb {
                 last_seen_ms: r.get("last_seen_ms"),
             })
             .collect())
+    }
+
+    /// Distinct users with a page view since `since_ms`: the whole count,
+    /// where `user_activity` lists only the most recent.
+    pub async fn active_users(&self, since_ms: i64) -> DbResult<i64> {
+        Ok(sqlx::query_scalar(
+            "SELECT COUNT(DISTINCT user_id) FROM page_views WHERE entered_at_ms >= ?",
+        )
+        .bind(since_ms)
+        .fetch_one(&self.read_pool)
+        .await?)
     }
 
     /// The user's most recent views, newest first.

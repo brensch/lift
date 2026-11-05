@@ -22,7 +22,7 @@ object WearSensorBatchOutbox {
     fun enqueue(
         context: Context,
         batch: Wearable.WearSensorBatch,
-    ): Boolean {
+    ) {
         val appContext = context.applicationContext
         synchronized(this) {
             val encodedBatches = loadEncodedBatches(appContext).toMutableList()
@@ -34,7 +34,6 @@ object WearSensorBatchOutbox {
             updated.add(encodeBatch(batch))
             persistEncodedBatches(appContext, updated)
             Log.d("SchliftWear", "Enqueued HR batch id=${batch.batchId} samples=${batch.heartRateSamplesCount}")
-            return true
         }
     }
 

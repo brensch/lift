@@ -11,10 +11,10 @@ import '../logic/plan_text.dart';
 import '../logic/utils.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../services/account_sync.dart';
 import '../services/workout_service.dart';
 import '../widgets/common/flat.dart';
 import '../theme/theme_spec.dart';
+import 'reload_on_account_change.dart';
 
 /// One lift, in depth: tap a card on Progress to see its history over the
 /// span picked — the estimated max after each session with the heaviest set
@@ -32,8 +32,13 @@ class ExerciseDetailScreen extends StatefulWidget {
 /// The least the chart zooms in to.
 const _shortestSpan = Duration(days: 7);
 
-class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
+class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
+    with ReloadOnAccountChange {
   List<_Session>? _sessions;
+
+  /// A bodyweight lift, by its load style (the core says): its max is a rep
+  /// max and its heaviest set is reps, even with added weight.
+  bool _bodyweight = false;
   bool _isLoading = true;
   int _windowIdx = 0; // default: All, the first
 
@@ -46,29 +51,14 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   ({DateTime from, DateTime to})? _gestureSpan;
   double _gestureAt = 0;
 
-  // Another device's changes (or a seeded history) arriving while this is
-  // open: read the account again.
-  late final AccountSync _sync = context.read<AccountSync>();
-  late int _revision = _sync.revision;
-
-  void _onSync() {
-    if (_sync.revision == _revision) return;
-    _revision = _sync.revision;
-    _load();
-  }
-
   @override
   void initState() {
     super.initState();
-    _sync.addListener(_onSync);
     _load();
   }
 
   @override
-  void dispose() {
-    _sync.removeListener(_onSync);
-    super.dispose();
-  }
+  void reload() => _load();
 
   Future<void> _load() async {
     final service = context.read<WorkoutServiceWrapper>();
@@ -96,6 +86,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       if (!mounted) return;
       setState(() {
         _sessions = sessions;
+        _bodyweight = ep.bodyweight;
         _isLoading = false;
       });
     } catch (e) {
@@ -124,7 +115,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       return scaffold(
         Center(
           child: Text(
-            'No completed sets for this lift yet.',
+            copy.exercise.empty,
             style: TextStyle(color: cs.tertiary),
           ),
         ),
@@ -133,8 +124,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
     final suffix = weightUnitSuffix(unit);
     final current = sessions.last.topWeight;
-    // A bodyweight lift's max is a rep max, and its heaviest set is reps.
-    final bodyweight = sessions.every((s) => s.topWeight <= 0);
+    final bodyweight = _bodyweight;
     final maxNow = sessions.last.estimatedMax;
     final (:from, :to) = _custom ?? chartSpan(_windowIdx, sessions.first.date);
     final inSpan = sessions
@@ -152,16 +142,19 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           children: [
             HeadStat(
               maxText(maxNow, unit, bodyweight: bodyweight),
-              'estimated max',
+              copy.exercise.estimatedMax,
               size: context.tokens.size.headline,
               color: context.tokens.series.first,
             ),
             const Spacer(),
             HeadStat(
               bodyweight
-                  ? '${sessions.last.topReps} reps'
+                  ? copy.exercise.reps.replaceAll(
+                      '{n}',
+                      '${sessions.last.topReps}',
+                    )
                   : formatWeight(current, unit, includeUnit: true),
-              'heaviest set last time',
+              copy.exercise.heaviestLastTime,
               size: context.tokens.size.subtitle,
               color: context.tokens.series[1],
             ),
@@ -233,12 +226,12 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         FlatSection(
           child: Row(
             children: [
-              _footStat('Sessions', '${inSpan.length}', cs),
+              _footStat(copy.exercise.sessions, '${inSpan.length}', cs),
               const SizedBox(width: 18),
-              _footStat('Total sets', '$totalSets', cs),
+              _footStat(copy.exercise.totalSets, '$totalSets', cs),
               const SizedBox(width: 18),
               _footStat(
-                'Volume',
+                copy.exercise.volume,
                 '${compactVolume(totalVolume, unit)} $suffix',
                 cs,
               ),
@@ -394,7 +387,7 @@ class _Records extends StatelessWidget {
     // The longest stretch between two sessions in the span.
     ({int days, DateTime from, DateTime to})? gap;
     for (var i = 1; i < sessions.length; i++) {
-      final days = _daysBetween(sessions[i - 1].date, sessions[i].date);
+      final days = calendarDaysBetween(sessions[i - 1].date, sessions[i].date);
       if (gap == null || days > gap.days) {
         gap = (days: days, from: sessions[i - 1].date, to: sessions[i].date);
       }
@@ -406,7 +399,7 @@ class _Records extends StatelessWidget {
     final weeks = to.difference(spanStart).inHours / (24 * 7);
     final pace = sessions.length / (weeks < 1 ? 1 : weeks);
 
-    final ago = _daysBetween(last.date, DateTime.now());
+    final ago = calendarDaysBetween(last.date, DateTime.now());
     final lastText = switch (ago) {
       0 => c.today,
       1 => c.yesterday,
@@ -428,7 +421,7 @@ class _Records extends StatelessWidget {
       (
         bodyweight ? c.mostReps : c.heaviestSet,
         bodyweight
-            ? '${heaviest.topReps} reps'
+            ? c.reps.replaceAll('{n}', '${heaviest.topReps}')
             : '${formatWeight(heaviest.topWeight, unit, includeUnit: true)} × ${heaviest.topReps}',
         null,
         dayDate(heaviest.date),
@@ -472,13 +465,6 @@ class _Records extends StatelessWidget {
     );
   }
 }
-
-/// Whole calendar days from `a` to `b`.
-int _daysBetween(DateTime a, DateTime b) => DateTime(
-  b.year,
-  b.month,
-  b.day,
-).difference(DateTime(a.year, a.month, a.day)).inDays;
 
 /// A break this long between sessions breaks the chart's lines: time off
 /// shows as a gap.
@@ -719,7 +705,12 @@ class _SessionRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${session.sets} sets · ${compactVolume(session.volume, unit)} $suffix',
+            copy.exercise.sessionLine
+                .replaceAll('{sets}', '${session.sets}')
+                .replaceAll(
+                  '{volume}',
+                  '${compactVolume(session.volume, unit)} $suffix',
+                ),
             style: TextStyle(
               color: cs.tertiary,
               fontSize: context.tokens.size.small,

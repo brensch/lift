@@ -4,7 +4,7 @@
 //! the first, with the second applied on top. The readable tables
 //! (`schlift_core::projection`) are written only into an export.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use prost::Message;
@@ -18,7 +18,7 @@ use schlift_core::pb::{
     WorkoutHeartRatePoint,
 };
 use schlift_core::projection::{
-    account_export_statements, Statement, Value, ACCOUNT_SCHEMA, WORKOUT_SCHEMA,
+    account_export_statements, Statement, Value, ACCOUNT_SCHEMA, READABLE_TABLES, WORKOUT_SCHEMA,
 };
 
 const SCHEMA: &str = r#"
@@ -85,6 +85,9 @@ pub struct Store {
     /// Session partners' workouts, as the events the server forwarded:
     /// folded for what they're up to, held only while the app runs.
     partners: HashMap<String, Vec<Event>>,
+    /// While the server's history is found to part from this file's: the
+    /// seq the next stream checks from, further back than the last.
+    probe: Option<i64>,
 }
 
 impl Store {
@@ -143,6 +146,7 @@ impl Store {
             account: Account::default(),
             library: schlift_core::template_library::library().to_vec(),
             partners: HashMap::new(),
+            probe: None,
         };
         let saved: Option<Vec<u8>> = store
             .conn
@@ -202,15 +206,26 @@ impl Store {
     fn answer(&mut self, method: &str, request: &[u8], now: i64) -> StoreResult<Vec<u8>> {
         let event_id = uuid::Uuid::new_v4().to_string();
         let mut call = Call::new(&mut self.account, now, event_id).with_library(&self.library);
-        let response = api::call(&mut call, method, request).map_err(|e| {
-            let code = match e {
-                schlift_core::account::CoreError::InvalidArgument(_) => "invalid_argument",
-                schlift_core::account::CoreError::NotFound(_) => "not_found",
-                schlift_core::account::CoreError::FailedPrecondition(_) => "failed_precondition",
-            };
-            format!("{code}: {e}")
-        })?;
+        let answered = api::call(&mut call, method, request);
         let events = std::mem::take(&mut call.events);
+        let response = match answered {
+            Ok(response) => response,
+            Err(e) => {
+                // A call can fail after recording some of its events: they
+                // are in memory but not written, so go back to the file.
+                if !events.is_empty() {
+                    self.refold()?;
+                }
+                let code = match e {
+                    schlift_core::account::CoreError::InvalidArgument(_) => "invalid_argument",
+                    schlift_core::account::CoreError::NotFound(_) => "not_found",
+                    schlift_core::account::CoreError::FailedPrecondition(_) => {
+                        "failed_precondition"
+                    }
+                };
+                return Err(format!("{code}: {e}"));
+            }
+        };
         if !events.is_empty() {
             if let Err(error) = self.add_pending(&events) {
                 // Memory ran ahead of the file: go back to what was written.
@@ -353,6 +368,17 @@ impl Store {
             .map_err(storage)
     }
 
+    /// What a Sync stream opens with: the seq before the last this file
+    /// holds (or before the one it checks from), so the server's first
+    /// event is one this file has, and its id says whether the two
+    /// histories are the same up to there. A server restored from a backup
+    /// can hold other events at the same places.
+    pub fn opens_after(&self) -> StoreResult<i64> {
+        let confirmed = self.confirmed()?;
+        let from = self.probe.map_or(confirmed, |p| p.min(confirmed));
+        Ok((from - 1).max(0))
+    }
+
     /// The account's history, in the server's order.
     pub fn events(&self) -> StoreResult<Vec<Event>> {
         self.read("SELECT event FROM events ORDER BY seq")
@@ -395,29 +421,156 @@ impl Store {
     }
 
     fn read(&self, sql: &str) -> StoreResult<Vec<Event>> {
-        let mut query = self.conn.prepare_cached(sql).map_err(storage)?;
-        let rows = query
-            .query_map([], |r| r.get::<_, String>(0))
-            .map_err(storage)?
-            .collect::<Result<Vec<_>, _>>()
+        read(&self.conn, sql)
+    }
+
+    /// Bring in an export of this account. Where its placed events carry
+    /// on from this file's (this file holds none placed, or the export
+    /// holds this file's last at the same seq), the ones after are taken
+    /// as placed, in their places: the id check when a stream opens tells
+    /// whether the server holds them there. Every other event in it that
+    /// this file holds neither placed nor waiting (by id) waits after the
+    /// rest, in the export's order, for the server to place; the server
+    /// skips any it holds. Heart rate gathered for a workout under way
+    /// comes along. So an import only ever adds: nothing here is removed,
+    /// and the same file brought in again adds nothing. Returns how many
+    /// events it added. A file that won't read whole adds nothing.
+    pub fn import(&mut self, path: &Path) -> StoreResult<usize> {
+        let (owner, _) = file_owner(path)?;
+        if owner != self.user_id {
+            return Err("failed_precondition: that file is a different account".to_string());
+        }
+        let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(storage)?;
-        rows.iter()
-            .map(|json| serde_json::from_str(json).map_err(storage))
-            .collect()
+        let format: i64 = conn
+            .query_row("PRAGMA user_version", [], |r| r.get(0))
+            .map_err(storage)?;
+        if format < FORMAT {
+            // Its events are in a form from before, which nothing reads.
+            return Ok(0);
+        }
+        let placed = read(&conn, "SELECT event FROM events ORDER BY seq")?;
+        let waiting = read(&conn, "SELECT event FROM pending ORDER BY n")?;
+        let heart_rate: Vec<(String, i64, f64)> = {
+            let mut query = conn
+                .prepare("SELECT workout_id, sampled_at, bpm FROM heart_rate")
+                .map_err(storage)?;
+            let rows = query
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+                .map_err(storage)?;
+            rows.collect::<Result<_, _>>().map_err(storage)?
+        };
+        let ours = self.events()?;
+        let confirmed = ours.last().map_or(0, |e| e.seq);
+        let placed_here: HashSet<String> = ours.iter().map(|e| e.id.clone()).collect();
+        let mut held = placed_here.clone();
+        held.extend(self.pending()?.into_iter().map(|e| e.id));
+        let (before, after): (Vec<Event>, Vec<Event>) =
+            placed.into_iter().partition(|e| e.seq <= confirmed);
+        // The export's log carries on from this file's: the same last event
+        // in the same place, then one seq after another, none of them one
+        // this file holds placed elsewhere.
+        let meets = match ours.last() {
+            None => true,
+            Some(last) => before
+                .last()
+                .is_some_and(|e| e.seq == last.seq && e.id == last.id),
+        };
+        let carries_on = meets
+            && after
+                .iter()
+                .zip(confirmed + 1..)
+                .all(|(e, seq)| e.seq == seq && !placed_here.contains(&e.id));
+        let (taken, rest): (Vec<Event>, Vec<Event>) = if carries_on {
+            (after, waiting)
+        } else {
+            (
+                Vec::new(),
+                before.into_iter().chain(after).chain(waiting).collect(),
+            )
+        };
+        held.extend(taken.iter().map(|e| e.id.clone()));
+        let added: Vec<Event> = rest
+            .into_iter()
+            .filter(|e| held.insert(e.id.clone()))
+            .map(|e| Event { seq: 0, ..e })
+            .collect();
+        let tx = self.conn.transaction().map_err(storage)?;
+        for event in &taken {
+            let json = serde_json::to_string(event).map_err(storage)?;
+            tx.execute(
+                "INSERT INTO events (seq, id, event) VALUES (?, ?, ?)",
+                params![event.seq, event.id, json],
+            )
+            .map_err(storage)?;
+            tx.execute("DELETE FROM pending WHERE id = ?", [&event.id])
+                .map_err(storage)?;
+        }
+        add_pending(&tx, &added)?;
+        for (workout_id, sampled_at, bpm) in &heart_rate {
+            tx.execute(
+                "INSERT OR IGNORE INTO heart_rate (workout_id, sampled_at, bpm) VALUES (?, ?, ?)",
+                params![workout_id, sampled_at, bpm],
+            )
+            .map_err(storage)?;
+        }
+        tx.commit().map_err(storage)?;
+        let count = taken.len() + added.len();
+        if count > 0 {
+            self.refold()?;
+        }
+        Ok(count)
     }
 
     /// Events from the server, in its order, and the last seq it holds.
     /// Ones this device recorded leave `pending`. Returns whether the
     /// account changed under the app: another device's events arrived, or
-    /// the server holds less than this file (an older export opened), so
-    /// what it lacks is offered again.
+    /// the histories parted (below), so what the server lacks is offered
+    /// again.
+    ///
+    /// Where the server sends an event this file holds, the ids must agree.
+    /// They part after a server is restored from an older backup and
+    /// another device's events are placed where this file's were: this
+    /// file's events from there go back to the front of the queue, to be
+    /// placed again (the server skips any it holds), and the server's are
+    /// taken in their place. Where they part at the first event a stream
+    /// sent, they may part earlier still: refused, and the next stream
+    /// checks from further back. And a server that holds less than this
+    /// file has the rest queued again, then the stream is refused, so the
+    /// next one checks its last event before anything is pushed.
     pub fn receive(&mut self, events: Vec<Event>, head: i64) -> StoreResult<bool> {
         let confirmed = self.confirmed()?;
-        let new: Vec<Event> = events.into_iter().filter(|e| e.seq > confirmed).collect();
+        let parted = self.parted(&events, confirmed)?;
+        // Parted at the first event a stream sends (the first of its first
+        // message, which no event of its was checked before): where they
+        // meet is further back.
+        let from = self.probe.map_or(confirmed, |p| p.min(confirmed));
+        let first = events.first().map_or(0, |e| e.seq);
+        if parted.is_some_and(|seq| seq == first && seq <= from && seq > 1) {
+            // Twice as far back as this stream checked from.
+            self.probe = Some((2 * first - confirmed - 1).max(1));
+            return Err(format!(
+                "failed_precondition: the server's event {first} is not this file's; \
+                 checking from further back"
+            ));
+        }
+        // The server holds less than this file, and nothing it sent parts.
+        let behind = parted.is_none() && head < confirmed;
+        // The last seq this file and the server agree on, when this file
+        // holds more than that.
+        let meet = match parted {
+            Some(seq) => Some(seq - 1),
+            None if behind => Some(head),
+            None => None,
+        };
+        // Checked as far as this file goes.
+        let checked = events.last().is_some_and(|e| e.seq >= confirmed);
+        let kept = meet.unwrap_or(confirmed);
+        let new: Vec<Event> = events.into_iter().filter(|e| e.seq > kept).collect();
         if let Some(first) = new.first() {
-            if first.seq != confirmed + 1 {
+            if first.seq != kept + 1 {
                 return Err(format!(
-                    "failed_precondition: the server's events start at {}, after {confirmed}",
+                    "failed_precondition: the server's events start at {}, after {kept}",
                     first.seq
                 ));
             }
@@ -425,9 +578,13 @@ impl Store {
         let pending = self.pending()?;
         // The usual case: the server placed this device's own events, next
         // in line, and nothing else; the account already has them.
-        let ours =
-            new.len() <= pending.len() && new.iter().zip(&pending).all(|(n, p)| n.id == p.id);
+        let ours = meet.is_none()
+            && new.len() <= pending.len()
+            && new.iter().zip(&pending).all(|(n, p)| n.id == p.id);
         let tx = self.conn.transaction().map_err(storage)?;
+        if let Some(meet) = meet {
+            requeue_after(&tx, meet)?;
+        }
         for event in &new {
             let json = serde_json::to_string(event).map_err(storage)?;
             tx.execute(
@@ -438,51 +595,43 @@ impl Store {
             tx.execute("DELETE FROM pending WHERE id = ?", [&event.id])
                 .map_err(storage)?;
         }
-        let behind = head < confirmed && new.is_empty();
-        if behind {
-            // The server lacks the end of this file's history: it goes back
-            // to the front of the queue, in order, to be placed again.
-            let lost: Vec<(String, String)> = {
-                let mut query = tx
-                    .prepare("SELECT id, event FROM events WHERE seq > ? ORDER BY seq")
-                    .map_err(storage)?;
-                let rows = query
-                    .query_map([head], |r| Ok((r.get(0)?, r.get(1)?)))
-                    .map_err(storage)?
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(storage)?;
-                rows
-            };
-            let queued: Vec<(String, String)> = {
-                let mut query = tx
-                    .prepare("SELECT id, event FROM pending ORDER BY n")
-                    .map_err(storage)?;
-                let rows = query
-                    .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
-                    .map_err(storage)?
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(storage)?;
-                rows
-            };
-            tx.execute("DELETE FROM events WHERE seq > ?", [head])
-                .map_err(storage)?;
-            tx.execute("DELETE FROM pending", []).map_err(storage)?;
-            for (id, event) in lost.iter().chain(&queued) {
-                let event: Event = serde_json::from_str(event).map_err(storage)?;
-                let json = serde_json::to_string(&Event { seq: 0, ..event }).map_err(storage)?;
-                tx.execute(
-                    "INSERT INTO pending (id, event) VALUES (?, ?)",
-                    params![id, json],
-                )
-                .map_err(storage)?;
-            }
-        }
         tx.commit().map_err(storage)?;
-        if ours && !behind {
+        if meet.is_some() || checked {
+            self.probe = None;
+        }
+        if ours {
             return Ok(false);
         }
         self.refold()?;
+        if behind {
+            return Err(format!(
+                "failed_precondition: the server holds {head} events, fewer than this file; \
+                 checking its last before sending more"
+            ));
+        }
         Ok(true)
+    }
+
+    /// The first seq at which `events` (the server's) hold another event
+    /// than this file, of those this file holds.
+    fn parted(&self, events: &[Event], confirmed: i64) -> StoreResult<Option<i64>> {
+        let Some(first) = events.first().map(|e| e.seq).filter(|&s| s <= confirmed) else {
+            return Ok(None);
+        };
+        let mut query = self
+            .conn
+            .prepare_cached("SELECT seq, id FROM events WHERE seq BETWEEN ? AND ?")
+            .map_err(storage)?;
+        let held: HashMap<i64, String> = query
+            .query_map([first, confirmed], |r| Ok((r.get(0)?, r.get(1)?)))
+            .map_err(storage)?
+            .collect::<Result<_, _>>()
+            .map_err(storage)?;
+        Ok(events
+            .iter()
+            .take_while(|e| e.seq <= confirmed)
+            .find(|e| held.get(&e.seq) != Some(&e.id))
+            .map(|e| e.seq))
     }
 
     /// Keep the library the server sent (a ListTemplateLibraryResponse).
@@ -514,6 +663,10 @@ impl Store {
             .map_err(storage)?;
         let mut conn = Connection::open(dest).map_err(storage)?;
         let tx = conn.transaction().map_err(storage)?;
+        for table in READABLE_TABLES {
+            tx.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+                .map_err(storage)?;
+        }
         tx.execute_batch(&format!("{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
             .map_err(storage)?;
         for statement in account_export_statements(&self.user_id, &self.account) {
@@ -542,6 +695,54 @@ pub fn file_owner(path: &Path) -> StoreResult<(String, String)> {
     uuid::Uuid::parse_str(&user_id).map_err(|_| not_ours())?;
     let name = meta("name").map_err(|_| not_ours())?.unwrap_or_default();
     Ok((user_id, name))
+}
+
+/// This file's events after `meet` go back to the front of the queue, in
+/// order and without their places, ahead of what waited already: the whole
+/// queue is offered again, however much of it was sent before.
+fn requeue_after(tx: &rusqlite::Transaction, meet: i64) -> StoreResult<()> {
+    let rows = |sql: &str, params: &[i64]| -> StoreResult<Vec<(String, String)>> {
+        let mut query = tx.prepare(sql).map_err(storage)?;
+        let rows = query
+            .query_map(rusqlite::params_from_iter(params), |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })
+            .map_err(storage)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(storage);
+        rows
+    };
+    let lost = rows(
+        "SELECT id, event FROM events WHERE seq > ? ORDER BY seq",
+        &[meet],
+    )?;
+    let queued = rows("SELECT id, event FROM pending ORDER BY n", &[])?;
+    tx.execute("DELETE FROM events WHERE seq > ?", [meet])
+        .map_err(storage)?;
+    tx.execute("DELETE FROM pending", []).map_err(storage)?;
+    for (id, event) in lost.iter().chain(&queued) {
+        let event: Event = serde_json::from_str(event).map_err(storage)?;
+        let json = serde_json::to_string(&Event { seq: 0, ..event }).map_err(storage)?;
+        tx.execute(
+            "INSERT INTO pending (id, event) VALUES (?, ?)",
+            params![id, json],
+        )
+        .map_err(storage)?;
+    }
+    Ok(())
+}
+
+/// The events `sql` selects, one JSON event a row.
+fn read(conn: &Connection, sql: &str) -> StoreResult<Vec<Event>> {
+    let mut query = conn.prepare_cached(sql).map_err(storage)?;
+    let rows = query
+        .query_map([], |r| r.get::<_, String>(0))
+        .map_err(storage)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(storage)?;
+    rows.iter()
+        .map(|json| serde_json::from_str(json).map_err(storage))
+        .collect()
 }
 
 fn add_pending(tx: &rusqlite::Transaction, events: &[Event]) -> StoreResult<()> {
@@ -740,11 +941,31 @@ mod tests {
         let placed = place(store.pending().unwrap(), 0);
         store.receive(placed, 1).unwrap();
         let before = store.account.clone();
-        // A server that holds nothing of this file.
-        assert!(store.receive(Vec::new(), 0).unwrap());
+        // A server that holds nothing of this file: the stream is refused,
+        // the next to check where they meet before anything goes up.
+        assert!(store.receive(Vec::new(), 0).is_err());
         assert_eq!(store.confirmed().unwrap(), 0);
         assert_eq!(store.pending().unwrap().len(), 1);
         assert_eq!(store.pending().unwrap()[0].seq, 0);
+        assert_eq!(store.account, before);
+    }
+
+    /// What the server lacks goes ahead of what was waiting already, and the
+    /// whole queue is offered again, however much of it was sent before.
+    #[test]
+    fn what_the_server_lacks_goes_ahead_of_what_waits() {
+        let mut store = Store::open(&temp("behind-waiting"), U1, "").unwrap();
+        let home = onboard(&mut store);
+        let placed = place(store.pending().unwrap(), 0);
+        store.receive(placed.clone(), 1).unwrap();
+        start(&mut store, &home.templates[0].id);
+        let (waiting, sent) = store.pending_after(0).unwrap();
+        let before = store.account.clone();
+        assert!(store.receive(Vec::new(), 0).is_err());
+        let ids = |events: &[Event]| events.iter().map(|e| e.id.clone()).collect::<Vec<_>>();
+        let queued = [placed, waiting].concat();
+        assert_eq!(ids(&store.pending().unwrap()), ids(&queued));
+        assert_eq!(ids(&store.pending_after(sent).unwrap().0), ids(&queued));
         assert_eq!(store.account, before);
     }
 
@@ -956,16 +1177,337 @@ mod tests {
         let dest = temp("export");
         store.export(&dest).unwrap();
         assert_eq!(file_owner(&dest).unwrap(), (U1.into(), "una".into()));
-        let exported = Connection::open(&dest).unwrap();
-        let samples: i64 = exported
-            .query_row(
-                "SELECT COUNT(*) FROM workout_heart_rate_samples WHERE workout_id = ?",
-                [&started.id],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(samples, 3, "the export has the readable tables");
+        let readable = |path: &Path| {
+            let exported = Connection::open(path).unwrap();
+            let samples: i64 = exported
+                .query_row(
+                    "SELECT COUNT(*) FROM workout_heart_rate_samples WHERE workout_id = ?",
+                    [&started.id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(samples, 3, "the export has the readable tables");
+            let in_rotation: i64 = exported
+                .query_row(
+                    "SELECT in_rotation FROM workout_templates WHERE id = ?",
+                    [&home.templates[0].id],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(in_rotation, i64::from(home.templates[0].in_rotation));
+        };
+        readable(&dest);
         let reopened = Store::open(&dest, U1, "").unwrap();
         assert_eq!(reopened.account, store.account);
+
+        // An account opened from an export exports again.
+        let again = temp("export-again");
+        reopened.export(&again).unwrap();
+        readable(&again);
+    }
+
+    #[test]
+    fn an_export_from_an_older_build_exports_again() {
+        let path = temp("older");
+        let mut store = Store::open(&path, U1, "una").unwrap();
+        let home = onboard(&mut store);
+        let started = start(&mut store, &home.templates[0].id);
+        end(&mut store, &started.id, 2_006);
+        drop(store);
+        // An older build's export: the readable tables without the columns
+        // added since.
+        Connection::open(&path)
+            .unwrap()
+            .execute_batch(
+                "CREATE TABLE completed_sets (user_id TEXT, id TEXT, PRIMARY KEY (user_id, id));
+                 CREATE TABLE workout_templates (id TEXT PRIMARY KEY, user_id TEXT);",
+            )
+            .unwrap();
+        let reopened = Store::open(&path, U1, "").unwrap();
+        let dest = temp("older-export");
+        reopened.export(&dest).unwrap();
+        let templates: i64 = Connection::open(&dest)
+            .unwrap()
+            .query_row("SELECT COUNT(*) FROM workout_templates", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(templates, home.templates.len() as i64);
+    }
+
+    #[test]
+    fn readable_tables_names_every_exported_table() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(&format!("{WORKOUT_SCHEMA}{ACCOUNT_SCHEMA}"))
+            .unwrap();
+        let mut created: Vec<String> = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        created.sort();
+        let mut listed: Vec<String> = READABLE_TABLES.iter().map(|t| t.to_string()).collect();
+        listed.sort();
+        assert_eq!(created, listed);
+    }
+
+    fn home(store: &mut Store) -> GetHomeResponse {
+        let bytes = store
+            .call("GetHome", &GetHomeRequest::default().encode_to_vec(), 1_000)
+            .unwrap();
+        GetHomeResponse::decode(bytes.as_slice()).unwrap()
+    }
+
+    #[test]
+    fn the_servers_library_is_kept_and_coupled_templates_follow_it() {
+        let path = temp("library");
+        let mut store = Store::open(&path, U1, "").unwrap();
+        let coupled = onboard(&mut store)
+            .templates
+            .into_iter()
+            .find(|t| t.coupled)
+            .expect("a template that follows the library");
+        let mut library = schlift_core::template_library::library().to_vec();
+        let entry = library
+            .iter_mut()
+            .find(|e| e.id == coupled.library_id)
+            .unwrap();
+        entry.name = "Renamed by the server".into();
+        let packed = ListTemplateLibraryResponse {
+            templates: library.clone(),
+            ..Default::default()
+        }
+        .encode_to_vec();
+        assert!(store.set_library(&packed).unwrap(), "a change");
+        assert!(!store.set_library(&packed).unwrap(), "the same again");
+        drop(store);
+
+        // After a restart: the server's library, not the one built in.
+        let mut store = Store::open(&path, U1, "").unwrap();
+        assert_eq!(store.library, library);
+        let shown = home(&mut store)
+            .templates
+            .into_iter()
+            .find(|t| t.id == coupled.id)
+            .unwrap();
+        assert_eq!(shown.name, "Renamed by the server");
+    }
+
+    #[test]
+    fn server_events_after_a_gap_are_refused_and_change_nothing() {
+        let mut store = Store::open(&temp("gap"), U1, "").unwrap();
+        onboard(&mut store);
+        let pending = store.pending().unwrap();
+        let before = store.account.clone();
+        // Placed at 2 while this file holds nothing: seq 1 is missing.
+        let error = store.receive(place(pending.clone(), 1), 2).unwrap_err();
+        assert!(error.starts_with("failed_precondition"), "{error}");
+        assert!(store.events().unwrap().is_empty());
+        assert_eq!(store.pending().unwrap(), pending);
+        assert_eq!(store.confirmed().unwrap(), 0);
+        assert_eq!(store.account, before);
+    }
+
+    /// The server's placement, as `push_events` does it: what it doesn't
+    /// hold, by id, after the head.
+    fn push(server: &mut Vec<Event>, events: Vec<Event>) {
+        for event in events {
+            if !server.iter().any(|e| e.id == event.id) {
+                let seq = server.len() as i64 + 1;
+                server.push(Event { seq, ..event });
+            }
+        }
+    }
+
+    /// A stream, as the app opens one: from where the store says, all the
+    /// server holds after that, until the store takes it (a stream opened
+    /// past the head is ended unread). Then what waits goes up and comes
+    /// back placed.
+    fn sync(store: &mut Store, server: &mut Vec<Event>) {
+        for _ in 0..16 {
+            let after = store.opens_after().unwrap() as usize;
+            let head = server.len() as i64;
+            let sent = server.get(after..).map_or(Vec::new(), <[Event]>::to_vec);
+            if store.receive(sent, head).is_ok() && after as i64 <= head {
+                push(server, store.pending().unwrap());
+                let confirmed = store.confirmed().unwrap() as usize;
+                store
+                    .receive(server[confirmed..].to_vec(), server.len() as i64)
+                    .unwrap();
+                return;
+            }
+        }
+        panic!("never caught up");
+    }
+
+    /// `count` settings saved, one event each.
+    fn settings(store: &mut Store, count: usize) {
+        for n in 0..count {
+            let unit = if n % 2 == 0 {
+                WeightUnit::Lb
+            } else {
+                WeightUnit::Kg
+            };
+            let request = schlift_core::pb::UpdateSettingRequest {
+                setting: Some(schlift_core::pb::UserSetting {
+                    setting: Some(schlift_core::pb::user_setting::Setting::WeightUnit(
+                        schlift_core::pb::WeightUnitConfig { unit: unit as i32 },
+                    )),
+                }),
+            };
+            store
+                .call("UpdateSetting", &request.encode_to_vec(), 3_000 + n as i64)
+                .unwrap();
+        }
+    }
+
+    /// The server restored from a backup that lacks the end of one phone's
+    /// history, and another phone's event placed there first: the phones
+    /// tell the histories apart by the events' ids, not their places, and
+    /// both end with the server's log, every event in it once.
+    #[test]
+    fn after_a_server_restore_the_phones_meet_where_their_events_agree() {
+        let mut server = Vec::new();
+        let mut a = Store::open(&temp("restore-a"), U1, "").unwrap();
+        let mut b = Store::open(&temp("restore-b"), U1, "").unwrap();
+        onboard(&mut a);
+        settings(&mut a, 4);
+        sync(&mut a, &mut server);
+        sync(&mut b, &mut server);
+        settings(&mut a, 5);
+        sync(&mut a, &mut server);
+        assert_eq!(a.confirmed().unwrap(), 10);
+        assert_eq!(b.confirmed().unwrap(), 5);
+
+        // Restored to a backup of 1..=5; B's next event is placed 6th.
+        server.truncate(5);
+        settings(&mut b, 1);
+        sync(&mut b, &mut server);
+        sync(&mut a, &mut server);
+        sync(&mut b, &mut server);
+
+        assert_eq!(server.len(), 11, "A's five again, after B's one");
+        let ids: HashSet<&str> = server.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids.len(), server.len(), "each event once");
+        for store in [&a, &b] {
+            assert_eq!(store.events().unwrap(), server);
+            assert!(store.pending().unwrap().is_empty());
+            assert_eq!(store.account, Account::fold(&server));
+        }
+    }
+
+    /// An import only ever adds: an export brought in again adds nothing,
+    /// an older one after newer events removes nothing, and the server,
+    /// skipping what it holds, ends with each event once.
+    #[test]
+    fn an_import_only_adds_and_never_twice() {
+        let mut server = Vec::new();
+        let mut phone = Store::open(&temp("import-phone"), U1, "una").unwrap();
+        let home = onboard(&mut phone);
+        settings(&mut phone, 2);
+        sync(&mut phone, &mut server);
+        let older = temp("import-older");
+        phone.export(&older).unwrap();
+        let started = start(&mut phone, &home.templates[0].id);
+        end(&mut phone, &started.id, 2_100);
+        sync(&mut phone, &mut server);
+        // One more, not yet sent.
+        settings(&mut phone, 1);
+        let newer = temp("import-newer");
+        phone.export(&newer).unwrap();
+        let state = |store: &Store| (store.events().unwrap(), store.pending().unwrap());
+        let before = (state(&phone), phone.account.clone());
+        let recorded = before.0 .0.len() + before.0 .1.len();
+
+        for file in [&newer, &newer, &older] {
+            assert_eq!(phone.import(file).unwrap(), 0, "it has them all");
+        }
+        assert_eq!((state(&phone), phone.account.clone()), before);
+
+        // A phone that lost its copy: the older export, then the newer, then
+        // the newer again.
+        let mut fresh = Store::open(&temp("import-fresh"), U1, "").unwrap();
+        assert_eq!(fresh.import(&older).unwrap(), 3);
+        assert_eq!(fresh.import(&newer).unwrap(), recorded - 3);
+        assert_eq!(fresh.import(&newer).unwrap(), 0);
+        assert_eq!(fresh.import(&older).unwrap(), 0);
+        assert_eq!(fresh.account, phone.account);
+
+        sync(&mut fresh, &mut server);
+        sync(&mut phone, &mut server);
+        assert_eq!(server.len(), recorded, "each event once");
+        for store in [&phone, &fresh] {
+            assert_eq!(store.events().unwrap(), server);
+            assert!(store.pending().unwrap().is_empty());
+            assert_eq!(store.account, Account::fold(&server));
+        }
+
+        // Another account's export brings in nothing.
+        let mut theirs = Store::open(&temp("import-theirs"), U2, "").unwrap();
+        assert!(theirs.import(&newer).is_err());
+        assert!(theirs.pending().unwrap().is_empty());
+    }
+
+    /// A new phone opening an export takes its placed history as placed,
+    /// in its places: only what the export had waiting goes up, not the
+    /// whole account again.
+    #[test]
+    fn an_import_onto_a_new_phone_keeps_the_places() {
+        let mut server = Vec::new();
+        let mut phone = Store::open(&temp("keep-phone"), U1, "").unwrap();
+        onboard(&mut phone);
+        settings(&mut phone, 999);
+        sync(&mut phone, &mut server);
+        assert_eq!(server.len(), 1_000);
+        // Two not yet sent.
+        settings(&mut phone, 2);
+        let export = temp("keep-export");
+        phone.export(&export).unwrap();
+
+        let mut fresh = Store::open(&temp("keep-fresh"), U1, "").unwrap();
+        assert_eq!(fresh.import(&export).unwrap(), 1_002);
+        assert_eq!(fresh.events().unwrap(), server, "placed where they were");
+        assert_eq!(fresh.pending().unwrap(), phone.pending().unwrap());
+        assert_eq!(fresh.account, phone.account);
+        assert_eq!(fresh.opens_after().unwrap(), 999);
+
+        sync(&mut fresh, &mut server);
+        assert_eq!(server.len(), 1_002);
+        assert_eq!(fresh.events().unwrap(), server);
+        assert!(fresh.pending().unwrap().is_empty());
+
+        // An export whose log doesn't carry on from this file's (the same
+        // place, another event) is only queued, for the server to place.
+        let mut elsewhere = Vec::new();
+        let mut other = Store::open(&temp("keep-other"), U1, "").unwrap();
+        onboard(&mut other);
+        sync(&mut other, &mut elsewhere);
+        let held = other.events().unwrap();
+        assert_eq!(other.import(&export).unwrap(), 1_002);
+        assert_eq!(other.events().unwrap(), held, "its places are kept");
+        assert_eq!(other.pending_count().unwrap(), 1_002);
+    }
+
+    /// Heart rate gathered for a workout under way comes along with an
+    /// export, and is recorded when the workout ends on the new phone.
+    #[test]
+    fn an_import_brings_the_heart_rate_of_a_workout_under_way() {
+        let mut phone = Store::open(&temp("hr-phone"), U1, "").unwrap();
+        let home = onboard(&mut phone);
+        let started = start(&mut phone, &home.templates[0].id);
+        heart_rate(&mut phone, &started.id, &[1_000, 3_000], 2_001);
+        let export = temp("hr-export");
+        phone.export(&export).unwrap();
+
+        let mut fresh = Store::open(&temp("hr-fresh"), U1, "").unwrap();
+        fresh.import(&export).unwrap();
+        // Brought in again, nothing is gathered twice.
+        fresh.import(&export).unwrap();
+        heart_rate(&mut fresh, &started.id, &[5_000], 2_002);
+        end(&mut fresh, &started.id, 2_010);
+        assert_eq!(
+            shown_heart_rate(&mut fresh, &started.id),
+            vec![1_000, 3_000, 5_000]
+        );
     }
 }

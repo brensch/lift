@@ -4,6 +4,8 @@
 /// hairlines.
 library;
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,6 +20,21 @@ import '../providers/settings_provider.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 import 'common/flat.dart';
+
+/// The gap between a set that ended at [ended] (unix seconds) with its rest
+/// running to [restUntil] and the next set, begun at [began]: resting until
+/// the rest ran out (or the next set began, if sooner), yapping after. A set
+/// with no rest after it ([restUntil] at or before [ended]) is all yapping.
+/// The same split as the core's workout summary and the heart chart's bands.
+({int rest, int yap}) splitGap({
+  required int ended,
+  required int restUntil,
+  required int began,
+}) {
+  final restEnd = min(max(restUntil, ended), began);
+  final rest = restEnd - ended;
+  return (rest: rest > 0 ? rest : 0, yap: began - restEnd);
+}
 
 class SetLog extends StatelessWidget {
   final List<ProposedSet> proposedSets;
@@ -70,20 +87,19 @@ class SetLog extends StatelessWidget {
         final began = c.startedAt.toInt() > 0
             ? c.startedAt.toInt()
             : c.endedAt.toInt();
-        final restUntil = prev.restUntil.toInt() > ended
-            ? prev.restUntil.toInt()
-            : began;
-        final restEnd = restUntil < began ? restUntil : began;
-        final rest = restEnd - ended;
-        final yap = began - restEnd;
-        if (rest > 0 || yap > 0) {
-          gapBefore[c.id] = (rest: rest > 0 ? rest : 0, yap: yap);
-        }
+        final gap = splitGap(
+          ended: ended,
+          restUntil: prev.restUntil.toInt(),
+          began: began,
+        );
+        if (gap.rest > 0 || gap.yap > 0) gapBefore[c.id] = gap;
       }
       previous[c.workoutId] = c;
     }
 
-    final heading = FlatHeading('Completed sets · ${done.length}');
+    final heading = FlatHeading(
+      copy.setLog.heading.replaceAll('{n}', '${done.length}'),
+    );
 
     // Newest first: each set, then the gap before it (the yap, then the
     // rest), then the set before.
@@ -137,7 +153,7 @@ class SetLog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'NO SETS YET',
+            copy.setLog.emptyTitle,
             style: t.mono(
               TextStyle(
                 fontSize: t.size.bodyLg,
@@ -149,7 +165,7 @@ class SetLog extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Get schlifting mate',
+            copy.setLog.emptyBody,
             style: TextStyle(fontSize: t.size.body, color: t.muted),
           ),
         ],
@@ -168,15 +184,16 @@ class SetLog extends StatelessWidget {
       builder: (context) {
         final colorScheme = Theme.of(context).colorScheme;
         return AlertDialog(
-          title: const Text('Delete Completed Set?'),
+          title: Text(copy.setLog.deleteTitle),
           content: Text(
-            'Remove set $weightText × ${completed.actualReps}? This cannot '
-            'be undone.',
+            copy.setLog.deleteBody
+                .replaceAll('{weight}', weightText)
+                .replaceAll('{reps}', '${completed.actualReps}'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
+              child: Text(copy.setLog.deleteCancel),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -184,7 +201,7 @@ class SetLog extends StatelessWidget {
                 foregroundColor: colorScheme.onError,
               ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Delete'),
+              child: Text(copy.setLog.deleteConfirm),
             ),
           ],
         );

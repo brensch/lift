@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use crate::logs::{LogRecord, LogStore, StoredLog};
+use crate::logs::LogStore;
 use crate::store::StoreResult;
 
 static LOGS: Mutex<Option<LogStore>> = Mutex::new(None);
@@ -49,20 +49,7 @@ pub fn open_logs(path: String) -> StoreResult<()> {
 }
 
 pub fn append_logs(lines: Vec<LogLine>) -> StoreResult<()> {
-    with_logs(|logs| {
-        logs.append(
-            lines
-                .into_iter()
-                .map(|l| LogRecord {
-                    at_ms: l.at_ms,
-                    level: l.level,
-                    tag: l.tag,
-                    message: l.message,
-                    fields: l.fields,
-                })
-                .collect(),
-        )
-    })
+    with_logs(|logs| logs.append(lines))
 }
 
 /// Up to `limit` entries at `min_level` or above, newest first, older than
@@ -75,20 +62,7 @@ pub fn read_logs(
     before: i64,
     limit: u32,
 ) -> StoreResult<Vec<KeptLogLine>> {
-    with_logs(|logs| {
-        Ok(logs
-            .read(min_level, &tag, &text, before, limit)?
-            .into_iter()
-            .map(|l: StoredLog| KeptLogLine {
-                id: l.id,
-                at_ms: l.at_ms,
-                level: l.level,
-                tag: l.tag,
-                message: l.message,
-                fields: l.fields,
-            })
-            .collect())
-    })
+    with_logs(|logs| logs.read(min_level, &tag, &text, before, limit))
 }
 
 pub fn clear_logs() -> StoreResult<()> {

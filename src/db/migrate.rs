@@ -42,6 +42,19 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 3 {
+        let mut tx = pool.begin().await?;
+        // The workout a member does in the session: what of theirs the
+        // others see, and what ending takes them out. Empty until the first
+        // event that puts one in it.
+        sqlx::query("ALTER TABLE session_members ADD COLUMN workout_id TEXT NOT NULL DEFAULT ''")
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("PRAGMA user_version = 3")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -370,7 +383,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();

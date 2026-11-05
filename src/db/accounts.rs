@@ -5,6 +5,7 @@
 use schlift_core::account::Account;
 use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
+use std::collections::HashSet;
 
 /// How far back a partner's latest workout is looked for: more events than
 /// any one workout records.
@@ -17,22 +18,35 @@ use super::*;
 pub struct Pushed {
     /// The events it added, each with its place.
     pub stored: Vec<Event>,
-    /// A workout ended in it.
-    pub ended_workout: bool,
-    /// A workout was thrown away in it.
-    pub discarded_workout: bool,
 }
 
 impl ServerDb {
     /// Look at a user's account, folded from its history (without heart
-    /// rate, which the server never reads).
-    pub async fn read_account<R>(
+    /// rate, which the server never reads). The fold and the read run on
+    /// the blocking pool: a large account takes a while to fold, and the
+    /// runtime's few workers also serve every stream.
+    pub async fn read_account<R: Send + 'static>(
         &self,
         user_id: &str,
-        read: impl FnOnce(&Account) -> R,
+        read: impl FnOnce(&Account) -> R + Send + 'static,
     ) -> DbResult<R> {
-        let events = self.events_after(user_id, 0, i64::MAX).await?;
-        Ok(read(&Account::fold_without_heart_rate(&events)))
+        // Heart-rate rows are most of a log and change nothing in a fold
+        // without heart rate, so they are not read (or parsed) at all.
+        let rows: Vec<String> = sqlx::query_scalar(
+            "SELECT event FROM account_events
+             WHERE user_id = ? AND event -> '$.HeartRateRecorded' IS NULL ORDER BY seq",
+        )
+        .bind(user_id)
+        .fetch_all(&self.read_pool)
+        .await?;
+        tokio::task::spawn_blocking(move || {
+            let events = rows
+                .iter()
+                .map(|json| serde_json::from_str(json))
+                .collect::<Result<Vec<Event>, _>>()?;
+            Ok(read(&Account::fold_without_heart_rate(&events)))
+        })
+        .await?
     }
 
     /// The last seq the server holds for the user.
@@ -66,12 +80,15 @@ impl ServerDb {
             .collect()
     }
 
-    /// The user's latest workout as their session partners see it: its
-    /// events from its start, only those shared with partners, in order.
-    /// Empty if they have none within the last `WORKOUT_REACH` events.
-    pub async fn latest_workout_events(&self, user_id: &str) -> DbResult<Vec<Event>> {
+    /// A workout of the user's as their session partners see it: its events
+    /// from its start, only those shared with partners, in order. Empty if
+    /// it did not start within the last `WORKOUT_REACH` events (heart rate
+    /// aside).
+    pub async fn workout_events(&self, user_id: &str, workout_id: &str) -> DbResult<Vec<Event>> {
         let rows: Vec<String> = sqlx::query_scalar(
-            "SELECT event FROM account_events WHERE user_id = ? ORDER BY seq DESC LIMIT ?",
+            "SELECT event FROM account_events
+             WHERE user_id = ? AND event -> '$.HeartRateRecorded' IS NULL
+             ORDER BY seq DESC LIMIT ?",
         )
         .bind(user_id)
         .bind(WORKOUT_REACH)
@@ -80,13 +97,13 @@ impl ServerDb {
         let mut workout = Vec::new();
         for json in rows {
             let event: Event = serde_json::from_str(&json)?;
-            let started = matches!(event.fact, Fact::WorkoutStarted(_));
-            if shared_with_partners(&event.fact) {
-                workout.push(event);
+            if !shared_with_partners(&event.fact) {
+                continue;
             }
+            let started = matches!(event.fact, Fact::WorkoutStarted(_)) && event.id == workout_id;
+            workout.push(event);
             if started {
-                let id = workout.last().map(|e| e.id.clone()).unwrap_or_default();
-                workout.retain(|e| e.id == id || e.fact.workout_id() == Some(id.as_str()));
+                workout.retain(|e| e.workout_id() == Some(workout_id));
                 workout.reverse();
                 return Ok(workout);
             }
@@ -98,18 +115,21 @@ impl ServerDb {
     /// One the server already holds (by id: a device resends until it hears
     /// back) is skipped. All in one transaction on the one write connection,
     /// so pushes are placed one at a time, each after the last; one racing
-    /// the account's deletion fails on the foreign key.
+    /// the account's deletion fails on the foreign key. What they say of the
+    /// user's session workout is followed once they're stored.
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let mut tx = self.write_pool.begin().await?;
         let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
-        let held: Vec<String> = sqlx::query_scalar(
+        let mut placed: HashSet<String> = sqlx::query_scalar(
             "SELECT id FROM account_events
              WHERE user_id = ? AND id IN (SELECT value FROM json_each(?))",
         )
         .bind(user_id)
         .bind(serde_json::to_string(&ids)?)
         .fetch_all(&mut *tx)
-        .await?;
+        .await?
+        .into_iter()
+        .collect();
         let mut head: i64 = sqlx::query_scalar(
             "SELECT COALESCE(MAX(seq), 0) FROM account_events WHERE user_id = ?",
         )
@@ -118,7 +138,9 @@ impl ServerDb {
         .await?;
         let mut pushed = Pushed::default();
         for mut event in events {
-            if held.contains(&event.id) || pushed.stored.iter().any(|e| e.id == event.id) {
+            // Held already, or earlier in this push: skipped. A set, so the
+            // largest push is not checked against itself event by event.
+            if !placed.insert(event.id.clone()) {
                 continue;
             }
             head += 1;
@@ -130,8 +152,6 @@ impl ServerDb {
                 .bind(serde_json::to_string(&event)?)
                 .execute(&mut *tx)
                 .await?;
-            pushed.ended_workout |= matches!(event.fact, Fact::WorkoutEnded(_));
-            pushed.discarded_workout |= matches!(event.fact, Fact::WorkoutDiscarded(_));
             pushed.stored.push(event);
         }
         if pushed.stored.is_empty() {
@@ -142,6 +162,7 @@ impl ServerDb {
             Topic::User(user_id.to_string()),
             Change::Account(pushed.stored.as_slice().into()),
         );
+        self.follow_session(user_id, &pushed.stored).await?;
         Ok(pushed)
     }
 }

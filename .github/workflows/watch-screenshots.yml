@@ -17,6 +17,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Keep equal to FLUTTER_VERSION in .github/workflows/tests.yml.
+  FLUTTER_VERSION: "3.44.8"
+
 jobs:
   capture:
     runs-on: macos-26
@@ -30,6 +34,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Install build tools

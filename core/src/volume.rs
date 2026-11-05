@@ -55,13 +55,26 @@ pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume
             let Ok(ex) = Exercise::try_from(proposed.exercise) else {
                 continue;
             };
-            for (idx, muscle) in muscles(ex).iter().enumerate() {
-                let credit = if idx == 0 { 1.0 } else { SECONDARY_WEIGHT };
-                *sets.entry(*muscle).or_insert(0.0) += credit;
+            for (muscle, credit) in credit(ex) {
+                *sets.entry(muscle).or_insert(0.0) += credit;
             }
         }
     }
 
+    volume_rows(&sets)
+}
+
+/// What one working set of `ex` counts for each muscle it trains: 1.0 for
+/// the primary, 0.5 for each secondary.
+pub fn credit(ex: Exercise) -> impl Iterator<Item = (MuscleGroup, f32)> {
+    muscles(ex).iter().enumerate().map(|(idx, muscle)| {
+        let credit = if idx == 0 { 1.0 } else { SECONDARY_WEIGHT };
+        (*muscle, credit)
+    })
+}
+
+/// Every muscle's sets, against the volume band.
+pub fn volume_rows(sets: &HashMap<MuscleGroup, f32>) -> Vec<MuscleVolume> {
     ALL_MUSCLES
         .iter()
         .map(|muscle| MuscleVolume {

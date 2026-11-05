@@ -60,7 +60,7 @@ graph TD
 | `server/workout.rs` | `WorkoutService`: two reads for the web (`ListWorkoutSummaries`, `GetExerciseProgress`), answered by the core's `View` |
 | `server/settings.rs` | `SettingsService.GetSettings`, the same way |
 | `server/multiplayer.rs` | Sessions, invites, join requests, training partners |
-| `server/support.rs` | `authed_user_id`, `read_api`, participant status from the fold, the app-version gate |
+| `server/support.rs` | `authed_user_id` / `authed_admin_id`, `read_api`, error mapping, the app-version gate |
 | `server/user.rs` | `GetUser`, `UpdateMyProfile` |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/analytics.rs` | Page views, admin stats |
@@ -183,7 +183,7 @@ graph LR
     end
     subgraph "MultiplayerService"
         m1["JoinViaInvite / LeaveCurrentSession"]
-        m2["GetCurrentSession / GetSessionRosters"]
+        m2["GetSessionRosters"]
         m3["GetMyInviteToken"]
         m4["RequestJoinPartner / GetJoinRequests<br/>RespondJoinRequest"]
         m5["GetTrainingPartners"]
@@ -202,14 +202,20 @@ graph LR
 There are no per-write workout RPCs: every write to an account is an event
 that arrives over `Sync`, and a device catches up over the same stream.
 
-Every RPC except the auth handshake and `ReportAuthFailure` begins with
+Every RPC except the auth handshake, `ReportAuthFailure` and `Logout` (which
+only deletes the token it is sent) begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
 `logins` (by the token's SHA-256). There is no middleware doing this — it is called explicitly in
 each handler, so **a new handler that forgets the call is unauthenticated**.
-`Sync` authenticates on the stream's headers before reading anything.
+`Sync` authenticates on the stream's headers before reading anything. An
+open stream ends once its login goes: signing out, removing a passkey (which
+signs out the other logins) and deleting the account tell the user's streams
+at once (`Change::SignedOut`), and a stream about to send asks again once a
+minute has passed since it last found its login good, which catches expiry
+without a query per change.
 
-`SessionStatus` carries only the participants (`current_session` in
-`src/server/multiplayer.rs`). "Who's up next" is derived on the client from
+`Session` (`current_session` in `src/server/multiplayer.rs`) carries who
+else is in the caller's session. "Who's up next" is derived on the client from
 them.
 
 ## Error handling
@@ -224,26 +230,36 @@ DB errors to `Status::internal`.
 
 `tracing` with JSON output, flattened events, filtered by `RUST_LOG`
 (default `warn`). Each handler emits one `info!` on entry with the RPC name and
-user id; a Sync stream logs its open and close. An event the server's fold
-could not apply is logged at `warn` with its seq. A panic hook logs location
+user id; a Sync stream logs its open and close. A panic hook logs location
 and message before unwinding.
 
 ## Tests
 
-- `src/server/sync_tests.rs` — over a real server on a local port: events
-  pushed and folded, a resent batch skipped and a gap waited out, divergence
-  and a start without decisions refused, a push after deletion storing
-  nothing, the pull being the whole log, and the Sync stream carrying one
-  partner's progress to the other.
+- `src/server/sync_tests.rs` — pushed events folding into the same
+  account, a resent batch placed once, two devices' events placed in the
+  order they arrive, the largest push placed in seconds, a push after
+  deletion storing nothing, events read back as they were pushed; and over a real server on a local port, the Sync
+  stream: a partner's progress as it happens, a late partner getting the
+  workout so far (and only the workout), discarding the workout leaving the
+  session, a heartbeat answered, a deleted account unable to push, a
+  signed-out stream sent nothing more (an expired one too, once its
+  once-a-minute recheck is due), a deleted partner out of the
+  session, a new profile to partners without the body weight, a device
+  catching up and hearing the others, and a stranger turned away.
 - `src/db/migrate.rs` — a fresh database starts at the latest version, and
   one from before versions is converted.
 - `src/demo_seed.rs` — both demo users seed, and the walk over their
   history rises.
 - `src/server/multiplayer_tests.rs` — session roster and training-together
   history through the real handlers.
-- `src/db/auth.rs` — logins are stored hashed; every table with a
-  `user_id` cascades from `users`, and deleting an account leaves nothing of
-  it.
+- `src/server/auth.rs` — the passkey ceremonies with a software passkey
+  (each challenge spent once, add-passkey, the last passkey kept), TestLogin
+  gated on its feature, the per-client cap on ceremonies, and auth-attempt
+  tracking.
+- `src/server/analytics.rs` — page views and the admin stats.
+- `src/db/auth.rs` — logins are stored hashed; a sign-up is the account and
+  its passkey or nothing; every table with a `user_id` cascades from
+  `users`, and deleting an account leaves nothing of it.
 
 The domain's own tests are in `core/`; see [testing.md](testing.md). Run
 everything with `cargo test --workspace --all-targets`.

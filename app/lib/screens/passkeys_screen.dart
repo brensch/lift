@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/common/flat.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../gen/copy.dart';
 import '../services/auth_service.dart';
 import '../gen/workout/v1/auth.pb.dart';
 import '../logic/utils.dart';
@@ -27,7 +28,10 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     _loadPasskeys();
   }
 
+  /// Read the list. A refresh keeps the list on screen while it reads;
+  /// only the first load shows a spinner in its place.
   Future<void> _loadPasskeys() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -37,7 +41,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
       final passkeys = await authService.listPasskeys();
       if (mounted) setState(() => _passkeys = passkeys);
     } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to load passkeys');
+      if (mounted) setState(() => _error = copy.passkeys.loadFailed);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -66,7 +70,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
       await authService.deletePasskey(credentialId);
       await _loadPasskeys();
     } catch (e) {
-      if (mounted) setState(() => _error = 'Failed to delete passkey');
+      if (mounted) setState(() => _error = copy.passkeys.deleteFailed);
     } finally {
       if (mounted) setState(() => _deletingId = null);
     }
@@ -77,7 +81,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Passkey'),
+        title: Text(copy.passkeys.deleteTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,7 +93,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                 borderRadius: context.tokens.brSm,
               ),
               child: Text(
-                'Make sure you have one of the remaining passkeys before deleting anything. If you don\'t have a valid passkey you cannot recover your account.',
+                copy.passkeys.deleteWarning,
                 style: TextStyle(
                   color: colorScheme.error,
                   fontSize: context.tokens.size.body,
@@ -99,7 +103,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Are you sure? This cannot be undone.',
+              copy.passkeys.deleteBody,
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: context.tokens.size.body,
@@ -110,12 +114,12 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(copy.passkeys.deleteCancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-            child: const Text('Delete'),
+            child: Text(copy.passkeys.deleteConfirm),
           ),
         ],
       ),
@@ -133,12 +137,13 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
   }
 
   String _formatTransports(List<String> transports) {
-    const labels = {
-      'internal': 'This device',
-      'usb': 'USB',
-      'nfc': 'NFC',
-      'ble': 'Bluetooth',
-      'hybrid': 'Phone/Tablet',
+    final t = copy.passkeys;
+    final labels = {
+      'internal': t.transportInternal,
+      'usb': t.transportUsb,
+      'nfc': t.transportNfc,
+      'ble': t.transportBle,
+      'hybrid': t.transportHybrid,
     };
     return transports.map((t) => labels[t] ?? t).join(', ');
   }
@@ -152,12 +157,18 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     final canDelete = _passkeys!.length > 1 && _deletingId == null;
     final details = [
       if (pk.transports.isNotEmpty) _formatTransports(pk.transports),
-      if (pk.createdAt > 0) 'Added ${_formatDate(pk.createdAt.toInt())}',
+      if (pk.createdAt > 0)
+        copy.passkeys.added.replaceAll(
+          '{date}',
+          _formatDate(pk.createdAt.toInt()),
+        ),
       if (pk.hasCreatedAtIp()) pk.createdAtIp,
     ].join(' · ');
     return FlatRow(
       icon: AppIcons.key,
-      label: pk.name.isNotEmpty ? pk.name : 'Passkey ${i + 1}',
+      label: pk.name.isNotEmpty
+          ? pk.name
+          : copy.passkeys.unnamed.replaceAll('{n}', '${i + 1}'),
       subtitle: details.isEmpty ? null : details,
       trailing: IconButton(
         onPressed: canDelete ? () => _deletePasskey(pk.credentialId) : null,
@@ -184,8 +195,8 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: PageTitle('Passkeys')),
-      body: _loading
+      appBar: AppBar(title: PageTitle(copy.passkeys.title)),
+      body: _loading && _passkeys == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadPasskeys,
@@ -212,7 +223,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                         ),
                       ),
                     ),
-                  const FlatHeading('Your passkeys'),
+                  FlatHeading(copy.passkeys.heading),
                   if (_passkeys == null || _passkeys!.isEmpty)
                     Container(
                       padding: const EdgeInsets.all(32),
@@ -223,7 +234,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          'No passkeys found',
+                          copy.passkeys.none,
                           style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
                       ),
@@ -233,7 +244,7 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                       _passkeyRow(context, i),
                   FlatRow(
                     icon: AppIcons.add,
-                    label: 'Add passkey',
+                    label: copy.passkeys.add,
                     onTap: _openAddPasskey,
                   ),
                 ],

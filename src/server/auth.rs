@@ -256,7 +256,7 @@ impl AuthService for ServerAuthService {
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
         let (token, user_id, username) = match self
             .auth_state
-            .finish_authentication(&req.challenge_id, &req.credential_json, &credential)
+            .finish_authentication(&req.challenge_id, &credential)
             .await
         {
             Ok(session) => session,
@@ -316,11 +316,18 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<DeletePasskeyResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         info!(rpc = "DeletePasskey", %user_id, "request");
+        let token = session_token(&request).unwrap_or_default().to_string();
         let req = request.into_inner();
-        self.db
-            .delete_credential(&user_id, &req.credential_id)
+        let deleted = self
+            .db
+            .delete_credential(&user_id, &req.credential_id, &token)
             .await
-            .map_err(|e| Status::invalid_argument(e.to_string()))?;
+            .map_err(internal_error)?;
+        if !deleted {
+            return Err(Status::failed_precondition(
+                "Cannot delete the last passkey",
+            ));
+        }
         Ok(Response::new(DeletePasskeyResponse {}))
     }
     async fn list_passkeys(
@@ -376,9 +383,6 @@ impl AuthService for ServerAuthService {
             .delete_user_account_and_data(&user_id)
             .await
             .map_err(internal_error)?;
-        if let Some(token) = session_token(&request) {
-            let _ = self.db.delete_auth_session(token).await;
-        }
         Ok(Response::new(DeleteAccountResponse {
             deleted_user_id: user_id,
         }))
@@ -636,5 +640,263 @@ mod auth_attempt_tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].0, challenge_id);
         assert_eq!(rows[0].1, "rejected");
+    }
+}
+
+/// The passkey ceremonies end to end, with a software passkey: each
+/// challenge is spent once, a sign-in signs in to its own account, and the
+/// last passkey can't be deleted.
+#[cfg(test)]
+mod ceremony_tests {
+    use super::*;
+    use sqlx::Row;
+    use url::Url;
+    use webauthn_authenticator_rs::softpasskey::SoftPasskey;
+    use webauthn_authenticator_rs::WebauthnAuthenticator;
+    use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
+
+    type Device = WebauthnAuthenticator<SoftPasskey>;
+
+    fn device() -> Device {
+        // Claims user verification, which passkeys require.
+        WebauthnAuthenticator::new(SoftPasskey::new(true))
+    }
+
+    async fn service() -> ServerAuthService {
+        let dir = std::env::temp_dir().join(format!("lift-ceremony-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        ServerAuthService {
+            auth_state: Arc::new(AuthState::new(db.clone())),
+            db,
+        }
+    }
+
+    /// The origin AuthState allows when nothing configures it.
+    fn origin() -> Url {
+        Url::parse("http://localhost:5173").unwrap()
+    }
+
+    fn authed<T>(token: &str, msg: T) -> Request<T> {
+        let mut req = Request::new(msg);
+        req.metadata_mut()
+            .insert("x-session-token", token.parse().unwrap());
+        req
+    }
+
+    /// The device's new passkey, for these registration options.
+    fn create(device: &mut Device, options_json: &str) -> String {
+        let options: CreationChallengeResponse = serde_json::from_str(options_json).unwrap();
+        let credential = device.do_registration(origin(), options).unwrap();
+        serde_json::to_string(&credential).unwrap()
+    }
+
+    /// The device's signature, for these sign-in options.
+    fn sign(device: &mut Device, options_json: &str) -> String {
+        let options: RequestChallengeResponse = serde_json::from_str(options_json).unwrap();
+        let credential = device.do_authentication(origin(), options).unwrap();
+        serde_json::to_string(&credential).unwrap()
+    }
+
+    /// A new account with the device's passkey, named "Phone": the finish
+    /// sent, and its answer.
+    async fn sign_up(
+        svc: &ServerAuthService,
+        device: &mut Device,
+        username: &str,
+    ) -> (RegisterFinishRequest, AuthResponse) {
+        let start = svc
+            .register_start(Request::new(RegisterStartRequest {
+                username: username.to_string(),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let finish = RegisterFinishRequest {
+            user_id: start.user_id,
+            credential_json: create(device, &start.options_json),
+            name: Some("Phone".to_string()),
+        };
+        let done = svc
+            .register_finish(Request::new(finish.clone()))
+            .await
+            .unwrap()
+            .into_inner();
+        (finish, done)
+    }
+
+    /// A sign-in by name with the device: the finish sent, and its answer.
+    async fn sign_in(
+        svc: &ServerAuthService,
+        device: &mut Device,
+        username: &str,
+    ) -> (LoginFinishRequest, Result<AuthResponse, Status>) {
+        let start = svc
+            .login_start(Request::new(LoginStartRequest {
+                username: Some(username.to_string()),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let finish = LoginFinishRequest {
+            challenge_id: start.challenge_id,
+            credential_json: sign(device, &start.options_json),
+        };
+        let done = svc
+            .login_finish(Request::new(finish.clone()))
+            .await
+            .map(Response::into_inner);
+        (finish, done)
+    }
+
+    async fn passkeys(svc: &ServerAuthService, token: &str) -> Vec<PasskeyInfo> {
+        svc.list_passkeys(authed(token, ListPasskeysRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .passkeys
+    }
+
+    async fn outcome(db: &ServerDb, attempt_id: &str) -> String {
+        sqlx::query("SELECT outcome FROM auth_attempts WHERE attempt_id = ?")
+            .bind(attempt_id)
+            .fetch_one(&db.read_pool)
+            .await
+            .unwrap()
+            .get("outcome")
+    }
+
+    #[tokio::test]
+    async fn a_sign_up_is_finished_once() {
+        let svc = service().await;
+        let mut phone = device();
+        let (finish, done) = sign_up(&svc, &mut phone, "ann").await;
+        assert_eq!(done.username, "ann");
+        assert_eq!(
+            svc.db
+                .validate_auth_session(&done.session_token)
+                .await
+                .unwrap(),
+            Some(done.user_id.clone())
+        );
+
+        // The same finish again: refused, and the verdict stands.
+        let replayed = svc.register_finish(Request::new(finish)).await;
+        assert_eq!(replayed.unwrap_err().code(), tonic::Code::InvalidArgument);
+        assert_eq!(outcome(&svc.db, &done.user_id).await, "ok");
+
+        let held = passkeys(&svc, &done.session_token).await;
+        assert_eq!(held.len(), 1);
+        assert_eq!(held[0].name.as_deref(), Some("Phone"));
+        let taken = svc
+            .register_start(Request::new(RegisterStartRequest {
+                username: "ann".to_string(),
+            }))
+            .await;
+        assert_eq!(taken.unwrap_err().code(), tonic::Code::AlreadyExists);
+    }
+
+    #[tokio::test]
+    async fn a_sign_in_is_to_its_own_account_once_and_keeps_the_passkey_name() {
+        let svc = service().await;
+        let mut phone = device();
+        let (_, ann) = sign_up(&svc, &mut phone, "ann").await;
+        sign_up(&svc, &mut device(), "ben").await;
+        let stored = || async { svc.db.get_credentials_for_user(&ann.user_id).await.unwrap() };
+        let before = stored().await;
+
+        let (finish, signed_in) = sign_in(&svc, &mut phone, "ann").await;
+        let signed_in = signed_in.unwrap();
+        assert_eq!(signed_in.user_id, ann.user_id);
+        assert_eq!(signed_in.username, "ann");
+        assert_eq!(
+            svc.db
+                .validate_auth_session(&signed_in.session_token)
+                .await
+                .unwrap(),
+            Some(ann.user_id.clone())
+        );
+        assert_ne!(
+            stored().await,
+            before,
+            "the sign-in counter is written back"
+        );
+        let held = passkeys(&svc, &signed_in.session_token).await;
+        assert_eq!(held[0].name.as_deref(), Some("Phone"), "and the name kept");
+
+        // The same finish again: refused, and the verdict stands.
+        let replayed = svc.login_finish(Request::new(finish.clone())).await;
+        assert_eq!(replayed.unwrap_err().code(), tonic::Code::Unauthenticated);
+        assert_eq!(outcome(&svc.db, &finish.challenge_id).await, "ok");
+
+        // Ann's passkey doesn't sign in to Ben.
+        let start = svc
+            .login_start(Request::new(LoginStartRequest {
+                username: Some("ben".to_string()),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let options: RequestChallengeResponse = serde_json::from_str(&start.options_json).unwrap();
+        assert!(phone.do_authentication(origin(), options).is_err());
+    }
+
+    /// Someone who knows a user's id can't spend their add-passkey
+    /// challenge with an unauthenticated RegisterFinish; and the last
+    /// passkey can't be deleted.
+    #[tokio::test]
+    async fn a_passkey_is_added_and_the_last_one_is_kept() {
+        let svc = service().await;
+        let mut phone = device();
+        let (_, ann) = sign_up(&svc, &mut phone, "ann").await;
+        let token = ann.session_token.as_str();
+
+        let start = svc
+            .add_passkey_start(authed(token, AddPasskeyStartRequest {}))
+            .await
+            .unwrap()
+            .into_inner();
+        let stranger = svc
+            .register_finish(Request::new(RegisterFinishRequest {
+                user_id: ann.user_id.clone(),
+                credential_json: create(&mut device(), &start.options_json),
+                name: None,
+            }))
+            .await;
+        assert!(stranger.is_err());
+        let mut laptop = device();
+        svc.add_passkey_finish(authed(
+            token,
+            AddPasskeyFinishRequest {
+                credential_json: create(&mut laptop, &start.options_json),
+                name: Some("Laptop".to_string()),
+            },
+        ))
+        .await
+        .unwrap();
+        let held = passkeys(&svc, token).await;
+        assert_eq!(held.len(), 2);
+        // The added one signs in.
+        let laptop_login = sign_in(&svc, &mut laptop, "ann")
+            .await
+            .1
+            .unwrap()
+            .session_token;
+        let signed_in = |token: String| {
+            let db = svc.db.clone();
+            async move { db.validate_auth_session(&token).await.unwrap().is_some() }
+        };
+        assert!(signed_in(laptop_login.clone()).await);
+
+        let delete = |credential_id: String| {
+            svc.delete_passkey(authed(token, DeletePasskeyRequest { credential_id }))
+        };
+        delete(held[0].credential_id.clone()).await.unwrap();
+        // Deleting a passkey signs out every other login (a lost phone's),
+        // and keeps the one that deleted it.
+        assert!(!signed_in(laptop_login).await, "the other login is gone");
+        assert!(signed_in(token.to_string()).await, "the caller's stays");
+        let last = delete(held[1].credential_id.clone()).await;
+        assert_eq!(last.unwrap_err().code(), tonic::Code::FailedPrecondition);
+        assert_eq!(passkeys(&svc, token).await.len(), 1, "still there");
     }
 }

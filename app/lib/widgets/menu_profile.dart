@@ -41,17 +41,22 @@ class _Totals {
 }
 
 class _MenuProfileState extends State<MenuProfile> {
-  /// The last totals loaded, so reopening the menu shows them at once.
-  static _Totals? _cached;
-  _Totals? _totals = _cached;
+  /// The last totals loaded and whose they are, so reopening the menu
+  /// shows them at once, and never someone else's after a logout.
+  static (String?, _Totals)? _cached;
+  _Totals? _totals;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    final userId = context.read<AuthProvider>().userId;
+    if (_cached case (final id, final totals) when id == userId) {
+      _totals = totals;
+    }
+    _load(userId);
   }
 
-  Future<void> _load() async {
+  Future<void> _load(String? userId) async {
     try {
       final all = await context
           .read<WorkoutServiceWrapper>()
@@ -64,7 +69,7 @@ class _MenuProfileState extends State<MenuProfile> {
         yapping += w.summary.yappingSeconds.toInt();
       }
       final totals = _Totals(all.length, seconds, lifting, resting, yapping);
-      _cached = totals;
+      _cached = (userId, totals);
       if (mounted) setState(() => _totals = totals);
     } catch (e) {
       debugPrint('Menu totals failed: $e');

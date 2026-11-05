@@ -51,6 +51,8 @@ CREATE TABLE IF NOT EXISTS completed_sets (
     ended_at INTEGER NOT NULL DEFAULT 0,
     rest_until INTEGER NOT NULL DEFAULT 0,
     started_at INTEGER NOT NULL DEFAULT 0,
+    reps_left INTEGER NOT NULL DEFAULT 0,
+    jump_lb REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_completed_sets_workout ON completed_sets(workout_id);
@@ -97,9 +99,23 @@ CREATE TABLE IF NOT EXISTS workout_templates (
     library_id TEXT NOT NULL DEFAULT '',
     coupled INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    in_rotation INTEGER NOT NULL DEFAULT 0,
+    origin_library_id TEXT NOT NULL DEFAULT ''
 );
 "#;
+
+/// Every table the two schemas create. An export drops them before writing
+/// them afresh, so a file that already has them (an account opened from an
+/// export, perhaps from an older build) is exported again cleanly.
+pub const READABLE_TABLES: &[&str] = &[
+    "workouts",
+    "proposed_sets",
+    "completed_sets",
+    "workout_heart_rate_samples",
+    "exercise_decisions",
+    "workout_templates",
+];
 
 /// A value to bind.
 #[derive(Clone, Debug, PartialEq)]
@@ -201,8 +217,8 @@ fn workout_rows(user_id: &str, record: &WorkoutRecord) -> Vec<Statement> {
     for set in &record.completed_sets {
         out.push(statement(
             "INSERT INTO completed_sets (id, user_id, workout_id, proposed_set_id,
-             actual_reps, actual_weight, ended_at, rest_until, started_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             actual_reps, actual_weight, ended_at, rest_until, started_at, reps_left, jump_lb)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 set.id.as_str().into(),
                 user_id.into(),
@@ -213,6 +229,8 @@ fn workout_rows(user_id: &str, record: &WorkoutRecord) -> Vec<Statement> {
                 set.ended_at.into(),
                 set.rest_until.into(),
                 set.started_at.into(),
+                set.reps_left.into(),
+                set.jump_lb.into(),
             ],
         ));
     }
@@ -265,8 +283,8 @@ pub fn account_export_statements(user_id: &str, account: &Account) -> Vec<Statem
             .join(",");
         out.push(statement(
             "INSERT INTO workout_templates (id, user_id, name, template_order, exercises,
-             library_id, coupled, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             library_id, coupled, created_at, updated_at, in_rotation, origin_library_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 t.id.as_str().into(),
                 user_id.into(),
@@ -277,6 +295,8 @@ pub fn account_export_statements(user_id: &str, account: &Account) -> Vec<Statem
                 t.coupled.into(),
                 t.created_at.into(),
                 t.updated_at.into(),
+                t.in_rotation.into(),
+                t.origin_library_id.as_str().into(),
             ],
         ));
     }

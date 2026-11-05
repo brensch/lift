@@ -47,6 +47,10 @@ private const val SCHLIFT_WEAR_TAG = "SchliftWear"
 class MainActivity : ComponentActivity() {
     private val scope = kotlinx.coroutines.CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var uiHeartbeatJob: kotlinx.coroutines.Job? = null
+
+    // Cancelled with the activity; the rest of [scope] outlives it so a tap
+    // sent just before a swipe-dismiss still goes.
+    private var snapshotCollector: kotlinx.coroutines.Job? = null
     private var heartRatePermissionRequestInFlight = false
     private var workoutPermissionRequestInFlight = false
     private var keepScreenOnForWorkout = false
@@ -110,15 +114,16 @@ class MainActivity : ComponentActivity() {
         // When a snapshot with an active workout arrives while the foreground
         // service isn't running yet, start it. Skips once running — after that,
         // PhoneMessageListenerService handles ongoing updates.
-        scope.launch {
-            WearDataRepository.snapshot.collect { snapshot ->
-                if (WorkoutForegroundService.isRunning()) return@collect
-                if (snapshot == null) return@collect
-                if (snapshot.workoutId.isBlank()) return@collect
-                if (snapshot.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) return@collect
-                ensureCompanionSessionIfNeeded()
+        snapshotCollector =
+            scope.launch {
+                WearDataRepository.snapshot.collect { snapshot ->
+                    if (WorkoutForegroundService.isRunning()) return@collect
+                    if (snapshot == null) return@collect
+                    if (snapshot.workoutId.isBlank()) return@collect
+                    if (snapshot.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) return@collect
+                    ensureCompanionSessionIfNeeded()
+                }
             }
-        }
 
         setContent {
             WearApp(
@@ -167,6 +172,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         logLifecycleEvent("onDestroy")
+        snapshotCollector?.cancel()
         setWorkoutKeepScreenOn(false)
         stopUiHeartbeat()
         super.onDestroy()

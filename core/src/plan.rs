@@ -43,7 +43,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::account::Account;
 use crate::exercise_catalog::{
-    class_rules, lift_class, load_style, muscles, primary_muscle, progression_increment_lb, rules,
+    class_rules, lift_class, load_style, primary_muscle, progression_increment_lb, rules,
     snap_down_weight_lb, snap_weight_lb, starting_weight_lb, LiftClass, LoadStyle,
 };
 use crate::exercise_progress::{session_outcomes, SessionOutcome, SetDone};
@@ -52,7 +52,7 @@ use crate::pb::{
     CompletedSet, Exercise, ExerciseDecision, ExercisePlan, PlanChangeCause, PlanReason,
     PlanReasonKind, ProposedSet, RepsLeft,
 };
-use crate::volume::{muscle_volume_7d, VOLUME_TARGET_LOW};
+use crate::volume::{credit, muscle_volume_7d, VOLUME_TARGET_LOW};
 use crate::weight_units::AppWeightUnit;
 
 pub const DEFAULT_BUDGET_MINUTES: i32 = 60;
@@ -253,7 +253,7 @@ pub fn walk(ex: Exercise, sessions: &[SessionOutcome], over: Option<&Override>) 
             pending = None;
         }
         if let Some(max) = walk.max {
-            let days = (session.started_at - walk.last_at) / DAY;
+            let days = session.started_at.saturating_sub(walk.last_at) / DAY;
             walk.max = Some(max * time_off_factor(days));
         }
         step(&mut walk, session, bodyweight);
@@ -293,7 +293,7 @@ fn most_shown(sets: &[SetDone], extra: i32, bodyweight: bool) -> Option<(f32, &s
             (
                 shown_max(
                     set.weight,
-                    set.reps + extra,
+                    set.reps.saturating_add(extra),
                     if set.hit { 1.0 } else { 0.0 },
                     i + 1,
                     bodyweight,
@@ -515,7 +515,7 @@ pub fn plan_lift(
         return d;
     };
     d.reasons.extend(walk.reason.clone());
-    let days = (now - walk.last_at) / DAY;
+    let days = now.saturating_sub(walk.last_at) / DAY;
     let factor = time_off_factor(days);
     let mut max = max;
     let mut last = walk.last_weight;
@@ -739,8 +739,8 @@ pub fn allocate(
             let muscle = primary_muscle(lifts[i].exercise);
             let mut done = weekly.get(&(muscle as i32)).copied().unwrap_or(0.0);
             for (lift, n) in lifts.iter().zip(&sets) {
-                if let Some(idx) = muscles(lift.exercise).iter().position(|m| *m == muscle) {
-                    done += *n as f32 * if idx == 0 { 1.0 } else { 0.5 };
+                if let Some((_, c)) = credit(lift.exercise).find(|(m, _)| *m == muscle) {
+                    done += *n as f32 * c;
                 }
             }
             VOLUME_TARGET_LOW as f32 - done

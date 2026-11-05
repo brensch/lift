@@ -20,8 +20,8 @@ export default function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/demo" element={<DashboardPage demo />} />
+            <Route path="/dashboard" element={<DashboardPage key="live" />} />
+            <Route path="/demo" element={<DashboardPage key="demo" demo />} />
             <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Routes>

@@ -1,10 +1,8 @@
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use base64::Engine;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::Mutex;
-use tracing::error;
+use tracing::{error, warn};
 use url::Url;
 use webauthn_rs::prelude::*;
 use webauthn_rs::WebauthnBuilder;
@@ -47,7 +45,12 @@ struct PendingRegistration {
 pub struct AuthState {
     pub webauthn: Arc<Webauthn>,
     pub db: ServerDb,
+    /// Sign-ups in flight, by the user id they will create.
     reg_challenges: Arc<Mutex<HashMap<String, PendingRegistration>>>,
+    /// Passkeys being added to a signed-in account, by its user id: apart
+    /// from sign-ups, so an unauthenticated RegisterFinish naming a user
+    /// can't spend their add-passkey challenge.
+    add_challenges: Arc<Mutex<HashMap<String, PendingRegistration>>>,
     auth_challenges: Arc<Mutex<HashMap<String, PendingAuthChallenge>>>,
 }
 
@@ -80,6 +83,7 @@ impl AuthState {
             webauthn: Arc::new(webauthn),
             db,
             reg_challenges: Arc::new(Mutex::new(HashMap::new())),
+            add_challenges: Arc::new(Mutex::new(HashMap::new())),
             auth_challenges: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -134,18 +138,18 @@ impl AuthState {
             .map_err(|e| format!("WebAuthn registration failed: {}", e))?;
         let cred_id = format!("{:?}", passkey.cred_id());
         self.refuse_registered(&cred_id).await?;
-
-        self.db
-            .create_user_with_id(user_id, &username)
-            .await
-            .map_err(|e| format!("Failed to create user: {}", e))?;
-
         let cred_json = stored_passkey_json(&passkey, name)?;
 
         self.db
-            .store_credential(&cred_id, user_id, &cred_json, created_at_ip.as_deref())
+            .create_user_with_passkey(
+                user_id,
+                &username,
+                &cred_id,
+                &cred_json,
+                created_at_ip.as_deref(),
+            )
             .await
-            .map_err(|e| format!("DB error: {}", e))?;
+            .map_err(|e| format!("Failed to create user: {}", e))?;
 
         Ok(username)
     }
@@ -186,7 +190,7 @@ impl AuthState {
             .start_passkey_registration(user_unique_id, username, username, exclude_cred_ids)
             .map_err(|e| format!("WebAuthn error: {}", e))?;
 
-        let mut challenges = self.reg_challenges.lock().await;
+        let mut challenges = self.add_challenges.lock().await;
         admit_registration(&mut challenges, client)?;
         challenges.insert(
             user_id.to_string(),
@@ -208,7 +212,7 @@ impl AuthState {
         created_at_ip: Option<String>,
         name: Option<String>,
     ) -> Result<(), String> {
-        let mut challenges = self.reg_challenges.lock().await;
+        let mut challenges = self.add_challenges.lock().await;
         let pending = challenges
             .remove(user_id)
             .ok_or_else(|| "No pending add-passkey challenge".to_string())?;
@@ -312,7 +316,6 @@ impl AuthState {
     pub async fn finish_authentication(
         &self,
         challenge_id: &str,
-        credential_json: &str,
         cred: &PublicKeyCredential,
     ) -> Result<(String, String, String), String> {
         let mut challenges = self.auth_challenges.lock().await;
@@ -321,8 +324,8 @@ impl AuthState {
             .ok_or_else(|| "No pending authentication challenge".to_string())?;
         drop(challenges);
 
-        let client_challenge = extract_client_response_challenge(credential_json);
-        let client_origin = extract_client_response_origin(credential_json);
+        let (client_challenge, client_origin) = client_data(cred);
+        let client_origin = client_origin.as_deref().unwrap_or("<unparseable>");
         let allowed_origins = self
             .webauthn
             .get_allowed_origins()
@@ -330,25 +333,28 @@ impl AuthState {
             .map(|origin| origin.as_str().to_string())
             .collect::<Vec<_>>()
             .join(",");
-        if let Some(ref client_challenge) = client_challenge {
-            if client_challenge != &pending.issued_challenge {
-                error!(
-                    "WebAuthn challenge mismatch before verification: challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={}",
-                    challenge_id,
-                    pending.issued_challenge,
-                    client_challenge,
-                    client_origin.as_deref().unwrap_or("<unparseable>"),
-                    allowed_origins
-                );
-            }
-        } else {
-            error!(
+        match &client_challenge {
+            Some(client_challenge) if client_challenge != &pending.issued_challenge => error!(
+                "WebAuthn challenge mismatch before verification: challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={}",
+                challenge_id, pending.issued_challenge, client_challenge, client_origin, allowed_origins
+            ),
+            Some(_) => {}
+            None => error!(
                 "WebAuthn credential missing parseable client challenge: challenge_id={}, client_origin={}, allowed_origins={}",
-                challenge_id,
-                client_origin.as_deref().unwrap_or("<unparseable>"),
-                allowed_origins
-            );
+                challenge_id, client_origin, allowed_origins
+            ),
         }
+        let failed = |e: WebauthnError| {
+            format!(
+                "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={})",
+                e,
+                challenge_id,
+                pending.issued_challenge,
+                client_challenge.as_deref().unwrap_or("<unparseable>"),
+                client_origin,
+                allowed_origins
+            )
+        };
 
         let (auth_result, user_id) = match pending.state {
             AuthChallengeState::Discoverable(auth_state) => {
@@ -380,36 +386,14 @@ impl AuthState {
                 let result = self
                     .webauthn
                     .finish_discoverable_authentication(cred, auth_state, &discoverable_keys)
-                    .map_err(|e| {
-                        format!(
-                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={})",
-                            e,
-                            challenge_id,
-                            pending.issued_challenge,
-                            client_challenge.as_deref().unwrap_or("<unparseable>"),
-                            client_origin.as_deref().unwrap_or("<unparseable>"),
-                            allowed_origins
-                        )
-                    })?;
-
+                    .map_err(failed)?;
                 (result, user_id)
             }
             AuthChallengeState::Passkey { state, user_id } => {
                 let result = self
                     .webauthn
                     .finish_passkey_authentication(cred, &state)
-                    .map_err(|e| {
-                        format!(
-                            "WebAuthn authentication failed: {} (challenge_id={}, issued_challenge={}, client_challenge={}, client_origin={}, allowed_origins={})",
-                            e,
-                            challenge_id,
-                            pending.issued_challenge,
-                            client_challenge.as_deref().unwrap_or("<unparseable>"),
-                            client_origin.as_deref().unwrap_or("<unparseable>"),
-                            allowed_origins
-                        )
-                    })?;
-
+                    .map_err(failed)?;
                 (result, user_id)
             }
         };
@@ -443,9 +427,14 @@ impl AuthState {
     }
 
     async fn update_credential_counter(&self, user_id: &str, auth_result: &AuthenticationResult) {
+        // The login stands either way; a counter left behind only blunts
+        // webauthn-rs's check for a cloned authenticator, so it is logged.
         let cred_jsons = match self.db.get_credentials_for_user(user_id).await {
             Ok(jsons) => jsons,
-            Err(_) => return,
+            Err(e) => {
+                warn!(%user_id, error = %e, "failed to read passkeys to update the sign-in counter");
+                return;
+            }
         };
 
         for json in &cred_jsons {
@@ -465,7 +454,9 @@ impl AuthState {
                 let Ok(new_json) = stored_passkey_json(&pk, name) else {
                     continue;
                 };
-                let _ = self.db.update_credential_json(&cred_id, &new_json).await;
+                if let Err(e) = self.db.update_credential_json(&cred_id, &new_json).await {
+                    warn!(%user_id, error = %e, "failed to store the sign-in counter");
+                }
             }
         }
     }
@@ -518,20 +509,16 @@ fn stored_passkey_json(passkey: &Passkey, name: Option<String>) -> Result<String
     serde_json::to_string(&value).map_err(|e| format!("Serialization error: {}", e))
 }
 
-fn extract_client_response_challenge(credential_json: &str) -> Option<String> {
-    let value: serde_json::Value = serde_json::from_str(credential_json).ok()?;
-    let encoded = value.get("response")?.get("clientDataJSON")?.as_str()?;
-    let decoded = URL_SAFE_NO_PAD.decode(encoded).ok()?;
-    let client_data: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
-    client_data.get("challenge")?.as_str().map(str::to_string)
-}
-
-fn extract_client_response_origin(credential_json: &str) -> Option<String> {
-    let value: serde_json::Value = serde_json::from_str(credential_json).ok()?;
-    let encoded = value.get("response")?.get("clientDataJSON")?.as_str()?;
-    let decoded = URL_SAFE_NO_PAD.decode(encoded).ok()?;
-    let client_data: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
-    client_data.get("origin")?.as_str().map(str::to_string)
+/// The challenge and origin the client signed over, as it sent them: for
+/// the logs when a sign-in fails.
+fn client_data(cred: &PublicKeyCredential) -> (Option<String>, Option<String>) {
+    let Ok(client_data) =
+        serde_json::from_slice::<serde_json::Value>(cred.response.client_data_json.as_ref())
+    else {
+        return (None, None);
+    };
+    let field = |key: &str| client_data.get(key)?.as_str().map(str::to_string);
+    (field("challenge"), field("origin"))
 }
 
 fn encode_challenge(challenge: &Base64UrlSafeData) -> String {

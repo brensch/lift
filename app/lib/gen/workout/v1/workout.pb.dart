@@ -2456,10 +2456,12 @@ class ExerciseProgress extends $pb.GeneratedMessage {
   factory ExerciseProgress({
     Exercise? exercise,
     $core.Iterable<ExerciseProgressPoint>? points,
+    $core.bool? bodyweight,
   }) {
     final result = create();
     if (exercise != null) result.exercise = exercise;
     if (points != null) result.points.addAll(points);
+    if (bodyweight != null) result.bodyweight = bodyweight;
     return result;
   }
 
@@ -2480,6 +2482,7 @@ class ExerciseProgress extends $pb.GeneratedMessage {
         enumValues: Exercise.values)
     ..pPM<ExerciseProgressPoint>(2, _omitFieldNames ? '' : 'points',
         subBuilder: ExerciseProgressPoint.create)
+    ..aOB(3, _omitFieldNames ? '' : 'bodyweight')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2512,6 +2515,17 @@ class ExerciseProgress extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(2)
   $pb.PbList<ExerciseProgressPoint> get points => $_getList(1);
+
+  /// A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
+  /// when sets carry added weight.
+  @$pb.TagNumber(3)
+  $core.bool get bodyweight => $_getBF(2);
+  @$pb.TagNumber(3)
+  set bodyweight($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBodyweight() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBodyweight() => $_clearField(3);
 }
 
 class GetExerciseProgressRequest extends $pb.GeneratedMessage {
