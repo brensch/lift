@@ -140,9 +140,13 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not save: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              copy.templateEditor.saveFailed.replaceAll('{error}', '$e'),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -174,7 +178,11 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     return Scaffold(
-      appBar: AppBar(title: PageTitle(_isNew ? 'New workout' : 'Edit workout')),
+      appBar: AppBar(
+        title: PageTitle(
+          _isNew ? copy.templateEditor.newTitle : copy.templateEditor.editTitle,
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -185,7 +193,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  hintText: 'Name, e.g. Push, Legs, Tuesday',
+                  hintText: copy.templateEditor.nameHint,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -223,8 +231,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                     ? Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         child: Text(
-                          'Add exercises. Tap one to set your own weight '
-                          'and reps. They follow the exercise everywhere.',
+                          copy.templateEditor.empty,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: cs.onSurface.withValues(alpha: 0.55),
@@ -263,7 +270,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                 onPressed: _addExercises,
                 icon: const Icon(AppIcons.add, size: 18),
                 label: Text(
-                  'ADD EXERCISES',
+                  copy.templateEditor.addExercises,
                   style: TextStyle(fontWeight: context.tokens.weight.heavy),
                 ),
               ),
@@ -282,7 +289,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          'SAVE',
+                          copy.templateEditor.save,
                           style: TextStyle(
                             fontWeight: context.tokens.weight.heavy,
                             fontSize: context.tokens.size.bodyLg,
@@ -426,17 +433,25 @@ class _OverrideSheetState extends State<_OverrideSheet> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not save: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              copy.templateEditor.saveFailed.replaceAll('{error}', '$e'),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
+  // A loaded lift needs a weight: blank or 0 would plan it at nothing.
+  bool get _canSave =>
+      _bodyweight || (parseDisplayWeight(_weightController.text) ?? 0) > 0;
+
   Future<void> _save() {
-    final display = double.tryParse(_weightController.text.trim()) ?? 0;
+    final display = parseDisplayWeight(_weightController.text) ?? 0;
     return _write(
       (wp) => wp.setOverride(
         exercise: _decision.exercise,
@@ -470,123 +485,128 @@ class _OverrideSheetState extends State<_OverrideSheet> {
         right: 20,
         top: 8,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(child: AppTheme.sheetHandle(context, inset: 20)),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.subtitle,
-                    fontWeight: context.tokens.weight.heavy,
-                    letterSpacing: -0.3,
+      // Its own Material: the switch row paints on it, not under the panel.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(child: AppTheme.sheetHandle(context, inset: 20)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: context.tokens.size.subtitle,
+                      fontWeight: context.tokens.weight.heavy,
+                      letterSpacing: -0.3,
+                    ),
                   ),
                 ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(AppIcons.close),
-              ),
-            ],
-          ),
-          // The next plan, and why.
-          Text(
-            planLine(_decision, widget.unit),
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              fontWeight: context.tokens.weight.bold,
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(AppIcons.close),
+                ),
+              ],
             ),
-          ),
-          for (final line in reasons)
+            // The next plan, and why.
             Text(
-              line,
-              style: TextStyle(
-                fontSize: context.tokens.size.small,
-                color: cs.onSurface.withValues(alpha: 0.55),
-              ),
-            ),
-          const SizedBox(height: 12),
-          Text(
-            o.body,
-            style: TextStyle(
-              fontSize: context.tokens.size.small,
-              color: cs.onSurface.withValues(alpha: 0.55),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (!_bodyweight) ...[
-            TextField(
-              controller: _weightController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: InputDecoration(
-                labelText: o.weight,
-                suffixText: weightUnitSuffix(widget.unit),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          _Stepper(
-            label: o.reps,
-            value: _reps,
-            min: 1,
-            max: 30,
-            onChanged: (v) => setState(() => _reps = v),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              _fixSets ? o.sets : o.setsAuto,
+              planLine(_decision, widget.unit),
               style: TextStyle(
                 fontSize: context.tokens.size.body,
                 fontWeight: context.tokens.weight.bold,
               ),
             ),
-            value: _fixSets,
-            onChanged: (v) => setState(() => _fixSets = v),
-          ),
-          if (_fixSets)
+            for (final line in reasons)
+              Text(
+                line,
+                style: TextStyle(
+                  fontSize: context.tokens.size.small,
+                  color: cs.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
+            const SizedBox(height: 12),
+            Text(
+              o.body,
+              style: TextStyle(
+                fontSize: context.tokens.size.small,
+                color: cs.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (!_bodyweight) ...[
+              TextField(
+                controller: _weightController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: o.weight,
+                  suffixText: weightUnitSuffix(widget.unit),
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+            ],
             _Stepper(
-              label: o.sets,
-              value: _sets,
+              label: o.reps,
+              value: _reps,
               min: 1,
-              max: 8,
-              onChanged: (v) => setState(() => _sets = v),
+              max: 30,
+              onChanged: (v) => setState(() => _reps = v),
             ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 54,
-            child: FilledButton(
-              onPressed: _isSaving ? null : _save,
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      o.save,
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.heavy,
-                        fontSize: context.tokens.size.bodyLg,
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _fixSets ? o.sets : o.setsAuto,
+                style: TextStyle(
+                  fontSize: context.tokens.size.body,
+                  fontWeight: context.tokens.weight.bold,
+                ),
+              ),
+              value: _fixSets,
+              onChanged: (v) => setState(() => _fixSets = v),
+            ),
+            if (_fixSets)
+              _Stepper(
+                label: o.sets,
+                value: _sets,
+                min: 1,
+                max: 8,
+                onChanged: (v) => setState(() => _sets = v),
+              ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 54,
+              child: FilledButton(
+                onPressed: _isSaving || !_canSave ? null : _save,
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        o.save,
+                        style: TextStyle(
+                          fontWeight: context.tokens.weight.heavy,
+                          fontSize: context.tokens.size.bodyLg,
+                        ),
                       ),
-                    ),
+              ),
             ),
-          ),
-          if (widget.plan.overridden) ...[
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _isSaving ? null : _remove,
-              child: Text(o.remove),
-            ),
+            if (widget.plan.overridden) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _isSaving ? null : _remove,
+                child: Text(o.remove),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

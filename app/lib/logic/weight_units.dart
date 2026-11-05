@@ -50,3 +50,8 @@ String compactVolume(double pounds, WeightUnit unit) {
   if (v >= 1000) return '${(v / 1000).toStringAsFixed(v >= 10000 ? 0 : 1)}k';
   return v.round().toString();
 }
+
+/// A weight as typed: "62.5", or "62,5" from a decimal-comma keypad. Null
+/// when blank or not a number.
+double? parseDisplayWeight(String text) =>
+    double.tryParse(text.trim().replaceAll(',', '.'));
