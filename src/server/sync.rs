@@ -4,6 +4,7 @@ use schlift_core::events::{Event, Fact};
 use schlift_core::session::shared_with_partners;
 use schlift_core::sync::{pack, unpack_push};
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 use tokio::sync::{broadcast, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::Streaming;
@@ -24,6 +25,12 @@ use tonic::Streaming;
 
 /// Events per message down: a whole account's history arrives in pieces.
 const EVENTS_PER_MESSAGE: i64 = 500;
+
+/// How long a stream sends what it is told without asking again whether its
+/// login is still good: an expired login sends nothing more after this.
+/// (Signing out and deleting the account are told at once, as
+/// `Change::SignedOut`.) Short in tests, so expiry can be seen.
+const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 60 });
 
 // What one event in a push may hold (the batch's size and event count are
 // limited as it is decoded, in schlift_core::sync). Far above anything a
@@ -103,6 +110,7 @@ impl SyncService for ServerSyncService {
                 sent: 0,
                 last_session: None,
                 last_requests: None,
+                checked: Instant::now(),
             };
             if let Err(error) = stream.run(inbound, changes).await {
                 let _ = stream.tx.send(Err(error.into())).await;
@@ -117,8 +125,9 @@ struct Stream {
     db: ServerDb,
     user_id: String,
     /// The session the stream was opened with: signing out, expiry or
-    /// deleting the account ends it, and the stream with it, checked before
-    /// anything is stored or sent.
+    /// deleting the account ends it, and the stream with it: checked before
+    /// anything is stored, as soon as a sign-out or deletion is told, and
+    /// otherwise at most `RECHECK_SIGNED_IN` before anything is sent.
     token: String,
     tx: mpsc::Sender<SyncResult>,
     /// The session the user's pointer named when the session was last sent,
@@ -132,6 +141,8 @@ struct Stream {
     /// What was last sent, so an unchanged view isn't sent again.
     last_session: Option<Session>,
     last_requests: Option<GetJoinRequestsResponse>,
+    /// When the login was last found good.
+    checked: Instant,
 }
 
 /// The phone hung up.
@@ -202,9 +213,12 @@ impl Stream {
                 } => Woke::Partner(partner, change),
                 up = inbound.message() => Woke::Up(up),
             };
-            // Whatever woke it, nothing goes down a signed-out stream (what
-            // comes up is checked as it is received).
-            if !matches!(woke, Woke::Up(_)) {
+            // A login that expired since it was last checked sends nothing
+            // more: not the account's other devices' events, nor a
+            // partner's. (Signing out is heard at once, as a change, unless
+            // the stream fell behind and missed it.)
+            let stale = self.checked.elapsed() > RECHECK_SIGNED_IN;
+            if matches!(woke, Woke::Mine(Err(_))) || (stale && !matches!(woke, Woke::Up(_))) {
                 self.ensure_signed_in().await?;
             }
             let sent = match woke {
@@ -253,7 +267,7 @@ impl Stream {
     }
 
     /// Ends the stream once its session is signed out, expired or deleted.
-    async fn ensure_signed_in(&self) -> ServerResult<()> {
+    async fn ensure_signed_in(&mut self) -> ServerResult<()> {
         let signed_in = self
             .db
             .validate_auth_session(&self.token)
@@ -262,6 +276,7 @@ impl Stream {
         if signed_in.as_ref() != Some(&self.user_id) {
             return Err(Status::unauthenticated("Invalid session token").into());
         }
+        self.checked = Instant::now();
         Ok(())
     }
 
@@ -412,6 +427,7 @@ impl Stream {
             Change::Account(events) => self.send_new(events).await,
             Change::JoinRequests => self.send_requests().await,
             Change::Membership | Change::Session => self.send_session().await,
+            Change::SignedOut => self.ensure_signed_in().await.map(Ok),
         }
     }
 

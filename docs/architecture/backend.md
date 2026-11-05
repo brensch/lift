@@ -207,7 +207,12 @@ only deletes the token it is sent) begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
 `logins` (by the token's SHA-256). There is no middleware doing this — it is called explicitly in
 each handler, so **a new handler that forgets the call is unauthenticated**.
-`Sync` authenticates on the stream's headers before reading anything.
+`Sync` authenticates on the stream's headers before reading anything. An
+open stream ends once its login goes: signing out, removing a passkey (which
+signs out the other logins) and deleting the account tell the user's streams
+at once (`Change::SignedOut`), and a stream about to send asks again once a
+minute has passed since it last found its login good, which catches expiry
+without a query per change.
 
 `Session` (`current_session` in `src/server/multiplayer.rs`) carries who
 else is in the caller's session. "Who's up next" is derived on the client from
@@ -232,12 +237,13 @@ and message before unwinding.
 
 - `src/server/sync_tests.rs` — pushed events folding into the same
   account, a resent batch placed once, two devices' events placed in the
-  order they arrive, a push after deletion storing nothing, events read back
-  as they were pushed; and over a real server on a local port, the Sync
+  order they arrive, the largest push placed in seconds, a push after
+  deletion storing nothing, events read back as they were pushed; and over a real server on a local port, the Sync
   stream: a partner's progress as it happens, a late partner getting the
   workout so far (and only the workout), discarding the workout leaving the
   session, a heartbeat answered, a deleted account unable to push, a
-  signed-out stream sent nothing more, a deleted partner out of the
+  signed-out stream sent nothing more (an expired one too, once its
+  once-a-minute recheck is due), a deleted partner out of the
   session, a new profile to partners without the body weight, a device
   catching up and hearing the others, and a stranger turned away.
 - `src/db/migrate.rs` — a fresh database starts at the latest version, and
