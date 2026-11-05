@@ -161,8 +161,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// local and finishes without it, so a failure is only a note.
   Future<void> _sendProfile() async {
     final auth = context.read<AuthProvider>();
-    if (!auth.hasServerSession) return;
     final messenger = ScaffoldMessenger.of(context);
+    void failed() => messenger.showSnackBar(
+      SnackBar(content: Text(copy.onboarding.profileFailed)),
+    );
+    // The marker and bodyweight are kept only on the server: with no
+    // session they are not saved, so say so.
+    if (!auth.hasServerSession) {
+      failed();
+      return;
+    }
     try {
       final updatedUser = await UserServiceWrapper(context.read<GrpcClient>())
           .updateMyProfile(
@@ -177,9 +185,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     } catch (e) {
       debugPrint('Onboarding profile update failed: $e');
-      messenger.showSnackBar(
-        SnackBar(content: Text(copy.onboarding.profileFailed)),
-      );
+      failed();
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../gen/copy.dart';
 import 'package:flutter/services.dart';
@@ -18,12 +20,16 @@ class WorkoutTab extends StatefulWidget {
 }
 
 class _WorkoutTabState extends State<WorkoutTab> {
-  /// The app shell loads the account once it is open; this only retries.
+  /// The app shell opens and loads the account; this only retries.
   void _retry() {
-    final userId = context.read<AuthProvider>().userId;
-    if (userId != null) {
-      context.read<WorkoutProvider>().loadActiveWorkout(userId);
+    final wp = context.read<WorkoutProvider>();
+    final retry = wp.onRetryStartup;
+    if (retry != null) {
+      unawaited(retry());
+      return;
     }
+    final userId = context.read<AuthProvider>().userId;
+    if (userId != null) wp.loadActiveWorkout(userId);
   }
 
   Future<bool> _confirmExit() async {

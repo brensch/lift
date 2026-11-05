@@ -14,15 +14,13 @@ on:
 # Every language is format-checked and linted, and all of it goes through
 # scripts/lint.sh — the same command a person or an agent runs locally — with
 # tool versions pinned (scripts/install_lint_tools.sh, FLUTTER_VERSION,
-# BUF_VERSION, web/package.json). Anything unformatted or unlinted fails.
+# web/package.json). Anything unformatted or unlinted fails.
 
 env:
   # dart format's output changes between SDK releases, so the version that
   # formats the code has to be the version that checks it. Bump this together
   # with the local SDK, and re-run `scripts/lint.sh fmt dart` when you do.
   FLUTTER_VERSION: "3.44.8"
-  # Keep equal to BUF_VERSION in scripts/install_lint_tools.sh.
-  BUF_VERSION: "1.64.0"
 
 jobs:
   # Store text is committed: release-notes/<version>.md (read by
@@ -102,11 +100,6 @@ jobs:
         uses: actions/checkout@v4
       - name: Install pinned formatters and linters
         run: scripts/install_lint_tools.sh
-      - name: Install buf
-        uses: bufbuild/buf-action@v1
-        with:
-          setup_only: true
-          version: ${{ env.BUF_VERSION }}
       - name: Format check and lint (python, shell, kotlin, swift, proto)
         run: scripts/lint.sh check python shell kotlin swift proto
       # The Xcode project is committed and built as-is, so a Swift file that is
