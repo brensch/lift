@@ -129,12 +129,14 @@ name, so the app keeps its generated types and only the transport changed.
 stream open while the app can (`SyncService.Sync`). The server decides the
 order of an account's events; the phone records without waiting for it.
 
-- **Open:** the phone says the last seq it holds (`after_seq`) and the
-  server sends every event after it, in chunks of 500, then its head. A
-  phone that holds everything still hears the head, so it knows it has
-  caught up. A fresh install opens for use only once it has.
+- **Open:** the phone says a seq one before the last it holds
+  (`after_seq`, from `Store::opens_after`) and the server sends every
+  event after it, in chunks of 500, then its head. So the first event down
+  is one the phone holds, and its id shows the two histories agree up to
+  there. A phone that holds everything still hears the head, so it knows
+  it has caught up. A fresh install opens for use only once it has.
 - **Up:** the pending events — packed as zstd JSON (`core/src/sync.rs`),
-  sent after each write and on every (re)connect.
+  sent after each write and once the stream's first events are taken.
 - **Server:** each pushed event it doesn't already hold (by id: a resend
   is skipped) is given the next seq and stored, and sent down every
   stream of that account, the pusher's included.
@@ -147,12 +149,22 @@ order of an account's events; the phone records without waiting for it.
   `pending`; when another device's arrive, the account is refolded, theirs
   then whatever is still pending on top. Two phones on one account both
   keep everything, in the order the server gave it. If the server holds
-  less than the phone (an older export opened, or the server restored from
-  an older backup), what it lacks goes back to `pending`, ahead of what
-  was waiting, and is placed again. The server tells such a phone its head
-  and ends the stream without reading it: what the phone pushed on opening,
-  before it heard, would otherwise be placed ahead of those older events.
-  It dials again from the head.
+  less than the phone (restored from an older backup), what it lacks goes
+  back to `pending`, ahead of what was waiting, and is placed again. The
+  server tells such a phone its head and ends the stream without reading
+  it (an older app pushes on opening, before it hears); the phone dials
+  again from before the head, and pushes only once the events it took
+  agree. A restored server may also hold other events where the phone's
+  were (another device's, placed after the restore): the ids differ where
+  the phone holds the same seq. The phone's events from the first that
+  differs go back to `pending` the same way, and the server's are taken
+  in their place; differing at the first event a stream sent, the phone
+  can't tell where they meet, so it dials again from twice as far back,
+  until it can.
+- **Import:** an export only adds. `Store::import` queues each event in
+  the file that the phone holds neither placed nor pending (by id), and
+  the server skips any it holds, so nothing is removed and the same file
+  twice adds nothing.
 
 The stream is only the fast path. A pending event is resent after any
 reconnect until it comes back placed, and every down message is either

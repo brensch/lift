@@ -93,8 +93,12 @@ class LocalCore {
     return parse(response);
   }
 
-  /// The last seq this file holds: where the server picks up.
+  /// The last seq this file holds.
   Future<int> confirmed() => native.confirmed(handle: _handle);
+
+  /// What a Sync stream opens with: a seq before the last this file holds,
+  /// so the server's first event shows whether their histories agree.
+  Future<int> opensAfter() => native.opensAfter(handle: _handle);
 
   /// What this phone recorded that the server hasn't placed, after the
   /// pending event numbered [after] (the last one this stream sent): packed
@@ -176,6 +180,18 @@ class LocalCore {
   Future<void> export(String dest) async {
     try {
       await native.exportAccount(handle: _handle, dest: dest);
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
+
+  /// Bring in the export at [path]: whatever in it this file lacks waits
+  /// to be placed; nothing is removed. Returns how many events it added.
+  Future<int> importFile(String path) async {
+    try {
+      final added = await native.importFile(handle: _handle, path: path);
+      if (added > 0 && !_writes.isClosed) _writes.add(null);
+      return added;
     } catch (e) {
       throw CoreException.from(e);
     }
