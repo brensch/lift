@@ -9,18 +9,11 @@ final class WatchSensorBatchOutbox {
         self.defaults = defaults
     }
 
-    func enqueue(_ batch: Workout_V1_WearSensorBatch) -> Bool {
+    func enqueue(_ batch: Workout_V1_WearSensorBatch) {
         queue.sync {
             var batches = loadBatchesLocked().filter { $0.batchID != batch.batchID }
             batches.append(batch)
-            return saveBatchesLocked(batches)
-        }
-    }
-
-    func acknowledge(_ ack: Workout_V1_WearSensorBatchAck) {
-        queue.sync {
-            let batches = loadBatchesLocked().filter { $0.batchID != ack.batchID }
-            _ = saveBatchesLocked(batches)
+            saveBatchesLocked(batches)
         }
     }
 
@@ -33,7 +26,7 @@ final class WatchSensorBatchOutbox {
     func remove(batchID: String) {
         queue.sync {
             let batches = loadBatchesLocked().filter { $0.batchID != batchID }
-            _ = saveBatchesLocked(batches)
+            saveBatchesLocked(batches)
         }
     }
 
@@ -45,12 +38,11 @@ final class WatchSensorBatchOutbox {
         }
     }
 
-    private func saveBatchesLocked(_ batches: [Workout_V1_WearSensorBatch]) -> Bool {
+    private func saveBatchesLocked(_ batches: [Workout_V1_WearSensorBatch]) {
         let encoded = batches.compactMap { batch -> String? in
             guard let data = try? batch.serializedData() else { return nil }
             return data.base64EncodedString()
         }
         defaults.set(encoded, forKey: key)
-        return true
     }
 }
