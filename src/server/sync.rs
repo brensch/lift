@@ -40,12 +40,22 @@ const MAX_HEART_RATE_SAMPLES_PER_EVENT: usize = 100_000;
 const MAX_IMPORTED_WORKOUTS: usize = 10_000;
 const MAX_IMPORTED_HEART_RATE_SAMPLES: usize = 2_000_000;
 
-/// Refuse a push larger than any phone makes.
+/// Refuse a push larger than any phone makes, or holding an event that
+/// would not read back once stored (a number past f32's range reads as
+/// infinity, which is stored as `null`): every later read of the account,
+/// and each partner's stream, would fail on it.
 fn check_push(events: &[Event]) -> ServerResult<()> {
     let too_big = |what: &str, limit: usize| -> ServerResult<()> {
         Err(Status::invalid_argument(format!("push too large: more than {limit} {what}")).into())
     };
     for event in events {
+        if !event.reads_back() {
+            return Err(Status::invalid_argument(format!(
+                "event {} holds a number that can't be stored",
+                event.id
+            ))
+            .into());
+        }
         match &event.fact {
             Fact::HeartRateRecorded(recorded)
                 if recorded.bpm.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
@@ -555,5 +565,30 @@ mod tests {
             },
         ));
         assert!(check_push(&[import]).is_ok());
+    }
+
+    /// A pushed number past f32's range reads as infinity, which would be
+    /// stored as `null` and never read again: the push is refused whole.
+    #[test]
+    fn a_push_with_a_number_that_cant_be_stored_is_refused() {
+        let pushed = |weight: &str| -> Vec<Event> {
+            let json = format!(
+                r#"[{{"id":"ok","at":1,"TemplateDeleted":{{"template_id":"t"}}}},
+                {{"id":"e","at":1,"SetCompleted":{{"workout_id":"w",
+                "proposed_set_id":"s","actual_reps":5,"actual_weight":{weight},
+                "completed_at":1}}}}]"#
+            );
+            // Read as unpack_push reads a push: the same deserialiser.
+            serde_json::from_str(&json).unwrap()
+        };
+        assert!(check_push(&pushed("3.4e38")).is_ok());
+        let error = check_push(&pushed("1e39")).err();
+        let status = Status::from(error.unwrap());
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        let not_a_number = event(Fact::SetCompleted(schlift_core::events::SetCompleted {
+            actual_weight: f32::NAN,
+            ..Default::default()
+        }));
+        assert!(check_push(&[not_a_number]).is_err());
     }
 }

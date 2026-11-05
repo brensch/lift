@@ -100,6 +100,17 @@ impl<'de> Deserialize<'de> for Event {
     }
 }
 
+impl Event {
+    /// Whether the event, stored, reads back. One holding a non-finite
+    /// number (NaN, infinity, or a JSON number past f32's range, which
+    /// reads as infinity) is written as `null` and never reads again, so
+    /// every read of the account would fail: it must not be recorded or
+    /// stored.
+    pub fn reads_back(&self) -> bool {
+        serde_json::to_string(self).is_ok_and(|json| serde_json::from_str::<Event>(&json).is_ok())
+    }
+}
+
 /// A fact of a kind this version doesn't know, as it came.
 #[derive(Clone, Debug, PartialEq)]
 pub struct UnknownFact {
