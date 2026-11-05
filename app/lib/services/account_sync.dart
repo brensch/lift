@@ -160,9 +160,26 @@ class AccountSync extends ChangeNotifier
         'That file is a different account. Sign out to open it.',
       );
     }
-    if (open != null) await signOut();
-    await File(path).copy((await _fileFor(owner)).path);
-    if (open != null) await signIn(owner, name);
+    // Staged beside the account file and opened once first, so a file that
+    // is damaged past its first pages is turned away before it replaces
+    // anything.
+    final account = await _fileFor(owner);
+    final staged = File('${account.parent.path}/$owner.import.sqlite');
+    if (await staged.exists()) await staged.delete();
+    await File(path).copy(staged.path);
+    try {
+      await (await LocalCore.open(staged.path, owner, name: name)).close();
+    } catch (_) {
+      await staged.delete();
+      rethrow;
+    }
+    try {
+      if (open != null) await signOut();
+      await staged.rename(account.path);
+    } finally {
+      // Whatever happened, the account that was open is open again.
+      if (open != null) await signIn(owner, name);
+    }
     return (owner, name);
   }
 

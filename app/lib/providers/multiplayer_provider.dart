@@ -56,20 +56,40 @@ class MultiplayerProvider extends ChangeNotifier {
   /// JOIN_REQUEST_TTL_SECONDS): an older one is not shown.
   static const _requestsLast = Duration(seconds: 120);
 
+  /// Set for when the first request on show can no longer be answered.
+  Timer? _expiry;
+
   /// The stream brought something down.
   void _heard() {
     final feed = _feed;
     if (feed == null || !_syncEnabled) return;
     unawaited(_refresh(feed));
-    final since =
-        DateTime.now().subtract(_requestsLast).millisecondsSinceEpoch ~/ 1000;
-    final requests = feed.joinRequests.requests
-        .where((r) => r.createdAt.toInt() >= since)
-        .toList();
+    _showRequests(feed.joinRequests.requests);
+  }
+
+  /// Show those of [requests] that can still be answered, until the first
+  /// of them can't.
+  void _showRequests(List<JoinRequest> requests) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final since = (now - _requestsLast.inMilliseconds) ~/ 1000;
+    requests = requests.where((r) => r.createdAt.toInt() >= since).toList();
     final changed =
         requests.map((r) => r.requestId).join(',') !=
         _incomingRequests.map((r) => r.requestId).join(',');
     _incomingRequests = requests;
+    _expiry?.cancel();
+    _expiry = null;
+    if (requests.isNotEmpty && !_disposed) {
+      final first = requests
+          .map((r) => r.createdAt.toInt())
+          .reduce((a, b) => a < b ? a : b);
+      // The second after the last one the server still answers it in.
+      final gone = (first + _requestsLast.inSeconds + 1) * 1000;
+      _expiry = Timer(
+        Duration(milliseconds: gone - now),
+        () => _showRequests(_incomingRequests),
+      );
+    }
     if (changed && !_disposed) notifyListeners();
   }
 
@@ -130,6 +150,7 @@ class MultiplayerProvider extends ChangeNotifier {
 
   /// Approve or decline an incoming request. On approve the stream brings
   /// the shared session down as soon as it exists.
+  /// A failed accept is shown, as no session forms.
   Future<void> respondToJoinRequest(String requestId, bool accept) async {
     try {
       await _service.respondJoinRequest(requestId, accept);
@@ -137,6 +158,13 @@ class MultiplayerProvider extends ChangeNotifier {
       AppLogger.instance.warn('Multiplayer', 'respondJoinRequest failed', {
         'error': '$e',
       });
+      if (accept) {
+        ErrorModalService.showError(
+          e is GrpcError && e.code == StatusCode.notFound
+              ? copy.joinRequest.expired
+              : cleanErrorMessage(e),
+        );
+      }
     }
     _incomingRequests = _incomingRequests
         .where((r) => r.requestId != requestId)
@@ -242,12 +270,14 @@ class MultiplayerProvider extends ChangeNotifier {
     // The next account on this phone sees nothing of this one's.
     _trainingPartners = [];
     _incomingRequests = [];
+    _expiry?.cancel();
     if (!_disposed) notifyListeners();
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _expiry?.cancel();
     _feed?.removeListener(_heard);
     super.dispose();
   }
