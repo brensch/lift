@@ -165,7 +165,7 @@ install-deps:
 	sudo apt-get install -y cmake ninja-build clang lld libgtk-3-dev pkg-config protobuf-compiler curl git unzip openjdk-17-jdk
 	@echo "=== Installing Flutter SDK ==="
 	@if [ ! -d "$(HOME)/flutter-sdk" ]; then \
-		git clone --depth 1 --branch stable https://github.com/flutter/flutter.git $(HOME)/flutter-sdk; \
+		git clone --depth 1 --branch $(FLUTTER_VERSION) https://github.com/flutter/flutter.git $(HOME)/flutter-sdk; \
 	else \
 		echo "Flutter SDK already installed at $(HOME)/flutter-sdk"; \
 	fi

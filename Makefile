@@ -1,5 +1,8 @@
 FLUTTER = $(HOME)/flutter-sdk/bin/flutter
 DART = $(HOME)/flutter-sdk/bin/dart
+# The SDK install-deps clones. Keep equal to FLUTTER_VERSION in
+# .github/workflows/tests.yml (dart format's output depends on it).
+FLUTTER_VERSION = 3.44.8
 
 ANDROID_SDK ?= $(HOME)/android-sdk
 ANDROID_PLATFORM ?= android-34
