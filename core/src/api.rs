@@ -235,12 +235,13 @@ impl<'a> Call<'a> {
         }))
     }
 
-    /// Several changes in one go (the watch's intents arrive this way). One
-    /// that can't apply — a set already gone, a workout already over — is
-    /// skipped and the rest still apply. One the core refuses (`check`: a
-    /// done set out of range, the undo of a rung whose append was lifted)
-    /// fails the whole call, so the app can say why. New lifts are planned
-    /// here (`add_exercises`).
+    /// Several changes in one go. One that can't apply — a set already
+    /// gone, a workout already over — is skipped and the rest still apply.
+    /// One the core refuses (`check`: a done set out of range, the undo of
+    /// a rung whose append was lifted) ends the call with an error, so the
+    /// app can say why; any before it are already recorded on the `Call`,
+    /// and the store goes back to its file, so on the phone nothing of the
+    /// call is kept. New lifts are planned here (`add_exercises`).
     pub fn append_workout_mutations(
         &mut self,
         req: AppendWorkoutMutationsRequest,
@@ -752,7 +753,7 @@ impl<'a> View<'a> {
                     reps_left: reps_left as i32,
                     jump_lb: 0.0,
                 };
-                apply_answer_rung_to_active(&mut answered, &req, self.account.unit(), self.now);
+                apply_answer_rung_to_active(&mut answered, &req, record.unit, self.now);
                 let done = done_set_ids(&answered.completed_sets);
                 let next = answered.proposed_sets.iter().find(|s| {
                     s.exercise == exercise

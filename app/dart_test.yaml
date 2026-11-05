@@ -1,0 +1,4 @@
+tags:
+  # Needs a time zone with daylight saving: run on its own under
+  # TZ=America/Los_Angeles (make test-app, CI).
+  dst: {}

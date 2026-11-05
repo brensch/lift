@@ -132,7 +132,7 @@ in [`android_dev.md`](android_dev.md).
 
 | Target | |
 |---|---|
-| `make test-app` | The Dart tests against the real core: `cargo build -p schlift_native` (the host build they load from `target/debug/`), then `flutter test`. A bare `flutter test` fails to load the library without that build. |
+| `make test-app` | The Dart tests against the real core: `cargo build -p schlift_native` (the host build they load from `target/debug/`), then `flutter test` (the `dst`-tagged tests separately, under `TZ=America/Los_Angeles`, since they need a zone with daylight saving). A bare `flutter test` fails to load the library without that build. |
 | `cargo test --workspace --all-targets` | The core, the server and `app/native`. No target. |
 
 ## End-to-end tests and store assets
