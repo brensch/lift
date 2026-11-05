@@ -12,11 +12,6 @@ extension WatchBridgeManager {
             return
         }
 
-        if path == WatchBridgeManager.wearToPhoneSnapshotRequestPath {
-            sendSnapshotOnRequest()
-            return
-        }
-
         if path == WatchBridgeManager.wearToPhoneClockSyncPath {
             handleClockSyncReply(message)
             return
@@ -41,21 +36,6 @@ extension WatchBridgeManager {
                 sendSensorBatchAck(batch)
             } catch {
                 print("SchliftWearBridge: Failed to parse wear sensor batch: \(error)")
-            }
-        }
-    }
-
-    private func sendSnapshotOnRequest() {
-        queue.async {
-            guard let bytes = self.lastSnapshotBytes else { return }
-            let replyMessage: [String: Any] = [
-                "path": WatchBridgeManager.phoneToWearSnapshotPath,
-                "data": bytes,
-            ]
-            let session = WCSession.default
-            guard session.activationState == .activated, session.isPaired, session.isReachable else { return }
-            session.sendMessage(replyMessage, replyHandler: nil) { error in
-                print("SchliftWearBridge: Failed to send snapshot on request: \(error)")
             }
         }
     }
