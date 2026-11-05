@@ -9,14 +9,18 @@ use std::collections::HashMap;
 // phone folds their workout's events, which the Sync stream forwards
 // (sync.rs, schlift_core::session).
 //
+// A member's part in a session is one workout (session_members.workout_id):
+// the first they train in after joining. Only its events reach the others.
+//
 // Transitions, each one write:
 //   - JoinViaInvite / RespondJoinRequest: both users join the anchor's session
 //     (or a new one); any other session they were in is left.
-//   - A synced EndWorkout: ending is leaving; their workout stays on show a
-//     while (sync.rs).
-//   - Idle: a member who has recorded nothing for SHOWN_FOR_SECONDS is out
-//     (read from their events, never written), so a join that never started
-//     doesn't linger.
+//   - Their first workout in it, ended, thrown away, or another started:
+//     followed from what they push (ServerDb::follow_session). Ending it is
+//     leaving with it on show a while; the others are out at once.
+//   - Idle: a member whose workout in the session (or, before one, whose
+//     joining) is SHOWN_FOR_SECONDS old is out, written when first noticed
+//     (get_user_current_session), so nothing they do later lands in it.
 //   - LeaveCurrentSession: out and off show at once.
 //
 // The rows are never deleted (except with the account): they record who
@@ -51,7 +55,8 @@ impl ServerMultiplayerService {
             .await
             .map_err(internal_error)?
             .unwrap_or_else(|| Uuid::new_v4().to_string());
-        // An idle anchor starts afresh: joining leaves their old session.
+        // An idle anchor has left their old session as it was read: they
+        // start afresh, and no one joins the group they were idle in.
         for user in [anchor, joiner] {
             self.db
                 .join_session(&session_id, user)

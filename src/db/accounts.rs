@@ -18,10 +18,6 @@ use super::*;
 pub struct Pushed {
     /// The events it added, each with its place.
     pub stored: Vec<Event>,
-    /// A workout ended in it.
-    pub ended_workout: bool,
-    /// A workout was thrown away in it.
-    pub discarded_workout: bool,
 }
 
 impl ServerDb {
@@ -84,12 +80,15 @@ impl ServerDb {
             .collect()
     }
 
-    /// The user's latest workout as their session partners see it: its
-    /// events from its start, only those shared with partners, in order.
-    /// Empty if they have none within the last `WORKOUT_REACH` events.
-    pub async fn latest_workout_events(&self, user_id: &str) -> DbResult<Vec<Event>> {
+    /// A workout of the user's as their session partners see it: its events
+    /// from its start, only those shared with partners, in order. The
+    /// latest workout when `workout_id` is empty. Empty if it did not start
+    /// within the last `WORKOUT_REACH` events (heart rate aside).
+    pub async fn workout_events(&self, user_id: &str, workout_id: &str) -> DbResult<Vec<Event>> {
         let rows: Vec<String> = sqlx::query_scalar(
-            "SELECT event FROM account_events WHERE user_id = ? ORDER BY seq DESC LIMIT ?",
+            "SELECT event FROM account_events
+             WHERE user_id = ? AND event -> '$.HeartRateRecorded' IS NULL
+             ORDER BY seq DESC LIMIT ?",
         )
         .bind(user_id)
         .bind(WORKOUT_REACH)
@@ -98,13 +97,15 @@ impl ServerDb {
         let mut workout = Vec::new();
         for json in rows {
             let event: Event = serde_json::from_str(&json)?;
-            let started = matches!(event.fact, Fact::WorkoutStarted(_));
-            if shared_with_partners(&event.fact) {
-                workout.push(event);
+            if !shared_with_partners(&event.fact) {
+                continue;
             }
+            let started = matches!(event.fact, Fact::WorkoutStarted(_))
+                && (workout_id.is_empty() || event.id == workout_id);
+            workout.push(event);
             if started {
                 let id = workout.last().map(|e| e.id.clone()).unwrap_or_default();
-                workout.retain(|e| e.id == id || e.fact.workout_id() == Some(id.as_str()));
+                workout.retain(|e| e.workout_id() == Some(id.as_str()));
                 workout.reverse();
                 return Ok(workout);
             }
@@ -116,7 +117,8 @@ impl ServerDb {
     /// One the server already holds (by id: a device resends until it hears
     /// back) is skipped. All in one transaction on the one write connection,
     /// so pushes are placed one at a time, each after the last; one racing
-    /// the account's deletion fails on the foreign key.
+    /// the account's deletion fails on the foreign key. What they say of the
+    /// user's session workout is followed once they're stored.
     pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
         let mut tx = self.write_pool.begin().await?;
         let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
@@ -152,8 +154,6 @@ impl ServerDb {
                 .bind(serde_json::to_string(&event)?)
                 .execute(&mut *tx)
                 .await?;
-            pushed.ended_workout |= matches!(event.fact, Fact::WorkoutEnded(_));
-            pushed.discarded_workout |= matches!(event.fact, Fact::WorkoutDiscarded(_));
             pushed.stored.push(event);
         }
         if pushed.stored.is_empty() {
@@ -164,6 +164,7 @@ impl ServerDb {
             Topic::User(user_id.to_string()),
             Change::Account(pushed.stored.as_slice().into()),
         );
+        self.follow_session(user_id, &pushed.stored).await?;
         Ok(pushed)
     }
 }

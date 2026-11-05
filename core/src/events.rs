@@ -101,6 +101,15 @@ impl<'de> Deserialize<'de> for Event {
 }
 
 impl Event {
+    /// The workout the event is about: one it starts (the event's own id)
+    /// or one its fact names.
+    pub fn workout_id(&self) -> Option<&str> {
+        match self.fact {
+            Fact::WorkoutStarted(_) => Some(&self.id),
+            _ => self.fact.workout_id(),
+        }
+    }
+
     /// Whether the event, stored, reads back. One holding a non-finite
     /// number (NaN, infinity, or a JSON number past f32's range, which
     /// reads as infinity) is written as `null` and never reads again, so

@@ -2,7 +2,16 @@ use super::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use schlift_core::events::{Event, Fact};
 use schlift_core::session::SHOWN_FOR_SECONDS;
+
+/// A user's row in the session they're in.
+struct Membership {
+    session_id: String,
+    joined_at: i64,
+    /// Their workout in it; empty until they train.
+    workout_id: String,
+}
 
 /// How long a request to join stays answerable.
 pub const JOIN_REQUEST_TTL_SECONDS: i64 = 120;
@@ -51,7 +60,8 @@ impl ServerDb {
 
     /// Put the user in `session_id`. A session they were in before is left,
     /// and they're off show there. Coming back to a session they left
-    /// counts as joining it now; one they're still in is left as it was.
+    /// counts as joining it now, with no workout in it yet; one they're
+    /// still in is left as it was.
     pub async fn join_session(&self, session_id: &str, user_id: &str) -> DbResult<()> {
         let now = now_unix();
         let mut tx = self.write_pool.begin().await?;
@@ -70,6 +80,7 @@ impl ServerDb {
              VALUES (?, ?, ?, 0)
              ON CONFLICT (session_id, user_id) DO UPDATE SET
                joined_at = CASE WHEN left_at = 0 THEN joined_at ELSE excluded.joined_at END,
+               workout_id = CASE WHEN left_at = 0 THEN workout_id ELSE '' END,
                left_at = 0, ended_at = 0",
         )
         .bind(session_id)
@@ -113,33 +124,131 @@ impl ServerDb {
         Ok(())
     }
 
-    /// The session the user is in and has done something in (joined it, or
-    /// recorded anything) within `SHOWN_FOR_SECONDS`. Someone who joined and
-    /// never started, or walked off without ending, drops out on their own.
+    /// The session the user is in, while they still are: their workout in
+    /// it, or before they have one their joining, is within
+    /// `SHOWN_FOR_SECONDS`. One they walked off from without ending, or
+    /// joined and never trained in, they leave here, when it is first
+    /// noticed, so nothing they do later is put in it.
     pub async fn get_user_current_session(&self, user_id: &str) -> DbResult<Option<String>> {
-        let session = sqlx::query_scalar(
-            "SELECT m.session_id FROM session_members m
-             WHERE m.user_id = ?1 AND m.left_at = 0
-               AND MAX(m.joined_at, COALESCE(
-                     (SELECT e.event ->> '$.at' FROM account_events e
-                      WHERE e.user_id = ?1 ORDER BY e.seq DESC LIMIT 1), 0)) > ?2",
-        )
-        .bind(user_id)
-        .bind(now_unix() - SHOWN_FOR_SECONDS)
-        .fetch_optional(&self.read_pool)
-        .await?;
-        Ok(session)
+        let Some(member) = self.membership(user_id).await? else {
+            return Ok(None);
+        };
+        let mut last = member.joined_at;
+        if !member.workout_id.is_empty() {
+            let workout = self.workout_events(user_id, &member.workout_id).await?;
+            last = last.max(workout.last().map_or(0, |e| e.at));
+        }
+        if last > now_unix() - SHOWN_FOR_SECONDS {
+            return Ok(Some(member.session_id));
+        }
+        self.leave_session(&member.session_id, user_id).await?;
+        Ok(None)
     }
 
     /// The session the user is in, idle or not: what leaving has to clean up.
     pub async fn get_user_session_pointer(&self, user_id: &str) -> DbResult<Option<String>> {
-        let session = sqlx::query_scalar(
-            "SELECT session_id FROM session_members WHERE user_id = ? AND left_at = 0",
+        Ok(self.membership(user_id).await?.map(|m| m.session_id))
+    }
+
+    /// The user's row in the session they're in, idle or not.
+    async fn membership(&self, user_id: &str) -> DbResult<Option<Membership>> {
+        let row = sqlx::query(
+            "SELECT session_id, joined_at, workout_id FROM session_members
+             WHERE user_id = ? AND left_at = 0",
         )
         .bind(user_id)
         .fetch_optional(&self.read_pool)
         .await?;
-        Ok(session)
+        Ok(row.map(|r| Membership {
+            session_id: r.get("session_id"),
+            joined_at: r.get("joined_at"),
+            workout_id: r.get("workout_id"),
+        }))
+    }
+
+    /// What a member's stored events say of their part in their session,
+    /// which is one workout: the first they train in (start, put in the
+    /// session, or do a set of) within `SHOWN_FOR_SECONDS` of joining. Only
+    /// that workout's events reach the others. Ending it takes the member
+    /// out with it on show; throwing it away, or starting another, takes
+    /// them out. One who first trains later than that is out of it first.
+    pub(super) async fn follow_session(&self, user_id: &str, events: &[Event]) -> DbResult<()> {
+        let Some(mut member) = self.membership(user_id).await? else {
+            return Ok(());
+        };
+        for event in events {
+            let Some(workout) = event.workout_id() else {
+                continue;
+            };
+            if member.workout_id.is_empty() {
+                let trains = match &event.fact {
+                    Fact::SessionSet(f) => f.session_id == member.session_id,
+                    Fact::WorkoutStarted(_)
+                    | Fact::SetStarted(_)
+                    | Fact::SetCompleted(_)
+                    | Fact::WorkoutEnded(_)
+                    | Fact::WorkoutDiscarded(_) => true,
+                    _ => false,
+                };
+                if !trains {
+                    continue;
+                }
+                if member.joined_at <= now_unix() - SHOWN_FOR_SECONDS {
+                    return self.leave_session(&member.session_id, user_id).await;
+                }
+                self.put_workout_in_session(&member.session_id, user_id, workout)
+                    .await?;
+                member.workout_id = workout.to_string();
+            }
+            match &event.fact {
+                _ if workout != member.workout_id => {
+                    if matches!(event.fact, Fact::WorkoutStarted(_)) {
+                        return self.leave_session(&member.session_id, user_id).await;
+                    }
+                }
+                Fact::WorkoutEnded(_) => {
+                    return self.end_session(&member.session_id, user_id).await;
+                }
+                Fact::WorkoutDiscarded(_) => {
+                    return self.leave_session(&member.session_id, user_id).await;
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
+    async fn put_workout_in_session(
+        &self,
+        session_id: &str,
+        user_id: &str,
+        workout_id: &str,
+    ) -> DbResult<()> {
+        sqlx::query(
+            "UPDATE session_members SET workout_id = ?
+             WHERE session_id = ? AND user_id = ? AND left_at = 0 AND workout_id = ''",
+        )
+        .bind(workout_id)
+        .bind(session_id)
+        .bind(user_id)
+        .execute(&self.write_pool)
+        .await?;
+        self.notify(Topic::Session(session_id.to_string()), Change::Session);
+        Ok(())
+    }
+
+    /// Each member's workout in a session, by member: empty for one who
+    /// has none in it yet.
+    pub async fn session_workouts(&self, session_id: &str) -> DbResult<HashMap<String, String>> {
+        let rows =
+            sqlx::query("SELECT user_id, workout_id FROM session_members WHERE session_id = ?")
+                .bind(session_id)
+                .fetch_all(&self.read_pool)
+                .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.get("user_id"), r.get("workout_id")))
+            .collect())
     }
 
     /// Who is on show in a session, first to join first: (user, joined_at,

@@ -9,7 +9,7 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::sync_service_server::SyncServiceServer;
 use schlift_core::account::Account;
 use schlift_core::api::Call;
-use schlift_core::events::Event;
+use schlift_core::events::{Event, Fact};
 use schlift_core::sync::{pack, unpack};
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -589,6 +589,141 @@ mod stream {
             roster.iter().all(|(user, _, _)| *user != alice.id),
             "she is off show: {roster:?}"
         );
+    }
+
+    /// Once Alice has ended the workout she trained with Bob, her next one
+    /// is hers alone: her phone hears she's in no session (so the new one
+    /// is never put in the old), and Bob gets nothing of it, though what
+    /// comes late of the one they trained together still reaches him.
+    #[tokio::test]
+    async fn an_ended_members_next_workout_is_their_own() {
+        let db = db().await;
+        let (alice, alice_token) = db
+            .get_or_create_user_with_auth_session("alice")
+            .await
+            .unwrap();
+        let (bob, bob_token) = db
+            .get_or_create_user_with_auth_session("bob")
+            .await
+            .unwrap();
+        db.join_session("s", &alice.id).await.unwrap();
+        db.join_session("s", &bob.id).await.unwrap();
+        let channel = serve(db.clone()).await;
+        let mut alice_link = Link::open(channel.clone(), &alice_token).await;
+        let mut bob_link = Link::open(channel, &bob_token).await;
+        let mut phone = Phone::new();
+        let (first, events) = phone.start_squats(now_unix());
+        alice_link.push(events).await;
+        alice_link.events_through(1).await;
+        let mut alices = Vec::new();
+        bob_link
+            .partner(&alice.id, &mut alices, |p| p.active_workout_id == first.id)
+            .await;
+        let (_, ended) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: first.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        alice_link.push(ended).await;
+        alice_link.session(|s| s.session_id.is_empty()).await;
+
+        // She trains again, on her own.
+        let (_, events) = phone.start_squats(now_unix());
+        alice_link.push(events).await;
+        alice_link.events_through(3).await;
+        // And corrects the first one's end: Alice's events reach Bob in
+        // order, so anything of the second would have come before it.
+        let (_, moved) = phone.write(now_unix(), |call| {
+            call.move_workout_end(&first.id, now_unix()).unwrap()
+        });
+        alice_link.push(moved).await;
+        loop {
+            let events = bob_link
+                .next(|kind| match kind {
+                    sync_response::Kind::PartnerEvents(p) if p.user_id == alice.id => {
+                        Some(unpack(&p.packed).unwrap())
+                    }
+                    _ => None,
+                })
+                .await;
+            assert!(
+                events
+                    .iter()
+                    .all(|e| e.workout_id() == Some(first.id.as_str())),
+                "only the workout they trained together: {events:?}"
+            );
+            if events
+                .iter()
+                .any(|e| matches!(e.fact, Fact::WorkoutEndMoved(_)))
+            {
+                break;
+            }
+        }
+        assert!(db
+            .get_user_session_pointer(&alice.id)
+            .await
+            .unwrap()
+            .is_none());
+        let workouts = db.session_workouts("s").await.unwrap();
+        assert_eq!(workouts[&alice.id], first.id, "the old session keeps hers");
+    }
+
+    /// Bob connects only after Alice has ended her workout with him and
+    /// started another: he gets the finished one, whole, and not the new.
+    #[tokio::test]
+    async fn a_partner_who_connects_late_gets_the_finished_workout() {
+        let db = db().await;
+        let (alice, _) = db
+            .get_or_create_user_with_auth_session("alice")
+            .await
+            .unwrap();
+        let (bob, bob_token) = db
+            .get_or_create_user_with_auth_session("bob")
+            .await
+            .unwrap();
+        db.join_session("s", &alice.id).await.unwrap();
+        db.join_session("s", &bob.id).await.unwrap();
+        let mut phone = Phone::new();
+        let (first, mut events) = phone.start_squats(now_unix());
+        let (_, ended) = phone.write(now_unix(), |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: first.id.clone(),
+                ended_at: 0,
+            })
+            .unwrap()
+        });
+        events.extend(ended);
+        db.push_events(&alice.id, events).await.unwrap();
+        let (_, next) = phone.start_squats(now_unix());
+        db.push_events(&alice.id, next).await.unwrap();
+
+        let channel = serve(db.clone()).await;
+        let mut bob_link = Link::open(channel, &bob_token).await;
+        let roster = bob_link.session(|s| !s.members.is_empty()).await;
+        assert!(roster.members[0].ended_at > 0, "alice, ended");
+        let whole = bob_link
+            .next(|kind| match kind {
+                sync_response::Kind::PartnerEvents(p) if p.user_id == alice.id => Some(p),
+                _ => None,
+            })
+            .await;
+        assert!(whole.whole);
+        let events = unpack(&whole.packed).unwrap();
+        assert_eq!(events.len(), 2, "the start and the end: {events:?}");
+        assert!(events
+            .iter()
+            .all(|e| e.workout_id() == Some(first.id.as_str())));
+        let seen = schlift_core::session::partner_status(
+            &events,
+            roster.members[0].joined_at,
+            roster.members[0].ended_at,
+            now_unix(),
+        )
+        .unwrap();
+        assert_eq!(seen.active_workout_id, first.id);
+        assert_ne!(seen.active_workout.unwrap().end_time, 0);
     }
 
     /// A heartbeat is answered with the head, so the phone knows the link
