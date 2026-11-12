@@ -197,6 +197,7 @@ const REJECTION_LABELS: Record<string, string> = {
   not_verified: "not verified (no biometric)",
   already_registered: "passkey already registered",
   name_taken: "name taken meanwhile",
+  unknown_user: "nobody has that username",
   too_many_recoveries: "too many requests waiting",
   rejected: "didn't verify",
   internal: "server error",

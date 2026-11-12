@@ -8,7 +8,7 @@ STORE_BACKEND_PID ?= .tmp/store-backend/backend.pid
 STORE_RAW_DIR ?= store/screenshots/raw
 STORE_VENV ?= .tmp/store-venv
 
-.PHONY: store-capture store-backend-start store-backend-stop store-frame store-check
+.PHONY: store-capture store-backend-start store-backend-stop store-frame store-check web-preview cut-release
 
 # store-backend-start: a throwaway backend with dev login and the seeded
 # `demo` account (weeks of history), on the usual :50051. Fresh data every run.
@@ -54,6 +54,12 @@ store-capture:
 store-frame:
 	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }
 	"$(STORE_VENV)/bin/python" scripts/frame_store_screenshots.py
+
+# web-preview: retake the picture of the dashboard the home page shows
+# (web/public/dashboard-preview.png) from a running `make run-frontend`.
+web-preview:
+	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }
+	"$(STORE_VENV)/bin/python" scripts/capture_web_preview.py
 
 # store-check: the listing-text, release-notes and change log checks CI runs.
 store-check:

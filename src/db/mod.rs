@@ -20,7 +20,7 @@ mod session;
 pub use session::JOIN_REQUEST_TTL_SECONDS;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
-pub use recovery::{shown_code, Approval, Recovery, RECOVERY_TTL_SECONDS};
+pub use recovery::{nobodys_code, shown_code, Approval, Recovery, RECOVERY_TTL_SECONDS};
 pub use training::AccountRow;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;

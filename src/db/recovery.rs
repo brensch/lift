@@ -44,6 +44,19 @@ fn stored_code(typed: &str) -> String {
         .collect()
 }
 
+/// The code shown for a request to recover a name nobody holds. Nothing is
+/// stored for such a request, so its code is worked out from its id each
+/// time it is asked for; no waiting request has it, so it approves nothing.
+pub fn nobodys_code(request_id: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(request_id.as_bytes());
+    let code: String = digest[..CODE_CHARS]
+        .iter()
+        .map(|byte| CODE_ALPHABET[*byte as usize % CODE_ALPHABET.len()] as char)
+        .collect();
+    shown_code(&code)
+}
+
 /// A stored code as it is shown: "K7M2-QX9P".
 pub fn shown_code(stored: &str) -> String {
     let (head, tail) = stored.split_at(stored.len().min(CODE_CHARS / 2));
@@ -174,6 +187,19 @@ impl ServerDb {
         .await?;
         tx.commit().await?;
         Ok(Ok((shown_code(&code), now + RECOVERY_TTL_SECONDS)))
+    }
+
+    /// When a recovery for a name nobody holds was asked for, if `request_id`
+    /// is one: all that is kept of it is its attempt (`auth_attempts`), the
+    /// row every ceremony already writes.
+    pub async fn nobodys_recovery_started(&self, request_id: &str) -> DbResult<Option<i64>> {
+        Ok(sqlx::query_scalar(
+            "SELECT started_at FROM auth_attempts
+             WHERE attempt_id = ? AND kind = 'recovery' AND reason = 'unknown_user'",
+        )
+        .bind(request_id)
+        .fetch_optional(&self.read_pool)
+        .await?)
     }
 
     /// The request, whatever its state.
