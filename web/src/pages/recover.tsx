@@ -152,13 +152,8 @@ export function RecoverPage() {
     return (
       <Shell title="LOST PASSKEY">
         <p className="text-muted leading-relaxed">
-          Make a new passkey for your account here. It won't work until Brendan has checked it's
-          really you, so you'll get a code to send him.
-        </p>
-        <p className="text-sm text-muted leading-relaxed">
-          Do this on the phone you use Schlift on, so the new passkey is saved where the app can
-          find it. Still signed in on another device? Add a passkey from Settings there instead: no
-          waiting.
+          Type your old username below to make a new passkey. You'll get a code to send to brendan,
+          and he'll inspect your soul and decide if you own that account.
         </p>
         <input
           className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-text outline-none focus:border-text"
