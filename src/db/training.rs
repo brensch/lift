@@ -26,7 +26,17 @@ pub struct AccountRow {
 }
 
 impl ServerDb {
+    /// Every account, most recently created first.
     pub async fn account_rows(&self) -> DbResult<Vec<AccountRow>> {
+        self.accounts(None).await
+    }
+
+    /// One account.
+    pub async fn account_row(&self, user_id: &str) -> DbResult<Option<AccountRow>> {
+        Ok(self.accounts(Some(user_id)).await?.pop())
+    }
+
+    async fn accounts(&self, only: Option<&str>) -> DbResult<Vec<AccountRow>> {
         const LATEST_VIEW: &str =
             "FROM page_views v WHERE v.user_id = u.id ORDER BY v.entered_at_ms DESC LIMIT 1";
         let rows = sqlx::query(&format!(
@@ -38,9 +48,11 @@ impl ServerDb {
                     COALESCE((SELECT v.platform {LATEST_VIEW}), '') AS platform,
                     COALESCE((SELECT v.app_version {LATEST_VIEW}), '') AS app_version,
                     (SELECT COUNT(*) FROM account_events e WHERE e.user_id = u.id) AS events
-             FROM users u ORDER BY u.created_at DESC LIMIT ?"
+             FROM users u WHERE ? IS NULL OR u.id = ? ORDER BY u.created_at DESC LIMIT ?"
         ))
         .bind(now_unix())
+        .bind(only)
+        .bind(only)
         .bind(MAX_ACCOUNTS)
         .fetch_all(&self.read_pool)
         .await?;

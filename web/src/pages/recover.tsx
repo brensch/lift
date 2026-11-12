@@ -5,12 +5,13 @@ import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/grpc";
 import { RecoveryState } from "@/gen/workout/v1/auth_pb";
+import {
+  forgetRecovery,
+  rememberRecovery,
+  waitingRecovery,
+  waitingRecoveryName,
+} from "@/lib/recovery";
 
-// The request this browser made, so the code survives a reload. The id is
-// what lets its state be read; it is no use for anything else.
-const STORAGE_KEY = "schlift_recovery_request";
-// The username it was made for, as typed: the page's own note of it.
-const NAME_KEY = "schlift_recovery_username";
 const POLL_MS = 5_000;
 
 interface Held {
@@ -77,9 +78,7 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export function RecoverPage() {
-  const [requestId, setRequestId] = useState<string | null>(() =>
-    localStorage.getItem(STORAGE_KEY),
-  );
+  const [requestId, setRequestId] = useState<string | null>(waitingRecovery);
   const [held, setHeld] = useState<Held | null>(null);
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
@@ -92,7 +91,7 @@ export function RecoverPage() {
       state: res.state,
       code: res.code,
       expiresAt: Number(res.expiresAt),
-      username: res.username || (localStorage.getItem(NAME_KEY) ?? ""),
+      username: res.username || waitingRecoveryName(),
     });
   }, []);
 
@@ -122,8 +121,7 @@ export function RecoverPage() {
     setBusy(true);
     try {
       const id = await requestRecovery(name);
-      localStorage.setItem(STORAGE_KEY, id);
-      localStorage.setItem(NAME_KEY, name);
+      rememberRecovery(id, name);
       setHeld(null);
       setRequestId(id);
     } catch (err) {
@@ -134,8 +132,7 @@ export function RecoverPage() {
   }
 
   function startOver() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(NAME_KEY);
+    forgetRecovery();
     setRequestId(null);
     setHeld(null);
     setError(null);
@@ -216,13 +213,14 @@ export function RecoverPage() {
           {copied ? "Copied." : "Tap the code to copy it."}
         </p>
         <p className="text-sm text-muted leading-relaxed">
-          This page updates when he approves it. The code lasts until{" "}
+          This page updates when he approves it. Lost the page? Sign in here with the new passkey
+          and you'll land back on your code. It lasts until{" "}
           {new Date(held.expiresAt * 1000).toLocaleDateString(undefined, {
             weekday: "long",
             month: "short",
             day: "numeric",
           })}
-          . Don't delete the new passkey in the meantime.
+          , so don't delete the passkey in the meantime.
         </p>
         <Button variant="ghost" size="sm" className="w-full" onClick={startOver}>
           Start over
@@ -240,7 +238,7 @@ export function RecoverPage() {
         </p>
         <Link
           to="/login"
-          onClick={() => localStorage.removeItem(STORAGE_KEY)}
+          onClick={forgetRecovery}
           className="block w-full text-center px-7 py-3.5 rounded-md text-lg font-semibold bg-primary text-on-primary no-underline"
         >
           Sign in here

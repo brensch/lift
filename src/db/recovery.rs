@@ -212,6 +212,34 @@ impl ServerDb {
         Ok(row.as_ref().map(recovery_from))
     }
 
+    /// The waiting request that came with `code`, however it was typed.
+    pub async fn recovery_by_code(&self, code: &str) -> DbResult<Option<Recovery>> {
+        let now = now_unix();
+        let row = sqlx::query(&format!(
+            "{RECOVERY_SELECT} WHERE r.code = ? AND r.status = 'pending' AND r.created_at > ?"
+        ))
+        .bind(now)
+        .bind(stored_code(code))
+        .bind(now - RECOVERY_TTL_SECONDS)
+        .fetch_optional(&self.read_pool)
+        .await?;
+        Ok(row.as_ref().map(recovery_from))
+    }
+
+    /// The passkeys held for the user's waiting requests: (request id,
+    /// passkey json). A sign-in with one of them is someone coming back
+    /// for their code.
+    pub async fn held_passkeys(&self, user_id: &str) -> DbResult<Vec<(String, String)>> {
+        Ok(sqlx::query_as(
+            "SELECT request_id, passkey_json FROM passkey_recoveries
+             WHERE user_id = ? AND status = 'pending' AND created_at > ?",
+        )
+        .bind(user_id)
+        .bind(now_unix() - RECOVERY_TTL_SECONDS)
+        .fetch_all(&self.read_pool)
+        .await?)
+    }
+
     /// Requests waiting to get into the user's account, newest first.
     pub async fn recoveries_waiting_for(&self, user_id: &str) -> DbResult<Vec<Recovery>> {
         let now = now_unix();

@@ -1,5 +1,5 @@
 use super::*;
-use crate::auth::{AuthState, Refusal};
+use crate::auth::{AuthState, Refusal, SignIn};
 use crate::db::shown_code;
 use std::sync::Arc;
 use tonic::Code;
@@ -44,6 +44,10 @@ impl ServerAuthService {
         }
     }
 }
+
+/// On a sign-in refused because its passkey is waiting for an admin: the
+/// recovery request it belongs to.
+const RECOVERY_REQUEST_HEADER: &str = "x-recovery-request";
 
 /// Longest username a new account may take.
 const MAX_USERNAME_CHARS: usize = 64;
@@ -285,7 +289,25 @@ impl AuthService for ServerAuthService {
             .finish_authentication(&req.challenge_id, &credential)
             .await
         {
-            Ok(session) => session,
+            Ok(SignIn::In {
+                token,
+                user_id,
+                username,
+            }) => (token, user_id, username),
+            // A passkey made at /recover that no admin has approved yet:
+            // not a login. Its holder is told which request it is, so the
+            // website can show them their code again.
+            Ok(SignIn::AwaitingApproval { request_id }) => {
+                self.track_attempt_finish(&req.challenge_id, "rejected", "awaiting_approval")
+                    .await;
+                let mut status = Status::permission_denied(
+                    "That passkey is waiting to be approved. It will sign in once it is.",
+                );
+                if let Ok(value) = request_id.parse() {
+                    status.metadata_mut().insert(RECOVERY_REQUEST_HEADER, value);
+                }
+                return Err(status);
+            }
             Err(refusal) => {
                 self.track_attempt_finish(&req.challenge_id, "rejected", refusal.slug())
                     .await;
@@ -1255,6 +1277,53 @@ mod ceremony_tests {
         // Not approved: the new passkey is nobody's.
         assert!(!offered(&svc, &mut new_phone, "ann").await);
         assert_eq!(passkeys(&svc, &ann.session_token).await.len(), 1);
+
+        // Signing in with it (usernameless, as the website does) is not a
+        // login: it says the passkey is waiting, and which request it is.
+        let by_name_options = {
+            // The software passkey signs only when asked by name, so it is
+            // asked for the held passkey by its id.
+            let login = svc
+                .login_start(Request::new(LoginStartRequest { username: None }))
+                .await
+                .unwrap()
+                .into_inner();
+            let held_id = serde_json::from_str::<serde_json::Value>(
+                &sqlx::query_scalar::<_, String>(
+                    "SELECT passkey_json FROM passkey_recoveries WHERE request_id = ?",
+                )
+                .bind(&start.request_id)
+                .fetch_one(&svc.db.read_pool)
+                .await
+                .unwrap(),
+            )
+            .unwrap()["cred"]["cred_id"]
+                .clone();
+            let mut options: serde_json::Value = serde_json::from_str(&login.options_json).unwrap();
+            options["publicKey"]["allowCredentials"] =
+                serde_json::json!([{ "type": "public-key", "id": held_id }]);
+            (login.challenge_id, options.to_string())
+        };
+        let mut answer: serde_json::Value =
+            serde_json::from_str(&sign(&mut new_phone, &by_name_options.1)).unwrap();
+        let handle = Uuid::parse_str(&ann.user_id).unwrap().as_bytes().to_vec();
+        answer["response"]["userHandle"] =
+            serde_json::to_value(webauthn_rs::prelude::Base64UrlSafeData::from(handle)).unwrap();
+        let waiting_sign_in = svc
+            .login_finish(Request::new(LoginFinishRequest {
+                challenge_id: by_name_options.0,
+                credential_json: answer.to_string(),
+            }))
+            .await
+            .unwrap_err();
+        assert_eq!(waiting_sign_in.code(), tonic::Code::PermissionDenied);
+        assert_eq!(
+            waiting_sign_in
+                .metadata()
+                .get(RECOVERY_REQUEST_HEADER)
+                .and_then(|v| v.to_str().ok()),
+            Some(start.request_id.as_str())
+        );
 
         // The account's owner, still signed in, hears of it.
         let heard = svc

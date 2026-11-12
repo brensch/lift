@@ -85,6 +85,20 @@ impl Refusal {
     }
 }
 
+/// What a finished sign-in came to.
+pub enum SignIn {
+    /// A login: its token, the user's id and name.
+    In {
+        token: String,
+        user_id: String,
+        username: String,
+    },
+    /// The passkey is one held for a recovery an admin has not approved
+    /// yet: it signs nothing in, and whoever holds it may read that
+    /// request (its code, how it stands).
+    AwaitingApproval { request_id: String },
+}
+
 /// The server failed: logged here, and the caller hears only that it did.
 fn internal(what: &str, error: impl std::fmt::Display) -> Refusal {
     error!(%error, "{what}");
@@ -532,7 +546,7 @@ impl AuthState {
         &self,
         challenge_id: &str,
         cred: &PublicKeyCredential,
-    ) -> Result<(String, String, String), Refusal> {
+    ) -> Result<SignIn, Refusal> {
         let pending = self
             .auth_challenges
             .lock()
@@ -591,8 +605,32 @@ impl AuthState {
                     let held: &[u8] = pk.cred_id().as_ref();
                     held == presented
                 }) {
-                    warn!(%challenge_id, %user_id, "sign-in with a passkey no account holds");
-                    return Err(Refusal::UnknownPasskey);
+                    // It may be one made at /recover and still waiting:
+                    // then this is its maker, back for their code.
+                    let waiting = self
+                        .db
+                        .held_passkeys(&user_id)
+                        .await
+                        .map_err(|e| internal("reading recoveries", e))?
+                        .into_iter()
+                        .find_map(|(request_id, json)| {
+                            let passkey: Passkey = serde_json::from_str(&json).ok()?;
+                            let held: &[u8] = passkey.cred_id().as_ref();
+                            (held == presented).then_some((request_id, passkey))
+                        });
+                    let Some((request_id, passkey)) = waiting else {
+                        warn!(%challenge_id, %user_id, "sign-in with a passkey no account holds");
+                        return Err(Refusal::UnknownPasskey);
+                    };
+                    // Only for a signature the held passkey really made.
+                    self.webauthn
+                        .finish_discoverable_authentication(
+                            cred,
+                            auth_state,
+                            &[DiscoverableKey::from(passkey)],
+                        )
+                        .map_err(failed)?;
+                    return Ok(SignIn::AwaitingApproval { request_id });
                 }
 
                 let discoverable_keys: Vec<DiscoverableKey> =
@@ -627,7 +665,11 @@ impl AuthState {
             .map_err(|e| internal("reading the user", e))?
             .ok_or(Refusal::UnknownPasskey)?;
 
-        Ok((token, user_id, user.name))
+        Ok(SignIn::In {
+            token,
+            user_id,
+            username: user.name,
+        })
     }
 
     /// A passkey already held by an account can't be registered again, to

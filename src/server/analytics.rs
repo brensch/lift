@@ -16,6 +16,8 @@ const MAX_VIEW_AGE_MS: i64 = 30 * 86_400 * 1000;
 const TRAIL_LIMIT: i64 = 500;
 /// The most workouts one training answer lists; the counts cover them all.
 const MAX_WORKOUTS_LISTED: usize = 500;
+/// The workouts shown of the account a recovery asks for.
+const RECENT_WORKOUTS_SHOWN: usize = 8;
 /// Accounts folded at once for a training answer.
 const FOLDS_AT_ONCE: usize = 8;
 
@@ -364,6 +366,136 @@ impl AdminService for ServerAdminService {
             .map(recovery_request)
             .collect();
         Ok(Response::new(ListRecoveriesResponse { recoveries }))
+    }
+
+    /// The waiting request a code belongs to, with the account it asks
+    /// for laid out: what its owner would know and a stranger would not,
+    /// for the admin to ask about before approving.
+    async fn get_recovery(
+        &self,
+        request: Request<GetRecoveryRequest>,
+    ) -> Result<Response<GetRecoveryResponse>, Status> {
+        let admin_id = authed_admin_id(&request, &self.db).await?;
+        let code = request.into_inner().code;
+        let nothing = || Status::not_found("No waiting request has that code.");
+        let recovery = self
+            .db
+            .recovery_by_code(&code)
+            .await
+            .map_err(internal_error)?
+            .ok_or_else(nothing)?;
+        info!(rpc = "GetRecovery", %admin_id, username = %recovery.username, "request");
+        let user_id = recovery.user_id.clone();
+        let user = self
+            .db
+            .get_user(&user_id)
+            .await
+            .map_err(internal_error)?
+            .ok_or_else(nothing)?;
+        let row = self
+            .db
+            .account_row(&user_id)
+            .await
+            .map_err(internal_error)?
+            .ok_or_else(nothing)?;
+
+        let now = now_unix();
+        let (training, templates) = self
+            .db
+            .read_account(&user_id, move |account| {
+                let training = Training {
+                    workouts: View::new(account, now).list_workout_summaries().workouts,
+                    lifting_now: account.active_workout().is_some(),
+                };
+                let templates = account.templates.iter().map(|t| t.name.clone()).collect();
+                (training, templates)
+            })
+            .await
+            .map_err(internal_error)?;
+        let together = self
+            .db
+            .workouts_done_together()
+            .await
+            .map_err(internal_error)?;
+        // The one account's training, all of it: the window is all time.
+        let mut stats = training_stats(vec![(row, training)], &together, 0, 0);
+        stats.workouts.truncate(RECENT_WORKOUTS_SHOWN);
+
+        let mut partners = Vec::new();
+        for (partner_id, sessions_together, last_trained_at) in self
+            .db
+            .list_training_partners(&user_id)
+            .await
+            .map_err(internal_error)?
+        {
+            if let Some(partner) = self
+                .db
+                .get_user(&partner_id)
+                .await
+                .map_err(internal_error)?
+            {
+                partners.push(AdminPartner {
+                    username: partner.name,
+                    sessions_together: sessions_together as i32,
+                    last_trained_at,
+                });
+            }
+        }
+        partners.sort_by_key(|a| std::cmp::Reverse(a.sessions_together));
+
+        let passkeys = self
+            .db
+            .list_passkey_metadata(&user_id)
+            .await
+            .map_err(internal_error)?
+            .into_iter()
+            .map(|(_, created_at, json, created_ip)| {
+                let value: serde_json::Value =
+                    serde_json::from_str(&json).unwrap_or(serde_json::Value::Null);
+                let strings = |key: &str| -> Vec<String> {
+                    value
+                        .get(key)
+                        .and_then(|t| t.as_array())
+                        .map(|items| {
+                            items
+                                .iter()
+                                .filter_map(|item| item.as_str().map(str::to_string))
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                };
+                AdminPasskey {
+                    name: value
+                        .get("cred_name")
+                        .and_then(|n| n.as_str())
+                        .unwrap_or_default()
+                        .to_string(),
+                    created_at,
+                    created_ip: created_ip.unwrap_or_default(),
+                    transports: strings("transports"),
+                }
+            })
+            .collect();
+
+        Ok(Response::new(GetRecoveryResponse {
+            account: Some(RecoveryAccount {
+                user: stats.users.pop(),
+                emoji: user.profile_emoji,
+                color_hex: user.profile_color_hex,
+                body_weight_kg: user.body_weight_kg as f64,
+                last_active_at: self
+                    .db
+                    .last_login_use(&user_id)
+                    .await
+                    .map_err(internal_error)?,
+                passkeys,
+                partners,
+                templates,
+                recent_workouts: stats.workouts,
+                lifts: stats.exercises,
+            }),
+            recovery: Some(recovery_request(recovery)),
+        }))
     }
 
     /// Approve the request whose code the admin was sent, or refuse one.
@@ -864,6 +996,32 @@ mod tests {
             .recoveries;
         assert_eq!(listed.len(), 2);
         assert!(listed.iter().all(|r| r.status == "pending"));
+
+        // The code opens the account it asks for, to question its maker on.
+        let look = |code: &str, token: &str| {
+            admin.get_recovery(authed(
+                GetRecoveryRequest {
+                    code: code.to_string(),
+                },
+                token,
+            ))
+        };
+        let refused = look(&code, &lifter_token).await;
+        assert_eq!(refused.unwrap_err().code(), tonic::Code::PermissionDenied);
+        let unknown = look("NOPE-NOPE", &admin_token).await;
+        assert_eq!(unknown.unwrap_err().code(), tonic::Code::NotFound);
+        let opened = look(&code.to_lowercase(), &admin_token)
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(opened.recovery.unwrap().request_id, "r1");
+        let account = opened.account.unwrap();
+        let user = account.user.unwrap();
+        assert_eq!(user.username, "lifter");
+        assert_eq!(user.workouts, 1);
+        assert_eq!(account.recent_workouts.len(), 1);
+        assert!(!account.emoji.is_empty());
+        assert!(account.last_active_at > 0, "the lifter is signed in");
 
         use decide_recovery_request::Request as Decision;
         let decide = |request: Decision| {

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/use-auth";
 import { useIsAdmin } from "@/lib/use-is-admin";
+import { waitingRecovery } from "@/lib/recovery";
 
 const publicNavItems = [
   { to: "/", label: "Home" },
@@ -20,9 +21,13 @@ export function Layout() {
   const isAdmin = useIsAdmin();
   const navItems = isAdmin ? [...publicNavItems, { to: "/admin", label: "Stats" }] : publicNavItems;
 
+  // Someone waiting on a recovery is not signed in, but has somewhere to be:
+  // their code. (Read on every navigation: this renders on each one.)
   const authLink = user
     ? { to: "/dashboard", label: user.username }
-    : { to: "/login", label: "Sign In" };
+    : waitingRecovery()
+      ? { to: "/recover", label: "Waiting for approval" }
+      : { to: "/login", label: "Sign In" };
 
   return (
     <div className="min-h-screen flex flex-col">

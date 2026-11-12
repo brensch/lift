@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/analytics.proto.
  */
 export const file_workout_v1_analytics: GenFile = /*@__PURE__*/
-  fileDesc("Chp3b3Jrb3V0L3YxL2FuYWx5dGljcy5wcm90bxIKd29ya291dC52MSJpCghQYWdlVmlldxIWCg5hcHBfc2Vzc2lvbl9pZBgBIAEoCRILCgNzZXEYAiABKAUSDAoEcGFnZRgDIAEoCRIVCg1lbnRlcmVkX2F0X21zGAQgASgDEhMKC2R1cmF0aW9uX21zGAUgASgDIj0KFlJlY29yZFBhZ2VWaWV3c1JlcXVlc3QSIwoFdmlld3MYASADKAsyFC53b3Jrb3V0LnYxLlBhZ2VWaWV3IisKF1JlY29yZFBhZ2VWaWV3c1Jlc3BvbnNlEhAKCGFjY2VwdGVkGAEgASgFIhcKFUdldEFkbWluU3RhdHVzUmVxdWVzdCIqChZHZXRBZG1pblN0YXR1c1Jlc3BvbnNlEhAKCGlzX2FkbWluGAEgASgIIjcKD0dldFN0YXRzUmVxdWVzdBIMCgRkYXlzGAEgASgFEhYKDnRyYWlsX3VzZXJuYW1lGAIgASgJInQKCFBhZ2VTdGF0EgwKBHBhZ2UYASABKAkSDQoFdmlld3MYAiABKAMSFAoMdW5pcXVlX3VzZXJzGAMgASgDEhoKEm1lZGlhbl9kdXJhdGlvbl9tcxgEIAEoAxIZChF0b3RhbF9kdXJhdGlvbl9tcxgFIAEoAyI9CglEYWlseVN0YXQSCwoDZGF5GAEgASgJEg0KBXZpZXdzGAIgASgDEhQKDHVuaXF1ZV91c2VycxgDIAEoAyJ2Cg9BdXRoQXR0ZW1wdFN0YXQSDAoEa2luZBgBIAEoCRIQCghwbGF0Zm9ybRgCIAEoCRITCgthcHBfdmVyc2lvbhgDIAEoCRIPCgdvdXRjb21lGAQgASgJEg4KBnJlYXNvbhgFIAEoCRINCgVjb3VudBgGIAEoAyJFCgxVc2VyQWN0aXZpdHkSEAoIdXNlcm5hbWUYASABKAkSDQoFdmlld3MYAiABKAMSFAoMbGFzdF9zZWVuX21zGAMgASgDIoUBCgpUcmFpbEVudHJ5EgwKBHBhZ2UYASABKAkSFQoNZW50ZXJlZF9hdF9tcxgCIAEoAxITCgtkdXJhdGlvbl9tcxgDIAEoAxIWCg5hcHBfc2Vzc2lvbl9pZBgEIAEoCRIQCghwbGF0Zm9ybRgFIAEoCRITCgthcHBfdmVyc2lvbhgGIAEoCSKtAgoQR2V0U3RhdHNSZXNwb25zZRIMCgRkYXlzGAEgASgFEiMKBXBhZ2VzGAIgAygLMhQud29ya291dC52MS5QYWdlU3RhdBIkCgVkYWlseRgDIAMoCzIVLndvcmtvdXQudjEuRGFpbHlTdGF0EjIKDWF1dGhfYXR0ZW1wdHMYBCADKAsyGy53b3Jrb3V0LnYxLkF1dGhBdHRlbXB0U3RhdBInCgV1c2VycxgFIAMoCzIYLndvcmtvdXQudjEuVXNlckFjdGl2aXR5EiUKBXRyYWlsGAYgAygLMhYud29ya291dC52MS5UcmFpbEVudHJ5EhMKC3RvdGFsX3VzZXJzGAcgASgDEhEKCW5ld191c2VycxgIIAEoAxIUCgxhY3RpdmVfdXNlcnMYCSABKAMiJwoXR2V0VHJhaW5pbmdTdGF0c1JlcXVlc3QSDAoEZGF5cxgBIAEoBSKhAgoJQWRtaW5Vc2VyEhAKCHVzZXJuYW1lGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSFAoMbGFzdF9zZWVuX21zGAMgASgDEhAKCHBsYXRmb3JtGAQgASgJEhMKC2FwcF92ZXJzaW9uGAUgASgJEhAKCHBhc3NrZXlzGAYgASgFEg4KBmxvZ2lucxgHIAEoBRIQCgh3b3Jrb3V0cxgIIAEoBRIaChJ3b3Jrb3V0c19pbl93aW5kb3cYCSABKAUSFwoPbGFzdF93b3Jrb3V0X2F0GAogASgDEhEKCXZvbHVtZV9sYhgLIAEoARIOCgZldmVudHMYDCABKAMSEAoIaXNfYWRtaW4YDSABKAgSEwoLbGlmdGluZ19ub3cYDiABKAgiogEKDEFkbWluV29ya291dBIQCgh1c2VybmFtZRgBIAEoCRIMCgRuYW1lGAIgASgJEhIKCnN0YXJ0X3RpbWUYAyABKAMSGAoQZHVyYXRpb25fc2Vjb25kcxgEIAEoAxIRCgl2b2x1bWVfbGIYBSABKAESDAoEc2V0cxgGIAEoBRIRCglleGVyY2lzZXMYByABKAUSEAoIdG9nZXRoZXIYCCABKAgiQwoLVHJhaW5pbmdEYXkSEQoJZXBvY2hfZGF5GAEgASgDEhAKCHdvcmtvdXRzGAIgASgDEg8KB2xpZnRlcnMYAyABKAMiZwoLRXhlcmNpc2VVc2USJgoIZXhlcmNpc2UYASABKA4yFC53b3Jrb3V0LnYxLkV4ZXJjaXNlEgwKBHNldHMYAiABKAMSDwoHbGlmdGVycxgDIAEoAxIRCgl2b2x1bWVfbGIYBCABKAEiugIKGEdldFRyYWluaW5nU3RhdHNSZXNwb25zZRIMCgRkYXlzGAEgASgFEiQKBXVzZXJzGAIgAygLMhUud29ya291dC52MS5BZG1pblVzZXISKgoId29ya291dHMYAyADKAsyGC53b3Jrb3V0LnYxLkFkbWluV29ya291dBImCgVkYWlseRgEIAMoCzIXLndvcmtvdXQudjEuVHJhaW5pbmdEYXkSKgoJZXhlcmNpc2VzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZVVzZRIaChJ3b3Jrb3V0c19pbl93aW5kb3cYBiABKAMSGQoRbGlmdGVyc19pbl93aW5kb3cYByABKAMSFgoOd29ya291dHNfdG90YWwYCCABKAMSGwoTdm9sdW1lX2xiX2luX3dpbmRvdxgJIAEoASLNAQoPUmVjb3ZlcnlSZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoAxIQCghwbGF0Zm9ybRgEIAEoCRISCgpjcmVhdGVkX2lwGAUgASgJEhAKCHBhc3NrZXlzGAYgASgFEg4KBmxvZ2lucxgHIAEoBRIUCgxsYXN0X3NlZW5fbXMYCCABKAMSDgoGc3RhdHVzGAkgASgJEhIKCmRlY2lkZWRfYXQYCiABKAMiFwoVTGlzdFJlY292ZXJpZXNSZXF1ZXN0IkkKFkxpc3RSZWNvdmVyaWVzUmVzcG9uc2USLwoKcmVjb3ZlcmllcxgBIAMoCzIbLndvcmtvdXQudjEuUmVjb3ZlcnlSZXF1ZXN0InQKFURlY2lkZVJlY292ZXJ5UmVxdWVzdBIWCgxhcHByb3ZlX2NvZGUYASABKAlIABIZCg9kZW55X3JlcXVlc3RfaWQYAiABKAlIABIdChVyZW1vdmVfb3RoZXJfcGFzc2tleXMYAyABKAhCCQoHcmVxdWVzdCJHChZEZWNpZGVSZWNvdmVyeVJlc3BvbnNlEi0KCHJlY292ZXJ5GAEgASgLMhsud29ya291dC52MS5SZWNvdmVyeVJlcXVlc3QybgoQQW5hbHl0aWNzU2VydmljZRJaCg9SZWNvcmRQYWdlVmlld3MSIi53b3Jrb3V0LnYxLlJlY29yZFBhZ2VWaWV3c1JlcXVlc3QaIy53b3Jrb3V0LnYxLlJlY29yZFBhZ2VWaWV3c1Jlc3BvbnNlMr8DCgxBZG1pblNlcnZpY2USVwoOR2V0QWRtaW5TdGF0dXMSIS53b3Jrb3V0LnYxLkdldEFkbWluU3RhdHVzUmVxdWVzdBoiLndvcmtvdXQudjEuR2V0QWRtaW5TdGF0dXNSZXNwb25zZRJFCghHZXRTdGF0cxIbLndvcmtvdXQudjEuR2V0U3RhdHNSZXF1ZXN0Ghwud29ya291dC52MS5HZXRTdGF0c1Jlc3BvbnNlEl0KEEdldFRyYWluaW5nU3RhdHMSIy53b3Jrb3V0LnYxLkdldFRyYWluaW5nU3RhdHNSZXF1ZXN0GiQud29ya291dC52MS5HZXRUcmFpbmluZ1N0YXRzUmVzcG9uc2USVwoOTGlzdFJlY292ZXJpZXMSIS53b3Jrb3V0LnYxLkxpc3RSZWNvdmVyaWVzUmVxdWVzdBoiLndvcmtvdXQudjEuTGlzdFJlY292ZXJpZXNSZXNwb25zZRJXCg5EZWNpZGVSZWNvdmVyeRIhLndvcmtvdXQudjEuRGVjaWRlUmVjb3ZlcnlSZXF1ZXN0GiIud29ya291dC52MS5EZWNpZGVSZWNvdmVyeVJlc3BvbnNlYgZwcm90bzM", [file_workout_v1_workout]);
+  fileDesc("Chp3b3Jrb3V0L3YxL2FuYWx5dGljcy5wcm90bxIKd29ya291dC52MSJpCghQYWdlVmlldxIWCg5hcHBfc2Vzc2lvbl9pZBgBIAEoCRILCgNzZXEYAiABKAUSDAoEcGFnZRgDIAEoCRIVCg1lbnRlcmVkX2F0X21zGAQgASgDEhMKC2R1cmF0aW9uX21zGAUgASgDIj0KFlJlY29yZFBhZ2VWaWV3c1JlcXVlc3QSIwoFdmlld3MYASADKAsyFC53b3Jrb3V0LnYxLlBhZ2VWaWV3IisKF1JlY29yZFBhZ2VWaWV3c1Jlc3BvbnNlEhAKCGFjY2VwdGVkGAEgASgFIhcKFUdldEFkbWluU3RhdHVzUmVxdWVzdCIqChZHZXRBZG1pblN0YXR1c1Jlc3BvbnNlEhAKCGlzX2FkbWluGAEgASgIIjcKD0dldFN0YXRzUmVxdWVzdBIMCgRkYXlzGAEgASgFEhYKDnRyYWlsX3VzZXJuYW1lGAIgASgJInQKCFBhZ2VTdGF0EgwKBHBhZ2UYASABKAkSDQoFdmlld3MYAiABKAMSFAoMdW5pcXVlX3VzZXJzGAMgASgDEhoKEm1lZGlhbl9kdXJhdGlvbl9tcxgEIAEoAxIZChF0b3RhbF9kdXJhdGlvbl9tcxgFIAEoAyI9CglEYWlseVN0YXQSCwoDZGF5GAEgASgJEg0KBXZpZXdzGAIgASgDEhQKDHVuaXF1ZV91c2VycxgDIAEoAyJ2Cg9BdXRoQXR0ZW1wdFN0YXQSDAoEa2luZBgBIAEoCRIQCghwbGF0Zm9ybRgCIAEoCRITCgthcHBfdmVyc2lvbhgDIAEoCRIPCgdvdXRjb21lGAQgASgJEg4KBnJlYXNvbhgFIAEoCRINCgVjb3VudBgGIAEoAyJFCgxVc2VyQWN0aXZpdHkSEAoIdXNlcm5hbWUYASABKAkSDQoFdmlld3MYAiABKAMSFAoMbGFzdF9zZWVuX21zGAMgASgDIoUBCgpUcmFpbEVudHJ5EgwKBHBhZ2UYASABKAkSFQoNZW50ZXJlZF9hdF9tcxgCIAEoAxITCgtkdXJhdGlvbl9tcxgDIAEoAxIWCg5hcHBfc2Vzc2lvbl9pZBgEIAEoCRIQCghwbGF0Zm9ybRgFIAEoCRITCgthcHBfdmVyc2lvbhgGIAEoCSKtAgoQR2V0U3RhdHNSZXNwb25zZRIMCgRkYXlzGAEgASgFEiMKBXBhZ2VzGAIgAygLMhQud29ya291dC52MS5QYWdlU3RhdBIkCgVkYWlseRgDIAMoCzIVLndvcmtvdXQudjEuRGFpbHlTdGF0EjIKDWF1dGhfYXR0ZW1wdHMYBCADKAsyGy53b3Jrb3V0LnYxLkF1dGhBdHRlbXB0U3RhdBInCgV1c2VycxgFIAMoCzIYLndvcmtvdXQudjEuVXNlckFjdGl2aXR5EiUKBXRyYWlsGAYgAygLMhYud29ya291dC52MS5UcmFpbEVudHJ5EhMKC3RvdGFsX3VzZXJzGAcgASgDEhEKCW5ld191c2VycxgIIAEoAxIUCgxhY3RpdmVfdXNlcnMYCSABKAMiJwoXR2V0VHJhaW5pbmdTdGF0c1JlcXVlc3QSDAoEZGF5cxgBIAEoBSKhAgoJQWRtaW5Vc2VyEhAKCHVzZXJuYW1lGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSFAoMbGFzdF9zZWVuX21zGAMgASgDEhAKCHBsYXRmb3JtGAQgASgJEhMKC2FwcF92ZXJzaW9uGAUgASgJEhAKCHBhc3NrZXlzGAYgASgFEg4KBmxvZ2lucxgHIAEoBRIQCgh3b3Jrb3V0cxgIIAEoBRIaChJ3b3Jrb3V0c19pbl93aW5kb3cYCSABKAUSFwoPbGFzdF93b3Jrb3V0X2F0GAogASgDEhEKCXZvbHVtZV9sYhgLIAEoARIOCgZldmVudHMYDCABKAMSEAoIaXNfYWRtaW4YDSABKAgSEwoLbGlmdGluZ19ub3cYDiABKAgiogEKDEFkbWluV29ya291dBIQCgh1c2VybmFtZRgBIAEoCRIMCgRuYW1lGAIgASgJEhIKCnN0YXJ0X3RpbWUYAyABKAMSGAoQZHVyYXRpb25fc2Vjb25kcxgEIAEoAxIRCgl2b2x1bWVfbGIYBSABKAESDAoEc2V0cxgGIAEoBRIRCglleGVyY2lzZXMYByABKAUSEAoIdG9nZXRoZXIYCCABKAgiQwoLVHJhaW5pbmdEYXkSEQoJZXBvY2hfZGF5GAEgASgDEhAKCHdvcmtvdXRzGAIgASgDEg8KB2xpZnRlcnMYAyABKAMiZwoLRXhlcmNpc2VVc2USJgoIZXhlcmNpc2UYASABKA4yFC53b3Jrb3V0LnYxLkV4ZXJjaXNlEgwKBHNldHMYAiABKAMSDwoHbGlmdGVycxgDIAEoAxIRCgl2b2x1bWVfbGIYBCABKAEiugIKGEdldFRyYWluaW5nU3RhdHNSZXNwb25zZRIMCgRkYXlzGAEgASgFEiQKBXVzZXJzGAIgAygLMhUud29ya291dC52MS5BZG1pblVzZXISKgoId29ya291dHMYAyADKAsyGC53b3Jrb3V0LnYxLkFkbWluV29ya291dBImCgVkYWlseRgEIAMoCzIXLndvcmtvdXQudjEuVHJhaW5pbmdEYXkSKgoJZXhlcmNpc2VzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZVVzZRIaChJ3b3Jrb3V0c19pbl93aW5kb3cYBiABKAMSGQoRbGlmdGVyc19pbl93aW5kb3cYByABKAMSFgoOd29ya291dHNfdG90YWwYCCABKAMSGwoTdm9sdW1lX2xiX2luX3dpbmRvdxgJIAEoASLNAQoPUmVjb3ZlcnlSZXF1ZXN0EhIKCnJlcXVlc3RfaWQYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoAxIQCghwbGF0Zm9ybRgEIAEoCRISCgpjcmVhdGVkX2lwGAUgASgJEhAKCHBhc3NrZXlzGAYgASgFEg4KBmxvZ2lucxgHIAEoBRIUCgxsYXN0X3NlZW5fbXMYCCABKAMSDgoGc3RhdHVzGAkgASgJEhIKCmRlY2lkZWRfYXQYCiABKAMiFwoVTGlzdFJlY292ZXJpZXNSZXF1ZXN0IkkKFkxpc3RSZWNvdmVyaWVzUmVzcG9uc2USLwoKcmVjb3ZlcmllcxgBIAMoCzIbLndvcmtvdXQudjEuUmVjb3ZlcnlSZXF1ZXN0IiIKEkdldFJlY292ZXJ5UmVxdWVzdBIMCgRjb2RlGAEgASgJIlgKDEFkbWluUGFzc2tleRIMCgRuYW1lGAEgASgJEhIKCmNyZWF0ZWRfYXQYAiABKAMSEgoKY3JlYXRlZF9pcBgDIAEoCRISCgp0cmFuc3BvcnRzGAQgAygJIlQKDEFkbWluUGFydG5lchIQCgh1c2VybmFtZRgBIAEoCRIZChFzZXNzaW9uc190b2dldGhlchgCIAEoBRIXCg9sYXN0X3RyYWluZWRfYXQYAyABKAMizgIKD1JlY292ZXJ5QWNjb3VudBIjCgR1c2VyGAEgASgLMhUud29ya291dC52MS5BZG1pblVzZXISDQoFZW1vamkYAiABKAkSEQoJY29sb3JfaGV4GAMgASgJEhYKDmJvZHlfd2VpZ2h0X2tnGAQgASgBEhYKDmxhc3RfYWN0aXZlX2F0GAUgASgDEioKCHBhc3NrZXlzGAYgAygLMhgud29ya291dC52MS5BZG1pblBhc3NrZXkSKgoIcGFydG5lcnMYByADKAsyGC53b3Jrb3V0LnYxLkFkbWluUGFydG5lchIRCgl0ZW1wbGF0ZXMYCCADKAkSMQoPcmVjZW50X3dvcmtvdXRzGAkgAygLMhgud29ya291dC52MS5BZG1pbldvcmtvdXQSJgoFbGlmdHMYCiADKAsyFy53b3Jrb3V0LnYxLkV4ZXJjaXNlVXNlInIKE0dldFJlY292ZXJ5UmVzcG9uc2USLQoIcmVjb3ZlcnkYASABKAsyGy53b3Jrb3V0LnYxLlJlY292ZXJ5UmVxdWVzdBIsCgdhY2NvdW50GAIgASgLMhsud29ya291dC52MS5SZWNvdmVyeUFjY291bnQidAoVRGVjaWRlUmVjb3ZlcnlSZXF1ZXN0EhYKDGFwcHJvdmVfY29kZRgBIAEoCUgAEhkKD2RlbnlfcmVxdWVzdF9pZBgCIAEoCUgAEh0KFXJlbW92ZV9vdGhlcl9wYXNza2V5cxgDIAEoCEIJCgdyZXF1ZXN0IkcKFkRlY2lkZVJlY292ZXJ5UmVzcG9uc2USLQoIcmVjb3ZlcnkYASABKAsyGy53b3Jrb3V0LnYxLlJlY292ZXJ5UmVxdWVzdDJuChBBbmFseXRpY3NTZXJ2aWNlEloKD1JlY29yZFBhZ2VWaWV3cxIiLndvcmtvdXQudjEuUmVjb3JkUGFnZVZpZXdzUmVxdWVzdBojLndvcmtvdXQudjEuUmVjb3JkUGFnZVZpZXdzUmVzcG9uc2UyjwQKDEFkbWluU2VydmljZRJXCg5HZXRBZG1pblN0YXR1cxIhLndvcmtvdXQudjEuR2V0QWRtaW5TdGF0dXNSZXF1ZXN0GiIud29ya291dC52MS5HZXRBZG1pblN0YXR1c1Jlc3BvbnNlEkUKCEdldFN0YXRzEhsud29ya291dC52MS5HZXRTdGF0c1JlcXVlc3QaHC53b3Jrb3V0LnYxLkdldFN0YXRzUmVzcG9uc2USXQoQR2V0VHJhaW5pbmdTdGF0cxIjLndvcmtvdXQudjEuR2V0VHJhaW5pbmdTdGF0c1JlcXVlc3QaJC53b3Jrb3V0LnYxLkdldFRyYWluaW5nU3RhdHNSZXNwb25zZRJXCg5MaXN0UmVjb3ZlcmllcxIhLndvcmtvdXQudjEuTGlzdFJlY292ZXJpZXNSZXF1ZXN0GiIud29ya291dC52MS5MaXN0UmVjb3Zlcmllc1Jlc3BvbnNlEk4KC0dldFJlY292ZXJ5Eh4ud29ya291dC52MS5HZXRSZWNvdmVyeVJlcXVlc3QaHy53b3Jrb3V0LnYxLkdldFJlY292ZXJ5UmVzcG9uc2USVwoORGVjaWRlUmVjb3ZlcnkSIS53b3Jrb3V0LnYxLkRlY2lkZVJlY292ZXJ5UmVxdWVzdBoiLndvcmtvdXQudjEuRGVjaWRlUmVjb3ZlcnlSZXNwb25zZWIGcHJvdG8z", [file_workout_v1_workout]);
 
 /**
  * One screen visit. `page` is a stable slug — a go_router path template
@@ -811,6 +811,187 @@ export const ListRecoveriesResponseSchema: GenMessage<ListRecoveriesResponse> = 
   messageDesc(file_workout_v1_analytics, 20);
 
 /**
+ * @generated from message workout.v1.GetRecoveryRequest
+ */
+export type GetRecoveryRequest = Message<"workout.v1.GetRecoveryRequest"> & {
+  /**
+   * The code the person sent.
+   *
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message workout.v1.GetRecoveryRequest.
+ * Use `create(GetRecoveryRequestSchema)` to create a new message.
+ */
+export const GetRecoveryRequestSchema: GenMessage<GetRecoveryRequest> = /*@__PURE__*/
+  messageDesc(file_workout_v1_analytics, 21);
+
+/**
+ * @generated from message workout.v1.AdminPasskey
+ */
+export type AdminPasskey = Message<"workout.v1.AdminPasskey"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Unix seconds
+   *
+   * @generated from field: int64 created_at = 2;
+   */
+  createdAt: bigint;
+
+  /**
+   * @generated from field: string created_ip = 3;
+   */
+  createdIp: string;
+
+  /**
+   * @generated from field: repeated string transports = 4;
+   */
+  transports: string[];
+};
+
+/**
+ * Describes the message workout.v1.AdminPasskey.
+ * Use `create(AdminPasskeySchema)` to create a new message.
+ */
+export const AdminPasskeySchema: GenMessage<AdminPasskey> = /*@__PURE__*/
+  messageDesc(file_workout_v1_analytics, 22);
+
+/**
+ * @generated from message workout.v1.AdminPartner
+ */
+export type AdminPartner = Message<"workout.v1.AdminPartner"> & {
+  /**
+   * @generated from field: string username = 1;
+   */
+  username: string;
+
+  /**
+   * @generated from field: int32 sessions_together = 2;
+   */
+  sessionsTogether: number;
+
+  /**
+   * Unix seconds
+   *
+   * @generated from field: int64 last_trained_at = 3;
+   */
+  lastTrainedAt: bigint;
+};
+
+/**
+ * Describes the message workout.v1.AdminPartner.
+ * Use `create(AdminPartnerSchema)` to create a new message.
+ */
+export const AdminPartnerSchema: GenMessage<AdminPartner> = /*@__PURE__*/
+  messageDesc(file_workout_v1_analytics, 23);
+
+/**
+ * The account a recovery asks for, in enough detail to question whoever is
+ * asking: things its owner would know and a stranger would not.
+ *
+ * @generated from message workout.v1.RecoveryAccount
+ */
+export type RecoveryAccount = Message<"workout.v1.RecoveryAccount"> & {
+  /**
+   * @generated from field: workout.v1.AdminUser user = 1;
+   */
+  user?: AdminUser | undefined;
+
+  /**
+   * @generated from field: string emoji = 2;
+   */
+  emoji: string;
+
+  /**
+   * @generated from field: string color_hex = 3;
+   */
+  colorHex: string;
+
+  /**
+   * 0 = never set
+   *
+   * @generated from field: double body_weight_kg = 4;
+   */
+  bodyWeightKg: number;
+
+  /**
+   * The latest use of a signed-in device, to within a day; 0 = none signed in.
+   *
+   * @generated from field: int64 last_active_at = 5;
+   */
+  lastActiveAt: bigint;
+
+  /**
+   * @generated from field: repeated workout.v1.AdminPasskey passkeys = 6;
+   */
+  passkeys: AdminPasskey[];
+
+  /**
+   * most trained with first
+   *
+   * @generated from field: repeated workout.v1.AdminPartner partners = 7;
+   */
+  partners: AdminPartner[];
+
+  /**
+   * their saved workouts, in their order
+   *
+   * @generated from field: repeated string templates = 8;
+   */
+  templates: string[];
+
+  /**
+   * newest first
+   *
+   * @generated from field: repeated workout.v1.AdminWorkout recent_workouts = 9;
+   */
+  recentWorkouts: AdminWorkout[];
+
+  /**
+   * all time, most sets first
+   *
+   * @generated from field: repeated workout.v1.ExerciseUse lifts = 10;
+   */
+  lifts: ExerciseUse[];
+};
+
+/**
+ * Describes the message workout.v1.RecoveryAccount.
+ * Use `create(RecoveryAccountSchema)` to create a new message.
+ */
+export const RecoveryAccountSchema: GenMessage<RecoveryAccount> = /*@__PURE__*/
+  messageDesc(file_workout_v1_analytics, 24);
+
+/**
+ * @generated from message workout.v1.GetRecoveryResponse
+ */
+export type GetRecoveryResponse = Message<"workout.v1.GetRecoveryResponse"> & {
+  /**
+   * @generated from field: workout.v1.RecoveryRequest recovery = 1;
+   */
+  recovery?: RecoveryRequest | undefined;
+
+  /**
+   * @generated from field: workout.v1.RecoveryAccount account = 2;
+   */
+  account?: RecoveryAccount | undefined;
+};
+
+/**
+ * Describes the message workout.v1.GetRecoveryResponse.
+ * Use `create(GetRecoveryResponseSchema)` to create a new message.
+ */
+export const GetRecoveryResponseSchema: GenMessage<GetRecoveryResponse> = /*@__PURE__*/
+  messageDesc(file_workout_v1_analytics, 25);
+
+/**
  * @generated from message workout.v1.DecideRecoveryRequest
  */
 export type DecideRecoveryRequest = Message<"workout.v1.DecideRecoveryRequest"> & {
@@ -849,7 +1030,7 @@ export type DecideRecoveryRequest = Message<"workout.v1.DecideRecoveryRequest"> 
  * Use `create(DecideRecoveryRequestSchema)` to create a new message.
  */
 export const DecideRecoveryRequestSchema: GenMessage<DecideRecoveryRequest> = /*@__PURE__*/
-  messageDesc(file_workout_v1_analytics, 21);
+  messageDesc(file_workout_v1_analytics, 26);
 
 /**
  * @generated from message workout.v1.DecideRecoveryResponse
@@ -866,7 +1047,7 @@ export type DecideRecoveryResponse = Message<"workout.v1.DecideRecoveryResponse"
  * Use `create(DecideRecoveryResponseSchema)` to create a new message.
  */
 export const DecideRecoveryResponseSchema: GenMessage<DecideRecoveryResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_analytics, 22);
+  messageDesc(file_workout_v1_analytics, 27);
 
 /**
  * @generated from service workout.v1.AnalyticsService
@@ -932,6 +1113,17 @@ export const AdminService: GenService<{
     methodKind: "unary";
     input: typeof ListRecoveriesRequestSchema;
     output: typeof ListRecoveriesResponseSchema;
+  },
+  /**
+   * The waiting request a code belongs to, and the account it asks for: what
+   * the admin reads before approving. NOT_FOUND for a code nothing waits under.
+   *
+   * @generated from rpc workout.v1.AdminService.GetRecovery
+   */
+  getRecovery: {
+    methodKind: "unary";
+    input: typeof GetRecoveryRequestSchema;
+    output: typeof GetRecoveryResponseSchema;
   },
   /**
    * @generated from rpc workout.v1.AdminService.DecideRecovery

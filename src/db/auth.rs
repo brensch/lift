@@ -275,6 +275,19 @@ impl ServerDb {
         Ok(Some(user_id))
     }
 
+    /// When one of the user's logins was last used, to within a day (a
+    /// use slides its expiry; see `validate_auth_session`); 0 with none.
+    pub async fn last_login_use(&self, user_id: &str) -> DbResult<i64> {
+        let latest: Option<i64> = sqlx::query_scalar(
+            "SELECT MAX(expires_at) FROM logins WHERE user_id = ? AND expires_at > ?",
+        )
+        .bind(user_id)
+        .bind(now_unix())
+        .fetch_one(&self.read_pool)
+        .await?;
+        Ok(latest.map_or(0, |expires_at| expires_at - LOGIN_SECONDS))
+    }
+
     /// Sign a login out; the user's open streams hear of it and end the
     /// one it opened.
     pub async fn delete_auth_session(&self, token: &str) -> DbResult<()> {
