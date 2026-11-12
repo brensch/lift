@@ -72,11 +72,11 @@ function History() {
         <circle key={x} cx={x} cy={y} r="3" fill={PAPER} stroke={HOT} strokeWidth="2" />
       ))}
       <circle cx="178" cy="48" r="6" fill={HOT} />
-      <text x="20" y="34" fontFamily={MONO} fontSize="20" fontWeight="700" fill={INK}>
-        225
-        <tspan fontSize="10" fill={MUTED} dx="4">
-          LB
-        </tspan>
+      <text x="20" y="28" fontFamily={MONO} fontSize="14" fontWeight="700" fill={INK}>
+        225LB BENCH
+      </text>
+      <text x="20" y="43" fontFamily={MONO} fontSize="10" fill={MUTED}>
+        sick bro
       </text>
     </>
   );
@@ -93,58 +93,119 @@ function Saved() {
       {Array.from({ length: lifts }, (_, i) => (
         <rect key={i} x={12 + i * 20} y="27" width="15" height="6" rx="3" fill={LINE} />
       ))}
-      {kept && <path d="M128 10 h12 v22 l-6 -5 l-6 5 Z" fill={HOT} />}
+      {kept && <path d="M130 21 h10 v16 l-5 -4 l-5 4 Z" fill={HOT} />}
     </g>
   );
   return (
     <>
-      {card(28, "THAT SICK ONE", 5, true)}
-      {card(80, "LEG DAY", 4, false)}
+      {card(28, "CHEST - OF COURSE", 5, true)}
+      {card(80, "LEG DAY (JK)", 4, false)}
       {card(132, "BUTT AGAIN", 3, false)}
     </>
   );
 }
 
-/** A watch showing the pulse. */
+/** The watch app mid-set, as it looks on the wrist, pulse in the corner. */
 function HeartRate() {
+  const sets = [71, 90.4, 109.8, 129.2];
   return (
-    <>
+    <g transform="translate(100 100) scale(1.3) translate(-100 -100)">
       {/* The strap runs off the top and bottom of whatever box this is in. */}
-      <rect x="74" y="-400" width="52" height="1000" fill={LINE} />
-      <circle cx="100" cy="100" r="66" fill={INK} />
-      <circle cx="100" cy="100" r="58" fill="none" stroke={MUTED} strokeWidth="1" />
-      <path
-        d="M52 108 h20 l7 -26 l10 46 l8 -32 l6 12 h45"
-        fill="none"
-        stroke={HOT}
-        strokeWidth="3"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <text
-        x="100"
-        y="78"
-        textAnchor="middle"
-        fontFamily={MONO}
-        fontSize="24"
-        fontWeight="700"
-        fill={PAPER}
-      >
-        142
-      </text>
-      <text
-        x="100"
-        y="146"
-        textAnchor="middle"
-        fontFamily={MONO}
-        fontSize="9"
-        letterSpacing="1.5"
-        fill={PAPER}
-        opacity="0.7"
-      >
-        BPM
-      </text>
-    </>
+      <rect x="70" y="-400" width="60" height="1000" fill={LINE} />
+      <clipPath id="feature-watch-face">
+        <circle cx="100" cy="100" r="70" />
+      </clipPath>
+      <g clipPath="url(#feature-watch-face)">
+        <rect x="30" y="30" width="140" height="140" fill="var(--color-background)" />
+        {/* The sets: done, the one being lifted, two to go. */}
+        {sets.map((x, i) => (
+          <g key={x}>
+            <circle
+              cx={x}
+              cy="56.5"
+              r="7.6"
+              fill={i === 0 ? INK : i === 1 ? HOT : "none"}
+              stroke={i < 2 ? "none" : MUTED}
+            />
+            <text
+              x={x}
+              y="59"
+              textAnchor="middle"
+              fontFamily={MONO}
+              fontSize="7"
+              fontWeight="700"
+              fill={i === 0 ? PAPER : i === 1 ? INK : MUTED}
+            >
+              8
+            </text>
+          </g>
+        ))}
+        <rect x="30" y="69.4" width="140" height="26" fill={HOT} />
+        <text x="44" y="86" fontFamily={MONO} fontSize="8.5" fontWeight="700" fill={INK}>
+          LIFTING
+        </text>
+        <text
+          x="159"
+          y="88"
+          textAnchor="end"
+          fontFamily={MONO}
+          fontSize="14"
+          fontWeight="700"
+          fill={INK}
+        >
+          0:22
+        </text>
+        <rect x="30" y="95.4" width="140" height="62" fill={PAPER} />
+        <text x="39.5" y="105.5" fontSize="6" fill={MUTED}>
+          Bench Press · Set 2 of 4
+        </text>
+        <line x1="30" x2="170" y1="110" y2="110" stroke={LINE} />
+        <text x="46" y="134" fontFamily={MONO} fontSize="21" fontWeight="700" fill={INK}>
+          135
+        </text>
+        <text x="87" y="134" fontFamily={MONO} fontSize="6" fontWeight="700" fill={INK}>
+          lb
+        </text>
+        <text x="122" y="129" textAnchor="middle" fontFamily={MONO} fontSize="7" fill={INK}>
+          ×
+        </text>
+        <circle cx="141" cy="126.5" r="13" fill={HOT} />
+        <text
+          x="141"
+          y="130.5"
+          textAnchor="middle"
+          fontFamily={MONO}
+          fontSize="11"
+          fontWeight="700"
+          fill={INK}
+        >
+          8
+        </text>
+        <rect x="30" y="141.5" width="140" height="16" fill="var(--color-background)" />
+        <line x1="30" x2="170" y1="141.5" y2="141.5" stroke={LINE} />
+        <line x1="30" x2="170" y1="157.5" y2="157.5" stroke={LINE} />
+        <line x1="85.4" x2="85.4" y1="141.5" y2="157.5" stroke={LINE} />
+        <line x1="114.1" x2="114.1" y1="141.5" y2="157.5" stroke={LINE} />
+        <text
+          x="82"
+          y="152"
+          textAnchor="end"
+          fontFamily={MONO}
+          fontSize="6.5"
+          fontWeight="700"
+          fill={HOT}
+        >
+          ♥141
+        </text>
+        <text x="99.8" y="152" textAnchor="middle" fontFamily={MONO} fontSize="6.5" fill={INK}>
+          27:01
+        </text>
+        <text x="128" y="152" textAnchor="middle" fontFamily={MONO} fontSize="6.5" fill={INK}>
+          13:43
+        </text>
+      </g>
+      <circle cx="100" cy="100" r="70" fill="none" stroke={INK} strokeWidth="3" />
+    </g>
   );
 }
 

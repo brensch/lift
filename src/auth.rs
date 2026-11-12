@@ -133,10 +133,12 @@ struct PendingRegistration {
     created_at: Instant,
 }
 
-/// A passkey being made for an account whose owner lost theirs.
+/// A passkey being made for an account whose owner lost theirs. `user_id`
+/// is None when nobody holds the username that was asked for: the ceremony
+/// runs the same, and nothing comes of it.
 struct PendingRecovery {
     state: PasskeyRegistration,
-    user_id: String,
+    user_id: Option<String>,
     client: String,
     created_at: Instant,
 }
@@ -153,6 +155,9 @@ pub struct AuthState {
     auth_challenges: Arc<Mutex<HashMap<String, PendingAuthChallenge>>>,
     /// Recoveries in flight, by request id.
     recovery_challenges: Arc<Mutex<HashMap<String, PendingRecovery>>>,
+    /// Mixed into the user id a recovery for a name nobody holds is given,
+    /// so the same name gets the same id each time, as a real one would.
+    nobody_key: [u8; 16],
 }
 
 impl AuthState {
@@ -187,6 +192,7 @@ impl AuthState {
             add_challenges: Arc::new(Mutex::new(HashMap::new())),
             auth_challenges: Arc::new(Mutex::new(HashMap::new())),
             recovery_challenges: Arc::new(Mutex::new(HashMap::new())),
+            nobody_key: *uuid::Uuid::new_v4().as_bytes(),
         }
     }
 
@@ -343,7 +349,9 @@ impl AuthState {
     /// Start making a passkey for the account holding `username`, for
     /// someone who has lost theirs. Nothing of the account's is excluded or
     /// revealed beyond its id; what `finish_recovery` stores is inert until
-    /// an admin approves it.
+    /// an admin approves it. A name nobody holds is answered the same way
+    /// (a typo, or someone guessing): the ceremony runs for a made-up id,
+    /// and `finish_recovery` stores nothing.
     pub async fn start_recovery(
         &self,
         username: &str,
@@ -353,13 +361,18 @@ impl AuthState {
             .db
             .get_user_by_name(username)
             .await
-            .map_err(|e| internal("reading the user", e))?
-            .ok_or(Refusal::UnknownUser)?;
-        let user_unique_id =
-            uuid::Uuid::parse_str(&user.id).map_err(|e| internal("user id is not a uuid", e))?;
+            .map_err(|e| internal("reading the user", e))?;
+        let (user_unique_id, name) = match &user {
+            Some(user) => (
+                uuid::Uuid::parse_str(&user.id)
+                    .map_err(|e| internal("user id is not a uuid", e))?,
+                user.name.as_str(),
+            ),
+            None => (self.nobodys_id(username), username),
+        };
         let (ccr, state) = self
             .webauthn
-            .start_passkey_registration(user_unique_id, &user.name, &user.name, None)
+            .start_passkey_registration(user_unique_id, name, name, None)
             .map_err(|e| internal("starting a recovery", e))?;
 
         let request_id = uuid::Uuid::new_v4().to_string();
@@ -370,7 +383,7 @@ impl AuthState {
             request_id.clone(),
             PendingRecovery {
                 state,
-                user_id: user.id,
+                user_id: user.map(|user| user.id),
                 client: client.to_string(),
                 created_at: Instant::now(),
             },
@@ -378,15 +391,30 @@ impl AuthState {
         Ok((request_id, ccr))
     }
 
+    /// The id a recovery for a name nobody holds is made for: the same for
+    /// the same name while this server runs, and shaped like a real one.
+    fn nobodys_id(&self, username: &str) -> uuid::Uuid {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::new()
+            .chain_update(self.nobody_key)
+            .chain_update(username.trim().to_lowercase())
+            .finalize();
+        let mut bytes = [0u8; 16];
+        bytes.copy_from_slice(&digest[..16]);
+        uuid::Builder::from_random_bytes(bytes).into_uuid()
+    }
+
     /// Hold the new passkey aside under a code for an admin to approve:
-    /// the code, and when the request lapses.
+    /// the code, when the request lapses, and whether there is an account
+    /// behind it. With none, the passkey is checked like any other and
+    /// then dropped: the code is one nothing will ever approve.
     pub async fn finish_recovery(
         &self,
         request_id: &str,
         reg: &RegisterPublicKeyCredential,
         created_at_ip: Option<String>,
         platform: &str,
-    ) -> Result<(String, i64), Refusal> {
+    ) -> Result<(String, i64, bool), Refusal> {
         let pending = self
             .recovery_challenges
             .lock()
@@ -397,19 +425,29 @@ impl AuthState {
             .webauthn
             .finish_passkey_registration(reg, &pending.state)
             .map_err(|e| refused("recovery passkey refused", e))?;
+        let Some(user_id) = pending.user_id else {
+            let now = crate::time::now_unix();
+            return Ok((
+                crate::db::nobodys_code(request_id),
+                now + crate::db::RECOVERY_TTL_SECONDS,
+                false,
+            ));
+        };
         let cred_id = credential_key(passkey.cred_id());
         let cred_json = stored_passkey_json(&passkey, Some("recovery key".to_string()))?;
-        self.db
+        let (code, expires_at) = self
+            .db
             .store_recovery(
                 request_id,
-                &pending.user_id,
+                &user_id,
                 &cred_id,
                 &cred_json,
                 created_at_ip.as_deref(),
                 platform,
             )
             .await
-            .map_err(|e| internal("storing a recovery", e))?
+            .map_err(|e| internal("storing a recovery", e))??;
+        Ok((code, expires_at, true))
     }
 
     pub async fn start_authentication(

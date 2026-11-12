@@ -9,6 +9,8 @@ import { RecoveryState } from "@/gen/workout/v1/auth_pb";
 // The request this browser made, so the code survives a reload. The id is
 // what lets its state be read; it is no use for anything else.
 const STORAGE_KEY = "schlift_recovery_request";
+// The username it was made for, as typed: the page's own note of it.
+const NAME_KEY = "schlift_recovery_username";
 const POLL_MS = 5_000;
 
 interface Held {
@@ -90,7 +92,7 @@ export function RecoverPage() {
       state: res.state,
       code: res.code,
       expiresAt: Number(res.expiresAt),
-      username: res.username,
+      username: res.username || (localStorage.getItem(NAME_KEY) ?? ""),
     });
   }, []);
 
@@ -121,6 +123,7 @@ export function RecoverPage() {
     try {
       const id = await requestRecovery(name);
       localStorage.setItem(STORAGE_KEY, id);
+      localStorage.setItem(NAME_KEY, name);
       setHeld(null);
       setRequestId(id);
     } catch (err) {
@@ -132,6 +135,7 @@ export function RecoverPage() {
 
   function startOver() {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(NAME_KEY);
     setRequestId(null);
     setHeld(null);
     setError(null);

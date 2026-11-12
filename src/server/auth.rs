@@ -445,8 +445,12 @@ impl AuthService for ServerAuthService {
     /// Unauthenticated: the caller has lost their passkey. It starts making
     /// a new one for the account holding the name; `recovery_finish` holds
     /// it aside, and it signs nothing in until an admin approves its code
-    /// (`AdminService.DecideRecovery`). Whether a name is held is said, as
-    /// `register_start` already says it.
+    /// (`AdminService.DecideRecovery`). A name nobody holds is not refused:
+    /// the ceremony runs the same and ends in a code that approves nothing,
+    /// with the attempt filed as `unknown_user`. Nothing else is stored
+    /// for it, so guessing names fills no table: starts are limited per
+    /// client like every ceremony, and an attempt is the one row each
+    /// already writes.
     async fn recovery_start(
         &self,
         request: Request<RecoveryStartRequest>,
@@ -489,8 +493,17 @@ impl AuthService for ServerAuthService {
             .finish_recovery(&req.request_id, &credential, remote_addr, &platform)
             .await
         {
-            Ok((code, expires_at)) => {
-                self.track_attempt_finish(&req.request_id, "ok", "").await;
+            Ok((code, expires_at, known)) => {
+                if known {
+                    self.track_attempt_finish(&req.request_id, "ok", "").await;
+                } else {
+                    self.track_attempt_finish(
+                        &req.request_id,
+                        "rejected",
+                        Refusal::UnknownUser.slug(),
+                    )
+                    .await;
+                }
                 Ok(Response::new(RecoveryFinishResponse { code, expires_at }))
             }
             Err(refusal) => {
@@ -521,7 +534,22 @@ impl AuthService for ServerAuthService {
             ..Default::default()
         };
         let Some(recovery) = recovery else {
-            return Ok(Response::new(expired));
+            // One for a name nobody holds waits like any other, to lapse.
+            let started = self
+                .db
+                .nobodys_recovery_started(&req.request_id)
+                .await
+                .map_err(internal_error)?;
+            let expires_at = started.unwrap_or(0) + crate::db::RECOVERY_TTL_SECONDS;
+            if started.is_none() || expires_at <= now_unix() {
+                return Ok(Response::new(expired));
+            }
+            return Ok(Response::new(RecoveryStatusResponse {
+                state: RecoveryState::Pending as i32,
+                code: crate::db::nobodys_code(&req.request_id),
+                expires_at,
+                username: String::new(),
+            }));
         };
         let state = match recovery.status.as_str() {
             "approved" => RecoveryState::Approved,
@@ -1194,13 +1222,6 @@ mod ceremony_tests {
         let svc = service().await;
         let (_, ann) = sign_up(&svc, &mut device(), "ann").await;
 
-        let nobody = svc
-            .recovery_start(Request::new(RecoveryStartRequest {
-                username: "nobody".to_string(),
-            }))
-            .await;
-        assert_eq!(nobody.unwrap_err().code(), tonic::Code::NotFound);
-
         let start = svc
             .recovery_start(Request::new(RecoveryStartRequest {
                 username: "Ann".to_string(),
@@ -1256,6 +1277,68 @@ mod ceremony_tests {
         assert!(held
             .iter()
             .any(|p| p.name.as_deref() == Some("recovery key")));
+    }
+
+    /// A name nobody holds is not refused: the request runs to a code like
+    /// any other, which waits and approves nothing, and all that is kept
+    /// of it is its attempt, filed as failed.
+    #[tokio::test]
+    async fn a_recovery_for_a_name_nobody_holds_looks_the_same_and_comes_to_nothing() {
+        let svc = service().await;
+        let ask = || async {
+            svc.recovery_start(Request::new(RecoveryStartRequest {
+                username: "Nobody".to_string(),
+            }))
+            .await
+            .unwrap()
+            .into_inner()
+        };
+        let user_id = |options_json: &str| {
+            let options: serde_json::Value = serde_json::from_str(options_json).unwrap();
+            options["publicKey"]["user"]["id"].clone()
+        };
+        let first = ask().await;
+        let start = ask().await;
+        // The same name is the same account each time, as a real one is.
+        assert_eq!(user_id(&first.options_json), user_id(&start.options_json));
+
+        let held = svc
+            .recovery_finish(Request::new(RecoveryFinishRequest {
+                request_id: start.request_id.clone(),
+                credential_json: create(&mut device(), &start.options_json),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(held.code.len(), 9);
+        let waiting = status(&svc, &start.request_id).await;
+        assert_eq!(waiting.state, RecoveryState::Pending as i32);
+        assert_eq!(waiting.code, held.code);
+        assert_eq!(waiting.expires_at, held.expires_at);
+
+        // Nothing waits for an admin, and the code approves nothing.
+        assert!(svc.db.list_recoveries().await.unwrap().is_empty());
+        assert_eq!(
+            svc.db.approve_recovery(&held.code, false).await.unwrap(),
+            crate::db::Approval::NoSuchCode
+        );
+        let stored: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkey_recoveries")
+            .fetch_one(&svc.db.read_pool)
+            .await
+            .unwrap();
+        assert_eq!(stored, 0);
+        let filed: (String, String) =
+            sqlx::query_as("SELECT outcome, reason FROM auth_attempts WHERE attempt_id = ?")
+                .bind(&start.request_id)
+                .fetch_one(&svc.db.read_pool)
+                .await
+                .unwrap();
+        assert_eq!(filed, ("rejected".to_string(), "unknown_user".to_string()));
+        // One never finished is not waiting.
+        assert_eq!(
+            status(&svc, &first.request_id).await.state,
+            RecoveryState::Expired as i32
+        );
     }
 
     /// The owner of an account refuses a request for it they didn't make;

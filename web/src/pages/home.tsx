@@ -7,6 +7,7 @@ import { formatReleaseDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CONTENT, site } from "@/content";
 import { FeatureArt } from "@/components/feature-art";
+import { MuscleTracker } from "@/components/muscle-tracker";
 
 // The page has no copy of its own: every string is store/listing.yaml (see
 // src/content.ts). Layout only.
@@ -198,9 +199,9 @@ export function HomePage() {
         </section>
       )}
 
-      {/* About — the opening of the store description */}
-      <section className="max-w-5xl mx-auto px-5 py-24 w-full">
-        <Reveal className="max-w-3xl">
+      {/* About — the opening of the store description, beside the real thing */}
+      <section className="max-w-5xl mx-auto px-5 py-24 w-full grid grid-cols-1 md:grid-cols-[1fr_22rem] gap-12 items-center">
+        <Reveal>
           {about.map((p, i) => (
             <p
               key={i}
@@ -214,6 +215,9 @@ export function HomePage() {
               {p}
             </p>
           ))}
+        </Reveal>
+        <Reveal delay={120} className="w-full max-w-sm mx-auto">
+          <MuscleTracker />
         </Reveal>
       </section>
 
@@ -298,32 +302,30 @@ export function HomePage() {
           </Reveal>
 
           <Reveal delay={120}>
-            <div
-              aria-hidden="true"
-              className="border border-border rounded-2xl bg-surface p-6 select-none"
+            {/* The dashboard itself, small, in a browser window: a capture
+                of /demo (make web-preview). */}
+            <Link
+              to="/demo"
+              aria-label={site("companion_demo_button")}
+              className="group block border border-border rounded-2xl bg-surface overflow-hidden no-underline transition-transform hover:-translate-y-1"
             >
-              <svg viewBox="0 0 400 160" className="w-full h-auto block">
-                {[20, 60, 100, 140].map((y) => (
-                  <line
-                    key={y}
-                    x1="0"
-                    x2="400"
-                    y1={y}
-                    y2={y}
-                    stroke="var(--color-border)"
-                    strokeWidth="1"
-                  />
+              <div className="flex items-center gap-1.5 px-3.5 py-2.5 border-b border-border">
+                {[0, 1, 2].map((dot) => (
+                  <span key={dot} className="w-2.5 h-2.5 rounded-full bg-border" />
                 ))}
-                <path
-                  d="M8,140 L60,140 L72,118 L140,118 L152,96 L220,96 L232,74 L300,74 L312,50 L370,50 L382,26 L400,26"
-                  fill="none"
-                  stroke="var(--color-primary)"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+                <span className="ml-3 flex-1 rounded-md bg-background px-3 py-1 font-mono text-[0.7rem] text-muted truncate">
+                  schlift.com/dashboard
+                </span>
+              </div>
+              <img
+                src="/dashboard-preview.png"
+                alt=""
+                width={1920}
+                height={1290}
+                loading="lazy"
+                className="block w-full h-auto"
+              />
+            </Link>
           </Reveal>
         </div>
       </section>

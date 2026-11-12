@@ -305,9 +305,16 @@ What keeps it safe:
 - **`remove_other_passkeys`** on approving drops the account's other
   passkeys and signs out its devices: for a stolen phone, not a lost key.
 
-`RecoveryStart` says whether a username exists (`NOT_FOUND`), as
-`RegisterStart` already does, so that a typo is not a request that waits
-forever. `RecoveryStart`, `RecoveryFinish` and `RecoveryStatus` are
+A username nobody holds is not refused. The ceremony runs the same, for a
+made-up user id (the same one for the same name while the server runs), and
+ends in a code like any other, which waits its seven days and approves
+nothing. All that is kept of it is its attempt, filed `rejected` /
+`unknown_user`: the stats page counts them. No passkey and no request row is
+stored, and its code and status are worked out from the request id and that
+attempt, so guessing names costs the server the one `auth_attempts` row
+every ceremony already writes, behind the same per-client limit on starts.
+
+`RecoveryStart`, `RecoveryFinish` and `RecoveryStatus` are
 unauthenticated: the caller has no passkey. The request id (random, held by
 whoever made the request) is what lets its status be read.
 
