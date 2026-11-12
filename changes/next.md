@@ -10,4 +10,5 @@
 - The Passkeys screen suggests adding a second passkey when you have only one.
 - Website: a Lost passkey page (/recover), a page listing every change in every release (/changes), and feature boxes with pictures on the home page.
 - Admin: the stats page lists every account and finished workout, who is lifting now, the lifts done, builds in use and why sign-ins were refused; a lost-passkey code opens the account it asks for, to check the person against before approving.
+- The sign-in screen no longer offers "Open an account file". Importing an export is still in Settings, under Your data.
 - Debug builds can sign in with a passkey.

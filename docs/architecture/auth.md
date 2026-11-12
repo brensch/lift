@@ -210,17 +210,11 @@ use slides its expiry to 30 days out (`validate_auth_session`, written at most
 once a day), so only a login left unused for 30 days lapses. If
 the server refuses the token (lapsed, its passkey deleted, the account
 deleted), `expireSession` clears only the token; the account stays open and
-usable. While an account is open with no session (this, or one opened from a
-file), `SessionExpiredBanner` sits over the app's pages (around `MainLayout`
+usable. While an account is open with no session, `SessionExpiredBanner` sits over the app's pages (around `MainLayout`
 in the shell route: not over `/login`, onboarding or the tutorial, and not
 while the update banner shows) with a sign-in button to `/login`; signing in
 there resumes sync, and the login screen's back arrow returns home without
 signing in.
-
-"Open an account file" on the login screen opens an exported account with no
-server at all (`AuthProvider.openLocalAccount`): the file names its owner, so
-the user id comes from it. Signing in as that user later lets it sync again.
-A file belonging to a different account than the one open is refused.
 
 ## Challenge lifetime
 
