@@ -84,3 +84,9 @@ export function formatWhen(ms: number): string {
     minute: "2-digit",
   });
 }
+
+/** "2026-11-04" → "Nov 4, 2026": a release's date, the same in every zone. */
+export function formatReleaseDate(isoDay: string): string {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  return `${MONTHS[month - 1]} ${day}, ${year}`;
+}

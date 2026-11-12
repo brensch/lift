@@ -20,7 +20,9 @@ Files you edit, all checked in CI on every pull request:
 
 | File | What it is | Limit check |
 |---|---|---|
-| `release-notes/<version>.md` | "What's new" for one release | `scripts/check_release_notes.py` (500 chars) |
+| `changes/next.md` | Every change since the last release, one `- ` line each, added by the change itself | `scripts/changes.py check` (a product change without a line fails the PR) |
+| `changes/<version>.md` | The same list, filed under the release it shipped in; the website's `/changes` page | `scripts/changes.py check` |
+| `release-notes/<version>.md` | "What's new" for one release, as the stores show it | `scripts/check_release_notes.py` (500 chars) |
 | `store/listing.yaml` | Listing text for both stores + screenshot captions | `scripts/check_store_text.py` (every field) |
 | `store/screenshots/raw/*.png` | Raw app captures the framed slides are made from | referenced by `listing.yaml` |
 | `marketing/` | Icon and Play feature graphic | — |
@@ -31,11 +33,33 @@ A normal release, start to finish:
 # 1. code lands on main → prod backend deploys itself
 # 2. build the apps onto the testing tracks
 git tag v0.10.2 origin/main && git push origin v0.10.2
-# 3. write release-notes/0.10.2.md, merge it, then promote
+# 3. file the changes under the release and write its store notes: this
+#    moves changes/next.md to changes/0.10.2.md (dated today) and drafts
+#    release-notes/0.10.2.md from it. Rewrite the draft, merge, then promote
+make cut-release VERSION=0.10.2
 git tag prod-v0.10.2 origin/main && git push origin prod-v0.10.2
 # 4. (only when the listing changed) push text + screenshots
 gh workflow run store-assets.yml -f action=push -f dry_run=true   # then dry_run=false
 ```
+
+### The change log
+
+Two files describe a release, and they are different things:
+
+- **`changes/<version>.md`** is everything that changed: the date, then one
+  line per change. Nobody writes it at release time. Each change adds its own
+  line to `changes/next.md` when it lands (CI fails a pull request that
+  touches the product without one), and `make cut-release VERSION=x.y.z`
+  files that list under the release. The website shows the latest release
+  under "What's new" and all of them at `/changes`
+  (`web/scripts/sync-content.mjs`), so it reaches the site with the next
+  deploy of `main`.
+- **`release-notes/<version>.md`** is the 500 characters the stores show.
+  `cut-release` drafts it from the top of the list; rewrite it.
+
+Releases from before this (through 0.18.2) were backfilled from the commit
+subjects between their tags (`scripts/changes.py backfill`), so they read
+like commit messages. A released file is not edited afterwards.
 
 The version comes from the tag (`v0.10.2` ships as `0.10.2`, build number
 `1000 + run number`). `app/pubspec.yaml` stays at its `0.0.0+1` placeholder.

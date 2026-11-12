@@ -3,11 +3,16 @@ import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { useReveal } from "@/lib/useReveal";
+import { formatReleaseDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CONTENT, site } from "@/content";
+import { FeatureArt } from "@/components/feature-art";
 
 // The page has no copy of its own: every string is store/listing.yaml (see
 // src/content.ts). Layout only.
+
+/** How many of the latest release's changes the home page shows. */
+const WHATS_NEW_SHOWN = 6;
 
 const APP_STORE = {
   url: "https://apps.apple.com/us/app/schlift/id6761754276",
@@ -77,7 +82,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export function HomePage() {
-  const { about, testimonials, otherFeatures, screenshots, whatsNew } = CONTENT;
+  const { about, testimonials, otherFeatures, screenshots, changelog } = CONTENT;
+  const latest = changelog[0];
 
   return (
     <div className="flex flex-col overflow-hidden">
@@ -245,22 +251,24 @@ export function HomePage() {
                 {otherFeatures.heading}
               </h2>
             </Reveal>
-            {/* A numbered list on hairlines, two columns wide: no tiles. */}
-            <ol className="list-none p-0 m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12 border-b border-border">
+            {/* A box each: the picture edge to edge on the left, a rule, the words. */}
+            <ul className="list-none p-0 m-0 grid grid-cols-1 md:grid-cols-2 gap-5">
               {otherFeatures.items.map((item, i) => (
-                <li key={i} className="border-t border-border">
-                  <Reveal delay={i * 80} className="flex items-baseline gap-5 py-7">
-                    <span
-                      aria-hidden="true"
-                      className="shrink-0 font-mono text-sm font-bold text-primary [font-variant-numeric:tabular-nums]"
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="text-lg leading-relaxed">{item.text}</span>
+                <li key={i} className="min-w-0">
+                  <Reveal
+                    delay={i * 80}
+                    className="h-full min-h-44 flex border border-border rounded-2xl bg-surface overflow-hidden"
+                  >
+                    {item.picture && (
+                      <div className="relative shrink-0 w-[38%] max-w-52 bg-background border-r border-border overflow-hidden">
+                        <FeatureArt picture={item.picture} />
+                      </div>
+                    )}
+                    <p className="m-0 p-6 self-center leading-relaxed">{item.text}</p>
                   </Reveal>
                 </li>
               ))}
-            </ol>
+            </ul>
           </div>
         </section>
       )}
@@ -320,24 +328,35 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* What's new — the latest release notes */}
-      {whatsNew && (
+      {/* What's new — the latest release, from the change log */}
+      {latest && (
         <section className="border-t border-border/50 bg-surface/30 py-20 px-5">
           <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10">
             <Reveal className="md:col-span-2">
               <Eyebrow>{site("whats_new_heading")}</Eyebrow>
               <h2 className="font-display text-3xl font-bold tracking-tight m-0">
-                {whatsNew.version}
+                {latest.version}
               </h2>
+              <p className="mt-2 text-sm text-muted">{formatReleaseDate(latest.date)}</p>
             </Reveal>
             <Reveal delay={100} className="md:col-span-3">
-              <div className="space-y-3">
-                {whatsNew.lines.map((line, i) => (
-                  <p key={i} className="text-muted leading-relaxed m-0">
+              <ul className="list-none p-0 m-0 space-y-3">
+                {latest.changes.slice(0, WHATS_NEW_SHOWN).map((line, i) => (
+                  <li key={i} className="text-muted leading-relaxed">
                     {line}
-                  </p>
+                  </li>
                 ))}
-              </div>
+              </ul>
+              <Link
+                to="/changes"
+                className="group mt-6 inline-flex items-center text-sm font-semibold text-text no-underline hover:underline"
+              >
+                {site("whats_new_all_button")}
+                <ArrowRight
+                  size={14}
+                  className="ml-1.5 transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
             </Reveal>
           </div>
         </section>

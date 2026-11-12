@@ -10,6 +10,12 @@ export type Screenshot = {
   subtitle: string;
   device: "phone" | "watch";
 };
+export type Release = {
+  version: string;
+  /** YYYY-MM-DD. */
+  date: string;
+  changes: string[];
+};
 export type LibraryGroup = { key: string; label: string };
 export type LibraryTemplate = {
   id: string;
@@ -29,10 +35,11 @@ export type Content = {
   about: string[];
   testimonialsHeading: string;
   testimonials: Testimonial[];
-  otherFeatures: { heading: string; items: { emoji: string; text: string }[] };
+  otherFeatures: { heading: string; items: { picture: string; text: string }[] };
   website: Record<string, string>;
   screenshots: Screenshot[];
-  whatsNew: { version: string; lines: string[] } | null;
+  /** Every release, newest first, with everything that changed in it. */
+  changelog: Release[];
   /** templates/library.yaml, for the /routines page. */
   library: { groups: LibraryGroup[]; templates: LibraryTemplate[] };
 };
