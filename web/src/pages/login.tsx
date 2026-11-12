@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
+import { ConnectError } from "@connectrpc/connect";
 import { useAuth } from "@/lib/use-auth";
 
 export function LoginPage() {
@@ -18,7 +19,14 @@ export function LoginPage() {
       await login();
       navigate("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      // The server's own sentence, without the status code in front of it.
+      setError(
+        err instanceof ConnectError
+          ? err.rawMessage
+          : err instanceof Error
+            ? err.message
+            : "Login failed",
+      );
     } finally {
       setLoading(false);
     }
@@ -90,6 +98,12 @@ export function LoginPage() {
         {error && <p className="text-danger font-semibold text-sm">{error}</p>}
 
         <p className="text-sm text-muted/70">You'll need a passkey created in the Schlift app.</p>
+
+        <p className="text-sm text-muted">
+          <Link to="/recover" className="text-text font-semibold hover:underline">
+            Lost your passkey?
+          </Link>
+        </p>
 
         <p className="text-sm text-muted">
           No account yet?{" "}

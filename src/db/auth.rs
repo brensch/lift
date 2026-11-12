@@ -578,6 +578,17 @@ mod tests {
             .unwrap();
         db.create_auth_session(u).await.unwrap();
         db.join_session(&format!("{u}-session"), u).await.unwrap();
+        db.store_recovery(
+            &format!("{u}-recovery"),
+            u,
+            &format!("{u}-new"),
+            "{}",
+            None,
+            "",
+        )
+        .await
+        .unwrap()
+        .unwrap();
         for sql in [
             r#"INSERT INTO account_events (user_id, seq, id, event)
                VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"TemplateDeleted":{"template_id":"t"}}')"#,

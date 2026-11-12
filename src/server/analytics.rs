@@ -1,5 +1,7 @@
 use super::*;
-use crate::db::MAX_STATS_WINDOW_DAYS;
+use crate::db::{AccountRow, Approval, Recovery, MAX_STATS_WINDOW_DAYS};
+use futures_util::StreamExt;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 // ── Analytics Service ──
 
@@ -12,6 +14,150 @@ const MAX_DURATION_MS: i64 = 6 * 3600 * 1000;
 const MAX_CLOCK_SKEW_MS: i64 = 86_400 * 1000;
 const MAX_VIEW_AGE_MS: i64 = 30 * 86_400 * 1000;
 const TRAIL_LIMIT: i64 = 500;
+/// The most workouts one training answer lists; the counts cover them all.
+const MAX_WORKOUTS_LISTED: usize = 500;
+/// Accounts folded at once for a training answer.
+const FOLDS_AT_ONCE: usize = 8;
+
+/// The look-back window asked for, in days: 30 unless said, a year at most.
+fn window_days(days: i32) -> i32 {
+    match days {
+        d if d <= 0 => 30,
+        d => (d as i64).min(MAX_STATS_WINDOW_DAYS) as i32,
+    }
+}
+
+/// An account's training, folded from its events for one answer.
+#[derive(Default)]
+struct Training {
+    /// Finished workouts, newest first.
+    workouts: Vec<WorkoutWithSummary>,
+    lifting_now: bool,
+}
+
+/// Everyone's accounts and training as the admin page shows them.
+fn training_stats(
+    accounts: Vec<(AccountRow, Training)>,
+    together: &HashSet<String>,
+    days: i32,
+    since: i64,
+) -> GetTrainingStatsResponse {
+    let mut response = GetTrainingStatsResponse {
+        days,
+        ..Default::default()
+    };
+    // Per UTC day: workouts started, and who started them.
+    let mut daily: BTreeMap<i64, (i64, HashSet<String>)> = BTreeMap::new();
+    // Per exercise: sets, volume, and who did it.
+    let mut exercises: HashMap<i32, (i64, f64, HashSet<String>)> = HashMap::new();
+
+    for (row, training) in accounts {
+        let mut user = AdminUser {
+            username: row.username.clone(),
+            created_at: row.created_at,
+            last_seen_ms: row.last_seen_ms,
+            platform: row.platform,
+            app_version: row.app_version,
+            passkeys: row.passkeys,
+            logins: row.logins,
+            events: row.events,
+            is_admin: row.is_admin,
+            lifting_now: training.lifting_now,
+            ..Default::default()
+        };
+        for entry in &training.workouts {
+            let (Some(workout), Some(summary)) = (&entry.workout, &entry.summary) else {
+                continue;
+            };
+            user.workouts += 1;
+            user.volume_lb += summary.total_volume as f64;
+            user.last_workout_at = user.last_workout_at.max(workout.start_time);
+            response.workouts_total += 1;
+            if workout.start_time < since {
+                continue;
+            }
+            user.workouts_in_window += 1;
+            response.workouts_in_window += 1;
+            response.volume_lb_in_window += summary.total_volume as f64;
+            let day = daily
+                .entry(workout.start_time.div_euclid(86_400))
+                .or_default();
+            day.0 += 1;
+            day.1.insert(row.user_id.clone());
+            for exercise in &summary.exercises {
+                let used = exercises.entry(exercise.exercise).or_default();
+                used.0 += exercise.total_sets as i64;
+                used.1 += exercise.total_volume as f64;
+                used.2.insert(row.user_id.clone());
+            }
+            response.workouts.push(AdminWorkout {
+                username: row.username.clone(),
+                name: workout.name.clone(),
+                start_time: workout.start_time,
+                duration_seconds: summary.duration_seconds,
+                volume_lb: summary.total_volume as f64,
+                sets: summary.exercises.iter().map(|e| e.total_sets).sum(),
+                exercises: summary.exercises.len() as i32,
+                together: together.contains(&workout.id),
+            });
+        }
+        if user.workouts_in_window > 0 {
+            response.lifters_in_window += 1;
+        }
+        response.users.push(user);
+    }
+
+    response.users.sort_by(|a, b| {
+        (b.last_seen_ms, b.created_at)
+            .cmp(&(a.last_seen_ms, a.created_at))
+            .then_with(|| a.username.cmp(&b.username))
+    });
+    response.workouts.sort_by(|a, b| {
+        b.start_time
+            .cmp(&a.start_time)
+            .then_with(|| a.username.cmp(&b.username))
+    });
+    response.workouts.truncate(MAX_WORKOUTS_LISTED);
+    response.daily = daily
+        .into_iter()
+        .map(|(epoch_day, (workouts, lifters))| TrainingDay {
+            epoch_day,
+            workouts,
+            lifters: lifters.len() as i64,
+        })
+        .collect();
+    response.exercises = exercises
+        .into_iter()
+        .map(|(exercise, (sets, volume_lb, lifters))| ExerciseUse {
+            exercise,
+            sets,
+            lifters: lifters.len() as i64,
+            volume_lb,
+        })
+        .collect();
+    response.exercises.sort_by(|a, b| {
+        b.sets
+            .cmp(&a.sets)
+            .then_with(|| a.exercise.cmp(&b.exercise))
+    });
+    response
+}
+
+/// A request to get into an account, as an admin is shown it: never its code.
+fn recovery_request(recovery: Recovery) -> RecoveryRequest {
+    RecoveryRequest {
+        request_id: recovery.request_id,
+        username: recovery.username,
+        created_at: recovery.created_at,
+        platform: recovery.platform,
+        created_ip: recovery.created_ip,
+        passkeys: recovery.passkeys,
+        logins: recovery.logins,
+        last_seen_ms: recovery.last_seen_ms,
+        status: recovery.status,
+        decided_at: recovery.decided_at,
+    }
+}
 
 fn is_slug(value: &str, max_len: usize) -> bool {
     !value.is_empty()
@@ -97,10 +243,7 @@ impl AdminService for ServerAdminService {
         let req = request.into_inner();
         info!(rpc = "GetStats", %admin_id, days = req.days, "request");
 
-        let days = match req.days {
-            d if d <= 0 => 30,
-            d => (d as i64).min(MAX_STATS_WINDOW_DAYS) as i32,
-        };
+        let days = window_days(req.days);
         let since = now_unix() - days as i64 * 86_400;
         let since_ms = since * 1000;
 
@@ -156,6 +299,123 @@ impl AdminService for ServerAdminService {
                 .map_err(internal_error)?,
             total_users: self.db.total_users().await.map_err(internal_error)?,
             new_users,
+        }))
+    }
+
+    /// Everyone's accounts and finished workouts. The server keeps no
+    /// folded account: each is folded from its events here, for this
+    /// answer, and dropped.
+    async fn get_training_stats(
+        &self,
+        request: Request<GetTrainingStatsRequest>,
+    ) -> Result<Response<GetTrainingStatsResponse>, Status> {
+        let admin_id = authed_admin_id(&request, &self.db).await?;
+        let days = window_days(request.into_inner().days);
+        info!(rpc = "GetTrainingStats", %admin_id, days, "request");
+        let now = now_unix();
+
+        let rows = self.db.account_rows().await.map_err(internal_error)?;
+        let together = self
+            .db
+            .workouts_done_together()
+            .await
+            .map_err(internal_error)?;
+        let accounts: Vec<(AccountRow, Training)> = futures_util::stream::iter(rows)
+            .map(|row| async move {
+                let folded = self
+                    .db
+                    .read_account(&row.user_id, move |account| Training {
+                        workouts: View::new(account, now).list_workout_summaries().workouts,
+                        lifting_now: account.active_workout().is_some(),
+                    })
+                    .await;
+                // One account that won't fold is shown without its
+                // training, not the page without everyone's.
+                let training = folded.unwrap_or_else(|error| {
+                    tracing::warn!(user_id = %row.user_id, %error, "account did not fold for stats");
+                    Training::default()
+                });
+                (row, training)
+            })
+            .buffered(FOLDS_AT_ONCE)
+            .collect()
+            .await;
+
+        Ok(Response::new(training_stats(
+            accounts,
+            &together,
+            days,
+            now - days as i64 * 86_400,
+        )))
+    }
+
+    async fn list_recoveries(
+        &self,
+        request: Request<ListRecoveriesRequest>,
+    ) -> Result<Response<ListRecoveriesResponse>, Status> {
+        let admin_id = authed_admin_id(&request, &self.db).await?;
+        info!(rpc = "ListRecoveries", %admin_id, "request");
+        let recoveries = self
+            .db
+            .list_recoveries()
+            .await
+            .map_err(internal_error)?
+            .into_iter()
+            .map(recovery_request)
+            .collect();
+        Ok(Response::new(ListRecoveriesResponse { recoveries }))
+    }
+
+    /// Approve the request whose code the admin was sent, or refuse one.
+    /// Approving is by code and nothing else: the list an admin reads never
+    /// shows codes, so the request approved is the one whose maker got
+    /// their code to the admin.
+    async fn decide_recovery(
+        &self,
+        request: Request<DecideRecoveryRequest>,
+    ) -> Result<Response<DecideRecoveryResponse>, Status> {
+        use decide_recovery_request::Request as Decision;
+        let admin_id = authed_admin_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        let recovery = match req.request {
+            Some(Decision::ApproveCode(code)) => {
+                match self
+                    .db
+                    .approve_recovery(&code, req.remove_other_passkeys)
+                    .await
+                    .map_err(internal_error)?
+                {
+                    Approval::Approved(recovery) => recovery,
+                    Approval::NoSuchCode => {
+                        info!(rpc = "DecideRecovery", %admin_id, "no waiting request has the code");
+                        return Err(Status::not_found("No waiting request has that code."));
+                    }
+                    Approval::AlreadyRegistered => {
+                        return Err(Status::already_exists(
+                            "That passkey has been registered since.",
+                        ));
+                    }
+                }
+            }
+            Some(Decision::DenyRequestId(request_id)) => self
+                .db
+                .deny_recovery(&request_id, None)
+                .await
+                .map_err(internal_error)?
+                .ok_or_else(|| Status::not_found("That request is not waiting."))?,
+            None => return Err(Status::invalid_argument("approve a code or deny a request")),
+        };
+        info!(
+            rpc = "DecideRecovery",
+            %admin_id,
+            username = %recovery.username,
+            request_id = %recovery.request_id,
+            status = %recovery.status,
+            removed_other_passkeys = req.remove_other_passkeys,
+            "decided"
+        );
+        Ok(Response::new(DecideRecoveryResponse {
+            recovery: Some(recovery_request(recovery)),
         }))
     }
 }
@@ -409,6 +669,233 @@ mod tests {
 
         assert!(stats.trail.is_empty());
         assert_eq!(stats.total_users, 1);
+    }
+
+    fn account(user_id: &str, last_seen_ms: i64) -> AccountRow {
+        AccountRow {
+            user_id: user_id.to_string(),
+            username: user_id.to_string(),
+            created_at: 0,
+            is_admin: false,
+            passkeys: 1,
+            logins: 1,
+            last_seen_ms,
+            platform: "ios".to_string(),
+            app_version: "1.0.0".to_string(),
+            events: 10,
+        }
+    }
+
+    fn workout(id: &str, start_time: i64, sets: i32, volume: f32) -> WorkoutWithSummary {
+        WorkoutWithSummary {
+            workout: Some(Workout {
+                id: id.to_string(),
+                name: "Legs".to_string(),
+                start_time,
+                end_time: start_time + 3_600,
+                ..Default::default()
+            }),
+            summary: Some(WorkoutSummary {
+                total_volume: volume,
+                duration_seconds: 3_600,
+                exercises: vec![ExerciseSummary {
+                    exercise: Exercise::Squat as i32,
+                    total_sets: sets,
+                    total_volume: volume,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+        }
+    }
+
+    #[test]
+    fn training_is_counted_per_user_day_and_exercise_inside_the_window() {
+        let day = 86_400;
+        let since = 100 * day;
+        let ann = Training {
+            // Newest first, as the core lists them: two inside the window
+            // on one day, one before it.
+            workouts: vec![
+                workout("a3", 101 * day + 7_200, 3, 300.0),
+                workout("a2", 101 * day, 2, 200.0),
+                workout("a1", 50 * day, 5, 500.0),
+            ],
+            lifting_now: true,
+        };
+        let ben = Training {
+            workouts: vec![workout("b1", 102 * day, 4, 400.0)],
+            lifting_now: false,
+        };
+        let together = HashSet::from(["a2".to_string()]);
+        let stats = training_stats(
+            vec![
+                (account("ann", 5), ann),
+                (account("ben", 9), ben),
+                (account("cat", 0), Training::default()),
+            ],
+            &together,
+            30,
+            since,
+        );
+
+        // Most recently seen first; someone who never trained is still listed.
+        let names: Vec<&str> = stats.users.iter().map(|u| u.username.as_str()).collect();
+        assert_eq!(names, ["ben", "ann", "cat"]);
+        let ann = &stats.users[1];
+        assert_eq!((ann.workouts, ann.workouts_in_window), (3, 2));
+        assert_eq!(ann.volume_lb, 1_000.0);
+        assert_eq!(ann.last_workout_at, 101 * day + 7_200);
+        assert!(ann.lifting_now);
+
+        assert_eq!(stats.workouts_total, 4);
+        assert_eq!(stats.workouts_in_window, 3);
+        assert_eq!(stats.lifters_in_window, 2);
+        assert_eq!(stats.volume_lb_in_window, 900.0);
+        let listed: Vec<(&str, bool)> = stats
+            .workouts
+            .iter()
+            .map(|w| (w.username.as_str(), w.together))
+            .collect();
+        assert_eq!(listed, [("ben", false), ("ann", false), ("ann", true)]);
+        assert_eq!(stats.workouts[0].sets, 4);
+        let days: Vec<(i64, i64, i64)> = stats
+            .daily
+            .iter()
+            .map(|d| (d.epoch_day, d.workouts, d.lifters))
+            .collect();
+        assert_eq!(days, [(101, 2, 1), (102, 1, 1)]);
+        assert_eq!(stats.exercises.len(), 1);
+        assert_eq!(stats.exercises[0].sets, 9);
+        assert_eq!(stats.exercises[0].lifters, 2);
+    }
+
+    /// The admin pages are for admins; and they read an account's training
+    /// out of its events.
+    #[tokio::test]
+    async fn only_an_admin_reads_everyones_training_and_decides_recoveries() {
+        use schlift_core::account::Account;
+        use schlift_core::api::Call;
+
+        let db = temp_db().await;
+        let (_, admin_token) = db
+            .get_or_create_user_with_auth_session("boss")
+            .await
+            .unwrap();
+        db.grant_admin("boss").await.unwrap();
+        let (lifter, lifter_token) = db
+            .get_or_create_user_with_auth_session("lifter")
+            .await
+            .unwrap();
+
+        // A workout started and ended on the lifter's phone, then synced.
+        let now = now_unix();
+        let mut phone = Account::default();
+        let mut events = Vec::new();
+        let mut write = |at: i64, f: &mut dyn FnMut(&mut Call)| {
+            let mut call = Call::new(&mut phone, at, Uuid::new_v4().to_string());
+            f(&mut call);
+            events.append(&mut call.events);
+        };
+        let mut workout_id = String::new();
+        write(now - 3_600, &mut |call| {
+            let started = call
+                .start_workout(StartWorkoutRequest {
+                    exercises: vec![Exercise::PullUp as i32],
+                    ..Default::default()
+                })
+                .unwrap();
+            workout_id = started.id;
+        });
+        write(now - 60, &mut |call| {
+            call.end_workout(EndWorkoutRequest {
+                workout_id: workout_id.clone(),
+                ..Default::default()
+            })
+            .unwrap();
+        });
+        db.push_events(&lifter.id, events).await.unwrap();
+
+        let admin = ServerAdminService { db: db.clone() };
+        let refused = admin
+            .get_training_stats(authed(GetTrainingStatsRequest::default(), &lifter_token))
+            .await;
+        assert_eq!(refused.unwrap_err().code(), tonic::Code::PermissionDenied);
+        let refused = admin
+            .list_recoveries(authed(ListRecoveriesRequest {}, &lifter_token))
+            .await;
+        assert_eq!(refused.unwrap_err().code(), tonic::Code::PermissionDenied);
+        let refused = admin
+            .decide_recovery(authed(DecideRecoveryRequest::default(), &lifter_token))
+            .await;
+        assert_eq!(refused.unwrap_err().code(), tonic::Code::PermissionDenied);
+
+        let stats = admin
+            .get_training_stats(authed(GetTrainingStatsRequest::default(), &admin_token))
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(stats.days, 30);
+        assert_eq!(stats.users.len(), 2);
+        let listed = stats.users.iter().find(|u| u.username == "lifter").unwrap();
+        assert_eq!(listed.workouts, 1);
+        assert_eq!(listed.logins, 1);
+        assert!(listed.events > 0);
+        assert!(!listed.lifting_now);
+        assert_eq!(stats.workouts.len(), 1);
+        assert_eq!(stats.workouts[0].username, "lifter");
+
+        // A request is listed without its code, approved by it, and
+        // refused by its id.
+        let (code, _) = db
+            .store_recovery("r1", &lifter.id, "cred-1", "{}", None, "web")
+            .await
+            .unwrap()
+            .unwrap();
+        db.store_recovery("r2", &lifter.id, "cred-2", "{}", None, "web")
+            .await
+            .unwrap()
+            .unwrap();
+        let listed = admin
+            .list_recoveries(authed(ListRecoveriesRequest {}, &admin_token))
+            .await
+            .unwrap()
+            .into_inner()
+            .recoveries;
+        assert_eq!(listed.len(), 2);
+        assert!(listed.iter().all(|r| r.status == "pending"));
+
+        use decide_recovery_request::Request as Decision;
+        let decide = |request: Decision| {
+            admin.decide_recovery(authed(
+                DecideRecoveryRequest {
+                    request: Some(request),
+                    remove_other_passkeys: false,
+                },
+                &admin_token,
+            ))
+        };
+        let wrong = decide(Decision::ApproveCode("NOPE-NOPE".to_string())).await;
+        assert_eq!(wrong.unwrap_err().code(), tonic::Code::NotFound);
+        let approved = decide(Decision::ApproveCode(code.to_lowercase()))
+            .await
+            .unwrap()
+            .into_inner()
+            .recovery
+            .unwrap();
+        assert_eq!(approved.status, "approved");
+        assert_eq!(approved.username, "lifter");
+        assert!(db.credential_registered("cred-1").await.unwrap());
+        let denied = decide(Decision::DenyRequestId("r2".to_string()))
+            .await
+            .unwrap()
+            .into_inner()
+            .recovery
+            .unwrap();
+        assert_eq!(denied.status, "denied");
+        assert!(!db.credential_registered("cred-2").await.unwrap());
+        let again = decide(Decision::DenyRequestId("r2".to_string())).await;
+        assert_eq!(again.unwrap_err().code(), tonic::Code::NotFound);
     }
 
     /// Admin is keyed by user id, so it can neither be granted to a name

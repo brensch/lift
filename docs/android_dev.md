@@ -80,6 +80,27 @@ on their own as `make run-backend` and `make run-android`.
 
 With several devices attached, `PHONE_SERIAL=<serial> make dev`.
 
+### Passkeys in the debug app
+
+The debug build is its own package (`com.brensch.schlift.debug`, so it sits
+beside the Play app), and Android only lets an app use a site's passkeys if
+the site's `/.well-known/assetlinks.json` lists that package and signing key.
+`dev.schlift.com` lists it (`ANDROID_PACKAGE_NAMES` in
+`deploy/schlift-dev.env.example`, with this machine's debug key as
+`ANDROID_CERT_SHA256`), so the local backend runs as `dev.schlift.com`
+(`BACKEND_DEV_ENV` in the Makefile). The phone fetches that file from the real
+dev server (Google caches it, so a change can take a while to be seen); every
+RPC still goes to the local backend through `adb reverse`.
+
+So in "Schlift Debug" both work: Create account / Sign in with a passkey, and
+Dev Name Login. The passkeys are filed under `dev.schlift.com` in the password
+manager beside the dev server's own. One made against the local backend is
+unknown to the dev server and the other way round; picking the wrong one is
+refused as "not linked to an account".
+
+A debug build signed with another machine's debug key needs that key's
+fingerprint on the dev host too.
+
 ### Getting the phone onto adb under WSL2
 
 **USB** goes through `usbipd`: `usbipd.exe list` on the Windows side, then

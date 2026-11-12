@@ -58,6 +58,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('phone'), findsOneWidget);
     expect(_deleteButton(tester, 'phone').onPressed, isNull);
+    // And having only one is called out.
+    expect(find.text(copy.passkeys.onlyOne), findsOneWidget);
   });
 
   testWidgets('a failed delete says so and keeps the passkey', (tester) async {

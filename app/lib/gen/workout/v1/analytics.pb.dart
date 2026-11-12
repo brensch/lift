@@ -15,6 +15,8 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
+import 'workout.pbenum.dart' as $1;
+
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 /// One screen visit. `page` is a stable slug — a go_router path template
@@ -1003,6 +1005,1125 @@ class GetStatsResponse extends $pb.GeneratedMessage {
   $core.bool hasActiveUsers() => $_has(8);
   @$pb.TagNumber(9)
   void clearActiveUsers() => $_clearField(9);
+}
+
+class GetTrainingStatsRequest extends $pb.GeneratedMessage {
+  factory GetTrainingStatsRequest({
+    $core.int? days,
+  }) {
+    final result = create();
+    if (days != null) result.days = days;
+    return result;
+  }
+
+  GetTrainingStatsRequest._();
+
+  factory GetTrainingStatsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetTrainingStatsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetTrainingStatsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'days')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingStatsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingStatsRequest copyWith(
+          void Function(GetTrainingStatsRequest) updates) =>
+      super.copyWith((message) => updates(message as GetTrainingStatsRequest))
+          as GetTrainingStatsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingStatsRequest create() => GetTrainingStatsRequest._();
+  @$core.override
+  GetTrainingStatsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingStatsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetTrainingStatsRequest>(create);
+  static GetTrainingStatsRequest? _defaultInstance;
+
+  /// Look-back window in days. 0 = 30. Capped at a year.
+  @$pb.TagNumber(1)
+  $core.int get days => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set days($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDays() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDays() => $_clearField(1);
+}
+
+/// One account, as an admin sees it.
+class AdminUser extends $pb.GeneratedMessage {
+  factory AdminUser({
+    $core.String? username,
+    $fixnum.Int64? createdAt,
+    $fixnum.Int64? lastSeenMs,
+    $core.String? platform,
+    $core.String? appVersion,
+    $core.int? passkeys,
+    $core.int? logins,
+    $core.int? workouts,
+    $core.int? workoutsInWindow,
+    $fixnum.Int64? lastWorkoutAt,
+    $core.double? volumeLb,
+    $fixnum.Int64? events,
+    $core.bool? isAdmin,
+    $core.bool? liftingNow,
+  }) {
+    final result = create();
+    if (username != null) result.username = username;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (lastSeenMs != null) result.lastSeenMs = lastSeenMs;
+    if (platform != null) result.platform = platform;
+    if (appVersion != null) result.appVersion = appVersion;
+    if (passkeys != null) result.passkeys = passkeys;
+    if (logins != null) result.logins = logins;
+    if (workouts != null) result.workouts = workouts;
+    if (workoutsInWindow != null) result.workoutsInWindow = workoutsInWindow;
+    if (lastWorkoutAt != null) result.lastWorkoutAt = lastWorkoutAt;
+    if (volumeLb != null) result.volumeLb = volumeLb;
+    if (events != null) result.events = events;
+    if (isAdmin != null) result.isAdmin = isAdmin;
+    if (liftingNow != null) result.liftingNow = liftingNow;
+    return result;
+  }
+
+  AdminUser._();
+
+  factory AdminUser.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AdminUser.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AdminUser',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'username')
+    ..aInt64(2, _omitFieldNames ? '' : 'createdAt')
+    ..aInt64(3, _omitFieldNames ? '' : 'lastSeenMs')
+    ..aOS(4, _omitFieldNames ? '' : 'platform')
+    ..aOS(5, _omitFieldNames ? '' : 'appVersion')
+    ..aI(6, _omitFieldNames ? '' : 'passkeys')
+    ..aI(7, _omitFieldNames ? '' : 'logins')
+    ..aI(8, _omitFieldNames ? '' : 'workouts')
+    ..aI(9, _omitFieldNames ? '' : 'workoutsInWindow')
+    ..aInt64(10, _omitFieldNames ? '' : 'lastWorkoutAt')
+    ..aD(11, _omitFieldNames ? '' : 'volumeLb')
+    ..aInt64(12, _omitFieldNames ? '' : 'events')
+    ..aOB(13, _omitFieldNames ? '' : 'isAdmin')
+    ..aOB(14, _omitFieldNames ? '' : 'liftingNow')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminUser clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminUser copyWith(void Function(AdminUser) updates) =>
+      super.copyWith((message) => updates(message as AdminUser)) as AdminUser;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AdminUser create() => AdminUser._();
+  @$core.override
+  AdminUser createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AdminUser getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AdminUser>(create);
+  static AdminUser? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get username => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set username($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUsername() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUsername() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get createdAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set createdAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCreatedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCreatedAt() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get lastSeenMs => $_getI64(2);
+  @$pb.TagNumber(3)
+  set lastSeenMs($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLastSeenMs() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLastSeenMs() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get platform => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set platform($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPlatform() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPlatform() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get appVersion => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set appVersion($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasAppVersion() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearAppVersion() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get passkeys => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set passkeys($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasPasskeys() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearPasskeys() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get logins => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set logins($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLogins() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLogins() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.int get workouts => $_getIZ(7);
+  @$pb.TagNumber(8)
+  set workouts($core.int value) => $_setSignedInt32(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasWorkouts() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearWorkouts() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.int get workoutsInWindow => $_getIZ(8);
+  @$pb.TagNumber(9)
+  set workoutsInWindow($core.int value) => $_setSignedInt32(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasWorkoutsInWindow() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearWorkoutsInWindow() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get lastWorkoutAt => $_getI64(9);
+  @$pb.TagNumber(10)
+  set lastWorkoutAt($fixnum.Int64 value) => $_setInt64(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasLastWorkoutAt() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearLastWorkoutAt() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.double get volumeLb => $_getN(10);
+  @$pb.TagNumber(11)
+  set volumeLb($core.double value) => $_setDouble(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasVolumeLb() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearVolumeLb() => $_clearField(11);
+
+  @$pb.TagNumber(12)
+  $fixnum.Int64 get events => $_getI64(11);
+  @$pb.TagNumber(12)
+  set events($fixnum.Int64 value) => $_setInt64(11, value);
+  @$pb.TagNumber(12)
+  $core.bool hasEvents() => $_has(11);
+  @$pb.TagNumber(12)
+  void clearEvents() => $_clearField(12);
+
+  @$pb.TagNumber(13)
+  $core.bool get isAdmin => $_getBF(12);
+  @$pb.TagNumber(13)
+  set isAdmin($core.bool value) => $_setBool(12, value);
+  @$pb.TagNumber(13)
+  $core.bool hasIsAdmin() => $_has(12);
+  @$pb.TagNumber(13)
+  void clearIsAdmin() => $_clearField(13);
+
+  @$pb.TagNumber(14)
+  $core.bool get liftingNow => $_getBF(13);
+  @$pb.TagNumber(14)
+  set liftingNow($core.bool value) => $_setBool(13, value);
+  @$pb.TagNumber(14)
+  $core.bool hasLiftingNow() => $_has(13);
+  @$pb.TagNumber(14)
+  void clearLiftingNow() => $_clearField(14);
+}
+
+/// One finished workout.
+class AdminWorkout extends $pb.GeneratedMessage {
+  factory AdminWorkout({
+    $core.String? username,
+    $core.String? name,
+    $fixnum.Int64? startTime,
+    $fixnum.Int64? durationSeconds,
+    $core.double? volumeLb,
+    $core.int? sets,
+    $core.int? exercises,
+    $core.bool? together,
+  }) {
+    final result = create();
+    if (username != null) result.username = username;
+    if (name != null) result.name = name;
+    if (startTime != null) result.startTime = startTime;
+    if (durationSeconds != null) result.durationSeconds = durationSeconds;
+    if (volumeLb != null) result.volumeLb = volumeLb;
+    if (sets != null) result.sets = sets;
+    if (exercises != null) result.exercises = exercises;
+    if (together != null) result.together = together;
+    return result;
+  }
+
+  AdminWorkout._();
+
+  factory AdminWorkout.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AdminWorkout.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AdminWorkout',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'username')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aInt64(3, _omitFieldNames ? '' : 'startTime')
+    ..aInt64(4, _omitFieldNames ? '' : 'durationSeconds')
+    ..aD(5, _omitFieldNames ? '' : 'volumeLb')
+    ..aI(6, _omitFieldNames ? '' : 'sets')
+    ..aI(7, _omitFieldNames ? '' : 'exercises')
+    ..aOB(8, _omitFieldNames ? '' : 'together')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminWorkout clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminWorkout copyWith(void Function(AdminWorkout) updates) =>
+      super.copyWith((message) => updates(message as AdminWorkout))
+          as AdminWorkout;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AdminWorkout create() => AdminWorkout._();
+  @$core.override
+  AdminWorkout createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AdminWorkout getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AdminWorkout>(create);
+  static AdminWorkout? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get username => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set username($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUsername() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUsername() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get startTime => $_getI64(2);
+  @$pb.TagNumber(3)
+  set startTime($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStartTime() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStartTime() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get durationSeconds => $_getI64(3);
+  @$pb.TagNumber(4)
+  set durationSeconds($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasDurationSeconds() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearDurationSeconds() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.double get volumeLb => $_getN(4);
+  @$pb.TagNumber(5)
+  set volumeLb($core.double value) => $_setDouble(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasVolumeLb() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearVolumeLb() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get sets => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set sets($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasSets() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearSets() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get exercises => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set exercises($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasExercises() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearExercises() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get together => $_getBF(7);
+  @$pb.TagNumber(8)
+  set together($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasTogether() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearTogether() => $_clearField(8);
+}
+
+class TrainingDay extends $pb.GeneratedMessage {
+  factory TrainingDay({
+    $fixnum.Int64? epochDay,
+    $fixnum.Int64? workouts,
+    $fixnum.Int64? lifters,
+  }) {
+    final result = create();
+    if (epochDay != null) result.epochDay = epochDay;
+    if (workouts != null) result.workouts = workouts;
+    if (lifters != null) result.lifters = lifters;
+    return result;
+  }
+
+  TrainingDay._();
+
+  factory TrainingDay.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TrainingDay.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TrainingDay',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'epochDay')
+    ..aInt64(2, _omitFieldNames ? '' : 'workouts')
+    ..aInt64(3, _omitFieldNames ? '' : 'lifters')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TrainingDay clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TrainingDay copyWith(void Function(TrainingDay) updates) =>
+      super.copyWith((message) => updates(message as TrainingDay))
+          as TrainingDay;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TrainingDay create() => TrainingDay._();
+  @$core.override
+  TrainingDay createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TrainingDay getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TrainingDay>(create);
+  static TrainingDay? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get epochDay => $_getI64(0);
+  @$pb.TagNumber(1)
+  set epochDay($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEpochDay() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEpochDay() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get workouts => $_getI64(1);
+  @$pb.TagNumber(2)
+  set workouts($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasWorkouts() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearWorkouts() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get lifters => $_getI64(2);
+  @$pb.TagNumber(3)
+  set lifters($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLifters() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLifters() => $_clearField(3);
+}
+
+class ExerciseUse extends $pb.GeneratedMessage {
+  factory ExerciseUse({
+    $1.Exercise? exercise,
+    $fixnum.Int64? sets,
+    $fixnum.Int64? lifters,
+    $core.double? volumeLb,
+  }) {
+    final result = create();
+    if (exercise != null) result.exercise = exercise;
+    if (sets != null) result.sets = sets;
+    if (lifters != null) result.lifters = lifters;
+    if (volumeLb != null) result.volumeLb = volumeLb;
+    return result;
+  }
+
+  ExerciseUse._();
+
+  factory ExerciseUse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ExerciseUse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ExerciseUse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<$1.Exercise>(1, _omitFieldNames ? '' : 'exercise',
+        enumValues: $1.Exercise.values)
+    ..aInt64(2, _omitFieldNames ? '' : 'sets')
+    ..aInt64(3, _omitFieldNames ? '' : 'lifters')
+    ..aD(4, _omitFieldNames ? '' : 'volumeLb')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExerciseUse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ExerciseUse copyWith(void Function(ExerciseUse) updates) =>
+      super.copyWith((message) => updates(message as ExerciseUse))
+          as ExerciseUse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ExerciseUse create() => ExerciseUse._();
+  @$core.override
+  ExerciseUse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ExerciseUse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ExerciseUse>(create);
+  static ExerciseUse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $1.Exercise get exercise => $_getN(0);
+  @$pb.TagNumber(1)
+  set exercise($1.Exercise value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasExercise() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearExercise() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get sets => $_getI64(1);
+  @$pb.TagNumber(2)
+  set sets($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSets() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSets() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get lifters => $_getI64(2);
+  @$pb.TagNumber(3)
+  set lifters($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLifters() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLifters() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get volumeLb => $_getN(3);
+  @$pb.TagNumber(4)
+  set volumeLb($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasVolumeLb() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearVolumeLb() => $_clearField(4);
+}
+
+class GetTrainingStatsResponse extends $pb.GeneratedMessage {
+  factory GetTrainingStatsResponse({
+    $core.int? days,
+    $core.Iterable<AdminUser>? users,
+    $core.Iterable<AdminWorkout>? workouts,
+    $core.Iterable<TrainingDay>? daily,
+    $core.Iterable<ExerciseUse>? exercises,
+    $fixnum.Int64? workoutsInWindow,
+    $fixnum.Int64? liftersInWindow,
+    $fixnum.Int64? workoutsTotal,
+    $core.double? volumeLbInWindow,
+  }) {
+    final result = create();
+    if (days != null) result.days = days;
+    if (users != null) result.users.addAll(users);
+    if (workouts != null) result.workouts.addAll(workouts);
+    if (daily != null) result.daily.addAll(daily);
+    if (exercises != null) result.exercises.addAll(exercises);
+    if (workoutsInWindow != null) result.workoutsInWindow = workoutsInWindow;
+    if (liftersInWindow != null) result.liftersInWindow = liftersInWindow;
+    if (workoutsTotal != null) result.workoutsTotal = workoutsTotal;
+    if (volumeLbInWindow != null) result.volumeLbInWindow = volumeLbInWindow;
+    return result;
+  }
+
+  GetTrainingStatsResponse._();
+
+  factory GetTrainingStatsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetTrainingStatsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetTrainingStatsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'days')
+    ..pPM<AdminUser>(2, _omitFieldNames ? '' : 'users',
+        subBuilder: AdminUser.create)
+    ..pPM<AdminWorkout>(3, _omitFieldNames ? '' : 'workouts',
+        subBuilder: AdminWorkout.create)
+    ..pPM<TrainingDay>(4, _omitFieldNames ? '' : 'daily',
+        subBuilder: TrainingDay.create)
+    ..pPM<ExerciseUse>(5, _omitFieldNames ? '' : 'exercises',
+        subBuilder: ExerciseUse.create)
+    ..aInt64(6, _omitFieldNames ? '' : 'workoutsInWindow')
+    ..aInt64(7, _omitFieldNames ? '' : 'liftersInWindow')
+    ..aInt64(8, _omitFieldNames ? '' : 'workoutsTotal')
+    ..aD(9, _omitFieldNames ? '' : 'volumeLbInWindow')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingStatsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetTrainingStatsResponse copyWith(
+          void Function(GetTrainingStatsResponse) updates) =>
+      super.copyWith((message) => updates(message as GetTrainingStatsResponse))
+          as GetTrainingStatsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingStatsResponse create() => GetTrainingStatsResponse._();
+  @$core.override
+  GetTrainingStatsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetTrainingStatsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetTrainingStatsResponse>(create);
+  static GetTrainingStatsResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get days => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set days($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasDays() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearDays() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $pb.PbList<AdminUser> get users => $_getList(1);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<AdminWorkout> get workouts => $_getList(2);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<TrainingDay> get daily => $_getList(3);
+
+  @$pb.TagNumber(5)
+  $pb.PbList<ExerciseUse> get exercises => $_getList(4);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get workoutsInWindow => $_getI64(5);
+  @$pb.TagNumber(6)
+  set workoutsInWindow($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasWorkoutsInWindow() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearWorkoutsInWindow() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get liftersInWindow => $_getI64(6);
+  @$pb.TagNumber(7)
+  set liftersInWindow($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLiftersInWindow() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLiftersInWindow() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get workoutsTotal => $_getI64(7);
+  @$pb.TagNumber(8)
+  set workoutsTotal($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasWorkoutsTotal() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearWorkoutsTotal() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.double get volumeLbInWindow => $_getN(8);
+  @$pb.TagNumber(9)
+  set volumeLbInWindow($core.double value) => $_setDouble(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasVolumeLbInWindow() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearVolumeLbInWindow() => $_clearField(9);
+}
+
+class RecoveryRequest extends $pb.GeneratedMessage {
+  factory RecoveryRequest({
+    $core.String? requestId,
+    $core.String? username,
+    $fixnum.Int64? createdAt,
+    $core.String? platform,
+    $core.String? createdIp,
+    $core.int? passkeys,
+    $core.int? logins,
+    $fixnum.Int64? lastSeenMs,
+    $core.String? status,
+    $fixnum.Int64? decidedAt,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (username != null) result.username = username;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (platform != null) result.platform = platform;
+    if (createdIp != null) result.createdIp = createdIp;
+    if (passkeys != null) result.passkeys = passkeys;
+    if (logins != null) result.logins = logins;
+    if (lastSeenMs != null) result.lastSeenMs = lastSeenMs;
+    if (status != null) result.status = status;
+    if (decidedAt != null) result.decidedAt = decidedAt;
+    return result;
+  }
+
+  RecoveryRequest._();
+
+  factory RecoveryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOS(2, _omitFieldNames ? '' : 'username')
+    ..aInt64(3, _omitFieldNames ? '' : 'createdAt')
+    ..aOS(4, _omitFieldNames ? '' : 'platform')
+    ..aOS(5, _omitFieldNames ? '' : 'createdIp')
+    ..aI(6, _omitFieldNames ? '' : 'passkeys')
+    ..aI(7, _omitFieldNames ? '' : 'logins')
+    ..aInt64(8, _omitFieldNames ? '' : 'lastSeenMs')
+    ..aOS(9, _omitFieldNames ? '' : 'status')
+    ..aInt64(10, _omitFieldNames ? '' : 'decidedAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryRequest copyWith(void Function(RecoveryRequest) updates) =>
+      super.copyWith((message) => updates(message as RecoveryRequest))
+          as RecoveryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryRequest create() => RecoveryRequest._();
+  @$core.override
+  RecoveryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryRequest>(create);
+  static RecoveryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get username => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set username($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUsername() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUsername() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get createdAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set createdAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCreatedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCreatedAt() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get platform => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set platform($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPlatform() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPlatform() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get createdIp => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set createdIp($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasCreatedIp() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearCreatedIp() => $_clearField(5);
+
+  /// The account, so the admin can judge the request.
+  @$pb.TagNumber(6)
+  $core.int get passkeys => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set passkeys($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasPasskeys() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearPasskeys() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get logins => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set logins($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasLogins() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearLogins() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get lastSeenMs => $_getI64(7);
+  @$pb.TagNumber(8)
+  set lastSeenMs($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasLastSeenMs() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearLastSeenMs() => $_clearField(8);
+
+  /// "pending", "approved" or "denied".
+  @$pb.TagNumber(9)
+  $core.String get status => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set status($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasStatus() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearStatus() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $fixnum.Int64 get decidedAt => $_getI64(9);
+  @$pb.TagNumber(10)
+  set decidedAt($fixnum.Int64 value) => $_setInt64(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasDecidedAt() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearDecidedAt() => $_clearField(10);
+}
+
+class ListRecoveriesRequest extends $pb.GeneratedMessage {
+  factory ListRecoveriesRequest() => create();
+
+  ListRecoveriesRequest._();
+
+  factory ListRecoveriesRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListRecoveriesRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListRecoveriesRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListRecoveriesRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListRecoveriesRequest copyWith(
+          void Function(ListRecoveriesRequest) updates) =>
+      super.copyWith((message) => updates(message as ListRecoveriesRequest))
+          as ListRecoveriesRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListRecoveriesRequest create() => ListRecoveriesRequest._();
+  @$core.override
+  ListRecoveriesRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListRecoveriesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListRecoveriesRequest>(create);
+  static ListRecoveriesRequest? _defaultInstance;
+}
+
+class ListRecoveriesResponse extends $pb.GeneratedMessage {
+  factory ListRecoveriesResponse({
+    $core.Iterable<RecoveryRequest>? recoveries,
+  }) {
+    final result = create();
+    if (recoveries != null) result.recoveries.addAll(recoveries);
+    return result;
+  }
+
+  ListRecoveriesResponse._();
+
+  factory ListRecoveriesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListRecoveriesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListRecoveriesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<RecoveryRequest>(1, _omitFieldNames ? '' : 'recoveries',
+        subBuilder: RecoveryRequest.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListRecoveriesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListRecoveriesResponse copyWith(
+          void Function(ListRecoveriesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListRecoveriesResponse))
+          as ListRecoveriesResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListRecoveriesResponse create() => ListRecoveriesResponse._();
+  @$core.override
+  ListRecoveriesResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListRecoveriesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListRecoveriesResponse>(create);
+  static ListRecoveriesResponse? _defaultInstance;
+
+  /// Waiting first, then the recently decided. Never the codes: an admin
+  /// approves the code they were sent.
+  @$pb.TagNumber(1)
+  $pb.PbList<RecoveryRequest> get recoveries => $_getList(0);
+}
+
+enum DecideRecoveryRequest_Request { approveCode, denyRequestId, notSet }
+
+class DecideRecoveryRequest extends $pb.GeneratedMessage {
+  factory DecideRecoveryRequest({
+    $core.String? approveCode,
+    $core.String? denyRequestId,
+    $core.bool? removeOtherPasskeys,
+  }) {
+    final result = create();
+    if (approveCode != null) result.approveCode = approveCode;
+    if (denyRequestId != null) result.denyRequestId = denyRequestId;
+    if (removeOtherPasskeys != null)
+      result.removeOtherPasskeys = removeOtherPasskeys;
+    return result;
+  }
+
+  DecideRecoveryRequest._();
+
+  factory DecideRecoveryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DecideRecoveryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static const $core.Map<$core.int, DecideRecoveryRequest_Request>
+      _DecideRecoveryRequest_RequestByTag = {
+    1: DecideRecoveryRequest_Request.approveCode,
+    2: DecideRecoveryRequest_Request.denyRequestId,
+    0: DecideRecoveryRequest_Request.notSet
+  };
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DecideRecoveryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..oo(0, [1, 2])
+    ..aOS(1, _omitFieldNames ? '' : 'approveCode')
+    ..aOS(2, _omitFieldNames ? '' : 'denyRequestId')
+    ..aOB(3, _omitFieldNames ? '' : 'removeOtherPasskeys')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DecideRecoveryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DecideRecoveryRequest copyWith(
+          void Function(DecideRecoveryRequest) updates) =>
+      super.copyWith((message) => updates(message as DecideRecoveryRequest))
+          as DecideRecoveryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DecideRecoveryRequest create() => DecideRecoveryRequest._();
+  @$core.override
+  DecideRecoveryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DecideRecoveryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DecideRecoveryRequest>(create);
+  static DecideRecoveryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  DecideRecoveryRequest_Request whichRequest() =>
+      _DecideRecoveryRequest_RequestByTag[$_whichOneof(0)]!;
+  @$pb.TagNumber(1)
+  @$pb.TagNumber(2)
+  void clearRequest() => $_clearField($_whichOneof(0));
+
+  /// Approve the request that came with this code.
+  @$pb.TagNumber(1)
+  $core.String get approveCode => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set approveCode($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasApproveCode() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearApproveCode() => $_clearField(1);
+
+  /// Refuse this request.
+  @$pb.TagNumber(2)
+  $core.String get denyRequestId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set denyRequestId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDenyRequestId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDenyRequestId() => $_clearField(2);
+
+  /// On approving: drop the account's other passkeys and sign out its
+  /// devices (a stolen phone, not just a lost key).
+  @$pb.TagNumber(3)
+  $core.bool get removeOtherPasskeys => $_getBF(2);
+  @$pb.TagNumber(3)
+  set removeOtherPasskeys($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasRemoveOtherPasskeys() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRemoveOtherPasskeys() => $_clearField(3);
+}
+
+class DecideRecoveryResponse extends $pb.GeneratedMessage {
+  factory DecideRecoveryResponse({
+    RecoveryRequest? recovery,
+  }) {
+    final result = create();
+    if (recovery != null) result.recovery = recovery;
+    return result;
+  }
+
+  DecideRecoveryResponse._();
+
+  factory DecideRecoveryResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DecideRecoveryResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DecideRecoveryResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<RecoveryRequest>(1, _omitFieldNames ? '' : 'recovery',
+        subBuilder: RecoveryRequest.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DecideRecoveryResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DecideRecoveryResponse copyWith(
+          void Function(DecideRecoveryResponse) updates) =>
+      super.copyWith((message) => updates(message as DecideRecoveryResponse))
+          as DecideRecoveryResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DecideRecoveryResponse create() => DecideRecoveryResponse._();
+  @$core.override
+  DecideRecoveryResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DecideRecoveryResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DecideRecoveryResponse>(create);
+  static DecideRecoveryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RecoveryRequest get recovery => $_getN(0);
+  @$pb.TagNumber(1)
+  set recovery(RecoveryRequest value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRecovery() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRecovery() => $_clearField(1);
+  @$pb.TagNumber(1)
+  RecoveryRequest ensureRecovery() => $_ensure(0);
 }
 
 const $core.bool _omitFieldNames =

@@ -1,8 +1,10 @@
 # Authentication
 
-Schlift uses **passkeys (WebAuthn) only**. There are no passwords, no email, and
-no password reset flow. `webauthn-rs` handles the protocol; `src/auth.rs` holds
-the state and `src/server/auth.rs` exposes the RPCs.
+Schlift uses **passkeys (WebAuthn) only**. There are no passwords and no
+email. Someone who loses every passkey makes a new one that an admin approves
+([below](#getting-back-in-without-a-passkey)). `webauthn-rs` handles the
+protocol; `src/auth.rs` holds the state and `src/server/auth.rs` exposes the
+RPCs.
 
 ## Pieces
 
@@ -13,8 +15,10 @@ graph TD
     AS --> rc["reg_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> adc["add_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> ac["auth_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
+    AS --> rec["recovery_challenges<br/>Mutex&lt;HashMap&gt; — in memory"]
     AS --> db["ServerDb"]
     db --> pc[("passkeys")]
+    db --> pr[("passkey_recoveries")]
     db --> se[("logins")]
     db --> uc[("users")]
 ```
@@ -111,6 +115,51 @@ serve both. The signature counter is written back on every successful login —
 `webauthn-rs` uses it to detect cloned authenticators. A failure to write it
 is logged at `warn`; the login still succeeds.
 
+## When a ceremony is refused
+
+Every way a ceremony can fail is a `Refusal` (`src/auth.rs`). The caller is
+sent one short sentence (`Refusal::message`); the detail (the webauthn-rs
+error, the challenge, the origins) is logged where it happened and never
+sent. A failed sign-in used to be shown to the user with the challenge and
+every allowed origin in it. The refusal's `slug` is what `auth_attempts.reason`
+holds, so the stats page counts refusals by kind.
+
+The gRPC code tells a client which it was (`refusal_status`,
+`src/server/auth.rs`):
+
+| Refusal | Code | What happened |
+|---|---|---|
+| `UnknownPasskey`, `UnknownUser` | `NOT_FOUND` | No account holds the passkey presented (its account or the passkey was deleted, or its sign-up never finished); nobody has the username |
+| `NotVerified` | `FAILED_PRECONDITION` | The passkey answered without verifying its user. Passkeys here require it |
+| `AlreadyRegistered`, `NameTaken` | `ALREADY_EXISTS` | |
+| `Busy`, `TooManyRecoveries` | `RESOURCE_EXHAUSTED` | |
+| `Expired`, `Rejected` | `UNAUTHENTICATED` signing in, `INVALID_ARGUMENT` registering | The challenge is spent or over five minutes old; the credential didn't verify |
+
+The app words `NOT_FOUND` and `FAILED_PRECONDITION` itself (`formatAuthError`,
+`copy.passkeyErrors`); anything else shows the server's sentence.
+
+## On the phone
+
+`app/lib/services/auth_service.dart` runs the device's half through the
+`passkeys` plugin (Android signs in through `credential_manager`).
+
+- **User verification is asked for.** The server's options say
+  `userVerification: required`. `passkeys_darwin` before 0.4.8 never passed
+  that to iOS, so a third-party passkey manager (1Password) signed without
+  verifying and the server refused the sign-in. Keep `passkeys` at 2.24.1 or
+  later.
+- **The passkey sheet may stay open two minutes** (`_passkeyPromptTimeout`),
+  inside the server's five. A sheet finished after the app gave up makes a
+  passkey for nothing.
+- **Passkeys no account holds are dropped.** When a sign-in is refused
+  `NOT_FOUND`, or a sheet makes a passkey after its timeout, the app tells
+  the passkey manager to forget it (`signalUnknownCredential`). Only newer
+  systems act on it (Android with a provider that supports signals, iOS
+  26.2); elsewhere the stale passkey is still offered and still refused.
+- **iOS offers a passkey on another device.** Sign-in passes
+  `preferImmediatelyAvailableCredentials: false`, so with no passkey on the
+  phone the sheet offers the QR code and security keys instead of failing.
+
 ## Sessions
 
 ```mermaid
@@ -199,9 +248,68 @@ A friendly name is stored by injecting a `cred_name` key into the serialised
 credential JSON rather than as its own column
 (`stored_passkey_json` in `src/auth.rs`). It travels with the credential, but it is not queryable.
 
-> You cannot delete your last passkey, but losing every device or password
-> manager that holds one still locks you out: there is no self-serve recovery
-> (`LostPasskeyScreen` points the user to the owner).
+`passkeys.credential_id` is the credential id as the passkey's own JSON
+spells it (base64url; `credential_key`). It used to be how a Rust type
+happened to print (`HumanBinaryData([1, 2, …])`); migration step 4 rekeyed
+the rows from their JSON.
+
+The passkeys screen says so when an account has only one.
+
+## Getting back in without a passkey
+
+You cannot delete your last passkey, but losing every device or password
+manager that holds one locks you out. Getting back in is a new passkey that
+an admin approves. The request is made on the website (`/recover`, which the
+app's `LostPasskeyScreen` opens), so it works from any version of the app.
+
+```mermaid
+sequenceDiagram
+    participant P as Person (browser)
+    participant S as AuthService
+    participant DB
+    participant A as Admin (/admin)
+
+    P->>S: RecoveryStart(username)
+    S-->>P: request_id + creation options for the account's user id
+    Note over P: makes a passkey (discoverable)
+    P->>S: RecoveryFinish(request_id, credential)
+    S->>DB: passkey_recoveries: held, status pending
+    S-->>P: code (XXXX-XXXX), expires in 7 days
+    P-->>A: the code, out of band
+    A->>S: DecideRecovery(approve_code)
+    S->>DB: move the passkey into passkeys
+    P->>S: RecoveryStatus(request_id) → approved
+    Note over P: the passkey signs in
+```
+
+A passkey is made for one user id and signs in by naming it, so the new
+passkey is made for the old account from the start: one made for a new
+account could not be moved across afterwards.
+
+What keeps it safe:
+
+- **The held passkey is inert.** It is in `passkey_recoveries`, not
+  `passkeys`: it signs nothing in, and is dropped when the request is
+  refused, lapses (7 days) or its account is deleted.
+- **Approval is by code, never by row.** `ListRecoveries` does not return
+  codes, so the request an admin approves is the one whose maker got their
+  code to the admin. Knowing a username is enough to make a request and not
+  enough to have it approved. What is left is the admin being talked into
+  it: approve only a code that reached you from the account's owner.
+- **The owner hears of it.** A device still signed in to the account shows
+  `RecoveryAlertBanner` (`ListMyRecoveries`) with a button that refuses the
+  request (`DenyMyRecovery`). The admin's list shows how many devices are
+  signed in: such a person can add a passkey themselves.
+- **Bounded.** Starts are limited like every other ceremony; at most 5
+  requests wait per account and 1,000 in all.
+- **`remove_other_passkeys`** on approving drops the account's other
+  passkeys and signs out its devices: for a stolen phone, not a lost key.
+
+`RecoveryStart` says whether a username exists (`NOT_FOUND`), as
+`RegisterStart` already does, so that a typo is not a request that waits
+forever. `RecoveryStart`, `RecoveryFinish` and `RecoveryStatus` are
+unauthenticated: the caller has no passkey. The request id (random, held by
+whoever made the request) is what lets its status be read.
 
 ## Test login
 

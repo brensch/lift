@@ -215,6 +215,7 @@ version at a time (see [backend.md](backend.md#schema-changes)).
 erDiagram
     users ||--o{ passkeys : "registers"
     users ||--o{ logins : "holds"
+    users ||--o{ passkey_recoveries : "is asked for"
     users ||--o{ account_events : "logs"
     users ||--o{ session_members : "trains in"
     users ||--o{ page_views : "visits"
@@ -240,6 +241,18 @@ erDiagram
         TEXT token_hash PK "SHA-256 of the token"
         TEXT user_id FK
         INTEGER expires_at
+    }
+    passkey_recoveries {
+        TEXT request_id PK
+        TEXT user_id FK
+        TEXT code UK "what an admin approves"
+        TEXT credential_id
+        TEXT passkey_json "emptied once decided"
+        INTEGER created_at
+        TEXT created_ip
+        TEXT platform
+        TEXT status "pending / approved / denied"
+        INTEGER decided_at
     }
     account_events {
         TEXT user_id PK, FK
@@ -276,10 +289,11 @@ erDiagram
 |---|---|
 | `users` | One row per user: profile, the invite token, and `admin_since` (set by `schlift admin add`). `username` is unique ignoring case. See [analytics.md](analytics.md#admins-and-the-stats-page) |
 | `passkeys`, `logins` | See [auth.md](auth.md). A login is stored as its token's SHA-256, never the token |
+| `passkey_recoveries` | Passkeys made for accounts whose owner lost theirs, held until an admin approves the code. Waiting ones lapse after 7 days; decided ones are kept 30. See [auth.md](auth.md#getting-back-in-without-a-passkey) |
 | `account_events` | Every account's log. See [above](#the-event-log) |
 | `session_members` | Every `(session, user)` that joined. The current session is the row with `left_at = 0`, at most one per user (a partial unique index). See [multiplayer.md](multiplayer.md) |
 | `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. See [analytics.md](analytics.md) |
-| `auth_attempts` | One row per passkey ceremony the server started; `outcome` is `started` / `ok` / `rejected` / `client_error`. No username, no `user_id` |
+| `auth_attempts` | One row per passkey ceremony the server started (`kind`: `register` / `login` / `recovery`); `outcome` is `started` / `ok` / `rejected` / `client_error`. No username, no `user_id` |
 
 Not stored, only in memory:
 
@@ -294,6 +308,6 @@ Every table with a `user_id` column references `users(id) ON DELETE
 CASCADE`. Deleting an account (`delete_user_account_and_data`,
 `src/db/auth.rs`) is `DELETE FROM users WHERE id = ?` plus the account's
 registration row in `auth_attempts` (keyed by the user id it created); the
-cascade takes the events, passkeys, logins, session memberships and page
-views. A test discovers every table with a `user_id` column and fails if one
+cascade takes the events, passkeys, logins, recovery requests, session
+memberships and page views. A test discovers every table with a `user_id` column and fails if one
 does not cascade.

@@ -6,6 +6,7 @@ import { PrivacyPage } from "@/pages/privacy";
 import { RoutinesPage } from "@/pages/routines";
 import { DeleteAccountPage } from "@/pages/delete-account";
 import { LoginPage } from "@/pages/login";
+import { RecoverPage } from "@/pages/recover";
 import { DashboardPage } from "@/pages/dashboard";
 import { AdminPage } from "@/pages/admin";
 
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/recover" element={<RecoverPage />} />
             <Route path="/dashboard" element={<DashboardPage key="live" />} />
             <Route path="/demo" element={<DashboardPage key="demo" demo />} />
             <Route path="/admin" element={<AdminPage />} />

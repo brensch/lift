@@ -55,6 +55,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 4 {
+        let mut tx = pool.begin().await?;
+        v4(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 4")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -320,6 +328,36 @@ async fn v2(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
+/// Passkeys held aside for accounts whose owner lost theirs, until an admin
+/// approves the code; and passkeys keyed by the credential id as the passkey
+/// itself spells it (base64url), where they were keyed by how a Rust type
+/// happened to print.
+async fn v4(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE passkey_recoveries (
+             request_id TEXT PRIMARY KEY,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             -- What the person sends an admin. Unique among all requests.
+             code TEXT NOT NULL UNIQUE,
+             credential_id TEXT NOT NULL,
+             -- As in passkeys; emptied once the request is decided.
+             passkey_json TEXT NOT NULL,
+             created_at INTEGER NOT NULL,
+             created_ip TEXT,
+             platform TEXT NOT NULL DEFAULT '',
+             -- 'pending', 'approved' or 'denied'.
+             status TEXT NOT NULL DEFAULT 'pending',
+             decided_at INTEGER NOT NULL DEFAULT 0
+         );
+         CREATE INDEX passkey_recoveries_user ON passkey_recoveries(user_id);
+         UPDATE passkeys SET credential_id = passkey_json ->> '$.cred.cred_id'
+         WHERE passkey_json ->> '$.cred.cred_id' IS NOT NULL;",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 async fn table_exists(tx: &mut Transaction<'_, Sqlite>, table: &str) -> DbResult<bool> {
     let found: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
@@ -383,7 +421,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 3);
+        assert_eq!(version, 4);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();
