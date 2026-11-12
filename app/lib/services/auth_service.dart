@@ -2,7 +2,7 @@ import 'dart:async' show unawaited;
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:credential_manager/credential_manager.dart' as cm;
-import 'package:grpc/grpc.dart' show CallOptions;
+import 'package:grpc/grpc.dart' show CallOptions, GrpcError, StatusCode;
 import 'package:passkeys/authenticator.dart';
 import 'package:passkeys/types.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
@@ -26,6 +26,11 @@ class AuthService {
   final PasskeyAuthenticator _authenticator = PasskeyAuthenticator();
   final cm.CredentialManager _credentialManager = cm.CredentialManager();
   static const Duration _passkeyOpTimeout = Duration(seconds: 45);
+
+  /// How long the device's passkey sheet may stay open. Long enough to
+  /// unlock a password manager and pick a passkey; well inside the five
+  /// minutes the server keeps the challenge.
+  static const Duration _passkeyPromptTimeout = Duration(minutes: 2);
   bool _credentialManagerInitialized = false;
 
   AuthService({required this.grpcClient});
@@ -71,14 +76,7 @@ class AuthService {
     // Server wraps options under "publicKey" key
     final credential = await _reportingDeviceFailure(
       startResponse.userId,
-      () => _authenticator
-          .register(_registerRequestFromOptions(startResponse.optionsJson))
-          .timeout(
-            _passkeyOpTimeout,
-            onTimeout: () => throw _PasskeyPromptTimeout(
-              'Timed out waiting for device passkey prompt. Try again.',
-            ),
-          ),
+      () => _createPasskey(startResponse.optionsJson),
     );
     AppLogger.instance.info('Auth', 'passkeyRegister', {
       'phase': 'registerPromptDone',
@@ -139,7 +137,7 @@ class AuthService {
                     ? _androidAuthenticate(startResponse.optionsJson)
                     : _authenticateWithPasskeys(startResponse.optionsJson))
                 .timeout(
-                  _passkeyOpTimeout,
+                  _passkeyPromptTimeout,
                   onTimeout: () => throw _PasskeyPromptTimeout(
                     "login timed out. if you didn't see a popup you have too many passkeys for this app, delete them all. if you did, the backend is broken.",
                   ),
@@ -151,29 +149,44 @@ class AuthService {
       });
 
       // Step 3: Send credential back to server
-      final finishResponse = await grpcClient.authService
-          .loginFinish(
-            LoginFinishRequest(
-              challengeId: startResponse.challengeId,
-              credentialJson: jsonEncode(credential.toJson()),
-            ),
-          )
-          .timeout(
-            _passkeyOpTimeout,
-            onTimeout: () => throw Exception(
-              'Timed out finishing passkey login. Try again.',
+      try {
+        final finishResponse = await grpcClient.authService
+            .loginFinish(
+              LoginFinishRequest(
+                challengeId: startResponse.challengeId,
+                credentialJson: jsonEncode(credential.toJson()),
+              ),
+            )
+            .timeout(
+              _passkeyOpTimeout,
+              onTimeout: () => throw Exception(
+                'Timed out finishing passkey login. Try again.',
+              ),
+            );
+        AppLogger.instance.info('Auth', 'passkeyLogin', {
+          'phase': 'loginFinishDone',
+          'userId': finishResponse.userId,
+        });
+
+        return AuthResponse(
+          sessionToken: finishResponse.sessionToken,
+          userId: finishResponse.userId,
+          username: finishResponse.username,
+        );
+      } on GrpcError catch (error) {
+        // No account holds this passkey (the account or the passkey was
+        // deleted, or its sign-up never finished): have the passkey manager
+        // drop it, so it stops being offered.
+        if (error.code == StatusCode.notFound) {
+          unawaited(
+            _forgetPasskey(
+              _publicKeyOptions(startResponse.optionsJson)['rpId'],
+              credential.id,
             ),
           );
-      AppLogger.instance.info('Auth', 'passkeyLogin', {
-        'phase': 'loginFinishDone',
-        'userId': finishResponse.userId,
-      });
-
-      return AuthResponse(
-        sessionToken: finishResponse.sessionToken,
-        userId: finishResponse.userId,
-        username: finishResponse.username,
-      );
+        }
+        rethrow;
+      }
     } catch (error) {
       AppLogger.instance.error('Auth', 'passkeyLogin', {
         'phase': 'failed',
@@ -313,14 +326,7 @@ class AuthService {
           ),
         );
 
-    final credential = await _authenticator
-        .register(_registerRequestFromOptions(startResponse.optionsJson))
-        .timeout(
-          _passkeyOpTimeout,
-          onTimeout: () => throw Exception(
-            'Timed out waiting for device passkey prompt. Try again.',
-          ),
-        );
+    final credential = await _createPasskey(startResponse.optionsJson);
 
     await grpcClient.authService
         .addPasskeyFinish(
@@ -335,6 +341,66 @@ class AuthService {
             'Timed out finishing add-passkey flow. Try again.',
           ),
         );
+  }
+
+  /// The device's half of making a passkey. A sheet left open past
+  /// [_passkeyPromptTimeout] is given up on; a passkey it goes on to make
+  /// belongs to nothing, so the passkey manager is told to drop it.
+  Future<RegisterResponseType> _createPasskey(String optionsJson) {
+    final request = _registerRequestFromOptions(optionsJson);
+    final prompt = _authenticator.register(request);
+    return prompt.timeout(
+      _passkeyPromptTimeout,
+      onTimeout: () {
+        unawaited(
+          prompt.then<void>(
+            (late) => _forgetPasskey(request.relyingParty.id, late.id),
+            onError: (Object _) {},
+          ),
+        );
+        throw _PasskeyPromptTimeout(
+          'Timed out waiting for device passkey prompt. Try again.',
+        );
+      },
+    );
+  }
+
+  /// Tell the passkey manager a passkey is no account's, so it stops
+  /// offering it. A hint: only newer systems act on it, and nothing depends
+  /// on it having worked.
+  Future<void> _forgetPasskey(Object? rpId, String? credentialId) async {
+    if (rpId is! String || credentialId == null || credentialId.isEmpty) {
+      return;
+    }
+    try {
+      await _authenticator.signalUnknownCredential(
+        SignalUnknownCredentialRequestType(
+          relyingPartyId: rpId,
+          credentialId: credentialId,
+        ),
+      );
+      AppLogger.instance.info('Auth', 'forgetPasskey', {'phase': 'signalled'});
+    } catch (error) {
+      AppLogger.instance.warn('Auth', 'forgetPasskey', {
+        'error': error.toString(),
+      });
+    }
+  }
+
+  /// Requests, made at schlift.com/recover, to get into this account with
+  /// a new passkey that are waiting for an admin.
+  Future<List<PendingRecovery>> listMyRecoveries() async {
+    final response = await grpcClient.authService.listMyRecoveries(
+      ListMyRecoveriesRequest(),
+    );
+    return response.recoveries;
+  }
+
+  /// Refuse one of them: it wasn't the account's owner asking.
+  Future<void> denyMyRecovery(String requestId) async {
+    await grpcClient.authService.denyMyRecovery(
+      DenyMyRecoveryRequest(requestId: requestId),
+    );
   }
 
   Future<void> deletePasskey(String credentialId) async {
@@ -403,7 +469,11 @@ class AuthService {
       relyingPartyId: _requiredString(json, 'rpId'),
       challenge: _requiredString(json, 'challenge'),
       mediation: MediationType.Optional,
-      preferImmediatelyAvailableCredentials: true,
+      // False so that iOS also offers a passkey on another device (the QR
+      // code) or a security key: someone on a new phone whose passkey is
+      // still on the old one can sign in. With a passkey on this phone the
+      // sheet is the same.
+      preferImmediatelyAvailableCredentials: false,
       timeout: (json['timeout'] as num?)?.toInt(),
       userVerification: json['userVerification'] as String?,
       allowCredentials: _nullableCredentialList(json['allowCredentials']),

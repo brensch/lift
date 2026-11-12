@@ -116,10 +116,11 @@ dev.schlift.com {
         }
     }
 
-    # Static site is shared with prod (harmless for a native-app dev host); the
-    # app itself never hits these paths.
+    # The website built from the commit the dev backend runs
+    # (scripts/deploy_schlift_dev.sh), so its pages talk to an API that has
+    # their RPCs.
     handle {
-        root * /opt/schlift/web
+        root * /opt/schlift-dev/web
         try_files {path} /index.html
         file_server
     }

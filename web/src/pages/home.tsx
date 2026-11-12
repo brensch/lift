@@ -3,11 +3,17 @@ import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { useReveal } from "@/lib/useReveal";
+import { formatReleaseDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CONTENT, site } from "@/content";
+import { FeatureArt } from "@/components/feature-art";
+import { MuscleTracker } from "@/components/muscle-tracker";
 
 // The page has no copy of its own: every string is store/listing.yaml (see
 // src/content.ts). Layout only.
+
+/** How many of the latest release's changes the home page shows. */
+const WHATS_NEW_SHOWN = 6;
 
 const APP_STORE = {
   url: "https://apps.apple.com/us/app/schlift/id6761754276",
@@ -77,7 +83,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export function HomePage() {
-  const { about, testimonials, otherFeatures, screenshots, whatsNew } = CONTENT;
+  const { about, testimonials, otherFeatures, screenshots, changelog } = CONTENT;
+  const latest = changelog[0];
 
   return (
     <div className="flex flex-col overflow-hidden">
@@ -192,9 +199,9 @@ export function HomePage() {
         </section>
       )}
 
-      {/* About — the opening of the store description */}
-      <section className="max-w-5xl mx-auto px-5 py-24 w-full">
-        <Reveal className="max-w-3xl">
+      {/* About — the opening of the store description, beside the real thing */}
+      <section className="max-w-5xl mx-auto px-5 py-24 w-full grid grid-cols-1 md:grid-cols-[1fr_22rem] gap-12 items-center">
+        <Reveal>
           {about.map((p, i) => (
             <p
               key={i}
@@ -208,6 +215,9 @@ export function HomePage() {
               {p}
             </p>
           ))}
+        </Reveal>
+        <Reveal delay={120} className="w-full max-w-sm mx-auto">
+          <MuscleTracker />
         </Reveal>
       </section>
 
@@ -245,24 +255,24 @@ export function HomePage() {
                 {otherFeatures.heading}
               </h2>
             </Reveal>
-            {/* Each tile sizes to its own text; rows don't stretch to match. */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+            {/* A box each: the picture edge to edge on the left, a rule, the words. */}
+            <ul className="list-none p-0 m-0 grid grid-cols-1 md:grid-cols-2 gap-5">
               {otherFeatures.items.map((item, i) => (
-                <Reveal key={i} delay={i * 80}>
-                  <div className="flex items-start gap-4 border border-border rounded-2xl bg-surface p-6 leading-relaxed">
-                    {item.emoji && (
-                      <span
-                        aria-hidden="true"
-                        className="shrink-0 w-11 h-11 rounded-xl bg-text/[0.04] border border-border flex items-center justify-center text-xl"
-                      >
-                        {item.emoji}
-                      </span>
+                <li key={i} className="min-w-0">
+                  <Reveal
+                    delay={i * 80}
+                    className="h-full min-h-44 flex border border-border rounded-2xl bg-surface overflow-hidden"
+                  >
+                    {item.picture && (
+                      <div className="relative shrink-0 w-[38%] max-w-52 bg-background border-r border-border overflow-hidden">
+                        <FeatureArt picture={item.picture} />
+                      </div>
                     )}
-                    <span className="pt-2">{item.text}</span>
-                  </div>
-                </Reveal>
+                    <p className="m-0 p-6 self-center leading-relaxed">{item.text}</p>
+                  </Reveal>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </section>
       )}
@@ -292,54 +302,63 @@ export function HomePage() {
           </Reveal>
 
           <Reveal delay={120}>
-            <div
-              aria-hidden="true"
-              className="border border-border rounded-2xl bg-surface p-6 select-none"
+            {/* The dashboard itself, small, in a browser window: a capture
+                of /demo (make web-preview). */}
+            <Link
+              to="/demo"
+              aria-label={site("companion_demo_button")}
+              className="group block border border-border rounded-2xl bg-surface overflow-hidden no-underline transition-transform hover:-translate-y-1"
             >
-              <svg viewBox="0 0 400 160" className="w-full h-auto block">
-                {[20, 60, 100, 140].map((y) => (
-                  <line
-                    key={y}
-                    x1="0"
-                    x2="400"
-                    y1={y}
-                    y2={y}
-                    stroke="var(--color-border)"
-                    strokeWidth="1"
-                  />
+              <div className="flex items-center gap-1.5 px-3.5 py-2.5 border-b border-border">
+                {[0, 1, 2].map((dot) => (
+                  <span key={dot} className="w-2.5 h-2.5 rounded-full bg-border" />
                 ))}
-                <path
-                  d="M8,140 L60,140 L72,118 L140,118 L152,96 L220,96 L232,74 L300,74 L312,50 L370,50 L382,26 L400,26"
-                  fill="none"
-                  stroke="var(--color-primary)"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+                <span className="ml-3 flex-1 rounded-md bg-background px-3 py-1 font-mono text-[0.7rem] text-muted truncate">
+                  schlift.com/dashboard
+                </span>
+              </div>
+              <img
+                src="/dashboard-preview.png"
+                alt=""
+                width={1920}
+                height={1290}
+                loading="lazy"
+                className="block w-full h-auto"
+              />
+            </Link>
           </Reveal>
         </div>
       </section>
 
-      {/* What's new — the latest release notes */}
-      {whatsNew && (
+      {/* What's new — the latest release, from the change log */}
+      {latest && (
         <section className="border-t border-border/50 bg-surface/30 py-20 px-5">
           <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10">
             <Reveal className="md:col-span-2">
               <Eyebrow>{site("whats_new_heading")}</Eyebrow>
               <h2 className="font-display text-3xl font-bold tracking-tight m-0">
-                {whatsNew.version}
+                {latest.version}
               </h2>
+              <p className="mt-2 text-sm text-muted">{formatReleaseDate(latest.date)}</p>
             </Reveal>
             <Reveal delay={100} className="md:col-span-3">
-              <div className="space-y-3">
-                {whatsNew.lines.map((line, i) => (
-                  <p key={i} className="text-muted leading-relaxed m-0">
+              <ul className="list-none p-0 m-0 space-y-3">
+                {latest.changes.slice(0, WHATS_NEW_SHOWN).map((line, i) => (
+                  <li key={i} className="text-muted leading-relaxed">
                     {line}
-                  </p>
+                  </li>
                 ))}
-              </div>
+              </ul>
+              <Link
+                to="/changes"
+                className="group mt-6 inline-flex items-center text-sm font-semibold text-text no-underline hover:underline"
+              >
+                {site("whats_new_all_button")}
+                <ArrowRight
+                  size={14}
+                  className="ml-1.5 transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
             </Reveal>
           </div>
         </section>

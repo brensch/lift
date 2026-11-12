@@ -196,14 +196,17 @@ graph LR
     end
     subgraph "AnalyticsService / AdminService"
         x1["RecordPageViews / GetAdminStatus / GetStats"]
+        x2["GetTrainingStats / ListRecoveries / DecideRecovery"]
     end
 ```
 
 There are no per-write workout RPCs: every write to an account is an event
 that arrives over `Sync`, and a device catches up over the same stream.
 
-Every RPC except the auth handshake, `ReportAuthFailure` and `Logout` (which
-only deletes the token it is sent) begins with
+Every RPC except the auth handshake (which includes `RecoveryStart`,
+`RecoveryFinish` and `RecoveryStatus`: their caller has lost their passkey),
+`ReportAuthFailure` and `Logout` (which only deletes the token it is sent)
+begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
 `logins` (by the token's SHA-256). There is no middleware doing this — it is called explicitly in
 each handler, so **a new handler that forgets the call is unauthenticated**.

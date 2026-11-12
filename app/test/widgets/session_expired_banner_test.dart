@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -27,11 +26,6 @@ class _Sync extends AccountSync {
     tooOld = true;
     notifyListeners();
   }
-
-  /// The file names its owner; nothing is copied.
-  @override
-  Future<(String, String)> importFile(String path) async =>
-      ('user-1', 'lifter');
 }
 
 /// The login screen never settles (its hint cycles), so a few frames do.
@@ -130,22 +124,5 @@ void main() {
     await settle(tester);
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(find.byIcon(AppIcons.back), findsNothing);
-  });
-
-  testWidgets('opening an account file goes in', (tester) async {
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      const MethodChannel('plugins.flutter.io/file_selector'),
-      (call) async => call.method == 'openFile' ? ['/export.lift'] : null,
-    );
-    await tester.runAsync(() => boot({}));
-    await pumpApp(tester, at: '/login');
-    await tester.tap(find.text(copy.login.signInTab));
-    await settle(tester);
-
-    await tester.tap(find.text(copy.login.openFile));
-    await settle(tester);
-    expect(auth.isLoggedIn, isTrue);
-    expect(find.byType(LoginScreen), findsNothing);
-    expect(find.text('home'), findsOneWidget);
   });
 }

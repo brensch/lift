@@ -1292,6 +1292,672 @@ class ReportAuthFailureResponse extends $pb.GeneratedMessage {
   static ReportAuthFailureResponse? _defaultInstance;
 }
 
+class RecoveryStartRequest extends $pb.GeneratedMessage {
+  factory RecoveryStartRequest({
+    $core.String? username,
+  }) {
+    final result = create();
+    if (username != null) result.username = username;
+    return result;
+  }
+
+  RecoveryStartRequest._();
+
+  factory RecoveryStartRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryStartRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryStartRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'username')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStartRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStartRequest copyWith(void Function(RecoveryStartRequest) updates) =>
+      super.copyWith((message) => updates(message as RecoveryStartRequest))
+          as RecoveryStartRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStartRequest create() => RecoveryStartRequest._();
+  @$core.override
+  RecoveryStartRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStartRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryStartRequest>(create);
+  static RecoveryStartRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get username => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set username($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUsername() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUsername() => $_clearField(1);
+}
+
+class RecoveryStartResponse extends $pb.GeneratedMessage {
+  factory RecoveryStartResponse({
+    $core.String? requestId,
+    $core.String? optionsJson,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (optionsJson != null) result.optionsJson = optionsJson;
+    return result;
+  }
+
+  RecoveryStartResponse._();
+
+  factory RecoveryStartResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryStartResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryStartResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOS(2, _omitFieldNames ? '' : 'optionsJson')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStartResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStartResponse copyWith(
+          void Function(RecoveryStartResponse) updates) =>
+      super.copyWith((message) => updates(message as RecoveryStartResponse))
+          as RecoveryStartResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStartResponse create() => RecoveryStartResponse._();
+  @$core.override
+  RecoveryStartResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStartResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryStartResponse>(create);
+  static RecoveryStartResponse? _defaultInstance;
+
+  /// Names the request from here on; whoever holds it can read its status.
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get optionsJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set optionsJson($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasOptionsJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearOptionsJson() => $_clearField(2);
+}
+
+class RecoveryFinishRequest extends $pb.GeneratedMessage {
+  factory RecoveryFinishRequest({
+    $core.String? requestId,
+    $core.String? credentialJson,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (credentialJson != null) result.credentialJson = credentialJson;
+    return result;
+  }
+
+  RecoveryFinishRequest._();
+
+  factory RecoveryFinishRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryFinishRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryFinishRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOS(2, _omitFieldNames ? '' : 'credentialJson')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryFinishRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryFinishRequest copyWith(
+          void Function(RecoveryFinishRequest) updates) =>
+      super.copyWith((message) => updates(message as RecoveryFinishRequest))
+          as RecoveryFinishRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryFinishRequest create() => RecoveryFinishRequest._();
+  @$core.override
+  RecoveryFinishRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryFinishRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryFinishRequest>(create);
+  static RecoveryFinishRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get credentialJson => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set credentialJson($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCredentialJson() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCredentialJson() => $_clearField(2);
+}
+
+class RecoveryFinishResponse extends $pb.GeneratedMessage {
+  factory RecoveryFinishResponse({
+    $core.String? code,
+    $fixnum.Int64? expiresAt,
+  }) {
+    final result = create();
+    if (code != null) result.code = code;
+    if (expiresAt != null) result.expiresAt = expiresAt;
+    return result;
+  }
+
+  RecoveryFinishResponse._();
+
+  factory RecoveryFinishResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryFinishResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryFinishResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'code')
+    ..aInt64(2, _omitFieldNames ? '' : 'expiresAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryFinishResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryFinishResponse copyWith(
+          void Function(RecoveryFinishResponse) updates) =>
+      super.copyWith((message) => updates(message as RecoveryFinishResponse))
+          as RecoveryFinishResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryFinishResponse create() => RecoveryFinishResponse._();
+  @$core.override
+  RecoveryFinishResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryFinishResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryFinishResponse>(create);
+  static RecoveryFinishResponse? _defaultInstance;
+
+  /// What the person sends to an admin, who approves it.
+  @$pb.TagNumber(1)
+  $core.String get code => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set code($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCode() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCode() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get expiresAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set expiresAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasExpiresAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearExpiresAt() => $_clearField(2);
+}
+
+class RecoveryStatusRequest extends $pb.GeneratedMessage {
+  factory RecoveryStatusRequest({
+    $core.String? requestId,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    return result;
+  }
+
+  RecoveryStatusRequest._();
+
+  factory RecoveryStatusRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryStatusRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryStatusRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStatusRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStatusRequest copyWith(
+          void Function(RecoveryStatusRequest) updates) =>
+      super.copyWith((message) => updates(message as RecoveryStatusRequest))
+          as RecoveryStatusRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStatusRequest create() => RecoveryStatusRequest._();
+  @$core.override
+  RecoveryStatusRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStatusRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryStatusRequest>(create);
+  static RecoveryStatusRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+}
+
+class RecoveryStatusResponse extends $pb.GeneratedMessage {
+  factory RecoveryStatusResponse({
+    RecoveryState? state,
+    $core.String? code,
+    $fixnum.Int64? expiresAt,
+    $core.String? username,
+  }) {
+    final result = create();
+    if (state != null) result.state = state;
+    if (code != null) result.code = code;
+    if (expiresAt != null) result.expiresAt = expiresAt;
+    if (username != null) result.username = username;
+    return result;
+  }
+
+  RecoveryStatusResponse._();
+
+  factory RecoveryStatusResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryStatusResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryStatusResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<RecoveryState>(1, _omitFieldNames ? '' : 'state',
+        enumValues: RecoveryState.values)
+    ..aOS(2, _omitFieldNames ? '' : 'code')
+    ..aInt64(3, _omitFieldNames ? '' : 'expiresAt')
+    ..aOS(4, _omitFieldNames ? '' : 'username')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStatusResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryStatusResponse copyWith(
+          void Function(RecoveryStatusResponse) updates) =>
+      super.copyWith((message) => updates(message as RecoveryStatusResponse))
+          as RecoveryStatusResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStatusResponse create() => RecoveryStatusResponse._();
+  @$core.override
+  RecoveryStatusResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryStatusResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryStatusResponse>(create);
+  static RecoveryStatusResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RecoveryState get state => $_getN(0);
+  @$pb.TagNumber(1)
+  set state(RecoveryState value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasState() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearState() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get code => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set code($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCode() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCode() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get expiresAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set expiresAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasExpiresAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearExpiresAt() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get username => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set username($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasUsername() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearUsername() => $_clearField(4);
+}
+
+/// A request to get into the caller's own account that is still waiting.
+class PendingRecovery extends $pb.GeneratedMessage {
+  factory PendingRecovery({
+    $core.String? requestId,
+    $fixnum.Int64? createdAt,
+    $core.String? platform,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (platform != null) result.platform = platform;
+    return result;
+  }
+
+  PendingRecovery._();
+
+  factory PendingRecovery.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PendingRecovery.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PendingRecovery',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aInt64(2, _omitFieldNames ? '' : 'createdAt')
+    ..aOS(3, _omitFieldNames ? '' : 'platform')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PendingRecovery clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PendingRecovery copyWith(void Function(PendingRecovery) updates) =>
+      super.copyWith((message) => updates(message as PendingRecovery))
+          as PendingRecovery;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PendingRecovery create() => PendingRecovery._();
+  @$core.override
+  PendingRecovery createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PendingRecovery getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PendingRecovery>(create);
+  static PendingRecovery? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get createdAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set createdAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCreatedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCreatedAt() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get platform => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set platform($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasPlatform() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearPlatform() => $_clearField(3);
+}
+
+class ListMyRecoveriesRequest extends $pb.GeneratedMessage {
+  factory ListMyRecoveriesRequest() => create();
+
+  ListMyRecoveriesRequest._();
+
+  factory ListMyRecoveriesRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListMyRecoveriesRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListMyRecoveriesRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListMyRecoveriesRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListMyRecoveriesRequest copyWith(
+          void Function(ListMyRecoveriesRequest) updates) =>
+      super.copyWith((message) => updates(message as ListMyRecoveriesRequest))
+          as ListMyRecoveriesRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMyRecoveriesRequest create() => ListMyRecoveriesRequest._();
+  @$core.override
+  ListMyRecoveriesRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListMyRecoveriesRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListMyRecoveriesRequest>(create);
+  static ListMyRecoveriesRequest? _defaultInstance;
+}
+
+class ListMyRecoveriesResponse extends $pb.GeneratedMessage {
+  factory ListMyRecoveriesResponse({
+    $core.Iterable<PendingRecovery>? recoveries,
+  }) {
+    final result = create();
+    if (recoveries != null) result.recoveries.addAll(recoveries);
+    return result;
+  }
+
+  ListMyRecoveriesResponse._();
+
+  factory ListMyRecoveriesResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListMyRecoveriesResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListMyRecoveriesResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<PendingRecovery>(1, _omitFieldNames ? '' : 'recoveries',
+        subBuilder: PendingRecovery.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListMyRecoveriesResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListMyRecoveriesResponse copyWith(
+          void Function(ListMyRecoveriesResponse) updates) =>
+      super.copyWith((message) => updates(message as ListMyRecoveriesResponse))
+          as ListMyRecoveriesResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListMyRecoveriesResponse create() => ListMyRecoveriesResponse._();
+  @$core.override
+  ListMyRecoveriesResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListMyRecoveriesResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListMyRecoveriesResponse>(create);
+  static ListMyRecoveriesResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<PendingRecovery> get recoveries => $_getList(0);
+}
+
+class DenyMyRecoveryRequest extends $pb.GeneratedMessage {
+  factory DenyMyRecoveryRequest({
+    $core.String? requestId,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    return result;
+  }
+
+  DenyMyRecoveryRequest._();
+
+  factory DenyMyRecoveryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DenyMyRecoveryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DenyMyRecoveryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DenyMyRecoveryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DenyMyRecoveryRequest copyWith(
+          void Function(DenyMyRecoveryRequest) updates) =>
+      super.copyWith((message) => updates(message as DenyMyRecoveryRequest))
+          as DenyMyRecoveryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DenyMyRecoveryRequest create() => DenyMyRecoveryRequest._();
+  @$core.override
+  DenyMyRecoveryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DenyMyRecoveryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DenyMyRecoveryRequest>(create);
+  static DenyMyRecoveryRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+}
+
+class DenyMyRecoveryResponse extends $pb.GeneratedMessage {
+  factory DenyMyRecoveryResponse() => create();
+
+  DenyMyRecoveryResponse._();
+
+  factory DenyMyRecoveryResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DenyMyRecoveryResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DenyMyRecoveryResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DenyMyRecoveryResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DenyMyRecoveryResponse copyWith(
+          void Function(DenyMyRecoveryResponse) updates) =>
+      super.copyWith((message) => updates(message as DenyMyRecoveryResponse))
+          as DenyMyRecoveryResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DenyMyRecoveryResponse create() => DenyMyRecoveryResponse._();
+  @$core.override
+  DenyMyRecoveryResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DenyMyRecoveryResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DenyMyRecoveryResponse>(create);
+  static DenyMyRecoveryResponse? _defaultInstance;
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

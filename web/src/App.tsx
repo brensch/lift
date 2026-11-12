@@ -6,8 +6,10 @@ import { PrivacyPage } from "@/pages/privacy";
 import { RoutinesPage } from "@/pages/routines";
 import { DeleteAccountPage } from "@/pages/delete-account";
 import { LoginPage } from "@/pages/login";
+import { RecoverPage } from "@/pages/recover";
 import { DashboardPage } from "@/pages/dashboard";
 import { AdminPage } from "@/pages/admin";
+import { ChangesPage } from "@/pages/changes";
 
 export default function App() {
   return (
@@ -18,8 +20,10 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/routines" element={<RoutinesPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/changes" element={<ChangesPage />} />
             <Route path="/delete-account" element={<DeleteAccountPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/recover" element={<RecoverPage />} />
             <Route path="/dashboard" element={<DashboardPage key="live" />} />
             <Route path="/demo" element={<DashboardPage key="demo" demo />} />
             <Route path="/admin" element={<AdminPage />} />

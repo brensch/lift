@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
+import { ConnectError } from "@connectrpc/connect";
 import { useAuth } from "@/lib/use-auth";
+import { RECOVERY_REQUEST_HEADER, rememberRecovery } from "@/lib/recovery";
 
 export function LoginPage() {
   const { user, login, devLogin, logout } = useAuth();
@@ -18,7 +20,22 @@ export function LoginPage() {
       await login();
       navigate("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      // A passkey made at /recover that hasn't been approved yet signs
+      // nothing in: back to its code.
+      const waiting = err instanceof ConnectError && err.metadata.get(RECOVERY_REQUEST_HEADER);
+      if (waiting) {
+        rememberRecovery(waiting);
+        navigate("/recover");
+        return;
+      }
+      // The server's own sentence, without the status code in front of it.
+      setError(
+        err instanceof ConnectError
+          ? err.rawMessage
+          : err instanceof Error
+            ? err.message
+            : "Login failed",
+      );
     } finally {
       setLoading(false);
     }
@@ -41,7 +58,7 @@ export function LoginPage() {
   if (user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-5">
-        <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md text-center space-y-6">
+        <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md space-y-6">
           <h1 className="font-display text-3xl font-extrabold tracking-tight m-0">
             <WobblyText text="SIGNED IN" seed={63} />
           </h1>
@@ -68,7 +85,7 @@ export function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-5">
-      <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md text-center space-y-6">
+      <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md space-y-6">
         <h1 className="font-display text-3xl font-extrabold tracking-tight m-0">
           <WobblyText text="SIGN IN" seed={63} />
         </h1>
@@ -90,6 +107,12 @@ export function LoginPage() {
         {error && <p className="text-danger font-semibold text-sm">{error}</p>}
 
         <p className="text-sm text-muted/70">You'll need a passkey created in the Schlift app.</p>
+
+        <p className="text-sm text-muted">
+          <Link to="/recover" className="text-text font-semibold hover:underline">
+            Lost your passkey?
+          </Link>
+        </p>
 
         <p className="text-sm text-muted">
           No account yet?{" "}

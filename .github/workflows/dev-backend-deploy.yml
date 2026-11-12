@@ -40,11 +40,24 @@ jobs:
       - name: Build backend release binary
         run: cargo build --release --bin schlift
 
+      # The website of the same commit, served at dev.schlift.com: pages that
+      # go with the backend (/recover, /admin) are there to try before main.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build web frontend
+        run: cd web && npm ci && npm run build
+
       - name: Package backend artifact
         run: |
           mkdir -p dist
           cp target/release/schlift dist/schlift
           chmod 755 dist/schlift
+          cp -r web/dist dist/web
           printf '%s\n' "${GITHUB_SHA}" > dist/release.txt
 
       - name: Upload backend artifact

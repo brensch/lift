@@ -247,6 +247,18 @@ class _PasskeysScreenState extends State<PasskeysScreen> {
                     label: copy.passkeys.add,
                     onTap: _openAddPasskey,
                   ),
+                  // One passkey is one loss away from being locked out.
+                  if (_passkeys?.length == 1)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Text(
+                        copy.passkeys.onlyOne,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: context.tokens.size.body,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

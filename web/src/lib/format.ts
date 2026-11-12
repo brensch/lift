@@ -74,3 +74,19 @@ export function volumeComparison(totalLb: number): string | null {
   }
   return null;
 }
+
+/** "Sep 5, 02:30 PM" in the viewer's zone: when something happened, to the minute. */
+export function formatWhen(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** "2026-11-04" → "Nov 4, 2026": a release's date, the same in every zone. */
+export function formatReleaseDate(isoDay: string): string {
+  const [year, month, day] = isoDay.split("-").map(Number);
+  return `${MONTHS[month - 1]} ${day}, ${year}`;
+}

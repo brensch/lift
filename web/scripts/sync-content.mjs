@@ -3,7 +3,7 @@
 // prose: the YAML holds typed pieces and this passes them through.
 //   store/listing.yaml           -> src/generated/content.json
 //   templates/library.yaml       -> content.json (library, the /routines page)
-//   release-notes/<latest>.md    -> content.json (whatsNew)
+//   changes/<version>.md         -> content.json (changelog)
 //   store/screenshots/raw/*.png  -> public/generated/screens/
 //   marketing/schlift-square-512 -> public/generated/icon-512.png (apple-touch-icon)
 //   marketing/feature_graphic    -> public/generated/og.png
@@ -35,28 +35,30 @@ const library = {
   })),
 };
 
-// Latest release notes by version number.
-const notesDir = resolve(repo, "release-notes");
-const versions = readdirSync(notesDir)
+// The change log: every release and everything that changed in it, newest
+// first (changes/<version>.md: its date, then one `- ` line per change; see
+// scripts/changes.py). next.md, what hasn't shipped, is not shown.
+const changesDir = resolve(repo, "changes");
+const byVersion = (a, b) => {
+  const pa = a.split(".").map(Number),
+    pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pb[i] - pa[i];
+  return 0;
+};
+const changelog = readdirSync(changesDir)
   .filter((f) => /^\d+\.\d+\.\d+\.md$/.test(f))
   .map((f) => f.replace(/\.md$/, ""))
-  .sort((a, b) => {
-    const pa = a.split(".").map(Number),
-      pb = b.split(".").map(Number);
-    for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pb[i] - pa[i];
-    return 0;
+  .sort(byVersion)
+  .map((version) => {
+    const [date, ...rest] = readFileSync(resolve(changesDir, `${version}.md`), "utf8")
+      .trim()
+      .split("\n");
+    return {
+      version,
+      date: date.trim(),
+      changes: rest.filter((l) => l.startsWith("- ")).map((l) => l.slice(2).trim()),
+    };
   });
-const latest = versions[0];
-const whatsNew = latest
-  ? {
-      version: latest,
-      lines: readFileSync(resolve(notesDir, `${latest}.md`), "utf8")
-        .trim()
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean),
-    }
-  : null;
 
 const content = {
   name: listing.name,
@@ -78,8 +80,8 @@ const content = {
     heading: listing.other_features?.heading ?? "",
     items: (listing.other_features?.items ?? []).map((i) =>
       typeof i === "string"
-        ? { emoji: "", text: i }
-        : { emoji: String(i.emoji ?? ""), text: String(i.text ?? "") },
+        ? { picture: "", text: i }
+        : { picture: String(i.picture ?? ""), text: String(i.text ?? "") },
     ),
   },
   website: listing.website ?? {},
@@ -89,7 +91,7 @@ const content = {
     subtitle: s.subtitle ?? "",
     device: s.device ?? "phone",
   })),
-  whatsNew,
+  changelog,
   library,
 };
 
@@ -117,5 +119,5 @@ const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 writeFileSync(resolve(gen, "favicon.svg"), favicon);
 copyFileSync(resolve(repo, "marketing/feature_graphic.png"), resolve(gen, "og.png"));
 console.log(
-  `synced listing (${content.screenshots.length} slides, notes ${latest ?? "none"}, ${library.templates.length} library templates) into web/src/generated + web/public/generated`,
+  `synced listing (${content.screenshots.length} slides, ${changelog.length} releases, latest ${changelog[0]?.version ?? "none"}, ${library.templates.length} library templates) into web/src/generated + web/public/generated`,
 );
