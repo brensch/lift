@@ -55,7 +55,14 @@ store-frame:
 	@[ -x "$(STORE_VENV)/bin/python" ] || { python3 -m venv "$(STORE_VENV)" && "$(STORE_VENV)/bin/pip" install --quiet playwright pyyaml && "$(STORE_VENV)/bin/python" -m playwright install chromium; }
 	"$(STORE_VENV)/bin/python" scripts/frame_store_screenshots.py
 
-# store-check: the listing-text and release-notes checks CI runs.
+# store-check: the listing-text, release-notes and change log checks CI runs.
 store-check:
 	python3 scripts/check_store_text.py
 	python3 scripts/check_release_notes.py
+	python3 scripts/changes.py check
+
+# cut-release VERSION=x.y.z: file what has landed (changes/next.md) under the
+# release about to be tagged, and draft its store notes. See docs/releasing.md.
+cut-release:
+	@[ -n "$(VERSION)" ] || { echo "usage: make cut-release VERSION=x.y.z"; exit 1; }
+	python3 scripts/changes.py cut "$(VERSION)"

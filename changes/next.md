@@ -1,0 +1,12 @@
+- iPhone: signing in with a passkey kept in 1Password (or another third-party password manager) no longer fails with "user verified bit is not set".
+- Lost your passkey? The Lost passkey screen opens a page where you make a new one for your account; it starts working once Brendan approves the code you send him.
+- If someone asks to recover your account while you're still signed in, the app shows a banner that lets you stop it.
+- Sign-in errors are a plain sentence instead of a wall of technical detail.
+- A passkey that no longer belongs to an account is cleaned out of your password manager, on phones that support it.
+- The passkey prompt can stay open two minutes, so unlocking a password manager no longer times out.
+- iPhone: with no passkey on the phone, sign-in offers one on another device.
+- Adding a passkey to a password manager that already has one for your account says that, instead of "already registered".
+- The Passkeys screen suggests adding a second passkey when you have only one.
+- Website: a Lost passkey page (/recover), a page listing every change in every release (/changes), and feature boxes with pictures on the home page.
+- Admin: the stats page lists every account and finished workout, who is lifting now, the lifts done, builds in use and why sign-ins were refused; lost-passkey requests are approved there.
+- Debug builds can sign in with a passkey.

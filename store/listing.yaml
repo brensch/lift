@@ -59,13 +59,19 @@ testimonials:
 # website, with the heading above the bullets
 other_features:
   heading: "If that wasn't enough reason to use it, it also has:"
-  # Each goes in the store description as a bullet, and on the website as a
-  # numbered row.
+  # The text goes in the store description as a bullet, and on the website
+  # in a box beside its picture. `picture` names a drawing in
+  # web/src/components/feature-art.tsx (multiplayer, history, saved,
+  # heart_rate); an item without one is a box of text.
   items:
-    - Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
-    - History (the people yearn for progress charts)
-    - Save your own workouts to easily do that sick workout your friend showed you again later
-    - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
+    - picture: multiplayer
+      text: Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
+    - picture: history
+      text: History (the people yearn for progress charts)
+    - picture: saved
+      text: Save your own workouts to easily do that sick workout your friend showed you again later
+    - picture: heart_rate
+      text: Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
 
 # schlift.com — the only lines on the landing page that are not already a
 # store field above. The hero is the tagline with promotional_text under it;
@@ -82,6 +88,11 @@ website:
   companion_demo_button: View sample dashboard
   companion_signin_button: Sign in
   whats_new_heading: What's new
+  # Under the latest release's changes; opens /changes. Placeholder.
+  whats_new_all_button: Every change, every version
+  # The /changes page: every release from changes/<version>.md. Placeholders.
+  changes_heading: Changes
+  changes_text: Everything that changed, release by release.
   cta_heading: Ready to schlift?
   cta_text: Download Schlift and start your first session in under a minute (I timed it).
 

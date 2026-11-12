@@ -105,6 +105,12 @@ export function Layout() {
           <span className="font-display font-bold tracking-[-0.04em]">SCHLIFT</span>
           <div className="flex gap-4">
             <Link
+              to="/changes"
+              className="text-muted hover:text-text no-underline transition-colors"
+            >
+              Changes
+            </Link>
+            <Link
               to="/privacy"
               className="text-muted hover:text-text no-underline transition-colors"
             >

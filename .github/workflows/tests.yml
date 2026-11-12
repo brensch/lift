@@ -31,8 +31,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # The change log check reads what this branch changed since main.
+          fetch-depth: 0
       - name: Check release notes (name, non-empty, Play's 500-char limit)
         run: python3 scripts/check_release_notes.py
+      - name: Check the change log (changes/; a change to the product adds a line to next.md)
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            python3 scripts/changes.py check --base "origin/$BASE_REF"
+          else
+            python3 scripts/changes.py check
+          fi
       - name: Check store listing text (store/listing.yaml against both stores' limits)
         run: pip3 install --quiet pyyaml && python3 scripts/check_store_text.py
       - name: Check generated app copy is up to date (app/copy.yaml → app/lib/gen/copy.dart)
@@ -86,6 +98,7 @@ jobs:
               - 'store/listing.yaml'
               - 'templates/library.yaml'
               - 'release-notes/**'
+              - 'changes/**'
               - 'scripts/lint.sh'
               - '.github/workflows/tests.yml'
 

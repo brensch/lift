@@ -91,3 +91,10 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   `dart format` that file: CI checks it is exactly what the generator writes.
 - **Releases are tag-driven**; never hand-bump `pubspec.yaml`. See
   [`docs/releasing.md`](docs/releasing.md).
+- **A change someone could notice adds a line to `changes/next.md`**, in the
+  same commit: one `- ` sentence in plain words, said to the person using the
+  app, the website or the admin page. CI fails a pull request that changes the
+  product (`app/`, `core/`, `src/`, `web/src/`, `proto/`, `templates/`)
+  without one. Never edit a released `changes/<version>.md`; `make cut-release
+  VERSION=x.y.z` files `next.md` under a release. The website lists every
+  release from these files.
