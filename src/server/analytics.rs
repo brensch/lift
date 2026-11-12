@@ -148,6 +148,7 @@ fn training_stats(
 /// A request to get into an account, as an admin is shown it: never its code.
 fn recovery_request(recovery: Recovery) -> RecoveryRequest {
     RecoveryRequest {
+        no_account: recovery.user_id.is_none(),
         request_id: recovery.request_id,
         username: recovery.username,
         created_at: recovery.created_at,
@@ -385,7 +386,14 @@ impl AdminService for ServerAdminService {
             .map_err(internal_error)?
             .ok_or_else(nothing)?;
         info!(rpc = "GetRecovery", %admin_id, username = %recovery.username, "request");
-        let user_id = recovery.user_id.clone();
+        // For a username nobody holds there is no account to read: the
+        // admin is shown the request, to say the name is wrong.
+        let Some(user_id) = recovery.user_id.clone() else {
+            return Ok(Response::new(GetRecoveryResponse {
+                recovery: Some(recovery_request(recovery)),
+                account: None,
+            }));
+        };
         let user = self
             .db
             .get_user(&user_id)
@@ -521,6 +529,11 @@ impl AdminService for ServerAdminService {
                     Approval::NoSuchCode => {
                         info!(rpc = "DecideRecovery", %admin_id, "no waiting request has the code");
                         return Err(Status::not_found("No waiting request has that code."));
+                    }
+                    Approval::NoSuchAccount => {
+                        return Err(Status::failed_precondition(
+                            "Nobody has that username: there is no account to let them into.",
+                        ));
                     }
                     Approval::AlreadyRegistered => {
                         return Err(Status::already_exists(
@@ -980,14 +993,24 @@ mod tests {
         // A request is listed without its code, approved by it, and
         // refused by its id.
         let (code, _) = db
-            .store_recovery("r1", &lifter.id, "cred-1", "{}", None, "web")
+            .store_recovery(crate::db::Held::of(
+                "r1",
+                Some(&lifter.id),
+                "lifter",
+                "cred-1",
+            ))
             .await
             .unwrap()
             .unwrap();
-        db.store_recovery("r2", &lifter.id, "cred-2", "{}", None, "web")
-            .await
-            .unwrap()
-            .unwrap();
+        db.store_recovery(crate::db::Held::of(
+            "r2",
+            Some(&lifter.id),
+            "lifter",
+            "cred-2",
+        ))
+        .await
+        .unwrap()
+        .unwrap();
         let listed = admin
             .list_recoveries(authed(ListRecoveriesRequest {}, &admin_token))
             .await

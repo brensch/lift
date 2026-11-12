@@ -148,11 +148,12 @@ struct PendingRegistration {
 }
 
 /// A passkey being made for an account whose owner lost theirs. `user_id`
-/// is None when nobody holds the username that was asked for: the ceremony
-/// runs the same, and nothing comes of it.
+/// is None when nobody holds `asked_username`: the request is held all the
+/// same, and can only be turned down.
 struct PendingRecovery {
     state: PasskeyRegistration,
     user_id: Option<String>,
+    asked_username: String,
     client: String,
     created_at: Instant,
 }
@@ -365,7 +366,7 @@ impl AuthState {
     /// revealed beyond its id; what `finish_recovery` stores is inert until
     /// an admin approves it. A name nobody holds is answered the same way
     /// (a typo, or someone guessing): the ceremony runs for a made-up id,
-    /// and `finish_recovery` stores nothing.
+    /// and the request is held like any other, for an admin to turn down.
     pub async fn start_recovery(
         &self,
         username: &str,
@@ -398,6 +399,7 @@ impl AuthState {
             PendingRecovery {
                 state,
                 user_id: user.map(|user| user.id),
+                asked_username: username.trim().to_string(),
                 client: client.to_string(),
                 created_at: Instant::now(),
             },
@@ -420,8 +422,7 @@ impl AuthState {
 
     /// Hold the new passkey aside under a code for an admin to approve:
     /// the code, when the request lapses, and whether there is an account
-    /// behind it. With none, the passkey is checked like any other and
-    /// then dropped: the code is one nothing will ever approve.
+    /// behind it.
     pub async fn finish_recovery(
         &self,
         request_id: &str,
@@ -439,29 +440,22 @@ impl AuthState {
             .webauthn
             .finish_passkey_registration(reg, &pending.state)
             .map_err(|e| refused("recovery passkey refused", e))?;
-        let Some(user_id) = pending.user_id else {
-            let now = crate::time::now_unix();
-            return Ok((
-                crate::db::nobodys_code(request_id),
-                now + crate::db::RECOVERY_TTL_SECONDS,
-                false,
-            ));
-        };
         let cred_id = credential_key(passkey.cred_id());
         let cred_json = stored_passkey_json(&passkey, Some("recovery key".to_string()))?;
         let (code, expires_at) = self
             .db
-            .store_recovery(
+            .store_recovery(crate::db::Held {
                 request_id,
-                &user_id,
-                &cred_id,
-                &cred_json,
-                created_at_ip.as_deref(),
+                user_id: pending.user_id.as_deref(),
+                asked_username: &pending.asked_username,
+                credential_id: &cred_id,
+                passkey_json: &cred_json,
+                created_ip: created_at_ip.as_deref(),
                 platform,
-            )
+            })
             .await
             .map_err(|e| internal("storing a recovery", e))??;
-        Ok((code, expires_at, true))
+        Ok((code, expires_at, pending.user_id.is_some()))
     }
 
     pub async fn start_authentication(
@@ -605,18 +599,18 @@ impl AuthState {
                     let held: &[u8] = pk.cred_id().as_ref();
                     held == presented
                 }) {
-                    // It may be one made at /recover and still waiting:
-                    // then this is its maker, back for their code.
+                    // It may be one made at /recover and still waiting
+                    // (for this account, or for a name nobody holds): then
+                    // this is its maker, back for their code.
+                    let presented_key = credential_key(&CredentialID::from(presented.to_vec()));
                     let waiting = self
                         .db
-                        .held_passkeys(&user_id)
+                        .held_passkey(&presented_key)
                         .await
                         .map_err(|e| internal("reading recoveries", e))?
-                        .into_iter()
-                        .find_map(|(request_id, json)| {
+                        .and_then(|(request_id, json)| {
                             let passkey: Passkey = serde_json::from_str(&json).ok()?;
-                            let held: &[u8] = passkey.cred_id().as_ref();
-                            (held == presented).then_some((request_id, passkey))
+                            Some((request_id, passkey))
                         });
                     let Some((request_id, passkey)) = waiting else {
                         warn!(%challenge_id, %user_id, "sign-in with a passkey no account holds");

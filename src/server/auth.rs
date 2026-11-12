@@ -468,11 +468,11 @@ impl AuthService for ServerAuthService {
     /// a new one for the account holding the name; `recovery_finish` holds
     /// it aside, and it signs nothing in until an admin approves its code
     /// (`AdminService.DecideRecovery`). A name nobody holds is not refused:
-    /// the ceremony runs the same and ends in a code that approves nothing,
-    /// with the attempt filed as `unknown_user`. Nothing else is stored
-    /// for it, so guessing names fills no table: starts are limited per
-    /// client like every ceremony, and an attempt is the one row each
-    /// already writes.
+    /// the request is held like any other, under the name as typed, with
+    /// the attempt filed as `unknown_user`; an admin sent its code is told
+    /// there is no such account, and it can only be turned down. Requests
+    /// are bounded as sign-ups are not: five waiting per name, a thousand
+    /// in all, each gone in a week.
     async fn recovery_start(
         &self,
         request: Request<RecoveryStartRequest>,
@@ -556,22 +556,7 @@ impl AuthService for ServerAuthService {
             ..Default::default()
         };
         let Some(recovery) = recovery else {
-            // One for a name nobody holds waits like any other, to lapse.
-            let started = self
-                .db
-                .nobodys_recovery_started(&req.request_id)
-                .await
-                .map_err(internal_error)?;
-            let expires_at = started.unwrap_or(0) + crate::db::RECOVERY_TTL_SECONDS;
-            if started.is_none() || expires_at <= now_unix() {
-                return Ok(Response::new(expired));
-            }
-            return Ok(Response::new(RecoveryStatusResponse {
-                state: RecoveryState::Pending as i32,
-                code: crate::db::nobodys_code(&req.request_id),
-                expires_at,
-                username: String::new(),
-            }));
+            return Ok(Response::new(expired));
         };
         let state = match recovery.status.as_str() {
             "approved" => RecoveryState::Approved,
@@ -1349,10 +1334,10 @@ mod ceremony_tests {
     }
 
     /// A name nobody holds is not refused: the request runs to a code like
-    /// any other, which waits and approves nothing, and all that is kept
-    /// of it is its attempt, filed as failed.
+    /// any other and is held, so its maker can come back to it and an admin
+    /// sent the code can say the name is wrong. It can only be turned down.
     #[tokio::test]
-    async fn a_recovery_for_a_name_nobody_holds_looks_the_same_and_comes_to_nothing() {
+    async fn a_recovery_for_a_name_nobody_holds_is_held_and_approves_nothing() {
         let svc = service().await;
         let ask = || async {
             svc.recovery_start(Request::new(RecoveryStartRequest {
@@ -1379,23 +1364,22 @@ mod ceremony_tests {
             .await
             .unwrap()
             .into_inner();
-        assert_eq!(held.code.len(), 9);
         let waiting = status(&svc, &start.request_id).await;
         assert_eq!(waiting.state, RecoveryState::Pending as i32);
         assert_eq!(waiting.code, held.code);
-        assert_eq!(waiting.expires_at, held.expires_at);
+        assert_eq!(waiting.username, "Nobody");
 
-        // Nothing waits for an admin, and the code approves nothing.
-        assert!(svc.db.list_recoveries().await.unwrap().is_empty());
+        // An admin sees it, as the name that was typed, with no account;
+        // its code approves nothing.
+        let listed = svc.db.list_recoveries().await.unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].user_id, None);
+        assert_eq!(listed[0].username, "Nobody");
         assert_eq!(
             svc.db.approve_recovery(&held.code, false).await.unwrap(),
-            crate::db::Approval::NoSuchCode
+            crate::db::Approval::NoSuchAccount
         );
-        let stored: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM passkey_recoveries")
-            .fetch_one(&svc.db.read_pool)
-            .await
-            .unwrap();
-        assert_eq!(stored, 0);
+        // The attempt is filed as failed.
         let filed: (String, String) =
             sqlx::query_as("SELECT outcome, reason FROM auth_attempts WHERE attempt_id = ?")
                 .bind(&start.request_id)

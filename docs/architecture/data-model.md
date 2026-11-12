@@ -244,7 +244,8 @@ erDiagram
     }
     passkey_recoveries {
         TEXT request_id PK
-        TEXT user_id FK
+        TEXT user_id FK "NULL: nobody holds asked_username"
+        TEXT asked_username "as typed"
         TEXT code UK "what an admin approves"
         TEXT credential_id
         TEXT passkey_json "emptied once decided"
