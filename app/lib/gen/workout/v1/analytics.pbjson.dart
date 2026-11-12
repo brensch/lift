@@ -453,6 +453,7 @@ const RecoveryRequest$json = {
     {'1': 'last_seen_ms', '3': 8, '4': 1, '5': 3, '10': 'lastSeenMs'},
     {'1': 'status', '3': 9, '4': 1, '5': 9, '10': 'status'},
     {'1': 'decided_at', '3': 10, '4': 1, '5': 3, '10': 'decidedAt'},
+    {'1': 'no_account', '3': 11, '4': 1, '5': 8, '10': 'noAccount'},
   ],
 };
 
@@ -463,7 +464,8 @@ final $typed_data.Uint8List recoveryRequestDescriptor = $convert.base64Decode(
     'cGxhdGZvcm0YBCABKAlSCHBsYXRmb3JtEh0KCmNyZWF0ZWRfaXAYBSABKAlSCWNyZWF0ZWRJcB'
     'IaCghwYXNza2V5cxgGIAEoBVIIcGFzc2tleXMSFgoGbG9naW5zGAcgASgFUgZsb2dpbnMSIAoM'
     'bGFzdF9zZWVuX21zGAggASgDUgpsYXN0U2Vlbk1zEhYKBnN0YXR1cxgJIAEoCVIGc3RhdHVzEh'
-    '0KCmRlY2lkZWRfYXQYCiABKANSCWRlY2lkZWRBdA==');
+    '0KCmRlY2lkZWRfYXQYCiABKANSCWRlY2lkZWRBdBIdCgpub19hY2NvdW50GAsgASgIUglub0Fj'
+    'Y291bnQ=');
 
 @$core.Deprecated('Use listRecoveriesRequestDescriptor instead')
 const ListRecoveriesRequest$json = {

@@ -591,14 +591,12 @@ mod tests {
             .unwrap();
         db.create_auth_session(u).await.unwrap();
         db.join_session(&format!("{u}-session"), u).await.unwrap();
-        db.store_recovery(
+        db.store_recovery(crate::db::Held::of(
             &format!("{u}-recovery"),
+            Some(u),
             u,
             &format!("{u}-new"),
-            "{}",
-            None,
-            "",
-        )
+        ))
         .await
         .unwrap()
         .unwrap();

@@ -63,6 +63,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 5 {
+        let mut tx = pool.begin().await?;
+        v5(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 5")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -358,6 +366,43 @@ async fn v4(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
+/// A recovery may be for a username nobody holds (a typo, a guess): it is
+/// held like any other, so its maker can come back to its code and an admin
+/// who is sent the code can say the name is wrong. Such a row has no user,
+/// only the name that was asked for.
+async fn v5(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE passkey_recoveries_v5 (
+             request_id TEXT PRIMARY KEY,
+             -- NULL when nobody holds asked_username.
+             user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+             -- The username as it was typed.
+             asked_username TEXT NOT NULL DEFAULT '',
+             code TEXT NOT NULL UNIQUE,
+             credential_id TEXT NOT NULL,
+             passkey_json TEXT NOT NULL,
+             created_at INTEGER NOT NULL,
+             created_ip TEXT,
+             platform TEXT NOT NULL DEFAULT '',
+             status TEXT NOT NULL DEFAULT 'pending',
+             decided_at INTEGER NOT NULL DEFAULT 0
+         );
+         INSERT INTO passkey_recoveries_v5
+             (request_id, user_id, code, credential_id, passkey_json, created_at, created_ip,
+              platform, status, decided_at)
+         SELECT request_id, user_id, code, credential_id, passkey_json, created_at, created_ip,
+                platform, status, decided_at
+         FROM passkey_recoveries;
+         DROP TABLE passkey_recoveries;
+         ALTER TABLE passkey_recoveries_v5 RENAME TO passkey_recoveries;
+         CREATE INDEX passkey_recoveries_user ON passkey_recoveries(user_id);
+         CREATE INDEX passkey_recoveries_credential ON passkey_recoveries(credential_id);",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 async fn table_exists(tx: &mut Transaction<'_, Sqlite>, table: &str) -> DbResult<bool> {
     let found: Option<i64> =
         sqlx::query_scalar("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
@@ -421,7 +466,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();

@@ -27,6 +27,7 @@ const when = (unixSeconds: bigint | number) =>
 /** Where a request stands, and what the admin should know before approving. */
 function standing(r: RecoveryRequest): string {
   if (r.status !== "pending") return `${r.status} ${when(r.decidedAt)}`;
+  if (r.noAccount) return "waiting · nobody has that username";
   return r.logins > 0
     ? `waiting · still signed in on ${plural(r.logins, "device")}`
     : "waiting · signed in nowhere";
@@ -283,6 +284,30 @@ export function Recoveries({ token }: { token: string }) {
         </div>
         {error && <p className="text-sm text-danger m-0">{error}</p>}
         {done && <p className="text-sm text-ok m-0">{done}</p>}
+
+        {opened && request && !account && (
+          <div className="border border-border rounded-xl bg-background/60 p-4 sm:p-5 flex flex-col gap-3">
+            <p className="font-display text-2xl font-extrabold tracking-tight m-0 break-words">
+              Nobody is called “{request.username}”
+            </p>
+            <p className="text-sm text-muted m-0">
+              That is the username they typed, {when(request.createdAt)} from{" "}
+              {[request.platform || "unknown", request.createdIp].filter(Boolean).join(" · ")}.
+              There is no such account, so there is nothing to approve: tell them the name is wrong
+              and to try again with the right one.
+            </p>
+            <div>
+              <Button
+                size="sm"
+                className="disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={busy}
+                onClick={() => void decide({ case: "denyRequestId", value: request.requestId })}
+              >
+                Turn down
+              </Button>
+            </div>
+          </div>
+        )}
 
         {opened && request && account && (
           <>

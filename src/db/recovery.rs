@@ -44,19 +44,6 @@ fn stored_code(typed: &str) -> String {
         .collect()
 }
 
-/// The code shown for a request to recover a name nobody holds. Nothing is
-/// stored for such a request, so its code is worked out from its id each
-/// time it is asked for; no waiting request has it, so it approves nothing.
-pub fn nobodys_code(request_id: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let digest = Sha256::digest(request_id.as_bytes());
-    let code: String = digest[..CODE_CHARS]
-        .iter()
-        .map(|byte| CODE_ALPHABET[*byte as usize % CODE_ALPHABET.len()] as char)
-        .collect();
-    shown_code(&code)
-}
-
 /// A stored code as it is shown: "K7M2-QX9P".
 pub fn shown_code(stored: &str) -> String {
     let (head, tail) = stored.split_at(stored.len().min(CODE_CHARS / 2));
@@ -67,7 +54,10 @@ pub fn shown_code(stored: &str) -> String {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Recovery {
     pub request_id: String,
-    pub user_id: String,
+    /// None when nobody holds the username that was asked for: the request
+    /// waits like any other, and can only be turned down.
+    pub user_id: Option<String>,
+    /// The account's name, or with no account the name as it was typed.
     pub username: String,
     /// As stored; see `shown_code`.
     pub code: String,
@@ -89,13 +79,14 @@ impl Recovery {
     }
 }
 
-const RECOVERY_SELECT: &str = "SELECT r.request_id, r.user_id, u.username, r.code, r.created_at,
+const RECOVERY_SELECT: &str = "SELECT r.request_id, r.user_id,
+        COALESCE(u.username, r.asked_username) AS username, r.code, r.created_at,
         COALESCE(r.created_ip, '') AS created_ip, r.platform, r.status, r.decided_at,
         (SELECT COUNT(*) FROM passkeys p WHERE p.user_id = r.user_id) AS passkeys,
         (SELECT COUNT(*) FROM logins l WHERE l.user_id = r.user_id AND l.expires_at > ?) AS logins,
         COALESCE((SELECT MAX(v.entered_at_ms) FROM page_views v WHERE v.user_id = r.user_id), 0)
             AS last_seen_ms
-     FROM passkey_recoveries r JOIN users u ON u.id = r.user_id";
+     FROM passkey_recoveries r LEFT JOIN users u ON u.id = r.user_id";
 
 fn recovery_from(row: &sqlx::sqlite::SqliteRow) -> Recovery {
     Recovery {
@@ -114,29 +105,70 @@ fn recovery_from(row: &sqlx::sqlite::SqliteRow) -> Recovery {
     }
 }
 
+/// A passkey to hold aside: the request, whose account it asks for, and
+/// where it came from.
+pub struct Held<'a> {
+    pub request_id: &'a str,
+    /// None when nobody holds `asked_username`.
+    pub user_id: Option<&'a str>,
+    /// The username as it was typed.
+    pub asked_username: &'a str,
+    pub credential_id: &'a str,
+    pub passkey_json: &'a str,
+    pub created_ip: Option<&'a str>,
+    pub platform: &'a str,
+}
+
+#[cfg(test)]
+impl<'a> Held<'a> {
+    /// A request from the web for `asked_username`, holding an empty
+    /// passkey under `credential_id`.
+    pub fn of(
+        request_id: &'a str,
+        user_id: Option<&'a str>,
+        asked_username: &'a str,
+        credential_id: &'a str,
+    ) -> Self {
+        Self {
+            request_id,
+            user_id,
+            asked_username,
+            credential_id,
+            passkey_json: "{}",
+            created_ip: None,
+            platform: "web",
+        }
+    }
+}
+
 /// What approving a code came to.
 #[derive(Debug, PartialEq)]
 pub enum Approval {
     Approved(Recovery),
     /// No waiting request has that code.
     NoSuchCode,
+    /// The request is for a username nobody holds: there is no account to
+    /// let anyone into.
+    NoSuchAccount,
     /// The passkey has since been registered some other way.
     AlreadyRegistered,
 }
 
 impl ServerDb {
-    /// Hold a new passkey aside for `user_id`: the code to send an admin,
-    /// and when the request lapses. Lapsed and long-decided requests,
-    /// anyone's, are cleared on the way.
-    pub async fn store_recovery(
-        &self,
-        request_id: &str,
-        user_id: &str,
-        credential_id: &str,
-        passkey_json: &str,
-        created_ip: Option<&str>,
-        platform: &str,
-    ) -> DbResult<Result<(String, i64), Refusal>> {
+    /// Hold a new passkey aside for `user_id`, or with None for the
+    /// username nobody holds that was asked for: the code to send an
+    /// admin, and when the request lapses. Lapsed and long-decided
+    /// requests, anyone's, are cleared on the way.
+    pub async fn store_recovery(&self, held: Held<'_>) -> DbResult<Result<(String, i64), Refusal>> {
+        let Held {
+            request_id,
+            user_id,
+            asked_username,
+            credential_id,
+            passkey_json,
+            created_ip,
+            platform,
+        } = held;
         let now = now_unix();
         let mut tx = self.write_pool.begin().await?;
         sqlx::query(
@@ -148,11 +180,16 @@ impl ServerDb {
         .bind(now - DECIDED_KEPT_SECONDS)
         .execute(&mut *tx)
         .await?;
+        // For the same account; with none, for the same name.
         let (waiting, theirs): (i64, i64) = sqlx::query_as(
-            "SELECT COUNT(*), COALESCE(SUM(user_id = ?), 0) FROM passkey_recoveries
-             WHERE status = 'pending'",
+            "SELECT COUNT(*),
+                    COALESCE(SUM(CASE WHEN ?1 IS NULL
+                                      THEN user_id IS NULL AND asked_username = ?2 COLLATE NOCASE
+                                      ELSE user_id = ?1 END), 0)
+             FROM passkey_recoveries WHERE status = 'pending'",
         )
         .bind(user_id)
+        .bind(asked_username)
         .fetch_one(&mut *tx)
         .await?;
         if waiting >= MAX_WAITING || theirs >= MAX_WAITING_PER_USER {
@@ -172,11 +209,13 @@ impl ServerDb {
         let code = new_code();
         sqlx::query(
             "INSERT INTO passkey_recoveries
-             (request_id, user_id, code, credential_id, passkey_json, created_at, created_ip, platform)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+             (request_id, user_id, asked_username, code, credential_id, passkey_json, created_at,
+              created_ip, platform)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(request_id)
         .bind(user_id)
+        .bind(asked_username)
         .bind(&code)
         .bind(credential_id)
         .bind(passkey_json)
@@ -187,19 +226,6 @@ impl ServerDb {
         .await?;
         tx.commit().await?;
         Ok(Ok((shown_code(&code), now + RECOVERY_TTL_SECONDS)))
-    }
-
-    /// When a recovery for a name nobody holds was asked for, if `request_id`
-    /// is one: all that is kept of it is its attempt (`auth_attempts`), the
-    /// row every ceremony already writes.
-    pub async fn nobodys_recovery_started(&self, request_id: &str) -> DbResult<Option<i64>> {
-        Ok(sqlx::query_scalar(
-            "SELECT started_at FROM auth_attempts
-             WHERE attempt_id = ? AND kind = 'recovery' AND reason = 'unknown_user'",
-        )
-        .bind(request_id)
-        .fetch_optional(&self.read_pool)
-        .await?)
     }
 
     /// The request, whatever its state.
@@ -226,17 +252,17 @@ impl ServerDb {
         Ok(row.as_ref().map(recovery_from))
     }
 
-    /// The passkeys held for the user's waiting requests: (request id,
-    /// passkey json). A sign-in with one of them is someone coming back
-    /// for their code.
-    pub async fn held_passkeys(&self, user_id: &str) -> DbResult<Vec<(String, String)>> {
+    /// The waiting request holding this passkey, if one does: (request
+    /// id, passkey json). A sign-in with it is its maker coming back for
+    /// their code.
+    pub async fn held_passkey(&self, credential_id: &str) -> DbResult<Option<(String, String)>> {
         Ok(sqlx::query_as(
             "SELECT request_id, passkey_json FROM passkey_recoveries
-             WHERE user_id = ? AND status = 'pending' AND created_at > ?",
+             WHERE credential_id = ? AND status = 'pending' AND created_at > ?",
         )
-        .bind(user_id)
+        .bind(credential_id)
         .bind(now_unix() - RECOVERY_TTL_SECONDS)
-        .fetch_all(&self.read_pool)
+        .fetch_optional(&self.read_pool)
         .await?)
     }
 
@@ -303,7 +329,7 @@ impl ServerDb {
     pub async fn approve_recovery(&self, code: &str, remove_others: bool) -> DbResult<Approval> {
         let now = now_unix();
         let mut tx = self.write_pool.begin().await?;
-        let held: Option<(String, String, String, String, Option<String>)> = sqlx::query_as(
+        let held = sqlx::query(
             "SELECT request_id, user_id, credential_id, passkey_json, created_ip
              FROM passkey_recoveries WHERE code = ? AND status = 'pending' AND created_at > ?",
         )
@@ -311,8 +337,16 @@ impl ServerDb {
         .bind(now - RECOVERY_TTL_SECONDS)
         .fetch_optional(&mut *tx)
         .await?;
-        let Some((request_id, user_id, credential_id, passkey_json, created_ip)) = held else {
+        let Some(held) = held else {
             return Ok(Approval::NoSuchCode);
+        };
+        let request_id: String = held.get("request_id");
+        let user_id: Option<String> = held.get("user_id");
+        let credential_id: String = held.get("credential_id");
+        let passkey_json: String = held.get("passkey_json");
+        let created_ip: Option<String> = held.get("created_ip");
+        let Some(user_id) = user_id else {
+            return Ok(Approval::NoSuchAccount);
         };
         let registered: bool =
             sqlx::query_scalar("SELECT COUNT(*) > 0 FROM passkeys WHERE credential_id = ?")
@@ -370,7 +404,7 @@ mod tests {
     }
 
     async fn request(db: &ServerDb, id: &str, user: &str, credential: &str) -> String {
-        db.store_recovery(id, user, credential, "{}", Some("203.0.113.9"), "web")
+        db.store_recovery(Held::of(id, Some(user), user, credential))
             .await
             .unwrap()
             .unwrap()
@@ -487,16 +521,56 @@ mod tests {
         // The lapsed one was cleared by the next request.
         assert!(db.recovery("old").await.unwrap().is_none());
         let full = db
-            .store_recovery("more", "ann", "c-more", "{}", None, "")
+            .store_recovery(Held::of("more", Some("ann"), "ann", "c-more"))
             .await
             .unwrap();
         assert_eq!(full, Err(Refusal::TooManyRecoveries));
         // The same passkey isn't held twice, nor one an account holds.
         db.deny_recovery("r0", None).await.unwrap();
         let again = db
-            .store_recovery("dup", "ann", "c1", "{}", None, "")
+            .store_recovery(Held::of("dup", Some("ann"), "ann", "c1"))
             .await
             .unwrap();
         assert_eq!(again, Err(Refusal::AlreadyRegistered));
+    }
+
+    /// A request for a name nobody holds waits like any other, bounded for
+    /// that name, and can be turned down but never approved.
+    #[tokio::test]
+    async fn a_request_for_nobody_waits_and_approves_nothing() {
+        let db = temp_db().await;
+        let ask = |id: &'static str, name: &'static str| {
+            let db = db.clone();
+            async move {
+                db.store_recovery(Held::of(id, None, name, id))
+                    .await
+                    .unwrap()
+            }
+        };
+        let (code, _) = ask("g1", "Ghost").await.unwrap();
+        let held = db.recovery("g1").await.unwrap().unwrap();
+        assert_eq!(held.user_id, None);
+        assert_eq!(held.username, "Ghost");
+        assert!(held.waiting(now_unix()));
+        assert_eq!(db.recovery_by_code(&code).await.unwrap(), Some(held));
+        assert_eq!(db.list_recoveries().await.unwrap().len(), 1);
+        assert_eq!(
+            db.approve_recovery(&code, false).await.unwrap(),
+            Approval::NoSuchAccount
+        );
+        for i in 1..MAX_WAITING_PER_USER {
+            let id: &'static str = Box::leak(format!("g{}", i + 1).into_boxed_str());
+            ask(id, "ghost").await.unwrap();
+        }
+        assert_eq!(
+            ask("g-more", "GHOST").await,
+            Err(Refusal::TooManyRecoveries)
+        );
+        // Another name has its own room.
+        assert!(ask("other", "phantom").await.is_ok());
+        assert_eq!(
+            db.deny_recovery("g1", None).await.unwrap().unwrap().status,
+            "denied"
+        );
     }
 }

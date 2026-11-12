@@ -321,12 +321,13 @@ the code. The app shows the sentence: the passkey is waiting to be approved.
 
 A username nobody holds is not refused. The ceremony runs the same, for a
 made-up user id (the same one for the same name while the server runs), and
-ends in a code like any other, which waits its seven days and approves
-nothing. All that is kept of it is its attempt, filed `rejected` /
-`unknown_user`: the stats page counts them. No passkey and no request row is
-stored, and its code and status are worked out from the request id and that
-attempt, so guessing names costs the server the one `auth_attempts` row
-every ceremony already writes, behind the same per-client limit on starts.
+the request is held like any other: a row with no `user_id` and the name as
+typed (`asked_username`). Its maker can come back to the code, and an admin
+sent it opens the request to find there is no such account and says so; it
+can be turned down, never approved (`Approval::NoSuchAccount`). The attempt
+is filed `rejected` / `unknown_user`, which the stats page counts. Anyone
+can make these, as anyone can sign up; they are bounded where sign-ups are
+not (five waiting per name, a thousand in all, a week each).
 
 `RecoveryStart`, `RecoveryFinish` and `RecoveryStatus` are
 unauthenticated: the caller has no passkey. The request id (random, held by

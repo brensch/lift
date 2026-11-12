@@ -1724,6 +1724,7 @@ class RecoveryRequest extends $pb.GeneratedMessage {
     $fixnum.Int64? lastSeenMs,
     $core.String? status,
     $fixnum.Int64? decidedAt,
+    $core.bool? noAccount,
   }) {
     final result = create();
     if (requestId != null) result.requestId = requestId;
@@ -1736,6 +1737,7 @@ class RecoveryRequest extends $pb.GeneratedMessage {
     if (lastSeenMs != null) result.lastSeenMs = lastSeenMs;
     if (status != null) result.status = status;
     if (decidedAt != null) result.decidedAt = decidedAt;
+    if (noAccount != null) result.noAccount = noAccount;
     return result;
   }
 
@@ -1762,6 +1764,7 @@ class RecoveryRequest extends $pb.GeneratedMessage {
     ..aInt64(8, _omitFieldNames ? '' : 'lastSeenMs')
     ..aOS(9, _omitFieldNames ? '' : 'status')
     ..aInt64(10, _omitFieldNames ? '' : 'decidedAt')
+    ..aOB(11, _omitFieldNames ? '' : 'noAccount')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1874,6 +1877,17 @@ class RecoveryRequest extends $pb.GeneratedMessage {
   $core.bool hasDecidedAt() => $_has(9);
   @$pb.TagNumber(10)
   void clearDecidedAt() => $_clearField(10);
+
+  /// Nobody holds `username` (it is as the person typed it): the request can
+  /// only be turned down.
+  @$pb.TagNumber(11)
+  $core.bool get noAccount => $_getBF(10);
+  @$pb.TagNumber(11)
+  set noAccount($core.bool value) => $_setBool(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasNoAccount() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearNoAccount() => $_clearField(11);
 }
 
 class ListRecoveriesRequest extends $pb.GeneratedMessage {
@@ -2386,6 +2400,7 @@ class GetRecoveryResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(1)
   RecoveryRequest ensureRecovery() => $_ensure(0);
 
+  /// Absent when the request is for a username nobody holds.
   @$pb.TagNumber(2)
   RecoveryAccount get account => $_getN(1);
   @$pb.TagNumber(2)
