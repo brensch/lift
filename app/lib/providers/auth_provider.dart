@@ -197,18 +197,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Open an account from a file on this phone with no server at all (an
-  /// export brought back, the server out of reach). Signing in later lets
-  /// it sync again.
-  Future<void> openLocalAccount(String userId, String username) async {
-    _userId = userId;
-    _username = username;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userIdKey, userId);
-    await prefs.setString(_usernameKey, username);
-    notifyListeners();
-  }
-
   Future<void> _saveSession(AuthResponse response) async {
     _sessionToken = response.sessionToken;
     _userId = response.userId;

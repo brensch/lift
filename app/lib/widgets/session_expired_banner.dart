@@ -1,7 +1,7 @@
 /// A banner over the app's pages (the shell route, so not over /login,
 /// onboarding or the tutorial) while an account is open with no server
 /// session ([AuthProvider.hasServerSession]): the server stopped accepting
-/// this phone's sign-in, or the account came from a file. Everything works
+/// this phone's sign-in. Everything works
 /// on the phone; sync waits for a sign-in, which the button leads to.
 library;
 
