@@ -191,20 +191,24 @@ export function Recoveries({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const res = await adminClient.listRecoveries({}, authHeaders(token));
-    setRequests(res.recoveries);
-  }, [token]);
+  const fetchRequests = useCallback(
+    async () => (await adminClient.listRecoveries({}, authHeaders(token))).recoveries,
+    [token],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    load().catch((err: unknown) => {
-      if (!cancelled) setError(errorText(err));
-    });
+    fetchRequests()
+      .then((recoveries) => {
+        if (!cancelled) setRequests(recoveries);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(errorText(err));
+      });
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [fetchRequests]);
 
   /** Runs one admin call, saying how it went. */
   async function run(call: () => Promise<void>) {
@@ -246,7 +250,7 @@ export function Recoveries({ token }: { token: string }) {
       setCode("");
       setOpened(null);
       setRemoveOthers(false);
-      await load();
+      setRequests(await fetchRequests());
     });
 
   const request = opened?.found.recovery;
