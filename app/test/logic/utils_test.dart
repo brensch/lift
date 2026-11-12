@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:grpc/grpc.dart' show GrpcError;
+import 'package:grpc/grpc.dart' show GrpcError, StatusCode;
 import 'package:passkeys/exceptions.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/logic/utils.dart';
@@ -32,6 +32,24 @@ void main() {
     expect(
       formatAuthError(ExcludeCredentialsCanNotBeRegisteredException()),
       e.alreadyHeld,
+    );
+    // A replacement passkey nobody has approved yet.
+    expect(
+      formatAuthError(
+        const GrpcError.custom(
+          StatusCode.permissionDenied,
+          'server words',
+          null,
+          null,
+          {'x-recovery-request': 'r1'},
+        ),
+      ),
+      e.notApproved,
+    );
+    // A refusal of that kind for any other reason keeps the server's words.
+    expect(
+      formatAuthError(const GrpcError.permissionDenied('not for you')),
+      contains('not for you'),
     );
     // Anything else is the server's own sentence.
     expect(

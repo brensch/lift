@@ -2,6 +2,7 @@
 - Lost your passkey? The Lost passkey screen opens a page where you make a new one for your account; it starts working once Brendan approves the code you send him. Signing in on the website with it before then takes you back to your code.
 - If someone asks to recover your account while you're still signed in, the app shows a banner that lets you stop it.
 - Sign-in errors are a plain sentence instead of a wall of technical detail.
+- Signing in with a replacement passkey that hasn't been approved yet says so.
 - A passkey that no longer belongs to an account is cleaned out of your password manager, on phones that support it.
 - The passkey prompt can stay open two minutes, so unlocking a password manager no longer times out.
 - iPhone: with no passkey on the phone, sign-in offers one on another device.
