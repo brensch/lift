@@ -272,6 +272,9 @@ passkey_errors:
   # The passkey chosen belongs to an account or passkey that was deleted,
   # or to a sign-up that never finished.
   unknown: That passkey isn't linked to an account any more. Delete it from your password manager and pick another, or tap Lost passkey.
+  # The passkey is one made on the Lost passkey page that hasn't been
+  # approved yet.
+  not_approved: this replacement passkey is not approved yet mate. please wait for it to be approved.
   # The password manager signed without asking for a fingerprint, face or PIN.
   not_verified: Your password manager didn't check it was you. Unlock it and try again.
   # Adding a passkey to a password manager that already has one for this account.

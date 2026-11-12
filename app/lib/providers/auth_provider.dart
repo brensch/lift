@@ -337,6 +337,12 @@ String formatAuthError(Object e) {
   // Refusals the server words for anyone; said here in the app's own words.
   // The codes are `refusal_status` in src/server/auth.rs.
   if (e is GrpcError) {
+    // A passkey made on the Lost passkey page and not approved yet: the
+    // server names its request beside the refusal.
+    if (e.code == StatusCode.permissionDenied &&
+        (e.trailers?.containsKey('x-recovery-request') ?? false)) {
+      return copy.passkeyErrors.notApproved;
+    }
     switch (e.code) {
       case StatusCode.notFound:
         return copy.passkeyErrors.unknown;
