@@ -260,7 +260,7 @@ sounds:
 lost_passkey:
   button: Lost passkey?
   title: Lost passkey
-  body: This is so sad. Please double check if you saved the passkey in a random place. It could be in google chrome, the apple passwords app, everyone seems to have a password manager these days. If you looked really hard and still can't find it click below.
+  body: This is so sad. Please double check if you saved the passkey in a random place. It could be in google chrome, the apple passwords app, your password manager - everyone seems to have a password manager these days. If you looked really hard and still can't find it click below.
   # Above the button.
   note: Please note that by clicking below you admit you did not read the advice about making sure to not lose my passkey.
   # Opens the website's /recover in the browser. Placeholder.
