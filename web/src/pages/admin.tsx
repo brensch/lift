@@ -198,6 +198,7 @@ const REJECTION_LABELS: Record<string, string> = {
   already_registered: "passkey already registered",
   name_taken: "name taken meanwhile",
   unknown_user: "nobody has that username",
+  awaiting_approval: "recovery passkey not approved yet",
   too_many_recoveries: "too many requests waiting",
   rejected: "didn't verify",
   internal: "server error",

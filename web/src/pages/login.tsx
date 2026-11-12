@@ -4,6 +4,7 @@ import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
 import { ConnectError } from "@connectrpc/connect";
 import { useAuth } from "@/lib/use-auth";
+import { RECOVERY_REQUEST_HEADER, rememberRecovery } from "@/lib/recovery";
 
 export function LoginPage() {
   const { user, login, devLogin, logout } = useAuth();
@@ -19,6 +20,14 @@ export function LoginPage() {
       await login();
       navigate("/dashboard");
     } catch (err) {
+      // A passkey made at /recover that hasn't been approved yet signs
+      // nothing in: back to its code.
+      const waiting = err instanceof ConnectError && err.metadata.get(RECOVERY_REQUEST_HEADER);
+      if (waiting) {
+        rememberRecovery(waiting);
+        navigate("/recover");
+        return;
+      }
       // The server's own sentence, without the status code in front of it.
       setError(
         err instanceof ConnectError

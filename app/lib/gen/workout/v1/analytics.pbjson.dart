@@ -495,6 +495,149 @@ final $typed_data.Uint8List listRecoveriesResponseDescriptor =
         'ChZMaXN0UmVjb3Zlcmllc1Jlc3BvbnNlEjsKCnJlY292ZXJpZXMYASADKAsyGy53b3Jrb3V0Ln'
         'YxLlJlY292ZXJ5UmVxdWVzdFIKcmVjb3Zlcmllcw==');
 
+@$core.Deprecated('Use getRecoveryRequestDescriptor instead')
+const GetRecoveryRequest$json = {
+  '1': 'GetRecoveryRequest',
+  '2': [
+    {'1': 'code', '3': 1, '4': 1, '5': 9, '10': 'code'},
+  ],
+};
+
+/// Descriptor for `GetRecoveryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getRecoveryRequestDescriptor = $convert
+    .base64Decode('ChJHZXRSZWNvdmVyeVJlcXVlc3QSEgoEY29kZRgBIAEoCVIEY29kZQ==');
+
+@$core.Deprecated('Use adminPasskeyDescriptor instead')
+const AdminPasskey$json = {
+  '1': 'AdminPasskey',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'created_at', '3': 2, '4': 1, '5': 3, '10': 'createdAt'},
+    {'1': 'created_ip', '3': 3, '4': 1, '5': 9, '10': 'createdIp'},
+    {'1': 'transports', '3': 4, '4': 3, '5': 9, '10': 'transports'},
+  ],
+};
+
+/// Descriptor for `AdminPasskey`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List adminPasskeyDescriptor = $convert.base64Decode(
+    'CgxBZG1pblBhc3NrZXkSEgoEbmFtZRgBIAEoCVIEbmFtZRIdCgpjcmVhdGVkX2F0GAIgASgDUg'
+    'ljcmVhdGVkQXQSHQoKY3JlYXRlZF9pcBgDIAEoCVIJY3JlYXRlZElwEh4KCnRyYW5zcG9ydHMY'
+    'BCADKAlSCnRyYW5zcG9ydHM=');
+
+@$core.Deprecated('Use adminPartnerDescriptor instead')
+const AdminPartner$json = {
+  '1': 'AdminPartner',
+  '2': [
+    {'1': 'username', '3': 1, '4': 1, '5': 9, '10': 'username'},
+    {
+      '1': 'sessions_together',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'sessionsTogether'
+    },
+    {'1': 'last_trained_at', '3': 3, '4': 1, '5': 3, '10': 'lastTrainedAt'},
+  ],
+};
+
+/// Descriptor for `AdminPartner`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List adminPartnerDescriptor = $convert.base64Decode(
+    'CgxBZG1pblBhcnRuZXISGgoIdXNlcm5hbWUYASABKAlSCHVzZXJuYW1lEisKEXNlc3Npb25zX3'
+    'RvZ2V0aGVyGAIgASgFUhBzZXNzaW9uc1RvZ2V0aGVyEiYKD2xhc3RfdHJhaW5lZF9hdBgDIAEo'
+    'A1INbGFzdFRyYWluZWRBdA==');
+
+@$core.Deprecated('Use recoveryAccountDescriptor instead')
+const RecoveryAccount$json = {
+  '1': 'RecoveryAccount',
+  '2': [
+    {
+      '1': 'user',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.AdminUser',
+      '10': 'user'
+    },
+    {'1': 'emoji', '3': 2, '4': 1, '5': 9, '10': 'emoji'},
+    {'1': 'color_hex', '3': 3, '4': 1, '5': 9, '10': 'colorHex'},
+    {'1': 'body_weight_kg', '3': 4, '4': 1, '5': 1, '10': 'bodyWeightKg'},
+    {'1': 'last_active_at', '3': 5, '4': 1, '5': 3, '10': 'lastActiveAt'},
+    {
+      '1': 'passkeys',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.AdminPasskey',
+      '10': 'passkeys'
+    },
+    {
+      '1': 'partners',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.AdminPartner',
+      '10': 'partners'
+    },
+    {'1': 'templates', '3': 8, '4': 3, '5': 9, '10': 'templates'},
+    {
+      '1': 'recent_workouts',
+      '3': 9,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.AdminWorkout',
+      '10': 'recentWorkouts'
+    },
+    {
+      '1': 'lifts',
+      '3': 10,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseUse',
+      '10': 'lifts'
+    },
+  ],
+};
+
+/// Descriptor for `RecoveryAccount`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryAccountDescriptor = $convert.base64Decode(
+    'Cg9SZWNvdmVyeUFjY291bnQSKQoEdXNlchgBIAEoCzIVLndvcmtvdXQudjEuQWRtaW5Vc2VyUg'
+    'R1c2VyEhQKBWVtb2ppGAIgASgJUgVlbW9qaRIbCgljb2xvcl9oZXgYAyABKAlSCGNvbG9ySGV4'
+    'EiQKDmJvZHlfd2VpZ2h0X2tnGAQgASgBUgxib2R5V2VpZ2h0S2cSJAoObGFzdF9hY3RpdmVfYX'
+    'QYBSABKANSDGxhc3RBY3RpdmVBdBI0CghwYXNza2V5cxgGIAMoCzIYLndvcmtvdXQudjEuQWRt'
+    'aW5QYXNza2V5UghwYXNza2V5cxI0CghwYXJ0bmVycxgHIAMoCzIYLndvcmtvdXQudjEuQWRtaW'
+    '5QYXJ0bmVyUghwYXJ0bmVycxIcCgl0ZW1wbGF0ZXMYCCADKAlSCXRlbXBsYXRlcxJBCg9yZWNl'
+    'bnRfd29ya291dHMYCSADKAsyGC53b3Jrb3V0LnYxLkFkbWluV29ya291dFIOcmVjZW50V29ya2'
+    '91dHMSLQoFbGlmdHMYCiADKAsyFy53b3Jrb3V0LnYxLkV4ZXJjaXNlVXNlUgVsaWZ0cw==');
+
+@$core.Deprecated('Use getRecoveryResponseDescriptor instead')
+const GetRecoveryResponse$json = {
+  '1': 'GetRecoveryResponse',
+  '2': [
+    {
+      '1': 'recovery',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.RecoveryRequest',
+      '10': 'recovery'
+    },
+    {
+      '1': 'account',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.RecoveryAccount',
+      '10': 'account'
+    },
+  ],
+};
+
+/// Descriptor for `GetRecoveryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getRecoveryResponseDescriptor = $convert.base64Decode(
+    'ChNHZXRSZWNvdmVyeVJlc3BvbnNlEjcKCHJlY292ZXJ5GAEgASgLMhsud29ya291dC52MS5SZW'
+    'NvdmVyeVJlcXVlc3RSCHJlY292ZXJ5EjUKB2FjY291bnQYAiABKAsyGy53b3Jrb3V0LnYxLlJl'
+    'Y292ZXJ5QWNjb3VudFIHYWNjb3VudA==');
+
 @$core.Deprecated('Use decideRecoveryRequestDescriptor instead')
 const DecideRecoveryRequest$json = {
   '1': 'DecideRecoveryRequest',

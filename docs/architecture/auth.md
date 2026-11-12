@@ -133,6 +133,7 @@ The gRPC code tells a client which it was (`refusal_status`,
 | `NotVerified` | `FAILED_PRECONDITION` | The passkey answered without verifying its user. Passkeys here require it |
 | `AlreadyRegistered`, `NameTaken` | `ALREADY_EXISTS` | |
 | `Busy`, `TooManyRecoveries` | `RESOURCE_EXHAUSTED` | |
+| (not a refusal) | `PERMISSION_DENIED` | The passkey is one made at `/recover` and not approved yet; see below |
 | `Expired`, `Rejected` | `UNAUTHENTICATED` signing in, `INVALID_ARGUMENT` registering | The challenge is spent or over five minutes old; the credential didn't verify |
 
 The app words `NOT_FOUND` and `FAILED_PRECONDITION` itself (`formatAuthError`,
@@ -294,8 +295,13 @@ What keeps it safe:
 - **Approval is by code, never by row.** `ListRecoveries` does not return
   codes, so the request an admin approves is the one whose maker got their
   code to the admin. Knowing a username is enough to make a request and not
-  enough to have it approved. What is left is the admin being talked into
-  it: approve only a code that reached you from the account's owner.
+  enough to have it approved.
+- **The admin reads the account first.** Typing the code opens the account
+  it asks for (`GetRecovery`): its emoji and colour, when it joined and was
+  last used, who it trains with, its saved workouts, latest workouts and
+  lifts, the passkeys it had. Things its owner knows and a stranger does
+  not, to ask about before approving. What is left is the admin being talked
+  into it.
 - **The owner hears of it.** A device still signed in to the account shows
   `RecoveryAlertBanner` (`ListMyRecoveries`) with a button that refuses the
   request (`DenyMyRecovery`). The admin's list shows how many devices are
@@ -304,6 +310,14 @@ What keeps it safe:
   requests wait per account and 1,000 in all.
 - **`remove_other_passkeys`** on approving drops the account's other
   passkeys and signs out its devices: for a stolen phone, not a lost key.
+
+**Coming back for the code.** Nobody waiting is signed in: the browser that
+made the request only remembers its id, and the site's sign-in button reads
+"Waiting for approval" and leads to the code. From anywhere else, signing in
+with the waiting passkey is refused `PERMISSION_DENIED` with the request's id
+in the `x-recovery-request` trailer (`SignIn::AwaitingApproval`, only after
+the signature checks out against the held passkey), and the website goes to
+the code. The app shows the sentence: the passkey is waiting to be approved.
 
 A username nobody holds is not refused. The ceremony runs the same, for a
 made-up user id (the same one for the same name while the server runs), and

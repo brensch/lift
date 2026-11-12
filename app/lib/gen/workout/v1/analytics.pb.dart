@@ -1967,6 +1967,437 @@ class ListRecoveriesResponse extends $pb.GeneratedMessage {
   $pb.PbList<RecoveryRequest> get recoveries => $_getList(0);
 }
 
+class GetRecoveryRequest extends $pb.GeneratedMessage {
+  factory GetRecoveryRequest({
+    $core.String? code,
+  }) {
+    final result = create();
+    if (code != null) result.code = code;
+    return result;
+  }
+
+  GetRecoveryRequest._();
+
+  factory GetRecoveryRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetRecoveryRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetRecoveryRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'code')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecoveryRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecoveryRequest copyWith(void Function(GetRecoveryRequest) updates) =>
+      super.copyWith((message) => updates(message as GetRecoveryRequest))
+          as GetRecoveryRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetRecoveryRequest create() => GetRecoveryRequest._();
+  @$core.override
+  GetRecoveryRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetRecoveryRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetRecoveryRequest>(create);
+  static GetRecoveryRequest? _defaultInstance;
+
+  /// The code the person sent.
+  @$pb.TagNumber(1)
+  $core.String get code => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set code($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCode() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCode() => $_clearField(1);
+}
+
+class AdminPasskey extends $pb.GeneratedMessage {
+  factory AdminPasskey({
+    $core.String? name,
+    $fixnum.Int64? createdAt,
+    $core.String? createdIp,
+    $core.Iterable<$core.String>? transports,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (createdAt != null) result.createdAt = createdAt;
+    if (createdIp != null) result.createdIp = createdIp;
+    if (transports != null) result.transports.addAll(transports);
+    return result;
+  }
+
+  AdminPasskey._();
+
+  factory AdminPasskey.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AdminPasskey.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AdminPasskey',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aInt64(2, _omitFieldNames ? '' : 'createdAt')
+    ..aOS(3, _omitFieldNames ? '' : 'createdIp')
+    ..pPS(4, _omitFieldNames ? '' : 'transports')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminPasskey clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminPasskey copyWith(void Function(AdminPasskey) updates) =>
+      super.copyWith((message) => updates(message as AdminPasskey))
+          as AdminPasskey;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AdminPasskey create() => AdminPasskey._();
+  @$core.override
+  AdminPasskey createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AdminPasskey getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AdminPasskey>(create);
+  static AdminPasskey? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get createdAt => $_getI64(1);
+  @$pb.TagNumber(2)
+  set createdAt($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCreatedAt() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCreatedAt() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get createdIp => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set createdIp($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasCreatedIp() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearCreatedIp() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<$core.String> get transports => $_getList(3);
+}
+
+class AdminPartner extends $pb.GeneratedMessage {
+  factory AdminPartner({
+    $core.String? username,
+    $core.int? sessionsTogether,
+    $fixnum.Int64? lastTrainedAt,
+  }) {
+    final result = create();
+    if (username != null) result.username = username;
+    if (sessionsTogether != null) result.sessionsTogether = sessionsTogether;
+    if (lastTrainedAt != null) result.lastTrainedAt = lastTrainedAt;
+    return result;
+  }
+
+  AdminPartner._();
+
+  factory AdminPartner.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AdminPartner.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AdminPartner',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'username')
+    ..aI(2, _omitFieldNames ? '' : 'sessionsTogether')
+    ..aInt64(3, _omitFieldNames ? '' : 'lastTrainedAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminPartner clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AdminPartner copyWith(void Function(AdminPartner) updates) =>
+      super.copyWith((message) => updates(message as AdminPartner))
+          as AdminPartner;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AdminPartner create() => AdminPartner._();
+  @$core.override
+  AdminPartner createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AdminPartner getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AdminPartner>(create);
+  static AdminPartner? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get username => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set username($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUsername() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUsername() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get sessionsTogether => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set sessionsTogether($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSessionsTogether() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSessionsTogether() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get lastTrainedAt => $_getI64(2);
+  @$pb.TagNumber(3)
+  set lastTrainedAt($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLastTrainedAt() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLastTrainedAt() => $_clearField(3);
+}
+
+/// The account a recovery asks for, in enough detail to question whoever is
+/// asking: things its owner would know and a stranger would not.
+class RecoveryAccount extends $pb.GeneratedMessage {
+  factory RecoveryAccount({
+    AdminUser? user,
+    $core.String? emoji,
+    $core.String? colorHex,
+    $core.double? bodyWeightKg,
+    $fixnum.Int64? lastActiveAt,
+    $core.Iterable<AdminPasskey>? passkeys,
+    $core.Iterable<AdminPartner>? partners,
+    $core.Iterable<$core.String>? templates,
+    $core.Iterable<AdminWorkout>? recentWorkouts,
+    $core.Iterable<ExerciseUse>? lifts,
+  }) {
+    final result = create();
+    if (user != null) result.user = user;
+    if (emoji != null) result.emoji = emoji;
+    if (colorHex != null) result.colorHex = colorHex;
+    if (bodyWeightKg != null) result.bodyWeightKg = bodyWeightKg;
+    if (lastActiveAt != null) result.lastActiveAt = lastActiveAt;
+    if (passkeys != null) result.passkeys.addAll(passkeys);
+    if (partners != null) result.partners.addAll(partners);
+    if (templates != null) result.templates.addAll(templates);
+    if (recentWorkouts != null) result.recentWorkouts.addAll(recentWorkouts);
+    if (lifts != null) result.lifts.addAll(lifts);
+    return result;
+  }
+
+  RecoveryAccount._();
+
+  factory RecoveryAccount.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory RecoveryAccount.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'RecoveryAccount',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<AdminUser>(1, _omitFieldNames ? '' : 'user',
+        subBuilder: AdminUser.create)
+    ..aOS(2, _omitFieldNames ? '' : 'emoji')
+    ..aOS(3, _omitFieldNames ? '' : 'colorHex')
+    ..aD(4, _omitFieldNames ? '' : 'bodyWeightKg')
+    ..aInt64(5, _omitFieldNames ? '' : 'lastActiveAt')
+    ..pPM<AdminPasskey>(6, _omitFieldNames ? '' : 'passkeys',
+        subBuilder: AdminPasskey.create)
+    ..pPM<AdminPartner>(7, _omitFieldNames ? '' : 'partners',
+        subBuilder: AdminPartner.create)
+    ..pPS(8, _omitFieldNames ? '' : 'templates')
+    ..pPM<AdminWorkout>(9, _omitFieldNames ? '' : 'recentWorkouts',
+        subBuilder: AdminWorkout.create)
+    ..pPM<ExerciseUse>(10, _omitFieldNames ? '' : 'lifts',
+        subBuilder: ExerciseUse.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryAccount clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  RecoveryAccount copyWith(void Function(RecoveryAccount) updates) =>
+      super.copyWith((message) => updates(message as RecoveryAccount))
+          as RecoveryAccount;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static RecoveryAccount create() => RecoveryAccount._();
+  @$core.override
+  RecoveryAccount createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static RecoveryAccount getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<RecoveryAccount>(create);
+  static RecoveryAccount? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  AdminUser get user => $_getN(0);
+  @$pb.TagNumber(1)
+  set user(AdminUser value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUser() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUser() => $_clearField(1);
+  @$pb.TagNumber(1)
+  AdminUser ensureUser() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  $core.String get emoji => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set emoji($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEmoji() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEmoji() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get colorHex => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set colorHex($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasColorHex() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearColorHex() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get bodyWeightKg => $_getN(3);
+  @$pb.TagNumber(4)
+  set bodyWeightKg($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasBodyWeightKg() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearBodyWeightKg() => $_clearField(4);
+
+  /// The latest use of a signed-in device, to within a day; 0 = none signed in.
+  @$pb.TagNumber(5)
+  $fixnum.Int64 get lastActiveAt => $_getI64(4);
+  @$pb.TagNumber(5)
+  set lastActiveAt($fixnum.Int64 value) => $_setInt64(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLastActiveAt() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLastActiveAt() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<AdminPasskey> get passkeys => $_getList(5);
+
+  @$pb.TagNumber(7)
+  $pb.PbList<AdminPartner> get partners => $_getList(6);
+
+  @$pb.TagNumber(8)
+  $pb.PbList<$core.String> get templates => $_getList(7);
+
+  @$pb.TagNumber(9)
+  $pb.PbList<AdminWorkout> get recentWorkouts => $_getList(8);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<ExerciseUse> get lifts => $_getList(9);
+}
+
+class GetRecoveryResponse extends $pb.GeneratedMessage {
+  factory GetRecoveryResponse({
+    RecoveryRequest? recovery,
+    RecoveryAccount? account,
+  }) {
+    final result = create();
+    if (recovery != null) result.recovery = recovery;
+    if (account != null) result.account = account;
+    return result;
+  }
+
+  GetRecoveryResponse._();
+
+  factory GetRecoveryResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetRecoveryResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetRecoveryResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOM<RecoveryRequest>(1, _omitFieldNames ? '' : 'recovery',
+        subBuilder: RecoveryRequest.create)
+    ..aOM<RecoveryAccount>(2, _omitFieldNames ? '' : 'account',
+        subBuilder: RecoveryAccount.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecoveryResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetRecoveryResponse copyWith(void Function(GetRecoveryResponse) updates) =>
+      super.copyWith((message) => updates(message as GetRecoveryResponse))
+          as GetRecoveryResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetRecoveryResponse create() => GetRecoveryResponse._();
+  @$core.override
+  GetRecoveryResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetRecoveryResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetRecoveryResponse>(create);
+  static GetRecoveryResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  RecoveryRequest get recovery => $_getN(0);
+  @$pb.TagNumber(1)
+  set recovery(RecoveryRequest value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRecovery() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRecovery() => $_clearField(1);
+  @$pb.TagNumber(1)
+  RecoveryRequest ensureRecovery() => $_ensure(0);
+
+  @$pb.TagNumber(2)
+  RecoveryAccount get account => $_getN(1);
+  @$pb.TagNumber(2)
+  set account(RecoveryAccount value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAccount() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAccount() => $_clearField(2);
+  @$pb.TagNumber(2)
+  RecoveryAccount ensureAccount() => $_ensure(1);
+}
+
 enum DecideRecoveryRequest_Request { approveCode, denyRequestId, notSet }
 
 class DecideRecoveryRequest extends $pb.GeneratedMessage {
