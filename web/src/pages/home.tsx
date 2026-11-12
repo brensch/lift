@@ -245,24 +245,22 @@ export function HomePage() {
                 {otherFeatures.heading}
               </h2>
             </Reveal>
-            {/* Each tile sizes to its own text; rows don't stretch to match. */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
+            {/* A numbered list on hairlines, two columns wide: no tiles. */}
+            <ol className="list-none p-0 m-0 grid grid-cols-1 sm:grid-cols-2 gap-x-12 border-b border-border">
               {otherFeatures.items.map((item, i) => (
-                <Reveal key={i} delay={i * 80}>
-                  <div className="flex items-start gap-4 border border-border rounded-2xl bg-surface p-6 leading-relaxed">
-                    {item.emoji && (
-                      <span
-                        aria-hidden="true"
-                        className="shrink-0 w-11 h-11 rounded-xl bg-text/[0.04] border border-border flex items-center justify-center text-xl"
-                      >
-                        {item.emoji}
-                      </span>
-                    )}
-                    <span className="pt-2">{item.text}</span>
-                  </div>
-                </Reveal>
+                <li key={i} className="border-t border-border">
+                  <Reveal delay={i * 80} className="flex items-baseline gap-5 py-7">
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 font-mono text-sm font-bold text-primary [font-variant-numeric:tabular-nums]"
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-lg leading-relaxed">{item.text}</span>
+                  </Reveal>
+                </li>
               ))}
-            </div>
+            </ol>
           </div>
         </section>
       )}

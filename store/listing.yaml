@@ -59,17 +59,13 @@ testimonials:
 # website, with the heading above the bullets
 other_features:
   heading: "If that wasn't enough reason to use it, it also has:"
-  # text goes in the store description as a bullet; the emoji is only for
-  # the website tile. Change either freely.
+  # Each goes in the store description as a bullet, and on the website as a
+  # numbered row.
   items:
-    - emoji: 🗣️
-      text: Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
-    - emoji: 📈
-      text: History (the people yearn for progress charts)
-    - emoji: 💾
-      text: Save your own workouts to easily do that sick workout your friend showed you again later
-    - emoji: ❤️‍🔥
-      text: Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
+    - Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
+    - History (the people yearn for progress charts)
+    - Save your own workouts to easily do that sick workout your friend showed you again later
+    - Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
 
 # schlift.com — the only lines on the landing page that are not already a
 # store field above. The hero is the tagline with promotional_text under it;

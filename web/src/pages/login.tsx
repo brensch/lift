@@ -49,7 +49,7 @@ export function LoginPage() {
   if (user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-5">
-        <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md text-center space-y-6">
+        <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md space-y-6">
           <h1 className="font-display text-3xl font-extrabold tracking-tight m-0">
             <WobblyText text="SIGNED IN" seed={63} />
           </h1>
@@ -76,7 +76,7 @@ export function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-5">
-      <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md text-center space-y-6">
+      <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md space-y-6">
         <h1 className="font-display text-3xl font-extrabold tracking-tight m-0">
           <WobblyText text="SIGN IN" seed={63} />
         </h1>

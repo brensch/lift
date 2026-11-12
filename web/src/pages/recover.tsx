@@ -65,7 +65,7 @@ function Shell({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-5 py-8">
       <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md space-y-5">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight m-0 text-center">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight m-0">
           <WobblyText text={title} seed={71} />
         </h1>
         {children}
@@ -189,7 +189,7 @@ export function RecoverPage() {
   if (!held) {
     return (
       <Shell title="LOST PASSKEY">
-        <p className="text-muted text-center">Loading…</p>
+        <p className="text-muted">Loading…</p>
       </Shell>
     );
   }
@@ -208,7 +208,7 @@ export function RecoverPage() {
         >
           {held.code}
         </button>
-        <p className="text-sm text-muted text-center" aria-live="polite">
+        <p className="text-sm text-muted" aria-live="polite">
           {copied ? "Copied." : "Tap the code to copy it."}
         </p>
         <p className="text-sm text-muted leading-relaxed">
