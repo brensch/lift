@@ -80,6 +80,19 @@ fi
 systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}"
 
+# --- website (the same commit's, served only at dev.schlift.com) --------------
+# Always there for Caddy to serve from: prod's until a build brings its own.
+WEB_ROOT="${INSTALL_ROOT}/web"
+if [[ -f "${ARTIFACT_DIR}/web/index.html" ]]; then
+	mkdir -p "${WEB_ROOT}"
+	rsync -a --delete "${ARTIFACT_DIR}/web/" "${WEB_ROOT}/"
+	echo "installed the website into ${WEB_ROOT}"
+elif [[ ! -f "${WEB_ROOT}/index.html" && -d /opt/schlift/web ]]; then
+	mkdir -p "${WEB_ROOT}"
+	rsync -a /opt/schlift/web/ "${WEB_ROOT}/"
+	echo "no website in this build; copied prod's into ${WEB_ROOT}"
+fi
+
 # --- release swap (symlink flip + healthcheck + rollback) ---------------------
 RELEASE_DIR="${INSTALL_ROOT}/releases/${RELEASE_ID}"
 PREVIOUS_TARGET=""

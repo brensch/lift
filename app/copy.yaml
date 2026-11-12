@@ -260,12 +260,10 @@ sounds:
 lost_passkey:
   button: Lost passkey?
   title: Lost passkey
-  body: This is so sad that you've lost your passkey. I have empathy for you during this difficult time. Make sure you check your password manager, your phone should have saved it for you when you signed up. If you deleted it, please tell Brendan your previous username and he will fix it for you.
-  # Under the body: how to get back in. Placeholders.
-  # Still signed in somewhere: no need to wait for anyone.
-  signed_in_elsewhere: Still signed in on another phone or the website? Add a passkey from Settings → Passkeys there and you're done.
-  # Above the button that opens schlift.com/recover in the browser.
-  recover_body: Otherwise make a new passkey for your account. You'll get a code to send Brendan, and it starts working once he approves it.
+  body: This is so sad. Please double check if you saved the passkey in a random place. It could be in google chrome, the apple passwords app, everyone seems to have a password manager these days. If you looked really hard and still can't find it click below.
+  # Above the button.
+  note: Please note that by clicking below you admit you did not read the advice about making sure to not lose my passkey.
+  # Opens the website's /recover in the browser. Placeholder.
   recover_button: Make a new passkey
 
 # What a sign-in or a new passkey that failed says, where the app knows why.
