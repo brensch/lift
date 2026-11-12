@@ -1,6 +1,8 @@
 use super::*;
-use crate::auth::AuthState;
+use crate::auth::{AuthState, Refusal};
+use crate::db::shown_code;
 use std::sync::Arc;
+use tonic::Code;
 use webauthn_rs::prelude::{PublicKeyCredential, RegisterPublicKeyCredential};
 
 // ── Auth Service ──
@@ -50,6 +52,30 @@ const MAX_PASSKEY_NAME_CHARS: usize = 64;
 
 fn passkey_name(name: Option<String>) -> Option<String> {
     name.map(|n| n.chars().take(MAX_PASSKEY_NAME_CHARS).collect())
+}
+
+/// A refused ceremony as its caller hears it: the refusal's own words,
+/// under a code a client can tell apart. `otherwise` is the code for a
+/// credential that didn't verify or came too late, which differs between
+/// signing in and registering.
+fn refusal_status(refusal: Refusal, otherwise: Code) -> Status {
+    let code = match refusal {
+        Refusal::UnknownPasskey | Refusal::UnknownUser => Code::NotFound,
+        Refusal::NotVerified => Code::FailedPrecondition,
+        Refusal::AlreadyRegistered | Refusal::NameTaken => Code::AlreadyExists,
+        Refusal::Busy | Refusal::TooManyRecoveries => Code::ResourceExhausted,
+        Refusal::Internal => Code::Internal,
+        Refusal::Expired | Refusal::Rejected => otherwise,
+    };
+    Status::new(code, refusal.message())
+}
+
+fn registering(refusal: Refusal) -> Status {
+    refusal_status(refusal, Code::InvalidArgument)
+}
+
+fn signing_in(refusal: Refusal) -> Status {
+    refusal_status(refusal, Code::Unauthenticated)
 }
 
 /// Where the request came from: the client Caddy names in X-Forwarded-For
@@ -169,7 +195,7 @@ impl AuthService for ServerAuthService {
             .auth_state
             .start_registration(&username, &client)
             .await
-            .map_err(Status::internal)?;
+            .map_err(registering)?;
         self.track_attempt_start(&user_id, "register", &platform, &app_version)
             .await;
         let options_json =
@@ -199,10 +225,10 @@ impl AuthService for ServerAuthService {
             .await
         {
             Ok(username) => username,
-            Err(e) => {
-                self.track_attempt_finish(&req.user_id, "rejected", &e)
+            Err(refusal) => {
+                self.track_attempt_finish(&req.user_id, "rejected", refusal.slug())
                     .await;
-                return Err(Status::invalid_argument(e));
+                return Err(registering(refusal));
             }
         };
         self.track_attempt_finish(&req.user_id, "ok", "").await;
@@ -230,12 +256,12 @@ impl AuthService for ServerAuthService {
                 .auth_state
                 .start_authentication_with_username(username.trim(), &client)
                 .await
-                .map_err(Status::invalid_argument)?,
+                .map_err(signing_in)?,
             _ => self
                 .auth_state
                 .start_authentication(&client)
                 .await
-                .map_err(Status::internal)?,
+                .map_err(signing_in)?,
         };
         self.track_attempt_start(&challenge_id, "login", &platform, &app_version)
             .await;
@@ -260,10 +286,10 @@ impl AuthService for ServerAuthService {
             .await
         {
             Ok(session) => session,
-            Err(e) => {
-                self.track_attempt_finish(&req.challenge_id, "rejected", &e)
+            Err(refusal) => {
+                self.track_attempt_finish(&req.challenge_id, "rejected", refusal.slug())
                     .await;
-                return Err(Status::unauthenticated(e));
+                return Err(signing_in(refusal));
             }
         };
         self.track_attempt_finish(&req.challenge_id, "ok", "").await;
@@ -289,7 +315,7 @@ impl AuthService for ServerAuthService {
             .auth_state
             .start_add_passkey(&user_id, &user.name, &client_key(&request))
             .await
-            .map_err(Status::internal)?;
+            .map_err(registering)?;
         let options_json =
             serde_json::to_string(&options).map_err(|e| Status::internal(e.to_string()))?;
         Ok(Response::new(AddPasskeyStartResponse { options_json }))
@@ -307,7 +333,7 @@ impl AuthService for ServerAuthService {
         self.auth_state
             .finish_add_passkey(&user_id, &credential, remote_addr, passkey_name(req.name))
             .await
-            .map_err(Status::invalid_argument)?;
+            .map_err(registering)?;
         Ok(Response::new(AddPasskeyFinishResponse {}))
     }
     async fn delete_passkey(
@@ -414,6 +440,145 @@ impl AuthService for ServerAuthService {
             .await
             .map_err(internal_error)?;
         Ok(Response::new(ReportAuthFailureResponse {}))
+    }
+
+    /// Unauthenticated: the caller has lost their passkey. It starts making
+    /// a new one for the account holding the name; `recovery_finish` holds
+    /// it aside, and it signs nothing in until an admin approves its code
+    /// (`AdminService.DecideRecovery`). Whether a name is held is said, as
+    /// `register_start` already says it.
+    async fn recovery_start(
+        &self,
+        request: Request<RecoveryStartRequest>,
+    ) -> Result<Response<RecoveryStartResponse>, Status> {
+        let (platform, app_version) = client_labels(&request);
+        let client = client_key(&request);
+        let req = request.into_inner();
+        let username = req.username.trim();
+        info!(rpc = "RecoveryStart", %username, "request");
+        if username.is_empty() || username.chars().count() > MAX_USERNAME_CHARS {
+            return Err(Status::invalid_argument("username is required"));
+        }
+        let (request_id, options) = self
+            .auth_state
+            .start_recovery(username, &client)
+            .await
+            .map_err(registering)?;
+        self.track_attempt_start(&request_id, "recovery", &platform, &app_version)
+            .await;
+        let options_json =
+            serde_json::to_string(&options).map_err(|e| Status::internal(e.to_string()))?;
+        Ok(Response::new(RecoveryStartResponse {
+            request_id,
+            options_json,
+        }))
+    }
+
+    async fn recovery_finish(
+        &self,
+        request: Request<RecoveryFinishRequest>,
+    ) -> Result<Response<RecoveryFinishResponse>, Status> {
+        let remote_addr = client_ip(&request);
+        let (platform, _) = client_labels(&request);
+        let req = request.into_inner();
+        info!(rpc = "RecoveryFinish", request_id = %req.request_id, "request");
+        let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
+            .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
+        match self
+            .auth_state
+            .finish_recovery(&req.request_id, &credential, remote_addr, &platform)
+            .await
+        {
+            Ok((code, expires_at)) => {
+                self.track_attempt_finish(&req.request_id, "ok", "").await;
+                Ok(Response::new(RecoveryFinishResponse { code, expires_at }))
+            }
+            Err(refusal) => {
+                self.track_attempt_finish(&req.request_id, "rejected", refusal.slug())
+                    .await;
+                Err(registering(refusal))
+            }
+        }
+    }
+
+    /// Unauthenticated: the request id, random and known only to whoever
+    /// made the request, is what lets its state be read.
+    async fn recovery_status(
+        &self,
+        request: Request<RecoveryStatusRequest>,
+    ) -> Result<Response<RecoveryStatusResponse>, Status> {
+        let req = request.into_inner();
+        if req.request_id.len() > 64 {
+            return Err(Status::invalid_argument("request_id too long"));
+        }
+        let recovery = self
+            .db
+            .recovery(&req.request_id)
+            .await
+            .map_err(internal_error)?;
+        let expired = RecoveryStatusResponse {
+            state: RecoveryState::Expired as i32,
+            ..Default::default()
+        };
+        let Some(recovery) = recovery else {
+            return Ok(Response::new(expired));
+        };
+        let state = match recovery.status.as_str() {
+            "approved" => RecoveryState::Approved,
+            "denied" => RecoveryState::Denied,
+            _ if recovery.waiting(now_unix()) => RecoveryState::Pending,
+            _ => return Ok(Response::new(expired)),
+        };
+        let pending = state == RecoveryState::Pending;
+        Ok(Response::new(RecoveryStatusResponse {
+            state: state as i32,
+            code: if pending {
+                shown_code(&recovery.code)
+            } else {
+                String::new()
+            },
+            expires_at: if pending {
+                recovery.created_at + crate::db::RECOVERY_TTL_SECONDS
+            } else {
+                0
+            },
+            username: recovery.username,
+        }))
+    }
+
+    async fn list_my_recoveries(
+        &self,
+        request: Request<ListMyRecoveriesRequest>,
+    ) -> Result<Response<ListMyRecoveriesResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let recoveries = self
+            .db
+            .recoveries_waiting_for(&user_id)
+            .await
+            .map_err(internal_error)?
+            .into_iter()
+            .map(|r| PendingRecovery {
+                request_id: r.request_id,
+                created_at: r.created_at,
+                platform: r.platform,
+            })
+            .collect();
+        Ok(Response::new(ListMyRecoveriesResponse { recoveries }))
+    }
+
+    async fn deny_my_recovery(
+        &self,
+        request: Request<DenyMyRecoveryRequest>,
+    ) -> Result<Response<DenyMyRecoveryResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "DenyMyRecovery", %user_id, request_id = %req.request_id, "request");
+        // One that is not theirs, or already decided, is left as it is.
+        self.db
+            .deny_recovery(&req.request_id, Some(&user_id))
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(DenyMyRecoveryResponse {}))
     }
 }
 
@@ -898,5 +1063,292 @@ mod ceremony_tests {
         let last = delete(held[1].credential_id.clone()).await;
         assert_eq!(last.unwrap_err().code(), tonic::Code::FailedPrecondition);
         assert_eq!(passkeys(&svc, token).await.len(), 1, "still there");
+    }
+
+    /// A passkey the device still holds for an account that is gone is told
+    /// apart from one that fails to verify: the app tells the passkey
+    /// manager to drop it.
+    #[tokio::test]
+    async fn a_passkey_no_account_holds_is_said_to_be_unknown() {
+        use webauthn_rs::prelude::Base64UrlSafeData;
+
+        let svc = service().await;
+        let mut phone = device();
+        let (_, ann) = sign_up(&svc, &mut phone, "ann").await;
+
+        // What the phone answers a usernameless sign-in with: its passkey,
+        // naming the account it was made for. (The software passkey only
+        // signs when asked by name, so its answer is given the name here.)
+        let by_name = svc
+            .login_start(Request::new(LoginStartRequest {
+                username: Some("ann".to_string()),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let mut answer: serde_json::Value =
+            serde_json::from_str(&sign(&mut phone, &by_name.options_json)).unwrap();
+        let handle = Uuid::parse_str(&ann.user_id).unwrap().as_bytes().to_vec();
+        answer["response"]["userHandle"] =
+            serde_json::to_value(Base64UrlSafeData::from(handle)).unwrap();
+        let usernameless = || async {
+            let start = svc
+                .login_start(Request::new(LoginStartRequest { username: None }))
+                .await
+                .unwrap()
+                .into_inner();
+            let refused = svc
+                .login_finish(Request::new(LoginFinishRequest {
+                    challenge_id: start.challenge_id.clone(),
+                    credential_json: answer.to_string(),
+                }))
+                .await
+                .unwrap_err();
+            let reason: String =
+                sqlx::query("SELECT reason FROM auth_attempts WHERE attempt_id = ?")
+                    .bind(&start.challenge_id)
+                    .fetch_one(&svc.db.read_pool)
+                    .await
+                    .unwrap()
+                    .get("reason");
+            // The caller is told no more than a sentence.
+            assert!(!refused.message().contains(&start.challenge_id));
+            (refused.code(), reason)
+        };
+
+        // While the account holds it, an answer to another challenge is
+        // one that doesn't verify.
+        assert_eq!(
+            usernameless().await,
+            (tonic::Code::Unauthenticated, "rejected".to_string())
+        );
+        svc.db
+            .delete_user_account_and_data(&ann.user_id)
+            .await
+            .unwrap();
+        assert_eq!(
+            usernameless().await,
+            (tonic::Code::NotFound, "unknown_passkey".to_string())
+        );
+    }
+
+    /// A passkey that answers without verifying its user is refused in
+    /// words that say so.
+    #[tokio::test]
+    async fn an_unverified_passkey_is_refused_as_such() {
+        let svc = service().await;
+        let mut unverifying: Device = WebauthnAuthenticator::new(SoftPasskey::new(false));
+        let start = svc
+            .register_start(Request::new(RegisterStartRequest {
+                username: "ann".to_string(),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let options: CreationChallengeResponse = serde_json::from_str(&start.options_json).unwrap();
+        // The software passkey itself refuses when verification is
+        // required and it has none, like a passkey manager that honours
+        // "required"; one that ignores it sends the bit unset, which the
+        // server refuses the same way.
+        let Ok(credential) = unverifying.do_registration(origin(), options) else {
+            return;
+        };
+        let refused = svc
+            .register_finish(Request::new(RegisterFinishRequest {
+                user_id: start.user_id,
+                credential_json: serde_json::to_string(&credential).unwrap(),
+                name: None,
+            }))
+            .await
+            .unwrap_err();
+        assert_eq!(refused.code(), tonic::Code::FailedPrecondition);
+    }
+
+    /// Whether a sign-in to `username` asks for a passkey the device has.
+    async fn offered(svc: &ServerAuthService, device: &mut Device, username: &str) -> bool {
+        let start = svc
+            .login_start(Request::new(LoginStartRequest {
+                username: Some(username.to_string()),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let options: RequestChallengeResponse = serde_json::from_str(&start.options_json).unwrap();
+        device.do_authentication(origin(), options).is_ok()
+    }
+
+    async fn status(svc: &ServerAuthService, request_id: &str) -> RecoveryStatusResponse {
+        svc.recovery_status(Request::new(RecoveryStatusRequest {
+            request_id: request_id.to_string(),
+        }))
+        .await
+        .unwrap()
+        .into_inner()
+    }
+
+    /// Someone who lost their passkey makes a new one for their account.
+    /// It signs nothing in until its code is approved, and then signs in
+    /// to the old account.
+    #[tokio::test]
+    async fn a_recovered_passkey_signs_in_once_its_code_is_approved() {
+        let svc = service().await;
+        let (_, ann) = sign_up(&svc, &mut device(), "ann").await;
+
+        let nobody = svc
+            .recovery_start(Request::new(RecoveryStartRequest {
+                username: "nobody".to_string(),
+            }))
+            .await;
+        assert_eq!(nobody.unwrap_err().code(), tonic::Code::NotFound);
+
+        let start = svc
+            .recovery_start(Request::new(RecoveryStartRequest {
+                username: "Ann".to_string(),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let mut new_phone = device();
+        let finish = RecoveryFinishRequest {
+            request_id: start.request_id.clone(),
+            credential_json: create(&mut new_phone, &start.options_json),
+        };
+        let held = svc
+            .recovery_finish(Request::new(finish.clone()))
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(held.expires_at > now_unix());
+        // The same finish again is refused: one request, one passkey.
+        assert!(svc.recovery_finish(Request::new(finish)).await.is_err());
+
+        let waiting = status(&svc, &start.request_id).await;
+        assert_eq!(waiting.state, RecoveryState::Pending as i32);
+        assert_eq!(waiting.code, held.code);
+        assert_eq!(waiting.username, "ann");
+        assert_eq!(
+            status(&svc, "made-up").await.state,
+            RecoveryState::Expired as i32
+        );
+
+        // Not approved: the new passkey is nobody's.
+        assert!(!offered(&svc, &mut new_phone, "ann").await);
+        assert_eq!(passkeys(&svc, &ann.session_token).await.len(), 1);
+
+        // The account's owner, still signed in, hears of it.
+        let heard = svc
+            .list_my_recoveries(authed(&ann.session_token, ListMyRecoveriesRequest {}))
+            .await
+            .unwrap()
+            .into_inner()
+            .recoveries;
+        assert_eq!(heard.len(), 1);
+        assert_eq!(heard[0].request_id, start.request_id);
+
+        svc.db.approve_recovery(&held.code, false).await.unwrap();
+        let approved = status(&svc, &start.request_id).await;
+        assert_eq!(approved.state, RecoveryState::Approved as i32);
+        assert!(approved.code.is_empty());
+        let signed_in = sign_in(&svc, &mut new_phone, "ann").await.1.unwrap();
+        assert_eq!(signed_in.user_id, ann.user_id);
+        let held = passkeys(&svc, &signed_in.session_token).await;
+        assert_eq!(held.len(), 2);
+        assert!(held
+            .iter()
+            .any(|p| p.name.as_deref() == Some("recovery key")));
+    }
+
+    /// The owner of an account refuses a request for it they didn't make;
+    /// nobody else can.
+    #[tokio::test]
+    async fn the_owner_refuses_a_recovery_they_did_not_ask_for() {
+        let svc = service().await;
+        let (_, ann) = sign_up(&svc, &mut device(), "ann").await;
+        let (_, ben) = sign_up(&svc, &mut device(), "ben").await;
+        let start = svc
+            .recovery_start(Request::new(RecoveryStartRequest {
+                username: "ann".to_string(),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+        let mut thief = device();
+        let held = svc
+            .recovery_finish(Request::new(RecoveryFinishRequest {
+                request_id: start.request_id.clone(),
+                credential_json: create(&mut thief, &start.options_json),
+            }))
+            .await
+            .unwrap()
+            .into_inner();
+
+        let deny = |token: &str| {
+            svc.deny_my_recovery(authed(
+                token,
+                DenyMyRecoveryRequest {
+                    request_id: start.request_id.clone(),
+                },
+            ))
+        };
+        deny(&ben.session_token).await.unwrap();
+        assert_eq!(
+            status(&svc, &start.request_id).await.state,
+            RecoveryState::Pending as i32,
+            "someone else's refusal changes nothing"
+        );
+        deny(&ann.session_token).await.unwrap();
+        assert_eq!(
+            status(&svc, &start.request_id).await.state,
+            RecoveryState::Denied as i32
+        );
+        assert_eq!(
+            svc.db.approve_recovery(&held.code, false).await.unwrap(),
+            crate::db::Approval::NoSuchCode
+        );
+        assert!(!offered(&svc, &mut thief, "ann").await);
+    }
+
+    /// Passkeys were once keyed by how a Rust type printed their id. Step 4
+    /// rekeys them by the id as the passkey's own JSON spells it, and they
+    /// go on signing in, counting, and being deleted by that key.
+    #[tokio::test]
+    async fn passkeys_keyed_the_old_way_are_rekeyed_and_still_sign_in() {
+        let dir = std::env::temp_dir().join(format!("lift-rekey-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let svc = ServerAuthService {
+            auth_state: Arc::new(AuthState::new(db.clone())),
+            db,
+        };
+        let mut phone = device();
+        let (_, ann) = sign_up(&svc, &mut phone, "ann").await;
+        let key = passkeys(&svc, &ann.session_token).await[0]
+            .credential_id
+            .clone();
+        assert!(
+            key.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'),
+            "base64url: {key}"
+        );
+
+        // Back to before step 4.
+        let setup = "UPDATE passkeys SET credential_id = 'HumanBinaryData([1, 2, 3])';
+             DROP TABLE passkey_recoveries;
+             PRAGMA user_version = 3;";
+        sqlx::query(setup).execute(&svc.db.read_pool).await.unwrap();
+        drop(svc);
+
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let svc = ServerAuthService {
+            auth_state: Arc::new(AuthState::new(db.clone())),
+            db,
+        };
+        let stored = || async { svc.db.get_credentials_for_user(&ann.user_id).await.unwrap() };
+        let before = stored().await;
+        let signed_in = sign_in(&svc, &mut phone, "ann").await.1.unwrap();
+        assert_eq!(
+            passkeys(&svc, &signed_in.session_token).await[0].credential_id,
+            key
+        );
+        assert_ne!(stored().await, before, "the counter is written by the key");
     }
 }

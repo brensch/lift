@@ -74,3 +74,13 @@ export function volumeComparison(totalLb: number): string | null {
   }
   return null;
 }
+
+/** "Sep 5, 02:30 PM" in the viewer's zone: when something happened, to the minute. */
+export function formatWhen(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

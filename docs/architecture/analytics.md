@@ -79,6 +79,11 @@ already sees both halves of every ceremony, so `auth_attempts` gets a row on
 each `RegisterStart` / `LoginStart` (keyed by the pre-allocated user id or the
 challenge id) and the matching `Finish` stamps it `ok` or `rejected`.
 
+A recovery request (`RecoveryStart`, see [auth.md](auth.md#getting-back-in-without-a-passkey))
+is a row of kind `recovery`. A `rejected` row's `reason` is the refusal's slug
+(`not_verified`, `unknown_passkey`, `expired`, …; `Refusal::slug`), which the
+stats page counts.
+
 **A row still `started` ten minutes later is a ceremony that died on the
 device.** To learn why, the app wraps the on-device half of the ceremony
 (`_reportingDeviceFailure` in `auth_service.dart`), classifies the exception
@@ -130,6 +135,20 @@ trimmed name, `UNIQUE COLLATE NOCASE` (SQLite's NOCASE folds ASCII letters
 only), and no RPC renames a user.
 
 `/admin?user=<name>` opens directly on that user's trail.
+
+The page also shows, all behind `authed_admin_id`:
+
+- **Everyone and their training** (`GetTrainingStats`): every account with
+  when it was last in the app, its build, passkeys, signed-in devices and
+  workouts; the finished workouts in the window; workouts per day; the lifts
+  done; who has a workout open. The server keeps no folded account, so each
+  account is folded from its events for that answer and dropped
+  (`training_stats`, `src/server/analytics.rs`): the page costs a fold of
+  every account (up to 2,000, eight at a time), which is why it is its own
+  RPC and not part of `GetStats`.
+- **Lost passkeys** (`ListRecoveries`, `DecideRecovery`): the requests made
+  at `/recover`, approved by typing the code the person sent. See
+  [auth.md](auth.md#getting-back-in-without-a-passkey).
 
 ## Retention and deletion
 

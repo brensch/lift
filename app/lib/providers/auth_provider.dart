@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:grpc/grpc.dart' show GrpcError, StatusCode;
 import 'package:passkeys/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../gen/copy.dart';
 import '../logic/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/app_logger.dart';
@@ -326,8 +328,21 @@ class AuthProvider extends ChangeNotifier {
 /// An auth failure as the user reads it: a passkey's or the platform's
 /// error with its code, a server error's own message.
 String formatAuthError(Object e) {
+  if (e is ExcludeCredentialsCanNotBeRegisteredException) {
+    return copy.passkeyErrors.alreadyHeld;
+  }
   if (e is AuthenticatorException) {
     return formatPasskeyError(e);
+  }
+  // Refusals the server words for anyone; said here in the app's own words.
+  // The codes are `refusal_status` in src/server/auth.rs.
+  if (e is GrpcError) {
+    switch (e.code) {
+      case StatusCode.notFound:
+        return copy.passkeyErrors.unknown;
+      case StatusCode.failedPrecondition:
+        return copy.passkeyErrors.notVerified;
+    }
   }
   if (e is PlatformException) {
     return formatPlatformError(e);

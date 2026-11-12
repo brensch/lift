@@ -261,6 +261,31 @@ lost_passkey:
   button: Lost passkey?
   title: Lost passkey
   body: This is so sad that you've lost your passkey. I have empathy for you during this difficult time. Make sure you check your password manager, your phone should have saved it for you when you signed up. If you deleted it, please tell Brendan your previous username and he will fix it for you.
+  # Under the body: how to get back in. Placeholders.
+  # Still signed in somewhere: no need to wait for anyone.
+  signed_in_elsewhere: Still signed in on another phone or the website? Add a passkey from Settings → Passkeys there and you're done.
+  # Above the button that opens schlift.com/recover in the browser.
+  recover_body: Otherwise make a new passkey for your account. You'll get a code to send Brendan, and it starts working once he approves it.
+  recover_button: Make a new passkey
+
+# What a sign-in or a new passkey that failed says, where the app knows why.
+# Placeholders.
+passkey_errors:
+  # The passkey chosen belongs to an account or passkey that was deleted,
+  # or to a sign-up that never finished.
+  unknown: That passkey isn't linked to an account any more. Delete it from your password manager and pick another, or tap Lost passkey.
+  # The password manager signed without asking for a fingerprint, face or PIN.
+  not_verified: Your password manager didn't check it was you. Unlock it and try again.
+  # Adding a passkey to a password manager that already has one for this account.
+  already_held: This password manager already has a passkey for this account. Save the new one somewhere else.
+  # The passkey prompt was left open too long.
+  too_slow: That took too long. Try again.
+
+# Over the app when someone has asked, at schlift.com/recover, to get into
+# this account with a new passkey: the owner can refuse it. Placeholders.
+recovery_alert:
+  body: Someone made a new passkey for your account and asked Brendan to approve it. If that wasn't you, stop it.
+  deny: NOT ME
 
 # The live workout: the set circles and status bars on the phone, and every
 # screen on the watch. A set is a circle: tap to start it, tap again when
@@ -861,6 +886,8 @@ passkeys:
   transport_nfc: NFC
   transport_ble: Bluetooth
   transport_hybrid: Phone/Tablet
+  # Under the list when there is only one. Placeholder.
+  only_one: You have one passkey. Add a second in a different password manager, so losing one doesn't lock you out.
   load_failed: Failed to load passkeys
   delete_failed: Failed to delete passkey
   delete_title: Delete Passkey

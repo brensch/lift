@@ -42,7 +42,9 @@ with the same signing fingerprints.
    `/opt/schlift-dev/shared/schlift.env` from `deploy/schlift-dev.env.example`,
    and adds the `dev.schlift.com` vhost with a graceful Caddy reload.
 5. **Verify:** `curl https://dev.schlift.com/.well-known/assetlinks.json` returns
-   two statements (`com.brensch.schlift` and `com.brensch.schlift.dev`).
+   three statements (`com.brensch.schlift`, `com.brensch.schlift.dev` and the
+   debug build's `com.brensch.schlift.debug`; see "Passkeys in the debug app"
+   in [android_dev.md](android_dev.md)).
 6. **Phone:** allow installing unknown apps for your browser, then open
    `https://dev.schlift.com/schlift-dev.apk`. (The APK lives in the shared web
    root, so until the DNS record exists it's also reachable at

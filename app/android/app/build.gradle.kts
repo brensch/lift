@@ -71,8 +71,10 @@ android {
             // it sits beside the Play install instead of replacing it: Flutter
             // reacts to INSTALL_FAILED_VERSION_DOWNGRADE (debug builds carry
             // version code 1) by uninstalling whatever holds the package name.
-            // Dev login does not need passkeys, so the suffix costing this
-            // package its asset-link verification does not matter.
+            // Passkeys follow the package: dev.schlift.com's assetlinks.json
+            // lists this one, and a local backend runs as dev.schlift.com
+            // (BACKEND_DEV_ENV in the Makefile), so a debug build signs in
+            // with a passkey as well as with dev login.
             applicationIdSuffix = ".debug"
             manifestPlaceholders["appLabel"] =
                 if (isDevChannel) "Schlift Dev Debug" else "Schlift Debug"

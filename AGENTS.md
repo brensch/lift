@@ -41,7 +41,8 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   and remove them afterwards.
 - **Every gRPC handler calls `authed_user_id` (or `authed_admin_id`) itself**;
   there is no middleware. The deliberate exception is `report_auth_failure`
-  (besides the passkey handshake) — do not copy it.
+  (besides the passkey handshake, which includes the recovery request and
+  its status) — do not copy it.
 - **Account state lives in the core, not the server or Dart.** A new write
   is a new `Fact` in `core/src/events.rs`, a branch in `Account::apply`
   (`core/src/account.rs`) and a method in `core/src/api.rs` that decides it;

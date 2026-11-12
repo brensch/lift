@@ -16,8 +16,10 @@ import { ColumnChart } from "@/components/charts/column-chart";
 import { StatTile } from "@/components/charts/stat-tile";
 import { Select } from "@/components/ui/select";
 import { CONTEXT, SERIES_1, SERIES_3 } from "@/components/charts/chart-utils";
-import { formatNumber } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { formatNumber, formatWhen } from "@/lib/format";
+import { Card, DataTable } from "@/components/admin/parts";
+import { Recoveries } from "@/components/admin/recoveries";
+import { Training } from "@/components/admin/training";
 
 const WINDOWS = [7, 30, 90, 365];
 
@@ -28,15 +30,6 @@ function formatMs(ms: number): string {
   const m = Math.floor(s / 60);
   if (m < 60) return `${m}m ${Math.round(s % 60)}s`;
   return `${Math.floor(m / 60)}h ${m % 60}m`;
-}
-
-function formatWhen(ms: number): string {
-  return new Date(ms).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 /** "2026-09-05" → "Sep 5". Short enough for the chart's label stride. */
@@ -73,24 +66,6 @@ function fillDays(
 
 function pct(n: number, of: number): string {
   return of > 0 ? `${Math.round((n / of) * 100)}%` : "–";
-}
-
-function Card({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="border border-border rounded-xl bg-surface p-4 sm:p-5 min-w-0">
-      <h3 className="font-display text-base font-bold tracking-tight m-0">{title}</h3>
-      {subtitle && <p className="text-xs text-muted mt-1 mb-0">{subtitle}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
-  );
 }
 
 interface FunnelStep {
@@ -156,75 +131,6 @@ function Funnel({ steps, color }: { steps: FunnelStep[]; color: string }) {
   );
 }
 
-function DataTable({
-  head,
-  rows,
-  numeric = [],
-  wrap = [],
-  onRowClick,
-  activeRow,
-}: {
-  head: string[];
-  rows: (string | number)[][];
-  numeric?: number[];
-  /** Columns allowed to wrap; the rest stay on one line. */
-  wrap?: number[];
-  onRowClick?: (index: number) => void;
-  activeRow?: number;
-}) {
-  if (rows.length === 0)
-    return <p className="text-sm text-muted m-0">Nothing recorded in this window yet.</p>;
-  return (
-    <div className="overflow-x-auto -mx-1">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr>
-            {head.map((h, i) => (
-              <th
-                key={h}
-                className={cn(
-                  "px-2 py-1.5 text-xs uppercase tracking-wider text-muted font-medium border-b border-border whitespace-nowrap",
-                  numeric.includes(i) ? "text-right" : "text-left",
-                )}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, r) => (
-            <tr
-              key={r}
-              onClick={onRowClick ? () => onRowClick(r) : undefined}
-              className={cn(
-                "border-b border-border/50 last:border-0",
-                onRowClick && "cursor-pointer hover:bg-background",
-                activeRow === r && "bg-background",
-              )}
-            >
-              {row.map((cell, c) => (
-                <td
-                  key={c}
-                  className={cn(
-                    "px-2 py-1.5",
-                    wrap.includes(c) ? "whitespace-normal text-muted" : "whitespace-nowrap",
-                    numeric.includes(c)
-                      ? "text-right [font-variant-numeric:tabular-nums]"
-                      : "text-left",
-                  )}
-                >
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 // ── Passkey health ──
 
 const REASONS = ["cancelled", "no_credential", "unsupported", "platform_error", "timeout"] as const;
@@ -236,6 +142,8 @@ interface PasskeyRow {
   total: number;
   ok: number;
   rejected: number;
+  /** Why the server refused, by its slug. */
+  rejections: Record<string, number>;
   abandoned: number;
   reasons: Record<string, number>;
   otherErrors: number;
@@ -254,6 +162,7 @@ function passkeyRows(attempts: AuthAttemptStat[]): PasskeyRow[] {
         total: 0,
         ok: 0,
         rejected: 0,
+        rejections: {},
         abandoned: 0,
         reasons: {},
         otherErrors: 0,
@@ -261,8 +170,10 @@ function passkeyRows(attempts: AuthAttemptStat[]): PasskeyRow[] {
     const n = Number(a.count);
     row.total += n;
     if (a.outcome === "ok") row.ok += n;
-    else if (a.outcome === "rejected") row.rejected += n;
-    else if (a.outcome === "started") row.abandoned += n;
+    else if (a.outcome === "rejected") {
+      row.rejected += n;
+      row.rejections[a.reason] = (row.rejections[a.reason] ?? 0) + n;
+    } else if (a.outcome === "started") row.abandoned += n;
     else if ((REASONS as readonly string[]).includes(a.reason))
       row.reasons[a.reason] = (row.reasons[a.reason] ?? 0) + n;
     else row.otherErrors += n;
@@ -279,12 +190,27 @@ const FAILURE_LABELS: [string, string][] = [
   ["timeout", "timed out"],
 ];
 
+/** What the server calls a refusal, as the table says it. */
+const REJECTION_LABELS: Record<string, string> = {
+  expired: "took too long",
+  unknown_passkey: "passkey of no account",
+  not_verified: "not verified (no biometric)",
+  already_registered: "passkey already registered",
+  name_taken: "name taken meanwhile",
+  too_many_recoveries: "too many requests waiting",
+  rejected: "didn't verify",
+  internal: "server error",
+};
+
 /** "9 cancelled · 4 no passkey" — only the reasons that happened. */
 function failureSummary(r: PasskeyRow): string {
   const parts = FAILURE_LABELS.filter(([key]) => r.reasons[key]).map(
     ([key, label]) => `${r.reasons[key]} ${label}`,
   );
-  if (r.rejected) parts.push(`${r.rejected} rejected by server`);
+  for (const [reason, n] of Object.entries(r.rejections).sort((a, b) => b[1] - a[1])) {
+    // Rows from before refusals had slugs hold the whole error.
+    parts.push(`${n} refused: ${REJECTION_LABELS[reason] ?? "other"}`);
+  }
   if (r.otherErrors) parts.push(`${r.otherErrors} other`);
   return parts.length ? parts.join(" · ") : "–";
 }
@@ -458,7 +384,8 @@ export function AdminPage() {
             Stats
           </h2>
           <p className="text-sm text-muted mt-1 mb-0">
-            Page views and sign-in attempts. First-party; kept until the account is deleted.
+            Who is here, what they lifted, page views and sign-in attempts. First-party; kept until
+            the account is deleted.
           </p>
         </div>
         <Select
@@ -468,6 +395,8 @@ export function AdminPage() {
           options={WINDOWS.map((d) => ({ value: String(d), label: `Last ${d} days` }))}
         />
       </div>
+
+      <Recoveries token={user.sessionToken} />
 
       {error && <p className="text-sm text-danger m-0">{error}</p>}
       {!stats && !error && <p className="text-muted py-8 text-center">Loading…</p>}
@@ -497,130 +426,124 @@ export function AdminPage() {
             />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card
-              title="Sign-up funnel"
-              subtitle="Sign-up attempts, then distinct users reaching each step. Time is the average per visit."
-            >
-              <Funnel steps={signupFunnel} color={SERIES_1} />
-            </Card>
-            <Card
-              title="Tutorial"
-              subtitle="Distinct users who saw each step, and the average time on it."
-            >
-              <Funnel steps={tutorialFunnel} color={SERIES_3} />
-            </Card>
-          </div>
+          <Training
+            token={user.sessionToken}
+            days={days}
+            views={new Map(stats.users.map((u) => [u.username, Number(u.views)]))}
+            pickedUser={trailUser}
+            onPickUser={setTrailUser}
+            trail={
+              trailUser && (
+                <div className="relative">
+                  <Trail
+                    username={trailUser}
+                    entries={trailFor === trailUser ? stats.trail : null}
+                    failed={error !== null && errorFor === trailUser}
+                    onClose={() => setTrailUser("")}
+                  />
 
-          <Card
-            title="Passkey health"
-            subtitle="Every sign-up and sign-in ceremony the server started. Abandoned = the device never came back and never said why."
-          >
-            <DataTable
-              head={[
-                "Flow",
-                "Platform",
-                "Version",
-                "Attempts",
-                "OK",
-                "Success",
-                "Abandoned",
-                "Reported failures",
-              ]}
-              numeric={[3, 4, 5, 6]}
-              wrap={[7]}
-              rows={passkeys.map((r) => [
-                r.kind,
-                r.platform,
-                r.version,
-                r.total,
-                r.ok,
-                pct(r.ok, r.total),
-                r.abandoned,
-                failureSummary(r),
-              ])}
-            />
-          </Card>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card
+                      title="Sign-up funnel"
+                      subtitle="Sign-up attempts, then distinct users reaching each step. Time is the average per visit."
+                    >
+                      <Funnel steps={signupFunnel} color={SERIES_1} />
+                    </Card>
+                    <Card
+                      title="Tutorial"
+                      subtitle="Distinct users who saw each step, and the average time on it."
+                    >
+                      <Funnel steps={tutorialFunnel} color={SERIES_3} />
+                    </Card>
+                  </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <ChartCard
-              title="Daily active users"
-              subtitle={`Distinct users who opened the app each UTC day · peak ${formatNumber(peakUsers, 0)}`}
-              table={{
-                head: ["Day", "Users"],
-                rows: daily.map((d) => [d.day, String(d.users)]),
-                numeric: [1],
-              }}
-            >
-              <ColumnChart
-                data={daily.map((d) => ({ label: shortDay(d.day), value: d.users }))}
-                color={SERIES_1}
-                yFormat={(v) => formatNumber(v, 0)}
-                tooltipValue={(c) =>
-                  `${formatNumber(c.value, 0)} ${c.value === 1 ? "user" : "users"}`
-                }
-              />
-            </ChartCard>
-            <ChartCard
-              title="Page views per day"
-              subtitle="UTC days"
-              table={{
-                head: ["Day", "Views"],
-                rows: daily.map((d) => [d.day, String(d.views)]),
-                numeric: [1],
-              }}
-            >
-              <ColumnChart
-                data={daily.map((d) => ({ label: shortDay(d.day), value: d.views }))}
-                color={CONTEXT}
-                yFormat={(v) => formatNumber(v, 0)}
-                tooltipValue={(c) => `${formatNumber(c.value, 0)} views`}
-              />
-            </ChartCard>
-          </div>
+                  <Card
+                    title="Passkey health"
+                    subtitle="Every sign-up and sign-in ceremony the server started. Abandoned = the device never came back and never said why."
+                  >
+                    <DataTable
+                      head={[
+                        "Flow",
+                        "Platform",
+                        "Version",
+                        "Attempts",
+                        "OK",
+                        "Success",
+                        "Abandoned",
+                        "Reported failures",
+                      ]}
+                      numeric={[3, 4, 5, 6]}
+                      wrap={[7]}
+                      rows={passkeys.map((r) => [
+                        r.kind,
+                        r.platform,
+                        r.version,
+                        r.total,
+                        r.ok,
+                        pct(r.ok, r.total),
+                        r.abandoned,
+                        failureSummary(r),
+                      ])}
+                    />
+                  </Card>
 
-          <Card title="Pages" subtitle="Median is time in the foreground on that page per visit.">
-            <DataTable
-              head={["Page", "Views", "Users", "Median time", "Total time"]}
-              numeric={[1, 2, 3, 4]}
-              rows={pages.map((p) => [
-                p.page,
-                formatNumber(Number(p.views), 0),
-                formatNumber(Number(p.uniqueUsers), 0),
-                formatMs(Number(p.medianDurationMs)),
-                formatMs(Number(p.totalDurationMs)),
-              ])}
-            />
-          </Card>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <ChartCard
+                      title="Daily active users"
+                      subtitle={`Distinct users who opened the app each UTC day · peak ${formatNumber(peakUsers, 0)}`}
+                      table={{
+                        head: ["Day", "Users"],
+                        rows: daily.map((d) => [d.day, String(d.users)]),
+                        numeric: [1],
+                      }}
+                    >
+                      <ColumnChart
+                        data={daily.map((d) => ({ label: shortDay(d.day), value: d.users }))}
+                        color={SERIES_1}
+                        yFormat={(v) => formatNumber(v, 0)}
+                        tooltipValue={(c) =>
+                          `${formatNumber(c.value, 0)} ${c.value === 1 ? "user" : "users"}`
+                        }
+                      />
+                    </ChartCard>
+                    <ChartCard
+                      title="Page views per day"
+                      subtitle="UTC days"
+                      table={{
+                        head: ["Day", "Views"],
+                        rows: daily.map((d) => [d.day, String(d.views)]),
+                        numeric: [1],
+                      }}
+                    >
+                      <ColumnChart
+                        data={daily.map((d) => ({ label: shortDay(d.day), value: d.views }))}
+                        color={CONTEXT}
+                        yFormat={(v) => formatNumber(v, 0)}
+                        tooltipValue={(c) => `${formatNumber(c.value, 0)} views`}
+                      />
+                    </ChartCard>
+                  </div>
 
-          <div className="grid md:grid-cols-2 gap-4 items-start">
-            <Card
-              title="Users"
-              subtitle="Most recently active first. Pick one to follow their trail."
-            >
-              <DataTable
-                head={["User", "Views", "Last seen"]}
-                numeric={[1]}
-                rows={stats.users.map((u) => [
-                  u.username,
-                  formatNumber(Number(u.views), 0),
-                  formatWhen(Number(u.lastSeenMs)),
-                ])}
-                onRowClick={(i) => setTrailUser(stats.users[i].username)}
-                activeRow={stats.users.findIndex((u) => u.username === trailUser)}
-              />
-            </Card>
-            {trailUser && (
-              <div className="relative">
-                <Trail
-                  username={trailUser}
-                  entries={trailFor === trailUser ? stats.trail : null}
-                  failed={error !== null && errorFor === trailUser}
-                  onClose={() => setTrailUser("")}
-                />
-              </div>
-            )}
-          </div>
+                  <Card
+                    title="Pages"
+                    subtitle="Median is time in the foreground on that page per visit."
+                  >
+                    <DataTable
+                      head={["Page", "Views", "Users", "Median time", "Total time"]}
+                      numeric={[1, 2, 3, 4]}
+                      rows={pages.map((p) => [
+                        p.page,
+                        formatNumber(Number(p.views), 0),
+                        formatNumber(Number(p.uniqueUsers), 0),
+                        formatMs(Number(p.medianDurationMs)),
+                        formatMs(Number(p.totalDurationMs)),
+                      ])}
+                    />
+                  </Card>
+                </div>
+              )
+            }
+          />
         </>
       )}
     </div>

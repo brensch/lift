@@ -1,6 +1,8 @@
 syntax = "proto3";
 package workout.v1;
 
+import "workout/v1/workout.proto";
+
 // First-party usage analytics: which screens a signed-in user opened and for
 // how long, plus the admin-only read side. Nothing here leaves the server.
 
@@ -103,10 +105,117 @@ message GetStatsResponse {
   int64 active_users = 9;
 }
 
+// ── Admin: everyone and their training ──
+
+message GetTrainingStatsRequest {
+  // Look-back window in days. 0 = 30. Capped at a year.
+  int32 days = 1;
+}
+
+// One account, as an admin sees it.
+message AdminUser {
+  string username = 1;
+  int64 created_at = 2; // Unix seconds
+  int64 last_seen_ms = 3; // latest page view; 0 = never
+  string platform = 4; // of that page view
+  string app_version = 5;
+  int32 passkeys = 6;
+  int32 logins = 7; // signed-in devices
+  int32 workouts = 8; // finished, all time
+  int32 workouts_in_window = 9;
+  int64 last_workout_at = 10; // Unix seconds; 0 = none
+  double volume_lb = 11; // all time
+  int64 events = 12; // the size of the account's log
+  bool is_admin = 13;
+  bool lifting_now = 14; // a workout is open
+}
+
+// One finished workout.
+message AdminWorkout {
+  string username = 1;
+  string name = 2;
+  int64 start_time = 3; // Unix seconds
+  int64 duration_seconds = 4;
+  double volume_lb = 5;
+  int32 sets = 6;
+  int32 exercises = 7;
+  bool together = 8; // in a session with someone else
+}
+
+message TrainingDay {
+  int64 epoch_day = 1; // UTC days since 1970-01-01, of the workout's start
+  int64 workouts = 2;
+  int64 lifters = 3;
+}
+
+message ExerciseUse {
+  Exercise exercise = 1;
+  int64 sets = 2;
+  int64 lifters = 3;
+  double volume_lb = 4;
+}
+
+message GetTrainingStatsResponse {
+  int32 days = 1;
+  repeated AdminUser users = 2; // everyone, most recently seen first
+  repeated AdminWorkout workouts = 3; // in the window, newest first, capped
+  repeated TrainingDay daily = 4; // days with a workout, in the window
+  repeated ExerciseUse exercises = 5; // in the window, most sets first
+  int64 workouts_in_window = 6; // the whole count; `workouts` is capped
+  int64 lifters_in_window = 7;
+  int64 workouts_total = 8;
+  double volume_lb_in_window = 9;
+}
+
+// ── Admin: account recovery ──
+
+message RecoveryRequest {
+  string request_id = 1;
+  string username = 2;
+  int64 created_at = 3; // Unix seconds
+  string platform = 4;
+  string created_ip = 5;
+  // The account, so the admin can judge the request.
+  int32 passkeys = 6;
+  int32 logins = 7; // devices still signed in: they could add a passkey themselves
+  int64 last_seen_ms = 8;
+  // "pending", "approved" or "denied".
+  string status = 9;
+  int64 decided_at = 10;
+}
+
+message ListRecoveriesRequest {}
+message ListRecoveriesResponse {
+  // Waiting first, then the recently decided. Never the codes: an admin
+  // approves the code they were sent.
+  repeated RecoveryRequest recoveries = 1;
+}
+
+message DecideRecoveryRequest {
+  oneof request {
+    // Approve the request that came with this code.
+    string approve_code = 1;
+    // Refuse this request.
+    string deny_request_id = 2;
+  }
+  // On approving: drop the account's other passkeys and sign out its
+  // devices (a stolen phone, not just a lost key).
+  bool remove_other_passkeys = 3;
+}
+message DecideRecoveryResponse {
+  RecoveryRequest recovery = 1;
+}
+
 service AdminService {
   // Whether the caller is an admin. Lets the website decide whether to show
   // the stats link; the real gate is on GetStats.
   rpc GetAdminStatus(GetAdminStatusRequest) returns (GetAdminStatusResponse);
   // Admin only: PERMISSION_DENIED for everyone else.
   rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+  // Admin only. Everyone's accounts and finished workouts, folded from their
+  // events for this answer and not kept.
+  rpc GetTrainingStats(GetTrainingStatsRequest) returns (GetTrainingStatsResponse);
+  // Admin only.
+  rpc ListRecoveries(ListRecoveriesRequest) returns (ListRecoveriesResponse);
+  rpc DecideRecovery(DecideRecoveryRequest) returns (DecideRecoveryResponse);
 }

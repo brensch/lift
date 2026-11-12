@@ -119,6 +119,46 @@ class AuthServiceClient extends $grpc.Client {
     return $createUnaryCall(_$reportAuthFailure, request, options: options);
   }
 
+  /// Unauthenticated, like RegisterStart: the caller has no passkey. What it
+  /// makes is inert until an admin approves it.
+  $grpc.ResponseFuture<$0.RecoveryStartResponse> recoveryStart(
+    $0.RecoveryStartRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$recoveryStart, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.RecoveryFinishResponse> recoveryFinish(
+    $0.RecoveryFinishRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$recoveryFinish, request, options: options);
+  }
+
+  /// Unauthenticated: the request id is the secret.
+  $grpc.ResponseFuture<$0.RecoveryStatusResponse> recoveryStatus(
+    $0.RecoveryStatusRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$recoveryStatus, request, options: options);
+  }
+
+  /// The signed-in owner of an account hears of requests to get into it, and
+  /// can refuse them.
+  $grpc.ResponseFuture<$0.ListMyRecoveriesResponse> listMyRecoveries(
+    $0.ListMyRecoveriesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listMyRecoveries, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.DenyMyRecoveryResponse> denyMyRecovery(
+    $0.DenyMyRecoveryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$denyMyRecovery, request, options: options);
+  }
+
   // method descriptors
 
   static final _$registerStart =
@@ -181,6 +221,31 @@ class AuthServiceClient extends $grpc.Client {
       '/workout.v1.AuthService/ReportAuthFailure',
       ($0.ReportAuthFailureRequest value) => value.writeToBuffer(),
       $0.ReportAuthFailureResponse.fromBuffer);
+  static final _$recoveryStart =
+      $grpc.ClientMethod<$0.RecoveryStartRequest, $0.RecoveryStartResponse>(
+          '/workout.v1.AuthService/RecoveryStart',
+          ($0.RecoveryStartRequest value) => value.writeToBuffer(),
+          $0.RecoveryStartResponse.fromBuffer);
+  static final _$recoveryFinish =
+      $grpc.ClientMethod<$0.RecoveryFinishRequest, $0.RecoveryFinishResponse>(
+          '/workout.v1.AuthService/RecoveryFinish',
+          ($0.RecoveryFinishRequest value) => value.writeToBuffer(),
+          $0.RecoveryFinishResponse.fromBuffer);
+  static final _$recoveryStatus =
+      $grpc.ClientMethod<$0.RecoveryStatusRequest, $0.RecoveryStatusResponse>(
+          '/workout.v1.AuthService/RecoveryStatus',
+          ($0.RecoveryStatusRequest value) => value.writeToBuffer(),
+          $0.RecoveryStatusResponse.fromBuffer);
+  static final _$listMyRecoveries = $grpc.ClientMethod<
+          $0.ListMyRecoveriesRequest, $0.ListMyRecoveriesResponse>(
+      '/workout.v1.AuthService/ListMyRecoveries',
+      ($0.ListMyRecoveriesRequest value) => value.writeToBuffer(),
+      $0.ListMyRecoveriesResponse.fromBuffer);
+  static final _$denyMyRecovery =
+      $grpc.ClientMethod<$0.DenyMyRecoveryRequest, $0.DenyMyRecoveryResponse>(
+          '/workout.v1.AuthService/DenyMyRecovery',
+          ($0.DenyMyRecoveryRequest value) => value.writeToBuffer(),
+          $0.DenyMyRecoveryResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.AuthService')
@@ -288,6 +353,51 @@ abstract class AuthServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.ReportAuthFailureRequest.fromBuffer(value),
         ($0.ReportAuthFailureResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.RecoveryStartRequest, $0.RecoveryStartResponse>(
+            'RecoveryStart',
+            recoveryStart_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.RecoveryStartRequest.fromBuffer(value),
+            ($0.RecoveryStartResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RecoveryFinishRequest,
+            $0.RecoveryFinishResponse>(
+        'RecoveryFinish',
+        recoveryFinish_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.RecoveryFinishRequest.fromBuffer(value),
+        ($0.RecoveryFinishResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.RecoveryStatusRequest,
+            $0.RecoveryStatusResponse>(
+        'RecoveryStatus',
+        recoveryStatus_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.RecoveryStatusRequest.fromBuffer(value),
+        ($0.RecoveryStatusResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListMyRecoveriesRequest,
+            $0.ListMyRecoveriesResponse>(
+        'ListMyRecoveries',
+        listMyRecoveries_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ListMyRecoveriesRequest.fromBuffer(value),
+        ($0.ListMyRecoveriesResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DenyMyRecoveryRequest,
+            $0.DenyMyRecoveryResponse>(
+        'DenyMyRecovery',
+        denyMyRecovery_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.DenyMyRecoveryRequest.fromBuffer(value),
+        ($0.DenyMyRecoveryResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.RegisterStartResponse> registerStart_Pre(
@@ -392,4 +502,49 @@ abstract class AuthServiceBase extends $grpc.Service {
 
   $async.Future<$0.ReportAuthFailureResponse> reportAuthFailure(
       $grpc.ServiceCall call, $0.ReportAuthFailureRequest request);
+
+  $async.Future<$0.RecoveryStartResponse> recoveryStart_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.RecoveryStartRequest> $request) async {
+    return recoveryStart($call, await $request);
+  }
+
+  $async.Future<$0.RecoveryStartResponse> recoveryStart(
+      $grpc.ServiceCall call, $0.RecoveryStartRequest request);
+
+  $async.Future<$0.RecoveryFinishResponse> recoveryFinish_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.RecoveryFinishRequest> $request) async {
+    return recoveryFinish($call, await $request);
+  }
+
+  $async.Future<$0.RecoveryFinishResponse> recoveryFinish(
+      $grpc.ServiceCall call, $0.RecoveryFinishRequest request);
+
+  $async.Future<$0.RecoveryStatusResponse> recoveryStatus_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.RecoveryStatusRequest> $request) async {
+    return recoveryStatus($call, await $request);
+  }
+
+  $async.Future<$0.RecoveryStatusResponse> recoveryStatus(
+      $grpc.ServiceCall call, $0.RecoveryStatusRequest request);
+
+  $async.Future<$0.ListMyRecoveriesResponse> listMyRecoveries_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ListMyRecoveriesRequest> $request) async {
+    return listMyRecoveries($call, await $request);
+  }
+
+  $async.Future<$0.ListMyRecoveriesResponse> listMyRecoveries(
+      $grpc.ServiceCall call, $0.ListMyRecoveriesRequest request);
+
+  $async.Future<$0.DenyMyRecoveryResponse> denyMyRecovery_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.DenyMyRecoveryRequest> $request) async {
+    return denyMyRecovery($call, await $request);
+  }
+
+  $async.Future<$0.DenyMyRecoveryResponse> denyMyRecovery(
+      $grpc.ServiceCall call, $0.DenyMyRecoveryRequest request);
 }
