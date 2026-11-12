@@ -37,6 +37,24 @@ final $typed_data.Uint8List authFailureReasonDescriptor = $convert.base64Decode(
     'MSJgoiQVVUSF9GQUlMVVJFX1JFQVNPTl9QTEFURk9STV9FUlJPUhAEEh8KG0FVVEhfRkFJTFVS'
     'RV9SRUFTT05fVElNRU9VVBAFEh0KGUFVVEhfRkFJTFVSRV9SRUFTT05fT1RIRVIQBg==');
 
+@$core.Deprecated('Use recoveryStateDescriptor instead')
+const RecoveryState$json = {
+  '1': 'RecoveryState',
+  '2': [
+    {'1': 'RECOVERY_STATE_UNSPECIFIED', '2': 0},
+    {'1': 'RECOVERY_STATE_PENDING', '2': 1},
+    {'1': 'RECOVERY_STATE_APPROVED', '2': 2},
+    {'1': 'RECOVERY_STATE_DENIED', '2': 3},
+    {'1': 'RECOVERY_STATE_EXPIRED', '2': 4},
+  ],
+};
+
+/// Descriptor for `RecoveryState`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List recoveryStateDescriptor = $convert.base64Decode(
+    'Cg1SZWNvdmVyeVN0YXRlEh4KGlJFQ09WRVJZX1NUQVRFX1VOU1BFQ0lGSUVEEAASGgoWUkVDT1'
+    'ZFUllfU1RBVEVfUEVORElORxABEhsKF1JFQ09WRVJZX1NUQVRFX0FQUFJPVkVEEAISGQoVUkVD'
+    'T1ZFUllfU1RBVEVfREVOSUVEEAMSGgoWUkVDT1ZFUllfU1RBVEVfRVhQSVJFRBAE');
+
 @$core.Deprecated('Use registerStartRequestDescriptor instead')
 const RegisterStartRequest$json = {
   '1': 'RegisterStartRequest',
@@ -364,3 +382,161 @@ const ReportAuthFailureResponse$json = {
 /// Descriptor for `ReportAuthFailureResponse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List reportAuthFailureResponseDescriptor =
     $convert.base64Decode('ChlSZXBvcnRBdXRoRmFpbHVyZVJlc3BvbnNl');
+
+@$core.Deprecated('Use recoveryStartRequestDescriptor instead')
+const RecoveryStartRequest$json = {
+  '1': 'RecoveryStartRequest',
+  '2': [
+    {'1': 'username', '3': 1, '4': 1, '5': 9, '10': 'username'},
+  ],
+};
+
+/// Descriptor for `RecoveryStartRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryStartRequestDescriptor =
+    $convert.base64Decode(
+        'ChRSZWNvdmVyeVN0YXJ0UmVxdWVzdBIaCgh1c2VybmFtZRgBIAEoCVIIdXNlcm5hbWU=');
+
+@$core.Deprecated('Use recoveryStartResponseDescriptor instead')
+const RecoveryStartResponse$json = {
+  '1': 'RecoveryStartResponse',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {'1': 'options_json', '3': 2, '4': 1, '5': 9, '10': 'optionsJson'},
+  ],
+};
+
+/// Descriptor for `RecoveryStartResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryStartResponseDescriptor = $convert.base64Decode(
+    'ChVSZWNvdmVyeVN0YXJ0UmVzcG9uc2USHQoKcmVxdWVzdF9pZBgBIAEoCVIJcmVxdWVzdElkEi'
+    'EKDG9wdGlvbnNfanNvbhgCIAEoCVILb3B0aW9uc0pzb24=');
+
+@$core.Deprecated('Use recoveryFinishRequestDescriptor instead')
+const RecoveryFinishRequest$json = {
+  '1': 'RecoveryFinishRequest',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {'1': 'credential_json', '3': 2, '4': 1, '5': 9, '10': 'credentialJson'},
+  ],
+};
+
+/// Descriptor for `RecoveryFinishRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryFinishRequestDescriptor = $convert.base64Decode(
+    'ChVSZWNvdmVyeUZpbmlzaFJlcXVlc3QSHQoKcmVxdWVzdF9pZBgBIAEoCVIJcmVxdWVzdElkEi'
+    'cKD2NyZWRlbnRpYWxfanNvbhgCIAEoCVIOY3JlZGVudGlhbEpzb24=');
+
+@$core.Deprecated('Use recoveryFinishResponseDescriptor instead')
+const RecoveryFinishResponse$json = {
+  '1': 'RecoveryFinishResponse',
+  '2': [
+    {'1': 'code', '3': 1, '4': 1, '5': 9, '10': 'code'},
+    {'1': 'expires_at', '3': 2, '4': 1, '5': 3, '10': 'expiresAt'},
+  ],
+};
+
+/// Descriptor for `RecoveryFinishResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryFinishResponseDescriptor =
+    $convert.base64Decode(
+        'ChZSZWNvdmVyeUZpbmlzaFJlc3BvbnNlEhIKBGNvZGUYASABKAlSBGNvZGUSHQoKZXhwaXJlc1'
+        '9hdBgCIAEoA1IJZXhwaXJlc0F0');
+
+@$core.Deprecated('Use recoveryStatusRequestDescriptor instead')
+const RecoveryStatusRequest$json = {
+  '1': 'RecoveryStatusRequest',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+  ],
+};
+
+/// Descriptor for `RecoveryStatusRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryStatusRequestDescriptor = $convert.base64Decode(
+    'ChVSZWNvdmVyeVN0YXR1c1JlcXVlc3QSHQoKcmVxdWVzdF9pZBgBIAEoCVIJcmVxdWVzdElk');
+
+@$core.Deprecated('Use recoveryStatusResponseDescriptor instead')
+const RecoveryStatusResponse$json = {
+  '1': 'RecoveryStatusResponse',
+  '2': [
+    {
+      '1': 'state',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.RecoveryState',
+      '10': 'state'
+    },
+    {'1': 'code', '3': 2, '4': 1, '5': 9, '10': 'code'},
+    {'1': 'expires_at', '3': 3, '4': 1, '5': 3, '10': 'expiresAt'},
+    {'1': 'username', '3': 4, '4': 1, '5': 9, '10': 'username'},
+  ],
+};
+
+/// Descriptor for `RecoveryStatusResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List recoveryStatusResponseDescriptor = $convert.base64Decode(
+    'ChZSZWNvdmVyeVN0YXR1c1Jlc3BvbnNlEi8KBXN0YXRlGAEgASgOMhkud29ya291dC52MS5SZW'
+    'NvdmVyeVN0YXRlUgVzdGF0ZRISCgRjb2RlGAIgASgJUgRjb2RlEh0KCmV4cGlyZXNfYXQYAyAB'
+    'KANSCWV4cGlyZXNBdBIaCgh1c2VybmFtZRgEIAEoCVIIdXNlcm5hbWU=');
+
+@$core.Deprecated('Use pendingRecoveryDescriptor instead')
+const PendingRecovery$json = {
+  '1': 'PendingRecovery',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {'1': 'created_at', '3': 2, '4': 1, '5': 3, '10': 'createdAt'},
+    {'1': 'platform', '3': 3, '4': 1, '5': 9, '10': 'platform'},
+  ],
+};
+
+/// Descriptor for `PendingRecovery`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List pendingRecoveryDescriptor = $convert.base64Decode(
+    'Cg9QZW5kaW5nUmVjb3ZlcnkSHQoKcmVxdWVzdF9pZBgBIAEoCVIJcmVxdWVzdElkEh0KCmNyZW'
+    'F0ZWRfYXQYAiABKANSCWNyZWF0ZWRBdBIaCghwbGF0Zm9ybRgDIAEoCVIIcGxhdGZvcm0=');
+
+@$core.Deprecated('Use listMyRecoveriesRequestDescriptor instead')
+const ListMyRecoveriesRequest$json = {
+  '1': 'ListMyRecoveriesRequest',
+};
+
+/// Descriptor for `ListMyRecoveriesRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listMyRecoveriesRequestDescriptor =
+    $convert.base64Decode('ChdMaXN0TXlSZWNvdmVyaWVzUmVxdWVzdA==');
+
+@$core.Deprecated('Use listMyRecoveriesResponseDescriptor instead')
+const ListMyRecoveriesResponse$json = {
+  '1': 'ListMyRecoveriesResponse',
+  '2': [
+    {
+      '1': 'recoveries',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.PendingRecovery',
+      '10': 'recoveries'
+    },
+  ],
+};
+
+/// Descriptor for `ListMyRecoveriesResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listMyRecoveriesResponseDescriptor =
+    $convert.base64Decode(
+        'ChhMaXN0TXlSZWNvdmVyaWVzUmVzcG9uc2USOwoKcmVjb3ZlcmllcxgBIAMoCzIbLndvcmtvdX'
+        'QudjEuUGVuZGluZ1JlY292ZXJ5UgpyZWNvdmVyaWVz');
+
+@$core.Deprecated('Use denyMyRecoveryRequestDescriptor instead')
+const DenyMyRecoveryRequest$json = {
+  '1': 'DenyMyRecoveryRequest',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+  ],
+};
+
+/// Descriptor for `DenyMyRecoveryRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List denyMyRecoveryRequestDescriptor = $convert.base64Decode(
+    'ChVEZW55TXlSZWNvdmVyeVJlcXVlc3QSHQoKcmVxdWVzdF9pZBgBIAEoCVIJcmVxdWVzdElk');
+
+@$core.Deprecated('Use denyMyRecoveryResponseDescriptor instead')
+const DenyMyRecoveryResponse$json = {
+  '1': 'DenyMyRecoveryResponse',
+};
+
+/// Descriptor for `DenyMyRecoveryResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List denyMyRecoveryResponseDescriptor =
+    $convert.base64Decode('ChZEZW55TXlSZWNvdmVyeVJlc3BvbnNl');

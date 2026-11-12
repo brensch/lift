@@ -55,9 +55,43 @@ if [[ ! -f "${ENV_PATH}" ]]; then
 	chown "${LIFT_USER}:${LIFT_GROUP}" "${ENV_PATH}"
 	echo "seeded ${ENV_PATH} from example"
 fi
+# The one line kept in step with the example: an app package it lists that
+# the host's file lacks is added, so a new build of the app (the debug one)
+# can use passkeys here without a hand edit. Nothing is ever removed.
+wanted="$(sed -n 's/^ANDROID_PACKAGE_NAMES=//p' "${REPO_ROOT}/deploy/schlift-dev.env.example")"
+have="$(sed -n 's/^ANDROID_PACKAGE_NAMES=//p' "${ENV_PATH}")"
+packages="${have}"
+IFS=',' read -ra wanted_packages <<<"${wanted}"
+for package in "${wanted_packages[@]}"; do
+	case ",${packages}," in
+	*",${package},"*) ;;
+	*) packages="${packages:+${packages},}${package}" ;;
+	esac
+done
+if [[ "${packages}" != "${have}" ]]; then
+	if grep -q '^ANDROID_PACKAGE_NAMES=' "${ENV_PATH}"; then
+		sed -i "s#^ANDROID_PACKAGE_NAMES=.*#ANDROID_PACKAGE_NAMES=${packages}#" "${ENV_PATH}"
+	else
+		printf 'ANDROID_PACKAGE_NAMES=%s\n' "${packages}" >>"${ENV_PATH}"
+	fi
+	echo "ANDROID_PACKAGE_NAMES is now ${packages}"
+fi
 
 systemctl daemon-reload
 systemctl enable "${SERVICE_NAME}"
+
+# --- website (the same commit's, served only at dev.schlift.com) --------------
+# Always there for Caddy to serve from: prod's until a build brings its own.
+WEB_ROOT="${INSTALL_ROOT}/web"
+if [[ -f "${ARTIFACT_DIR}/web/index.html" ]]; then
+	mkdir -p "${WEB_ROOT}"
+	rsync -a --delete "${ARTIFACT_DIR}/web/" "${WEB_ROOT}/"
+	echo "installed the website into ${WEB_ROOT}"
+elif [[ ! -f "${WEB_ROOT}/index.html" && -d /opt/schlift/web ]]; then
+	mkdir -p "${WEB_ROOT}"
+	rsync -a /opt/schlift/web/ "${WEB_ROOT}/"
+	echo "no website in this build; copied prod's into ${WEB_ROOT}"
+fi
 
 # --- release swap (symlink flip + healthcheck + rollback) ---------------------
 RELEASE_DIR="${INSTALL_ROOT}/releases/${RELEASE_ID}"

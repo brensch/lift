@@ -11,6 +11,7 @@ Run WIP on a real phone over the air, against an isolated dev backend, installed
 | Backend instance | `/opt/schlift`, `schlift.service`, port `50051` | `/opt/schlift-dev`, `schlift-dev.service`, port `50052` |
 | Database | `/opt/schlift/shared/data` | `/opt/schlift-dev/shared/data` (separate, starts empty) |
 | WebAuthn RP | `schlift.com` | `dev.schlift.com` (separate passkeys) |
+| Website | `/opt/schlift/web`, from `main` | `/opt/schlift-dev/web`, built from the same commit as the dev backend |
 | App package | `com.brensch.schlift` | `com.brensch.schlift.dev` ("Schlift Dev") |
 | App delivery | tag `v*` → Play internal/alpha/beta | tag `dev-*` → signed APK at `https://dev.schlift.com/schlift-dev.apk` |
 | Backend code | `main` (`Backend Deploy`) | tag `dev-*`, or any branch on demand (`Dev Backend Deploy`) |
@@ -42,7 +43,9 @@ with the same signing fingerprints.
    `/opt/schlift-dev/shared/schlift.env` from `deploy/schlift-dev.env.example`,
    and adds the `dev.schlift.com` vhost with a graceful Caddy reload.
 5. **Verify:** `curl https://dev.schlift.com/.well-known/assetlinks.json` returns
-   two statements (`com.brensch.schlift` and `com.brensch.schlift.dev`).
+   three statements (`com.brensch.schlift`, `com.brensch.schlift.dev` and the
+   debug build's `com.brensch.schlift.debug`; see "Passkeys in the debug app"
+   in [android_dev.md](android_dev.md)).
 6. **Phone:** allow installing unknown apps for your browser, then open
    `https://dev.schlift.com/schlift-dev.apk`. (The APK lives in the shared web
    root, so until the DNS record exists it's also reachable at

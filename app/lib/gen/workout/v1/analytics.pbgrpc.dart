@@ -106,6 +106,39 @@ class AdminServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getStats, request, options: options);
   }
 
+  /// Admin only. Everyone's accounts and finished workouts, folded from their
+  /// events for this answer and not kept.
+  $grpc.ResponseFuture<$0.GetTrainingStatsResponse> getTrainingStats(
+    $0.GetTrainingStatsRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getTrainingStats, request, options: options);
+  }
+
+  /// Admin only.
+  $grpc.ResponseFuture<$0.ListRecoveriesResponse> listRecoveries(
+    $0.ListRecoveriesRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listRecoveries, request, options: options);
+  }
+
+  /// The waiting request a code belongs to, and the account it asks for: what
+  /// the admin reads before approving. NOT_FOUND for a code nothing waits under.
+  $grpc.ResponseFuture<$0.GetRecoveryResponse> getRecovery(
+    $0.GetRecoveryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getRecovery, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.DecideRecoveryResponse> decideRecovery(
+    $0.DecideRecoveryRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$decideRecovery, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getAdminStatus =
@@ -118,6 +151,26 @@ class AdminServiceClient extends $grpc.Client {
           '/workout.v1.AdminService/GetStats',
           ($0.GetStatsRequest value) => value.writeToBuffer(),
           $0.GetStatsResponse.fromBuffer);
+  static final _$getTrainingStats = $grpc.ClientMethod<
+          $0.GetTrainingStatsRequest, $0.GetTrainingStatsResponse>(
+      '/workout.v1.AdminService/GetTrainingStats',
+      ($0.GetTrainingStatsRequest value) => value.writeToBuffer(),
+      $0.GetTrainingStatsResponse.fromBuffer);
+  static final _$listRecoveries =
+      $grpc.ClientMethod<$0.ListRecoveriesRequest, $0.ListRecoveriesResponse>(
+          '/workout.v1.AdminService/ListRecoveries',
+          ($0.ListRecoveriesRequest value) => value.writeToBuffer(),
+          $0.ListRecoveriesResponse.fromBuffer);
+  static final _$getRecovery =
+      $grpc.ClientMethod<$0.GetRecoveryRequest, $0.GetRecoveryResponse>(
+          '/workout.v1.AdminService/GetRecovery',
+          ($0.GetRecoveryRequest value) => value.writeToBuffer(),
+          $0.GetRecoveryResponse.fromBuffer);
+  static final _$decideRecovery =
+      $grpc.ClientMethod<$0.DecideRecoveryRequest, $0.DecideRecoveryResponse>(
+          '/workout.v1.AdminService/DecideRecovery',
+          ($0.DecideRecoveryRequest value) => value.writeToBuffer(),
+          $0.DecideRecoveryResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.AdminService')
@@ -141,6 +194,42 @@ abstract class AdminServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.GetStatsRequest.fromBuffer(value),
         ($0.GetStatsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetTrainingStatsRequest,
+            $0.GetTrainingStatsResponse>(
+        'GetTrainingStats',
+        getTrainingStats_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetTrainingStatsRequest.fromBuffer(value),
+        ($0.GetTrainingStatsResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListRecoveriesRequest,
+            $0.ListRecoveriesResponse>(
+        'ListRecoveries',
+        listRecoveries_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ListRecoveriesRequest.fromBuffer(value),
+        ($0.ListRecoveriesResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.GetRecoveryRequest, $0.GetRecoveryResponse>(
+            'GetRecovery',
+            getRecovery_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.GetRecoveryRequest.fromBuffer(value),
+            ($0.GetRecoveryResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.DecideRecoveryRequest,
+            $0.DecideRecoveryResponse>(
+        'DecideRecovery',
+        decideRecovery_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.DecideRecoveryRequest.fromBuffer(value),
+        ($0.DecideRecoveryResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.GetAdminStatusResponse> getAdminStatus_Pre(
@@ -159,4 +248,39 @@ abstract class AdminServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetStatsResponse> getStats(
       $grpc.ServiceCall call, $0.GetStatsRequest request);
+
+  $async.Future<$0.GetTrainingStatsResponse> getTrainingStats_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetTrainingStatsRequest> $request) async {
+    return getTrainingStats($call, await $request);
+  }
+
+  $async.Future<$0.GetTrainingStatsResponse> getTrainingStats(
+      $grpc.ServiceCall call, $0.GetTrainingStatsRequest request);
+
+  $async.Future<$0.ListRecoveriesResponse> listRecoveries_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ListRecoveriesRequest> $request) async {
+    return listRecoveries($call, await $request);
+  }
+
+  $async.Future<$0.ListRecoveriesResponse> listRecoveries(
+      $grpc.ServiceCall call, $0.ListRecoveriesRequest request);
+
+  $async.Future<$0.GetRecoveryResponse> getRecovery_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.GetRecoveryRequest> $request) async {
+    return getRecovery($call, await $request);
+  }
+
+  $async.Future<$0.GetRecoveryResponse> getRecovery(
+      $grpc.ServiceCall call, $0.GetRecoveryRequest request);
+
+  $async.Future<$0.DecideRecoveryResponse> decideRecovery_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.DecideRecoveryRequest> $request) async {
+    return decideRecovery($call, await $request);
+  }
+
+  $async.Future<$0.DecideRecoveryResponse> decideRecovery(
+      $grpc.ServiceCall call, $0.DecideRecoveryRequest request);
 }

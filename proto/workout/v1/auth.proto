@@ -96,6 +96,66 @@ message ReportAuthFailureRequest {
 }
 message ReportAuthFailureResponse {}
 
+// ── Getting back in without a passkey ──
+//
+// Someone who lost every passkey makes a new one for their account, which the
+// server holds aside until an admin approves the code that came with it
+// (AdminService.DecideRecovery). See docs/architecture/auth.md.
+
+message RecoveryStartRequest {
+  string username = 1;
+}
+message RecoveryStartResponse {
+  // Names the request from here on; whoever holds it can read its status.
+  string request_id = 1;
+  string options_json = 2;
+}
+
+message RecoveryFinishRequest {
+  string request_id = 1;
+  string credential_json = 2;
+}
+message RecoveryFinishResponse {
+  // What the person sends to an admin, who approves it.
+  string code = 1;
+  int64 expires_at = 2; // Unix seconds
+}
+
+enum RecoveryState {
+  RECOVERY_STATE_UNSPECIFIED = 0;
+  RECOVERY_STATE_PENDING = 1;
+  RECOVERY_STATE_APPROVED = 2; // the passkey signs in now
+  RECOVERY_STATE_DENIED = 3;
+  RECOVERY_STATE_EXPIRED = 4; // or never existed
+}
+
+message RecoveryStatusRequest {
+  string request_id = 1;
+}
+message RecoveryStatusResponse {
+  RecoveryState state = 1;
+  string code = 2; // while pending
+  int64 expires_at = 3; // while pending; Unix seconds
+  string username = 4;
+}
+
+// A request to get into the caller's own account that is still waiting.
+message PendingRecovery {
+  string request_id = 1;
+  int64 created_at = 2; // Unix seconds
+  string platform = 3;
+}
+
+message ListMyRecoveriesRequest {}
+message ListMyRecoveriesResponse {
+  repeated PendingRecovery recoveries = 1;
+}
+
+message DenyMyRecoveryRequest {
+  string request_id = 1;
+}
+message DenyMyRecoveryResponse {}
+
 service AuthService {
   rpc RegisterStart(RegisterStartRequest) returns (RegisterStartResponse);
   rpc RegisterFinish(RegisterFinishRequest) returns (AuthResponse);
@@ -112,4 +172,14 @@ service AuthService {
   // It can only annotate an attempt the server itself issued, once, while it
   // is still unfinished.
   rpc ReportAuthFailure(ReportAuthFailureRequest) returns (ReportAuthFailureResponse);
+  // Unauthenticated, like RegisterStart: the caller has no passkey. What it
+  // makes is inert until an admin approves it.
+  rpc RecoveryStart(RecoveryStartRequest) returns (RecoveryStartResponse);
+  rpc RecoveryFinish(RecoveryFinishRequest) returns (RecoveryFinishResponse);
+  // Unauthenticated: the request id is the secret.
+  rpc RecoveryStatus(RecoveryStatusRequest) returns (RecoveryStatusResponse);
+  // The signed-in owner of an account hears of requests to get into it, and
+  // can refuse them.
+  rpc ListMyRecoveries(ListMyRecoveriesRequest) returns (ListMyRecoveriesResponse);
+  rpc DenyMyRecovery(DenyMyRecoveryRequest) returns (DenyMyRecoveryResponse);
 }

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:grpc/grpc.dart' show GrpcError, StatusCode;
 import 'package:passkeys/exceptions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../gen/copy.dart';
 import '../logic/user_profile.dart';
 import '../services/auth_service.dart';
 import '../services/app_logger.dart';
@@ -195,18 +197,6 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Open an account from a file on this phone with no server at all (an
-  /// export brought back, the server out of reach). Signing in later lets
-  /// it sync again.
-  Future<void> openLocalAccount(String userId, String username) async {
-    _userId = userId;
-    _username = username;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userIdKey, userId);
-    await prefs.setString(_usernameKey, username);
-    notifyListeners();
-  }
-
   Future<void> _saveSession(AuthResponse response) async {
     _sessionToken = response.sessionToken;
     _userId = response.userId;
@@ -326,8 +316,27 @@ class AuthProvider extends ChangeNotifier {
 /// An auth failure as the user reads it: a passkey's or the platform's
 /// error with its code, a server error's own message.
 String formatAuthError(Object e) {
+  if (e is ExcludeCredentialsCanNotBeRegisteredException) {
+    return copy.passkeyErrors.alreadyHeld;
+  }
   if (e is AuthenticatorException) {
     return formatPasskeyError(e);
+  }
+  // Refusals the server words for anyone; said here in the app's own words.
+  // The codes are `refusal_status` in src/server/auth.rs.
+  if (e is GrpcError) {
+    // A passkey made on the Lost passkey page and not approved yet: the
+    // server names its request beside the refusal.
+    if (e.code == StatusCode.permissionDenied &&
+        (e.trailers?.containsKey('x-recovery-request') ?? false)) {
+      return copy.passkeyErrors.notApproved;
+    }
+    switch (e.code) {
+      case StatusCode.notFound:
+        return copy.passkeyErrors.unknown;
+      case StatusCode.failedPrecondition:
+        return copy.passkeyErrors.notVerified;
+    }
   }
   if (e is PlatformException) {
     return formatPlatformError(e);

@@ -34,7 +34,7 @@ PRICE_WORDS = ("free", "price", "discount", "sale", "$", "cheap")
 
 
 def feature_text(item) -> str:
-    """An other_features item is either a string or {emoji, text}; the store gets the text."""
+    """An other_features item is either a string or {picture, text}; the store gets the text."""
     return str(item.get("text", "") if isinstance(item, dict) else item).strip()
 
 

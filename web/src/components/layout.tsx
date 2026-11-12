@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/use-auth";
 import { useIsAdmin } from "@/lib/use-is-admin";
+import { waitingRecovery } from "@/lib/recovery";
 
 const publicNavItems = [
   { to: "/", label: "Home" },
@@ -20,9 +21,13 @@ export function Layout() {
   const isAdmin = useIsAdmin();
   const navItems = isAdmin ? [...publicNavItems, { to: "/admin", label: "Stats" }] : publicNavItems;
 
+  // Someone waiting on a recovery is not signed in, but has somewhere to be:
+  // their code. (Read on every navigation: this renders on each one.)
   const authLink = user
     ? { to: "/dashboard", label: user.username }
-    : { to: "/login", label: "Sign In" };
+    : waitingRecovery()
+      ? { to: "/recover", label: "Waiting for approval" }
+      : { to: "/login", label: "Sign In" };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -104,6 +109,12 @@ export function Layout() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
           <span className="font-display font-bold tracking-[-0.04em]">SCHLIFT</span>
           <div className="flex gap-4">
+            <Link
+              to="/changes"
+              className="text-muted hover:text-text no-underline transition-colors"
+            >
+              Changes
+            </Link>
             <Link
               to="/privacy"
               className="text-muted hover:text-text no-underline transition-colors"

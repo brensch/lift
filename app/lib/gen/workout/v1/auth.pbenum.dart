@@ -56,5 +56,33 @@ class AuthFailureReason extends $pb.ProtobufEnum {
   const AuthFailureReason._(super.value, super.name);
 }
 
+class RecoveryState extends $pb.ProtobufEnum {
+  static const RecoveryState RECOVERY_STATE_UNSPECIFIED =
+      RecoveryState._(0, _omitEnumNames ? '' : 'RECOVERY_STATE_UNSPECIFIED');
+  static const RecoveryState RECOVERY_STATE_PENDING =
+      RecoveryState._(1, _omitEnumNames ? '' : 'RECOVERY_STATE_PENDING');
+  static const RecoveryState RECOVERY_STATE_APPROVED =
+      RecoveryState._(2, _omitEnumNames ? '' : 'RECOVERY_STATE_APPROVED');
+  static const RecoveryState RECOVERY_STATE_DENIED =
+      RecoveryState._(3, _omitEnumNames ? '' : 'RECOVERY_STATE_DENIED');
+  static const RecoveryState RECOVERY_STATE_EXPIRED =
+      RecoveryState._(4, _omitEnumNames ? '' : 'RECOVERY_STATE_EXPIRED');
+
+  static const $core.List<RecoveryState> values = <RecoveryState>[
+    RECOVERY_STATE_UNSPECIFIED,
+    RECOVERY_STATE_PENDING,
+    RECOVERY_STATE_APPROVED,
+    RECOVERY_STATE_DENIED,
+    RECOVERY_STATE_EXPIRED,
+  ];
+
+  static final $core.List<RecoveryState?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static RecoveryState? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const RecoveryState._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

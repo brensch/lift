@@ -13,11 +13,15 @@ mod analytics;
 mod auth;
 mod changes;
 mod migrate;
+mod recovery;
+mod training;
 pub use changes::{Change, Topic};
 mod session;
 pub use session::JOIN_REQUEST_TTL_SECONDS;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
+pub use recovery::{shown_code, Approval, Held, Recovery, RECOVERY_TTL_SECONDS};
+pub use training::AccountRow;
 
 pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
