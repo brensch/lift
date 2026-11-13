@@ -25,7 +25,6 @@ import 'package:schlift/widgets/plate_visualization.dart';
 
 import 'support/api.dart';
 import 'support/scenario.dart';
-import 'package:schlift/theme/app_icons.dart';
 
 /// Feed heart rate the way the watch does: a batch of samples into the
 /// provider's wearable ingest path, covering the workout so far. Each call
@@ -102,7 +101,7 @@ void main() {
       await s.shot('Home');
 
       // 01 — progress charts (before the workout, so no timer bar overlays).
-      await s.tap(find.byIcon(AppIcons.menu));
+      await s.openMenu();
       await s.tapText('Progress');
       await s.settle(seconds: 3);
       await s.shot('Progress');
@@ -126,7 +125,7 @@ void main() {
       await s.shot('Exercise detail');
 
       // 03 — history.
-      await s.tap(find.byIcon(AppIcons.menu));
+      await s.openMenu();
       await s.tapText('History');
       await s.settle(seconds: 3);
       await s.shot('History');
@@ -134,13 +133,13 @@ void main() {
       // Switch to the account that is 24 minutes into a session (seeded by
       // SEED_DEMO_USER as `demo-live`); the app resumes straight into it. On
       // an unseeded backend it is a new account: onboard, seed, start one.
-      await s.tap(find.byIcon(AppIcons.menu));
+      await s.openMenu();
       await s.tapText('Logout');
       await s.devLogin('demo-live');
       await s.completeOnboarding();
-      // The workout screen's Heart tab: there is no Start on home to wait
+      // The live workout's Heart box: there is no Start on home to wait
       // for when the app resumes into the live session.
-      if (!await s.waitForText('Heart', seconds: 10)) {
+      if (!await s.waitFor(s.heartBox, seconds: 10)) {
         final live = await s.api.login('demo-live');
         if (await seedThinHistoryIfNeeded(live)) {
           s.note(
@@ -180,8 +179,8 @@ void main() {
       );
       await s.shot('Resting');
 
-      // 07 — the Heart tab: the trace over the session.
-      await s.tapText('Heart');
+      // 07 — the Heart page: the trace over the session.
+      await s.openHeart();
       await s.settle(seconds: 2);
       await feedHeartRate(
         tester,

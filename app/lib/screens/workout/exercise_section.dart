@@ -363,7 +363,12 @@ class _CircleRowState extends State<_CircleRow> {
           child: Center(
             child: RotatedBox(
               quarterTurns: 3,
-              child: Text(widget.label, maxLines: 1, style: t.label()),
+              child: Text(
+                widget.label,
+                maxLines: 1,
+                // Smaller than a heading: it has a circle's height to fit in.
+                style: t.label().copyWith(fontSize: t.size.caption),
+              ),
             ),
           ),
         ),
