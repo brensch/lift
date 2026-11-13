@@ -26,7 +26,8 @@ import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
 import '../../widgets/dialogs/workout_sheet.dart';
 
-/// Edit [template] (null: a new one). [personalise] is Clone: Save makes a
+/// Edit [template] (null: a new one). [personalise] is for one from the
+/// library: Save makes a
 /// library template the user's own, changed or not; backing out leaves it
 /// following the library.
 Future<void> showTemplateEditor(
@@ -477,6 +478,7 @@ class _OverrideSheetState extends State<_OverrideSheet> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.sheetColor(context),
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
       ),
       padding: EdgeInsets.only(
@@ -501,7 +503,6 @@ class _OverrideSheetState extends State<_OverrideSheet> {
                     style: TextStyle(
                       fontSize: context.tokens.size.subtitle,
                       fontWeight: context.tokens.weight.heavy,
-                      letterSpacing: -0.3,
                     ),
                   ),
                 ),

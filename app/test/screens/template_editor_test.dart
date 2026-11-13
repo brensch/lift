@@ -104,7 +104,7 @@ void main() {
     // Save, unchanged, makes it the user's own.
     await tester.tap(find.text('OPEN'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('SAVE'));
+    await tester.tap(find.text('Save'));
     await _settle(tester, () => !h.provider.templates.single.coupled);
     expect(h.provider.templates.single.coupled, isFalse);
     expect(h.provider.templates.single.id, template.id);
@@ -151,7 +151,7 @@ void main() {
     await tester.pumpAndSettle();
 
     FilledButton save() => tester.widget<FilledButton>(
-      find.ancestor(of: find.text('SAVE'), matching: find.byType(FilledButton)),
+      find.ancestor(of: find.text('Save'), matching: find.byType(FilledButton)),
     );
     final weight = find.byType(TextField);
 
@@ -168,7 +168,7 @@ void main() {
     await tester.enterText(weight, '95,0');
     await tester.pump();
     expect(save().onPressed, isNotNull);
-    await tester.tap(find.text('SAVE'));
+    await tester.tap(find.text('Save'));
     await _settle(
       tester,
       () => h.provider.planFor(Exercise.EXERCISE_SQUAT)!.overridden,
@@ -236,7 +236,7 @@ void main() {
       reason: 'bench is above squat on screen',
     );
 
-    await tester.tap(find.text('SAVE'));
+    await tester.tap(find.text('Save'));
     for (var i = 0; i < 20 && h.provider.templates.isEmpty; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)),

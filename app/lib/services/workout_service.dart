@@ -40,10 +40,12 @@ class WorkoutServiceWrapper {
     String templateId = '',
     List<Exercise> exercises = const [],
     int budgetMinutes = 0,
+    String motivation = '',
   }) => _call(
     'StartWorkout',
     StartWorkoutRequest()
       ..name = name
+      ..motivation = motivation
       ..exercises.addAll(exercises)
       ..templateId = templateId
       ..budgetMinutes = budgetMinutes,

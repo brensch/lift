@@ -106,14 +106,15 @@ for (const s of listing.screenshots ?? []) {
 copyFileSync(resolve(repo, "marketing/schlift-square-512.png"), resolve(gen, "icon-512.png"));
 
 // Tab favicon: the app icon (scripts/render_brand.py), same geometry on its
-// 100 grid. Opaque, so it reads the same on light and dark tabs.
+// 100 grid: the end of a loaded bar, plates stepping up toward the middle,
+// each drawn under the heavier one after it. Opaque, so it reads the same on
+// light and dark tabs.
 const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-<rect width="100" height="46" fill="#EDECE5"/>
-<rect y="46" width="64" height="22" fill="#FF4F00"/><rect x="64" y="46" width="36" height="22" fill="#E9A27E"/>
-<rect y="68" width="100" height="32" fill="#DBDAD2"/>
-<rect y="45.2" width="100" height="0.8" fill="#9C9B93"/><rect y="67.2" width="100" height="0.8" fill="#9C9B93"/>
-<circle cx="20" cy="27" r="7.5" fill="#111111"/><circle cx="40" cy="27" r="7.5" fill="#111111"/><circle cx="60" cy="27" r="7.5" fill="#111111"/>
-<circle cx="80" cy="27" r="6.6" fill="none" stroke="#FF4F00" stroke-width="1.8"/>
+<rect width="100" height="100" fill="#DBDAD2"/>
+<rect x="14" y="47" width="52" height="6" rx="1" fill="#111111"/><rect x="60" y="48" width="40" height="4" fill="#111111"/>
+<rect x="22" y="41" width="5" height="18" rx="1.5" fill="#111111"/><rect x="26.7" y="35" width="7.3" height="30" rx="1.5" fill="#111111"/>
+<rect x="33.7" y="23" width="9.3" height="54" rx="1.5" fill="#FF4F00"/>
+<rect x="42.7" y="15" width="10.3" height="70" rx="1.5" fill="#111111"/><rect x="52.7" y="15" width="10.3" height="70" rx="1.5" fill="#111111"/>
 </svg>
 `;
 writeFileSync(resolve(gen, "favicon.svg"), favicon);

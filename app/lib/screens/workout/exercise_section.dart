@@ -2,6 +2,10 @@
 /// to (weight × reps) with a pencil for the weight sheet and a grip to drag
 /// it to a new place in the order, then its sets as circles in two rows —
 /// the warmups, then the working sets — each labelled down its left edge.
+/// A finished exercise folds to its header alone (its name, a tick after
+/// it, what it was done at), so the ones still to do have the screen; a tap
+/// on it unfolds the circles again. Folding and unfolding slide: the
+/// circles draw up under the header and back down from it.
 library;
 
 import 'package:flutter/material.dart';
@@ -20,11 +24,11 @@ import 'live_set_circle.dart';
 import 'set_circle.dart';
 
 const double _padding = 16;
-const double _circleGap = 10;
+const double _circleGap = 8;
 // Room around the circles for the lifting glow.
-const double _glow = 8;
+const double _glow = 6;
 
-class ExerciseSection extends StatelessWidget {
+class ExerciseSection extends StatefulWidget {
   final ExerciseBlock block;
 
   /// The workout it belongs to: yours (tappable) or a partner's.
@@ -42,6 +46,13 @@ class ExerciseSection extends StatelessWidget {
   /// Opens the weight sheet (change the weight, or remove the exercise).
   final VoidCallback? onEdit;
 
+  /// A line about the set in hand, under the name: on the exercise in focus.
+  final Widget? note;
+
+  /// Its last set was done a moment ago: it starts open and folds away, so
+  /// finishing an exercise is seen to put it away rather than swap it.
+  final bool justFinished;
+
   const ExerciseSection({
     super.key,
     required this.block,
@@ -50,7 +61,35 @@ class ExerciseSection extends StatelessWidget {
     required this.finished,
     this.dragIndex,
     this.onEdit,
+    this.note,
+    this.justFinished = false,
   });
+
+  @override
+  State<ExerciseSection> createState() => _ExerciseSectionState();
+}
+
+class _ExerciseSectionState extends State<ExerciseSection> {
+  /// A finished exercise unfolded to its circles again.
+  bool _unfolded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.finished && widget.justFinished) {
+      _unfolded = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _unfolded = false);
+      });
+    }
+  }
+
+  ExerciseBlock get block => widget.block;
+  SectionWorkout get workout => widget.workout;
+  bool get focused => widget.focused;
+  bool get finished => widget.finished;
+  int? get dragIndex => widget.dragIndex;
+  VoidCallback? get onEdit => widget.onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -61,9 +100,10 @@ class ExerciseSection extends StatelessWidget {
     final sets = block.sets.where((s) => !s.cancelled).toList();
     final warmups = sets.where((s) => s.warmup).toList();
     final working = sets.where((s) => !s.warmup).toList();
-    final openWarmups = warmups.any(
-      (s) => !w.isDone(s.id) && !w.isPassedWarmup(s),
-    );
+    // The warmup "Skip" skips: the next one still to do.
+    final openWarmup = warmups
+        .where((s) => !w.isDone(s.id) && !w.isPassedWarmup(s))
+        .firstOrNull;
 
     final nextId = w.nextSetId;
     final liftingId = w.liftingSetId;
@@ -89,99 +129,158 @@ class ExerciseSection extends StatelessWidget {
     final targetSet =
         working.where((s) => !w.isDone(s.id)).firstOrNull ?? working.lastOrNull;
 
-    // The header: the name (tap it, or the pencil, for the weight sheet)
-    // and what it's set to now.
+    final folded = finished && !_unfolded;
+    void toggle() => setState(() => _unfolded = !_unfolded);
+    // The header's buttons, small enough that a folded exercise is one line.
+    const tight = BoxConstraints(minWidth: 32, minHeight: 28);
+
+    // The header, the same folded or open: the name (a finished one with a
+    // tick after it), the pencil for the weight sheet, what it's set to.
+    // Tapping the name edits a live exercise and folds a finished one.
     final header = Padding(
       padding: const EdgeInsets.symmetric(horizontal: _padding),
-      child: Row(
-        children: [
-          // The name takes the room it needs before the target does.
-          Expanded(
-            child: GestureDetector(
-              onTap: onEdit,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 28),
+        child: Row(
+          children: [
+            // The name takes the room it needs before the target does.
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: finished ? toggle : onEdit,
+                child: Row(
                   children: [
-                    Text(
-                      exerciseName(block.exercise),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: t.size.subtitle,
-                        fontWeight: t.weight.bold,
-                        color: finished ? t.muted : t.text,
+                    Flexible(
+                      child: Text(
+                        exerciseName(block.exercise),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: t.size.subtitle,
+                          fontWeight: t.weight.bold,
+                          color: finished ? t.muted : t.text,
+                        ),
                       ),
                     ),
+                    if (finished) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        AppIcons.check,
+                        size: t.size.subtitle,
+                        color: t.muted,
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
-          ),
-          // The pencil, then the target flush with the right margin.
-          if (live && onEdit != null)
-            IconButton(
-              tooltip: copy.workoutPage.weightAndReps,
-              onPressed: onEdit,
-              visualDensity: VisualDensity.compact,
-              icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
-            ),
-          if (targetSet != null)
-            Text(
-              setTextFor(targetSet, unit),
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.body,
-                  fontWeight: t.weight.bold,
-                  color: finished ? t.muted : t.text,
+            // The pencil, then the target flush with the right margin.
+            if (live && onEdit != null && !folded)
+              IconButton(
+                tooltip: copy.workoutPage.weightAndReps,
+                onPressed: onEdit,
+                padding: EdgeInsets.zero,
+                constraints: tight,
+                // No 48px tap box around it: that is what made the row tall.
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
+              ),
+            if (targetSet != null)
+              Text(
+                finished
+                    ? '${working.length} × ${setTextFor(targetSet, unit)}'
+                    : setTextFor(targetSet, unit),
+                style: t.mono(
+                  TextStyle(
+                    fontSize: t.size.body,
+                    fontWeight: t.weight.bold,
+                    color: finished ? t.muted : t.text,
+                  ),
                 ),
               ),
-            ),
-          // The grip: drags the exercise straight away.
-          if (dragIndex != null)
-            ReorderableDragStartListener(
-              index: dragIndex!,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 10),
-                child: Icon(AppIcons.drag, size: t.size.title, color: t.muted),
+            // Finished: fold it away, or bring its circles back.
+            if (finished)
+              IconButton(
+                onPressed: toggle,
+                padding: EdgeInsets.zero,
+                constraints: tight,
+                // No 48px tap box around it: that is what made the row tall.
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  folded ? AppIcons.expandDown : AppIcons.expandUp,
+                  size: t.size.title,
+                  color: t.muted,
+                ),
               ),
-            ),
-        ],
+            // The grip: drags the exercise straight away.
+            if (dragIndex != null)
+              ReorderableDragStartListener(
+                index: dragIndex!,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Icon(
+                    AppIcons.drag,
+                    size: t.size.title,
+                    color: t.muted,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
 
     final content = Padding(
-      padding: const EdgeInsets.fromLTRB(0, 10, 0, 8),
+      padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           header,
-          // A finished exercise steps back so the one in hand stands out.
-          Opacity(
-            opacity: finished ? 0.45 : 1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (warmups.isNotEmpty)
-                  _CircleRow(
-                    label: copy.workout.warmupLabel,
-                    follow: followIn(warmups),
-                    ids: [for (final s in warmups) s.id],
-                    trailing: wp != null && openWarmups
-                        ? _SkipButton(
-                            onTap: () => wp.skipWarmups(block.exercise),
-                          )
-                        : null,
-                    children: [for (final s in warmups) circle(s)],
+          if (widget.note != null) widget.note!,
+          // The circles. A finished exercise's step back so the one in hand
+          // stands out, and fold away: they draw up under the header as it
+          // closes and come back down from it as it opens.
+          TweenAnimationBuilder<double>(
+            tween: Tween(end: folded ? 0 : 1),
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeInOut,
+            // Gone from the tree once shut: nothing under a line to tap.
+            builder: (context, open, child) => open == 0
+                ? const SizedBox(width: double.infinity)
+                : ClipRect(
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      heightFactor: open,
+                      child: child,
+                    ),
                   ),
-                _CircleRow(
-                  label: copy.workout.workingLabel,
-                  follow: followIn(working),
-                  ids: [for (final s in working) s.id],
-                  children: [for (final s in working) circle(s)],
-                ),
-              ],
+            child: Opacity(
+              opacity: finished ? 0.45 : 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (warmups.isNotEmpty)
+                    _CircleRow(
+                      label: copy.workout.warmupLabel,
+                      follow: followIn(warmups),
+                      ids: [for (final s in warmups) s.id],
+                      trailing: wp != null && openWarmup != null
+                          ? _SkipButton(onTap: () => wp.skipWarmup(openWarmup))
+                          : null,
+                      children: [for (final s in warmups) circle(s)],
+                    ),
+                  _CircleRow(
+                    label: copy.workout.workingLabel,
+                    follow: followIn(working),
+                    ids: [for (final s in working) s.id],
+                    children: [for (final s in working) circle(s)],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -264,18 +363,7 @@ class _CircleRowState extends State<_CircleRow> {
           child: Center(
             child: RotatedBox(
               quarterTurns: 3,
-              child: Text(
-                widget.label,
-                maxLines: 1,
-                style: t.mono(
-                  TextStyle(
-                    fontSize: t.size.caption,
-                    fontWeight: t.weight.bold,
-                    letterSpacing: 1,
-                    color: t.muted,
-                  ),
-                ),
-              ),
+              child: Text(widget.label, maxLines: 1, style: t.label()),
             ),
           ),
         ),
@@ -303,7 +391,7 @@ class _CircleRowState extends State<_CircleRow> {
   }
 }
 
-/// "Skip" at the end of the warmup row: skips the undone warmups.
+/// "Skip" at the end of the warmup row: skips the next warmup.
 class _SkipButton extends StatelessWidget {
   final VoidCallback onTap;
 

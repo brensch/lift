@@ -125,8 +125,8 @@ void main() {
     final l = copy.library;
     double y(Finder f) => tester.getTopLeft(f).dy;
     double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
-    final rotationTitle = y(find.text(l.rotationHeading.toUpperCase()));
-    final reservesTitle = y(find.text(l.reservesHeading.toUpperCase()));
+    final rotationTitle = y(find.text(l.rotationHeading));
+    final reservesTitle = y(find.text(l.reservesHeading));
     expect(rotationTitle, lessThan(chipY('StrongLifts A')));
     expect(chipY('StrongLifts A'), lessThan(reservesTitle));
     expect(chipY('StrongLifts B'), lessThan(reservesTitle));
@@ -154,10 +154,7 @@ void main() {
       tester,
       () => h.provider.templates.firstWhere((t) => t.name == 'Arms').inRotation,
     );
-    expect(
-      chipY('Arms'),
-      lessThan(y(find.text(l.reservesHeading.toUpperCase()))),
-    );
+    expect(chipY('Arms'), lessThan(y(find.text(l.reservesHeading))));
   });
 
   testWidgets('the Manage sheet: the check, sections, add, drag, delete', (
@@ -196,8 +193,8 @@ void main() {
 
     // The sections, and no library row for what the user has.
     for (final title in [l.rotationHeading, l.reservesHeading]) {
-      await scrollTo(inSheet(find.text(title.toUpperCase())), 100);
-      expect(inSheet(find.text(title.toUpperCase())), findsOneWidget);
+      await scrollTo(inSheet(find.text(title)), 100);
+      expect(inSheet(find.text(title)), findsOneWidget);
     }
     // A reserve that adds nothing the rotation misses says nothing.
     await scrollTo(row('Arms'), 100);
@@ -223,7 +220,6 @@ void main() {
       findsNothing,
     );
     expect(inSheet(find.byType(Checkbox)), findsNothing);
-    expect(inSheet(find.text(l.clone.toUpperCase())), findsNothing);
 
     // + adds a library workout to the rotation, and its library row is
     // gone.
@@ -402,7 +398,7 @@ void main() {
     await tester.pumpAndSettle();
     double y(Finder f) => tester.getTopLeft(f).dy;
     double chipY(String name) => y(find.widgetWithText(TemplateChip, name));
-    final reserves = y(find.text(l.reservesHeading.toUpperCase()));
+    final reserves = y(find.text(l.reservesHeading));
     for (final name in ['Push', 'Pull', 'Legs']) {
       expect(chipY(name), lessThan(reserves), reason: name);
     }

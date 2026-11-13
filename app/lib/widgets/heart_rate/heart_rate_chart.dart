@@ -263,7 +263,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
           style: TextStyle(
             fontSize: context.tokens.size.small,
             fontWeight: context.tokens.weight.bold,
-            letterSpacing: 1.5,
             color: colorScheme.tertiary,
           ),
         ),
@@ -299,7 +298,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
               style: TextStyle(
                 fontSize: context.tokens.size.caption,
                 fontWeight: context.tokens.weight.bold,
-                letterSpacing: 0.5,
                 color: zoneColor,
               ),
             ),
@@ -316,7 +314,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
             style: TextStyle(
               fontSize: context.tokens.size.caption,
               fontWeight: context.tokens.weight.bold,
-              letterSpacing: 0.5,
               color: colorScheme.tertiary,
             ),
           ),
@@ -337,7 +334,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
               style: TextStyle(
                 fontSize: context.tokens.size.caption,
                 fontWeight: context.tokens.weight.bold,
-                letterSpacing: 0.3,
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
@@ -706,7 +702,6 @@ class _HeartRateChartState extends State<HeartRateChart> {
         style: TextStyle(
           fontWeight: context.tokens.weight.heavy,
           fontSize: context.tokens.size.small,
-          letterSpacing: 0.4,
           color: isSelected ? colorScheme.primary : colorScheme.onSurface,
         ),
       ),

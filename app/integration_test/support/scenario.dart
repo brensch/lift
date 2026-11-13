@@ -366,8 +366,8 @@ class Scenario {
     return false;
   }
 
-  /// Open the multiplayer sheet from the header.
-  Future<void> openMultiplayer() => tap(find.byTooltip('Multiplayer'));
+  /// Open the multiplayer sheet from the top row (home or the workout).
+  Future<void> openMultiplayer() => tap(find.byTooltip(copy.menu.multiplayer));
 
   /// Poll until [finder] finds something.
   Future<bool> waitFor(Finder finder, {int seconds = 8}) async {
@@ -450,7 +450,7 @@ class Scenario {
   ];
 
   /// The home card's start button.
-  static const homeStart = 'START';
+  static const homeStart = 'Start';
 
   /// The first arrival at home shows the walkthrough once per account; it is
   /// not under test here, so dismiss it. Plain pumps only — the tutorial

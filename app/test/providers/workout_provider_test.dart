@@ -91,6 +91,32 @@ void main() {
     expect(h.provider.doneTargetSet!.warmup, isFalse);
   });
 
+  test(
+    'skipping one warmup moves to the next, and sets can be changed',
+    () async {
+      await h.start([squat]);
+      final warmups = h.provider.proposedSets.where((s) => s.warmup).toList();
+      expect(warmups.length, greaterThan(1));
+      await h.provider.skipWarmup(warmups.first);
+      expect(h.provider.isPassedWarmup(warmups.first), isTrue);
+      expect(h.provider.isPassedWarmup(warmups[1]), isFalse);
+      expect(h.provider.doneTargetSet!.id, warmups[1].id);
+
+      int working() => h.provider.proposedSets
+          .where((s) => !s.warmup && !s.calibration && !s.cancelled)
+          .length;
+      final before = working();
+      final weight = h.provider.proposedSets
+          .lastWhere((s) => !s.warmup)
+          .targetWeight
+          .toDouble();
+      await h.provider.adjustExerciseWeight(squat, weight, sets: before + 2);
+      expect(working(), before + 2);
+      await h.provider.adjustExerciseWeight(squat, weight, sets: 1);
+      expect(working(), 1);
+    },
+  );
+
   test('ending moves the plan on and the home shows it', () async {
     await h.start([raise]);
     final started = h.provider.planFor(raise)!.lastPerformedAt;

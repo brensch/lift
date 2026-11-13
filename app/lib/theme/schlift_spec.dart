@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'theme_spec.dart';
 
 /// The app's look: warm grey hardware, signal orange, Space Grotesk and Space
-/// Mono, corners mostly squared off (after Teenage Engineering). Every
+/// Mono, a little rounding on every box, sections square and edge to edge. Every
 /// colour, font, size and radius the app draws with is here; change the look
 /// by changing a value.
 const schliftSpec = ThemeSpec(
@@ -23,13 +23,15 @@ const schliftSpec = ThemeSpec(
   onError: Colors.white,
   // State colours keep their hues but sit with the warm grey: less neon,
   // a touch deeper.
-  ready: Color(0xFF3D8B4A),
+  // Ready: the rack is yours and nothing is started. The signal orange:
+  // start the set.
+  ready: Color(0xFFFF4F00),
   success: Color(0xFF3D8B4A),
   short: Color(0xFFD99A00),
   overdue: Color(0xFFA85F00),
   resting: Color(0xFF3C5FB0),
-  // Lifting: a set has been started. The signal orange: do it now.
-  lifting: Color(0xFFFF4F00),
+  // Lifting: a set has been started. Green: under way.
+  lifting: Color(0xFF3D8B4A),
   // Yapping: rest has run out and the next set isn't started. Pink.
   yapping: Color(0xFFD94F8C),
   heart: Color(0xFFE11D48),
@@ -72,20 +74,21 @@ const schliftSpec = ThemeSpec(
   ],
   bodyFont: 'Space Grotesk',
   headingFont: 'Space Grotesk',
-  buttonFont: 'Space Mono',
+  buttonFont: 'Space Grotesk',
   monoFont: 'Space Mono',
-  // The wordmark in the buttons' face: Space Mono, wobbling, between its
-  // regular and its bold (it has nothing in between).
+  // Two faces. Space Grotesk for every word: text, headings, labels,
+  // buttons. Space Mono for figures only (`ThemeSpec.mono`), and for the
+  // wordmark, wobbling, between its regular and its bold.
   wordmarkFont: 'Space Mono',
   wordmarkWeight: FontWeight.w400,
   wordmarkScale: 1.5,
   wordmarkWobble: 1.6,
   fontScale: 1.06,
-  radiusXs: 1,
-  radiusSm: 2,
-  radiusMd: 3,
-  radiusLg: 4,
-  radiusXl: 7,
+  radiusXs: 4,
+  radiusSm: 7,
+  radiusMd: 9,
+  radiusLg: 12,
+  radiusXl: 14,
   drawerRadius: 0,
   // The small end runs large: nothing in the app is drawn under 12pt.
   size: TypeScale(
@@ -106,6 +109,7 @@ const schliftSpec = ThemeSpec(
     regular: FontWeight.w400,
     medium: FontWeight.w500,
     bold: FontWeight.w700,
-    heavy: FontWeight.w900,
+    // Space Grotesk stops at 700: heavy is bold, not a faked 900.
+    heavy: FontWeight.w700,
   ),
 );

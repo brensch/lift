@@ -288,9 +288,18 @@ class ThemeSpec extends ThemeExtension<ThemeSpec> {
         fontWeight: wordmarkWeight,
       );
 
-  /// [base] in the mono font, for counting numbers.
+  /// [base] in the mono font. For figures only: a weight, a count, a clock,
+  /// a code. Words are always in the body font, whatever they label.
   TextStyle mono([TextStyle base = const TextStyle()]) =>
       GoogleFonts.getFont(monoFont, textStyle: base);
+
+  /// A section's heading or a figure's label: small, bold, quiet words.
+  /// Every heading band, metric label and row label is this, so they match.
+  TextStyle label({Color? color}) => TextStyle(
+    fontSize: size.body,
+    fontWeight: weight.bold,
+    color: color ?? muted,
+  );
 
   // ThemeExtension plumbing. There is one spec, so nothing blends.
   @override

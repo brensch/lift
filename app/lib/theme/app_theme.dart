@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'schlift_spec.dart';
+import 'app_icons.dart';
 import 'theme_spec.dart';
 
 /// Builds Flutter themes from a [ThemeSpec]. The spec holds every value;
@@ -71,11 +72,13 @@ class AppTheme {
       borderRadius: s.brSm,
       borderSide: BorderSide(color: s.outline),
     );
-    // Surfaces that sit over the page are flat: square, no shadow, set
-    // apart by a line rather than a lift.
+    // Surfaces that sit over the page are flat: no shadow, set apart by a
+    // line rather than a lift. A sheet runs edge to edge and stays square; a
+    // dialog or a menu is a box, with the corners every box has.
     final sheetShape = Border(top: BorderSide(color: s.outline));
     final flatPanel = RoundedRectangleBorder(
       side: BorderSide(color: s.outline),
+      borderRadius: s.brLg,
     );
     final typography = Typography.material2021().black;
 
@@ -103,6 +106,11 @@ class AppTheme {
       ),
       dividerColor: s.hairline,
       dividerTheme: DividerThemeData(color: s.hairline, thickness: 1, space: 1),
+      // Every page's back arrow is the same one, drawn for it by its title
+      // bar: no page builds its own.
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (_) => const Icon(AppIcons.back),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: s.background,
         foregroundColor: s.text,
@@ -120,7 +128,10 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: s.panel,
         elevation: 0,
-        shape: RoundedRectangleBorder(side: BorderSide(color: s.hairline)),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: s.hairline),
+          borderRadius: s.brLg,
+        ),
         margin: EdgeInsets.zero,
       ),
       filledButtonTheme: FilledButtonThemeData(

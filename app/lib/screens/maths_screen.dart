@@ -164,7 +164,6 @@ class _SectionLabel extends StatelessWidget {
       style: TextStyle(
         fontSize: context.tokens.size.small,
         fontWeight: context.tokens.weight.heavy,
-        letterSpacing: 1.4,
         color: cs.tertiary,
       ),
     );
@@ -193,7 +192,6 @@ class _FormulaCard extends StatelessWidget {
             style: TextStyle(
               fontSize: context.tokens.size.caption,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: 1.2,
               color: cs.primary,
             ),
           ),
@@ -291,7 +289,6 @@ class _ExampleCard extends StatelessWidget {
             style: TextStyle(
               fontSize: context.tokens.size.caption,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: 1.2,
               color: cs.tertiary,
             ),
           ),

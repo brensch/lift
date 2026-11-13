@@ -222,6 +222,7 @@ class ColorChoiceDot extends StatelessWidget {
         height: 38,
         decoration: BoxDecoration(
           color: color,
+          borderRadius: context.tokens.brMd,
           border: Border.all(
             color: selected ? cs.onSurface : color.withValues(alpha: 0.6),
             width: selected ? 3 : 1.5,

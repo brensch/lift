@@ -40,6 +40,9 @@ message Workout {
   // removing the set). "" when nothing is in progress.
   string lifting_set_id = 7;
   int64 lifting_started_at = 8; // Unix seconds; 0 when lifting_set_id is ""
+  // The workout's motivational quote, picked when it started and kept; ""
+  // for a workout started before there were any.
+  string motivation = 9;
 }
 
 enum Exercise {
@@ -376,6 +379,8 @@ message StartWorkoutRequest {
   // What each exercise is given, decided by the core (plan) when the event
   // is recorded. The workout's sets are laid out from these alone.
   repeated ExerciseDecision decisions = 6;
+  // The workout's motivational quote, picked by the app; kept as given.
+  string motivation = 8;
 }
 message StartWorkoutResponse {
   string id = 1;
@@ -547,6 +552,9 @@ message AdjustExerciseWeightRequest {
   Exercise exercise = 2;
   float working_weight = 3; // lb
   int32 target_reps = 4; // the remaining working sets' reps; 0 = unchanged
+  // How many working sets the exercise has in all, done ones included: sets
+  // are added after its last, or its last undone ones cancelled. 0 = unchanged.
+  int32 sets = 5;
 }
 
 // Cancel an exercise's pending sets. Completed sets stay.
@@ -567,6 +575,8 @@ message ReorderExercisesRequest {
 message SkipWarmupsRequest {
   string workout_id = 1;
   Exercise exercise = 2;
+  // The one warmup to skip; empty skips every undone warmup of the exercise.
+  string proposed_set_id = 3;
 }
 
 // What one answer to a rung's question leads to (GetWorkoutResponse.rung_outcomes).

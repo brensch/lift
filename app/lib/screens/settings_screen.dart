@@ -32,13 +32,7 @@ class SettingsScreen extends StatelessWidget {
         ? _bodyWeightText(auth.bodyWeightKg, settings.weightUnit)
         : c.bodyWeightNotSet;
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(AppIcons.back),
-          onPressed: () => context.go('/'),
-        ),
-        title: PageTitle(c.title),
-      ),
+      appBar: AppBar(title: PageTitle(c.title)),
       body: ListView(
         // A pixel on top: room for the first heading band's top line.
         padding: const EdgeInsets.only(top: 1, bottom: 24),

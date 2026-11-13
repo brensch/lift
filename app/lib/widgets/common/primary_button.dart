@@ -54,7 +54,6 @@ class PrimaryButton extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: context.tokens.weight.bold,
                       fontSize: context.tokens.size.bodyLg,
-                      letterSpacing: -0.1,
                     ),
                   ),
                 ],

@@ -2873,6 +2873,28 @@ public final class WorkoutOuterClass {
      * @return The liftingStartedAt.
      */
     long getLiftingStartedAt();
+
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     * @return The motivation.
+     */
+    java.lang.String getMotivation();
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     * @return The bytes for motivation.
+     */
+    com.google.protobuf.ByteString
+        getMotivationBytes();
   }
   /**
    * Protobuf type {@code workout.v1.Workout}
@@ -2888,6 +2910,7 @@ public final class WorkoutOuterClass {
       sessionId_ = "";
       templateId_ = "";
       liftingSetId_ = "";
+      motivation_ = "";
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -3262,6 +3285,78 @@ public final class WorkoutOuterClass {
     private void clearLiftingStartedAt() {
       
       liftingStartedAt_ = 0L;
+    }
+
+    public static final int MOTIVATION_FIELD_NUMBER = 9;
+    private java.lang.String motivation_;
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     * @return The motivation.
+     */
+    @java.lang.Override
+    public java.lang.String getMotivation() {
+      return motivation_;
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     * @return The bytes for motivation.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMotivationBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(motivation_);
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     * @param value The motivation to set.
+     */
+    private void setMotivation(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      motivation_ = value;
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     */
+    private void clearMotivation() {
+      
+      motivation_ = getDefaultInstance().getMotivation();
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked when it started and kept; ""
+     * for a workout started before there were any.
+     * </pre>
+     *
+     * <code>string motivation = 9 [json_name = "motivation"];</code>
+     * @param value The bytes for motivation to set.
+     */
+    private void setMotivationBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      motivation_ = value.toStringUtf8();
+      
     }
 
     public static workout.v1.WorkoutOuterClass.Workout parseFrom(
@@ -3750,6 +3845,80 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The workout's motivational quote, picked when it started and kept; ""
+       * for a workout started before there were any.
+       * </pre>
+       *
+       * <code>string motivation = 9 [json_name = "motivation"];</code>
+       * @return The motivation.
+       */
+      @java.lang.Override
+      public java.lang.String getMotivation() {
+        return instance.getMotivation();
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked when it started and kept; ""
+       * for a workout started before there were any.
+       * </pre>
+       *
+       * <code>string motivation = 9 [json_name = "motivation"];</code>
+       * @return The bytes for motivation.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMotivationBytes() {
+        return instance.getMotivationBytes();
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked when it started and kept; ""
+       * for a workout started before there were any.
+       * </pre>
+       *
+       * <code>string motivation = 9 [json_name = "motivation"];</code>
+       * @param value The motivation to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMotivation(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMotivation(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked when it started and kept; ""
+       * for a workout started before there were any.
+       * </pre>
+       *
+       * <code>string motivation = 9 [json_name = "motivation"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMotivation() {
+        copyOnWrite();
+        instance.clearMotivation();
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked when it started and kept; ""
+       * for a workout started before there were any.
+       * </pre>
+       *
+       * <code>string motivation = 9 [json_name = "motivation"];</code>
+       * @param value The bytes for motivation to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMotivationBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMotivationBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.Workout)
     }
     @java.lang.Override
@@ -3774,10 +3943,11 @@ public final class WorkoutOuterClass {
               "templateId_",
               "liftingSetId_",
               "liftingStartedAt_",
+              "motivation_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0002" +
-                "\u0004\u0002\u0005\u0208\u0006\u0208\u0007\u0208\b\u0002";
+                "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0000\u0000\u0001\u0208\u0002\u0208\u0003\u0002" +
+                "\u0004\u0002\u0005\u0208\u0006\u0208\u0007\u0208\b\u0002\t\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -11150,6 +11320,26 @@ public final class WorkoutOuterClass {
      * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
      */
     int getDecisionsCount();
+
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     * @return The motivation.
+     */
+    java.lang.String getMotivation();
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     * @return The bytes for motivation.
+     */
+    com.google.protobuf.ByteString
+        getMotivationBytes();
   }
   /**
    * Protobuf type {@code workout.v1.StartWorkoutRequest}
@@ -11164,6 +11354,7 @@ public final class WorkoutOuterClass {
       templateId_ = "";
       exercises_ = emptyIntList();
       decisions_ = emptyProtobufList();
+      motivation_ = "";
     }
     public static final int NAME_FIELD_NUMBER = 1;
     private java.lang.String name_;
@@ -11693,6 +11884,73 @@ public final class WorkoutOuterClass {
     private void removeDecisions(int index) {
       ensureDecisionsIsMutable();
       decisions_.remove(index);
+    }
+
+    public static final int MOTIVATION_FIELD_NUMBER = 8;
+    private java.lang.String motivation_;
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     * @return The motivation.
+     */
+    @java.lang.Override
+    public java.lang.String getMotivation() {
+      return motivation_;
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     * @return The bytes for motivation.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMotivationBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(motivation_);
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     * @param value The motivation to set.
+     */
+    private void setMotivation(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      motivation_ = value;
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     */
+    private void clearMotivation() {
+      
+      motivation_ = getDefaultInstance().getMotivation();
+    }
+    /**
+     * <pre>
+     * The workout's motivational quote, picked by the app; kept as given.
+     * </pre>
+     *
+     * <code>string motivation = 8 [json_name = "motivation"];</code>
+     * @param value The bytes for motivation to set.
+     */
+    private void setMotivationBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      motivation_ = value.toStringUtf8();
+      
     }
 
     public static workout.v1.WorkoutOuterClass.StartWorkoutRequest parseFrom(
@@ -12328,6 +12586,75 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The workout's motivational quote, picked by the app; kept as given.
+       * </pre>
+       *
+       * <code>string motivation = 8 [json_name = "motivation"];</code>
+       * @return The motivation.
+       */
+      @java.lang.Override
+      public java.lang.String getMotivation() {
+        return instance.getMotivation();
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked by the app; kept as given.
+       * </pre>
+       *
+       * <code>string motivation = 8 [json_name = "motivation"];</code>
+       * @return The bytes for motivation.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMotivationBytes() {
+        return instance.getMotivationBytes();
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked by the app; kept as given.
+       * </pre>
+       *
+       * <code>string motivation = 8 [json_name = "motivation"];</code>
+       * @param value The motivation to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMotivation(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMotivation(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked by the app; kept as given.
+       * </pre>
+       *
+       * <code>string motivation = 8 [json_name = "motivation"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMotivation() {
+        copyOnWrite();
+        instance.clearMotivation();
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's motivational quote, picked by the app; kept as given.
+       * </pre>
+       *
+       * <code>string motivation = 8 [json_name = "motivation"];</code>
+       * @param value The bytes for motivation to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMotivationBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMotivationBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.StartWorkoutRequest)
     }
     @java.lang.Override
@@ -12351,10 +12678,11 @@ public final class WorkoutOuterClass {
               "decisions_",
               workout.v1.WorkoutOuterClass.ExerciseDecision.class,
               "budgetMinutes_",
+              "motivation_",
             };
             java.lang.String info =
-                "\u0000\u0006\u0000\u0000\u0001\u0007\u0006\u0000\u0002\u0000\u0001\u0208\u0003\u0002" +
-                "\u0004\u0208\u0005,\u0006\u001b\u0007\u0004";
+                "\u0000\u0007\u0000\u0000\u0001\b\u0007\u0000\u0002\u0000\u0001\u0208\u0003\u0002" +
+                "\u0004\u0208\u0005,\u0006\u001b\u0007\u0004\b\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -23247,6 +23575,17 @@ public final class WorkoutOuterClass {
      * @return The targetReps.
      */
     int getTargetReps();
+
+    /**
+     * <pre>
+     * How many working sets the exercise has in all, done ones included: sets
+     * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+     * </pre>
+     *
+     * <code>int32 sets = 5 [json_name = "sets"];</code>
+     * @return The sets.
+     */
+    int getSets();
   }
   /**
    * <pre>
@@ -23427,6 +23766,47 @@ public final class WorkoutOuterClass {
     private void clearTargetReps() {
       
       targetReps_ = 0;
+    }
+
+    public static final int SETS_FIELD_NUMBER = 5;
+    private int sets_;
+    /**
+     * <pre>
+     * How many working sets the exercise has in all, done ones included: sets
+     * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+     * </pre>
+     *
+     * <code>int32 sets = 5 [json_name = "sets"];</code>
+     * @return The sets.
+     */
+    @java.lang.Override
+    public int getSets() {
+      return sets_;
+    }
+    /**
+     * <pre>
+     * How many working sets the exercise has in all, done ones included: sets
+     * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+     * </pre>
+     *
+     * <code>int32 sets = 5 [json_name = "sets"];</code>
+     * @param value The sets to set.
+     */
+    private void setSets(int value) {
+      
+      sets_ = value;
+    }
+    /**
+     * <pre>
+     * How many working sets the exercise has in all, done ones included: sets
+     * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+     * </pre>
+     *
+     * <code>int32 sets = 5 [json_name = "sets"];</code>
+     */
+    private void clearSets() {
+      
+      sets_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.AdjustExerciseWeightRequest parseFrom(
@@ -23704,6 +24084,49 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * How many working sets the exercise has in all, done ones included: sets
+       * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+       * </pre>
+       *
+       * <code>int32 sets = 5 [json_name = "sets"];</code>
+       * @return The sets.
+       */
+      @java.lang.Override
+      public int getSets() {
+        return instance.getSets();
+      }
+      /**
+       * <pre>
+       * How many working sets the exercise has in all, done ones included: sets
+       * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+       * </pre>
+       *
+       * <code>int32 sets = 5 [json_name = "sets"];</code>
+       * @param value The sets to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSets(int value) {
+        copyOnWrite();
+        instance.setSets(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * How many working sets the exercise has in all, done ones included: sets
+       * are added after its last, or its last undone ones cancelled. 0 = unchanged.
+       * </pre>
+       *
+       * <code>int32 sets = 5 [json_name = "sets"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSets() {
+        copyOnWrite();
+        instance.clearSets();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.AdjustExerciseWeightRequest)
     }
     @java.lang.Override
@@ -23724,10 +24147,11 @@ public final class WorkoutOuterClass {
               "exercise_",
               "workingWeight_",
               "targetReps_",
+              "sets_",
             };
             java.lang.String info =
-                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002\f" +
-                "\u0003\u0001\u0004\u0004";
+                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\u0208\u0002\f" +
+                "\u0003\u0001\u0004\u0004\u0005\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -24791,6 +25215,26 @@ public final class WorkoutOuterClass {
      * @return The exercise.
      */
     workout.v1.WorkoutOuterClass.Exercise getExercise();
+
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     * @return The proposedSetId.
+     */
+    java.lang.String getProposedSetId();
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     * @return The bytes for proposedSetId.
+     */
+    com.google.protobuf.ByteString
+        getProposedSetIdBytes();
   }
   /**
    * <pre>
@@ -24807,6 +25251,7 @@ public final class WorkoutOuterClass {
       SkipWarmupsRequestOrBuilder {
     private SkipWarmupsRequest() {
       workoutId_ = "";
+      proposedSetId_ = "";
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -24895,6 +25340,73 @@ public final class WorkoutOuterClass {
     private void clearExercise() {
       
       exercise_ = 0;
+    }
+
+    public static final int PROPOSED_SET_ID_FIELD_NUMBER = 3;
+    private java.lang.String proposedSetId_;
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     * @return The proposedSetId.
+     */
+    @java.lang.Override
+    public java.lang.String getProposedSetId() {
+      return proposedSetId_;
+    }
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     * @return The bytes for proposedSetId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProposedSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(proposedSetId_);
+    }
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     * @param value The proposedSetId to set.
+     */
+    private void setProposedSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      proposedSetId_ = value;
+    }
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     */
+    private void clearProposedSetId() {
+      
+      proposedSetId_ = getDefaultInstance().getProposedSetId();
+    }
+    /**
+     * <pre>
+     * The one warmup to skip; empty skips every undone warmup of the exercise.
+     * </pre>
+     *
+     * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+     * @param value The bytes for proposedSetId to set.
+     */
+    private void setProposedSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      proposedSetId_ = value.toStringUtf8();
+      
     }
 
     public static workout.v1.WorkoutOuterClass.SkipWarmupsRequest parseFrom(
@@ -25092,6 +25604,75 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The one warmup to skip; empty skips every undone warmup of the exercise.
+       * </pre>
+       *
+       * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+       * @return The proposedSetId.
+       */
+      @java.lang.Override
+      public java.lang.String getProposedSetId() {
+        return instance.getProposedSetId();
+      }
+      /**
+       * <pre>
+       * The one warmup to skip; empty skips every undone warmup of the exercise.
+       * </pre>
+       *
+       * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+       * @return The bytes for proposedSetId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProposedSetIdBytes() {
+        return instance.getProposedSetIdBytes();
+      }
+      /**
+       * <pre>
+       * The one warmup to skip; empty skips every undone warmup of the exercise.
+       * </pre>
+       *
+       * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+       * @param value The proposedSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProposedSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProposedSetId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The one warmup to skip; empty skips every undone warmup of the exercise.
+       * </pre>
+       *
+       * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProposedSetId() {
+        copyOnWrite();
+        instance.clearProposedSetId();
+        return this;
+      }
+      /**
+       * <pre>
+       * The one warmup to skip; empty skips every undone warmup of the exercise.
+       * </pre>
+       *
+       * <code>string proposed_set_id = 3 [json_name = "proposedSetId"];</code>
+       * @param value The bytes for proposedSetId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProposedSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProposedSetIdBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.SkipWarmupsRequest)
     }
     @java.lang.Override
@@ -25110,10 +25691,11 @@ public final class WorkoutOuterClass {
             java.lang.Object[] objects = new java.lang.Object[] {
               "workoutId_",
               "exercise_",
+              "proposedSetId_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\f" +
-                "";
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\f" +
+                "\u0003\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

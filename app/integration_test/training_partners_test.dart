@@ -71,7 +71,7 @@ void main() {
       reason: 'app should return to solo after leaving',
     );
     await s.openMultiplayer();
-    final sawList = await s.waitForText('FRIENDS', seconds: 8);
+    final sawList = await s.waitForText('Friends', seconds: 8);
     await s.shot(
       'Friends list in the app',
       note: sawList
