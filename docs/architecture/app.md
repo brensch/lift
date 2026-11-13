@@ -193,6 +193,16 @@ graph TD
     settings --> passkeys["PasskeysScreen"]
 ```
 
+**One stack.** Inside `MainLayout` there is one page at the bottom: `/`
+(`WorkoutTab`: home, or the live workout). It is the only page with the menu
+button. Every other page (the menu's, Settings' sub-pages, the workout's Log
+and Heart) is a `GoRoute` of the shell opened with `context.push`, so it sits
+over the page that opened it, has a title bar with the theme's back arrow and
+pops back to where it came from. No page builds its own back button or
+reads the current path to decide how back behaves; only signing in or out
+replaces the stack (`context.go`). The workout's status box is the shell's
+bottom bar, so it stays under every pushed page.
+
 `OnboardingScreen` is five steps (marker, unit, the chick-to-gorilla
 strength slider, optional bodyweight for calories, templates) ending in
 `CompleteOnboarding`. The app sends the slider's strength; the core records
@@ -269,7 +279,8 @@ Every colour, font, text size, weight and radius comes from one `ThemeSpec`
 (`lib/theme/theme_spec.dart`), and the app's values are in
 `lib/theme/schlift_spec.dart`: warm grey, signal orange, Space Grotesk and
 Space Mono, the stacked SCH/LIFT wordmark (`Wordmark`), Phosphor icons
-(`AppIcons`, `lib/theme/app_icons.dart`), corners mostly squared off.
+(`AppIcons`, `lib/theme/app_icons.dart`), a little rounding on every box,
+sections square and edge to edge.
 
 ```mermaid
 flowchart LR
@@ -288,6 +299,13 @@ spec as a `ThemeExtension`, so widgets read `context.tokens`:
 | `tokens.resting`, `tokens.primary`, … | Colours beyond the colour scheme |
 | `tokens.brXs` … `tokens.brXl` / `tokens.radiusXs` … `tokens.radiusXl` | Corners (a five-step scale) |
 | `tokens.mono(style)` / `tokens.wordmark(style)` | Counting numbers; the SCHLIFT wordmark |
+| `tokens.label()` | A section heading or a figure's label: small, bold, quiet |
+
+**Type rules.** Words are always Space Grotesk: text, headings, labels,
+buttons. Space Mono is for figures only (a weight, a count, a clock, a code)
+through `tokens.mono`, and for the wordmark. Nothing is written in capitals
+except the wordmark, and no widget sets `letterSpacing`. `heavy` and `bold`
+are the same weight (Space Grotesk stops at 700).
 
 > Never hard-code a colour, font family, text size, weight or radius in a
 > widget; if a token is missing, add it to `ThemeSpec`. Code without a

@@ -34,7 +34,6 @@ void main() {
             isStarting: false,
             onStart: () {},
             onEdit: () {},
-            onClone: () {},
             onDelete: () {},
             onToggleRotation: () {},
           ),

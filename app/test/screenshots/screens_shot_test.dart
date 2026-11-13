@@ -122,8 +122,8 @@ void main() {
     for (var step = 1; step <= steps; step++) {
       await settle(step);
       await shoot(tester, 'tutorial_s$step');
-      // Every step points at something the screen actually has.
-      expect(find.text(copy.tutorial.steps[step - 1].title), findsOneWidget);
+      // The step's title is on screen (a button may say the same word).
+      expect(find.text(copy.tutorial.steps[step - 1].title), findsWidgets);
       if (step < steps) {
         await tester.tap(find.text(copy.tutorial.next));
       }
@@ -139,7 +139,7 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 300));
     }
-    expect(find.textContaining('WORKOUT SCIENCE'), findsWidgets);
+    expect(find.textContaining('Workout science'), findsWidgets);
     // The header's shaking multiplayer button sleeps in a loop; tear the
     // tree down and let its last sleep elapse so no timer is left pending.
     await tester.pumpWidget(const SizedBox());
@@ -191,8 +191,8 @@ void main() {
       ),
     );
     await shoot(tester, 'onboarding_templates');
-    expect(find.text('PROGRAMS'), findsOneWidget);
-    expect(find.text('BODY PARTS'), findsOneWidget);
+    expect(find.text('Programs'), findsOneWidget);
+    expect(find.text('Body parts'), findsOneWidget);
     final finish = find.text(copy.onboarding.templates.finish);
 
     // Untick the only pick: finish disables and the nudge appears.
@@ -366,8 +366,8 @@ void main() {
     await tester.tap(find.text('+5'));
     await tester.tap(find.text('+5'));
     await tester.pump();
-    expect(find.text('SAVE'), findsOneWidget);
-    await tester.tap(find.text('SAVE'));
+    expect(find.text('Save'), findsOneWidget);
+    await tester.tap(find.text('Save'));
     for (var i = 0; i < 20; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 50)),

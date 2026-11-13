@@ -7,6 +7,7 @@ import 'package:fluttertoast/fluttertoast.dart' show Toast, ToastGravity;
 import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/copy.dart';
+import '../logic/motivation.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
@@ -214,7 +215,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     AppLogger.instance.error('Workout', 'core call failed', {
       'error': e.toString(),
     });
-    ErrorModalService.showError(cleanErrorMessage(e).toUpperCase());
+    ErrorModalService.showError(cleanErrorMessage(e));
   }
 
   // ── Rest end: sound and state ──
@@ -397,8 +398,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const minBudgetMinutes = 10;
   static const maxBudgetMinutes = 180;
 
-  /// Move the budget by [steps] of [budgetStepMinutes] and plan again,
-  /// once the taps settle: the future completes when home is planned in it.
+  /// Move the budget by [steps] of [budgetStepMinutes] and plan again
+  /// straight away (the core plans on the phone: there is nothing to wait
+  /// for). The future completes when home is planned in it; a plan for a
+  /// budget that has since moved is dropped by [refreshHome].
   Future<void> stepBudget(int steps) {
     final next = (_budgetMinutes + steps * budgetStepMinutes).clamp(
       minBudgetMinutes,
@@ -407,19 +410,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (next == _budgetMinutes) return Future.value();
     _budgetMinutes = next;
     notifyListeners();
-    _budgetReplan?.cancel();
-    final replanned = _budgetReplanned ??= Completer<void>();
-    _budgetReplan = Timer(_budgetSettle, () async {
-      _budgetReplanned = null;
-      await refreshHome();
-      replanned.complete();
-    });
-    return replanned.future;
+    return refreshHome();
   }
-
-  static const _budgetSettle = Duration(milliseconds: 250);
-  Timer? _budgetReplan;
-  Completer<void>? _budgetReplanned;
 
   /// The core's totals for the workout on screen: working-set volume and
   /// sets per exercise, and its time.
@@ -604,7 +596,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Templates and plans ──
 
   /// Create or update [template]. [unlink] makes a library template the
-  /// user's own, changed or not: Clone, saved.
+  /// user's own, changed or not: the library one edited and saved.
   Future<void> saveTemplate(
     WorkoutTemplate template, {
     bool unlink = false,
@@ -695,6 +687,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         templateId: templateId,
         exercises: exercises,
         budgetMinutes: _budgetMinutes,
+        // The workout's quote: picked now, kept with it.
+        motivation: randomMotivation(),
       );
       _applyWorkoutResponse(await _service.getWorkout(started.id));
       _startTimer();
@@ -796,8 +790,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  /// Skip [exercise]'s warmups (the warmup row's "Skip"): they're marked
-  /// skipped — kept, out of the way, still doable.
+  /// Skip all of [exercise]'s warmups: they're marked skipped — kept, out
+  /// of the way, still doable.
   Future<void> skipWarmups(Exercise exercise) async {
     if (_workout == null) return;
     await _mutate(
@@ -805,6 +799,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         ..skipWarmups = (SkipWarmupsRequest()
           ..workoutId = _workoutId
           ..exercise = exercise),
+    );
+  }
+
+  /// Skip one warmup (the warmup row's "Skip"): the next one is up.
+  Future<void> skipWarmup(ProposedSet set) async {
+    if (_workout == null) return;
+    await _mutate(
+      WorkoutMutation()
+        ..skipWarmups = (SkipWarmupsRequest()
+          ..workoutId = _workoutId
+          ..exercise = set.exercise
+          ..proposedSetId = set.id),
     );
   }
 
@@ -821,11 +827,13 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Move an exercise's remaining working sets to a new weight (lb); its
-  /// pending warmups are worked out again for it.
+  /// pending warmups are worked out again for it. [sets] is how many working
+  /// sets it has in all from here on (0 leaves them).
   Future<void> adjustExerciseWeight(
     Exercise exercise,
     double weightLb, {
     int targetReps = 0,
+    int sets = 0,
   }) async {
     if (_workout == null) return;
     await _mutate(
@@ -834,7 +842,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..workoutId = _workoutId
           ..exercise = exercise
           ..workingWeight = weightLb
-          ..targetReps = targetReps),
+          ..targetReps = targetReps
+          ..sets = sets),
     );
   }
 
@@ -1164,7 +1173,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
-    _budgetReplan?.cancel();
     _clock.dispose();
     _onboarded.dispose();
     super.dispose();

@@ -14,7 +14,6 @@ import '../services/workout_service.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
 import 'reload_on_account_change.dart';
-import '../theme/app_icons.dart';
 
 /// Progress: one card per exercise showing the top working-set weight actually
 /// lifted over time, with the current weight, the gain since you started, and a
@@ -114,13 +113,7 @@ class _ProgressScreenState extends State<ProgressScreen>
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     Widget scaffold(Widget body) => Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(AppIcons.back),
-          onPressed: () => context.go('/'),
-        ),
-        title: PageTitle(copy.progress.title),
-      ),
+      appBar: AppBar(title: PageTitle(copy.progress.title)),
       body: body,
     );
 
@@ -374,7 +367,6 @@ class _ExerciseCard extends StatelessWidget {
         style: TextStyle(
           fontSize: context.tokens.size.caption,
           fontWeight: context.tokens.weight.heavy,
-          letterSpacing: 0.6,
           color: cs.tertiary,
         ),
       ),

@@ -152,6 +152,7 @@ class _WeightSelectorState extends State<WeightSelector> {
     return Container(
       decoration: BoxDecoration(
         color: t.panel,
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: t.outline),
       ),
       child: Column(

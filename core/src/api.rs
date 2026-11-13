@@ -35,6 +35,9 @@ pub struct Call<'a> {
     pub library: &'a [LibraryTemplate],
 }
 
+/// The longest motivational quote a workout keeps.
+const MAX_MOTIVATION_CHARS: usize = 500;
+
 impl<'a> Call<'a> {
     pub fn view(&self) -> View<'_> {
         View::new(self.account, self.now).with_library(self.library)
@@ -174,6 +177,7 @@ impl<'a> Call<'a> {
             exercises: req.exercises,
             budget_minutes: req.budget_minutes,
             decisions: req.decisions,
+            motivation: req.motivation.chars().take(MAX_MOTIVATION_CHARS).collect(),
         }))?;
         Ok(start_workout_response_from_active(
             self.view().workout(&id)?,
@@ -594,6 +598,7 @@ fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
         M::SkipWarmups(r) => Fact::WarmupsSkipped(WarmupsSkipped {
             workout_id: r.workout_id,
             exercise: r.exercise,
+            proposed_set_id: r.proposed_set_id,
         }),
         M::AddExercises(r) => Fact::ExercisesAdded(ExercisesAdded {
             workout_id: r.workout_id,
@@ -605,6 +610,7 @@ fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
             exercise: r.exercise,
             working_weight: r.working_weight,
             target_reps: r.target_reps,
+            sets: r.sets,
         }),
         M::RemoveExercise(r) => Fact::ExerciseRemoved(ExerciseRemoved {
             workout_id: r.workout_id,

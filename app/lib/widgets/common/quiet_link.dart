@@ -25,7 +25,6 @@ class QuietLink extends StatelessWidget {
           style: TextStyle(
             fontWeight: context.tokens.weight.bold,
             fontSize: context.tokens.size.body,
-            letterSpacing: 0.2,
           ),
         ),
       ),

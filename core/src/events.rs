@@ -248,6 +248,8 @@ pub struct WorkoutStarted {
     pub exercises: Vec<i32>,
     pub budget_minutes: i32,
     pub decisions: Vec<ExerciseDecision>,
+    /// The workout's motivational quote, as picked at the start.
+    pub motivation: String,
 }
 
 /// A set was begun: the lift is under way.
@@ -303,6 +305,8 @@ pub struct RungAnswered {
 pub struct WarmupsSkipped {
     pub workout_id: String,
     pub exercise: i32,
+    /// The one warmup skipped; empty for every undone warmup of the exercise.
+    pub proposed_set_id: String,
 }
 
 /// Lifts added to a workout under way, each planned when added.
@@ -322,6 +326,8 @@ pub struct ExerciseAdjusted {
     pub exercise: i32,
     pub working_weight: f32,
     pub target_reps: i32,
+    /// How many working sets the exercise has from here on; 0 leaves them.
+    pub sets: i32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]

@@ -1,11 +1,13 @@
-/// Supporting panels for the workout screen: missing-HR notice, the session
-/// strip, page tabs, the add-exercise row.
+/// Supporting panels for the workout screen: the missing-HR notice, the
+/// first row, the add-exercise row.
 library;
 
 import '../../gen/copy.dart';
 import 'package:flutter/material.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
+import '../../widgets/menu_button.dart';
+import '../../widgets/multiplayer_button.dart';
 
 class NoHeartRateMonitor extends StatelessWidget {
   const NoHeartRateMonitor({super.key});
@@ -50,196 +52,80 @@ class NoHeartRateMonitor extends StatelessWidget {
 
 // ─── Session strip (top block: workout name + a single slim progress bar) ────
 
-/// The workout's name, its overall progress, and how long it has been
-/// going: one full-width row, the exercises themselves right below.
-class SessionStrip extends StatelessWidget {
-  final String title; // e.g. "5×5 Workout A"
-  final double progress; // 0..1 across all working sets
-  final String elapsedText; // the workout's running time
-  final String? heartRateText; // your heart rate, when something sends one
+/// The live workout's first row, in place of a banner: the workout's name,
+/// the multiplayer button, the menu.
+class WorkoutRow extends StatelessWidget {
+  final String title;
 
-  const SessionStrip({
-    super.key,
-    required this.title,
-    required this.progress,
-    required this.elapsedText,
-    this.heartRateText,
-  });
+  const WorkoutRow({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final t = context.tokens;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-      // The name takes the width it needs (at most 70%, then ellipsis); the
-      // bar fills everything after it.
-      child: LayoutBuilder(
-        builder: (context, constraints) => Row(
-          children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.7),
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: context.tokens.size.title,
-                  fontWeight: context.tokens.weight.heavy,
-                  letterSpacing: -0.4,
-                  color: cs.onSurface,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: context.tokens.brMd,
-                child: LinearProgressIndicator(
-                  value: progress.clamp(0.0, 1.0),
-                  minHeight: 6,
-                  backgroundColor: cs.onSurface.withValues(alpha: 0.1),
-                  valueColor: AlwaysStoppedAnimation(cs.primary),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // The session's clock, and under it your heart.
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  elapsedText,
-                  style: context.tokens.mono(
-                    TextStyle(
-                      fontSize: context.tokens.size.body,
-                      fontWeight: context.tokens.weight.bold,
-                      color: context.tokens.muted,
-                    ),
-                  ),
-                ),
-                if (heartRateText != null)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        AppIcons.heart,
-                        size: context.tokens.size.body,
-                        color: context.tokens.heart,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        heartRateText!,
-                        style: context.tokens.mono(
-                          TextStyle(
-                            fontSize: context.tokens.size.body,
-                            fontWeight: context.tokens.weight.bold,
-                            color: context.tokens.text,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Page tabs: the views by name, switched by a tap ─────────────────────────
-
-class PageTabItem {
-  final String label;
-  final int? count;
-  const PageTabItem(this.label, {this.count});
-}
-
-class PageTabs extends StatelessWidget {
-  final List<PageTabItem> tabs;
-  final int index;
-  final ValueChanged<int> onTap;
-
-  const PageTabs({
-    super.key,
-    required this.tabs,
-    required this.index,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+      // Room above and below the buttons: the count on the multiplayer
+      // button stands over its corner.
+      padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
       child: Row(
         children: [
-          for (int i = 0; i < tabs.length; i++)
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => onTap(i),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: IntrinsicWidth(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              tabs[i].label,
-                              style: TextStyle(
-                                fontSize: context.tokens.size.subtitle,
-                                fontWeight: context.tokens.weight.heavy,
-                                letterSpacing: -0.1,
-                                color: i == index
-                                    ? cs.onSurface
-                                    : cs.onSurface.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            if (tabs[i].count != null)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: Text(
-                                  '${tabs[i].count}',
-                                  style: TextStyle(
-                                    fontSize: context.tokens.size.small,
-                                    fontWeight: context.tokens.weight.heavy,
-                                    color: cs.onSurface.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        height: 2.5,
-                        margin: const EdgeInsets.symmetric(horizontal: 6),
-                        decoration: BoxDecoration(
-                          color: i == index ? cs.primary : Colors.transparent,
-                          borderRadius: context.tokens.brXs,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: t.size.title,
+                fontWeight: t.weight.heavy,
+                color: t.text,
               ),
             ),
+          ),
+          const MultiplayerButton(),
+          const MenuButton(showCount: false),
         ],
       ),
     );
   }
 }
 
-// ─── Add exercise (a full-width row, like the sections above it) ────────────
+/// A figure in a box that opens a page: bordered, so it reads as something
+/// to tap. The workout's heart rate (opens Heart) and
+/// clock (opens Log), side by side over the status box.
+class OpenBox extends StatelessWidget {
+  final String tooltip;
+  final VoidCallback onTap;
+  final List<Widget> children;
+
+  const OpenBox({
+    super.key,
+    required this.tooltip,
+    required this.onTap,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: t.panel,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: t.outline.withValues(alpha: 0.5)),
+          borderRadius: t.brMd,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Row(mainAxisSize: MainAxisSize.min, children: children),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class AddExerciseRow extends StatelessWidget {
   final VoidCallback onTap;

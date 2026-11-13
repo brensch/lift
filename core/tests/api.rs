@@ -1426,6 +1426,7 @@ mod weight_log {
                 exercise: Exercise::Squat as i32,
                 working_weight: 40.0,
                 target_reps: 0,
+                ..Default::default()
             }),
         );
         let done = state
@@ -1967,6 +1968,7 @@ mod batches {
                             exercise: Exercise::LateralRaise as i32,
                             working_weight: -50.0,
                             target_reps: 0,
+                            ..Default::default()
                         },
                     )),
                     mutation(Mutation::CompleteSet(CompleteSetRequest {
@@ -3295,6 +3297,7 @@ mod settings {
                         exercise: Exercise::Squat as i32,
                         working_weight: 137.0,
                         target_reps: 0,
+                        ..Default::default()
                     },
                 ))],
             )

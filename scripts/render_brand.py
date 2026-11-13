@@ -69,27 +69,35 @@ svg{{display:block}}</style></head><body>
 </svg></body></html>"""
 
 
+# The icon, on a 100 grid: the end of a loaded bar, its plates climbing
+# toward the middle of the bar, which runs off the right edge. From the end
+# inwards: (x, width, height, colour). The collar, a change plate, a plate
+# in the signal orange, two 45s. Each reaches a hair under the heavier one
+# after it, which is drawn over it: two shapes that only meet leave a faint
+# line of the ground between them when the icon is scaled.
+ICON_PLATES = (
+    (22, 5, 18, INK),
+    (26.7, 7.3, 30, INK),
+    (33.7, 9.3, 54, SIGNAL),
+    (42.7, 10.3, 70, INK),
+    (52.7, 10.3, 70, INK),
+)
+
+
 def icon() -> str:
-    """The status box, stacked: three sets done and the next ringed in orange
-    on the panel, the orange band part-drained as it is while you rest, the
-    ground below. Drawn on a 100 grid."""
-    r = 7.5
-    xs = (20, 40, 60, 80)
-    dots = "".join(f'<circle cx="{x}" cy="27" r="{r}" fill="{INK}"/>' for x in xs[:3])
-    ring = (
-        f'<circle cx="{xs[3]}" cy="27" r="{r * 0.88}" fill="none" '
-        f'stroke="{SIGNAL}" stroke-width="{r * 0.24}"/>'
+    """The end of a loaded barbell, side on, in ink on the ground: the plates
+    step up toward the middle like a chart going up, one of them orange, and
+    the bar runs on off the edge. Drawn on a 100 grid."""
+    plates = "".join(
+        f'<rect x="{x:g}" y="{50 - height / 2:g}" width="{width:g}" height="{height:g}" '
+        f'rx="1.5" fill="{fill}"/>'
+        for x, width, height, fill in ICON_PLATES
     )
-    # Every block is drawn once, never one colour painted over another: the
-    # masks' anti-aliasing would show the lower colour at the edges.
     return f"""<g transform="scale(10.24)">
-<rect width="100" height="46" fill="{PANEL}"/>
-<rect y="46" width="64" height="22" fill="{SIGNAL}"/>
-<rect x="64" y="46" width="36" height="22" fill="{DRAINED}"/>
-<rect y="68" width="100" height="32" fill="{GROUND}"/>
-<rect y="45.2" width="100" height="0.8" fill="{LINE}"/>
-<rect y="67.2" width="100" height="0.8" fill="{LINE}"/>
-{dots}{ring}</g>"""
+<rect width="100" height="100" fill="{GROUND}"/>
+<rect x="14" y="47" width="52" height="6" rx="1" fill="{INK}"/>
+<rect x="60" y="48" width="40" height="4" fill="{INK}"/>
+{plates}</g>"""
 
 
 # The wordmark's wobble, frozen: one fixed tilt and nudge per letter.

@@ -59,7 +59,7 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
     await s.settle(seconds: 1);
     expect(
-      find.text(monthYear(DateTime.now()).toUpperCase()),
+      find.text(monthYear(DateTime.now())),
       findsOneWidget,
       reason: "the sessions sit under this month's heading",
     );

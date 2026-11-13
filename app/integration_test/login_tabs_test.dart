@@ -22,7 +22,7 @@ void main() {
     await s.shot('NEW USER tab', note: 'Username entry + create account.');
 
     // Switch to SIGN IN.
-    await s.tapText('SIGN IN');
+    await s.tapText('Sign in');
     final onSignIn = await s.waitForText(
       'Use a passkey on your device to sign in securely.',
       seconds: 6,

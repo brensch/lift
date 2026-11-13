@@ -7,6 +7,8 @@ const MUTED = "var(--color-muted)";
 const LINE = "var(--color-border)";
 const PAPER = "var(--color-surface)";
 const HOT = "var(--color-primary)";
+// Lifting, as the app colours it: a set under way.
+const GO = "var(--color-ok)";
 const MONO = "var(--font-mono, ui-monospace, monospace)";
 
 /** Two people in one session: one mid-set, one talking. */
@@ -14,7 +16,7 @@ function Multiplayer() {
   const row = (y: number, name: string, state: string, lifting: boolean) => (
     <g transform={`translate(22 ${y})`}>
       <rect width="156" height="58" rx="6" fill={PAPER} stroke={LINE} />
-      <circle cx="29" cy="29" r="15" fill={lifting ? HOT : "none"} stroke={lifting ? HOT : INK} />
+      <circle cx="29" cy="29" r="15" fill={lifting ? GO : "none"} stroke={lifting ? GO : INK} />
       <text x="54" y="26" fontFamily={MONO} fontSize="11" fontWeight="700" fill={INK}>
         {name}
       </text>
@@ -24,8 +26,8 @@ function Multiplayer() {
         width={state.length * 6.4 + 12}
         height="15"
         rx="3"
-        fill={lifting ? HOT : "none"}
-        stroke={lifting ? HOT : MUTED}
+        fill={lifting ? GO : "none"}
+        stroke={lifting ? GO : MUTED}
       />
       <text
         x="60"
@@ -124,7 +126,7 @@ function HeartRate() {
               cx={x}
               cy="56.5"
               r="7.6"
-              fill={i === 0 ? INK : i === 1 ? HOT : "none"}
+              fill={i === 0 ? INK : i === 1 ? GO : "none"}
               stroke={i < 2 ? "none" : MUTED}
             />
             <text
@@ -140,7 +142,7 @@ function HeartRate() {
             </text>
           </g>
         ))}
-        <rect x="30" y="69.4" width="140" height="26" fill={HOT} />
+        <rect x="30" y="69.4" width="140" height="26" fill={GO} />
         <text x="44" y="86" fontFamily={MONO} fontSize="8.5" fontWeight="700" fill={INK}>
           LIFTING
         </text>
@@ -169,7 +171,7 @@ function HeartRate() {
         <text x="122" y="129" textAnchor="middle" fontFamily={MONO} fontSize="7" fill={INK}>
           ×
         </text>
-        <circle cx="141" cy="126.5" r="13" fill={HOT} />
+        <circle cx="141" cy="126.5" r="13" fill={GO} />
         <text
           x="141"
           y="130.5"

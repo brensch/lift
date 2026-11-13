@@ -52,9 +52,12 @@ void main() {
       expect(first.warmup, isTrue, reason: 'a performed lift opens warm');
       await s.shot('Warmups showing');
 
-      // Skip the warmups: up next becomes the first working set.
-      await s.tapText(copy.workout.skipWarmups);
-      await s.settle(seconds: 2);
+      // Skip the warmups, one tap each: up next becomes the first working
+      // set.
+      for (var i = 0; i < warmupsBefore && s.nextSet?.warmup == true; i++) {
+        await s.tapText(copy.workout.skipWarmups);
+        await s.settle(seconds: 2);
+      }
       await s.shot('Warmups skipped');
       final next = s.nextSet;
       expect(

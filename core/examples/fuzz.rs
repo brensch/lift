@@ -498,6 +498,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                         mutations: vec![mutation(Mutation::SkipWarmups(SkipWarmupsRequest {
                             workout_id: workout_id.clone(),
                             exercise,
+                            ..Default::default()
                         }))],
                     });
             } else if action < 46 && !pending.is_empty() {
@@ -539,6 +540,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                         exercise: s.exercise,
                         working_weight: weight,
                         target_reps: 0,
+                        ..Default::default()
                     }),
                 );
             } else if action < 70 {

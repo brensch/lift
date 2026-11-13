@@ -58,8 +58,9 @@ class SetCircle extends StatefulWidget {
     this.nextColor,
   });
 
-  /// Every circle is this size; a row with more than fit scrolls.
-  static const double diameter = 64;
+  /// Every circle is this size; a row with more than fit scrolls. Big
+  /// enough to hit mid-set, small enough that two exercises fit a phone.
+  static const double diameter = 54;
 
   @override
   State<SetCircle> createState() => _SetCircleState();
@@ -162,7 +163,7 @@ class _SetCircleState extends State<SetCircle>
                       : '${widget.number}'),
               style: t.mono(
                 TextStyle(
-                  fontSize: t.size.headline,
+                  fontSize: t.size.titleLg,
                   fontWeight: t.weight.bold,
                   color: ink,
                   height: 1,

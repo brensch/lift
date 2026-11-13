@@ -6,7 +6,10 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../gen/copy.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart' show User;
+import '../logic/exercises.dart';
+import '../logic/set_labels.dart';
 import '../logic/user_profile.dart';
+import '../providers/settings_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import '../theme/app_theme.dart';
 import 'common/flat.dart';
@@ -123,8 +126,11 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FlatHeading(copy.multiplayer.inSession),
-        // Full-width rows: their emoji on their colour, name, stage.
+        // Full-width rows: their emoji on their colour, name, stage. The
+        // heading's own line is the one over the first row, and the last
+        // row's is the one the next heading sits on: no second line, no gap.
         _Rows(
+          topLine: false,
           children: [
             for (final p in participants)
               Builder(
@@ -133,32 +139,23 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     p,
                     tokens: context.tokens,
                   );
-                  return ListTile(
-                    dense: true,
-                    leading: _Avatar(user: p.user),
-                    title: Text(
-                      participantDisplayName(p),
-                      style: TextStyle(
-                        fontWeight: context.tokens.weight.bold,
-                        fontSize: context.tokens.size.body,
-                      ),
-                    ),
-                    trailing: Text(
-                      status.stateLabel.toUpperCase(),
-                      style: context.tokens.mono(
-                        TextStyle(
-                          fontSize: context.tokens.size.small,
-                          fontWeight: context.tokens.weight.bold,
-                          color: status.stateColor,
-                        ),
-                      ),
-                    ),
+                  final set = status.proposedSet;
+                  final unit = context.watch<SettingsProvider>().weightUnit;
+                  return _SessionRow(
+                    user: p.user,
+                    name: participantDisplayName(p),
+                    // What they are on, when they are on something.
+                    doing: set == null
+                        ? null
+                        : '${exerciseName(set.exercise)} · '
+                              '${setTextFor(set, unit)}',
+                    stage: status.stateLabel,
+                    stageColor: status.stateColor,
                   );
                 },
               ),
           ],
         ),
-        const SizedBox(height: 24),
       ],
     );
   }
@@ -333,6 +330,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: context.tokens.lightBackdrop,
+                      borderRadius: context.tokens.brMd,
                       border: Border.all(color: cs.outline),
                     ),
                     child: QrImageView(
@@ -367,13 +365,17 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
 class _Rows extends StatelessWidget {
   final List<Widget> children;
 
-  const _Rows({required this.children});
+  /// A line over the first row; false straight under a heading, which
+  /// ends in one.
+  final bool topLine;
+
+  const _Rows({required this.children, this.topLine = true});
 
   @override
   Widget build(BuildContext context) {
     final line = BorderSide(color: context.tokens.hairline);
     return DecoratedBox(
-      decoration: BoxDecoration(border: Border(top: line)),
+      decoration: BoxDecoration(border: topLine ? Border(top: line) : null),
       child: Column(
         children: [
           for (final c in children)
@@ -387,19 +389,93 @@ class _Rows extends StatelessWidget {
   }
 }
 
+/// Someone in your session: their emoji on their colour, their name over
+/// what they are lifting, and their stage on a block of its colour, as on
+/// the workout's status box.
+class _SessionRow extends StatelessWidget {
+  final User user;
+  final String name;
+  final String? doing;
+  final String stage;
+  final Color stageColor;
+
+  const _SessionRow({
+    required this.user,
+    required this.name,
+    required this.doing,
+    required this.stage,
+    required this.stageColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          _Avatar(user: user, size: 40),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: t.size.bodyLg,
+                    fontWeight: t.weight.bold,
+                    color: t.text,
+                  ),
+                ),
+                if (doing != null)
+                  Text(
+                    doing!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: t.size.body, color: t.muted),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: stageColor, borderRadius: t.brSm),
+            child: Text(
+              stage,
+              style: TextStyle(
+                fontSize: t.size.body,
+                fontWeight: t.weight.bold,
+                color: t.inkOn(stageColor),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Someone's emoji on a square of their colour, as on the workout banner.
 class _Avatar extends StatelessWidget {
   final User user;
+  final double size;
 
-  const _Avatar({required this.user});
+  const _Avatar({required this.user, this.size = 32});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32,
-      height: 32,
+      width: size,
+      height: size,
       alignment: Alignment.center,
-      color: profileColorFromHex(user.profileColorHex),
+      decoration: BoxDecoration(
+        color: profileColorFromHex(user.profileColorHex),
+        borderRadius: context.tokens.brSm,
+      ),
       child: Text(
         normalizedProfileEmoji(user.profileEmoji),
         style: TextStyle(fontSize: context.tokens.size.bodyLg, height: 1),

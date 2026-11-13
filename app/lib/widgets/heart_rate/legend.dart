@@ -27,11 +27,10 @@ class HeartRateLegendItem extends StatelessWidget {
         ),
         const SizedBox(width: 5),
         Text(
-          label.toUpperCase(),
+          label,
           style: TextStyle(
             fontSize: context.tokens.size.caption,
             fontWeight: context.tokens.weight.bold,
-            letterSpacing: 0.8,
             color: colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),

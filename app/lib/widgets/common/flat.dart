@@ -20,17 +20,7 @@ class SectionLabel extends StatelessWidget {
     final t = context.tokens;
     return SizedBox(
       width: double.infinity,
-      child: Text(
-        text.toUpperCase(),
-        style: t.mono(
-          TextStyle(
-            fontSize: t.size.small,
-            fontWeight: t.weight.bold,
-            letterSpacing: 1,
-            color: t.muted,
-          ),
-        ),
-      ),
+      child: Text(text, style: t.label()),
     );
   }
 }
@@ -115,12 +105,10 @@ class FlatTabs extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       child: Text(
                         labels[i],
-                        style: t.mono(
-                          TextStyle(
-                            fontSize: t.size.body,
-                            fontWeight: t.weight.bold,
-                            color: i == selected ? t.text : t.muted,
-                          ),
+                        style: TextStyle(
+                          fontSize: t.size.body,
+                          fontWeight: t.weight.bold,
+                          color: i == selected ? t.text : t.muted,
                         ),
                       ),
                     ),
@@ -291,7 +279,7 @@ class PageTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
+    text,
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     // The app bar's title style, so a sheet's title matches a page's.
@@ -341,17 +329,7 @@ class FlatMetricGrid extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              m.$1.toUpperCase(),
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.small,
-                  fontWeight: t.weight.bold,
-                  letterSpacing: 1,
-                  color: m.$3 ?? t.muted,
-                ),
-              ),
-            ),
+            Text(m.$1, style: t.label(color: m.$3)),
             const SizedBox(height: 4),
             FittedBox(
               fit: BoxFit.scaleDown,

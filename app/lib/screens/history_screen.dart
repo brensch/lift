@@ -101,13 +101,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     final unit = context.watch<SettingsProvider>().weightUnit;
 
     Widget scaffold(Widget body) => Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(AppIcons.back),
-          onPressed: () => context.go('/'),
-        ),
-        title: PageTitle(copy.history.title),
-      ),
+      appBar: AppBar(title: PageTitle(copy.history.title)),
       body: body,
     );
 
@@ -285,12 +279,10 @@ class _HistoryCard extends StatelessWidget {
                                   details,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: context.tokens.mono(
-                                    TextStyle(
-                                      fontSize: context.tokens.size.small,
-                                      fontWeight: context.tokens.weight.bold,
-                                      color: cs.onSurface,
-                                    ),
+                                  style: TextStyle(
+                                    fontSize: context.tokens.size.small,
+                                    fontWeight: context.tokens.weight.bold,
+                                    color: cs.onSurface,
                                   ),
                                 ),
                               ],
@@ -344,12 +336,11 @@ class _DateBadge extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            shortMonth(date).toUpperCase(),
+            shortMonth(date),
             style: TextStyle(
               color: cs.primary,
               fontSize: context.tokens.size.small,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: 0.5,
             ),
           ),
           Text(

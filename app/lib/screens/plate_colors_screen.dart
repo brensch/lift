@@ -87,6 +87,7 @@ class PlateColorsScreen extends StatelessWidget {
                           height: 20 + 24 * (plate / plates.first),
                           decoration: BoxDecoration(
                             color: settings.plateColor(plate),
+                            borderRadius: context.tokens.brMd,
                             border: Border.all(color: t.outline),
                           ),
                         ),
@@ -131,6 +132,7 @@ class PlateColorsScreen extends StatelessWidget {
                             width: 40,
                             decoration: BoxDecoration(
                               color: option,
+                              borderRadius: context.tokens.brMd,
                               border: Border.all(
                                 color: chosen ? t.text : t.outline,
                                 width: chosen ? 3 : 1,

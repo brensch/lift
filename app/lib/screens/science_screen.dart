@@ -157,7 +157,6 @@ class _Section extends StatelessWidget {
             style: TextStyle(
               fontSize: context.tokens.size.bodyLg,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 6),

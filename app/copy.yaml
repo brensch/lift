@@ -6,11 +6,11 @@
 # so rename nothing, reword anything.
 
 tutorial:
-  skip: SKIP
-  next: NEXT
-  previous: BACK
-  finish: LET'S SCHLIFT
-  papers_button: READ THE PAPERS
+  skip: Skip
+  next: Next
+  previous: Back
+  finish: Let's schlift
+  papers_button: Read the papers
 
   # The walkthrough runs over the real screens with a sample account behind
   # them. Each step points at one `target` (an id the screens know: see
@@ -67,9 +67,6 @@ library:
   plan_current: Current
   # Marks a workout as the user's own, on home and in the sheet.
   personal: Personalised
-  # Makes a library workout the user's own to edit; it stops following
-  # the library.
-  clone: Clone
   remove: Remove
   delete: Delete
   # The Manage sheet's delete prompt.
@@ -111,8 +108,8 @@ rotation:
 
 # Sign-in screen.
 login:
-  new_user_tab: NEW USER
-  sign_in_tab: SIGN IN
+  new_user_tab: New user
+  sign_in_tab: Sign in
   username_prompt: What should we call you
   # Shown in the empty username box, one at a time.
   username_examples:
@@ -145,7 +142,7 @@ login:
   sign_in: Sign in
   # Placeholder copy. Opens an exported account file with no server needed.
   # Debug builds only.
-  dev_login_heading: DEV NAME LOGIN
+  dev_login_heading: Dev name login
   dev_username: Username
   dev_login: Dev Login
 
@@ -155,10 +152,10 @@ login:
 # Android 14+ the alarms setting that keeps the rest timer on time).
 permissions:
   title: Studies show that people who give this app the permissions it needs get 23% more huge
-  button: GRANT PERMISSIONS
+  button: Grant permissions
 onboarding:
-  next: NEXT
-  back: BACK
+  next: Next
+  back: Back
   # After setup, when the emoji, colour and bodyweight didn't reach the
   # server. Setup still finishes.
   profile_failed: You still gotta pick your emoji mate. The menu has an option to change it.
@@ -201,7 +198,7 @@ onboarding:
     title: Pick your rotation
     body: You can add, remove, or edit them later. Pretty cool.
     none_selected: Pick at least one. Or one hundred.
-    finish: START LIFTING
+    finish: Start lifting
 # Rest-over notification sounds, in the order the picker shows them. The
 # id names the file app/assets/sounds/sound_<id>.wav (sources in
 # assets/sounds/SOURCES.md); `make sounds` mirrors the files to Android and
@@ -284,7 +281,7 @@ passkey_errors:
 # this account with a new passkey: the owner can refuse it. Placeholders.
 recovery_alert:
   body: Someone made a new passkey for your account and asked Brendan to approve it. If that wasn't you, stop it.
-  deny: NOT ME
+  deny: Not me
 
 # The live workout: the set circles and status bars on the phone, and every
 # screen on the watch. A set is a circle: tap to start it, tap again when
@@ -311,10 +308,10 @@ workout:
   discard_cancel: Keep it
   set_line: Set {n} of {m}
   warmup_line: Warmup {n} of {m}
-  warmup_label: WARMUP
-  working_label: WORKING
+  warmup_label: Warmup
+  working_label: Working
   # In the band of whoever's turn on the rack it is, on two lines.
-  up_next: "UP\nNEXT!"
+  up_next: "Up\nnext!"
   skip_warmups: Skip
   # Asked when someone starts the first set of an exercise they have never
   # done: the ramp of 5-rep sets starts from the weight picked. {exercise}
@@ -402,21 +399,22 @@ plan:
     # SETS_FROM_TIME: more than the two every lift gets.
     sets_extra: "{sets} sets. {muscle} is behind this week."
     sets_floor: "{sets} sets. That's what the time fits."
-  # The first line about a lift: this plan against its last session,
-  # "{change}: {why}.". {after} is the weight now, {n} a number of reps.
+  # The first line about a lift: this plan against its last session, as
+  # two sentences, "{change}. {why}.". {after} is the weight now, {n} a
+  # number of reps.
   versus:
-    weight_up: "Up to {after}"
-    weight_down: "Down to {after}"
-    reps_up_one: "One more rep"
-    reps_up: "{n} more reps"
-    reps_down_one: "One rep fewer"
-    reps_down: "{n} fewer reps"
+    weight_up: "Weight up to {after}"
+    weight_down: "Weight down to {after}"
+    reps_up_one: "Added one rep"
+    reps_up: "Added {n} reps"
+    reps_down_one: "Took off one rep"
+    reps_down: "Took off {n} reps"
     same: "Same as last time"
     # Why. {sets} is today's sets, {last} last time's.
-    hit: "every rep last time"
-    missed: "missed reps last time"
-    stopped_early: "stopped early last time"
-    rushed: "you missed a set you didn't rest for"
+    hit: "You got every rep last time"
+    missed: "You missed reps last time"
+    stopped_early: "You stopped early last time"
+    rushed: "You missed a set you didn't rest for"
     sets: "{sets} sets today, {last} last time"
     time_off: "{days} days off"
   # Changes to a weight during a workout.
@@ -435,7 +433,7 @@ plan:
     sets: Sets
     # The sets toggle off: the time budget decides.
     sets_auto: From the time
-    save: SAVE
+    save: Save
     remove: Let the plan decide
     # On a row with an override.
     custom: yours
@@ -505,8 +503,8 @@ your_data:
   import_confirm: Import
   import_cancel: Cancel
   # {error} is what went wrong.
-  export_failed: "EXPORT FAILED: {error}"
-  import_failed: "IMPORT FAILED: {error}"
+  export_failed: "Export failed: {error}"
+  import_failed: "Import failed: {error}"
 
 # Ending a workout: the prompt the End workout button asks first.
 # Placeholders.
@@ -522,11 +520,11 @@ exercise_picker:
   title: Select exercises
   search_hint: Search exercises…
   # The first filter chip: every body part.
-  all: ALL
-  hide_machines: HIDE MACHINES
-  show_machines: SHOW MACHINES
+  all: All
+  hide_machines: Hide machines
+  show_machines: Show machines
   empty: No exercises found
-  save: SAVE
+  save: Save
   # Asked when the sheet is closed with picks that weren't saved.
   discard_title: Discard changes?
   discard_body: Your selection has not been saved.
@@ -535,12 +533,12 @@ exercise_picker:
 
 # The live heart-rate chart on the workout screen. Placeholders.
 heart_rate:
-  title: HEART RATE
+  title: Heart rate
   bpm: BPM
   # Beside the zone: how the zones were worked out, from the heart-rate
   # reserve (a resting heart rate is known) or from max heart rate.
   zones_by_reserve: HRR
-  zones_by_max: "%MAX"
+  zones_by_max: "%max"
   # The resting heart rate. {bpm} is substituted.
   resting: "zzz {bpm}"
   # The buttons that set how much time the live chart shows.
@@ -588,24 +586,19 @@ multiplayer:
 
 # The side menu. Placeholders.
 menu:
-  workout: Workout
   progress: Progress
   history: History
   learn: Learn
   logout: Logout
   settings: Settings
+  # The tooltip of the multiplayer button (home and the workout's top row).
   multiplayer: Multiplayer
-  # The watch button in the app bar, and what it says when tapped.
-  open_watch: Open watch app
-  watch_missing: No paired watch with Schlift installed
-  watch_already_open: Schlift is already open on your watch
-  watch_opening: Open Schlift on your wrist to connect
 
 # The log of done sets on the workout screen. {…} are substituted.
 # Placeholders.
 set_log:
   heading: "Completed sets · {n}"
-  empty_title: NO SETS YET
+  empty_title: No sets yet
   empty_body: Get schlifting mate
   delete_title: Delete Completed Set?
   delete_body: "Remove set {weight} × {reps}? This cannot be undone."
@@ -630,8 +623,9 @@ plates:
 adjust_weight:
   body: "Changes {name} for the rest of this workout and for next time."
   reps: Reps
-  save: SAVE
-  done: DONE
+  sets: Sets
+  save: Save
+  done: Done
   remove_tooltip: Remove from this workout
   remove_title: "Remove {exercise}?"
   remove_body: This will remove its remaining sets. Sets you already did stay.
@@ -679,8 +673,8 @@ rest_notification:
 # Joining a group from an invite code or link. Placeholders, as the app had
 # them.
 invite:
-  invalid: INVALID INVITE CODE
-  joined: JOINED GROUP
+  invalid: Invalid invite code
+  joined: Joined group
 
 # When the server stops accepting this phone's sign-in; the account stays
 # usable on the phone. Placeholder, as the app had it.
@@ -691,7 +685,7 @@ session_expired: Sign in again to sync this phone with your account.
 update_required:
   title: Update needed
   body: New app version lovingly crafted for you is ready. Download it to continue.
-  button: UPDATE
+  button: Update
 
 # The error dialog. Placeholders, as the app had them.
 error_dialog:
@@ -705,8 +699,8 @@ template_editor:
   name_hint: Name, e.g. Push, Legs, Tuesday
   # The empty exercise list.
   empty: Add exercises. Tap one to set your own weight and reps. They follow the exercise everywhere.
-  add_exercises: ADD EXERCISES
-  save: SAVE
+  add_exercises: Add exercises
+  save: Save
   # Also the override sheet's failure. {error} is the reason.
   save_failed: "Could not save: {error}"
 
@@ -740,8 +734,8 @@ progress:
   since: "since {date}"
   # {span} is the span picked: 1Y, 6M, …
   none_in_span: "No lifts in the last {span}."
-  max: MAX
-  best: BEST
+  max: Max
+  best: Best
   empty: No workout history yet
   empty_body: Finish a workout and your progress shows up here.
 
@@ -749,7 +743,9 @@ progress:
 # Placeholders.
 home:
   # Both cards' button. (workout.start is the set circle's and the watch's.)
-  start: START
+  start: Start
+  # Over the muscle tracker, beside the menu button. Placeholder.
+  this_week: This week
   # The freestyle workout: its chip, and its card.
   empty_chip: Empty
   empty_title: "Don't tell me what to do"
@@ -764,14 +760,15 @@ home:
   # No workouts at all.
   no_templates: No templates yet
   no_templates_body: A template is just a list of exercises. The app handles the sets, reps and weight.
-  create_one: CREATE ONE
+  create_one: Create one
 
 # The live workout page on the phone: its tabs and panels. Placeholders.
 workout_page:
-  tab_workout: Workout
+  # The two pages the workout's first row opens (the clock box, the heart
+  # box): their titles.
   tab_log: Log
   tab_heart: Heart
-  # The Heart tab with no watch.
+  # The Heart page with no watch.
   no_heart_rate: No heart rate yet
   no_heart_rate_body: Get the watch app and you can see how hard you are pumping your heart while schlifting.
   add_exercise: Add exercise
@@ -783,8 +780,8 @@ workout_page:
 startup:
   exit_title: Exit app?
   exit_body: Are you sure you want to quit?
-  exit_cancel: CANCEL
-  exit_confirm: EXIT
+  exit_cancel: Cancel
+  exit_confirm: Exit
   failed: Could not finish startup
   retry: Retry
 
@@ -825,7 +822,7 @@ settings:
   # The body-weight sheet.
   body_weight_body: Used to estimate calories burned. Stored on your profile.
   body_weight_field: Weight
-  save: SAVE
+  save: Save
   weight_unit: Weight unit
   pounds: Pounds (🦅)
   pounds_sub: Standard US gym loading
@@ -857,16 +854,16 @@ settings:
 # workouts. Placeholders.
 profile_marker:
   title: Profile Marker
-  eyebrow: GROUP LOOK
+  eyebrow: Group look
   heading: Pick your colour and emoji
   body: This controls the badge and side stripe used for you in group workouts.
   # The card that shows the pick in place.
   preview_title: Group workout preview
   preview_body: Your emoji replaces the vertical name and your colour owns the sidebar.
-  emojis: EMOJIS
+  emojis: Emojis
   refresh: Refresh
-  colours: COLOURS
-  save: SAVE
+  colours: Colours
+  save: Save
   save_failed: Couldn't save your marker. Try again.
 
 # Settings → Passkeys: the list, and deleting one. Placeholders.
@@ -984,29 +981,53 @@ science:
 # Placeholders.
 maths:
   title: Calorie maths
-  estimation_label: CALORIE ESTIMATION
+  estimation_label: Calorie estimation
   estimation_title: How we estimate calories burned
   estimation_body: "We use the MET (Metabolic Equivalent of Task) formula from the 2011 Compendium of Physical Activities (Ainsworth et al., Med Sci Sports Exerc 43(8):1575–81). Traditional strength training has a MET value of 3.5."
-  formula_label: FORMULA
+  formula_label: Formula
   # What each symbol of the formula is.
   term_met: 3.5 (traditional strength training)
   term_constant: ml O₂ per kg per min at 1 MET (standard constant)
   term_weight: your bodyweight in kilograms
   term_minutes: total workout duration
   term_divisor: converts ml O₂/min to kcal/min (5 kcal/L O₂ ÷ 1000 × 40)
-  your_estimate_label: YOUR ESTIMATE
+  your_estimate_label: Your estimate
   # {min} is the example session's length.
-  example: "EXAMPLE: {min} MIN SESSION"
+  example: "Example: {min} min session"
   example_result: "≈ {kcal} kcal"
   no_weight: Set your bodyweight in Settings → Body weight to get a personalised calorie estimate.
-  tonnage_label: WHAT ABOUT TONNAGE?
+  tonnage_label: What about tonnage?
   tonnage_title: Volume and calorie burn
   tonnage_body: "Tonnage (sets × reps × weight lifted) does predict calorie expenditure during strength training. A 2006 study by Haddock & Wilkin (Int J Sports Med 27(2):143–8) found that 3-set protocols burned ~2.8× more calories than 1-set protocols of the same exercise.\n\nHowever, when normalised per minute of actual exercise time, calorie rate is roughly constant, meaning total duration already captures most of the tonnage effect. More volume → longer sessions → more calories, which the MET × duration formula handles automatically.\n\nA 2020 regression study found that session time and volume load together explained ~61% of energy expenditure variance (R² = 0.61). The remaining 39% is individual variation in rest periods, exercise selection, and body composition that no formula can capture without direct measurement."
-  accuracy_label: ACCURACY
+  accuracy_label: Accuracy
   accuracy_title: Why this is an estimate
   accuracy_body: "Resistance training has a large anaerobic component (up to 40% of total energy expenditure) that standard indirect calorimetry cannot fully capture, and no phone app can measure it at all. A 2024 systematic review (PMC11393209) found no gold-standard method for resistance training energy expenditure. The MET formula gives a reasonable population-average estimate, accurate to perhaps ±25% for any individual session.\n\nIf no bodyweight is set, we fall back to a flat 5 kcal/min, roughly the midpoint of the 4–10 kcal/min range observed across studies."
-  references_label: REFERENCES
+  references_label: References
   references:
     - "Ainsworth BE et al. (2011). 2011 Compendium of Physical Activities: A Second Update of Codes and MET Values. Med Sci Sports Exerc, 43(8):1575–81."
     - "Haddock CK & Wilkin LD (2006). Resistance training volume and post exercise energy expenditure. Int J Sports Med, 27(2):143–8."
     - "Dinyer-McNeely TK et al. (2024). Methods to Assess Energy Expenditure of Resistance Exercise: A Systematic Scoping Review. PMC11393209."
+
+# The workout's motivational quote: the button in the bottom bar, the pop-up
+# it opens, and the section on a finished workout. One of `quotes` is picked
+# at random when a workout starts and stays with it.
+motivation:
+  button: Motivation
+  title: Motivation
+  footer: this is your motivational quote for this workout. Come back next time for another really excellent piece of motivation like this.
+  close: Close
+  quotes:
+    - lift more weight and you will become more huge.
+    - people will like you more if you lift more weight
+    - people who lift less weight are ok but people who lift more weight are nice.
+    - if you can't lift the weight, then try harder so that you can lift that weight.
+    - don't think of the weight as heavy, think of it as light, and then lift it
+    - to err is human, to lift is divine.
+    - you don't need this motivation, you are strong and motivation comes from within (sick meta motivation)
+    - if you lift you will likely become stronger, which will lead to you being able to lift more, which will lead to you being stronger, etc you get it.
+    - lifting is the only thing you're allowed to do in prison (uncited). you are likely not in prison, but you're still allowed to lift. that is nice.
+    - keep on lifting, i think you're really good at it (app riz)
+    - your butt looks really good when you lift
+    - the pump you feel while lifting is the same pump that Arnie feels while lifting
+    - you don't need therapy, you need to lift, eat well, and sleep well (not a funny one, actual thought i have)
+    - "if runners get marathons, then lifters should get something. and not like the one where that lady pooped her pants, something less cringe. not motivation, just a thought."

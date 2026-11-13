@@ -17,6 +17,7 @@ import '../logic/exercises.dart';
 import '../logic/set_labels.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
+import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 import 'plate_visualization.dart';
 
@@ -52,6 +53,9 @@ class StatusBox extends StatelessWidget {
   /// yet, so the box says so instead of weight and plates.
   final bool firstTime;
 
+  /// Opens the exercise's edit sheet: a pencil left of the weight.
+  final VoidCallback? onEdit;
+
   const StatusBox({
     super.key,
     required this.emoji,
@@ -66,6 +70,7 @@ class StatusBox extends StatelessWidget {
     this.compact = false,
     this.circle,
     this.firstTime = false,
+    this.onEdit,
   });
 
   @override
@@ -75,28 +80,26 @@ class StatusBox extends StatelessWidget {
     final onBand = t.inkOn(stateColor);
     final set = this.set;
 
-    TextStyle bandMono(double size) => t.mono(
-      TextStyle(
-        fontSize: size,
-        fontWeight: t.weight.bold,
-        letterSpacing: 1.5,
-        color: onBand,
-        height: 1,
-      ),
+    // On the band: the stage in words, the clock in figures.
+    TextStyle onBandText(double size) => TextStyle(
+      fontSize: size,
+      fontWeight: t.weight.bold,
+      color: onBand,
+      height: 1,
     );
 
     // The band: their emoji on a block of their own colour, full height
     // from the left edge; the stage (and, compact, their set under it);
     // UP NEXT when the rack is theirs; the clock hard right. The stage and
     // the clock shrink to fit a narrow screen; nothing wraps.
-    const bandHeight = 64.0;
+    const bandHeight = 56.0;
     final stage = FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Text(
-        stateLabel.toUpperCase(),
+        stateLabel,
         maxLines: 1,
-        style: bandMono(t.size.headlineLg).copyWith(letterSpacing: 0.5),
+        style: onBandText(t.size.headlineLg),
       ),
     );
     final band = SizedBox(
@@ -107,17 +110,22 @@ class StatusBox extends StatelessWidget {
           children: [
             // Resting: a paler track, and the colour over it shrinking to the
             // left as the rest runs out (eased across each one-second tick).
+            // It shrinks to the emoji's block, not under it: the rest is over
+            // when the colour is gone, not a block's width before.
             ColoredBox(
               color: restLeft == null
                   ? stateColor
                   : Color.lerp(stateColor, t.panel, 0.45)!,
             ),
             if (restLeft != null)
-              AnimatedFractionallySizedBox(
-                duration: const Duration(seconds: 1),
-                alignment: Alignment.centerLeft,
-                widthFactor: restLeft!.clamp(0.0, 1.0),
-                child: ColoredBox(color: stateColor),
+              Positioned.fill(
+                left: bandHeight,
+                child: AnimatedFractionallySizedBox(
+                  duration: const Duration(seconds: 1),
+                  alignment: Alignment.centerLeft,
+                  widthFactor: restLeft!.clamp(0.0, 1.0),
+                  child: ColoredBox(color: stateColor),
+                ),
               ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -162,9 +170,7 @@ class StatusBox extends StatelessWidget {
                         alignment: Alignment.centerRight,
                         child: Text(
                           timerText!,
-                          style: bandMono(
-                            t.size.displayLg,
-                          ).copyWith(letterSpacing: 0),
+                          style: t.mono(onBandText(t.size.displayLg)),
                         ),
                       ),
                     ),
@@ -186,7 +192,7 @@ class StatusBox extends StatelessWidget {
     } else {
       // The weight alone, as big as it goes: the reps are in the circle
       // (a partner's box, with no circle, says them after it).
-      final weightSize = compact ? t.size.headlineLg : t.size.giant;
+      final weightSize = compact ? t.size.headlineLg : t.size.displayLg;
       final load = Text.rich(
         TextSpan(
           children: [
@@ -237,7 +243,25 @@ class StatusBox extends StatelessWidget {
                 alignment: circle == null
                     ? Alignment.centerLeft
                     : Alignment.centerRight,
-                child: load,
+                child: onEdit == null
+                    ? load
+                    : GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onEdit,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              AppIcons.edit,
+                              size: t.size.title,
+                              color: t.muted,
+                              semanticLabel: copy.workoutPage.weightAndReps,
+                            ),
+                            const SizedBox(width: 8),
+                            load,
+                          ],
+                        ),
+                      ),
               ),
             ),
           if (circle != null && firstTime) circle!,
@@ -326,8 +350,11 @@ class StatusBox extends StatelessWidget {
     }
 
     return Container(
+      // The band's colours run to the edge: they take the box's corners.
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: t.panel,
+        borderRadius: context.tokens.brMd,
         border: Border.all(color: t.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
@@ -338,7 +365,7 @@ class StatusBox extends StatelessWidget {
             Padding(
               padding: compact
                   ? const EdgeInsets.fromLTRB(14, 6, 14, 6)
-                  : const EdgeInsets.fromLTRB(14, 12, 14, 16),
+                  : const EdgeInsets.fromLTRB(14, 6, 14, 8),
               child: body,
             ),
         ],
@@ -364,12 +391,13 @@ class _Plates extends StatelessWidget {
     return GestureDetector(
       onTap: () => showPlateBreakdownDialog(context, weightLb: weight),
       child: Container(
-        width: compact ? 72 : 104,
-        height: compact ? 36 : 56,
+        width: compact ? 72 : 88,
+        height: compact ? 36 : 46,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: t.lightBackdrop,
+          borderRadius: context.tokens.brMd,
           border: Border.all(color: t.outline),
         ),
         child: isEmptyBar(weight, unit)
@@ -426,14 +454,11 @@ class _UpNextState extends State<_UpNext> with SingleTickerProviderStateMixin {
           child: Text(
             copy.workout.upNext,
             textAlign: TextAlign.center,
-            style: t.mono(
-              TextStyle(
-                fontSize: t.size.small,
-                fontWeight: t.weight.bold,
-                letterSpacing: 0.5,
-                color: color,
-                height: 1.1,
-              ),
+            style: TextStyle(
+              fontSize: t.size.small,
+              fontWeight: t.weight.bold,
+              color: color,
+              height: 1.1,
             ),
           ),
         );

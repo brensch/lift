@@ -108,7 +108,6 @@ class StrengthStep extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: context.tokens.size.small,
                                   fontWeight: context.tokens.weight.heavy,
-                                  letterSpacing: 0.6,
                                   color: cs.onSurface.withValues(alpha: 0.55),
                                 ),
                               ),

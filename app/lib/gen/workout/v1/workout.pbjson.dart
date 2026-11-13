@@ -333,6 +333,7 @@ const Workout$json = {
       '5': 3,
       '10': 'liftingStartedAt'
     },
+    {'1': 'motivation', '3': 9, '4': 1, '5': 9, '10': 'motivation'},
   ],
 };
 
@@ -342,7 +343,8 @@ final $typed_data.Uint8List workoutDescriptor = $convert.base64Decode(
     'RpbWUYAyABKANSCXN0YXJ0VGltZRIZCghlbmRfdGltZRgEIAEoA1IHZW5kVGltZRIdCgpzZXNz'
     'aW9uX2lkGAUgASgJUglzZXNzaW9uSWQSHwoLdGVtcGxhdGVfaWQYBiABKAlSCnRlbXBsYXRlSW'
     'QSJAoObGlmdGluZ19zZXRfaWQYByABKAlSDGxpZnRpbmdTZXRJZBIsChJsaWZ0aW5nX3N0YXJ0'
-    'ZWRfYXQYCCABKANSEGxpZnRpbmdTdGFydGVkQXQ=');
+    'ZWRfYXQYCCABKANSEGxpZnRpbmdTdGFydGVkQXQSHgoKbW90aXZhdGlvbhgJIAEoCVIKbW90aX'
+    'ZhdGlvbg==');
 
 @$core.Deprecated('Use proposedSetDescriptor instead')
 const ProposedSet$json = {
@@ -668,6 +670,7 @@ const StartWorkoutRequest$json = {
       '6': '.workout.v1.ExerciseDecision',
       '10': 'decisions'
     },
+    {'1': 'motivation', '3': 8, '4': 1, '5': 9, '10': 'motivation'},
   ],
   '9': [
     {'1': 2, '2': 3},
@@ -681,8 +684,8 @@ final $typed_data.Uint8List startWorkoutRequestDescriptor = $convert.base64Decod
     'gDIAEoA1IJc3RhcnRlZEF0Eh8KC3RlbXBsYXRlX2lkGAQgASgJUgp0ZW1wbGF0ZUlkEjIKCWV4'
     'ZXJjaXNlcxgFIAMoDjIULndvcmtvdXQudjEuRXhlcmNpc2VSCWV4ZXJjaXNlcxIlCg5idWRnZX'
     'RfbWludXRlcxgHIAEoBVINYnVkZ2V0TWludXRlcxI6CglkZWNpc2lvbnMYBiADKAsyHC53b3Jr'
-    'b3V0LnYxLkV4ZXJjaXNlRGVjaXNpb25SCWRlY2lzaW9uc0oECAIQA1IPZXhlcmNpc2VfZ3JvdX'
-    'Bz');
+    'b3V0LnYxLkV4ZXJjaXNlRGVjaXNpb25SCWRlY2lzaW9ucxIeCgptb3RpdmF0aW9uGAggASgJUg'
+    'ptb3RpdmF0aW9uSgQIAhADUg9leGVyY2lzZV9ncm91cHM=');
 
 @$core.Deprecated('Use startWorkoutResponseDescriptor instead')
 const StartWorkoutResponse$json = {
@@ -1209,6 +1212,7 @@ const AdjustExerciseWeightRequest$json = {
     },
     {'1': 'working_weight', '3': 3, '4': 1, '5': 2, '10': 'workingWeight'},
     {'1': 'target_reps', '3': 4, '4': 1, '5': 5, '10': 'targetReps'},
+    {'1': 'sets', '3': 5, '4': 1, '5': 5, '10': 'sets'},
   ],
 };
 
@@ -1217,7 +1221,7 @@ final $typed_data.Uint8List adjustExerciseWeightRequestDescriptor = $convert.bas
     'ChtBZGp1c3RFeGVyY2lzZVdlaWdodFJlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya2'
     '91dElkEjAKCGV4ZXJjaXNlGAIgASgOMhQud29ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2US'
     'JQoOd29ya2luZ193ZWlnaHQYAyABKAJSDXdvcmtpbmdXZWlnaHQSHwoLdGFyZ2V0X3JlcHMYBC'
-    'ABKAVSCnRhcmdldFJlcHM=');
+    'ABKAVSCnRhcmdldFJlcHMSEgoEc2V0cxgFIAEoBVIEc2V0cw==');
 
 @$core.Deprecated('Use removeExerciseRequestDescriptor instead')
 const RemoveExerciseRequest$json = {
@@ -1274,13 +1278,15 @@ const SkipWarmupsRequest$json = {
       '6': '.workout.v1.Exercise',
       '10': 'exercise'
     },
+    {'1': 'proposed_set_id', '3': 3, '4': 1, '5': 9, '10': 'proposedSetId'},
   ],
 };
 
 /// Descriptor for `SkipWarmupsRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List skipWarmupsRequestDescriptor = $convert.base64Decode(
     'ChJTa2lwV2FybXVwc1JlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEjAKCG'
-    'V4ZXJjaXNlGAIgASgOMhQud29ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2U=');
+    'V4ZXJjaXNlGAIgASgOMhQud29ya291dC52MS5FeGVyY2lzZVIIZXhlcmNpc2USJgoPcHJvcG9z'
+    'ZWRfc2V0X2lkGAMgASgJUg1wcm9wb3NlZFNldElk');
 
 @$core.Deprecated('Use rungOutcomeDescriptor instead')
 const RungOutcome$json = {
