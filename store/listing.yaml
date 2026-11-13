@@ -62,7 +62,8 @@ other_features:
   # The text goes in the store description as a bullet, and on the website
   # in a box beside its picture. `picture` names a drawing in
   # web/src/components/feature-art.tsx (multiplayer, history, saved,
-  # heart_rate); an item without one is a box of text.
+  # heart_rate, motivation, live_status); an item without one is a box of
+  # text.
   items:
     - picture: multiplayer
       text: Multiplayer workouts - good for tracking who is yapping and who should do their bench press next
@@ -72,6 +73,10 @@ other_features:
       text: Save your own workouts to easily do that sick workout your friend showed you again later
     - picture: heart_rate
       text: Heartrate monitoring and an accompanying watch app that works really well (it was really hard to get that to work tbh so please use the watch app)
+    - picture: live_status
+      text: Live status - see your rest time in your notification bar while you scroll instagram
+    - picture: motivation
+      text: Motivation - sometimes you need motivation. These motivations probably won't help but they're there so that's nice
 
 # schlift.com — the only lines on the landing page that are not already a
 # store field above. The hero is the tagline with promotional_text under it;

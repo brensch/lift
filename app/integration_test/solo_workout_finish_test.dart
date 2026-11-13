@@ -42,7 +42,7 @@ void main() {
       await s.tap(find.text('End Workout').last); // dialog's confirm button
 
       // Land on the workout summary.
-      await s.mustSee('SESSION', seconds: 15);
+      await s.mustSee(copy.summary.session, seconds: 15);
       await s.shot(
         'Session snapshot',
         note: 'Workout ended; Duration / Volume / Sets and the time tiles.',
@@ -56,7 +56,7 @@ void main() {
         copy.workout.yapping,
       ]) {
         expect(
-          s.isVisible(tile.toUpperCase()),
+          s.isVisible(tile),
           isTrue,
           reason: 'the summary should show the $tile tile',
         );
