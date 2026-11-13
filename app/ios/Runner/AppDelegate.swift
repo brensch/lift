@@ -6,5 +6,6 @@ import UIKit
     func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
         GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
         WatchBridgePlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "WatchBridgePlugin")!)
+        LiveStatusPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "LiveStatusPlugin")!)
     }
 }

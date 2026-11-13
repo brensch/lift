@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'app_logger.dart';
+import 'live_status.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
@@ -195,8 +196,10 @@ class NotificationService {
       });
 
   /// Comprehensive cleanup of all notifications.
-  static Future<void> cancelAll() =>
-      _bestEffort('cancelAll', () => _plugin.cancelAll());
+  static Future<void> cancelAll() async {
+    await LiveStatus.cancel();
+    await _bestEffort('cancelAll', () => _plugin.cancelAll());
+  }
 
   static Future<List<PendingNotificationRequest>>
   getPendingNotifications() async {

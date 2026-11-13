@@ -14,6 +14,8 @@
 		<string>__IOS_APP_PROFILE_NAME__</string>
 		<key>com.brensch.schlift.watchkitapp</key>
 		<string>__IOS_WATCH_PROFILE_NAME__</string>
+		<key>com.brensch.schlift.LiveStatus</key>
+		<string>__IOS_LIVE_STATUS_PROFILE_NAME__</string>
 	</dict>
 	<key>signingCertificate</key>
 	<string>Apple Distribution</string>

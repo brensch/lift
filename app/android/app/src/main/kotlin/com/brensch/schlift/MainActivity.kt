@@ -1,6 +1,8 @@
 package com.brensch.schlift
 
 import androidx.activity.result.contract.ActivityResultContracts
+import com.brensch.schlift.livestatus.LiveStatus
+import com.brensch.schlift.livestatus.LiveStatusPhase
 import com.brensch.schlift.wearbridge.WearBridgeManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -62,6 +64,38 @@ class MainActivity : FlutterFragmentActivity() {
                     pendingSave?.second?.success(false)
                     pendingSave = path to result
                     createDocument.launch(name)
+                }
+
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        // The live status notification (livestatus/LiveStatus.kt).
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "schlift/live_status",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "show" -> {
+                    val channel = call.argument<String>("channel").orEmpty()
+                    val now = LiveStatusPhase.from(call.argument<Map<*, *>>("now"))
+                    if (now == null) {
+                        result.error("invalid_args", "Missing now", null)
+                        return@setMethodCallHandler
+                    }
+                    LiveStatus.cancelPending(this)
+                    LiveStatus.show(this, channel, now)
+                    val then = LiveStatusPhase.from(call.argument<Map<*, *>>("then"))
+                    val at = (call.argument<Number>("thenAtMs") ?: 0).toLong()
+                    if (then != null && at > 0) LiveStatus.showAt(this, channel, at, then)
+                    result.success(null)
+                }
+
+                "cancel" -> {
+                    LiveStatus.cancel(this)
+                    result.success(null)
                 }
 
                 else -> {
