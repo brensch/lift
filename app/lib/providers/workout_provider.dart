@@ -17,6 +17,7 @@ import '../logic/exercise_blocks.dart';
 import '../logic/session_state.dart';
 import '../logic/set_labels.dart';
 import '../providers/settings_provider.dart';
+import '../services/live_status.dart';
 import '../services/workout_service.dart';
 import '../providers/sound_provider.dart';
 import '../services/notification_service.dart';
@@ -139,6 +140,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (onScreen) {
         _setNow(DateTime.now());
         notifyListeners();
+        // An iPhone starts a Live Activity only with the app in front: a
+        // workout begun from the watch gets its status now.
+        if (hasActiveWorkout) _showLiveStatus();
       }
     }
     final notifying = _wantsNotification(state);
@@ -179,6 +183,76 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _blocksCache
       ..clear()
       ..addAll(blocksFromSets(_proposed));
+    _showLiveStatus();
+  }
+
+  /// Keep the live status (LiveStatus) saying what the workout is at: the
+  /// stage and the set in hand. Gone once the workout is over.
+  void _showLiveStatus() {
+    if (_sandbox) return;
+    final set = doneTargetSet;
+    final snapshot = _snapshot;
+    if (!hasActiveWorkout || set == null) {
+      unawaited(LiveStatus.cancel());
+      return;
+    }
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final stage = stageOf(snapshot, now);
+    final restEnd = snapshot?.restUntil.toInt() ?? 0;
+    final resting =
+        stage.state == WorkoutState.WORKOUT_STATE_RESTING && restEnd > now;
+    final short = copy.workoutStatus.short;
+    LiveStatusPhase phase(
+      WorkoutState state,
+      String label, {
+      int? clockUnix,
+      bool countDown = false,
+    }) {
+      final color = stageColor(state, schliftSpec);
+      return LiveStatusPhase(
+        stage: label,
+        short: switch (state) {
+          WorkoutState.WORKOUT_STATE_LIFTING => short.lifting,
+          WorkoutState.WORKOUT_STATE_RESTING => short.resting,
+          WorkoutState.WORKOUT_STATE_YAPPING => short.yapping,
+          _ => short.ready,
+        },
+        exercise: exerciseName(set.exercise),
+        detail: copy.workoutStatus.body
+            .replaceAll('{set}', setTextFor(set, _settingsProvider.weightUnit))
+            .replaceAll('{position}', setLineFor(set, _proposed)),
+        color: color,
+        ink: schliftSpec.inkOn(color),
+        clockUnix: clockUnix,
+        countDown: countDown,
+      );
+    }
+
+    unawaited(
+      LiveStatus.show(
+        now: phase(
+          stage.state,
+          stage.label,
+          clockUnix: switch (stage.state) {
+            WorkoutState.WORKOUT_STATE_LIFTING =>
+              snapshot!.liftingStartedAt.toInt(),
+            WorkoutState.WORKOUT_STATE_RESTING => restEnd,
+            WorkoutState.WORKOUT_STATE_YAPPING => restEnd,
+            _ => null,
+          },
+          countDown: resting,
+        ),
+        // The rest over and nothing started: yapping, from that moment.
+        then: resting
+            ? phase(
+                WorkoutState.WORKOUT_STATE_YAPPING,
+                copy.workout.yapping,
+                clockUnix: restEnd,
+              )
+            : null,
+        thenAtUnix: resting ? restEnd : null,
+      ),
+    );
   }
 
   /// Read the workout on screen again from the core: after a change, or
@@ -549,6 +623,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _startTimer();
       } else {
         _clearWorkout();
+        // No workout: no status left over from one the app didn't see end.
+        if (!_sandbox) unawaited(LiveStatus.cancel());
       }
       _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
     } catch (e) {

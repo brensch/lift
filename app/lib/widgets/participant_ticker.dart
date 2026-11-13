@@ -79,15 +79,6 @@ ParticipantVisualStatus workoutVisualStatus({
   );
 }
 
-/// The colour of a stage's label, one per state, wherever it's shown.
-Color stageColor(WorkoutState state, ThemeSpec t) => switch (state) {
-  WorkoutState.WORKOUT_STATE_LIFTING => t.lifting,
-  WorkoutState.WORKOUT_STATE_RESTING => t.resting,
-  WorkoutState.WORKOUT_STATE_YAPPING => t.yapping,
-  WorkoutState.WORKOUT_STATE_ALL_DONE => t.success,
-  _ => t.ready,
-};
-
 class ParticipantVisualStatus {
   final String stateLabel;
   final Color stateColor;

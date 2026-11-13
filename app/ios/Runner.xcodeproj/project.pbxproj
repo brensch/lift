@@ -66,6 +66,11 @@
 		E927B79E9F99B9939FC4B4DC /* SchliftWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */; };
 		ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F62DC64DD9F280581E7BEEC2 /* LaunchScreen.storyboard */; };
 		FAE0BE4DC5D6A982453D8746 /* settings.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51B61E8EB9ED1721D316467 /* settings.pb.swift */; };
+		920CF907D054312327BD3B5B /* LiveStatusAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50DC2A6EB3C208828BDECD1A /* LiveStatusAttributes.swift */; };
+		BB57FAC72A6A90DA304E74BE /* LiveStatusPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEBBBEA8930135489C66BBE1 /* LiveStatusPlugin.swift */; };
+		3387BDE53224CA693C495984 /* LiveStatusAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50DC2A6EB3C208828BDECD1A /* LiveStatusAttributes.swift */; };
+		FAF8AA1ADB9F749C11DF9268 /* LiveStatusWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3513BF4EC6A3E40EFF611042 /* LiveStatusWidget.swift */; };
+		5F5EF29D00A6FCAB57F8E6C4 /* LiveStatus.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 190A86AE51CFB1F87F978850 /* LiveStatus.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +88,13 @@
 			remoteGlobalIDString = 0CE8B55E2312A581679889BF;
 			remoteInfo = Runner;
 		};
+		052FF7D483BADEA821BD29A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5FC4EA95F23E6A8CF0BD7276 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F0F95453C2F985F21B367107;
+			remoteInfo = LiveStatus;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -95,6 +107,17 @@
 				2FB20DD8BDBDEE445CEF4921 /* SchliftWatch.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ADD5D77ACEDEA4B5C6CB79CB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5F5EF29D00A6FCAB57F8E6C4 /* LiveStatus.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -160,6 +183,11 @@
 		E73651E4CF20E26E2919771E /* WatchBridgeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgeManager.swift; sourceTree = "<group>"; };
 		033797B76F3D2ABCBE991BC2 /* WatchBridgeManager+Incoming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WatchBridgeManager+Incoming.swift"; sourceTree = "<group>"; };
 		F0D3774461A4C381E3261F42 /* SchliftWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchliftWatchApp.swift; sourceTree = "<group>"; };
+		50DC2A6EB3C208828BDECD1A /* LiveStatusAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStatusAttributes.swift; sourceTree = "<group>"; };
+		EEBBBEA8930135489C66BBE1 /* LiveStatusPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStatusPlugin.swift; sourceTree = "<group>"; };
+		3513BF4EC6A3E40EFF611042 /* LiveStatusWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStatusWidget.swift; sourceTree = "<group>"; };
+		5A99F46048C58BEBE7CF66F5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		190A86AE51CFB1F87F978850 /* LiveStatus.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LiveStatus.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,6 +207,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		297FEEE1AD03393C808350A9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -188,6 +223,7 @@
 				B2E448C1951CDAF54DC87758 /* Runner.app */,
 				48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */,
 				3FBC90FBF0F201327D5961F0 /* SchliftWatch.app */,
+				190A86AE51CFB1F87F978850 /* LiveStatus.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -252,6 +288,7 @@
 				0F581CC3412D2F2F02AF1463 /* Runner */,
 				255F1CC48DAF4C9EEF8C9938 /* RunnerTests */,
 				D0DC4A58112C5020CF38DD33 /* SchliftWatch */,
+				37B8265986BE46A692E32273 /* LiveStatus */,
 				05D9A16B876157F93400D0B8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -336,6 +373,17 @@
 			path = Generated;
 			sourceTree = "<group>";
 		};
+		37B8265986BE46A692E32273 /* LiveStatus */ = {
+			isa = PBXGroup;
+			children = (
+				50DC2A6EB3C208828BDECD1A /* LiveStatusAttributes.swift */,
+				EEBBBEA8930135489C66BBE1 /* LiveStatusPlugin.swift */,
+				3513BF4EC6A3E40EFF611042 /* LiveStatusWidget.swift */,
+				5A99F46048C58BEBE7CF66F5 /* Info.plist */,
+			);
+			path = LiveStatus;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -348,12 +396,14 @@
 				AF3954250A8A50E99B88AFA5 /* Resources */,
 				8B7B0841CA3D43EBD7058960 /* Frameworks */,
 				2CC0B055E26CE73DC5933585 /* Embed Watch Content */,
+				ADD5D77ACEDEA4B5C6CB79CB /* Embed Foundation Extensions */,
 				EE278657219F7FCB934DC8BF /* Thin Binary */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				626CE82117F60184E96C28DB /* PBXTargetDependency */,
+				0016066D37259804AD779C9C /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -399,6 +449,23 @@
 			productReference = 48E2AFFE9BFB207202AD0539 /* RunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		F0F95453C2F985F21B367107 /* LiveStatus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1C010165EED9C76912763AC9 /* Build configuration list for PBXNativeTarget "LiveStatus" */;
+			buildPhases = (
+				7040C5F25EEA7B409BC0F229 /* Sources */,
+				AE18B60B0A9454246BF86554 /* Resources */,
+				297FEEE1AD03393C808350A9 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LiveStatus;
+			productName = LiveStatus;
+			productReference = 190A86AE51CFB1F87F978850 /* LiveStatus.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -432,6 +499,10 @@
 					ABAFB01E7FEA9C1DB0CE46CE = {
 						ProvisioningStyle = Automatic;
 					};
+					F0F95453C2F985F21B367107 = {
+						DevelopmentTeam = "$(APPLE_TEAM_ID)";
+						ProvisioningStyle = Manual;
+					};
 				};
 			};
 			buildConfigurationList = 987220A47DC5D93D17710971 /* Build configuration list for PBXProject "Runner" */;
@@ -454,6 +525,7 @@
 				0CE8B55E2312A581679889BF /* Runner */,
 				ABAFB01E7FEA9C1DB0CE46CE /* RunnerTests */,
 				9CD2564376257B68352FF5BC /* SchliftWatch */,
+				F0F95453C2F985F21B367107 /* LiveStatus */,
 			);
 		};
 /* End PBXProject section */
@@ -500,6 +572,13 @@
 				DC18D6045664645A1F5E31C1 /* Assets.xcassets in Resources */,
 				ED47C886E0D3B09F3FE9C6DB /* LaunchScreen.storyboard in Resources */,
 				BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AE18B60B0A9454246BF86554 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -589,9 +668,20 @@
 				7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */,
 				DBFFEF007B96D7FE0C5B245B /* WatchBridgeManager+Incoming.swift in Sources */,
 				E842FF11B6C3ACCC7614BE75 /* WatchBridgePlugin.swift in Sources */,
+				920CF907D054312327BD3B5B /* LiveStatusAttributes.swift in Sources */,
+				BB57FAC72A6A90DA304E74BE /* LiveStatusPlugin.swift in Sources */,
 				3C9442EAAC5D884CBCFD4F48 /* settings.pb.swift in Sources */,
 				D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */,
 				4BFA56509017551A55367603 /* workout.pb.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7040C5F25EEA7B409BC0F229 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3387BDE53224CA693C495984 /* LiveStatusAttributes.swift in Sources */,
+				FAF8AA1ADB9F749C11DF9268 /* LiveStatusWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -607,6 +697,11 @@
 			isa = PBXTargetDependency;
 			target = 0CE8B55E2312A581679889BF /* Runner */;
 			targetProxy = 979A20949DB7465AFE66261A /* PBXContainerItemProxy */;
+		};
+		0016066D37259804AD779C9C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F0F95453C2F985F21B367107 /* LiveStatus */;
+			targetProxy = 052FF7D483BADEA821BD29A5 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1042,6 +1137,92 @@
 			};
 			name = Profile;
 		};
+		670072CCC059CCBEE91CD4D7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveStatus/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.LiveStatus;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_LIVE_STATUS_PROFILE_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		C65E13F46F0704D06138AF5C /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveStatus/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.LiveStatus;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_LIVE_STATUS_PROFILE_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Profile;
+		};
+		9F61722643A4C338D26542A1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = "$(APPLE_TEAM_ID)";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiveStatus/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brensch.schlift.LiveStatus;
+				PROVISIONING_PROFILE_SPECIFIER = "$(IOS_LIVE_STATUS_PROFILE_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1081,6 +1262,16 @@
 				128D4961A4EEAA0944B16058 /* Debug */,
 				6D19B738415D34FC0679F96D /* Profile */,
 				5D7A1B64955A53055FA7173A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1C010165EED9C76912763AC9 /* Build configuration list for PBXNativeTarget "LiveStatus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				670072CCC059CCBEE91CD4D7 /* Debug */,
+				C65E13F46F0704D06138AF5C /* Profile */,
+				9F61722643A4C338D26542A1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

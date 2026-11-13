@@ -14,6 +14,7 @@ built, it is called out explicitly under "Not implemented".
 | [multiplayer.md](multiplayer.md) | Sessions, invites, participant status over the Sync stream |
 | [app.md](app.md) | Flutter layer boundaries, providers, the core on the phone |
 | [wearable.md](wearable.md) | Watch ↔ phone protocol for Wear OS and watchOS |
+| [live-status.md](live-status.md) | The workout on the lock screen: Android's Live Update, the iPhone's Live Activity |
 | [auth.md](auth.md) | Passkey registration and login, session tokens, the account without a server |
 | [analytics.md](analytics.md) | Page-view tracking, sign-in attempt tracking, admins and the `/admin` stats page |
 | [testing.md](testing.md) | The test layers, the core's invariant fuzzer, known gaps |

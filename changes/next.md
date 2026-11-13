@@ -12,3 +12,4 @@
 - A new app icon: a barbell's plates.
 - Multiplayer is a button at the top of home and the workout; heart rate, time and the log open from boxes above your status.
 - Editing a ready-made workout says Edit, and makes it yours when you save.
+- Your workout shows as a live status while the app is out of sight, with its clock: on Android in your notifications, lock screen and status bar, on iPhone on the lock screen and in the Dynamic Island.

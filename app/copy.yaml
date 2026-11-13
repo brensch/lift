@@ -1031,3 +1031,22 @@ motivation:
     - the pump you feel while lifting is the same pump that Arnie feels while lifting
     - you don't need therapy, you need to lift, eat well, and sleep well (not a funny one, actual thought i have)
     - "if runners get marathons, then lifters should get something. and not like the one where that lady pooped her pants, something less cringe. not motivation, just a thought."
+
+# The live status: the workout shown by the phone while the app is out of
+# sight (Android's notification and status-bar chip, the iPhone's lock
+# screen and Dynamic Island). {stage} is Ready / Lifting / Resting /
+# Yapping, {set} like "135 lb × 5", {position} like "Set 2 of 5".
+# Placeholders.
+workout_status:
+  # Android's name for the notification channel, in its settings.
+  channel: Workout status
+  # Android's heading.
+  title: "{stage} · {exercise}"
+  body: "{set} · {position}"
+  # The stage in a word short enough for the Dynamic Island, beside the
+  # clock: "Rest 1:23".
+  short:
+    ready: Ready
+    lifting: Lift
+    resting: Rest
+    yapping: Yap

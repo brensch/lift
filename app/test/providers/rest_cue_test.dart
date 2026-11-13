@@ -32,8 +32,12 @@ void main() {
         .setMockMethodCallHandler(
           const MethodChannel('dexterous.com/flutter/local_notifications'),
           (call) async {
+            // Only the rest's own notification (id 1): the workout's status
+            // notification comes and goes on the same channel.
+            final args = call.arguments;
+            if (args is! Map || args['id'] != 1) return null;
             if (call.method == 'zonedSchedule') {
-              scheduled.add((call.arguments as Map)['payload']);
+              scheduled.add(args['payload']);
             }
             if (call.method == 'cancel') cancels++;
             return null;

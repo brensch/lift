@@ -240,6 +240,9 @@ Required GitHub Actions secrets:
 - `IOS_CERT_PASSWORD`
 - `IOS_APP_PROVISION_PROFILE_BASE64`
 - `IOS_WATCH_PROVISION_PROFILE_BASE64`
+- `IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64`: an App Store profile for the
+  App ID `com.brensch.schlift.LiveStatus` (the Live Activity's widget
+  extension). Without it the build is not signed or uploaded.
 - `APPLE_TEAM_ID`
 - `APP_STORE_CONNECT_KEY_ID`
 - `APP_STORE_CONNECT_ISSUER_ID`
