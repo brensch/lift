@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
-import '../../logic/plate_calculator.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../theme/theme_spec.dart';
@@ -28,12 +27,16 @@ class WeightSelector extends StatefulWidget {
   /// grid the weight snaps to. 0 (bodyweight) steps a plate pair.
   final double stepLb;
 
+  /// A line over it; false straight under a heading, which ends in one.
+  final bool topLine;
+
   const WeightSelector({
     super.key,
     required this.weightLb,
     required this.onChanged,
     required this.stepLb,
     this.barbell = true,
+    this.topLine = true,
   });
 
   @override
@@ -106,7 +109,6 @@ class _WeightSelectorState extends State<WeightSelector> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final settings = context.watch<SettingsProvider>();
     final display = _display(widget.weightLb);
 
     Widget step(double by, {bool last = false}) => Expanded(
@@ -141,127 +143,96 @@ class _WeightSelectorState extends State<WeightSelector> {
       ),
     );
 
-    final plates = calcPlatesPerSide(
-      displayWeightFromPounds(widget.weightLb, unit),
-      unit,
-    );
-    final perSide = plates.isEmpty
-        ? 'Empty bar'
-        : '${plates.map(plateLabel).join(' · ')}  each side';
-
+    // A section like any other: the full width, a line over it (unless
+    // what is above ends in one) and its last row's line under it.
     return Container(
       decoration: BoxDecoration(
-        color: t.panel,
-        borderRadius: context.tokens.brMd,
-        border: Border.all(color: t.outline),
+        border: Border(
+          top: widget.topLine ? BorderSide(color: t.hairline) : BorderSide.none,
+          bottom: BorderSide(color: t.hairline),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The number: type it, or step and slide it below.
+          // The number on the left (type it, or step and slide it below);
+          // on the right the bar's end as it is loaded and the plates for
+          // each side, in a block that never changes size.
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IntrinsicWidth(
-                  child: TextField(
-                    controller: _text,
-                    focusNode: _focus,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    inputFormatters: [
-                      // A comma too: a decimal-comma keypad's mark.
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                    ],
-                    textAlign: TextAlign.center,
-                    // What's typed stays as typed until the field is left,
-                    // but what's given out is already settled: a save
-                    // tapped with the keyboard up takes it as it is.
-                    onChanged: (value) {
-                      final typed = parseDisplayWeight(value);
-                      if (typed != null) {
-                        _current = _settled(typed);
-                        widget.onChanged(_current);
-                      }
-                    },
-                    onSubmitted: (_) => _focus.unfocus(),
-                    style: t.mono(
-                      TextStyle(
-                        fontSize: t.size.giant,
-                        fontWeight: t.weight.bold,
-                        color: t.text,
-                        height: 1.1,
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      // As wide as its digits, and no wider than the room
+                      // beside the plates: a long number scrolls in its
+                      // field instead of running over them.
+                      Flexible(
+                        child: IntrinsicWidth(
+                          child: TextField(
+                            controller: _text,
+                            focusNode: _focus,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              // A comma too: a decimal-comma keypad's mark.
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9.,]'),
+                              ),
+                            ],
+                            textAlign: TextAlign.left,
+                            // What's typed stays as typed until the field is left,
+                            // but what's given out is already settled: a save
+                            // tapped with the keyboard up takes it as it is.
+                            onChanged: (value) {
+                              final typed = parseDisplayWeight(value);
+                              if (typed != null) {
+                                _current = _settled(typed);
+                                widget.onChanged(_current);
+                              }
+                            },
+                            onSubmitted: (_) => _focus.unfocus(),
+                            style: t.mono(
+                              TextStyle(
+                                fontSize: t.size.displayLg,
+                                fontWeight: t.weight.bold,
+                                color: t.text,
+                                height: 1.1,
+                              ),
+                            ),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              filled: false,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      filled: false,
-                    ),
+                      const SizedBox(width: 6),
+                      Text(
+                        weightUnitSuffix(unit),
+                        style: t.mono(
+                          TextStyle(
+                            fontSize: t.size.title,
+                            fontWeight: t.weight.bold,
+                            color: t.muted,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  weightUnitSuffix(unit),
-                  style: t.mono(
-                    TextStyle(
-                      fontSize: t.size.title,
-                      fontWeight: t.weight.bold,
-                      color: t.muted,
-                    ),
-                  ),
-                ),
+                if (widget.barbell) PlateSummary(weightLb: widget.weightLb),
               ],
             ),
           ),
-          // The bar as it's loaded, on white, and the plates each side.
-          if (widget.barbell)
-            Container(
-              height: 96,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: t.lightBackdrop,
-                border: Border.symmetric(
-                  horizontal: BorderSide(color: t.outline),
-                ),
-              ),
-              child: FittedBox(
-                child: BigBarbell(
-                  plates: plates,
-                  colorOf: settings.plateColor,
-                  heaviest: standardPlates(unit).first,
-                ),
-              ),
-            ),
-          if (widget.barbell)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              // One line always, shrunk to fit: a long load wrapping onto a
-              // second line made the selector jump in height as it changed.
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  perSide,
-                  maxLines: 1,
-                  softWrap: false,
-                  textAlign: TextAlign.center,
-                  style: t.mono(
-                    TextStyle(
-                      fontSize: t.size.body,
-                      fontWeight: t.weight.bold,
-                      color: t.muted,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           Container(
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: t.hairline)),
@@ -284,7 +255,10 @@ class _WeightSelectorState extends State<WeightSelector> {
               value: display.clamp(_min, _max).toDouble(),
               min: _min,
               max: _max,
-              divisions: ((_max - _min) / _small).round(),
+              // No `divisions`: a slider with them eases its thumb from one
+              // notch to the next, which trails the finger. The weight is
+              // settled onto the lift's steps in `_set` either way, so the
+              // thumb still lands on them, at once.
               onChanged: (value) {
                 if (_focus.hasFocus) _focus.unfocus();
                 _set(value);

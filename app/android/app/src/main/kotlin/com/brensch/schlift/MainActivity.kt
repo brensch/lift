@@ -1,6 +1,7 @@
 package com.brensch.schlift
 
 import androidx.activity.result.contract.ActivityResultContracts
+import com.brensch.schlift.appicon.AppIcon
 import com.brensch.schlift.livestatus.LiveStatus
 import com.brensch.schlift.livestatus.LiveStatusPhase
 import com.brensch.schlift.wearbridge.WearBridgeManager
@@ -64,6 +65,26 @@ class MainActivity : FlutterFragmentActivity() {
                     pendingSave?.second?.success(false)
                     pendingSave = path to result
                     createDocument.launch(name)
+                }
+
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        // The "App icon" setting (appicon/AppIcon.kt).
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "schlift/app_icon",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "get" -> {
+                    result.success(AppIcon.current(this))
+                }
+
+                "set" -> {
+                    result.success(AppIcon.set(this, call.argument<String>("name").orEmpty()))
                 }
 
                 else -> {

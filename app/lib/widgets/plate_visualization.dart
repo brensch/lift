@@ -7,198 +7,173 @@ import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../logic/plate_calculator.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
-import 'common/flat.dart';
 
-/// What to load for [weightLb] (stored pounds): a flat sheet with the total, the bar drawn
-/// big with each plate sized like the real thing, and the plates for each
-/// side listed in loading order.
-Future<void> showPlateBreakdownDialog(
-  BuildContext context, {
-  required double weightLb,
-}) {
-  return showModalBottomSheet<void>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    builder: (_) => _PlateSheet(weightLb: weightLb),
+/// The plates for each side of the bar at [weightLb] (stored pounds), in
+/// loading order: "45 · 10 each side", or that the bar is empty.
+String platesEachSide(double weightLb, WeightUnit unit) {
+  final plates = calcPlatesPerSide(
+    displayWeightFromPounds(weightLb, unit),
+    unit,
   );
+  if (plates.isEmpty) return copy.workout.emptyBar;
+  return '${_platesCounted(plates).join(' · ')}  ${copy.plates.eachSide}';
 }
 
-class _PlateSheet extends StatelessWidget {
+/// Each plate size once, heaviest first; one loaded more than once says how
+/// many: "45×2", "35", "5".
+List<String> _platesCounted(List<double> plates) {
+  final parts = <String>[];
+  for (var i = 0; i < plates.length;) {
+    var n = 1;
+    while (i + n < plates.length && plates[i + n] == plates[i]) {
+      n++;
+    }
+    parts.add(n > 1 ? '${plateLabel(plates[i])}×$n' : plateLabel(plates[i]));
+    i += n;
+  }
+  return parts;
+}
+
+/// The load at [weightLb] (stored pounds) beside its weight: the end of the
+/// bar with its plates, then the plates for each side as a list, one size
+/// to a line, hard against the right. Its size never changes with the load
+/// (room for the bar's fullest end and [lines] lines of the list), so
+/// nothing around it moves as a slider runs through the weights.
+class PlateSummary extends StatelessWidget {
   final double weightLb;
 
-  const _PlateSheet({required this.weightLb});
+  /// The lines the list has room for. A load with more sizes than that
+  /// puts the lightest ones together on the last line.
+  static const lines = 4;
+  static const double _lineHeight = 20;
+  static const double height = lines * _lineHeight;
+
+  const PlateSummary({super.key, required this.weightLb});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    final plates = calcPlatesPerSide(
+      displayWeightFromPounds(weightLb, unit),
+      unit,
+    );
+    var sizes = plates.isEmpty
+        ? [copy.workout.emptyBar]
+        : _platesCounted(plates);
+    if (sizes.length > lines) {
+      sizes = [...sizes.take(lines - 1), sizes.skip(lines - 1).join(' · ')];
+    }
+    return SizedBox(
+      height: height,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // The bar's end, in a slot as wide as its fullest: it grows
+          // towards the list, not into the weight.
+          SizedBox(
+            width: 120,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: HalfBarbell(weightLb: weightLb, height: 58),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 52,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (final size in sizes)
+                  SizedBox(
+                    height: _lineHeight,
+                    child: Text(
+                      size,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.clip,
+                      style: t.mono(
+                        TextStyle(
+                          fontSize: t.size.body,
+                          fontWeight: t.weight.bold,
+                          color: t.text,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The plate calculator for [weightLb] (stored pounds): the whole bar as it
+/// is loaded, on the light backdrop from edge to edge, and under it the
+/// plates for each side in loading order.
+class PlateBand extends StatelessWidget {
+  final double weightLb;
+
+  const PlateBand({super.key, required this.weightLb});
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final settings = context.watch<SettingsProvider>();
     final unit = settings.weightUnit;
-    final suffix = weightUnitSuffix(unit);
-    final barWeight = standardBarWeight(unit);
-    // Plates are counted in the user's unit, from the stored pounds.
-    final weight = displayWeightFromPounds(weightLb, unit);
-    final plates = calcPlatesPerSide(weight, unit);
-    final colorOf = settings.plateColor;
-
-    // Each plate size once, heaviest (loaded first) first, with its count.
-    final counts = <double, int>{};
-    for (final p in plates) {
-      counts[p] = (counts[p] ?? 0) + 1;
-    }
-    final sizes = counts.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    final perSide = plates.fold<double>(0, (a, p) => a + p);
-    final plateText = weight < barWeight
-        ? '—'
-        : plates.isEmpty
-        ? copy.plates.none
-        : '${plateLabel(perSide)} $suffix';
-    final barText = weight < barWeight
-        ? copy.plates.dumbbells
-        : '${plateLabel(barWeight)} $suffix';
-
-    Widget column(
-      String label,
-      String value,
-      String? note, {
-      bool last = false,
-    }) => Expanded(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 12, 14),
-        decoration: BoxDecoration(
-          border: Border(
-            right: last ? BorderSide.none : BorderSide(color: t.hairline),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(label),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: t.mono(
-                  TextStyle(
-                    fontSize: t.size.headline,
-                    fontWeight: t.weight.bold,
-                    color: t.text,
-                    height: 1.1,
-                  ),
-                ),
-              ),
-            ),
-            if (note != null)
-              Text(
-                note,
-                style: TextStyle(fontSize: t.size.small, color: t.muted),
-              ),
-          ],
-        ),
-      ),
+    final plates = calcPlatesPerSide(
+      displayWeightFromPounds(weightLb, unit),
+      unit,
     );
-
-    return SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppTheme.sheetHandle(context, gap: 0),
-          // Plates (each side), bar, total: three columns split by
-          // hairlines.
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                column(copy.plates.plates, plateText, copy.plates.eachSide),
-                column(copy.plates.bar, barText, null),
-                column(
-                  copy.plates.total,
-                  formatWeight(weightLb, unit, includeUnit: true),
-                  null,
-                  last: true,
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 96,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: t.lightBackdrop,
+            border: Border.symmetric(horizontal: BorderSide(color: t.outline)),
+          ),
+          child: FittedBox(
+            child: BigBarbell(
+              plates: plates,
+              colorOf: settings.plateColor,
+              heaviest: standardPlates(unit).first,
             ),
           ),
-          // The bar, big, on the light backdrop.
-          Container(
-            height: 150,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: t.lightBackdrop,
-              border: Border.symmetric(
-                horizontal: BorderSide(color: t.outline),
-              ),
-            ),
-            child: FittedBox(
-              child: BigBarbell(
-                plates: plates,
-                colorOf: colorOf,
-                heaviest: standardPlates(unit).first,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          // One line always, shrunk to fit.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              plates.isEmpty
+                  ? copy.workout.emptyBar
+                  : '${plates.map(plateLabel).join(' · ')}  '
+                        '${copy.plates.eachSide}',
+              maxLines: 1,
+              softWrap: false,
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.body,
+                  fontWeight: t.weight.bold,
+                  color: t.muted,
+                ),
               ),
             ),
           ),
-          if (sizes.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 16),
-              child: FlatHeading(copy.plates.loadingOrder),
-            ),
-            for (final size in sizes)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: t.hairline)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: colorOf(size),
-                        border: Border.all(color: t.outline),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        '${plateLabel(size)} $suffix',
-                        style: t.mono(
-                          TextStyle(
-                            fontSize: t.size.title,
-                            fontWeight: t.weight.bold,
-                            color: t.text,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '× ${counts[size]}',
-                      style: t.mono(
-                        TextStyle(
-                          fontSize: t.size.title,
-                          fontWeight: t.weight.bold,
-                          color: t.text,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-          const SizedBox(height: 16),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -251,6 +226,82 @@ class BigBarbell extends StatelessWidget {
           for (final p in plates) plate(p),
           sleeve,
         ],
+      ),
+    );
+  }
+}
+
+/// One end of the bar loaded for [weightLb] (stored pounds), as the app's
+/// icon draws it: the plates stepping up from the lightest at the sleeve's
+/// end to the heaviest against the collar, then the bar running on. Half a
+/// barbell is all there is to load: the other end is the same. It sits
+/// straight on whatever is behind it, with no box of its own.
+class HalfBarbell extends StatelessWidget {
+  final double weightLb;
+
+  /// How tall the heaviest plate there is stands.
+  final double height;
+
+  /// Drawn the other way round: the bar running off to the left, the
+  /// plates stepping down to the right.
+  final bool mirrored;
+
+  /// Past four plates, draw each thinner (down to half), so a heavy bar
+  /// leaves room for what is beside it. The height never changes.
+  final bool squeeze;
+
+  const HalfBarbell({
+    super.key,
+    required this.weightLb,
+    this.height = 40,
+    this.mirrored = false,
+    this.squeeze = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    // Rebuilds when the unit or the plate colours change.
+    final settings = context.watch<SettingsProvider>();
+    final unit = settings.weightUnit;
+    final plates = calcPlatesPerSide(
+      displayWeightFromPounds(weightLb, unit),
+      unit,
+    );
+    final heaviest = standardPlates(unit).first;
+    final steel = height * 0.07;
+    final parts = <Widget>[
+      // The sleeve's end, past the last plate.
+      Container(width: height * 0.22, height: steel, color: t.barSteel),
+      // Lightest outermost, as they go on: each as tall and as thick as
+      // its weight makes it beside the heaviest plate.
+      for (final plate in plates.reversed) ...[
+        Builder(
+          builder: (_) {
+            final f = (plate / heaviest).clamp(0.0, 1.0);
+            return Container(
+              width:
+                  height *
+                  (0.07 + 0.09 * f) *
+                  (squeeze && plates.length > 4
+                      ? (4 / plates.length).clamp(0.5, 1.0)
+                      : 1.0),
+              height: height * (0.45 + 0.55 * f),
+              color: settings.plateColor(plate),
+            );
+          },
+        ),
+        // A hair between plates, so two the same read as two.
+        const SizedBox(width: 1),
+      ],
+      // The bar on its way to the other end.
+      Container(width: height * 0.3, height: steel, color: t.barSteel),
+    ];
+    return SizedBox(
+      height: height,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: mirrored ? parts.reversed.toList() : parts,
       ),
     );
   }

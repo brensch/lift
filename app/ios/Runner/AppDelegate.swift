@@ -7,5 +7,6 @@ import UIKit
         GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
         WatchBridgePlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "WatchBridgePlugin")!)
         LiveStatusPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "LiveStatusPlugin")!)
+        AppIconPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "AppIconPlugin")!)
     }
 }

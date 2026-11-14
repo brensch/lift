@@ -31,6 +31,8 @@ class WearableSnapshotBuilder {
     required WorkoutProvider workoutProvider,
     required MultiplayerProvider multiplayerProvider,
     required String myUserId,
+    // The wearer's profile emoji, for when the next to lift is them.
+    String? myEmoji,
   }) {
     final workout = workoutProvider.workout;
     if (workout == null) return null;
@@ -180,23 +182,34 @@ class WearableSnapshotBuilder {
           .map((c) => c.endedAt)
           .reduce((a, b) => a > b ? a : b);
     }
-    final upNext =
-        computeNextToLiftUserId(
-          myUserId: myUserId,
-          participants: multiplayerProvider.participants,
-          nowUnix: nowUnix,
-          state: state,
-          restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
-          nextSet: nextSet,
-        ) ==
-        myUserId;
+    // Who lifts next in the session (null solo, or when nobody is).
+    final nextId = computeNextToLiftUserId(
+      myUserId: myUserId,
+      participants: multiplayerProvider.participants,
+      nowUnix: nowUnix,
+      state: state,
+      restUntil: (stateSnapshot?.restUntil ?? Int64.ZERO).toInt(),
+      nextSet: nextSet,
+    );
     snapshot.ambientCopy = WearAmbientCopy(
       minLeft: copy.workout.watchMinLeft,
       underAMin: copy.workout.watchUnderAMin,
       minOver: copy.workout.watchMinOver,
       restUntil: copy.workout.watchRestUntil,
     );
-    if (upNext) snapshot.upNextText = copy.workout.upNext;
+    // The watch says "Next" and whose turn it is, by their emoji.
+    if (nextId != null) {
+      snapshot.upNextText = copy.workout.watchNext;
+      snapshot.upNextEmoji = nextId == myUserId
+          ? normalizedProfileEmoji(myEmoji ?? '')
+          : normalizedProfileEmoji(
+              multiplayerProvider.participants
+                      .where((p) => p.user.id == nextId)
+                      .map((p) => p.user.profileEmoji)
+                      .firstOrNull ??
+                  '',
+            );
+    }
 
     return snapshot;
   }

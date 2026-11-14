@@ -8,6 +8,13 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.Typeface
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import com.brensch.schlift.R
@@ -23,9 +30,13 @@ data class LiveStatusPhase(
     val color: Int,
     val clockMs: Long,
     val countDown: Boolean,
+    // The stage as a letter, drawn as the notification's icon ("L" for
+    // lifting); empty for the app's own mark.
+    val glyph: String = "",
 ) {
     fun into(intent: Intent): Intent =
         intent
+            .putExtra("glyph", glyph)
             .putExtra("title", title)
             .putExtra("body", body)
             .putExtra("stage", stage)
@@ -44,6 +55,7 @@ data class LiveStatusPhase(
                 color = (map["color"] as? Number ?: 0).toInt(),
                 clockMs = (map["clockMs"] as? Number ?: 0).toLong(),
                 countDown = map["countDown"] as? Boolean ?: false,
+                glyph = map["glyph"] as? String ?: "",
             )
         }
 
@@ -56,6 +68,7 @@ data class LiveStatusPhase(
                 color = intent.getIntExtra("color", 0),
                 clockMs = intent.getLongExtra("clockMs", 0),
                 countDown = intent.getBooleanExtra("countDown", false),
+                glyph = intent.getStringExtra("glyph").orEmpty(),
             )
         }
     }
@@ -99,7 +112,7 @@ object LiveStatus {
         val builder =
             Notification
                 .Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_stat_schlift)
+                .setSmallIcon(icon(context, content.glyph))
                 .setContentTitle(content.title)
                 .setContentText(content.body)
                 .setColor(content.color)
@@ -144,6 +157,45 @@ object LiveStatus {
             alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, intent)
         }
     }
+
+    // / The notification's small icon: the stage's letter, drawn bold and
+    // / filling the square, or the app's mark when there is none. Android
+    // / keeps only an icon's shape and colours it itself, so the letter is
+    // / drawn in white on nothing.
+    private fun icon(
+        context: Context,
+        glyph: String,
+    ): Icon {
+        if (glyph.isBlank()) return Icon.createWithResource(context, R.drawable.ic_stat_schlift)
+        val size = 96
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val paint =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                typeface = wordFace(context)
+                textAlign = Paint.Align.CENTER
+                textSize = size * 1.05f
+            }
+        // Centred on the letter's own ink, not its line box.
+        val bounds = Rect()
+        paint.getTextBounds(glyph, 0, glyph.length, bounds)
+        Canvas(bitmap).drawText(glyph, size / 2f, size / 2f - bounds.exactCenterY(), paint)
+        return Icon.createWithBitmap(bitmap)
+    }
+
+    // / The app's own face for words (Space Grotesk Bold), from the fonts the
+    // / Flutter app bundles; the system's bold if it can't be read.
+    private var face: Typeface? = null
+
+    private fun wordFace(context: Context): Typeface =
+        face ?: try {
+            Typeface.createFromAsset(
+                context.assets,
+                "flutter_assets/assets/google_fonts/SpaceGrotesk-Bold.ttf",
+            )
+        } catch (e: RuntimeException) {
+            Typeface.DEFAULT_BOLD
+        }.also { face = it }
 
     // / Nothing is waiting to replace the status any more.
     fun cancelPending(context: Context) {

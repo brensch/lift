@@ -786,6 +786,34 @@ impl<'a> View<'a> {
         self.workout_response(&req.workout_id)
     }
 
+    /// The workout as an adjust would leave it, without making it: nothing
+    /// is recorded. For the edit sheet to show what its numbers lead to
+    /// (the warmups a working weight gives) before Save.
+    pub fn preview_adjust_exercise(
+        &self,
+        req: AdjustExerciseWeightRequest,
+    ) -> Result<GetWorkoutResponse, CoreError> {
+        let mut record = self.workout(&req.workout_id)?.without_heart_rate();
+        let unit = record.unit;
+        crate::workout::apply_adjust_exercise_weight(
+            &mut record,
+            &ExerciseAdjusted {
+                workout_id: req.workout_id,
+                exercise: req.exercise,
+                working_weight: req.working_weight,
+                target_reps: req.target_reps,
+                sets: req.sets,
+            },
+            unit,
+            &mut crate::ids::Ids::new("preview"),
+            self.now,
+        )
+        .map_err(CoreError::from)?;
+        let mut response = get_workout_response_from_active(&record, self.now);
+        response.proposed_sets.retain(|s| !s.cancelled);
+        Ok(response)
+    }
+
     pub fn get_active_workout(&self) -> GetActiveWorkoutResponse {
         GetActiveWorkoutResponse {
             workout: self.account.active_workout().map(|r| r.workout.clone()),
@@ -1135,6 +1163,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
         }
         reads {
             "GetWorkout" => get_workout,
+            "PreviewAdjustExercise" => preview_adjust_exercise,
             "GetWorkoutHeartRate" => get_workout_heart_rate,
             "GetStartingWeights" => get_starting_weights,
             "GetHome" => get_home,

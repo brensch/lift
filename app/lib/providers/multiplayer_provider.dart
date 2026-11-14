@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart' show ToastGravity;
 import 'package:grpc/grpc.dart' show GrpcError, StatusCode;
 import '../services/toast.dart';
 
@@ -136,9 +135,34 @@ class MultiplayerProvider extends ChangeNotifier {
 
   /// Ask a known partner to train together. Returns null on success, or a
   /// human-readable message on failure. They must approve before you're paired.
+  /// The friends asked to train and not yet heard from: each until its
+  /// request runs out on the server ([_requestLifetime], as
+  /// JOIN_REQUEST_TTL_SECONDS there). A friend who accepts is in the session
+  /// and no longer listed; one who declines isn't told to us, so their ask
+  /// shows as pending until it runs out.
+  final Map<String, DateTime> _askedUntil = {};
+  final Map<String, Timer> _askExpiries = {};
+  static const _requestLifetime = Duration(seconds: 120);
+
+  /// Whether a request sent to [partnerUserId] is still waiting on them.
+  bool isAskPending(String partnerUserId) =>
+      _askedUntil[partnerUserId]?.isAfter(DateTime.now()) ?? false;
+
+  void _markAsked(String partnerUserId) {
+    _askedUntil[partnerUserId] = DateTime.now().add(_requestLifetime);
+    _askExpiries[partnerUserId]?.cancel();
+    _askExpiries[partnerUserId] = Timer(_requestLifetime, () {
+      _askedUntil.remove(partnerUserId);
+      _askExpiries.remove(partnerUserId);
+      if (!_disposed) notifyListeners();
+    });
+    notifyListeners();
+  }
+
   Future<String?> requestJoinPartner(String partnerUserId) async {
     try {
       await _service.requestJoinPartner(partnerUserId);
+      _markAsked(partnerUserId);
       return null;
     } catch (e) {
       AppLogger.instance.warn('Multiplayer', 'requestJoinPartner failed', {
@@ -239,8 +263,6 @@ class MultiplayerProvider extends ChangeNotifier {
         msg: copy.invite.joined,
         backgroundColor: schliftSpec.success,
         textColor: schliftSpec.onPrimary,
-        gravity: ToastGravity.TOP,
-        fontSize: schliftSpec.size.body,
       );
       return null;
     } catch (e) {
@@ -278,6 +300,9 @@ class MultiplayerProvider extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _expiry?.cancel();
+    for (final timer in _askExpiries.values) {
+      timer.cancel();
+    }
     _feed?.removeListener(_heard);
     super.dispose();
   }

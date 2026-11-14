@@ -76,7 +76,7 @@ class MarkerStep extends StatelessWidget {
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton.icon(
+            child: OutlinedButton.icon(
               onPressed: onRefreshEmojis,
               icon: const Icon(AppIcons.refresh, size: 18),
               label: Text(copy.onboarding.marker.refresh),

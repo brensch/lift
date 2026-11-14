@@ -1293,6 +1293,43 @@ mod recorded {
 mod weight_log {
     use super::*;
 
+    /// A preview answers with the workout as the adjust would leave it, and
+    /// leaves the workout as it is: nothing recorded, nothing moved.
+    #[test]
+    fn previewing_an_adjust_changes_nothing() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let started = start(&mut app, &[Exercise::Squat]);
+        let before = app.view().workout_response(&started.id).unwrap();
+        let events = app.log.len();
+        let request = AdjustExerciseWeightRequest {
+            workout_id: started.id.clone(),
+            exercise: Exercise::Squat as i32,
+            working_weight: 200.0,
+            ..Default::default()
+        };
+
+        let preview = app.view().preview_adjust_exercise(request.clone()).unwrap();
+        assert_eq!(app.log.len(), events, "nothing is recorded");
+        assert_eq!(
+            app.view().workout_response(&started.id).unwrap(),
+            before,
+            "the workout is as it was"
+        );
+
+        // It is what the adjust itself gives, set for set (the ids of sets
+        // made new differ: a preview has no event to name them after).
+        let after = apply(&mut app, Mutation::AdjustExerciseWeight(request));
+        let weights = |r: &GetWorkoutResponse| -> Vec<(bool, f32, i32)> {
+            r.proposed_sets
+                .iter()
+                .map(|s| (s.warmup, s.target_weight, s.target_reps))
+                .collect()
+        };
+        assert_eq!(weights(&preview), weights(&after));
+        assert_ne!(weights(&preview), weights(&before));
+    }
+
     fn apply(app: &mut App, m: Mutation) -> GetWorkoutResponse {
         app.call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {
