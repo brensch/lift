@@ -150,18 +150,24 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
     );
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+      // The dialog's corners clip the selector's lines, which run edge to
+      // edge as they do in the sheets; the title and the button are inset.
+      clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              w.firstTimeTitle.replaceAll('{exercise}', name),
-              style: TextStyle(
-                fontSize: t.size.titleLg,
-                fontWeight: t.weight.heavy,
-                color: t.text,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                w.firstTimeTitle.replaceAll('{exercise}', name),
+                style: TextStyle(
+                  fontSize: t.size.titleLg,
+                  fontWeight: t.weight.heavy,
+                  color: t.text,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -172,9 +178,10 @@ class _FirstTimeDialogState extends State<_FirstTimeDialog> {
               barbell: _barbell,
               onChanged: (lb) => setState(() => _weightLb = lb),
             ),
-            const SizedBox(height: 8),
-            SizedBox(
+            const SizedBox(height: 16),
+            Container(
               height: 56,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               child: FilledButton(
                 onPressed: _weightLb > 0 ? _test : null,
                 child: Text(
