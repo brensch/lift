@@ -381,8 +381,26 @@ class Scenario {
     await tap(find.byIcon(AppIcons.menu));
   }
 
+  /// Log out from the open menu: the corner button, then its prompt.
+  Future<void> logout() async {
+    await tap(find.byTooltip(copy.menu.logout));
+    await settle(seconds: 1);
+    await tap(find.widgetWithText(FilledButton, copy.menu.logout));
+  }
+
   /// Open the live workout's Heart page, from its box over the status box.
   Future<void> openHeart() => tap(heartBox);
+
+  /// Open the edit sheet of the exercise in hand, from the workout (back
+  /// to it first from a page pushed over it).
+  Future<void> openEdit() async {
+    final edit = find.byTooltip(copy.workoutPage.weightAndReps);
+    for (var i = 0; i < 3 && edit.evaluate().isEmpty; i++) {
+      await tap(find.byIcon(AppIcons.back));
+      await settle(seconds: 1);
+    }
+    await tap(edit.first);
+  }
 
   /// The Heart box: on show only while a workout is live.
   Finder get heartBox => find.byTooltip(copy.workoutPage.tabHeart);

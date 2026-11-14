@@ -56,11 +56,26 @@ class SettingsScreen extends StatelessWidget {
             subtitle: unitLabel,
             onTap: () => _showWeightUnitPicker(context, settings),
           ),
+          // Making it yours: how the plates, the icon and the rest's end
+          // look and sound.
+          FlatHeading(c.personaliseHeading),
           FlatRow(
             icon: AppIcons.palette,
             label: c.plateColours,
             subtitle: c.plateColoursSub,
             onTap: () => context.push('/settings/plate-colors'),
+          ),
+          FlatRow(
+            icon: AppIcons.appIcon,
+            label: copy.appIcon.title,
+            subtitle: copy.appIcon.settingsSub,
+            onTap: () => context.push('/settings/app-icon'),
+          ),
+          FlatRow(
+            icon: AppIcons.notifications,
+            label: c.sound,
+            subtitle: c.soundSub,
+            onTap: () => context.push('/sound-settings'),
           ),
           FlatHeading(c.accountHeading),
           FlatRow(
@@ -79,13 +94,6 @@ class SettingsScreen extends StatelessWidget {
             label: c.passkeys,
             subtitle: c.passkeysSub,
             onTap: () => context.push('/passkeys'),
-          ),
-          FlatHeading(c.soundsHeading),
-          FlatRow(
-            icon: AppIcons.notifications,
-            label: c.sound,
-            subtitle: c.soundSub,
-            onTap: () => context.push('/sound-settings'),
           ),
           FlatHeading(c.behindHeading),
           FlatRow(

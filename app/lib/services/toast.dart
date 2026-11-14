@@ -1,27 +1,33 @@
-import 'dart:io' show Platform;
+import 'package:flutter/material.dart';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart' show Color;
-import 'package:fluttertoast/fluttertoast.dart';
+/// The app's messenger: the one place a short message is shown from, so it
+/// can be said from a provider with no context of its own. The app's
+/// `MaterialApp` is given this key.
+final appMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-/// A short message over the app: the platform's toast on the phones and the
-/// web. Elsewhere — the desktop build the e2e scenarios run — there is no
-/// toast, and nothing is shown.
+/// A short message over the app, drawn by the app itself in its own face
+/// and colours (the theme's snack bar), over whatever page is on show. It
+/// was the phone's own toast, which on Android is the system's grey pill
+/// with the app's icon in it, whatever colours it is asked for.
+///
+/// [backgroundColor] and [textColor] say what kind of message it is (the
+/// callers pass the theme's); with no app on screen there is nowhere to
+/// show it and nothing happens.
 void showToast({
   required String msg,
   required Color backgroundColor,
   required Color textColor,
-  Toast toastLength = Toast.LENGTH_SHORT,
-  ToastGravity gravity = ToastGravity.BOTTOM,
-  double? fontSize,
 }) {
-  if (!kIsWeb && !Platform.isAndroid && !Platform.isIOS) return;
-  Fluttertoast.showToast(
-    msg: msg,
-    toastLength: toastLength,
-    gravity: gravity,
-    backgroundColor: backgroundColor,
-    textColor: textColor,
-    fontSize: fontSize,
-  );
+  final messenger = appMessengerKey.currentState;
+  if (messenger == null) return;
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(msg, style: TextStyle(color: textColor)),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
 }

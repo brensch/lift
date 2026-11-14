@@ -136,6 +136,10 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
                       children: [
                         for (final block in blocks)
                           DecoratedBox(
+                            // Over the section, not behind it: the one in
+                            // focus fills itself with the panel colour, which
+                            // was covering the line under it.
+                            position: DecorationPosition.foreground,
                             decoration: BoxDecoration(
                               border: Border(
                                 bottom: BorderSide(color: t.hairline),

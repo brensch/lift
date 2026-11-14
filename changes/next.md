@@ -1,0 +1,23 @@
+- The login-expired banner says so in plainer words.
+- The bottom of the workout is tidier: the plates and the weight are one button that opens the edit, with the exercise and the set beside it.
+- The plates are drawn as one end of the bar, like the app's icon.
+- Editing during a warmup shows what that warmup becomes as you move the working weight.
+- The weight slider follows your finger.
+- Pick the app icon's colour in Settings: one for each stage.
+- Settings has a Personalise section for plate colours, the app icon and sounds.
+- On Android the live status shows the stage as a letter beside the clock.
+- The Heart page shows your heart rate big, with a chart that runs edge to edge and a Latest button.
+- A button on the Heart page opens the watch app when there's no heart rate yet.
+- Logging out is a red button in the corner of the menu, and it asks first.
+- The menu is simpler: you at the top, your stage totals, then the pages in big rows.
+- Messages from the app show at the bottom of the app instead of as a system pop-up.
+- In the group sheet you can see what workout each friend is doing, and an ask you've sent shows as pending.
+- Partners' boxes look like your own, only smaller, with the exercise and set on one line.
+- Up next has rounded corners and sits beside the timer.
+- The Heart page has an Open on watch button beside your heart rate.
+- On the watch the plates are drawn beside the weight, and the plate view lists the count of each plate.
+- On the watch, the set line says who lifts next with their emoji, and the Lifting text is white.
+- Your profile page is just your emoji on your colour, a grid of emojis and a colour slider.
+- Pick any colour along a slider for your profile, each as bright as the next.
+- Leaving your profile page with changes not saved asks first.
+- A set you've never done shows the exercise and the set like any other, beside First time.

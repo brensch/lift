@@ -1,7 +1,9 @@
 import SwiftUI
 
-/// The plates for the set's weight: the bar drawn loaded on white, the plates each
-/// side and the bar's own weight. Shown in a sheet when the weight is tapped.
+/// The plates for the set's weight, as the phone's edit sheet has them: the
+/// end of the bar drawn loaded on white, the bar coming in from the screen's
+/// edge, and beside it each plate size on a row of its own with how many
+/// ("45×3"). Shown in a sheet when the weight is tapped.
 struct PlateScreen: View {
     let card: Workout_V1_WearStatusCard
 
@@ -17,20 +19,24 @@ struct PlateScreen: View {
                 // The white runs right up to the lines either side of it.
                 VStack(spacing: 0) {
                     Rectangle().fill(WatchPalette.hairline).frame(height: 1)
-                    bar(height: faceHeight * 0.26)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: faceHeight * 0.30)
-                        .background(Color.white)
+                    HStack(spacing: 0) {
+                        watchHalfBar(plates: card.plates, height: faceHeight * 0.34, lead: 12)
+                        Spacer(minLength: 4)
+                        VStack(alignment: .trailing, spacing: 0) {
+                            ForEach(Array(plateCounts.enumerated()), id: \.offset) { _, line in
+                                Text(line)
+                                    .font(monoFontName(size: faceHeight * 0.075))
+                                    .foregroundColor(WatchPalette.text)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.trailing, 12)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: faceHeight * 0.44)
+                    .background(Color.white)
                     Rectangle().fill(WatchPalette.hairline).frame(height: 1)
                 }
-                Text(card.platesText)
-                    .font(monoFontName(size: faceHeight * 0.07))
-                    .foregroundColor(WatchPalette.text)
-                    .watchAutoShrink(minScale: 0.5)
-                Text(card.barText)
-                    .font(monoFontName(size: faceHeight * 0.06, weight: .regular))
-                    .foregroundColor(WatchPalette.muted)
-                    .watchAutoShrink()
                 Spacer(minLength: 0)
             }
         }
@@ -39,26 +45,22 @@ struct PlateScreen: View {
         .background(WatchPalette.ground.ignoresSafeArea())
     }
 
-    /// A barbell drawn loaded: plates out from the collars, sized by weight.
-    private func bar(height: CGFloat) -> some View {
-        HStack(spacing: 1) {
-            Rectangle().fill(WatchPalette.hairline).frame(width: 10, height: 4)
-            ForEach(Array(card.plates.reversed().enumerated()), id: \.offset) { _, plate in
-                plateView(plate, height: height)
+    /// Each plate size once, heaviest first; one loaded more than once says
+    /// how many: "45×3", "10", "5".
+    private var plateCounts: [String] {
+        var lines: [String] = []
+        var index = 0
+        while index < card.plates.count {
+            var count = 1
+            while index + count < card.plates.count,
+                  card.plates[index + count].label == card.plates[index].label
+            {
+                count += 1
             }
-            Rectangle().fill(WatchPalette.rule).frame(width: 4, height: 12)
-            Rectangle().fill(WatchPalette.muted).frame(width: 30, height: 3)
-            Rectangle().fill(WatchPalette.rule).frame(width: 4, height: 12)
-            ForEach(Array(card.plates.enumerated()), id: \.offset) { _, plate in
-                plateView(plate, height: height)
-            }
-            Rectangle().fill(WatchPalette.hairline).frame(width: 10, height: 4)
+            let label = card.plates[index].label
+            lines.append(count > 1 ? "\(label)×\(count)" : label)
+            index += count
         }
-    }
-
-    private func plateView(_ plate: Workout_V1_WearPlate, height: CGFloat) -> some View {
-        Rectangle()
-            .fill(Color(hex: plate.colorHex))
-            .frame(width: 3 + 6 * CGFloat(plate.size), height: height * (0.32 + 0.68 * CGFloat(plate.size)))
+        return lines
     }
 }

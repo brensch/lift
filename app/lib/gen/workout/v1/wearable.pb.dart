@@ -636,6 +636,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     $core.Iterable<WearSetCircle>? circles,
     $core.String? upNextText,
     WearAmbientCopy? ambientCopy,
+    $core.String? upNextEmoji,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -652,6 +653,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     if (circles != null) result.circles.addAll(circles);
     if (upNextText != null) result.upNextText = upNextText;
     if (ambientCopy != null) result.ambientCopy = ambientCopy;
+    if (upNextEmoji != null) result.upNextEmoji = upNextEmoji;
     return result;
   }
 
@@ -688,6 +690,7 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     ..aOS(20, _omitFieldNames ? '' : 'upNextText')
     ..aOM<WearAmbientCopy>(21, _omitFieldNames ? '' : 'ambientCopy',
         subBuilder: WearAmbientCopy.create)
+    ..aOS(22, _omitFieldNames ? '' : 'upNextEmoji')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -810,8 +813,8 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   @$pb.TagNumber(17)
   $pb.PbList<WearSetCircle> get circles => $_getList(11);
 
-  /// The phone's "up next" chip, when the wearer lifts next in a session;
-  /// empty otherwise (solo, or someone else is next).
+  /// "Next", when someone in the session lifts next (the wearer or a
+  /// partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
   @$pb.TagNumber(20)
   $core.String get upNextText => $_getSZ(12);
   @$pb.TagNumber(20)
@@ -832,6 +835,15 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   void clearAmbientCopy() => $_clearField(21);
   @$pb.TagNumber(21)
   WearAmbientCopy ensureAmbientCopy() => $_ensure(13);
+
+  @$pb.TagNumber(22)
+  $core.String get upNextEmoji => $_getSZ(14);
+  @$pb.TagNumber(22)
+  set upNextEmoji($core.String value) => $_setString(14, value);
+  @$pb.TagNumber(22)
+  $core.bool hasUpNextEmoji() => $_has(14);
+  @$pb.TagNumber(22)
+  void clearUpNextEmoji() => $_clearField(22);
 }
 
 class WearCompletionSummary extends $pb.GeneratedMessage {

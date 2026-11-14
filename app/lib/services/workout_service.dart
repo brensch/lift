@@ -154,6 +154,26 @@ class WorkoutServiceWrapper {
     GetTemplatePlanResponse.fromBuffer,
   )).plan;
 
+  /// The workout as moving [exercise] to [weightLb] (and [targetReps],
+  /// [sets]; 0 leaves them) would leave it, without doing it: for the edit
+  /// sheet to show the warmup a working weight leads to before Save.
+  Future<GetWorkoutResponse> previewAdjustExercise(
+    String workoutId,
+    Exercise exercise,
+    double weightLb, {
+    int targetReps = 0,
+    int sets = 0,
+  }) => _call(
+    'PreviewAdjustExercise',
+    AdjustExerciseWeightRequest()
+      ..workoutId = workoutId
+      ..exercise = exercise
+      ..workingWeight = weightLb
+      ..targetReps = targetReps
+      ..sets = sets,
+    GetWorkoutResponse.fromBuffer,
+  );
+
   Future<void> deleteTemplate(String templateId) => _call(
     'DeleteTemplate',
     DeleteTemplateRequest()..templateId = templateId,

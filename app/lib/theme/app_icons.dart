@@ -270,6 +270,13 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
+  /// Phosphor `barbell`: the app's icon, in Settings.
+  static const appIcon = IconData(
+    0xe0b6,
+    fontFamily: _family,
+    fontPackage: _package,
+  );
+
   /// Phosphor `palette`.
   static const palette = IconData(
     0xe6c8,

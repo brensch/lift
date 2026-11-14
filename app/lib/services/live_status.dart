@@ -25,6 +25,10 @@ class LiveStatusPhase {
   final String stage;
   final String short;
 
+  /// The stage as one letter, for Android's notification icon and status
+  /// bar chip ("L"); empty for the app's own mark.
+  final String glyph;
+
   /// The set in hand: "Squat", and "100 kg × 5 · Set 2 of 5".
   final String exercise;
   final String detail;
@@ -41,6 +45,7 @@ class LiveStatusPhase {
   const LiveStatusPhase({
     required this.stage,
     required this.short,
+    this.glyph = '',
     required this.exercise,
     required this.detail,
     required this.color,
@@ -56,6 +61,7 @@ class LiveStatusPhase {
         .replaceAll('{exercise}', exercise),
     'stage': stage,
     'short': short,
+    'glyph': glyph,
     'exercise': exercise,
     'detail': detail,
     'color': color.toARGB32(),

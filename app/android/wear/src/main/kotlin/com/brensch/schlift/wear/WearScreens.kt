@@ -1,10 +1,5 @@
 package com.brensch.schlift.wear
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +43,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
@@ -133,6 +127,8 @@ internal data class WearFace(
     val label: String,
     // The phone's "up next" chip, when you lift next in a session; else empty.
     val upNext: String,
+    // Whose turn it is, as their emoji.
+    val upNextEmoji: String = "",
     // Empty: no timer (ready).
     val timer: String,
     // The band is [stageColor] over [trackColor], filled to [bandFill]: rest
@@ -152,6 +148,8 @@ internal data class WearFace(
     val elapsed: String,
     val clock: String,
     val hasPlates: Boolean,
+    // The plates for one side, heaviest first: drawn beside the weight.
+    val plates: List<Wearable.WearPlate> = emptyList(),
     // A first-time set: this in place of weight × reps, and no set taps.
     val firstTimeText: String,
 )
@@ -305,14 +303,39 @@ private fun Face(
                         .padding(horizontal = maxOf(roundInset(d, round, lineTop, lineTop + LINE_ROW), side)),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                FitText(
-                    text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" · "),
-                    size = (d * 0.047f).asSp(),
-                    color = c.muted,
-                    weight = FontWeight.Medium,
-                    family = WearBodyFontFamily,
-                    align = TextAlign.Start,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FitText(
+                        text = listOf(face.exercise, face.position).filter { it.isNotEmpty() }.joinToString(" · "),
+                        size = (d * 0.047f).asSp(),
+                        color = c.muted,
+                        weight = FontWeight.Medium,
+                        family = WearBodyFontFamily,
+                        align = TextAlign.Start,
+                        modifier = Modifier.weight(1f),
+                    )
+                    // In a session: who lifts next, hard right. "Next" and
+                    // their emoji.
+                    if (face.upNext.isNotEmpty()) {
+                        Text(
+                            text = face.upNext,
+                            color = c.text,
+                            fontSize = (d * 0.047f).asSp(),
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = WearBodyFontFamily,
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                        // Their emoji, a little bigger than the word.
+                        if (face.upNextEmoji.isNotEmpty()) {
+                            Text(
+                                text = face.upNextEmoji,
+                                fontSize = (d * 0.062f).asSp(),
+                                maxLines = 1,
+                                modifier = Modifier.padding(start = 3.dp),
+                            )
+                        }
+                    }
+                }
             }
             Rule(c.hairline)
             val weightInset = maxOf(roundInset(d, round, weightTop, weightTop + WEIGHT_ROW), side)
@@ -483,7 +506,6 @@ private fun Band(
                 align = TextAlign.Start,
                 modifier = Modifier.weight(1f).padding(start = inset + d * 0.02f),
             )
-            if (face.upNext.isNotEmpty()) UpNextChip(text = face.upNext, d = d)
             if (face.timer.isNotEmpty()) {
                 FitText(
                     text = face.timer,
@@ -494,65 +516,6 @@ private fun Band(
             }
         }
     }
-}
-
-/** "Up next!" on the panel, its ink gliding through the series palette. */
-@Composable
-private fun UpNextChip(
-    text: String,
-    d: Dp,
-) {
-    val c = LocalFaceColors.current
-    // Dimmed, nothing moves: the chip keeps the face's grey and no animation runs.
-    if (c.dim) {
-        UpNextText(text = text, d = d, color = c.text)
-    } else {
-        CyclingUpNextChip(text = text, d = d)
-    }
-}
-
-@Composable
-private fun CyclingUpNextChip(
-    text: String,
-    d: Dp,
-) {
-    val colors = WearPalette.Series
-    val cycle by rememberInfiniteTransition(label = "upNext").animateFloat(
-        initialValue = 0f,
-        targetValue = colors.size.toFloat(),
-        animationSpec = infiniteRepeatable(tween(durationMillis = colors.size * 700, easing = LinearEasing)),
-        label = "upNextCycle",
-    )
-    val at = cycle.toInt()
-    UpNextText(
-        text = text,
-        d = d,
-        color = lerp(colors[at % colors.size], colors[(at + 1) % colors.size], cycle - at),
-    )
-}
-
-@Composable
-private fun UpNextText(
-    text: String,
-    d: Dp,
-    color: Color,
-) {
-    val c = LocalFaceColors.current
-    Text(
-        text = text,
-        color = color,
-        fontSize = (d * 0.036f).asSp(),
-        lineHeight = (d * 0.04f).asSp(),
-        fontWeight = FontWeight.Bold,
-        fontFamily = WearMonoFontFamily,
-        textAlign = TextAlign.Center,
-        maxLines = 2,
-        modifier =
-            Modifier
-                .padding(start = 4.dp)
-                .background(c.panel)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-    )
 }
 
 /** A first-time set's weight row: the answer is on the phone. Not tappable. */
@@ -610,26 +573,38 @@ private fun WeightRow(
                         indication = null,
                         enabled = face.hasPlates,
                         onClick = onWeight,
-                    ).padding(start = inset),
+                    ).padding(start = if (face.plates.isEmpty()) inset else 0.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FitText(
-                text = face.weight,
-                size = (d * 0.147f).asSp(),
-                color = c.text,
-                align = TextAlign.Start,
-                modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
-            )
-            if (face.unit.isNotEmpty()) {
-                Text(
-                    text = " ${face.unit}",
+            // The end of the bar as it is loaded, as the phone draws it: the
+            // bar comes in from the face's edge, the plates step down from
+            // the heaviest, then the weight they add up to.
+            if (face.plates.isNotEmpty()) {
+                HalfBar(plates = face.plates, height = d * 0.15f, lead = inset)
+                Spacer(modifier = Modifier.width(d * 0.02f))
+            }
+            // The number and its unit share a baseline, in a row of their
+            // own: that row is what sits in the middle of the panel, beside
+            // the plates.
+            Row(modifier = Modifier.weight(1f, fill = false)) {
+                FitText(
+                    text = face.weight,
+                    size = (d * 0.147f).asSp(),
                     color = c.text,
-                    fontSize = (d * 0.05f).asSp(),
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = WearMonoFontFamily,
-                    maxLines = 1,
-                    modifier = Modifier.alignByBaseline(),
+                    align = TextAlign.Start,
+                    modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
                 )
+                if (face.unit.isNotEmpty()) {
+                    Text(
+                        text = " ${face.unit}",
+                        color = c.text,
+                        fontSize = (d * 0.05f).asSp(),
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = WearMonoFontFamily,
+                        maxLines = 1,
+                        modifier = Modifier.alignByBaseline(),
+                    )
+                }
             }
         }
         Text(
@@ -741,25 +716,37 @@ internal fun PlateDialog(
                 FitText(text = "${card.weightText} ${card.unitText}", size = (d * 0.13f).asSp(), align = TextAlign.Center)
                 Spacer(modifier = Modifier.height(4.dp))
                 Rule()
-                Box(
+                // As the phone's edit sheet has it: the end of the bar with
+                // its plates, the bar coming in from the screen's edge, and
+                // beside it each plate size on a row of its own with how
+                // many ("45×3").
+                Row(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .height(d * 0.28f)
+                            .height(d * 0.4f)
                             .background(Color.White),
-                    contentAlignment = Alignment.Center,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Bar(plates = card.platesList, height = d * 0.24f)
+                    HalfBar(plates = card.platesList, height = d * 0.32f, lead = d * 0.16f)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Column(
+                        modifier = Modifier.padding(end = d * 0.16f),
+                        horizontalAlignment = Alignment.End,
+                    ) {
+                        plateCounts(card.platesList).forEach { line ->
+                            Text(
+                                text = line,
+                                color = WearPalette.Text,
+                                fontSize = (d * 0.062f).asSp(),
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = WearMonoFontFamily,
+                                maxLines = 1,
+                            )
+                        }
+                    }
                 }
                 Rule()
-                Spacer(modifier = Modifier.height(4.dp))
-                FitText(
-                    text = card.platesText,
-                    size = (d * 0.065f).asSp(),
-                    align = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = d * 0.14f),
-                )
-                FitText(text = card.barText, size = (d * 0.055f).asSp(), color = WearPalette.Muted, align = TextAlign.Center)
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
                     onClick = onDismiss,
@@ -781,31 +768,49 @@ internal fun PlateDialog(
     }
 }
 
-/** A barbell drawn loaded: plates out from the collars, sized by weight. */
+/**
+ * Each plate size once, heaviest first; one loaded more than once says how
+ * many: "45×3", "10", "5".
+ */
+private fun plateCounts(plates: List<Wearable.WearPlate>): List<String> {
+    val lines = mutableListOf<String>()
+    var i = 0
+    while (i < plates.size) {
+        var n = 1
+        while (i + n < plates.size && plates[i + n].label == plates[i].label) n++
+        lines.add(if (n > 1) "${plates[i].label}×$n" else plates[i].label)
+        i += n
+    }
+    return lines
+}
+
+/**
+ * One end of the bar, loaded: the bar running in from the left for [lead]
+ * (the face's edge to its content), then the plates from the heaviest to
+ * the lightest, then the sleeve's tip. Past four plates each is drawn
+ * thinner, so a heavy bar leaves the weight its room.
+ */
 @Composable
-private fun Bar(
+private fun HalfBar(
     plates: List<Wearable.WearPlate>,
     height: Dp,
+    lead: Dp,
 ) {
-    @Composable
-    fun Plate(plate: Wearable.WearPlate) {
-        Box(
-            modifier =
-                Modifier
-                    .padding(horizontal = 1.dp)
-                    .width(4.dp + 7.dp * plate.size)
-                    .height(height * (0.32f + 0.68f * plate.size))
-                    .background(parseHex(plate.colorHex)),
-        )
-    }
+    val squeeze = if (plates.size > 4) (4f / plates.size).coerceAtLeast(0.5f) else 1f
+    val steel = height * 0.08f
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.width(12.dp).height(4.dp).background(WearPalette.Hairline))
-        plates.reversed().forEach { Plate(it) }
-        Box(modifier = Modifier.width(5.dp).height(12.dp).background(WearPalette.Rule))
-        Box(modifier = Modifier.width(36.dp).height(3.dp).background(WearPalette.Muted))
-        Box(modifier = Modifier.width(5.dp).height(12.dp).background(WearPalette.Rule))
-        plates.forEach { Plate(it) }
-        Box(modifier = Modifier.width(12.dp).height(4.dp).background(WearPalette.Hairline))
+        Box(modifier = Modifier.width(lead).height(steel).background(WearPalette.Muted))
+        plates.forEach { plate ->
+            Box(
+                modifier =
+                    Modifier
+                        .padding(end = 1.dp)
+                        .width(height * (0.07f + 0.09f * plate.size) * squeeze)
+                        .height(height * (0.45f + 0.55f * plate.size))
+                        .background(parseHex(plate.colorHex)),
+            )
+        }
+        Box(modifier = Modifier.width(height * 0.14f).height(steel).background(WearPalette.Muted))
     }
 }
 

@@ -729,6 +729,7 @@ private fun WorkoutScreens(
         WearFace(
             circles = data.circlesList,
             upNext = data.upNextText,
+            upNextEmoji = data.upNextEmoji,
             label = if (yapping) card.yappingLabel.ifEmpty { card.stateLabel } else card.stateLabel,
             timer =
                 when {
@@ -748,7 +749,7 @@ private fun WorkoutScreens(
             bandInk =
                 when {
                     dim -> WearPalette.AmbientText
-                    lifting -> WearPalette.Text
+                    lifting -> WearPalette.OnDark
                     else -> WearPalette.OnDark
                 },
             bandFill = if (draining && !dim) drainingFill else FULL_BAND,
@@ -763,6 +764,7 @@ private fun WorkoutScreens(
             elapsed = if (dim) rest?.until ?: "" else elapsedText,
             clock = java.text.SimpleDateFormat("H:mm", java.util.Locale.getDefault()).format(java.util.Date(nowTick * 1000L)),
             hasPlates = card.platesText.isNotEmpty(),
+            plates = card.platesList,
             firstTimeText = card.firstTimeText,
         )
 

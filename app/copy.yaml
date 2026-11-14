@@ -308,10 +308,13 @@ workout:
   discard_cancel: Keep it
   set_line: Set {n} of {m}
   warmup_line: Warmup {n} of {m}
+  # In your own status box, where there is little room: {count} is
+  # "2 of 3". Placeholder.
+  warm_short: "Warm {count}"
   warmup_label: Warmup
   working_label: Working
   # In the band of whoever's turn on the rack it is, on two lines.
-  up_next: "Up\nnext!"
+  up_next: "Up\nnext"
   skip_warmups: Skip
   # Asked when someone starts the first set of an exercise they have never
   # done: the ramp of 5-rep sets starts from the weight picked. {exercise}
@@ -350,6 +353,9 @@ workout:
   rung_jump_apply: Add that
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
+  # On the watch's set line when someone in the session lifts next, before
+  # their emoji.
+  watch_next: Next
   # The dimmed (always-on) watch face counts rest in whole minutes, since it
   # only redraws about once a minute. Placeholders.
   watch_min_left: "{n} min"
@@ -541,9 +547,9 @@ heart_rate:
   zones_by_max: "%max"
   # The resting heart rate. {bpm} is substituted.
   resting: "zzz {bpm}"
-  # The buttons that set how much time the live chart shows.
-  window_5m: 5m
-  window_10m: 10m
+  # The button under the chart: lit while the chart follows now; a tap
+  # brings it back there after panning. Placeholder.
+  latest: Latest
 
 # The banner at the top of the app when someone asks to train with you.
 # {name} is substituted. Placeholders.
@@ -573,6 +579,8 @@ multiplayer:
   friends_body: People you’ve trained with. Tap Ask and they get a request to join your session.
   friends_empty: No training partners yet. Do a session with someone (scan their code or open their link) and they’ll show up here to re-invite in one tap.
   ask: Ask
+  # In place of Ask, while a request to them is still waiting. Placeholder.
+  pending: Pending
   asked: "Asked {name} to train. Waiting for them to accept"
   # Under a friend's name: sessions together, then when you last trained.
   sessions_one: 1 session
@@ -590,6 +598,11 @@ menu:
   history: History
   learn: Learn
   logout: Logout
+  # The prompt before logging out; its confirm button is `logout`.
+  # Placeholders.
+  logout_title: Log out?
+  logout_body: This is permanent until you log back in again
+  logout_cancel: Cancel
   settings: Settings
   # The tooltip of the multiplayer button (home and the workout's top row).
   multiplayer: Multiplayer
@@ -622,6 +635,12 @@ plates:
 # substituted. Placeholders.
 adjust_weight:
   body: "Changes {name} for the rest of this workout and for next time."
+  # During a warmup the sheet has two parts: the warmup in hand (it can't
+  # be changed here, it follows the working weight), then the working sets
+  # this sheet does change. Placeholders.
+  warmup_now: This warmup
+  warmup_body: Warmups follow your working weight.
+  working: Working sets
   reps: Reps
   sets: Sets
   save: Save
@@ -678,7 +697,7 @@ invite:
 
 # When the server stops accepting this phone's sign-in; the account stays
 # usable on the phone. Placeholder, as the app had it.
-session_expired: Sign in again to sync this phone with your account.
+session_expired: "Your login expired mate. Plz sign in again to continue syncing to someone else's computer (the cloud)."
 
 # Over the whole app when the server no longer accepts this version: the
 # button opens the app's store page. Placeholders.
@@ -771,6 +790,11 @@ workout_page:
   # The Heart page with no watch.
   no_heart_rate: No heart rate yet
   no_heart_rate_body: Get the watch app and you can see how hard you are pumping your heart while schlifting.
+  # The Heart page's button that asks the watch to open its app.
+  # Placeholder.
+  open_watch: Open the watch app
+  # The same button beside the reading, where there is little room.
+  open_watch_short: Open on watch
   add_exercise: Add exercise
   # The button on an exercise that opens its weight and reps.
   weight_and_reps: Weight and reps
@@ -839,7 +863,7 @@ settings:
   sync_offline_waiting: "Offline, {n} changes waiting"
   passkeys: Passkeys
   passkeys_sub: Manage your login credentials
-  sounds_heading: Sounds
+  personalise_heading: Personalise
   sound: Pick sound
   sound_sub: Choose notification sound
   behind_heading: Behind the scenes
@@ -854,17 +878,17 @@ settings:
 # workouts. Placeholders.
 profile_marker:
   title: Profile Marker
-  eyebrow: Group look
-  heading: Pick your colour and emoji
-  body: This controls the badge and side stripe used for you in group workouts.
-  # The card that shows the pick in place.
-  preview_title: Group workout preview
-  preview_body: Your emoji replaces the vertical name and your colour owns the sidebar.
-  emojis: Emojis
-  refresh: Refresh
-  colours: Colours
+  heading: Which emoji do you identify as
+  body: I liked your old emoji, but if you want to change it you can do it here
+  # (The pick is shown as the emoji on its colour, with no words.)
+  refresh: These ones suck
   save: Save
   save_failed: Couldn't save your marker. Try again.
+  # Leaving the page with a pick not saved. The two buttons are placeholders.
+  unsaved_title: Unsaved changes
+  unsaved_body: You put so much work into making changes, are you sure you want to discard them?
+  unsaved_discard: Discard
+  unsaved_keep: Keep editing
 
 # Settings → Passkeys: the list, and deleting one. Placeholders.
 passkeys:
@@ -1050,3 +1074,25 @@ workout_status:
     lifting: Lift
     resting: Rest
     yapping: Yap
+  # The stage as one letter: Android's notification icon and the chip in
+  # the status bar, beside the clock. Empty shows the app's own mark.
+  glyph:
+    ready: ""
+    lifting: L
+    resting: R
+    yapping: Y
+
+# Settings → App icon: the launcher icon with its coloured plate in each
+# stage's colour, picked like a character. One line per stage.
+app_icon:
+  title: App icon
+  # Under the Settings row.
+  settings_sub: unnecessary feature tbh
+  ready: orange is the best colour
+  lifting: do you even lift bro
+  resting: rest when you're dead
+  yapping: the yapper - the point of all this
+  # The button under the list; and what it says when the one picked is
+  # already the phone's icon. Placeholders.
+  use: Use this icon
+  in_use: This is your icon

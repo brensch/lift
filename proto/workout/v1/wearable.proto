@@ -120,9 +120,10 @@ message WearWorkoutSnapshot {
   // The exercise in hand's sets, in order, warmups first.
   repeated WearSetCircle circles = 17;
   reserved 18, 19;
-  // The phone's "up next" chip, when the wearer lifts next in a session;
-  // empty otherwise (solo, or someone else is next).
+  // "Next", when someone in the session lifts next (the wearer or a
+  // partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
   string up_next_text = 20;
+  string up_next_emoji = 22;
   // The words the dimmed (always-on) face prints around its minute count.
   WearAmbientCopy ambient_copy = 21;
   reserved 10, 13, 14;

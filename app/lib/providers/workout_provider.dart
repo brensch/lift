@@ -3,7 +3,6 @@ import 'dart:collection';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart' show Toast, ToastGravity;
 import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/copy.dart';
@@ -216,6 +215,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           WorkoutState.WORKOUT_STATE_RESTING => short.resting,
           WorkoutState.WORKOUT_STATE_YAPPING => short.yapping,
           _ => short.ready,
+        },
+        glyph: switch (state) {
+          WorkoutState.WORKOUT_STATE_LIFTING =>
+            copy.workoutStatus.glyph.lifting,
+          WorkoutState.WORKOUT_STATE_RESTING =>
+            copy.workoutStatus.glyph.resting,
+          WorkoutState.WORKOUT_STATE_YAPPING =>
+            copy.workoutStatus.glyph.yapping,
+          _ => copy.workoutStatus.glyph.ready,
         },
         exercise: exerciseName(set.exercise),
         detail: copy.workoutStatus.body
@@ -923,6 +931,31 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  /// The weight (lb) the set in hand would have with [exercise]'s working
+  /// sets at [weightLb], asked of the core without changing anything: the
+  /// warmup a working weight leads to. Null when it can't be said (no
+  /// workout, or the set in hand isn't this exercise's).
+  Future<double?> previewSetInHand(Exercise exercise, double weightLb) async {
+    final workout = _workout;
+    if (workout == null) return null;
+    try {
+      final after = await _service.previewAdjustExercise(
+        workout.id,
+        exercise,
+        weightLb,
+      );
+      final set = shownSet(
+        after.hasStateSnapshot() ? after.stateSnapshot : null,
+        after.hasNextUpSet() ? after.nextUpSet : null,
+      );
+      return set == null || set.exercise != exercise
+          ? null
+          : set.targetWeight.toDouble();
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Cancel an exercise's remaining sets. Sets already done stay.
   Future<void> removeExercise(Exercise exercise) async {
     if (_workout == null) return;
@@ -1069,8 +1102,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (stored) {
         showToast(
           msg: copy.health.uploaded.replaceAll('{store}', healthStore),
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
           backgroundColor: schliftSpec.success,
           textColor: schliftSpec.onPrimary,
         );
@@ -1079,8 +1110,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('Health: write failed: $e\n$st');
       showToast(
         msg: copy.health.uploadFailed.replaceAll('{store}', healthStore),
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
         backgroundColor: schliftSpec.error,
         textColor: schliftSpec.onPrimary,
       );

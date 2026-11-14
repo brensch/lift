@@ -58,6 +58,7 @@
 		7E5DF5A550B9A239C0CBA718 /* ContentView+Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F1093A6F7BEB38C8AB024D /* ContentView+Formatting.swift */; };
 		BD0EF32F2FE988183C908720 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AE2A21C9C9BF6449C319D76B /* Main.storyboard */; };
 		C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A421681FD4BE14DDF968D0D /* AppDelegate.swift */; };
+		0784C3109BBE9D098914959B /* AppIconPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9200BF0E324C7832A0E0FDC7 /* AppIconPlugin.swift */; };
 		D4ACA80581E92FA704C98F33 /* workout.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA101BC039C30FFF53AA926 /* workout.pb.swift */; };
 		D8921136B08DFCBD3448BE62 /* wearable.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BFFD28DDBB97D71080156CC /* wearable.pb.swift */; };
 		DC18D6045664645A1F5E31C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 510043DBEC3442DBC23147B8 /* Assets.xcassets */; };
@@ -165,6 +166,7 @@
 		A4BBB2E9A14BAE5FEED1C4BD /* PhoneConnector+HeartRate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhoneConnector+HeartRate.swift"; sourceTree = "<group>"; };
 		E5DD405D62D8CBA0092D3DF9 /* PhoneConnector+Messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PhoneConnector+Messaging.swift"; sourceTree = "<group>"; };
 		9A421681FD4BE14DDF968D0D /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		9200BF0E324C7832A0E0FDC7 /* AppIconPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppIconPlugin.swift"; sourceTree = "<group>"; };
 		9BFFD28DDBB97D71080156CC /* wearable.pb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wearable.pb.swift; sourceTree = "<group>"; };
 		B08EBB33CC5BDA24AB12D6DB /* WatchSensorBatchOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSensorBatchOutbox.swift; sourceTree = "<group>"; };
 		B2E448C1951CDAF54DC87758 /* Runner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -232,6 +234,7 @@
 			isa = PBXGroup;
 			children = (
 				9A421681FD4BE14DDF968D0D /* AppDelegate.swift */,
+				9200BF0E324C7832A0E0FDC7 /* AppIconPlugin.swift */,
 				510043DBEC3442DBC23147B8 /* Assets.xcassets */,
 				DCDD2D76CA41D41D9DE02D8F /* GeneratedPluginRegistrant.h */,
 				7199BA0A3419051F7E68B01E /* GeneratedPluginRegistrant.m */,
@@ -663,6 +666,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C1339C2588354BDC8EBCD812 /* AppDelegate.swift in Sources */,
+				0784C3109BBE9D098914959B /* AppIconPlugin.swift in Sources */,
 				A27A64FA676461FA515E6F61 /* GeneratedPluginRegistrant.m in Sources */,
 				5D4F83BF151F548ED942EB42 /* SceneDelegate.swift in Sources */,
 				7444464A7BDCFDE53EB9D3C7 /* WatchBridgeManager.swift in Sources */,
@@ -753,6 +757,7 @@
 			baseConfigurationReference = 694BB823ADF1C3067C48A654 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconLifting AppIconResting AppIconYapping";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
@@ -999,6 +1004,7 @@
 			baseConfigurationReference = 1BA5CF54A368DD151691BD9F /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconLifting AppIconResting AppIconYapping";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
@@ -1084,6 +1090,7 @@
 			baseConfigurationReference = 1BA5CF54A368DD151691BD9F /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIconLifting AppIconResting AppIconYapping";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Distribution";

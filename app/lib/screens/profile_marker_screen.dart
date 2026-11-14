@@ -1,4 +1,5 @@
 import '../widgets/common/flat.dart';
+import '../widgets/dialogs/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -82,11 +83,39 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // Leaving with a pick not saved asks first, by the back arrow or the
+    // phone's own back.
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final navigator = Navigator.of(context);
+        final discard = await confirmDialog(
+          context,
+          title: copy.profileMarker.unsavedTitle,
+          body: copy.profileMarker.unsavedBody,
+          confirm: copy.profileMarker.unsavedDiscard,
+          cancel: copy.profileMarker.unsavedKeep,
+          destructive: true,
+        );
+        if (!discard || !mounted) return;
+        setState(() {
+          _selectedEmoji = _savedEmoji;
+          _selectedColorHex = _savedColorHex;
+        });
+        // After the frame that lets the page go again.
+        WidgetsBinding.instance.addPostFrameCallback((_) => navigator.pop());
+      },
+      child: _page(context, cs),
+    );
+  }
+
+  Widget _page(BuildContext context, ColorScheme cs) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(AppIcons.back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: PageTitle(copy.profileMarker.title),
       ),
@@ -97,15 +126,6 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                 children: [
-                  Text(
-                    copy.profileMarker.eyebrow,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.small,
-                      fontWeight: context.tokens.weight.heavy,
-                      color: cs.tertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   Text(
                     copy.profileMarker.heading,
                     style: TextStyle(
@@ -128,23 +148,13 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     colorHex: _selectedColorHex,
                   ),
                   const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Text(
-                        copy.profileMarker.emojis,
-                        style: TextStyle(
-                          fontSize: context.tokens.size.small,
-                          fontWeight: context.tokens.weight.heavy,
-                          color: cs.tertiary,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed: _refreshEmojiChoices,
-                        icon: const Icon(AppIcons.refresh, size: 18),
-                        label: Text(copy.profileMarker.refresh),
-                      ),
-                    ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: _refreshEmojiChoices,
+                      icon: const Icon(AppIcons.refresh, size: 18),
+                      label: Text(copy.profileMarker.refresh),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   EmojiChoiceWrap(
@@ -153,15 +163,6 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     onSelect: (emoji) => setState(() => _selectedEmoji = emoji),
                   ),
                   const SizedBox(height: 18),
-                  Text(
-                    copy.profileMarker.colours,
-                    style: TextStyle(
-                      fontSize: context.tokens.size.small,
-                      fontWeight: context.tokens.weight.heavy,
-                      color: cs.tertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
                   ColorChoiceWrap(
                     selected: _selectedColorHex,
                     onSelect: (hex) => setState(() => _selectedColorHex = hex),

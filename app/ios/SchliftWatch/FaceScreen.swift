@@ -167,10 +167,6 @@ struct FaceScreen: View {
                 .watchAutoShrink(minScale: 0.4)
                 .padding(.leading, 10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if !snapshot.upNextText.isEmpty {
-                UpNextChip(text: snapshot.upNextText, size: height * 0.17, colors: colors)
-                    .padding(.trailing, 4)
-            }
             if !stage.timer.isEmpty {
                 Text(stage.timer)
                     .font(monoFontName(size: height * 0.57))
@@ -212,14 +208,28 @@ struct FaceScreen: View {
     }
 
     private func exerciseRow(height: CGFloat) -> some View {
-        Text(exerciseLine)
-            .font(textFontName(size: height * 0.44))
-            .foregroundColor(colors.muted)
-            .watchAutoShrink(minScale: 0.6)
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: height)
-            .background(colors.panel)
+        HStack(spacing: 4) {
+            Text(exerciseLine)
+                .font(textFontName(size: height * 0.44))
+                .foregroundColor(colors.muted)
+                .watchAutoShrink(minScale: 0.6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            // In a session: who lifts next, hard right. "Next" and their
+            // emoji.
+            if !snapshot.upNextText.isEmpty {
+                Text(snapshot.upNextText)
+                    .font(textFontName(size: height * 0.44))
+                    .foregroundColor(colors.text)
+                    .lineLimit(1)
+                // Their emoji, a little bigger than the word.
+                Text(snapshot.upNextEmoji)
+                    .font(.system(size: height * 0.58))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: height)
+        .background(colors.panel)
     }
 
     private var weightText: String {
@@ -234,16 +244,23 @@ struct FaceScreen: View {
                     showPlates = true
                 }
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(weightText)
-                        .font(monoFontName(size: height * 0.61))
-                        .watchAutoShrink(minScale: 0.4)
-                    if !card.unitText.isEmpty {
-                        Text(card.unitText).font(monoFontName(size: height * 0.21))
+                HStack(spacing: 5) {
+                    // The end of the bar as it is loaded, as the phone
+                    // draws it: the bar comes in from the screen's edge.
+                    if !card.plates.isEmpty {
+                        watchHalfBar(plates: card.plates, height: height * 0.8, lead: 10)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(weightText)
+                            .font(monoFontName(size: height * 0.61))
+                            .watchAutoShrink(minScale: 0.4)
+                        if !card.unitText.isEmpty {
+                            Text(card.unitText).font(monoFontName(size: height * 0.21))
+                        }
                     }
                 }
                 .foregroundColor(colors.text)
-                .padding(.leading, 10)
+                .padding(.leading, card.plates.isEmpty ? 10 : 0)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
