@@ -5,13 +5,14 @@ import '../gen/copy.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
+import 'common/flat.dart';
+import 'dialogs/confirm_dialog.dart';
 import 'join_request_banner.dart';
 import 'menu_profile.dart';
 import 'menu_button.dart';
 import 'workout_bar/workout_bottom_bar.dart';
 import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
-import 'wordmark.dart';
 
 /// The shell every signed-in page sits in: the menu (a drawer from the
 /// right), the banner for a join request, and the workout's status box along
@@ -46,71 +47,69 @@ class MainLayout extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // The app's name lives here now that no page has a banner.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Wordmark(),
-                  ),
-                ),
-              ),
               // You, and your totals. Tap to edit your profile.
               MenuProfile(
                 onEditProfile: () => open('/settings/profile-marker'),
               ),
-              // The items sit straight under your totals, fixed in place:
-              // a plain column, nothing to scroll or stretch.
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _MenuButton(
-                    icon: AppIcons.progress,
-                    label: copy.menu.progress,
-                    onTap: () => open('/progress'),
-                  ),
-                  const SizedBox(height: 4),
-                  _MenuButton(
-                    icon: AppIcons.history,
-                    label: copy.menu.history,
-                    onTap: () => open('/history'),
-                  ),
-                  const SizedBox(height: 4),
-                  _MenuButton(
-                    icon: AppIcons.tutorial,
-                    label: copy.menu.learn,
-                    onTap: () => open('/learn'),
-                  ),
-                ],
+              // The pages, as rows like every other list in the app (the
+              // Settings page's): an icon, the name, a line under each.
+              FlatRow(
+                icon: AppIcons.progress,
+                large: true,
+                label: copy.menu.progress,
+                onTap: () => open('/progress'),
+              ),
+              FlatRow(
+                icon: AppIcons.history,
+                large: true,
+                label: copy.menu.history,
+                onTap: () => open('/history'),
+              ),
+              FlatRow(
+                icon: AppIcons.tutorial,
+                large: true,
+                label: copy.menu.learn,
+                onTap: () => open('/learn'),
               ),
               const Spacer(),
-              Divider(color: colorScheme.outline),
-              // Logout, and Settings as a cog beside it.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+              // Settings as one more row along the bottom, and logging out
+              // in the corner beside it: red, and it asks before it does it.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: context.tokens.hairline),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    _MenuButton(
-                      icon: AppIcons.logout,
-                      label: copy.menu.logout,
-                      color: colorScheme.error,
-                      onTap: () {
+                    Expanded(
+                      child: FlatRow(
+                        icon: AppIcons.settings,
+                        large: true,
+                        label: copy.menu.settings,
+                        onTap: () => open('/settings'),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: copy.menu.logout,
+                      onPressed: () async {
+                        final sure = await confirmDialog(
+                          context,
+                          title: copy.menu.logoutTitle,
+                          body: copy.menu.logoutBody,
+                          confirm: copy.menu.logout,
+                          cancel: copy.menu.logoutCancel,
+                          destructive: true,
+                        );
+                        if (!sure || !context.mounted) return;
                         Navigator.pop(context);
                         authProvider.logout();
                         context.go('/login');
                       },
-                      edgeToEdge: false,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: copy.menu.settings,
-                      onPressed: () => open('/settings'),
                       icon: Icon(
-                        AppIcons.settings,
-                        size: 28,
-                        color: colorScheme.onSurface,
+                        AppIcons.logout,
+                        size: context.tokens.size.titleLg,
+                        color: colorScheme.error,
                       ),
                     ),
                   ],
@@ -151,60 +150,6 @@ class MainLayout extends StatelessWidget {
       ),
       bottomNavigationBar: WorkoutBottomBar(
         key: ValueKey(wp.workout?.id ?? 'none'),
-      ),
-    );
-  }
-}
-
-class _MenuButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? color;
-
-  /// Runs to the menu's edges (the list items, whose highlight and dividers
-  /// span the full width) rather than sitting inside padding (Logout).
-  final bool edgeToEdge;
-
-  const _MenuButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color,
-    this.edgeToEdge = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final effectiveColor = color ?? colorScheme.onSurface;
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: edgeToEdge ? null : context.tokens.brSm,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: edgeToEdge ? 24 : 16,
-            vertical: 14,
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 28, color: effectiveColor),
-              const SizedBox(width: 20),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: context.tokens.weight.heavy,
-                  fontSize: context.tokens.size.title,
-                  color: effectiveColor,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

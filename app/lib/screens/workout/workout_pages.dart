@@ -14,6 +14,8 @@ import '../../logic/user_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../providers/workout_provider.dart';
+import '../../services/wearable_bridge_service.dart';
+import '../../theme/app_icons.dart';
 import '../../widgets/common/flat.dart';
 import '../../widgets/heart_rate/heart_rate_chart.dart';
 import '../../widgets/set_log.dart';
@@ -105,7 +107,14 @@ class WorkoutHeartPage extends StatelessWidget {
       body: SafeArea(
         top: false,
         child: workout == null || wp.wearHeartRateSamples.isEmpty
-            ? const NoHeartRateMonitor()
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  NoHeartRateMonitor(),
+                  SizedBox(height: 20),
+                  OpenWatchButton(),
+                ],
+              )
             : ListView(
                 physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
@@ -118,10 +127,68 @@ class WorkoutHeartPage extends StatelessWidget {
                     now: wp.now,
                     stateSnapshot: wp.stateSnapshot,
                     inset: 16,
+                    // Still here with a heart rate showing (the watch app
+                    // may be closed while the last readings are on the
+                    // chart): beside the reading, as its icon alone.
+                    headerAction: const OpenWatchButton(compact: true),
                   ),
                 ],
               ),
       ),
     );
   }
+}
+
+/// Asks the watch to open its app (the phone asks once when a workout
+/// starts; this is for when that was missed, or the watch app was closed).
+/// Not there at all without a paired watch that has the app.
+class OpenWatchButton extends StatefulWidget {
+  /// The watch icon alone in a small box (the label is its tooltip), for
+  /// beside the reading; else the icon and the words.
+  final bool compact;
+
+  const OpenWatchButton({super.key, this.compact = false});
+
+  @override
+  State<OpenWatchButton> createState() => _OpenWatchButtonState();
+}
+
+class _OpenWatchButtonState extends State<OpenWatchButton> {
+  late final Future<bool> _available = context
+      .read<WearableBridgeService>()
+      .isWatchAppAvailable();
+  bool _asking = false;
+
+  Future<void> _open() async {
+    setState(() => _asking = true);
+    try {
+      await context.read<WearableBridgeService>().openWatchApp();
+    } catch (e) {
+      debugPrint('Opening the watch app failed: $e');
+    } finally {
+      if (mounted) setState(() => _asking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<bool>(
+    future: _available,
+    builder: (context, available) => available.data != true
+        ? const SizedBox.shrink()
+        : widget.compact
+        ? OutlinedButton.icon(
+            onPressed: _asking ? null : _open,
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            icon: const Icon(AppIcons.watch),
+            label: Text(copy.workoutPage.openWatchShort),
+          )
+        : OutlinedButton.icon(
+            onPressed: _asking ? null : _open,
+            icon: const Icon(AppIcons.watch),
+            label: Text(copy.workoutPage.openWatch),
+          ),
+  );
 }

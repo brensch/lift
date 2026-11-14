@@ -2,10 +2,10 @@
 /// colour of the stage they're at — their emoji on their own colour, the
 /// stage, UP NEXT when the rack is theirs, the clock — readable from across
 /// the gym. The band is the same for everyone, so the emoji line up. Under
-/// it, the set: yours says what it is along the top ("Squat · Set 2 of 5"),
-/// then the plates, the weight, big, and its circle; a partner's (compact)
-/// is one small row — plates, what it is on two lines, weight × reps. Tap a
-/// partner's to see their workout.
+/// it, the set as one row: yours says what it is on two short lines ("Squat",
+/// "2 of 5"), then the plates and the weight as a button, and its circle; a
+/// partner's (compact) is one small row — "Squat · 2 of 5", plates,
+/// weight × reps. Tap a partner's to see their workout.
 library;
 
 import 'package:flutter/material.dart';
@@ -17,9 +17,14 @@ import '../logic/exercises.dart';
 import '../logic/set_labels.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
-import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
+import '../screens/workout/set_circle.dart';
 import 'plate_visualization.dart';
+
+/// What your status row needs besides the set's label: the bar's and the
+/// box's margins (48), the gaps, × and the circle (98), and the least the
+/// load button is given (110). The label has the screen's width less this.
+const double _rowFixedWidth = 48 + 98 + 110;
 
 class StatusBox extends StatelessWidget {
   final String emoji;
@@ -92,14 +97,14 @@ class StatusBox extends StatelessWidget {
     // from the left edge; the stage (and, compact, their set under it);
     // UP NEXT when the rack is theirs; the clock hard right. The stage and
     // the clock shrink to fit a narrow screen; nothing wraps.
-    const bandHeight = 56.0;
+    final bandHeight = compact ? 38.0 : 56.0;
     final stage = FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Text(
         stateLabel,
         maxLines: 1,
-        style: onBandText(t.size.headlineLg),
+        style: onBandText(compact ? t.size.title : t.size.headlineLg),
       ),
     );
     final band = SizedBox(
@@ -136,7 +141,10 @@ class StatusBox extends StatelessWidget {
                   color: profileColor,
                   child: Text(
                     emoji,
-                    style: TextStyle(fontSize: t.size.displayLg, height: 1),
+                    style: TextStyle(
+                      fontSize: compact ? t.size.titleLg : t.size.display,
+                      height: 1,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -145,13 +153,14 @@ class StatusBox extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // The stage alone, and UP NEXT straight after it.
+                      // The stage at the left; Up next hard right, against
+                      // the clock.
                       Row(
                         children: [
-                          Flexible(child: stage),
+                          Expanded(child: stage),
                           if (upNext) ...[
                             const SizedBox(width: 8),
-                            const _UpNext(),
+                            _UpNext(compact: compact),
                           ],
                         ],
                       ),
@@ -170,7 +179,11 @@ class StatusBox extends StatelessWidget {
                         alignment: Alignment.centerRight,
                         child: Text(
                           timerText!,
-                          style: t.mono(onBandText(t.size.displayLg)),
+                          style: t.mono(
+                            onBandText(
+                              compact ? t.size.headline : t.size.displayLg,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -197,11 +210,8 @@ class StatusBox extends StatelessWidget {
         TextSpan(
           children: [
             TextSpan(text: formatWeight(set.targetWeight.toDouble(), unit)),
-            TextSpan(
-              text: ' ${weightUnitSuffix(unit)}',
-              style: TextStyle(fontSize: weightSize * 0.4),
-            ),
-            if (circle == null) TextSpan(text: ' × ${set.targetReps}'),
+            // The number alone, as big as it goes: the reps are beside it,
+            // in the set's circle (yours) or plainly (a partner's).
           ],
         ),
         maxLines: 1,
@@ -217,54 +227,98 @@ class StatusBox extends StatelessWidget {
       );
       // The plates to load, the weight, then × the reps: in the circle
       // (yours), or said after the weight (a partner's).
+      final exercise = exerciseName(set.exercise);
+      final position = setLineFor(set, plan);
+      // "Warmup 2 of 3" without its kind: "2 of 3".
+      final cut = position.indexOf(' ');
+      final count = cut < 0 ? position : position.substring(cut + 1);
+      final small = TextStyle(
+        fontSize: t.size.body,
+        fontWeight: t.weight.medium,
+        color: t.muted,
+        height: 1.2,
+      );
       final line = Row(
         children: [
-          if (firstTime)
-            Expanded(
-              child: Text(
-                copy.workout.firstTimeStatus,
-                style: TextStyle(
-                  fontSize: t.size.display,
-                  fontWeight: t.weight.heavy,
-                  color: t.text,
-                  height: 1.1,
+          // What the set is, on two short rows at the left: the lift, then
+          // which one of how many (a warmup says so). They take the width
+          // their words need; the rest of the row has what is left.
+          // On a screen too narrow for them, the button and the circle,
+          // they are scaled down together to what is left once the button
+          // has its least: never cut short, never pushing the row over.
+          // A first time has them too, with its words where the button is.
+          if (!compact) ...[
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: (MediaQuery.sizeOf(context).width - _rowFixedWidth)
+                    .clamp(60.0, double.infinity),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final text in [
+                      exercise,
+                      set.warmup
+                          ? copy.workout.warmShort.replaceAll('{count}', count)
+                          : count,
+                    ])
+                      if (text.isNotEmpty)
+                        Text(
+                          text,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: small.copyWith(fontSize: t.size.subtitle),
+                        ),
+                  ],
                 ),
               ),
             ),
-          if (!firstTime && set.targetWeight > 0) ...[
-            _Plates(weight: set.targetWeight.toDouble(), compact: compact),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
           ],
-          if (!firstTime)
+          if (firstTime)
             Expanded(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                // Yours sits against × and the circle, as one "45 lb × 5".
+                alignment: Alignment.centerRight,
+                child: Text(
+                  copy.workout.firstTimeStatus,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: t.size.titleLg,
+                    fontWeight: t.weight.heavy,
+                    color: t.text,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+          // The plates and the weight they add up to, as one button against
+          // × and the circle: it opens the exercise's edit sheet. The bar
+          // runs out of the button's far side, away from the number.
+          if (!firstTime)
+            // The button is never scaled as a whole: it stays the circle's
+            // height and its plates their size, and only the number gets
+            // smaller when the row is tight.
+            Expanded(
+              child: Align(
                 alignment: circle == null
                     ? Alignment.centerLeft
                     : Alignment.centerRight,
-                child: onEdit == null
-                    ? load
-                    : GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onEdit,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              AppIcons.edit,
-                              size: t.size.title,
-                              color: t.muted,
-                              semanticLabel: copy.workoutPage.weightAndReps,
-                            ),
-                            const SizedBox(width: 8),
-                            load,
-                          ],
-                        ),
-                      ),
+                child: _LoadButton(
+                  weight: set.targetWeight.toDouble(),
+                  onTap: onEdit,
+                  child: load,
+                ),
               ),
             ),
-          if (circle != null && firstTime) circle!,
+          if (circle != null && firstTime) ...[
+            const SizedBox(width: 8),
+            circle!,
+          ],
           if (circle != null && !firstTime) ...[
             const SizedBox(width: 8),
             Text(
@@ -283,69 +337,67 @@ class StatusBox extends StatelessWidget {
           ],
         ],
       );
-      final exercise = exerciseName(set.exercise);
-      final position = setLineFor(set, plan);
-      final small = TextStyle(
-        fontSize: t.size.body,
-        fontWeight: t.weight.medium,
-        color: t.muted,
-        height: 1.2,
-      );
       if (compact) {
-        // A partner's: plates, what the set is on two short rows, then the
-        // weight × reps.
+        // A partner's: laid out as yours is, smaller, and nothing in it to
+        // press. What the set is on two short rows; then the end of the bar
+        // with its plates and the weight, with no button round them; then
+        // × and the reps, with no circle.
+        final times = t.mono(
+          TextStyle(
+            fontSize: t.size.subtitle,
+            fontWeight: t.weight.bold,
+            color: t.text,
+            height: 1,
+          ),
+        );
         body = Row(
           children: [
-            if (set.targetWeight > 0) ...[
-              _Plates(weight: set.targetWeight.toDouble(), compact: true),
-              const SizedBox(width: 12),
-            ],
+            // The lift and which set, on the one row: "Squat · 2 of 5".
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final text in [exercise, position])
-                    Text(
-                      text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: small,
-                    ),
-                ],
+              child: Text(
+                [
+                  exercise,
+                  set.warmup
+                      ? copy.workout.warmShort.replaceAll('{count}', count)
+                      : count,
+                ].where((text) => text.isNotEmpty).join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: small,
               ),
             ),
             const SizedBox(width: 8),
-            // Shares the room with the two lines, shrinking on a narrow
-            // screen.
-            Flexible(
+            if (set.targetWeight > 0 &&
+                !isEmptyBar(set.targetWeight.toDouble(), unit)) ...[
+              HalfBarbell(
+                weightLb: set.targetWeight.toDouble(),
+                height: 30,
+                mirrored: true,
+                squeeze: true,
+              ),
+              const SizedBox(width: 8),
+            ],
+            // Only the set's words stretch, so the load and the reps sit hard
+            // against the right. The number has this much and shrinks to it.
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 96),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
                 child: load,
               ),
             ),
+            const SizedBox(width: 6),
+            Text('×', style: times),
+            const SizedBox(width: 6),
+            Text(
+              '${set.targetReps}',
+              style: times.copyWith(fontSize: weightSize),
+            ),
           ],
         );
       } else {
-        // Yours: what the set is along the top, then the row.
-        body = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '$exercise · $position',
-                maxLines: 1,
-                style: small.copyWith(fontSize: t.size.subtitle),
-              ),
-            ),
-            const SizedBox(height: 6),
-            line,
-          ],
-        );
+        body = line;
       }
     }
 
@@ -364,8 +416,10 @@ class StatusBox extends StatelessWidget {
           if (body != null)
             Padding(
               padding: compact
-                  ? const EdgeInsets.fromLTRB(14, 6, 14, 6)
-                  : const EdgeInsets.fromLTRB(14, 6, 14, 8),
+                  ? const EdgeInsets.fromLTRB(12, 4, 12, 4)
+                  // The circle is the row's tallest thing and its last: the
+                  // same room under it as beside it.
+                  : const EdgeInsets.fromLTRB(14, 8, 10, 10),
               child: body,
             ),
         ],
@@ -374,42 +428,68 @@ class StatusBox extends StatelessWidget {
   }
 }
 
-/// The plates to load, in a fixed white box (so nothing moves when the
-/// numbers change); tap it for the plate-by-plate breakdown.
-class _Plates extends StatelessWidget {
+/// Your set's load as one button: the end of the bar with its plates, the
+/// bar running out through the button's left edge, then the weight. A tap
+/// opens the exercise's edit sheet ([onTap]; null when there is nothing to
+/// edit, and then it is only a readout).
+class _LoadButton extends StatelessWidget {
   final double weight;
+  final VoidCallback? onTap;
+  final Widget child;
 
-  /// A partner's: smaller.
-  final bool compact;
-
-  const _Plates({required this.weight, this.compact = false});
+  const _LoadButton({
+    required this.weight,
+    required this.onTap,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
     final unit = context.watch<SettingsProvider>().weightUnit;
-    return GestureDetector(
-      onTap: () => showPlateBreakdownDialog(context, weightLb: weight),
-      child: Container(
-        width: compact ? 72 : 88,
-        height: compact ? 36 : 46,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: t.lightBackdrop,
-          borderRadius: context.tokens.brMd,
-          border: Border.all(color: t.outline),
+    final below =
+        displayWeightFromPounds(weight, unit) < standardBarWeight(unit);
+    return Semantics(
+      button: onTap != null,
+      label: copy.workoutPage.weightAndReps,
+      child: Material(
+        color: t.lightBackdrop,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: t.outline),
+          borderRadius: t.brMd,
         ),
-        child: isEmptyBar(weight, unit)
-            ? Text(
-                copy.workout.emptyBar,
-                style: TextStyle(
-                  fontSize: t.size.body,
-                  fontWeight: t.weight.heavy,
-                  color: t.inkOn(t.lightBackdrop),
-                ),
-              )
-            : FittedBox(child: PlateVisualization(weightLb: weight)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          // As tall as the set's circle beside it, whatever is in it.
+          child: SizedBox(
+            height: SetCircle.diameter,
+            child: Padding(
+              // Nothing on the left: the bar meets the edge.
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (weight > 0 && !below) ...[
+                    // Always this tall: a heavy bar is wider, not smaller.
+                    HalfBarbell(
+                      weightLb: weight,
+                      height: 44,
+                      mirrored: true,
+                      squeeze: true,
+                    ),
+                    const SizedBox(width: 10),
+                  ] else
+                    const SizedBox(width: 12),
+                  // The number has what is left, and shrinks to fit it.
+                  Flexible(
+                    child: FittedBox(fit: BoxFit.scaleDown, child: child),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -418,7 +498,10 @@ class _Plates extends StatelessWidget {
 /// UP NEXT! on two lines, on a light block in the band, its letters
 /// cycling through the theme's palette: the rack is theirs.
 class _UpNext extends StatefulWidget {
-  const _UpNext();
+  /// In a partner's shorter band: smaller.
+  final bool compact;
+
+  const _UpNext({this.compact = false});
 
   @override
   State<_UpNext> createState() => _UpNextState();
@@ -449,16 +532,18 @@ class _UpNextState extends State<_UpNext> with SingleTickerProviderStateMixin {
         final to = colors[(at.floor() + 1) % colors.length];
         final color = Color.lerp(from, to, at - at.floor())!;
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          color: t.panel,
+          padding: widget.compact
+              ? const EdgeInsets.symmetric(horizontal: 5, vertical: 2)
+              : const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(color: t.panel, borderRadius: t.brSm),
           child: Text(
             copy.workout.upNext,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: t.size.small,
+              fontSize: widget.compact ? t.size.caption : t.size.small,
               fontWeight: t.weight.bold,
               color: color,
-              height: 1.1,
+              height: widget.compact ? 1.0 : 1.1,
             ),
           ),
         );

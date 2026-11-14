@@ -142,19 +142,30 @@ void main() {
       );
     });
 
-    test('never starts before the workout or past its data', () {
-      expect(
-        clampViewport(startSec: -50, spanSec: 600, domainMaxX: 1000).startSec,
-        0,
-      );
-      final late = clampViewport(
-        startSec: 5000,
-        spanSec: 600,
-        domainMaxX: 1000,
-      );
-      expect(late.startSec, 1000 - 600 * 0.05);
-      expect(late.endSec, late.startSec + 600);
-    });
+    test(
+      'starts at most three quarters of itself early, never past its data',
+      () {
+        expect(
+          clampViewport(startSec: -50, spanSec: 600, domainMaxX: 1000).startSec,
+          -50,
+        );
+        expect(
+          clampViewport(
+            startSec: -900,
+            spanSec: 600,
+            domainMaxX: 1000,
+          ).startSec,
+          -450,
+        );
+        final late = clampViewport(
+          startSec: 5000,
+          spanSec: 600,
+          domainMaxX: 1000,
+        );
+        expect(late.startSec, 1000 - 600 * 0.05);
+        expect(late.endSec, late.startSec + 600);
+      },
+    );
   });
 
   group('samplesInRange', () {

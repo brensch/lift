@@ -313,6 +313,7 @@ const WearWorkoutSnapshot$json = {
       '10': 'circles'
     },
     {'1': 'up_next_text', '3': 20, '4': 1, '5': 9, '10': 'upNextText'},
+    {'1': 'up_next_emoji', '3': 22, '4': 1, '5': 9, '10': 'upNextEmoji'},
     {
       '1': 'ambient_copy',
       '3': 21,
@@ -352,11 +353,11 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'N0aW9ucxJQChJjb21wbGV0aW9uX3N1bW1hcnkYDCABKAsyIS53b3Jrb3V0LnYxLldlYXJDb21w'
     'bGV0aW9uU3VtbWFyeVIRY29tcGxldGlvblN1bW1hcnkSKQoRbGFzdF9zZXRfZW5kZWRfYXQYEC'
     'ABKANSDmxhc3RTZXRFbmRlZEF0EjMKB2NpcmNsZXMYESADKAsyGS53b3Jrb3V0LnYxLldlYXJT'
-    'ZXRDaXJjbGVSB2NpcmNsZXMSIAoMdXBfbmV4dF90ZXh0GBQgASgJUgp1cE5leHRUZXh0Ej4KDG'
-    'FtYmllbnRfY29weRgVIAEoCzIbLndvcmtvdXQudjEuV2VhckFtYmllbnRDb3B5UgthbWJpZW50'
-    'Q29weUoECAUQBkoECAcQCEoECBIQE0oECBMQFEoECAoQC0oECA0QDkoECA4QD1IRYWN0aXZlX3'
-    'N0YXJ0ZWRfYXRSDWxhc3RfcmVzdF9lbmRSCmdyb3VwX2NhcmRSDWVmZm9ydF9wcm9tcHRSDW5l'
-    'eHRfdXBfZW1vamk=');
+    'ZXRDaXJjbGVSB2NpcmNsZXMSIAoMdXBfbmV4dF90ZXh0GBQgASgJUgp1cE5leHRUZXh0EiIKDX'
+    'VwX25leHRfZW1vamkYFiABKAlSC3VwTmV4dEVtb2ppEj4KDGFtYmllbnRfY29weRgVIAEoCzIb'
+    'LndvcmtvdXQudjEuV2VhckFtYmllbnRDb3B5UgthbWJpZW50Q29weUoECAUQBkoECAcQCEoECB'
+    'IQE0oECBMQFEoECAoQC0oECA0QDkoECA4QD1IRYWN0aXZlX3N0YXJ0ZWRfYXRSDWxhc3RfcmVz'
+    'dF9lbmRSCmdyb3VwX2NhcmRSDWVmZm9ydF9wcm9tcHRSDW5leHRfdXBfZW1vamk=');
 
 @$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
 const WearCompletionSummary$json = {

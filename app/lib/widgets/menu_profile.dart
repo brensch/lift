@@ -82,6 +82,7 @@ class _MenuProfileState extends State<MenuProfile> {
     final auth = context.watch<AuthProvider>();
     final totals = _totals;
 
+    // A figure under its label, in the cells of a row split by hairlines.
     Widget cell(
       String label,
       String value, {
@@ -89,7 +90,7 @@ class _MenuProfileState extends State<MenuProfile> {
       bool last = false,
     }) => Expanded(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 8, 12),
+        padding: const EdgeInsets.fromLTRB(16, 6, 8, 8),
         decoration: BoxDecoration(
           border: Border(
             right: last ? BorderSide.none : BorderSide(color: t.hairline),
@@ -98,19 +99,21 @@ class _MenuProfileState extends State<MenuProfile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, maxLines: 1, style: t.label(color: color)),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                style: t.mono(
-                  TextStyle(
-                    fontSize: t.size.title,
-                    fontWeight: t.weight.bold,
-                    color: t.text,
-                  ),
+            Text(
+              label,
+              maxLines: 1,
+              style: t.label(color: color).copyWith(fontSize: t.size.small),
+            ),
+            Text(
+              value,
+              maxLines: 1,
+              softWrap: false,
+              style: t.mono(
+                TextStyle(
+                  fontSize: t.size.title,
+                  fontWeight: t.weight.bold,
+                  color: t.text,
+                  height: 1.2,
                 ),
               ),
             ),
@@ -132,46 +135,71 @@ class _MenuProfileState extends State<MenuProfile> {
     );
 
     final bannerColor = profileColorFromHex(auth.profileColorHex);
-    final onColor = t.inkOn(bannerColor);
 
     String show(int Function(_Totals) f, String Function(int) fmt) =>
         totals == null ? '–' : fmt(f(totals));
 
+    // How your time splits, as one bar in the stages' colours: each as wide
+    // as its share. Even thirds until there is time to split.
+    final split = [
+      (t.lifting, totals?.lifting ?? 0),
+      (t.resting, totals?.resting ?? 0),
+      (t.yapping, totals?.yapping ?? 0),
+    ];
+    final timed = split.fold<int>(0, (sum, part) => sum + part.$2) > 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // You: your colour, full width, your emoji on the left.
+        // You, as the workout's status box has you: your emoji on a block of
+        // your colour, your name beside it. Tap to edit your profile.
         Material(
-          color: bannerColor,
+          color: t.panel,
           child: InkWell(
             onTap: widget.onEditProfile,
-            child: SizedBox(
-              height: 72,
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                border: Border.symmetric(
+                  horizontal: BorderSide(color: t.hairline),
+                ),
+              ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(
-                    width: 72,
-                    child: Center(
+                  Container(
+                    width: 56,
+                    alignment: Alignment.center,
+                    color: bannerColor,
+                    child: Text(
+                      normalizedProfileEmoji(auth.profileEmoji),
+                      style: TextStyle(fontSize: t.size.display, height: 1),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
                       child: Text(
-                        normalizedProfileEmoji(auth.profileEmoji),
-                        style: TextStyle(fontSize: t.size.displayLg, height: 1),
+                        auth.username ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: t.size.titleLg,
+                          fontWeight: t.weight.bold,
+                          color: t.text,
+                        ),
                       ),
                     ),
                   ),
-                  Expanded(
-                    child: Text(
-                      (auth.username ?? ''),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(
-                        context,
-                      ).appBarTheme.titleTextStyle?.copyWith(color: onColor),
-                    ),
-                  ),
-                  // Says the banner edits your profile.
+                  // Says the row edits your profile.
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Icon(AppIcons.edit, color: onColor),
+                    child: Icon(
+                      AppIcons.edit,
+                      size: t.size.title,
+                      color: t.muted,
+                    ),
                   ),
                 ],
               ),
@@ -200,6 +228,19 @@ class _MenuProfileState extends State<MenuProfile> {
             last: true,
           ),
         ]),
+        // Under the three, so their dividers run up to the line above.
+        SizedBox(
+          height: 6,
+          child: Row(
+            children: [
+              for (final (color, seconds) in split)
+                Expanded(
+                  flex: timed ? seconds.clamp(1, 1 << 30) : 1,
+                  child: ColoredBox(color: color),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
