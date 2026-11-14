@@ -146,6 +146,7 @@ class Workout extends $pb.GeneratedMessage {
     $core.String? templateId,
     $core.String? liftingSetId,
     $fixnum.Int64? liftingStartedAt,
+    $core.String? motivation,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -156,6 +157,7 @@ class Workout extends $pb.GeneratedMessage {
     if (templateId != null) result.templateId = templateId;
     if (liftingSetId != null) result.liftingSetId = liftingSetId;
     if (liftingStartedAt != null) result.liftingStartedAt = liftingStartedAt;
+    if (motivation != null) result.motivation = motivation;
     return result;
   }
 
@@ -180,6 +182,7 @@ class Workout extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'templateId')
     ..aOS(7, _omitFieldNames ? '' : 'liftingSetId')
     ..aInt64(8, _omitFieldNames ? '' : 'liftingStartedAt')
+    ..aOS(9, _omitFieldNames ? '' : 'motivation')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -275,6 +278,17 @@ class Workout extends $pb.GeneratedMessage {
   $core.bool hasLiftingStartedAt() => $_has(7);
   @$pb.TagNumber(8)
   void clearLiftingStartedAt() => $_clearField(8);
+
+  /// The workout's motivational quote, picked when it started and kept; ""
+  /// for a workout started before there were any.
+  @$pb.TagNumber(9)
+  $core.String get motivation => $_getSZ(8);
+  @$pb.TagNumber(9)
+  set motivation($core.String value) => $_setString(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasMotivation() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearMotivation() => $_clearField(9);
 }
 
 class ProposedSet extends $pb.GeneratedMessage {
@@ -1378,6 +1392,7 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
     $core.Iterable<Exercise>? exercises,
     $core.Iterable<ExerciseDecision>? decisions,
     $core.int? budgetMinutes,
+    $core.String? motivation,
   }) {
     final result = create();
     if (name != null) result.name = name;
@@ -1386,6 +1401,7 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
     if (exercises != null) result.exercises.addAll(exercises);
     if (decisions != null) result.decisions.addAll(decisions);
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
+    if (motivation != null) result.motivation = motivation;
     return result;
   }
 
@@ -1412,6 +1428,7 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
     ..pPM<ExerciseDecision>(6, _omitFieldNames ? '' : 'decisions',
         subBuilder: ExerciseDecision.create)
     ..aI(7, _omitFieldNames ? '' : 'budgetMinutes')
+    ..aOS(8, _omitFieldNames ? '' : 'motivation')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1480,6 +1497,16 @@ class StartWorkoutRequest extends $pb.GeneratedMessage {
   $core.bool hasBudgetMinutes() => $_has(5);
   @$pb.TagNumber(7)
   void clearBudgetMinutes() => $_clearField(7);
+
+  /// The workout's motivational quote, picked by the app; kept as given.
+  @$pb.TagNumber(8)
+  $core.String get motivation => $_getSZ(6);
+  @$pb.TagNumber(8)
+  set motivation($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(8)
+  $core.bool hasMotivation() => $_has(6);
+  @$pb.TagNumber(8)
+  void clearMotivation() => $_clearField(8);
 }
 
 class StartWorkoutResponse extends $pb.GeneratedMessage {
@@ -2738,12 +2765,14 @@ class AdjustExerciseWeightRequest extends $pb.GeneratedMessage {
     Exercise? exercise,
     $core.double? workingWeight,
     $core.int? targetReps,
+    $core.int? sets,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (exercise != null) result.exercise = exercise;
     if (workingWeight != null) result.workingWeight = workingWeight;
     if (targetReps != null) result.targetReps = targetReps;
+    if (sets != null) result.sets = sets;
     return result;
   }
 
@@ -2766,6 +2795,7 @@ class AdjustExerciseWeightRequest extends $pb.GeneratedMessage {
     ..aD(3, _omitFieldNames ? '' : 'workingWeight',
         fieldType: $pb.PbFieldType.OF)
     ..aI(4, _omitFieldNames ? '' : 'targetReps')
+    ..aI(5, _omitFieldNames ? '' : 'sets')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2825,6 +2855,17 @@ class AdjustExerciseWeightRequest extends $pb.GeneratedMessage {
   $core.bool hasTargetReps() => $_has(3);
   @$pb.TagNumber(4)
   void clearTargetReps() => $_clearField(4);
+
+  /// How many working sets the exercise has in all, done ones included: sets
+  /// are added after its last, or its last undone ones cancelled. 0 = unchanged.
+  @$pb.TagNumber(5)
+  $core.int get sets => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set sets($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasSets() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearSets() => $_clearField(5);
 }
 
 /// Cancel an exercise's pending sets. Completed sets stay.
@@ -2968,10 +3009,12 @@ class SkipWarmupsRequest extends $pb.GeneratedMessage {
   factory SkipWarmupsRequest({
     $core.String? workoutId,
     Exercise? exercise,
+    $core.String? proposedSetId,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
     if (exercise != null) result.exercise = exercise;
+    if (proposedSetId != null) result.proposedSetId = proposedSetId;
     return result;
   }
 
@@ -2991,6 +3034,7 @@ class SkipWarmupsRequest extends $pb.GeneratedMessage {
     ..aOS(1, _omitFieldNames ? '' : 'workoutId')
     ..aE<Exercise>(2, _omitFieldNames ? '' : 'exercise',
         enumValues: Exercise.values)
+    ..aOS(3, _omitFieldNames ? '' : 'proposedSetId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -3029,6 +3073,16 @@ class SkipWarmupsRequest extends $pb.GeneratedMessage {
   $core.bool hasExercise() => $_has(1);
   @$pb.TagNumber(2)
   void clearExercise() => $_clearField(2);
+
+  /// The one warmup to skip; empty skips every undone warmup of the exercise.
+  @$pb.TagNumber(3)
+  $core.String get proposedSetId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set proposedSetId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasProposedSetId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearProposedSetId() => $_clearField(3);
 }
 
 /// What one answer to a rung's question leads to (GetWorkoutResponse.rung_outcomes).

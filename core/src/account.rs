@@ -251,6 +251,7 @@ impl Account {
             name: req.name.clone(),
             start_time: req.started_at,
             template_id: req.template_id.clone(),
+            motivation: req.motivation.clone(),
             ..Default::default()
         };
         let mut record = WorkoutRecord::new(workout, Vec::new(), Vec::new());

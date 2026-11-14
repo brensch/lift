@@ -1039,6 +1039,7 @@ impl<'a> Runner<'a> {
                             exercise: ex as i32,
                             working_weight: to,
                             target_reps: 0,
+                            ..Default::default()
                         }),
                     );
                     continue;
@@ -1057,6 +1058,7 @@ impl<'a> Runner<'a> {
                                 exercise: ex as i32,
                                 working_weight: to,
                                 target_reps: 0,
+                                ..Default::default()
                             }),
                         );
                         lowered = Some(ex);

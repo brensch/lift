@@ -16,7 +16,7 @@ void main() {
     await s.completeOnboarding();
 
     // Settings is the cog at the foot of the menu.
-    await s.tap(find.byIcon(AppIcons.menu));
+    await s.openMenu();
     await s.settle(seconds: 1);
     await s.tap(find.byIcon(AppIcons.settings));
     await s.settle(seconds: 2);

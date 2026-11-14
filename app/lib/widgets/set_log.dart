@@ -154,13 +154,10 @@ class SetLog extends StatelessWidget {
         children: [
           Text(
             copy.setLog.emptyTitle,
-            style: t.mono(
-              TextStyle(
-                fontSize: t.size.bodyLg,
-                fontWeight: t.weight.bold,
-                letterSpacing: 1,
-                color: t.text,
-              ),
+            style: TextStyle(
+              fontSize: t.size.bodyLg,
+              fontWeight: t.weight.bold,
+              color: t.text,
             ),
           ),
           const SizedBox(height: 6),
@@ -428,14 +425,13 @@ class _GapPart extends StatelessWidget {
       TextStyle(
         fontSize: t.size.caption,
         fontWeight: t.weight.bold,
-        letterSpacing: 0.5,
         color: color,
       ),
     );
   }
 
   static String _full(int seconds, String label) =>
-      '${formatRestClock(seconds)}  ${label.toUpperCase()}';
+      '${formatRestClock(seconds)}  $label';
 
   static double _start(bool leading) => leading ? 16 : 8;
 

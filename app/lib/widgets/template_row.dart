@@ -105,7 +105,6 @@ class _TemplateRowState extends State<TemplateRow> {
                             fontWeight: selected ?? true
                                 ? context.tokens.weight.heavy
                                 : context.tokens.weight.bold,
-                            letterSpacing: -0.2,
                           ),
                         ),
                         if (widget.showLifts)
@@ -220,11 +219,10 @@ class PersonalTag extends StatelessWidget {
           Icon(AppIcons.copy, size: 13, color: cs.primary),
           const SizedBox(width: 4),
           Text(
-            copy.library.personal.toUpperCase(),
+            copy.library.personal,
             style: TextStyle(
               fontSize: context.tokens.size.small,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: 0.8,
               color: cs.primary,
             ),
           ),

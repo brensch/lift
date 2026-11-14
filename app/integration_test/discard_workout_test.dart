@@ -40,12 +40,12 @@ void main() {
       await s.endWorkoutAndWaitForSummary();
       await s.tap(find.byIcon(AppIcons.back));
       await s.settle(seconds: 2);
-      await s.tap(find.byIcon(AppIcons.menu));
+      await s.openMenu();
       await s.tapText('History');
       await s.settle(seconds: 3);
       await s.shot('History: one workout');
       await s.tap(find.textContaining('StrongLifts').first);
-      await s.mustSee('SESSION', seconds: 15);
+      await s.mustSee(copy.summary.session, seconds: 15);
       await s.tapText(copy.workout.discardWorkout);
       await s.mustSee(copy.workout.discardTitle, seconds: 6);
       await s.tap(find.text(copy.workout.discardConfirm).last);

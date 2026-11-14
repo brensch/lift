@@ -32,6 +32,7 @@ import 'providers/sound_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/permissions_screen.dart';
 import 'theme/app_theme.dart';
+import 'screens/workout/workout_pages.dart';
 import 'screens/workout_tab.dart';
 import 'screens/completed_workout_screen.dart';
 import 'screens/progress_screen.dart';
@@ -355,15 +356,22 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           // The banner here, not in MainLayout: the tutorial's sandbox
           // layout has no session to lose.
           builder: (context, state, child) => SessionExpiredBanner(
-            child: RecoveryAlertBanner(
-              child: MainLayout(
-                currentPath: state.matchedLocation,
-                child: child,
-              ),
-            ),
+            child: RecoveryAlertBanner(child: MainLayout(child: child)),
           ),
+          // One stack: home (or the live workout) at '/', and every other
+          // page pushed over it with `context.push`, so each has a back
+          // arrow that pops to where it was opened from. Nothing replaces
+          // the stack except signing in or out.
           routes: [
             GoRoute(path: '/', builder: (_, __) => const WorkoutTab()),
+            GoRoute(
+              path: '/workout/log',
+              builder: (_, __) => const WorkoutLogPage(),
+            ),
+            GoRoute(
+              path: '/workout/heart',
+              builder: (_, __) => const WorkoutHeartPage(),
+            ),
             GoRoute(
               path: '/workout/:id/completed',
               builder: (_, state) => CompletedWorkoutScreen(
@@ -373,16 +381,13 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             ),
             GoRoute(
               path: '/progress',
-              builder: (_, __) => const BackToHome(child: ProgressScreen()),
+              builder: (_, __) => const ProgressScreen(),
             ),
             GoRoute(
               path: '/history',
-              builder: (_, __) => const BackToHome(child: HistoryScreen()),
+              builder: (_, __) => const HistoryScreen(),
             ),
-            GoRoute(
-              path: '/learn',
-              builder: (_, __) => const BackToHome(child: LearnScreen()),
-            ),
+            GoRoute(path: '/learn', builder: (_, __) => const LearnScreen()),
             GoRoute(
               path: '/exercise/:ex',
               builder: (_, state) {
@@ -419,7 +424,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             ),
             GoRoute(
               path: '/settings',
-              builder: (_, __) => const BackToHome(child: SettingsScreen()),
+              builder: (_, __) => const SettingsScreen(),
             ),
             GoRoute(
               path: '/settings/profile-marker',

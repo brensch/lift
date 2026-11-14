@@ -6,7 +6,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
-import 'package:schlift/theme/app_icons.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -31,13 +30,13 @@ void main() {
     s.note('Seeded 5 progressive workouts', kind: 'api');
 
     // Progress (graphs).
-    await s.tap(find.byIcon(AppIcons.menu));
+    await s.openMenu();
     await s.tapText('Progress');
     await s.settle(seconds: 4);
     await s.shot('Progress screen', note: 'Weight-over-time per exercise.');
 
     // History.
-    await s.tap(find.byIcon(AppIcons.menu));
+    await s.openMenu();
     await s.tapText('History');
     await s.settle(seconds: 3);
     await s.shot('History screen', note: 'Past workouts list.');

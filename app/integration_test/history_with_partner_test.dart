@@ -11,7 +11,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
-import 'package:schlift/theme/app_icons.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +54,7 @@ void main() {
     await s.finishWorkoutInApp();
 
     // History should list the workout with "with bob_...".
-    await s.tap(find.byIcon(AppIcons.menu));
+    await s.openMenu();
     await s.tapText('History');
     final sawPartner = await s.waitForTextContaining(
       'with bob_$stamp',

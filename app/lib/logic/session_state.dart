@@ -3,6 +3,8 @@
 /// No Flutter imports.
 library;
 
+import 'package:flutter/material.dart' show Color;
+import '../theme/theme_spec.dart';
 import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
@@ -230,3 +232,12 @@ String? computeNextToLiftUserId({
 
   return bestId;
 }
+
+/// The colour of a stage's label, one per state, wherever it's shown.
+Color stageColor(WorkoutState state, ThemeSpec t) => switch (state) {
+  WorkoutState.WORKOUT_STATE_LIFTING => t.lifting,
+  WorkoutState.WORKOUT_STATE_RESTING => t.resting,
+  WorkoutState.WORKOUT_STATE_YAPPING => t.yapping,
+  WorkoutState.WORKOUT_STATE_ALL_DONE => t.success,
+  _ => t.ready,
+};

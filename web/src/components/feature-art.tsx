@@ -7,6 +7,8 @@ const MUTED = "var(--color-muted)";
 const LINE = "var(--color-border)";
 const PAPER = "var(--color-surface)";
 const HOT = "var(--color-primary)";
+// Lifting, as the app colours it: a set under way.
+const GO = "var(--color-ok)";
 const MONO = "var(--font-mono, ui-monospace, monospace)";
 
 /** Two people in one session: one mid-set, one talking. */
@@ -14,8 +16,8 @@ function Multiplayer() {
   const row = (y: number, name: string, state: string, lifting: boolean) => (
     <g transform={`translate(22 ${y})`}>
       <rect width="156" height="58" rx="6" fill={PAPER} stroke={LINE} />
-      <circle cx="29" cy="29" r="15" fill={lifting ? HOT : "none"} stroke={lifting ? HOT : INK} />
-      <text x="54" y="26" fontFamily={MONO} fontSize="11" fontWeight="700" fill={INK}>
+      <circle cx="29" cy="29" r="15" fill={lifting ? GO : "none"} stroke={lifting ? GO : INK} />
+      <text x="54" y="26" fontSize="12" fontWeight="700" fill={INK}>
         {name}
       </text>
       <rect
@@ -24,16 +26,14 @@ function Multiplayer() {
         width={state.length * 6.4 + 12}
         height="15"
         rx="3"
-        fill={lifting ? HOT : "none"}
-        stroke={lifting ? HOT : MUTED}
+        fill={lifting ? GO : "none"}
+        stroke={lifting ? GO : MUTED}
       />
       <text
         x="60"
         y="44"
-        fontFamily={MONO}
-        fontSize="9"
+        fontSize="9.5"
         fontWeight="700"
-        letterSpacing="0.6"
         fill={lifting ? "var(--color-on-primary)" : MUTED}
       >
         {state}
@@ -42,8 +42,8 @@ function Multiplayer() {
   );
   return (
     <>
-      {row(36, "YOU", "LIFTING", true)}
-      {row(106, "KENNETH", "YAPPING 4:12", false)}
+      {row(36, "You", "Lifting", true)}
+      {row(106, "Kenneth", "Yapping 4:12", false)}
     </>
   );
 }
@@ -72,10 +72,10 @@ function History() {
         <circle key={x} cx={x} cy={y} r="3" fill={PAPER} stroke={HOT} strokeWidth="2" />
       ))}
       <circle cx="178" cy="48" r="6" fill={HOT} />
-      <text x="20" y="28" fontFamily={MONO} fontSize="14" fontWeight="700" fill={INK}>
-        225LB BENCH
+      <text x="20" y="28" fontSize="14" fontWeight="700" fill={INK}>
+        225 lb bench
       </text>
-      <text x="20" y="43" fontFamily={MONO} fontSize="10" fill={MUTED}>
+      <text x="20" y="43" fontSize="10" fill={MUTED}>
         sick bro
       </text>
     </>
@@ -87,7 +87,7 @@ function Saved() {
   const card = (y: number, title: string, lifts: number, kept: boolean) => (
     <g transform={`translate(24 ${y})`}>
       <rect width="152" height="44" rx="6" fill={PAPER} stroke={kept ? HOT : LINE} />
-      <text x="12" y="19" fontFamily={MONO} fontSize="10" fontWeight="700" fill={INK}>
+      <text x="12" y="19" fontSize="11" fontWeight="700" fill={INK}>
         {title}
       </text>
       {Array.from({ length: lifts }, (_, i) => (
@@ -98,9 +98,9 @@ function Saved() {
   );
   return (
     <>
-      {card(28, "CHEST - OF COURSE", 5, true)}
-      {card(80, "LEG DAY (JK)", 4, false)}
-      {card(132, "BUTT AGAIN", 3, false)}
+      {card(28, "Chest - of course", 5, true)}
+      {card(80, "Leg day (jk)", 4, false)}
+      {card(132, "Butt again", 3, false)}
     </>
   );
 }
@@ -124,7 +124,7 @@ function HeartRate() {
               cx={x}
               cy="56.5"
               r="7.6"
-              fill={i === 0 ? INK : i === 1 ? HOT : "none"}
+              fill={i === 0 ? INK : i === 1 ? GO : "none"}
               stroke={i < 2 ? "none" : MUTED}
             />
             <text
@@ -140,9 +140,9 @@ function HeartRate() {
             </text>
           </g>
         ))}
-        <rect x="30" y="69.4" width="140" height="26" fill={HOT} />
-        <text x="44" y="86" fontFamily={MONO} fontSize="8.5" fontWeight="700" fill={INK}>
-          LIFTING
+        <rect x="30" y="69.4" width="140" height="26" fill={GO} />
+        <text x="44" y="86" fontSize="9" fontWeight="700" fill={INK}>
+          Lifting
         </text>
         <text
           x="159"
@@ -169,7 +169,7 @@ function HeartRate() {
         <text x="122" y="129" textAnchor="middle" fontFamily={MONO} fontSize="7" fill={INK}>
           ×
         </text>
-        <circle cx="141" cy="126.5" r="13" fill={HOT} />
+        <circle cx="141" cy="126.5" r="13" fill={GO} />
         <text
           x="141"
           y="130.5"
@@ -209,11 +209,89 @@ function HeartRate() {
   );
 }
 
+/** The workout's quote, in its pop-up. */
+function Motivation() {
+  return (
+    <g transform="translate(20 30)">
+      <rect width="160" height="140" rx="10" fill={PAPER} stroke={LINE} />
+      <text x="14" y="26" fontSize="13" fill={MUTED}>
+        Motivation
+      </text>
+      <text fontSize="12.5" fontWeight="700" fill={INK}>
+        <tspan x="14" y="50">
+          lift more weight and
+        </tspan>
+        <tspan x="14" y="66">
+          you will become
+        </tspan>
+        <tspan x="14" y="82">
+          more huge.
+        </tspan>
+      </text>
+      <rect x="14" y="94" width="104" height="5" rx="2.5" fill={LINE} />
+      <rect x="14" y="103" width="78" height="5" rx="2.5" fill={LINE} />
+      <rect x="104" y="114" width="42" height="16" rx="5" fill={HOT} />
+      <text
+        x="125"
+        y="125.5"
+        textAnchor="middle"
+        fontSize="8.5"
+        fontWeight="700"
+        fill="var(--color-on-primary)"
+      >
+        Close
+      </text>
+    </g>
+  );
+}
+
+/** The rest counting down in the status bar, over somebody's feed. */
+function LiveStatus() {
+  return (
+    <>
+      {/* The phone, off the bottom of the box. */}
+      <rect
+        x="34"
+        y="18"
+        width="132"
+        height="240"
+        rx="18"
+        fill={PAPER}
+        stroke={INK}
+        strokeWidth="2"
+      />
+      {/* The status bar: the clock, and the rest's chip beside it. */}
+      <text x="48" y="40" fontFamily={MONO} fontSize="9" fontWeight="700" fill={INK}>
+        9:41
+      </text>
+      <rect x="74" y="29" width="46" height="15" rx="7.5" fill={INK} />
+      <circle cx="83" cy="36.5" r="3" fill={HOT} />
+      <text x="90" y="40" fontFamily={MONO} fontSize="9" fontWeight="700" fill={PAPER}>
+        1:23
+      </text>
+      <rect x="140" y="32" width="14" height="8" rx="2" fill="none" stroke={INK} />
+      <line x1="34" x2="166" y1="50" y2="50" stroke={LINE} />
+      {/* The feed being scrolled: who posted, the picture, the heart. */}
+      <circle cx="54" cy="66" r="7" fill={LINE} />
+      <rect x="66" y="60" width="52" height="5" rx="2.5" fill={LINE} />
+      <rect x="66" y="68" width="30" height="4" rx="2" fill={LINE} />
+      <rect x="44" y="80" width="112" height="84" rx="4" fill={LINE} opacity="0.6" />
+      <path d="M72 148 l20 -26 l14 16 l10 -10 l22 20 Z" fill={PAPER} opacity="0.9" />
+      <circle cx="128" cy="100" r="8" fill={PAPER} opacity="0.9" />
+      <path d="M52 176 c-3 -5 -10 -1 -6 5 l6 6 l6 -6 c4 -6 -3 -10 -6 -5 Z" fill={HOT} />
+      <rect x="66" y="176" width="60" height="5" rx="2.5" fill={LINE} />
+      <rect x="44" y="190" width="96" height="4" rx="2" fill={LINE} />
+    </>
+  );
+}
+
 const PICTURES: Record<string, () => React.ReactNode> = {
   multiplayer: Multiplayer,
   history: History,
   saved: Saved,
   heart_rate: HeartRate,
+  motivation: Motivation,
+  live_status: LiveStatus,
 };
 
 /** The drawing, whole and centred in its box, as large as fits. */

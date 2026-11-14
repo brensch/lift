@@ -102,7 +102,6 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     style: TextStyle(
                       fontSize: context.tokens.size.small,
                       fontWeight: context.tokens.weight.heavy,
-                      letterSpacing: 1.4,
                       color: cs.tertiary,
                     ),
                   ),
@@ -136,7 +135,6 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                         style: TextStyle(
                           fontSize: context.tokens.size.small,
                           fontWeight: context.tokens.weight.heavy,
-                          letterSpacing: 1.2,
                           color: cs.tertiary,
                         ),
                       ),
@@ -160,7 +158,6 @@ class _ProfileMarkerScreenState extends State<ProfileMarkerScreen> {
                     style: TextStyle(
                       fontSize: context.tokens.size.small,
                       fontWeight: context.tokens.weight.heavy,
-                      letterSpacing: 1.2,
                       color: cs.tertiary,
                     ),
                   ),

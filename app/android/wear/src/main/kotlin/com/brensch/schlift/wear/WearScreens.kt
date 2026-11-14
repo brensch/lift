@@ -96,9 +96,13 @@ internal object WearPalette {
     val Text = Color(0xFF111111)
     val Muted = Color(0xFF4A4A44)
     val OnDark = Color(0xFFFFFFFF)
-    val Ready = Color(0xFF3D8B4A)
+
+    // As on the phone: ready is the signal orange (start the set), lifting
+    // is green (under way). The two inks are the heart-rate zones' and the
+    // done line's text colours, green then orange, whatever the bands are.
+    val Ready = Color(0xFFFF4F00)
     val ReadyInk = Color(0xFF2F6E3A)
-    val Lifting = Color(0xFFFF4F00)
+    val Lifting = Color(0xFF3D8B4A)
     val LiftingInk = Color(0xFFC23C00)
     val Resting = Color(0xFF3C5FB0)
     val Yapping = Color(0xFFD94F8C)
@@ -473,7 +477,7 @@ private fun Band(
     ) {
         Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             FitText(
-                text = face.label.uppercase(),
+                text = face.label,
                 size = (d * 0.064f).asSp(),
                 color = face.bandInk,
                 align = TextAlign.Start,
@@ -888,7 +892,7 @@ internal fun DoneScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.End,
             ) {
-                DoneLine(d, round, 0.32f, label.uppercase(), 0.07f, WearPalette.ReadyInk)
+                DoneLine(d, round, 0.32f, label, 0.07f, WearPalette.ReadyInk)
                 if (summary != null) {
                     DoneLine(d, round, 0.40f, summary.durationText, 0.13f, WearPalette.Text)
                     DoneLine(d, round, 0.55f, "${summary.completedWorkingSets} sets", 0.075f, WearPalette.Muted)
@@ -914,7 +918,7 @@ internal fun DoneScreen(
             ) {
                 if (endWorkout != null) {
                     FitText(
-                        text = endWorkout.label.uppercase(),
+                        text = endWorkout.label,
                         size = (d * 0.07f).asSp(),
                         color = WearPalette.OnDark,
                         align = TextAlign.Center,

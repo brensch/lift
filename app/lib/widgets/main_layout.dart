@@ -6,39 +6,22 @@ import '../providers/auth_provider.dart';
 import '../providers/workout_provider.dart';
 import '../providers/multiplayer_provider.dart';
 import 'join_request_banner.dart';
-import '../services/wearable_bridge_service.dart';
 import 'menu_profile.dart';
-import 'multiplayer_modal.dart';
+import 'menu_button.dart';
 import 'workout_bar/workout_bottom_bar.dart';
 import '../theme/theme_spec.dart';
 import '../theme/app_icons.dart';
 import 'wordmark.dart';
 
-/// A page the menu opens (Progress, History, Learn, Settings): Android's
-/// back goes home rather than out of the app. On the page itself, inside
-/// the shell's navigator, since the router asks that navigator's routes
-/// first; [MainLayout]'s own scope only tells Android that back is the
-/// app's (the drawer closing reports the shell's say on it last).
-class BackToHome extends StatelessWidget {
-  final Widget child;
-
-  const BackToHome({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: false,
-    onPopInvokedWithResult: (didPop, _) {
-      if (!didPop) context.go('/');
-    },
-    child: child,
-  );
-}
-
+/// The shell every signed-in page sits in: the menu (a drawer from the
+/// right), the banner for a join request, and the workout's status box along
+/// the bottom. It has no bar of its own. Home (or the live workout) is the
+/// one page at the bottom of the stack, with the menu button; the menu
+/// pushes its pages over it, and each has a title bar with a back arrow.
 class MainLayout extends StatelessWidget {
   final Widget child;
-  final String currentPath;
 
-  const MainLayout({super.key, required this.child, required this.currentPath});
+  const MainLayout({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -46,194 +29,129 @@ class MainLayout extends StatelessWidget {
     final wp = context.watch<WorkoutProvider>();
     final mp = context.watch<MultiplayerProvider>();
     final colorScheme = Theme.of(context).colorScheme;
+    final inSession = mp.isInSession ? mp.participants.length + 1 : 0;
 
-    void goToTopLevel(String path) {
+    // The menu opens only from home, so its pages go over home: back
+    // from any of them is home again.
+    void open(String path) {
       Navigator.pop(context);
-      if (currentPath != path) {
-        context.go(path);
-      }
+      context.push(path);
     }
 
-    bool isSettingsSection(String path) =>
-        path == '/settings' ||
-        path == '/settings/profile-marker' ||
-        path == '/passkeys' ||
-        path == '/passkeys/add' ||
-        path == '/sound-settings' ||
-        path == '/debug-notifications' ||
-        path == '/settings/plate-colors' ||
-        path == '/settings/data' ||
-        path == '/debug-logs' ||
-        path == '/build-info';
-
-    final isTopLevelMenuPage =
-        currentPath == '/' ||
-        currentPath == '/progress' ||
-        currentPath == '/history' ||
-        currentPath == '/learn' ||
-        currentPath == '/settings';
-
-    return PopScope(
-      canPop: !isTopLevelMenuPage,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && currentPath != '/') {
-          context.go('/');
-        }
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          // The menu icon's lines end 16 from the edge, in line with the page
-          // content below: 5 here + the button's 8 + the glyph's own 3.
-          actionsPadding: const EdgeInsets.only(right: 5),
-          title: GestureDetector(
-            onTap: () => context.go('/'),
-            child: const Wordmark(),
-          ),
-          actions: [
-            const _WatchLaunchButton(),
-            _buildMultiplayerButton(context, mp),
-            Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(AppIcons.menu, size: 32),
-                onPressed: () => Scaffold.of(context).openEndDrawer(),
-              ),
-            ),
-          ],
-        ),
-        endDrawerEnableOpenDragGesture: false,
-        endDrawer: Drawer(
-          child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // You, and your totals. Tap to edit your profile.
-                MenuProfile(
-                  onEditProfile: () {
-                    Navigator.pop(context);
-                    context.push('/settings/profile-marker');
-                  },
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      endDrawerEnableOpenDragGesture: false,
+      endDrawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // The app's name lives here now that no page has a banner.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Wordmark(),
+                  ),
                 ),
-                // The items sit straight under your totals, fixed in place:
-                // a plain column, nothing to scroll or stretch.
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              ),
+              // You, and your totals. Tap to edit your profile.
+              MenuProfile(
+                onEditProfile: () => open('/settings/profile-marker'),
+              ),
+              // The items sit straight under your totals, fixed in place:
+              // a plain column, nothing to scroll or stretch.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _MenuButton(
+                    icon: AppIcons.progress,
+                    label: copy.menu.progress,
+                    onTap: () => open('/progress'),
+                  ),
+                  const SizedBox(height: 4),
+                  _MenuButton(
+                    icon: AppIcons.history,
+                    label: copy.menu.history,
+                    onTap: () => open('/history'),
+                  ),
+                  const SizedBox(height: 4),
+                  _MenuButton(
+                    icon: AppIcons.tutorial,
+                    label: copy.menu.learn,
+                    onTap: () => open('/learn'),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Divider(color: colorScheme.outline),
+              // Logout, and Settings as a cog beside it.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+                child: Row(
                   children: [
                     _MenuButton(
-                      icon: AppIcons.workout,
-                      label: copy.menu.workout,
-                      onTap: () => goToTopLevel('/'),
-                      isActive: currentPath == '/',
+                      icon: AppIcons.logout,
+                      label: copy.menu.logout,
+                      color: colorScheme.error,
+                      onTap: () {
+                        Navigator.pop(context);
+                        authProvider.logout();
+                        context.go('/login');
+                      },
+                      edgeToEdge: false,
                     ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: AppIcons.progress,
-                      label: copy.menu.progress,
-                      onTap: () => goToTopLevel('/progress'),
-                      isActive: currentPath == '/progress',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: AppIcons.history,
-                      label: copy.menu.history,
-                      onTap: () => goToTopLevel('/history'),
-                      isActive: currentPath == '/history',
-                    ),
-                    const SizedBox(height: 4),
-                    _MenuButton(
-                      icon: AppIcons.tutorial,
-                      label: copy.menu.learn,
-                      onTap: () => goToTopLevel('/learn'),
-                      isActive: currentPath == '/learn',
+                    const Spacer(),
+                    IconButton(
+                      tooltip: copy.menu.settings,
+                      onPressed: () => open('/settings'),
+                      icon: Icon(
+                        AppIcons.settings,
+                        size: 28,
+                        color: colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
-                const Spacer(),
-                Divider(color: colorScheme.outline),
-                // Logout, and Settings as a cog beside it.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
-                  child: Row(
-                    children: [
-                      _MenuButton(
-                        icon: AppIcons.logout,
-                        label: copy.menu.logout,
-                        color: colorScheme.error,
-                        onTap: () {
-                          Navigator.pop(context);
-                          authProvider.logout();
-                          context.go('/login');
-                        },
-                        isActive: false,
-                        edgeToEdge: false,
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        tooltip: copy.menu.settings,
-                        onPressed: () => goToTopLevel('/settings'),
-                        icon: Icon(
-                          AppIcons.settings,
-                          size: 28,
-                          color: isSettingsSection(currentPath)
-                              ? colorScheme.primary
-                              : colorScheme.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        body: mp.incomingRequests.isEmpty
-            ? child
-            : Column(
-                children: [
-                  JoinRequestBanner(request: mp.incomingRequests.first),
-                  Expanded(child: child),
-                ],
               ),
-        bottomNavigationBar: WorkoutBottomBar(
-          key: ValueKey(wp.workout?.id ?? 'none'),
-        ),
-      ),
-    );
-  }
-
-  /// Icon only; a count shows when others are in the session.
-  Widget _buildMultiplayerButton(BuildContext context, MultiplayerProvider mp) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final participantCount = mp.isInSession ? mp.participants.length + 1 : 0;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Badge(
-        isLabelVisible: participantCount > 1,
-        label: Text('$participantCount'),
-        backgroundColor: colorScheme.onSurface,
-        textColor: colorScheme.surface,
-        child: IconButton.filled(
-          tooltip: copy.menu.multiplayer,
-          onPressed: () => _showMultiplayerModal(context),
-          icon: const Icon(AppIcons.multiplayer),
-          style: IconButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: context.tokens.brSm),
+            ],
           ),
         ),
       ),
-    );
-  }
-
-  void _showMultiplayerModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      routeSettings: const RouteSettings(name: 'sheet/multiplayer'),
-      isScrollControlled: true,
-      useRootNavigator: true,
-      builder: (context) => const MultiplayerModal(),
+      // The shell has no bar, so what's first on screen keeps clear of
+      // the status bar itself: the join request when there is one (and
+      // the page under it then starts below it), else the page, by its
+      // title bar or (home, the workout) its own safe area.
+      body: Builder(
+        builder: (context) {
+          final page = AppMenu(
+            open: Scaffold.of(context).openEndDrawer,
+            inSession: inSession,
+            child: child,
+          );
+          if (mp.incomingRequests.isEmpty) return page;
+          return Column(
+            children: [
+              SafeArea(
+                bottom: false,
+                child: JoinRequestBanner(request: mp.incomingRequests.first),
+              ),
+              Expanded(
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  child: page,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      bottomNavigationBar: WorkoutBottomBar(
+        key: ValueKey(wp.workout?.id ?? 'none'),
+      ),
     );
   }
 }
@@ -242,7 +160,6 @@ class _MenuButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool isActive;
   final Color? color;
 
   /// Runs to the menu's edges (the list items, whose highlight and dividers
@@ -253,7 +170,6 @@ class _MenuButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.isActive,
     this.color,
     this.edgeToEdge = true,
   });
@@ -264,7 +180,7 @@ class _MenuButton extends StatelessWidget {
     final effectiveColor = color ?? colorScheme.onSurface;
 
     return Material(
-      color: isActive ? colorScheme.primary : Colors.transparent,
+      color: Colors.transparent,
       borderRadius: edgeToEdge ? null : context.tokens.brSm,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -276,73 +192,20 @@ class _MenuButton extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 28,
-                color: isActive ? colorScheme.onPrimary : effectiveColor,
-              ),
+              Icon(icon, size: 28, color: effectiveColor),
               const SizedBox(width: 20),
               Text(
                 label,
                 style: TextStyle(
                   fontWeight: context.tokens.weight.heavy,
                   fontSize: context.tokens.size.title,
-                  letterSpacing: -0.5,
-                  color: isActive ? colorScheme.onPrimary : effectiveColor,
+                  color: effectiveColor,
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Opens Schlift on the watch. Shown only when a paired watch has Schlift
-/// installed; checked once when the bar is built.
-class _WatchLaunchButton extends StatefulWidget {
-  const _WatchLaunchButton();
-
-  @override
-  State<_WatchLaunchButton> createState() => _WatchLaunchButtonState();
-}
-
-class _WatchLaunchButtonState extends State<_WatchLaunchButton> {
-  bool _available = false;
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<WearableBridgeService>().isWatchAppAvailable().then((ok) {
-      if (mounted && ok) setState(() => _available = true);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_available) return const SizedBox.shrink();
-    final colorScheme = Theme.of(context).colorScheme;
-    return IconButton(
-      tooltip: copy.menu.openWatch,
-      icon: Icon(AppIcons.watch, color: colorScheme.onSurface),
-      onPressed: () async {
-        final bridge = context.read<WearableBridgeService>();
-        final alreadyOpen = await bridge.isWatchAppOpenOnWatch();
-        final queued = await bridge.openWatchApp();
-        if (!context.mounted) return;
-        final String message;
-        if (!queued) {
-          message = copy.menu.watchMissing;
-        } else if (alreadyOpen) {
-          message = copy.menu.watchAlreadyOpen;
-        } else {
-          message = copy.menu.watchOpening;
-        }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
-      },
     );
   }
 }
