@@ -144,7 +144,13 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   void _edit(WorkoutTemplate template) {
     final wp = context.read<WorkoutProvider>();
     Navigator.pop(context);
-    showTemplateEditor(context, template: template, provider: wp);
+    // The same edit as Home's: a library workout becomes yours on Save.
+    showTemplateEditor(
+      context,
+      template: template,
+      provider: wp,
+      personalise: template.coupled,
+    );
   }
 
   /// A drag in the list: one reorder that also says where the rotation
@@ -356,7 +362,6 @@ class _LibrarySheetState extends State<_LibrarySheet> {
                     style: TextStyle(
                       fontSize: context.tokens.size.subtitle,
                       fontWeight: context.tokens.weight.heavy,
-                      letterSpacing: -0.3,
                     ),
                   ),
                 ),
@@ -550,7 +555,6 @@ class _PlanRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: t.size.bodyLg,
                     fontWeight: t.weight.heavy,
-                    letterSpacing: -0.2,
                   ),
                 ),
                 Text(

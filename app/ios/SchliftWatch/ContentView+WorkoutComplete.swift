@@ -20,7 +20,7 @@ struct WorkoutDoneScreen: View {
             let faceHeight = geo.size.height
             HStack(spacing: 0) {
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("ALL DONE")
+                    Text("All done")
                         .font(monoFontName(size: faceHeight * 0.06))
                         .foregroundColor(WatchPalette.readyInk)
                     Text(summary.durationText)
@@ -42,7 +42,7 @@ struct WorkoutDoneScreen: View {
                         connector.sendIntent(action: end)
                     }
                 } label: {
-                    Text((endAction?.label ?? "").uppercased())
+                    Text(endAction?.label ?? "")
                         .font(monoFontName(size: faceHeight * 0.06))
                         .foregroundColor(WatchPalette.onDark)
                         .watchAutoShrink(lines: 2, minScale: 0.5)

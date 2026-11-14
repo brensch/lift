@@ -476,6 +476,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         Mutation::SkipWarmups(SkipWarmupsRequest {
             workout_id: id.clone(),
             exercise: squat,
+            ..Default::default()
         }),
         now,
     )?;
@@ -486,6 +487,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
             exercise: squat,
             working_weight: 145.0,
             target_reps: 0,
+            ..Default::default()
         }),
         now,
     )?;
@@ -528,6 +530,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
             exercise: Exercise::DumbbellCurl as i32,
             working_weight: 25.0,
             target_reps: 12,
+            ..Default::default()
         }),
         now,
     )?;

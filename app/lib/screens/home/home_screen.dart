@@ -29,6 +29,9 @@ import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../services/wearable_bridge_service.dart';
 import '../../theme/theme_spec.dart';
+import '../../widgets/menu_button.dart';
+import '../../widgets/multiplayer_button.dart';
+import '../../widgets/wordmark.dart';
 import '../tutorial_screen.dart';
 import 'template_editor.dart';
 import 'template_library_sheet.dart';
@@ -109,19 +112,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _editTemplates() =>
       showTemplateLibrary(context, provider: context.read<WorkoutProvider>());
 
-  /// Open a library workout in the editor to make it the user's own:
-  /// nothing changes until Save there.
-  Future<void> _cloneTemplate(WorkoutTemplate template) => showTemplateEditor(
+  /// Edit a workout (null: a new one). Editing a library workout makes it
+  /// the user's own in place, never a second copy: nothing changes until
+  /// Save there, and backing out leaves it following the library.
+  Future<void> _editTemplate(WorkoutTemplate? template) => showTemplateEditor(
     context,
     template: template,
     provider: context.read<WorkoutProvider>(),
-    personalise: true,
+    personalise: template?.coupled ?? false,
   );
-
-  Future<void> _editTemplate(WorkoutTemplate? template) async {
-    final wp = context.read<WorkoutProvider>();
-    await showTemplateEditor(context, template: template, provider: wp);
-  }
 
   Future<void> _confirmDeleteTemplate(WorkoutTemplate template) async {
     final confirmed = await confirmDialog(
@@ -181,23 +180,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Scrolls (and pulls to refresh) only when the content is taller than the
     // screen; when it fits, the page stays put. No stretch at the edges.
-    return RefreshIndicator(
+    final list = RefreshIndicator(
       onRefresh: _refresh,
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
         child: ListView(
           physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+          padding: const EdgeInsets.only(bottom: 96),
           children: [
+            // Each part of the page is a section the full width, a line
+            // under it: no boxes.
             TutorialTarget(
               id: 'home_volume',
-              child: VolumeCard(
-                volume: home.volume,
-                recovery: home.recovery,
-                highlight: highlight,
+              child: FlatSection(
+                label: copy.home.thisWeek,
+                child: VolumeCard(
+                  volume: home.volume,
+                  recovery: home.recovery,
+                  highlight: highlight,
+                  boxed: false,
+                ),
               ),
             ),
-            const SizedBox(height: 14),
             TutorialTarget(
               id: 'home_templates',
               child: _TemplateChips(
@@ -236,7 +240,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
             if (emptySelected)
               _EmptyWorkoutCard(
                 isStarting: _isStarting,
@@ -250,13 +253,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 onBudgetStep: wp.stepBudget,
                 unit: unit,
                 recommended: selected.id == suggestedId,
+                boxed: false,
                 reason: selected.id == suggestedId && home.hasSuggestionReason()
                     ? suggestionLine(home.suggestionReason)
                     : '',
                 isStarting: _isStarting,
                 onStart: () => _start(templateId: selected!.id),
                 onEdit: () => _editTemplate(selected),
-                onClone: () => _cloneTemplate(selected!),
                 onDelete: () => _confirmDeleteTemplate(selected!),
                 onToggleRotation: () =>
                     wp.setInRotation(selected!, !selected.inRotation),
@@ -267,13 +270,45 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+
+    return list;
   }
 }
 
-/// The template chips in three groups: the rotation and the reserves
-/// (the Empty workout chip last), each under its title, then a line of
-/// the action chips. A group with nothing in it has no title; an empty
-/// rotation says how to fill it.
+/// Home's first row: the wordmark, multiplayer and the menu, a line under
+/// them. (The
+/// app has no banner; this row is where the menu lives here.) Apart from
+/// [HomeScreen] because the wordmark never stops moving.
+class HomeHeader extends StatelessWidget {
+  const HomeHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.tokens.hairline)),
+      ),
+      child: const Padding(
+        // Room for the count that stands over the multiplayer button.
+        padding: EdgeInsets.fromLTRB(16, 4, 4, 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Align(alignment: Alignment.centerLeft, child: Wordmark()),
+            ),
+            // Training with others: the sheet to invite, join or leave.
+            MultiplayerButton(),
+            MenuButton(showCount: false),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The template chips in two sections: the rotation, then the reserves
+/// (the Empty workout chip last) with the action chips under them. An
+/// empty rotation says how to fill it.
 class _TemplateChips extends StatelessWidget {
   final List<Widget> rotation;
   final List<Widget> reserves;
@@ -291,26 +326,31 @@ class _TemplateChips extends StatelessWidget {
     final l = copy.library;
     Widget wrap(List<Widget> children) =>
         Wrap(spacing: 6, runSpacing: 6, children: children);
-    Widget group(String title, List<Widget> chips) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [SectionLabel(title), const SizedBox(height: 6), wrap(chips)],
-    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (rotation.isEmpty)
-          Text(
-            l.rotationEmptyHome,
-            style: TextStyle(fontSize: t.size.body, color: t.muted),
-          )
-        else
-          group(l.rotationHeading, rotation),
-        if (reserves.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          group(l.reservesHeading, reserves),
-        ],
-        const SizedBox(height: 12),
-        wrap(actions),
+        FlatSection(
+          label: l.rotationHeading,
+          child: rotation.isEmpty
+              ? Text(
+                  l.rotationEmptyHome,
+                  style: TextStyle(fontSize: t.size.body, color: t.muted),
+                )
+              : wrap(rotation),
+        ),
+        FlatSection(
+          label: l.reservesHeading,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (reserves.isNotEmpty) ...[
+                wrap(reserves),
+                const SizedBox(height: 12),
+              ],
+              wrap(actions),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -330,11 +370,9 @@ class _EmptyWorkoutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      // The same panel as the workout card it stands in for.
+      // The same section as the workout it stands in for.
       decoration: BoxDecoration(
-        borderRadius: context.tokens.brMd,
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-        color: context.tokens.panel,
+        border: Border(bottom: BorderSide(color: context.tokens.hairline)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
@@ -345,7 +383,6 @@ class _EmptyWorkoutCard extends StatelessWidget {
             style: TextStyle(
               fontSize: context.tokens.size.titleLg,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
@@ -496,11 +533,10 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        borderRadius: context.tokens.brMd,
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+        border: Border(bottom: BorderSide(color: context.tokens.hairline)),
       ),
       child: Column(
         children: [
@@ -549,12 +585,16 @@ class VolumeCard extends StatelessWidget {
   /// Bars as shares of the largest, not against the weekly target.
   final bool proportional;
 
+  /// In a panel of its own; false where a section already holds it.
+  final bool boxed;
+
   const VolumeCard({
     super.key,
     required this.volume,
     required this.recovery,
     this.highlight = const {},
     this.proportional = false,
+    this.boxed = true,
   });
 
   @override
@@ -569,12 +609,14 @@ class VolumeCard extends StatelessWidget {
       (most, v) => v.completedSets7d > most ? v.completedSets7d : most,
     );
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-      decoration: BoxDecoration(
-        borderRadius: context.tokens.brMd,
-        border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
-        color: context.tokens.panel,
-      ),
+      padding: boxed ? const EdgeInsets.fromLTRB(14, 12, 14, 10) : null,
+      decoration: boxed
+          ? BoxDecoration(
+              borderRadius: context.tokens.brMd,
+              border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+              color: context.tokens.panel,
+            )
+          : null,
       child: Column(
         children: [
           for (final entry in volume)
@@ -840,7 +882,6 @@ class _RecoveryChip extends StatelessWidget {
         style: TextStyle(
           fontSize: context.tokens.size.small,
           fontWeight: context.tokens.weight.heavy,
-          letterSpacing: 0.2,
           color: color,
         ),
       ),
@@ -888,7 +929,6 @@ class TemplateChip extends StatelessWidget {
           style: TextStyle(
             fontSize: context.tokens.size.body,
             fontWeight: context.tokens.weight.heavy,
-            letterSpacing: -0.2,
           ),
         ),
       ],
@@ -909,12 +949,14 @@ class SelectedTemplateCard extends StatelessWidget {
   final WeightUnit unit;
   final bool recommended;
 
+  /// In a panel of its own; false where it is a section of the page.
+  final bool boxed;
+
   /// Why it is suggested, from the core's reason; empty when it is not.
   final String reason;
   final bool isStarting;
   final VoidCallback onStart;
   final VoidCallback onEdit;
-  final VoidCallback onClone;
   final VoidCallback onDelete;
   final VoidCallback onToggleRotation;
 
@@ -930,9 +972,9 @@ class SelectedTemplateCard extends StatelessWidget {
     required this.isStarting,
     required this.onStart,
     required this.onEdit,
-    required this.onClone,
     required this.onDelete,
     required this.onToggleRotation,
+    this.boxed = true,
   });
 
   @override
@@ -942,11 +984,17 @@ class SelectedTemplateCard extends StatelessWidget {
     final plans = plan?.plans ?? const <ExercisePlan>[];
 
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: context.tokens.brMd,
-        border: Border.all(color: accent),
-        color: context.tokens.panel,
-      ),
+      decoration: boxed
+          ? BoxDecoration(
+              borderRadius: context.tokens.brMd,
+              border: Border.all(color: accent),
+              color: context.tokens.panel,
+            )
+          : BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: context.tokens.hairline),
+              ),
+            ),
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -963,7 +1011,6 @@ class SelectedTemplateCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: context.tokens.size.titleLg,
                         fontWeight: context.tokens.weight.heavy,
-                        letterSpacing: -0.3,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -989,13 +1036,12 @@ class SelectedTemplateCard extends StatelessWidget {
                 ),
                 onSelected: (value) {
                   if (value == 'edit') onEdit();
-                  if (value == 'clone') onClone();
                   if (value == 'delete') onDelete();
                   if (value == 'rotation') onToggleRotation();
                 },
-                // A library workout follows the library: clone it to make
-                // it yours. Your own you edit. Either goes in or out of
-                // the rotation.
+                // Every workout is edited the same way (a library one
+                // becomes yours on Save) and goes in or out of the rotation.
+                // A library one is removed from your list; your own, deleted.
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'rotation',
@@ -1005,22 +1051,15 @@ class SelectedTemplateCard extends StatelessWidget {
                           : copy.rotation.add,
                     ),
                   ),
-                  if (template.coupled) ...[
-                    PopupMenuItem(
-                      value: 'clone',
-                      child: Text(copy.library.clone),
+                  PopupMenuItem(value: 'edit', child: Text(copy.home.edit)),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      template.coupled
+                          ? copy.library.remove
+                          : copy.library.delete,
                     ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(copy.library.remove),
-                    ),
-                  ] else ...[
-                    PopupMenuItem(value: 'edit', child: Text(copy.home.edit)),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(copy.library.delete),
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ],
@@ -1085,8 +1124,12 @@ class _TimeControl extends StatelessWidget {
     }
     final seconds = plan.estimatedSeconds;
     final budget = budgetMinutes * 60;
-    final over = seconds > budget;
-    final capped = plan.maxSeconds > 0 && budget >= plan.maxSeconds;
+    // For the moment between a tap and its plan, the plan on show is the
+    // last budget's: it says only its length, never that it doesn't fit.
+    final planned = plan.plans.firstOrNull?.decision.budgetMinutes ?? 0;
+    final stale = planned > 0 && planned != budgetMinutes;
+    final over = !stale && seconds > budget;
+    final capped = !stale && plan.maxSeconds > 0 && budget >= plan.maxSeconds;
     final template = over
         ? copy.plan.needs
         : (capped ? copy.plan.longest : copy.plan.estimate);

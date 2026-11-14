@@ -248,7 +248,7 @@ class MultiplayerProvider extends ChangeNotifier {
         'error': e.toString(),
       });
       final cleanError = cleanErrorMessage(e);
-      ErrorModalService.showError(cleanError.toUpperCase());
+      ErrorModalService.showError(cleanError);
       return cleanError;
     }
   }

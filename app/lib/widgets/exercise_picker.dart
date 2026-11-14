@@ -239,7 +239,6 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                                   style: TextStyle(
                                     fontSize: context.tokens.size.subtitle,
                                     fontWeight: context.tokens.weight.heavy,
-                                    letterSpacing: -0.3,
                                   ),
                                 ),
                               ),
@@ -287,7 +286,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                         ),
                         for (final part in BodyPart.values)
                           _FilterChip(
-                            label: bodyPartLabels[part]!.toUpperCase(),
+                            label: bodyPartLabels[part]!,
                             color: bodyPartColor(context, part),
                             selected: _filter == part,
                             // In its colour, like the tags on the rows below.
@@ -410,7 +409,6 @@ class _FilterChip extends StatelessWidget {
             style: TextStyle(
               fontSize: context.tokens.size.body,
               fontWeight: context.tokens.weight.heavy,
-              letterSpacing: 0.5,
               color: selected
                   ? colorScheme.surface
                   : (alwaysOutlined ? color : colorScheme.onSurface),
@@ -527,11 +525,10 @@ class _Tag extends StatelessWidget {
         borderRadius: context.tokens.brXs,
       ),
       child: Text(
-        bodyPartLabels[part]!.toUpperCase(),
+        bodyPartLabels[part]!,
         style: TextStyle(
           fontSize: context.tokens.size.small,
           fontWeight: context.tokens.weight.heavy,
-          letterSpacing: 0.5,
           color: color,
         ),
       ),

@@ -50,8 +50,8 @@ const _versusKinds = {
 
 bool _isVersus(PlanReason r) => _versusKinds.contains(r.kind);
 
-/// The plan against last time: "Down to 107.5 kg: 4 sets today, 3 last
-/// time."
+/// The plan against last time, what changed and then why: "Added one rep.
+/// You got every rep last time."
 String _versusText(PlanReason r, WeightUnit unit) {
   final c = copy.plan.versus;
   final reps = (r.repsAfter - r.repsBefore).abs();
@@ -80,7 +80,7 @@ String _versusText(PlanReason r, WeightUnit unit) {
       .replaceAll('{sets}', '${r.setsAfter}')
       .replaceAll('{last}', '${r.setsBefore}')
       .replaceAll('{days}', '${r.daysOff}');
-  return tail.isEmpty ? '$head.' : '$head: $tail.';
+  return tail.isEmpty ? '$head.' : '$head. $tail.';
 }
 
 /// One step of a decision in words.

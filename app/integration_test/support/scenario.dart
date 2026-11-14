@@ -23,6 +23,7 @@ import 'package:schlift/providers/workout_provider.dart';
 import 'package:schlift/screens/workout/set_circle.dart';
 import 'package:schlift/services/account_sync.dart';
 import 'package:schlift/services/notification_service.dart';
+import 'package:schlift/theme/app_icons.dart';
 import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
 
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
@@ -366,8 +367,28 @@ class Scenario {
     return false;
   }
 
-  /// Open the multiplayer sheet from the header.
-  Future<void> openMultiplayer() => tap(find.byTooltip('Multiplayer'));
+  /// Open the menu. It lives on home (and the live workout) only: from a
+  /// page pushed over it, go back until home is on show.
+  Future<void> openMenu() async {
+    for (
+      var i = 0;
+      i < 5 && find.byIcon(AppIcons.menu).evaluate().isEmpty;
+      i++
+    ) {
+      await tap(find.byIcon(AppIcons.back));
+      await settle(seconds: 1);
+    }
+    await tap(find.byIcon(AppIcons.menu));
+  }
+
+  /// Open the live workout's Heart page, from its box over the status box.
+  Future<void> openHeart() => tap(heartBox);
+
+  /// The Heart box: on show only while a workout is live.
+  Finder get heartBox => find.byTooltip(copy.workoutPage.tabHeart);
+
+  /// Open the multiplayer sheet from the top row (home or the workout).
+  Future<void> openMultiplayer() => tap(find.byTooltip(copy.menu.multiplayer));
 
   /// Poll until [finder] finds something.
   Future<bool> waitFor(Finder finder, {int seconds = 8}) async {
@@ -450,7 +471,7 @@ class Scenario {
   ];
 
   /// The home card's start button.
-  static const homeStart = 'START';
+  static const homeStart = 'Start';
 
   /// The first arrival at home shows the walkthrough once per account; it is
   /// not under test here, so dismiss it. Plain pumps only — the tutorial
@@ -690,7 +711,7 @@ class Scenario {
     // The dialog's confirm button.
     await tap(find.text(copy.endWorkoutDialog.confirm).last);
     // The summary's first section.
-    await mustSee('SESSION', seconds: 15);
+    await mustSee(copy.summary.session, seconds: 15);
     await declineTemplateOffer();
   }
 

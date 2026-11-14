@@ -69,11 +69,10 @@ class ZoneSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'TIME IN ZONE',
+                  'Time in zone',
                   style: TextStyle(
                     fontSize: context.tokens.size.small,
                     fontWeight: context.tokens.weight.bold,
-                    letterSpacing: 1.5,
                     color: colorScheme.tertiary,
                   ),
                 ),

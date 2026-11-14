@@ -161,7 +161,7 @@ struct FaceScreen: View {
     /// resting the stage colour drains off it, leaving it washed toward the panel.
     private func band(stage: WatchStage, height: CGFloat) -> some View {
         HStack(spacing: 0) {
-            Text(stage.label.uppercased())
+            Text(stage.label)
                 .font(monoFontName(size: height * 0.32))
                 .foregroundColor(stage.ink)
                 .watchAutoShrink(minScale: 0.4)

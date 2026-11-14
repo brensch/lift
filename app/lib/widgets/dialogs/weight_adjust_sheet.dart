@@ -1,8 +1,10 @@
-/// The edit sheet for an exercise mid-workout: its weight and reps for the
-/// rest of this workout, or remove it. Warmups regenerate for the new
+/// The edit sheet for an exercise mid-workout: its weight, reps and how many
+/// sets for the rest of this workout, or remove it. Warmups regenerate for the new
 /// weight automatically. The change is recorded in the workout's weight
 /// log; the next plan reads what was lifted.
 library;
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +21,29 @@ import 'confirm_dialog.dart';
 import 'workout_sheet.dart';
 import '../../theme/theme_spec.dart';
 import '../../theme/app_icons.dart';
+
+/// Open the edit sheet for [block] of the live workout; its bin asks before
+/// removing the exercise. The pencil on the exercise and the one by the
+/// weight in the status box both come here.
+void editExercise(
+  BuildContext context,
+  WorkoutProvider wp,
+  ExerciseBlock block,
+) {
+  showWeightAdjustSheet(
+    context,
+    block: block,
+    provider: wp,
+    onDelete: () async {
+      final confirmed = await showDeleteExerciseDialog(
+        context,
+        exerciseName(block.exercise),
+      );
+      if (confirmed != true || !context.mounted) return;
+      unawaited(wp.removeExercise(block.exercise));
+    },
+  );
+}
 
 Future<void> showWeightAdjustSheet(
   BuildContext context, {
@@ -48,6 +73,13 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   late int _reps;
   late final double _startWeight;
   late final int _startReps;
+
+  /// How many working sets it has in all, and how many of them are done:
+  /// it can't have fewer than those. 0 while it is still ramping: there
+  /// are no working sets to count yet.
+  late int _sets;
+  late final int _startSets;
+  late final int _doneSets;
   bool _isSaving = false;
 
   /// The sets the weight is read from: the working sets, or — mid-ramp,
@@ -72,14 +104,26 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
         : (decision != null && decision.reps > 0 ? decision.reps : 5);
     _startWeight = _weight;
     _startReps = _reps;
+    final wp = context.read<WorkoutProvider>();
+    _sets = working.length;
+    _startSets = _sets;
+    _doneSets = working.where((s) => wp.isSetDone(s.id)).length;
   }
+
+  /// At least one set, and never fewer than are already done.
+  int get _minSets => _doneSets < 1 ? 1 : _doneSets;
+
+  /// The most the core gives an exercise by hand (`MAX_WORKING_SETS`).
+  static const _maxSets = 20;
 
   bool get _barbell =>
       context.read<WorkoutProvider>().equipmentOf(widget.block.exercise) ==
       EquipmentKind.EQUIPMENT_KIND_BARBELL;
 
   bool get _dirty =>
-      (_startWeight - _weight).abs() > 0.01 || _startReps != _reps;
+      (_startWeight - _weight).abs() > 0.01 ||
+      _startReps != _reps ||
+      _startSets != _sets;
 
   /// This workout's remaining sets take the new numbers.
   Future<void> _apply() async {
@@ -91,7 +135,12 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
     final wp = context.read<WorkoutProvider>();
     final exercise = widget.block.exercise;
     try {
-      await wp.adjustExerciseWeight(exercise, _weight, targetReps: _reps);
+      await wp.adjustExerciseWeight(
+        exercise,
+        _weight,
+        targetReps: _reps,
+        sets: _sets == _startSets ? 0 : _sets,
+      );
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -201,6 +250,17 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
             ),
             child: Row(
               children: [
+                if (_startSets > 0)
+                  stepper(
+                    copy.adjustWeight.sets,
+                    '$_sets',
+                    () => setState(
+                      () => _sets = (_sets - 1).clamp(_minSets, _maxSets),
+                    ),
+                    () => setState(
+                      () => _sets = (_sets + 1).clamp(_minSets, _maxSets),
+                    ),
+                  ),
                 stepper(
                   copy.adjustWeight.reps,
                   '$_reps',
@@ -248,7 +308,10 @@ class _StepButton extends StatelessWidget {
     final t = context.tokens;
     return Material(
       color: Colors.transparent,
-      shape: RoundedRectangleBorder(side: BorderSide(color: t.outline)),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: t.outline),
+        borderRadius: t.brMd,
+      ),
       child: InkWell(
         onTap: onTap,
         child: SizedBox(

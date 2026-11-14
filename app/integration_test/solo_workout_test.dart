@@ -55,7 +55,7 @@ void main() {
       final lifting =
           s.workout.stateSnapshot?.state ==
               WorkoutState.WORKOUT_STATE_LIFTING &&
-          s.isVisible(copy.workout.lifting.toUpperCase());
+          s.isVisible(copy.workout.lifting);
       await s.shot(
         'Started — lifting',
         note: lifting

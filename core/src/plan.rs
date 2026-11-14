@@ -69,6 +69,11 @@ const OVERRIDE_SETS: i32 = MAX_SETS;
 /// kind.
 const LEARN_WINDOW: i64 = 28 * DAY;
 const LEARN_SAMPLES: usize = 10;
+/// A set shorter than this, or a rest, warmup or move between lifts shorter
+/// than the second, was tapped through rather than done: not a timing to
+/// learn from (a workout logged afterwards, a mis-tap, a test).
+const LEARN_MIN_SET_SECONDS: f32 = 5.0;
+const LEARN_MIN_GAP_SECONDS: f32 = 10.0;
 /// What a set, the heavy lifts' warmups and the move between lifts cost
 /// until the user's own timings are learned.
 const DEFAULT_SET_SECONDS: f32 = 40.0;
@@ -667,16 +672,23 @@ impl Costs {
             }
             warmups.extend(spans.into_iter().map(|(_, from, to)| (to - from) as f32));
         }
+        // Only what was really timed counts: see LEARN_MIN_*.
+        let real = |samples: Vec<f32>, least: f32| -> Vec<f32> {
+            samples.into_iter().filter(|s| *s >= least).collect()
+        };
         let defaults = Self::default();
         let mut rest_seconds = defaults.rest_seconds;
         for (rest, samples) in rest_seconds.iter_mut().zip(rests) {
-            *rest = median(samples).unwrap_or(*rest);
+            *rest = median(real(samples, LEARN_MIN_GAP_SECONDS)).unwrap_or(*rest);
         }
         Self {
-            set_seconds: median(lifting).unwrap_or(defaults.set_seconds),
+            set_seconds: median(real(lifting, LEARN_MIN_SET_SECONDS))
+                .unwrap_or(defaults.set_seconds),
             rest_seconds,
-            warmup_seconds: median(warmups).unwrap_or(defaults.warmup_seconds),
-            between_seconds: median(between).unwrap_or(defaults.between_seconds),
+            warmup_seconds: median(real(warmups, LEARN_MIN_GAP_SECONDS))
+                .unwrap_or(defaults.warmup_seconds),
+            between_seconds: median(real(between, LEARN_MIN_GAP_SECONDS))
+                .unwrap_or(defaults.between_seconds),
         }
     }
 
@@ -1551,6 +1563,39 @@ mod tests {
         fixed.fixed_sets = Some(1);
         let lifts = [fixed, lift(Exercise::BarbellCurl)];
         assert_eq!(allocate(&lifts, &costs, &HashMap::new(), 60), vec![1, 5]);
+    }
+
+    /// Sets tapped through a second apart teach nothing: the defaults stay.
+    #[test]
+    fn tapped_through_sets_are_not_learned_from() {
+        use crate::pb::Workout;
+        let mut record = WorkoutRecord::new(
+            Workout {
+                id: "w".into(),
+                start_time: 1000,
+                end_time: 100_000,
+                ..Default::default()
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        for i in 0..30 {
+            let id = format!("s{i}");
+            record.proposed_sets.push(ProposedSet {
+                id: id.clone(),
+                exercise: Exercise::LateralRaise as i32,
+                target_reps: 8,
+                ..Default::default()
+            });
+            record.completed_sets.push(CompletedSet {
+                proposed_set_id: id,
+                started_at: 1000 + 2 * i,
+                ended_at: 1001 + 2 * i,
+                actual_reps: 8,
+                ..Default::default()
+            });
+        }
+        assert_eq!(Costs::learned(&[record], 2000), Costs::default());
     }
 
     /// Ten samples of a kind replace its default with their median.

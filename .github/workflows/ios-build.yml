@@ -19,6 +19,8 @@ jobs:
       IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
       IOS_APP_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_APP_PROVISION_PROFILE_BASE64 }}
       IOS_WATCH_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_WATCH_PROVISION_PROFILE_BASE64 }}
+      # The Live Activity's widget extension (com.brensch.schlift.LiveStatus).
+      IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64 }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
@@ -70,7 +72,7 @@ jobs:
         id: signing-mode
         run: |
           signing_ready=true
-          for name in APPLE_TEAM_ID IOS_CERT_P12_BASE64 IOS_CERT_PASSWORD IOS_APP_PROVISION_PROFILE_BASE64 IOS_WATCH_PROVISION_PROFILE_BASE64; do
+          for name in APPLE_TEAM_ID IOS_CERT_P12_BASE64 IOS_CERT_PASSWORD IOS_APP_PROVISION_PROFILE_BASE64 IOS_WATCH_PROVISION_PROFILE_BASE64 IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64; do
             if [ -z "${!name}" ]; then
               echo "Missing signing secret: $name"
               signing_ready=false
@@ -110,19 +112,23 @@ jobs:
           IOS_CERT_PASSWORD: ${{ env.IOS_CERT_PASSWORD }}
           IOS_APP_PROVISION_PROFILE_BASE64: ${{ env.IOS_APP_PROVISION_PROFILE_BASE64 }}
           IOS_WATCH_PROVISION_PROFILE_BASE64: ${{ env.IOS_WATCH_PROVISION_PROFILE_BASE64 }}
+          IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64: ${{ env.IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64 }}
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
           CERT_PATH="$RUNNER_TEMP/dist.p12"
           APP_PROFILE_PATH="$RUNNER_TEMP/app.mobileprovision"
           WATCH_PROFILE_PATH="$RUNNER_TEMP/watch.mobileprovision"
+          LIVE_STATUS_PROFILE_PATH="$RUNNER_TEMP/live-status.mobileprovision"
           APP_PROFILE_PLIST="$RUNNER_TEMP/app-profile.plist"
           WATCH_PROFILE_PLIST="$RUNNER_TEMP/watch-profile.plist"
+          LIVE_STATUS_PROFILE_PLIST="$RUNNER_TEMP/live-status-profile.plist"
           PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
 
           echo "$IOS_CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
           echo "$IOS_APP_PROVISION_PROFILE_BASE64" | base64 --decode > "$APP_PROFILE_PATH"
           echo "$IOS_WATCH_PROVISION_PROFILE_BASE64" | base64 --decode > "$WATCH_PROFILE_PATH"
+          echo "$IOS_LIVE_STATUS_PROVISION_PROFILE_BASE64" | base64 --decode > "$LIVE_STATUS_PROFILE_PATH"
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
@@ -134,20 +140,25 @@ jobs:
           mkdir -p "$PROFILE_DIR"
           security cms -D -i "$APP_PROFILE_PATH" > "$APP_PROFILE_PLIST"
           security cms -D -i "$WATCH_PROFILE_PATH" > "$WATCH_PROFILE_PLIST"
+          security cms -D -i "$LIVE_STATUS_PROFILE_PATH" > "$LIVE_STATUS_PROFILE_PLIST"
 
           APP_PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$APP_PROFILE_PLIST")
           APP_PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$APP_PROFILE_PLIST")
           WATCH_PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$WATCH_PROFILE_PLIST")
           WATCH_PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$WATCH_PROFILE_PLIST")
+          LIVE_STATUS_PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$LIVE_STATUS_PROFILE_PLIST")
+          LIVE_STATUS_PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$LIVE_STATUS_PROFILE_PLIST")
 
           cp "$APP_PROFILE_PATH" "$PROFILE_DIR/$APP_PROFILE_UUID.mobileprovision"
           cp "$WATCH_PROFILE_PATH" "$PROFILE_DIR/$WATCH_PROFILE_UUID.mobileprovision"
+          cp "$LIVE_STATUS_PROFILE_PATH" "$PROFILE_DIR/$LIVE_STATUS_PROFILE_UUID.mobileprovision"
 
           {
             echo "APPLE_KEYCHAIN_PATH=$KEYCHAIN_PATH"
             echo "APPLE_KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD"
             echo "IOS_APP_PROFILE_NAME=$APP_PROFILE_NAME"
             echo "IOS_WATCH_PROFILE_NAME=$WATCH_PROFILE_NAME"
+            echo "IOS_LIVE_STATUS_PROFILE_NAME=$LIVE_STATUS_PROFILE_NAME"
           } >> "$GITHUB_ENV"
 
           echo "App provisioning profile entitlements:"
@@ -155,6 +166,11 @@ jobs:
 
           if ! /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$APP_PROFILE_PLIST" | grep -Fx "${APPLE_TEAM_ID}.com.brensch.schlift"; then
             echo "Provisioning profile application-identifier does not match ${APPLE_TEAM_ID}.com.brensch.schlift"
+            exit 1
+          fi
+
+          if ! /usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$LIVE_STATUS_PROFILE_PLIST" | grep -Fx "${APPLE_TEAM_ID}.com.brensch.schlift.LiveStatus"; then
+            echo "The Live Activity profile's application-identifier does not match ${APPLE_TEAM_ID}.com.brensch.schlift.LiveStatus"
             exit 1
           fi
 
@@ -187,11 +203,13 @@ jobs:
           APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
           IOS_APP_PROFILE_NAME: ${{ env.IOS_APP_PROFILE_NAME }}
           IOS_WATCH_PROFILE_NAME: ${{ env.IOS_WATCH_PROFILE_NAME }}
+          IOS_LIVE_STATUS_PROFILE_NAME: ${{ env.IOS_LIVE_STATUS_PROFILE_NAME }}
         run: |
           cp ExportOptions.plist ExportOptions.ci.plist
           /usr/libexec/PlistBuddy -c "Set :teamID $APPLE_TEAM_ID" ExportOptions.ci.plist
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift $IOS_APP_PROFILE_NAME" ExportOptions.ci.plist
           /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift.watchkitapp $IOS_WATCH_PROFILE_NAME" ExportOptions.ci.plist
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:com.brensch.schlift.LiveStatus $IOS_LIVE_STATUS_PROFILE_NAME" ExportOptions.ci.plist
 
       - name: Archive iOS app
         if: steps.signing-mode.outputs.enabled == 'true'
@@ -200,6 +218,7 @@ jobs:
           APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
           IOS_APP_PROFILE_NAME: ${{ env.IOS_APP_PROFILE_NAME }}
           IOS_WATCH_PROFILE_NAME: ${{ env.IOS_WATCH_PROFILE_NAME }}
+          IOS_LIVE_STATUS_PROFILE_NAME: ${{ env.IOS_LIVE_STATUS_PROFILE_NAME }}
         run: |
           GIT_HASH=$(git rev-parse --short HEAD)
           DART_DEFINES=$(echo -n "GIT_HASH=$GIT_HASH" | base64)
@@ -212,6 +231,7 @@ jobs:
             APPLE_TEAM_ID="$APPLE_TEAM_ID" \
             IOS_APP_PROFILE_NAME="$IOS_APP_PROFILE_NAME" \
             IOS_WATCH_PROFILE_NAME="$IOS_WATCH_PROFILE_NAME" \
+            IOS_LIVE_STATUS_PROFILE_NAME="$IOS_LIVE_STATUS_PROFILE_NAME" \
             FLUTTER_BUILD_NAME="$BUILD_NAME" \
             FLUTTER_BUILD_NUMBER="$BUILD_NUMBER" \
             DART_DEFINES="$DART_DEFINES"

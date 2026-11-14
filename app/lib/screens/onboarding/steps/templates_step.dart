@@ -83,11 +83,10 @@ class TemplatesStep extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.fromLTRB(2, 10, 2, 4),
                           child: Text(
-                            group.key.toUpperCase(),
+                            group.key,
                             style: TextStyle(
                               fontSize: context.tokens.size.small,
                               fontWeight: context.tokens.weight.heavy,
-                              letterSpacing: 1.4,
                               color: cs.tertiary,
                             ),
                           ),

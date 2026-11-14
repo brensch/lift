@@ -228,9 +228,7 @@ class _TutorialScreenState extends State<TutorialScreen>
                 children: [
                   // The real app on the sandbox account, not tappable:
                   // header, home and the bottom bar.
-                  const IgnorePointer(
-                    child: MainLayout(currentPath: '/', child: WorkoutTab()),
-                  ),
+                  const IgnorePointer(child: MainLayout(child: WorkoutTab())),
                   // Everything else dims; the target shows through.
                   if (_started) ...[
                     IgnorePointer(
@@ -410,7 +408,10 @@ class _Popover extends StatelessWidget {
     final muted = cs.onSurface.withValues(alpha: 0.55);
     return Material(
       color: context.tokens.panel,
-      shape: RoundedRectangleBorder(side: BorderSide(color: cs.outline)),
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: cs.outline),
+        borderRadius: context.tokens.brMd,
+      ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
@@ -429,7 +430,6 @@ class _Popover extends StatelessWidget {
                       style: TextStyle(
                         fontSize: context.tokens.size.title,
                         fontWeight: context.tokens.weight.heavy,
-                        letterSpacing: -0.4,
                         height: 1.15,
                       ),
                     ),

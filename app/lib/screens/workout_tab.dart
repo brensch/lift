@@ -99,9 +99,19 @@ class _WorkoutTabState extends State<WorkoutTab> {
       );
     }
 
-    final child = wp.hasActiveWorkout
-        ? const WorkoutScreen()
-        : const HomeScreen();
+    // The shell has no bar: this page runs to the top of the screen and
+    // keeps clear of the system's status bar itself.
+    final child = SafeArea(
+      bottom: false,
+      child: wp.hasActiveWorkout
+          ? const WorkoutScreen()
+          : const Column(
+              children: [
+                HomeHeader(),
+                Expanded(child: HomeScreen()),
+              ],
+            ),
+    );
 
     // Inside the tutorial's sandbox the tutorial owns the back button.
     if (TutorialScope.maybeOf(context) != null) return child;

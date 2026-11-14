@@ -98,18 +98,7 @@ class _MenuProfileState extends State<MenuProfile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label.toUpperCase(),
-              maxLines: 1,
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.caption,
-                  fontWeight: t.weight.bold,
-                  letterSpacing: 1,
-                  color: color ?? t.muted,
-                ),
-              ),
-            ),
+            Text(label, maxLines: 1, style: t.label(color: color)),
             const SizedBox(height: 2),
             FittedBox(
               fit: BoxFit.scaleDown,
@@ -171,7 +160,7 @@ class _MenuProfileState extends State<MenuProfile> {
                   ),
                   Expanded(
                     child: Text(
-                      (auth.username ?? '').toUpperCase(),
+                      (auth.username ?? ''),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(

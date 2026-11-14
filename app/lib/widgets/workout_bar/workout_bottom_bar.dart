@@ -13,21 +13,23 @@ import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/group.pb.dart';
-import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
-import '../../gen/workout/v1/workout.pb.dart';
-import '../../logic/plan_text.dart';
 import '../../logic/session_state.dart';
 import '../../logic/user_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/multiplayer_provider.dart';
-import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../screens/workout/live_set_circle.dart';
 import '../../screens/workout/section_workout.dart';
+import '../../screens/workout/workout_pages.dart';
+import '../../screens/workout/workout_panels.dart';
+import '../../theme/app_icons.dart';
 import '../../theme/theme_spec.dart';
 import '../common/horizontal_shaker.dart';
+import '../../logic/motivation.dart';
 import '../dialogs/end_workout_dialog.dart';
+import '../dialogs/motivation_dialog.dart';
 import '../dialogs/participant_workout_modal.dart';
+import '../dialogs/weight_adjust_sheet.dart';
 import '../participant_ticker.dart';
 import '../workout_status_box.dart';
 import 'workout_focus.dart';
@@ -35,33 +37,6 @@ import 'workout_focus.dart';
 /// Partner bars in view before the stack scrolls.
 const _maxPartnersInView = 3;
 const _gap = 6.0;
-
-/// What to do next, said once: only during the first workout.
-String _hint(WorkoutProvider wp, int nowUnix) {
-  final state = stateAt(wp.stateSnapshot, nowUnix);
-  if (state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
-      wp.doneTargetSet == null) {
-    return copy.workout.hints.allDone;
-  }
-  return switch (state) {
-    WorkoutState.WORKOUT_STATE_LIFTING => copy.workout.hints.lifting,
-    WorkoutState.WORKOUT_STATE_RESTING => copy.workout.hints.resting,
-    WorkoutState.WORKOUT_STATE_YAPPING => copy.workout.hints.yapping,
-    _ => copy.workout.hints.ready,
-  };
-}
-
-/// Why [set]'s lift has the numbers it has, while none of its sets is done
-/// yet (the lift has just come up); '' otherwise.
-String _liftReason(WorkoutProvider wp, ProposedSet? set, WeightUnit unit) {
-  if (set == null) return '';
-  final started = wp.proposedSets.any(
-    (s) => s.exercise == set.exercise && wp.isSetDone(s.id),
-  );
-  if (started) return '';
-  final decision = wp.logFor(set.exercise)?.decision;
-  return decision == null ? '' : reasonShort(decision, unit);
-}
 
 class WorkoutBottomBar extends StatefulWidget {
   const WorkoutBottomBar({super.key});
@@ -72,8 +47,8 @@ class WorkoutBottomBar extends StatefulWidget {
 
 class _WorkoutBottomBarState extends State<WorkoutBottomBar>
     with SingleTickerProviderStateMixin {
-  /// How far the partners' boxes are out: 1 open, 0 tucked into a row of
-  /// their emoji. Dragging the banner moves it under the finger; letting
+  /// How far the partners' boxes are out: 1 open, 0 tucked away, a box
+  /// with how many are training in their place. Dragging the banner moves it under the finger; letting
   /// go settles it by the fling, or by whichever end is nearer.
   late final AnimationController _open;
 
@@ -106,7 +81,7 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
 
   void _onDragUpdate(DragUpdateDetails d) {
     _measure();
-    final range = (_stackHeight - _PartnerRow.height).clamp(1.0, 2000.0);
+    final range = _stackHeight.clamp(1.0, 2000.0);
     _open.value -= (d.primaryDelta ?? 0) / range;
   }
 
@@ -146,13 +121,29 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
           nowUnix: nowUnix,
           tokens: t,
         );
-        final topLine = wp.isFirstWorkout
-            ? _hint(wp, nowUnix)
-            : _liftReason(
-                wp,
-                you.proposedSet,
-                context.watch<SettingsProvider>().weightUnit,
-              );
+        // The workout's clock and your heart rate, each a box that opens
+        // its page: the clock the log of sets done, the heart the chart.
+        final workout = wp.workout;
+        final ended = workout != null && workout.endTime != Int64.ZERO;
+        // The exercise of the set in hand: the pencil by its weight edits it.
+        final editBlock = wp.exerciseBlocks
+            .where((b) => b.exercise == you.proposedSet?.exercise)
+            .firstOrNull;
+        final elapsed = workout == null || workout.startTime == Int64.ZERO
+            ? 0
+            : (ended ? workout.endTime.toInt() : nowUnix) -
+                  workout.startTime.toInt();
+        final beat = wp.wearHeartRateSamples.isNotEmpty
+            ? wp.wearHeartRateSamples.last
+            : null;
+        final figure = t.mono(
+          TextStyle(
+            fontSize: t.size.bodyLg,
+            fontWeight: t.weight.bold,
+            color: t.text,
+            height: 1,
+          ),
+        );
 
         // Soonest to lift first: the bottom of the stack, next to yours.
         final others =
@@ -221,23 +212,12 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             child: SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (topLine.isNotEmpty) ...[
-                      Text(
-                        topLine,
-                        style: TextStyle(
-                          fontSize: t.size.body,
-                          fontWeight: t.weight.medium,
-                          color: t.text,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    if (others.isNotEmpty) ...[
+                    if (others.isNotEmpty)
                       // The handle: the banner drags down to tuck the
                       // partners away, up to bring them back.
                       Center(
@@ -248,53 +228,117 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                           color: t.outline,
                         ),
                       ),
-                      // Open, the boxes; tucked, the emoji row — the one
-                      // shrinking as the other grows, under the finger.
-                      AnimatedBuilder(
-                        animation: _open,
-                        builder: (context, _) => Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ClipRect(
-                              child: Align(
-                                alignment: Alignment.bottomCenter,
-                                heightFactor: _open.value,
-                                child: Opacity(
-                                  opacity: _open.value,
-                                  child: KeyedSubtree(
-                                    key: _stackKey,
-                                    child: _PartnerStack(
-                                      count: others.length,
-                                      builder: (i, key) =>
-                                          partnerCard(others[i], key: key),
-                                    ),
-                                  ),
-                                ),
+                    // Each only as wide as what it shows: to the right, the
+                    // workout's; to the left, with the partners tucked away,
+                    // how many are training (a tap brings them back).
+                    Row(
+                      children: [
+                        if (others.isNotEmpty)
+                          AnimatedBuilder(
+                            animation: _open,
+                            builder: (context, child) => IgnorePointer(
+                              ignoring: _open.value > 0.5,
+                              child: Opacity(
+                                opacity: 1 - _open.value,
+                                child: child,
                               ),
                             ),
-                            ClipRect(
-                              child: Align(
-                                alignment: Alignment.bottomCenter,
-                                heightFactor: 1 - _open.value,
-                                child: Opacity(
-                                  opacity: 1 - _open.value,
-                                  child: _PartnerRow(
-                                    partners: others,
-                                    upNextId: nextToLift,
-                                    now: now,
-                                    onTap: () => _open.animateTo(
-                                      1,
-                                      curve: Curves.easeOut,
-                                    ),
-                                  ),
+                            child: OpenBox(
+                              tooltip: copy.menu.multiplayer,
+                              onTap: () =>
+                                  _open.animateTo(1, curve: Curves.easeOut),
+                              children: [
+                                Icon(
+                                  AppIcons.multiplayer,
+                                  size: t.size.bodyLg,
+                                  color: t.text,
+                                ),
+                                const SizedBox(width: 6),
+                                Text('${others.length + 1}', style: figure),
+                              ],
+                            ),
+                          ),
+                        const Spacer(),
+                        if (workout != null) ...[
+                          OpenBox(
+                            tooltip: copy.motivation.title,
+                            onTap: () => showMotivationDialog(
+                              context,
+                              motivationFor(workout),
+                            ),
+                            children: [
+                              Text(
+                                copy.motivation.button,
+                                style: TextStyle(
+                                  fontSize: t.size.bodyLg,
+                                  fontWeight: t.weight.bold,
+                                  color: t.text,
+                                  height: 1,
                                 ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(width: _gap),
+                        ],
+                        OpenBox(
+                          tooltip: copy.workoutPage.tabHeart,
+                          onTap: () => openWorkoutHeart(context),
+                          children: [
+                            Icon(
+                              AppIcons.heart,
+                              size: t.size.bodyLg,
+                              color: t.heart,
+                            ),
+                            if (!ended && beat != null && beat.bpm > 0) ...[
+                              const SizedBox(width: 6),
+                              Text('${beat.bpm.round()}', style: figure),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(width: _gap),
+                        OpenBox(
+                          tooltip: copy.workoutPage.tabLog,
+                          onTap: () => openWorkoutLog(context),
+                          children: [
+                            Icon(
+                              AppIcons.clock,
+                              size: t.size.bodyLg,
+                              color: t.muted,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              formatElapsedClock(elapsed < 0 ? 0 : elapsed),
+                              style: figure,
                             ),
                           ],
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: _gap),
+                    if (others.isNotEmpty) ...[
+                      // The partners' boxes, drawn away under the finger;
+                      // tucked, nothing of them is left.
+                      AnimatedBuilder(
+                        animation: _open,
+                        builder: (context, child) => ClipRect(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            heightFactor: _open.value,
+                            child: Opacity(opacity: _open.value, child: child),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: _gap),
+                          child: KeyedSubtree(
+                            key: _stackKey,
+                            child: _PartnerStack(
+                              count: others.length,
+                              builder: (i, key) =>
+                                  partnerCard(others[i], key: key),
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: _gap),
                     ],
                     HorizontalShaker(
                       active: iAmNext,
@@ -314,6 +358,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                                 workout: SectionWorkout.mine(wp),
                                 set: you.proposedSet!,
                               ),
+                        onEdit: ended || editBlock == null
+                            ? null
+                            : () => editExercise(context, wp, editBlock),
                         firstTime:
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
@@ -395,65 +442,6 @@ class _PartnerStackState extends State<_PartnerStack> {
     return SizedBox(
       height: _maxPartnersInView * card + (_maxPartnersInView - 1) * _gap,
       child: list,
-    );
-  }
-}
-
-/// The partners tucked away: a row of their emoji on their own colours,
-/// edged in the colour of the stage each is at; whoever is up next ringed
-/// in orange. Tap it to bring their boxes back.
-class _PartnerRow extends StatelessWidget {
-  final List<ParticipantStatus> partners;
-  final String? upNextId;
-
-  /// The workout clock's now, the same one the partners' boxes are drawn
-  /// at.
-  final DateTime now;
-  final VoidCallback onTap;
-
-  const _PartnerRow({
-    required this.partners,
-    required this.upNextId,
-    required this.now,
-    required this.onTap,
-  });
-
-  static const double height = 44;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(
-        height: height,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: partners.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (_, i) {
-            final p = partners[i];
-            final status = describeParticipantStatus(p, tokens: t, now: now);
-            final upNext = p.user.id == upNextId;
-            return Container(
-              width: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: participantProfileColor(p),
-                border: Border.all(
-                  color: upNext ? t.primary : status.stateColor,
-                  width: upNext ? 4 : 3,
-                ),
-              ),
-              child: Text(
-                participantProfileEmoji(p),
-                style: TextStyle(fontSize: t.size.title, height: 1),
-              ),
-            );
-          },
-        ),
-      ),
     );
   }
 }

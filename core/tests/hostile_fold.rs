@@ -71,6 +71,7 @@ fn an_exercise_adjusted_to_an_absurd_weight_folds() {
                     exercise: Exercise::Squat as i32,
                     working_weight: 1e9,
                     target_reps: 5,
+                    sets: 0,
                 }),
             },
         ];

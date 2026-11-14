@@ -9,9 +9,12 @@ enum WatchPalette {
     static let text = Color(rgb: 0x111111)
     static let muted = Color(rgb: 0x4A4A44)
     static let onDark = Color.white
-    static let ready = Color(rgb: 0x3D8B4A)
+    // As on the phone: ready is the signal orange (start the set), lifting
+    // is green (under way). The two inks are the heart-rate zones' and the
+    // done line's text colours, green then orange, whatever the bands are.
+    static let ready = Color(rgb: 0xFF4F00)
     static let readyInk = Color(rgb: 0x2F6E3A)
-    static let lifting = Color(rgb: 0xFF4F00)
+    static let lifting = Color(rgb: 0x3D8B4A)
     static let liftingInk = Color(rgb: 0xC23C00)
     static let resting = Color(rgb: 0x3C5FB0)
     static let yapping = Color(rgb: 0xD94F8C)

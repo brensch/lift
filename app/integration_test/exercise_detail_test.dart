@@ -10,7 +10,6 @@ import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 import 'package:schlift/logic/utils.dart';
 
 import 'support/scenario.dart';
-import 'package:schlift/theme/app_icons.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +33,7 @@ void main() {
     s.note('Seeded 5 progressive workouts', kind: 'api');
     await s.waitForAppToCatchUp(api);
 
-    await s.tap(find.byIcon(AppIcons.menu));
+    await s.openMenu();
     await s.tapText('Progress');
     await s.settle(seconds: 4);
     await s.shot('Progress screen');
@@ -59,7 +58,7 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
     await s.settle(seconds: 1);
     expect(
-      find.text(monthYear(DateTime.now()).toUpperCase()),
+      find.text(monthYear(DateTime.now())),
       findsOneWidget,
       reason: "the sessions sit under this month's heading",
     );

@@ -149,8 +149,6 @@ class _LoginScreenState extends State<LoginScreen>
                             fontWeight: context.tokens.weight.heavy,
 
                             fontSize: context.tokens.size.small,
-
-                            letterSpacing: 1.0,
                           ),
 
                           tabs: [
@@ -190,8 +188,6 @@ class _LoginScreenState extends State<LoginScreen>
                         fontSize: context.tokens.size.small,
 
                         fontWeight: context.tokens.weight.bold,
-
-                        letterSpacing: 1.5,
 
                         color: colorScheme.tertiary,
                       ),

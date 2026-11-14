@@ -235,6 +235,18 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
                   closeGrid: false,
                 ),
               ),
+            // The quote it was done under; none on one from before quotes.
+            if (workout.motivation.isNotEmpty)
+              FlatSection(
+                label: copy.motivation.title,
+                child: Text(
+                  workout.motivation,
+                  style: TextStyle(
+                    fontSize: context.tokens.size.bodyLg,
+                    color: context.tokens.text,
+                  ),
+                ),
+              ),
             FlatSection(
               label: copy.summary.trainedWith,
               child: _buildFriends(context),
@@ -309,8 +321,11 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       children: [
         for (final user in _sessionFriends)
           Container(
+            // Their colour block runs to the chip's edge: it takes its corners.
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: t.panel,
+              borderRadius: context.tokens.brMd,
               border: Border.all(color: t.outline),
             ),
             child: Row(

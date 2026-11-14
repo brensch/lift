@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../gen/copy.dart';
 import '../theme/app_icons.dart';
@@ -16,13 +15,7 @@ class LearnScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(AppIcons.back),
-          onPressed: () => context.go('/'),
-        ),
-        title: PageTitle(copy.learn.title),
-      ),
+      appBar: AppBar(title: PageTitle(copy.learn.title)),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [

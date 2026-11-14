@@ -108,14 +108,11 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
                       children: [
                         PageTitle(participantDisplayName(p)),
                         Text(
-                          status.stateLabel.toUpperCase(),
-                          style: t.mono(
-                            TextStyle(
-                              fontSize: t.size.small,
-                              fontWeight: t.weight.bold,
-                              letterSpacing: 1,
-                              color: status.stateColor,
-                            ),
+                          status.stateLabel,
+                          style: TextStyle(
+                            fontSize: t.size.small,
+                            fontWeight: t.weight.bold,
+                            color: status.stateColor,
                           ),
                         ),
                       ],

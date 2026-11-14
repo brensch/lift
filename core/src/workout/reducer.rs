@@ -186,13 +186,18 @@ pub fn start_workout_response_from_active(
     }
 }
 
-/// "Skip all warmups": the exercise's undone warmups are marked skipped.
+/// Skip a warmup, or (no set named) all of the exercise's undone warmups:
+/// they are marked skipped.
 /// Nothing is removed; they stay in the plan, nothing waits on them
 /// (`is_passed_warmup`), and doing one later still records it.
 pub fn apply_skip_warmups_to_active(workout_ref: &mut WorkoutRecord, req: &WarmupsSkipped) {
     let done = done_set_ids(&workout_ref.completed_sets);
     for set in workout_ref.proposed_sets.iter_mut().filter(|s| {
-        s.exercise == req.exercise && s.warmup && !s.cancelled && !done.contains(s.id.as_str())
+        s.exercise == req.exercise
+            && s.warmup
+            && !s.cancelled
+            && !done.contains(s.id.as_str())
+            && (req.proposed_set_id.is_empty() || s.id == req.proposed_set_id)
     }) {
         set.skipped = true;
     }
@@ -1022,6 +1027,31 @@ mod tests {
     }
 
     #[test]
+    fn skipping_one_warmup_leaves_the_rest() {
+        let mut active = active_with(vec![
+            proposed("w1", 0, true),
+            proposed("w2", 1, true),
+            proposed("s1", 2, false),
+        ]);
+        apply_skip_warmups_to_active(
+            &mut active,
+            &WarmupsSkipped {
+                workout_id: "w1".to_string(),
+                exercise: 1,
+                proposed_set_id: "w1".to_string(),
+            },
+        );
+        let by_id = |id: &str| active.proposed_sets.iter().find(|p| p.id == id).unwrap();
+        assert!(by_id("w1").skipped);
+        assert!(!by_id("w2").skipped);
+        assert_eq!(
+            snap_at(&active, 2_050).display_set.unwrap().id,
+            "w2",
+            "up next is the next warmup"
+        );
+    }
+
+    #[test]
     fn skipping_warmups_marks_them_and_moves_past() {
         let mut active = active_with(vec![
             proposed("w1", 0, true),
@@ -1034,6 +1064,7 @@ mod tests {
             &WarmupsSkipped {
                 workout_id: "w1".to_string(),
                 exercise: 1,
+                proposed_set_id: String::new(),
             },
         );
         let by_id = |id: &str| active.proposed_sets.iter().find(|p| p.id == id).unwrap();
@@ -1337,6 +1368,7 @@ mod tests {
                 exercise,
                 working_weight: weight,
                 target_reps: 0,
+                sets: 0,
             },
             AppWeightUnit::Lb,
             &mut Ids::new(&Uuid::new_v4().to_string()),

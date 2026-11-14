@@ -179,6 +179,13 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
+  /// Phosphor `clock`.
+  static const clock = IconData(
+    0xe19a,
+    fontFamily: _family,
+    fontPackage: _package,
+  );
+
   /// Phosphor `clockCounterClockwise`.
   static const history = IconData(
     0xe1a0,

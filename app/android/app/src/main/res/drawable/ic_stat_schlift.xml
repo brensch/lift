@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The status bar's icon: the app icon's plates on their bar, one colour. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="114"
+    android:viewportHeight="114">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14,54h8v6h-8z M22,48h4.7v18h-4.7z M26.7,42h7v30h-7z M33.7,30h9v54h-9z M42.7,22h10v70h-10z M52.7,22h10.3v70h-10.3z M63,55h37v4h-37z" />
+</vector>

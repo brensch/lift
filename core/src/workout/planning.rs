@@ -369,6 +369,9 @@ pub fn apply_adjust_exercise_weight(
     if !(0..=100).contains(&req.target_reps) {
         return Err(WorkoutError::FailedPrecondition("Reps out of range"));
     }
+    if !(0..=MAX_WORKING_SETS).contains(&req.sets) {
+        return Err(WorkoutError::FailedPrecondition("Sets out of range"));
+    }
     // On a lift still ramping this moves the pending rung: the ramp goes
     // on from the weight given, and the reps decide where it stops.
     apply_target_reps(workout_ref, req);
@@ -402,6 +405,7 @@ pub fn apply_adjust_exercise_weight(
             cause: WeightChangeCause::UserAdjust as i32,
         },
     );
+    apply_set_count(workout_ref, req, ids);
 
     // Warmups regenerate only while some are still pending; once you're past
     // warming up there is nothing to recalculate.
@@ -460,6 +464,57 @@ pub fn apply_adjust_exercise_weight(
     workout_ref.proposed_sets = out;
     workout_ref.renumber_sets();
     Ok(())
+}
+
+/// The most working sets an exercise can be given by hand.
+pub const MAX_WORKING_SETS: i32 = 20;
+
+/// A set count given with the adjust: the exercise has that many working
+/// sets from here on. More are copies of its last one, straight after it,
+/// at the weight and reps just set; fewer cancels its last undone ones.
+/// A set already done stays, so the count never goes under those; an
+/// exercise still ramping has no working sets to count and is left alone.
+fn apply_set_count(workout_ref: &mut WorkoutRecord, req: &ExerciseAdjusted, ids: &mut Ids) {
+    if req.sets <= 0 {
+        return;
+    }
+    let done = done_set_ids(&workout_ref.completed_sets);
+    let working: Vec<usize> = workout_ref
+        .proposed_sets
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| s.exercise == req.exercise && s.is_working() && !s.cancelled)
+        .map(|(i, _)| i)
+        .collect();
+    let Some(&last) = working.last() else {
+        return;
+    };
+    let wanted = req.sets as usize;
+    if wanted > working.len() {
+        let mut set = workout_ref.proposed_sets[last].clone();
+        set.target_weight = req.working_weight;
+        if req.target_reps > 0 {
+            set.target_reps = req.target_reps;
+        }
+        set.skipped = false;
+        for n in 0..wanted - working.len() {
+            set.id = ids.new_id();
+            workout_ref.proposed_sets.insert(last + 1 + n, set.clone());
+        }
+    } else {
+        let mut extra = working.len() - wanted;
+        for &i in working.iter().rev() {
+            if extra == 0 {
+                break;
+            }
+            let set = &mut workout_ref.proposed_sets[i];
+            if !done.contains(&set.id) {
+                set.cancelled = true;
+                extra -= 1;
+            }
+        }
+    }
+    workout_ref.renumber_sets();
 }
 
 /// A rep target given with the adjust: every working set of the exercise
@@ -667,6 +722,89 @@ mod plan_op_tests {
             .collect()
     }
 
+    fn working(active: &WorkoutRecord, exercise: i32) -> Vec<&ProposedSet> {
+        active
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == exercise && s.is_working() && !s.cancelled)
+            .collect()
+    }
+
+    fn set_count(active: &mut WorkoutRecord, sets: i32, reps: i32) {
+        apply_adjust_exercise_weight(
+            active,
+            &ExerciseAdjusted {
+                workout_id: "w1".to_string(),
+                exercise: SQUAT,
+                working_weight: 200.0,
+                target_reps: reps,
+                sets,
+            },
+            AppWeightUnit::Lb,
+            &mut test_ids(),
+            500,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn more_sets_are_copies_after_the_last() {
+        let mut active = workout_with(&[plan(SQUAT, 200.0, false), plan(BENCH, 135.0, false)]);
+        set_count(&mut active, 5, 0);
+        let sets = working(&active, SQUAT);
+        assert_eq!(sets.len(), 5);
+        assert!(sets
+            .iter()
+            .all(|s| s.target_weight == 200.0 && s.target_reps == 6));
+        let ids: std::collections::HashSet<&str> = sets.iter().map(|s| s.id.as_str()).collect();
+        assert_eq!(ids.len(), 5, "each new set has its own id");
+        // Still one block: the squats come before the bench.
+        let order: Vec<i32> = visible(&active).iter().map(|s| s.exercise).collect();
+        assert_eq!(
+            order,
+            [SQUAT, SQUAT, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
+        );
+        assert!(visible(&active)
+            .iter()
+            .enumerate()
+            .all(|(i, s)| s.workout_order == i as i32));
+    }
+
+    #[test]
+    fn fewer_sets_cancels_the_last_undone_and_keeps_the_done() {
+        let mut active = workout_with(&[plan(SQUAT, 200.0, false)]);
+        let first = working(&active, SQUAT)[0].id.clone();
+        let second = working(&active, SQUAT)[1].id.clone();
+        complete(&mut active, &first);
+        complete(&mut active, &second);
+        set_count(&mut active, 1, 0);
+        let left: Vec<String> = working(&active, SQUAT)
+            .iter()
+            .map(|s| s.id.clone())
+            .collect();
+        assert_eq!(
+            left,
+            [first, second],
+            "a set already done is never taken away"
+        );
+
+        // Back up again: new sets, at the reps given with it.
+        set_count(&mut active, 4, 8);
+        let sets = working(&active, SQUAT);
+        assert_eq!(sets.len(), 4);
+        assert_eq!(sets[3].target_reps, 8);
+    }
+
+    #[test]
+    fn no_set_count_leaves_the_sets() {
+        let mut active = workout_with(&[plan(SQUAT, 200.0, true)]);
+        let before: Vec<String> = visible(&active).iter().map(|s| s.id.clone()).collect();
+        set_count(&mut active, 0, 0);
+        let after: Vec<String> = visible(&active).iter().map(|s| s.id.clone()).collect();
+        assert_eq!(before.len(), after.len());
+        assert_eq!(working(&active, SQUAT).len(), 3);
+    }
+
     fn pending_warmup_weights(active: &WorkoutRecord, exercise: i32) -> Vec<f32> {
         let done = done_set_ids(&active.completed_sets);
         active
@@ -685,6 +823,7 @@ mod plan_op_tests {
                 exercise,
                 working_weight: weight,
                 target_reps: 0,
+                sets: 0,
             },
             AppWeightUnit::Lb,
             &mut test_ids(),
@@ -718,6 +857,7 @@ mod plan_op_tests {
                 exercise: SQUAT,
                 working_weight: 210.0,
                 target_reps: 4,
+                sets: 0,
             },
             AppWeightUnit::Lb,
             &mut test_ids(),
@@ -908,6 +1048,7 @@ mod plan_op_tests {
                 exercise: SQUAT,
                 working_weight: 100.0,
                 target_reps: 0,
+                sets: 0,
             },
             AppWeightUnit::Lb,
             &mut test_ids(),

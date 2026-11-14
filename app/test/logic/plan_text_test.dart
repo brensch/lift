@@ -81,9 +81,9 @@ void main() {
     );
     final head = v.weightDown.replaceAll('{after}', '237 lb');
     final why = v.sets.replaceAll('{sets}', '4').replaceAll('{last}', '3');
-    expect(reasonShort(down, lb), '$head: $why.');
+    expect(reasonShort(down, lb), '$head. $why.');
     // A held max never sits beside a weight that moved.
-    expect(reasonLines(down, lb), ['$head: $why.']);
+    expect(reasonLines(down, lb), ['$head. $why.']);
 
     final missed = ExerciseDecision(
       reasons: [
@@ -97,7 +97,7 @@ void main() {
         ),
       ],
     );
-    expect(reasonShort(missed, lb), '$head: ${v.missed}.');
+    expect(reasonShort(missed, lb), '$head. ${v.missed}.');
     expect(reasonLines(missed, lb), hasLength(2));
 
     final more = ExerciseDecision(
@@ -110,7 +110,7 @@ void main() {
         ),
       ],
     );
-    expect(reasonShort(more, lb), '${v.repsUpOne}: ${v.hit}.');
+    expect(reasonShort(more, lb), '${v.repsUpOne}. ${v.hit}.');
 
     final same = ExerciseDecision(
       reasons: [
@@ -121,7 +121,7 @@ void main() {
         PlanReason(kind: PlanReasonKind.PLAN_REASON_KIND_HELD, after: 300),
       ],
     );
-    expect(reasonShort(same, lb), '${v.same}: ${v.stoppedEarly}.');
+    expect(reasonShort(same, lb), '${v.same}. ${v.stoppedEarly}.');
     expect(
       reasonLines(same, lb),
       hasLength(2),
@@ -143,7 +143,7 @@ void main() {
         ),
       ],
     );
-    expect(reasonShort(rushed, lb), '${v.same}: ${v.rushed}.');
+    expect(reasonShort(rushed, lb), '${v.same}. ${v.rushed}.');
     expect(
       reasonLines(rushed, lb)[1],
       copy.plan.reasons.heldRushed.replaceAll('{max}', '300 lb'),

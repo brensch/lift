@@ -329,12 +329,11 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        label.toUpperCase(),
+        label,
         style: TextStyle(
           color: cs.tertiary,
           fontSize: context.tokens.size.caption,
           fontWeight: context.tokens.weight.bold,
-          letterSpacing: 0.5,
         ),
       ),
       const SizedBox(height: 2),
