@@ -75,7 +75,7 @@ func watchStage(_ snapshot: Workout_V1_WearWorkoutSnapshot, nowMs: Int64) -> Wat
     switch snapshot.state {
     case .lifting:
         return WatchStage(
-            label: card.stateLabel, color: WatchPalette.lifting, ink: WatchPalette.text,
+            label: card.stateLabel, color: WatchPalette.lifting, ink: onDark,
             timer: deriveLiftingTimer(snapshot, currentApiNowMs: nowMs)
         )
     case .resting, .yapping:
@@ -87,55 +87,6 @@ func watchStage(_ snapshot: Workout_V1_WearWorkoutSnapshot, nowMs: Int64) -> Wat
         return WatchStage(label: card.stateLabel, color: WatchPalette.resting, ink: onDark, timer: rest.text)
     default:
         return WatchStage(label: card.stateLabel, color: WatchPalette.ready, ink: onDark, timer: "")
-    }
-}
-
-/// "Up next!" on the panel, its ink gliding through the app's series palette.
-struct UpNextChip: View {
-    let text: String
-    let size: CGFloat
-    let colors: FaceColors
-
-    private static let series = [
-        Color(rgb: 0x1F4FD1), Color(rgb: 0xD03A00), Color(rgb: 0x1E7A3C), Color(rgb: 0xC2185B),
-        Color(rgb: 0x5B2DB8), Color(rgb: 0x00796B), Color(rgb: 0x8D5A00),
-    ]
-
-    var body: some View {
-        if colors.dim {
-            // Dimmed, nothing moves: the chip keeps the face's grey.
-            chip(Text(text).foregroundColor(colors.text))
-        } else {
-            TimelineView(.animation) { context in
-                cycling(at: context.date)
-            }
-        }
-    }
-
-    private func cycling(at date: Date) -> some View {
-        // Each colour for 0.7 s; the ink fades from one to the next.
-        let step = date.timeIntervalSinceReferenceDate / 0.7
-        let index = Int(step) % Self.series.count
-        let blend = step - step.rounded(.down)
-        return chip(
-            ZStack {
-                Text(text).foregroundColor(Self.series[index])
-                Text(text)
-                    .foregroundColor(Self.series[(index + 1) % Self.series.count])
-                    .opacity(blend)
-            }
-        )
-    }
-
-    private func chip(_ content: some View) -> some View {
-        content
-            .font(monoFontName(size: size))
-            .multilineTextAlignment(.center)
-            .lineLimit(2)
-            .fixedSize()
-            .padding(.horizontal, 3)
-            .padding(.vertical, 2)
-            .background(colors.panel)
     }
 }
 
@@ -167,4 +118,26 @@ func ambientRestFor(_ snapshot: Workout_V1_WearWorkoutSnapshot, nowMs: Int64, no
     // Once rest is over its end is past: no "till".
     let until = leftMs > 0 ? words.restUntil.replacingOccurrences(of: "{time}", with: time) : ""
     return AmbientRest(minutes: minutes, until: until)
+}
+
+/// One end of the bar, loaded: the bar running in from the left for `lead`
+/// (the screen's edge to the content), then the plates from the heaviest to
+/// the lightest, then the sleeve's tip. Past four plates each is drawn
+/// thinner, so a heavy bar leaves room for what is beside it.
+func watchHalfBar(plates: [Workout_V1_WearPlate], height: CGFloat, lead: CGFloat) -> some View {
+    let count = CGFloat(plates.count)
+    let squeeze = count > 4 ? max(4 / count, 0.5) : 1
+    let steel = height * 0.08
+    return HStack(spacing: 1) {
+        Rectangle().fill(WatchPalette.muted).frame(width: lead, height: steel)
+        ForEach(Array(plates.enumerated()), id: \.offset) { _, plate in
+            Rectangle()
+                .fill(Color(hex: plate.colorHex))
+                .frame(
+                    width: height * (0.07 + 0.09 * CGFloat(plate.size)) * squeeze,
+                    height: height * (0.45 + 0.55 * CGFloat(plate.size))
+                )
+        }
+        Rectangle().fill(WatchPalette.muted).frame(width: height * 0.14, height: steel)
+    }
 }

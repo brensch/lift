@@ -144,6 +144,8 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                   return _SessionRow(
                     user: p.user,
                     name: participantDisplayName(p),
+                    // The workout they are doing, when they have started one.
+                    workout: p.hasActiveWorkout() ? p.activeWorkout.name : '',
                     // What they are on, when they are on something.
                     doing: set == null
                         ? null
@@ -226,6 +228,19 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      // Asked and not yet answered: it says so, and can't
+                      // be asked again until that request has run out.
+                      : context.watch<MultiplayerProvider>().isAskPending(
+                          p.user.id,
+                        )
+                      ? Text(
+                          copy.multiplayer.pending,
+                          style: TextStyle(
+                            fontSize: context.tokens.size.body,
+                            fontWeight: context.tokens.weight.bold,
+                            color: context.tokens.muted,
+                          ),
                         )
                       : FilledButton.tonal(
                           onPressed: () => _askPartner(p.user.id, p.user.name),
@@ -395,6 +410,9 @@ class _Rows extends StatelessWidget {
 class _SessionRow extends StatelessWidget {
   final User user;
   final String name;
+
+  /// Their workout's title; empty when they haven't started one.
+  final String workout;
   final String? doing;
   final String stage;
   final Color stageColor;
@@ -402,6 +420,7 @@ class _SessionRow extends StatelessWidget {
   const _SessionRow({
     required this.user,
     required this.name,
+    required this.workout,
     required this.doing,
     required this.stage,
     required this.stageColor,
@@ -430,6 +449,17 @@ class _SessionRow extends StatelessWidget {
                     color: t.text,
                   ),
                 ),
+                if (workout.isNotEmpty)
+                  Text(
+                    workout,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: t.size.body,
+                      fontWeight: t.weight.bold,
+                      color: t.muted,
+                    ),
+                  ),
                 if (doing != null)
                   Text(
                     doing!,

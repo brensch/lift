@@ -154,10 +154,16 @@ void main() {
   });
 
   testWidgets('the slider stays on the step\'s grid', (tester) async {
-    await pump(tester, weightLb: 135, stepLb: 5);
+    final given = await pump(tester, weightLb: 135, stepLb: 5);
     final slider = tester.widget<Slider>(find.byType(Slider));
     expect(slider.min, 45);
     expect(slider.max, 650);
-    expect(slider.divisions, (650 - 45) ~/ 5);
+    // It has no notches of its own (they make the thumb trail the finger):
+    // wherever it is dragged to, the weight given out is on the grid.
+    expect(slider.divisions, isNull);
+    slider.onChanged!(151.7);
+    await tester.pump();
+    expect(given.last, 150);
+    expect(tester.widget<Slider>(find.byType(Slider)).value, 150);
   });
 }

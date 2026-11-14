@@ -13,7 +13,10 @@ import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
+import '../../logic/weight_units.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
+import '../plate_visualization.dart';
 import '../../theme/app_theme.dart';
 import '../common/flat.dart';
 import '../common/weight_selector.dart';
@@ -81,6 +84,36 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   late final int _startSets;
   late final int _doneSets;
   bool _isSaving = false;
+
+  /// The warmup in hand as it would be at [_weight], from the core; null
+  /// until the selector has moved (and when there is no such warmup).
+  double? _previewWarmupLb;
+
+  /// The selector moved to [lb]: ask the core what the warmup in hand
+  /// becomes. Only the answer for the weight still on show is kept.
+  Future<void> _setWeight(double lb) async {
+    setState(() => _weight = lb);
+    // One question to the core at a time. A slider passes through dozens of
+    // weights a second: asking about each queued them up behind the finger.
+    // While one is out, only the latest weight is remembered and asked next.
+    if (_previewing) return;
+    _previewing = true;
+    try {
+      final wp = context.read<WorkoutProvider>();
+      while (mounted) {
+        final asked = _weight;
+        final preview = await wp.previewSetInHand(widget.block.exercise, asked);
+        if (!mounted) return;
+        // An answer that couldn't be had leaves the last one on show.
+        if (preview != null) setState(() => _previewWarmupLb = preview);
+        if (_weight == asked) break;
+      }
+    } finally {
+      _previewing = false;
+    }
+  }
+
+  bool _previewing = false;
 
   /// The sets the weight is read from: the working sets, or — mid-ramp,
   /// before any exist — the calibration rungs.
@@ -151,6 +184,19 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final name = exerciseName(widget.block.exercise);
+    final unit = context.watch<SettingsProvider>().weightUnit;
+    // The set in hand, when it is one of this exercise's warmups.
+    final inHand = context.watch<WorkoutProvider>().doneTargetSet;
+    final warmupNow =
+        inHand != null &&
+            inHand.warmup &&
+            inHand.exercise == widget.block.exercise
+        ? inHand
+        : null;
+    // What that warmup would weigh at the working weight on the selector,
+    // as the core works it out; the warmup's own weight until it answers.
+    final warmupLb =
+        _previewWarmupLb ?? warmupNow?.targetWeight.toDouble() ?? 0;
 
     Widget stepper(
       String label,
@@ -202,96 +248,132 @@ class _WeightAdjustSheetState extends State<_WeightAdjustSheet> {
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppTheme.sheetHandle(context, gap: 0),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 4, 0),
-            child: Row(
-              children: [
-                Expanded(child: PageTitle(name)),
-                IconButton(
-                  tooltip: copy.adjustWeight.removeTooltip,
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onDelete();
-                  },
-                  icon: Icon(AppIcons.delete, color: t.error),
+      // It scrolls when it is taller than the screen (two sections during a
+      // warmup, on a short phone) rather than running off the bottom.
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppTheme.sheetHandle(context, gap: 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 4, 0),
+              child: Row(
+                children: [
+                  Expanded(child: PageTitle(name)),
+                  IconButton(
+                    tooltip: copy.adjustWeight.removeTooltip,
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onDelete();
+                    },
+                    icon: Icon(AppIcons.delete, color: t.error),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                copy.adjustWeight.body.replaceAll('{name}', name),
+                style: TextStyle(fontSize: t.size.body, color: t.muted),
+              ),
+            ),
+            // During a warmup the set in hand is not the one this sheet
+            // sets: it says what the warmup is, then what it changes.
+            // One line for it: "This warmup", its weight, the end of the
+            // bar with its plates. The selector under it is the working sets.
+            if (warmupNow != null) ...[
+              FlatHeading(copy.adjustWeight.warmupNow),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                child: Row(
+                  children: [
+                    // The weight on the left; on the right the same block
+                    // the selector has: the bar's end and the plates for
+                    // each side, never changing size. No text is scaled to
+                    // fit, so nothing shifts as the slider moves.
+                    Expanded(
+                      child: Text(
+                        formatWeight(warmupLb, unit, includeUnit: true),
+                        maxLines: 1,
+                        softWrap: false,
+                        style: t.mono(
+                          TextStyle(
+                            fontSize: t.size.headline,
+                            fontWeight: t.weight.bold,
+                            color: t.text,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_barbell && warmupLb > 0)
+                      PlateSummary(weightLb: warmupLb),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Text(
-              copy.adjustWeight.body.replaceAll('{name}', name),
-              style: TextStyle(fontSize: t.size.body, color: t.muted),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: WeightSelector(
+              ),
+              FlatHeading(copy.adjustWeight.working),
+            ],
+            WeightSelector(
               weightLb: _weight,
               stepLb: context.read<WorkoutProvider>().weightStepOf(
                 widget.block.exercise,
               ),
               barbell: _barbell,
-              onChanged: (lb) => setState(() => _weight = lb),
+              topLine: warmupNow == null,
+              onChanged: _setWeight,
             ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.symmetric(
-                horizontal: BorderSide(color: t.hairline),
+            // Straight under the selector, whose last line is the one over
+            // these: no second line, no gap.
+            Container(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: t.hairline)),
               ),
-            ),
-            child: Row(
-              children: [
-                if (_startSets > 0)
-                  stepper(
-                    copy.adjustWeight.sets,
-                    '$_sets',
-                    () => setState(
-                      () => _sets = (_sets - 1).clamp(_minSets, _maxSets),
-                    ),
-                    () => setState(
-                      () => _sets = (_sets + 1).clamp(_minSets, _maxSets),
-                    ),
-                  ),
-                stepper(
-                  copy.adjustWeight.reps,
-                  '$_reps',
-                  () => setState(() => _reps = (_reps - 1).clamp(1, 100)),
-                  () => setState(() => _reps = (_reps + 1).clamp(1, 100)),
-                  last: true,
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: SizedBox(
-              height: 56,
-              child: FilledButton(
-                onPressed: _isSaving ? null : _apply,
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(
-                        _dirty
-                            ? copy.adjustWeight.save
-                            : copy.adjustWeight.done,
+              child: Row(
+                children: [
+                  if (_startSets > 0)
+                    stepper(
+                      copy.adjustWeight.sets,
+                      '$_sets',
+                      () => setState(
+                        () => _sets = (_sets - 1).clamp(_minSets, _maxSets),
                       ),
+                      () => setState(
+                        () => _sets = (_sets + 1).clamp(_minSets, _maxSets),
+                      ),
+                    ),
+                  stepper(
+                    copy.adjustWeight.reps,
+                    '$_reps',
+                    () => setState(() => _reps = (_reps - 1).clamp(1, 100)),
+                    () => setState(() => _reps = (_reps + 1).clamp(1, 100)),
+                    last: true,
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: SizedBox(
+                height: 56,
+                child: FilledButton(
+                  onPressed: _isSaving ? null : _apply,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          _dirty
+                              ? copy.adjustWeight.save
+                              : copy.adjustWeight.done,
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -107,7 +107,11 @@ ChartViewport clampViewport({
       .clamp(minWindowSeconds, maxWindowSeconds)
       .toDouble();
   final maxStart = max(0.0, domainMaxX - clampedSpan * 0.05);
-  final clampedStart = startSec.clamp(0.0, maxStart).toDouble();
+  // The window may start before the workout does, by up to three quarters
+  // of itself: early on, now still sits towards the right and the workout's
+  // start comes in from the left.
+  final minStart = -clampedSpan * 0.75;
+  final clampedStart = startSec.clamp(minStart, maxStart).toDouble();
   return ChartViewport(
     startSec: clampedStart,
     endSec: clampedStart + clampedSpan,

@@ -19,6 +19,7 @@ class WearableSyncCoordinator {
   final SettingsProvider _settingsProvider;
   final WearableBridgeService _bridgeService;
   final String Function() _myUserId;
+  final String Function() _myEmoji;
 
   StreamSubscription? _intentSub;
   StreamSubscription? _sensorSub;
@@ -50,11 +51,13 @@ class WearableSyncCoordinator {
     required SettingsProvider settingsProvider,
     required WearableBridgeService bridgeService,
     required String Function() myUserId,
+    required String Function() myEmoji,
   }) : _workoutProvider = workoutProvider,
        _multiplayerProvider = multiplayerProvider,
        _settingsProvider = settingsProvider,
        _bridgeService = bridgeService,
-       _myUserId = myUserId;
+       _myUserId = myUserId,
+       _myEmoji = myEmoji;
 
   Future<void> init() async {
     _intentSub = _bridgeService.intentStream.listen((intent) async {
@@ -238,6 +241,7 @@ class WearableSyncCoordinator {
       workoutProvider: _workoutProvider,
       multiplayerProvider: _multiplayerProvider,
       myUserId: userId,
+      myEmoji: _myEmoji(),
     );
 
     if (snapshot == null) return;

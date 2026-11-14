@@ -6106,8 +6106,8 @@ public final class Wearable {
 
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6116,8 +6116,8 @@ public final class Wearable {
     java.lang.String getUpNextText();
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6125,6 +6125,18 @@ public final class Wearable {
      */
     com.google.protobuf.ByteString
         getUpNextTextBytes();
+
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     * @return The upNextEmoji.
+     */
+    java.lang.String getUpNextEmoji();
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     * @return The bytes for upNextEmoji.
+     */
+    com.google.protobuf.ByteString
+        getUpNextEmojiBytes();
 
     /**
      * <pre>
@@ -6159,6 +6171,7 @@ public final class Wearable {
       actions_ = emptyProtobufList();
       circles_ = emptyProtobufList();
       upNextText_ = "";
+      upNextEmoji_ = "";
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -6822,8 +6835,8 @@ public final class Wearable {
     private java.lang.String upNextText_;
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6835,8 +6848,8 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6849,8 +6862,8 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6864,8 +6877,8 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6876,8 +6889,8 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * The phone's "up next" chip, when the wearer lifts next in a session;
-     * empty otherwise (solo, or someone else is next).
+     * "Next", when someone in the session lifts next (the wearer or a
+     * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
      * </pre>
      *
      * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -6887,6 +6900,53 @@ public final class Wearable {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       upNextText_ = value.toStringUtf8();
+      
+    }
+
+    public static final int UP_NEXT_EMOJI_FIELD_NUMBER = 22;
+    private java.lang.String upNextEmoji_;
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     * @return The upNextEmoji.
+     */
+    @java.lang.Override
+    public java.lang.String getUpNextEmoji() {
+      return upNextEmoji_;
+    }
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     * @return The bytes for upNextEmoji.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getUpNextEmojiBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(upNextEmoji_);
+    }
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     * @param value The upNextEmoji to set.
+     */
+    private void setUpNextEmoji(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      upNextEmoji_ = value;
+    }
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     */
+    private void clearUpNextEmoji() {
+      
+      upNextEmoji_ = getDefaultInstance().getUpNextEmoji();
+    }
+    /**
+     * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+     * @param value The bytes for upNextEmoji to set.
+     */
+    private void setUpNextEmojiBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      upNextEmoji_ = value.toStringUtf8();
       
     }
 
@@ -7755,8 +7815,8 @@ public final class Wearable {
 
       /**
        * <pre>
-       * The phone's "up next" chip, when the wearer lifts next in a session;
-       * empty otherwise (solo, or someone else is next).
+       * "Next", when someone in the session lifts next (the wearer or a
+       * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
        * </pre>
        *
        * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -7768,8 +7828,8 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The phone's "up next" chip, when the wearer lifts next in a session;
-       * empty otherwise (solo, or someone else is next).
+       * "Next", when someone in the session lifts next (the wearer or a
+       * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
        * </pre>
        *
        * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -7782,8 +7842,8 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The phone's "up next" chip, when the wearer lifts next in a session;
-       * empty otherwise (solo, or someone else is next).
+       * "Next", when someone in the session lifts next (the wearer or a
+       * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
        * </pre>
        *
        * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -7798,8 +7858,8 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The phone's "up next" chip, when the wearer lifts next in a session;
-       * empty otherwise (solo, or someone else is next).
+       * "Next", when someone in the session lifts next (the wearer or a
+       * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
        * </pre>
        *
        * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -7812,8 +7872,8 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * The phone's "up next" chip, when the wearer lifts next in a session;
-       * empty otherwise (solo, or someone else is next).
+       * "Next", when someone in the session lifts next (the wearer or a
+       * partner); empty otherwise (solo, or nobody is). up_next_emoji is theirs.
        * </pre>
        *
        * <code>string up_next_text = 20 [json_name = "upNextText"];</code>
@@ -7824,6 +7884,55 @@ public final class Wearable {
           com.google.protobuf.ByteString value) {
         copyOnWrite();
         instance.setUpNextTextBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+       * @return The upNextEmoji.
+       */
+      @java.lang.Override
+      public java.lang.String getUpNextEmoji() {
+        return instance.getUpNextEmoji();
+      }
+      /**
+       * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+       * @return The bytes for upNextEmoji.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getUpNextEmojiBytes() {
+        return instance.getUpNextEmojiBytes();
+      }
+      /**
+       * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+       * @param value The upNextEmoji to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUpNextEmoji(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setUpNextEmoji(value);
+        return this;
+      }
+      /**
+       * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearUpNextEmoji() {
+        copyOnWrite();
+        instance.clearUpNextEmoji();
+        return this;
+      }
+      /**
+       * <code>string up_next_emoji = 22 [json_name = "upNextEmoji"];</code>
+       * @param value The bytes for upNextEmoji to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUpNextEmojiBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setUpNextEmojiBytes(value);
         return this;
       }
 
@@ -7930,11 +8039,12 @@ public final class Wearable {
               workout.v1.Wearable.WearSetCircle.class,
               "upNextText_",
               "ambientCopy_",
+              "upNextEmoji_",
             };
             java.lang.String info =
-                "\u0000\u000e\u0000\u0000\u0001\u0015\u000e\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
+                "\u0000\u000f\u0000\u0000\u0001\u0016\u000f\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
                 "\u0003\f\u0004\u0002\u0006\u0002\b\u0208\t\t\u000b\u001b\f\t\u000f\u0002\u0010\u0002" +
-                "\u0011\u001b\u0014\u0208\u0015\t";
+                "\u0011\u001b\u0014\u0208\u0015\t\u0016\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

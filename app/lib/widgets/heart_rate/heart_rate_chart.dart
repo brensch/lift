@@ -30,6 +30,10 @@ class HeartRateChart extends StatefulWidget {
   /// follows it; off where the section's hairline already ends it there.
   final bool closeGrid;
 
+  /// Something to do about the reading, at the right of it in the header
+  /// (the live page's "open the watch app").
+  final Widget? headerAction;
+
   const HeartRateChart({
     super.key,
     required this.heartRateSamples,
@@ -40,6 +44,7 @@ class HeartRateChart extends StatefulWidget {
     this.followLiveClock = true,
     this.inset = 0,
     this.closeGrid = true,
+    this.headerAction,
   });
 
   @override
@@ -48,8 +53,6 @@ class HeartRateChart extends StatefulWidget {
 
 class _HeartRateChartState extends State<HeartRateChart> {
   static const double _defaultLiveWindowSeconds = 600; // 10 min
-  // Between an axis label and the plot.
-  static const double _axisGap = 4;
 
   /// The laid-out size of one axis label, in the app's theme and the
   /// device's text scale.
@@ -220,7 +223,13 @@ class _HeartRateChartState extends State<HeartRateChart> {
       maxX: maxX,
       marginSec: 30,
     );
-    const minY = 0.0;
+    // The floor sits a little under the lowest reading (never over 80), on a
+    // round twenty: no empty band from there down to zero.
+    final lowest = heartRateSamples.fold<double>(
+      100,
+      (low, s) => s.bpm < low ? s.bpm.toDouble() : low,
+    );
+    final minY = (((lowest - 10) ~/ 20) * 20).clamp(0, 80).toDouble();
     final effectiveMaxHr =
         _zoneProfile?.estimatedMaxHeartRateBpm ?? defaultMaxHr;
     final zones = zonesForConfig(
@@ -248,98 +257,118 @@ class _HeartRateChartState extends State<HeartRateChart> {
     // Each axis is as wide (or tall) as its widest label, measured in the
     // style and text scale it is drawn in, so no label wraps or clips.
     final caption = TextStyle(fontSize: context.tokens.size.caption);
-    final leftAxisWidth =
-        _labelSize(context, '${maxY.round()}', caption).width + _axisGap + 2;
     final bottomAxisHeight =
         _labelSize(context, formatElapsedHms(maxX.round()), caption).height + 8;
     // Colour the single line by HR zone with a vertical stepped gradient
     // (one series) instead of emitting a separate series per point pair.
     final gradient = zoneGradient(zones, maxY, context.tokens.heartZones);
 
-    final header = Row(
-      children: [
-        Text(
-          copy.heartRate.title,
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            fontWeight: context.tokens.weight.bold,
-            color: colorScheme.tertiary,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          '${currentBpm.round()}',
-          style: TextStyle(
-            fontSize: context.tokens.size.titleLg,
-            fontWeight: context.tokens.weight.heavy,
-            height: 1.0,
-            color: zoneColor,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          copy.heartRate.bpm,
-          style: TextStyle(
-            fontSize: context.tokens.size.small,
-            fontWeight: context.tokens.weight.bold,
-            color: colorScheme.tertiary,
-          ),
-        ),
-        if (currentZone != null) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: zoneColor.withValues(alpha: 0.12),
-              borderRadius: context.tokens.brXs,
-            ),
-            child: Text(
-              '${currentZone.name} ${currentZone.label}',
-              style: TextStyle(
-                fontSize: context.tokens.size.caption,
-                fontWeight: context.tokens.weight.bold,
-                color: zoneColor,
+    final t = context.tokens;
+    // The lines the plot is ruled with: the zones' edges.
+    // The plot is ruled every twenty beats, floor to ceiling.
+    final boundaries = <int>[
+      for (var bpm = minY.round() + 20; bpm < maxY; bpm += 20) bpm,
+    ];
+    final resting = _zoneProfile?.restingHeartRateBpm;
+    // The reading now, as two blocks edge to edge: the number as big as it
+    // goes, and the zone it is in as a block of the zone's colour.
+    final header = DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.symmetric(horizontal: BorderSide(color: t.hairline)),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(copy.heartRate.title, style: t.label()),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '${currentBpm.round()}',
+                          style: t.mono(
+                            TextStyle(
+                              fontSize: t.size.giant,
+                              fontWeight: t.weight.bold,
+                              height: 1.05,
+                              color: zoneColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(copy.heartRate.bpm, style: t.label()),
+                        if (widget.headerAction != null) ...[
+                          const Spacer(),
+                          widget.headerAction!,
+                        ],
+                      ],
+                    ),
+                    if (resting != null)
+                      Text(
+                        copy.heartRate.resting.replaceAll(
+                          '{bpm}',
+                          '${resting.round()}',
+                        ),
+                        style: t.label(),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-        if (_zoneProfileLoaded &&
-            _zoneProfile != null &&
-            _zoneProfile!.ageYears != null) ...[
-          const SizedBox(width: 8),
-          Text(
-            _zoneProfile!.hasRestingHeartRate
-                ? copy.heartRate.zonesByReserve
-                : copy.heartRate.zonesByMax,
-            style: TextStyle(
-              fontSize: context.tokens.size.caption,
-              fontWeight: context.tokens.weight.bold,
-              color: colorScheme.tertiary,
-            ),
-          ),
-        ],
-        if (_zoneProfile?.restingHeartRateBpm != null) ...[
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: colorScheme.onSurface.withValues(alpha: 0.06),
-              borderRadius: context.tokens.brXs,
-            ),
-            child: Text(
-              copy.heartRate.resting.replaceAll(
-                '{bpm}',
-                '${_zoneProfile!.restingHeartRateBpm!.round()}',
+            if (currentZone != null)
+              Expanded(
+                flex: 2,
+                child: Container(
+                  color: zoneColor,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        currentZone.name,
+                        style: t.mono(
+                          TextStyle(
+                            fontSize: t.size.displayLg,
+                            fontWeight: t.weight.bold,
+                            height: 1,
+                            color: t.inkOn(zoneColor),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        [
+                          currentZone.label,
+                          if (_zoneProfileLoaded &&
+                              _zoneProfile != null &&
+                              _zoneProfile!.ageYears != null)
+                            _zoneProfile!.hasRestingHeartRate
+                                ? copy.heartRate.zonesByReserve
+                                : copy.heartRate.zonesByMax,
+                        ].join(' '),
+                        style: t.mono(
+                          TextStyle(
+                            fontSize: t.size.body,
+                            fontWeight: t.weight.bold,
+                            color: t.inkOn(zoneColor),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              style: TextStyle(
-                fontSize: context.tokens.size.caption,
-                fontWeight: context.tokens.weight.bold,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-        ],
-      ],
+          ],
+        ),
+      ),
     );
 
     final side = EdgeInsets.symmetric(horizontal: widget.inset);
@@ -348,12 +377,12 @@ class _HeartRateChartState extends State<HeartRateChart> {
       children: [
         // A finished workout has no "now" to read a current BPM from: the
         // plot starts at the top.
-        if (widget.followLiveClock) ...[
-          Padding(padding: side, child: header),
-          const SizedBox(height: 8),
-        ],
+        if (widget.followLiveClock) header,
+        // The plot runs from one edge of the page to the other, like every
+        // section's lines: its rules are the zones' edges, each numbered
+        // inside the plot at the left.
         Padding(
-          padding: side,
+          padding: EdgeInsets.zero,
           child: SizedBox(
             height: 320,
             child: LayoutBuilder(
@@ -413,43 +442,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
                     clipData: const FlClipData.all(),
                     lineTouchData: const LineTouchData(enabled: false),
                     titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: leftAxisWidth,
-                          interval: 10,
-                          minIncluded: false,
-                          maxIncluded: false,
-                          getTitlesWidget: (value, meta) {
-                            final bpm = value.round();
-                            final boundaryValues = <int>{
-                              0,
-                              ...zones.map((z) => z.low),
-                              ...zones.map((z) => z.high),
-                            };
-                            if (boundaryValues.contains(bpm)) {
-                              return SideTitleWidget(
-                                meta: meta,
-                                space: _axisGap,
-                                fitInside: SideTitleFitInsideData.fromTitleMeta(
-                                  meta,
-                                ),
-                                child: Text(
-                                  '$bpm',
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  style: TextStyle(
-                                    fontSize: context.tokens.size.caption,
-                                    color: colorScheme.onSurface.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
+                      leftTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),
                       ),
                       // The line's colour says the zone: no names beside it.
                       rightTitles: const AxisTitles(
@@ -484,9 +478,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
                                 softWrap: false,
                                 style: TextStyle(
                                   fontSize: context.tokens.size.caption,
-                                  color: colorScheme.onSurface.withValues(
-                                    alpha: 0.45,
-                                  ),
+                                  color: t.muted,
                                 ),
                               ),
                             );
@@ -495,12 +487,40 @@ class _HeartRateChartState extends State<HeartRateChart> {
                       ),
                     ),
                     gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
+                    borderData: FlBorderData(
+                      // The reading's block ends in the line over the plot.
+                      border: Border(bottom: BorderSide(color: t.outline)),
+                    ),
                     rangeAnnotations: RangeAnnotations(
                       horizontalRangeAnnotations: const [],
                       verticalRangeAnnotations: restBands,
                     ),
                     extraLinesData: ExtraLinesData(
+                      extraLinesOnTop: false,
+                      horizontalLines: [
+                        for (final bpm in boundaries)
+                          if (bpm > minY && bpm < maxY)
+                            HorizontalLine(
+                              y: bpm.toDouble(),
+                              color: t.hairline,
+                              strokeWidth: 1,
+                              label: HorizontalLineLabel(
+                                show: true,
+                                alignment: Alignment.topLeft,
+                                padding: const EdgeInsets.only(
+                                  left: 16,
+                                  bottom: 2,
+                                ),
+                                style: t.mono(
+                                  TextStyle(
+                                    fontSize: t.size.caption,
+                                    color: t.muted,
+                                  ),
+                                ),
+                                labelResolver: (line) => '${line.y.round()}',
+                              ),
+                            ),
+                      ],
                       verticalLines: [
                         VerticalLine(
                           x: nowSec,
@@ -559,17 +579,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
               ),
               if (widget.followLiveClock) ...[
                 const SizedBox(width: 8),
-                _buildLiveWindowButton(
-                  context,
-                  label: copy.heartRate.window5m,
-                  spanSec: 300,
-                ),
-                const SizedBox(width: 6),
-                _buildLiveWindowButton(
-                  context,
-                  label: copy.heartRate.window10m,
-                  spanSec: 600,
-                ),
+                _buildLatestButton(context, viewport.spanSec),
               ],
             ],
           ),
@@ -663,7 +673,8 @@ class _HeartRateChartState extends State<HeartRateChart> {
 
   ChartViewport _computeLiveViewport(double nowSec, double domainMaxX) {
     final span = _selectedLiveWindowSpanSec;
-    final start = max(0.0, nowSec - span * _liveNowAnchorFraction);
+    // Now sits three quarters across from the first second on.
+    final start = nowSec - span * _liveNowAnchorFraction;
     return clampViewport(
       startSec: start,
       spanSec: span,
@@ -671,21 +682,17 @@ class _HeartRateChartState extends State<HeartRateChart> {
     );
   }
 
-  Widget _buildLiveWindowButton(
-    BuildContext context, {
-    required String label,
-    required double spanSec,
-  }) {
+  /// "Latest": lit while the window follows now. Panning or zooming puts
+  /// it out; a tap puts the window back on now, at the zoom it has.
+  Widget _buildLatestButton(BuildContext context, double spanSec) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isSelected = _isLiveViewport && _selectedLiveWindowSpanSec == spanSec;
+    final isSelected = _isLiveViewport;
     return FilledButton.tonal(
       onPressed: () {
         setState(() {
           _selectedLiveWindowSpanSec = spanSec;
           _isLiveViewport = true;
           _hasManualViewport = false;
-          _manualWindowStartSec = 0;
-          _manualWindowSpanSec = spanSec;
         });
       },
       style: FilledButton.styleFrom(
@@ -698,7 +705,7 @@ class _HeartRateChartState extends State<HeartRateChart> {
             : colorScheme.surfaceContainer,
       ),
       child: Text(
-        label,
+        copy.heartRate.latest,
         style: TextStyle(
           fontWeight: context.tokens.weight.heavy,
           fontSize: context.tokens.size.small,

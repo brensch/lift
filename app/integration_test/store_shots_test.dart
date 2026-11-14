@@ -10,7 +10,6 @@
 // with less behind them. The real captures come from `make store-capture`.
 //
 // Slides are numbered by shot order; captions live in store/listing.yaml.
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fixnum/fixnum.dart';
@@ -21,7 +20,6 @@ import 'package:provider/provider.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
 import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 import 'package:schlift/providers/workout_provider.dart';
-import 'package:schlift/widgets/plate_visualization.dart';
 
 import 'support/api.dart';
 import 'support/scenario.dart';
@@ -134,7 +132,7 @@ void main() {
       // SEED_DEMO_USER as `demo-live`); the app resumes straight into it. On
       // an unseeded backend it is a new account: onboard, seed, start one.
       await s.openMenu();
-      await s.tapText('Logout');
+      await s.logout();
       await s.devLogin('demo-live');
       await s.completeOnboarding();
       // The live workout's Heart box: there is no Start on home to wait
@@ -188,14 +186,9 @@ void main() {
       );
       await s.shot('Heart rate');
 
-      // 08 — the plate calculator, for a weight that loads a few sizes
-      // (the live set is a warmup on the bare bar).
-      unawaited(
-        showPlateBreakdownDialog(
-          tester.element(find.byType(Scaffold).first),
-          weightLb: 255,
-        ),
-      );
+      // 08 — the plate calculator: the edit sheet, with the bar as it is
+      // loaded.
+      await s.openEdit();
       await s.settle(seconds: 2);
       await s.shot('Plate calculator');
     });

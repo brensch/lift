@@ -11,6 +11,7 @@ import 'gen/copy.dart';
 import 'services/app_logger.dart';
 import 'services/notification_service.dart';
 import 'services/permissions_service.dart';
+import 'services/toast.dart';
 import 'services/page_tracker.dart';
 import 'services/grpc_client.dart';
 import 'widgets/dialogs/template_update_dialog.dart';
@@ -47,6 +48,7 @@ import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/your_data_screen.dart';
+import 'screens/app_icon_screen.dart';
 import 'screens/plate_colors_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
@@ -208,6 +210,7 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       settingsProvider: _settingsProvider,
       bridgeService: _wearableBridgeService,
       myUserId: () => _authProvider.userId ?? '',
+      myEmoji: () => _authProvider.profileEmoji,
     );
     unawaited(_wearableSyncCoordinator.init());
     // A ramp set done in full, on the phone or the watch: ask how many more.
@@ -435,6 +438,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
               builder: (_, __) => const PlateColorsScreen(),
             ),
             GoRoute(
+              path: '/settings/app-icon',
+              builder: (_, __) => const AppIconScreen(),
+            ),
+            GoRoute(
               path: '/settings/data',
               builder: (_, __) => const YourDataScreen(),
             ),
@@ -520,6 +527,8 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       child: MaterialApp.router(
         title: 'Schlift',
         debugShowCheckedModeBanner: false,
+        // Short messages (services/toast.dart) are shown through this.
+        scaffoldMessengerKey: appMessengerKey,
         theme: AppTheme.theme,
         routerConfig: _router,
         builder: (context, child) =>

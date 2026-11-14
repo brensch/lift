@@ -136,6 +136,10 @@ class FlatRow extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
 
+  /// A size up, for the menu: its rows are the app's pages. There they
+  /// stand alone: no chevron after them, no line under them.
+  final bool large;
+
   const FlatRow({
     super.key,
     this.icon,
@@ -143,6 +147,7 @@ class FlatRow extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
+    this.large = false,
   });
 
   @override
@@ -155,12 +160,18 @@ class FlatRow extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: t.hairline)),
+            border: large
+                ? null
+                : Border(bottom: BorderSide(color: t.hairline)),
           ),
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: t.size.title, color: t.text),
+                Icon(
+                  icon,
+                  size: large ? t.size.titleLg : t.size.title,
+                  color: t.text,
+                ),
                 const SizedBox(width: 16),
               ],
               Expanded(
@@ -170,7 +181,7 @@ class FlatRow extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontSize: t.size.bodyLg,
+                        fontSize: large ? t.size.title : t.size.bodyLg,
                         fontWeight: t.weight.bold,
                         color: t.text,
                       ),
@@ -189,7 +200,8 @@ class FlatRow extends StatelessWidget {
                 ),
               ),
               if (trailing != null) ...[trailing!, const SizedBox(width: 8)],
-              if (onTap != null) Icon(AppIcons.forward, color: t.muted),
+              if (onTap != null && !large)
+                Icon(AppIcons.forward, color: t.muted),
             ],
           ),
         ),

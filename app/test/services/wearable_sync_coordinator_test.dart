@@ -58,6 +58,7 @@ void main() {
         settingsProvider: h.settings,
         bridgeService: b,
         myUserId: () => 'me',
+        myEmoji: () => '',
       );
 
   setUp(() async {
