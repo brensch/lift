@@ -34,10 +34,9 @@ with the same signing fingerprints.
    the `workflow_dispatch` *buttons* additionally require the files on `main`.)
 2. **DNS.** `dev.schlift.com` must resolve to the box — the `*.schlift.com`
    A-record covers it.
-3. **Runner sudo.** On the deploy box, reinstall the runner sudoers from
-   `deploy/schlift-runner.sudoers.example` (it whitelists
-   `/opt/repo-schlift-dev-current/scripts/deploy_schlift_dev.sh`; hosting the APK
-   uses the already-whitelisted `/usr/bin/install`).
+3. **Deploy agent.** The box's pull deployer (`deploy/puller/`, see
+   `deploy/README.md`) serves the `dev` and `dev-apk` environments as well as
+   production; nothing to set up per channel.
 4. **Stand up the dev backend:** push a `dev-*` tag (or run **Dev Backend
    Deploy**). It installs `schlift-dev.service` on `:50052`, seeds
    `/opt/schlift-dev/shared/schlift.env` from `deploy/schlift-dev.env.example`,

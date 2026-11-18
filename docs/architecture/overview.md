@@ -165,8 +165,10 @@ Server layout (see `deploy/README.md`):
 ```
 
 Deployment is push-to-`main` via `.github/workflows/backend-deploy.yml`: an
-ARM64 GitHub runner builds the binary, a self-hosted runner on the server
-installs it into a new release directory and restarts the unit.
+ARM64 GitHub runner builds the binary, and the server pulls it: an agent on the
+box (`deploy/puller/`) sees the new GitHub Deployment, checks the build against a
+copy of the database, installs it into a new release directory, restarts the unit
+and reports back. There is no runner on the server.
 
 The backend is a single binary with an embedded SQLite file — no external
 database, no cache, no queue. See `deploy/` and `docs/releasing.md`.
