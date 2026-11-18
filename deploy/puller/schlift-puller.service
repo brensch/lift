@@ -1,0 +1,10 @@
+[Unit]
+Description=schlift pull deploy: apply the newest GitHub Deployment (deploy/puller)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/schlift-puller/schlift-puller.sh
+# a deploy that hangs must not block the next one forever
+TimeoutStartSec=15min

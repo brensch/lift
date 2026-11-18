@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for a new schlift deployment every 20 seconds
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=20s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

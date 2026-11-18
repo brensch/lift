@@ -58,6 +58,7 @@ jobs:
           cp target/release/schlift dist/schlift
           chmod 755 dist/schlift
           cp -r web/dist dist/web
+          (cd dist && sha256sum schlift > schlift.sha256)
           printf '%s\n' "${GITHUB_SHA}" > dist/release.txt
 
       - name: Upload backend artifact
@@ -67,30 +68,21 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  # The box pulls the build itself (deploy/puller); this job records the
+  # deployment and waits for the box's verdict.
   deploy-backend:
     needs: build-backend
-    runs-on:
-      - self-hosted
-      - linux
-      - ARM64
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
+      deployments: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Sync repo to stable dev deploy path
-        run: |
-          sudo mkdir -p /opt/repo-schlift-dev-current
-          sudo rsync -a --delete --exclude .git ./ /opt/repo-schlift-dev-current/
-
-      - name: Download backend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dev-backend-linux-arm64
-          path: dist/dev-backend-linux-arm64
-
-      - name: Deploy dev release
+      - name: Deploy (the box pulls it)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Release id = the tag when tag-triggered, else dev-<sha> for a branch.
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
@@ -98,12 +90,4 @@ jobs:
           else
             RID="dev-${GITHUB_SHA}"
           fi
-          ARTIFACT_DIR="${PWD}/dist/dev-backend-linux-arm64" \
-          RELEASE_ID="${RID}" \
-          sudo --preserve-env=ARTIFACT_DIR,RELEASE_ID \
-            /opt/repo-schlift-dev-current/scripts/deploy_schlift_dev.sh
-
-      - name: Show deployed status
-        run: |
-          sudo systemctl status --no-pager schlift-dev.service | head -20
-          curl -fsS https://dev.schlift.com/.well-known/assetlinks.json | head -c 400 || true
+          scripts/request_deploy.sh dev "${RID}" dev-backend-linux-arm64
