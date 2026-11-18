@@ -82,7 +82,10 @@ fetch_artifacts() { # fetch_artifacts RUN_ID DEST NAME...
 # its migrations must apply and its health check must pass before anything live changes.
 preflight() { # preflight BINARY INSTALL_ROOT PORT
 	local bin="$1" root="$2" port="$3" dir
-	dir="$(mktemp -d /var/tmp/schlift-preflight.XXXXXX)"
+	# Under /opt, not /var/tmp: with SELinux enforcing (e.g. Oracle Linux) a service may not
+	# execute files labelled tmp_t, which is what /var/tmp gives them.
+	mkdir -p "${HERE}/work"
+	dir="$(mktemp -d "${HERE}/work/preflight.XXXXXX")"
 	mkdir -p "${dir}/data"
 	if [[ -f "${root}/shared/data/server.sqlite" ]]; then
 		python3 - "${root}/shared/data/server.sqlite" "${dir}/data/server.sqlite" <<'PY'
@@ -148,7 +151,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 	fetch_artifacts "${run}" "${work}" "${artifacts[@]}"
 	case "${env}" in
 	production)
-		local a="${work}/backend-linux-arm64"
+		local a="${work}/backend-linux-amd64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
 		preflight "${a}/schlift" /opt/schlift 50061
@@ -157,7 +160,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 			"${HERE}/scripts/deploy_schlift_release.sh"
 		;;
 	dev)
-		local a="${work}/dev-backend-linux-arm64"
+		local a="${work}/dev-backend-linux-amd64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
 		preflight "${a}/schlift" /opt/schlift-dev 50062
@@ -199,7 +202,7 @@ for env in ${ENVIRONMENTS}; do
 	sha="$(jq -r '.sha' <<<"${dep}")"
 	log "${env}: deploying ${sha:0:12} (deployment ${id})"
 	status "${id}" in_progress "deploying ${sha:0:12} on $(hostname -s)"
-	work="$(mktemp -d /var/tmp/schlift-deploy.XXXXXX)"
+	work="$(mktemp -d "${HERE}/work/deploy.XXXXXX")"
 	out="${work}.log"
 	# A subshell outside any `if`, so `set -e` holds inside it: any failing step,
 	# the preflight included, stops the deploy (in an `if` condition bash ignores -e).

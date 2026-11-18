@@ -165,7 +165,7 @@ Server layout (see `deploy/README.md`):
 ```
 
 Deployment is push-to-`main` via `.github/workflows/backend-deploy.yml`: an
-ARM64 GitHub runner builds the binary, and the server pulls it: an agent on the
+x86_64 GitHub runner builds the binary, and the server (a Google Cloud e2-micro) pulls it: an agent on the
 box (`deploy/puller/`) sees the new GitHub Deployment, checks the build against a
 copy of the database, installs it into a new release directory, restarts the unit
 and reports back. There is no runner on the server.

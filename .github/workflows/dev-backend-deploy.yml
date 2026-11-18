@@ -22,7 +22,8 @@ concurrency:
 
 jobs:
   build-backend:
-    runs-on: ubuntu-24.04-arm
+    # The server is the Google box (x86_64, Debian 13: glibc and OpenSSL 3 newer than 24.04's).
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -64,7 +65,7 @@ jobs:
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dev-backend-linux-arm64
+          name: dev-backend-linux-amd64
           path: dist/
           if-no-files-found: error
 
@@ -90,4 +91,4 @@ jobs:
           else
             RID="dev-${GITHUB_SHA}"
           fi
-          scripts/request_deploy.sh dev "${RID}" dev-backend-linux-arm64
+          scripts/request_deploy.sh dev "${RID}" dev-backend-linux-amd64
