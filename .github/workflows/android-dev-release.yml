@@ -120,26 +120,19 @@ jobs:
           path: schlift-dev.apk
           if-no-files-found: error
 
+  # The box pulls the APK itself (deploy/puller) and serves it at
+  # https://dev.schlift.com/schlift-dev.apk; this job waits for it to report back.
   publish-dev-apk:
     needs: build-dev-apk
-    runs-on:
-      - self-hosted
-      - linux
-      - ARM64
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
+      deployments: write
     steps:
-      - name: Download dev APK artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: schlift-dev-apk
-          path: dist
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Host APK at dev.schlift.com/schlift-dev.apk
-        run: |
-          # /opt/schlift/web is the shared static root Caddy serves for both
-          # hosts; dropping the APK there makes it reachable at
-          # https://dev.schlift.com/schlift-dev.apk with no auth. `install` is
-          # already whitelisted for the runner's sudo.
-          sudo install -m 0644 dist/schlift-dev.apk /opt/schlift/web/schlift-dev.apk
-          echo "published https://dev.schlift.com/schlift-dev.apk"
+      - name: Publish (the box pulls it)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/request_deploy.sh dev-apk "apk-${GITHUB_SHA}" schlift-dev-apk
