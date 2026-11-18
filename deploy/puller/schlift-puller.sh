@@ -94,29 +94,31 @@ dst.close(); src.close()
 PY
 	fi
 	chown -R opc:opc "${dir}"
-	local ok=0
-	(
-		set -a
-		[[ -f "${root}/shared/schlift.env" ]] && . "${root}/shared/schlift.env"
-		set +a
-		cd "${dir}"
-		PORT="${port}" DATA_DIR="${dir}/data" exec setpriv --reuid=opc --regid=opc --init-groups "${bin}"
-	) >"${dir}/preflight.log" 2>&1 &
-	local pid=$!
+	# A transient unit with the live unit's user and EnvironmentFile: systemd reads the
+	# env file exactly as it does for the real service.
+	local unit ok=0
+	unit="schlift-preflight-${port}"
+	systemctl stop "${unit}" 2>/dev/null || true
+	systemctl reset-failed "${unit}" 2>/dev/null || true
+	systemd-run --quiet --collect --unit="${unit}" \
+		-p User=opc -p Group=opc -p WorkingDirectory="${dir}" \
+		-p EnvironmentFile=-"${root}/shared/schlift.env" \
+		-E PORT="${port}" -E DATA_DIR="${dir}/data" "${bin}"
+	local inv
+	inv="$(systemctl show -p InvocationID --value "${unit}")"
 	for _ in $(seq 1 120); do
 		if curl -fsS "http://127.0.0.1:${port}/api/health" >/dev/null 2>&1; then
 			ok=1
 			break
 		fi
-		kill -0 "${pid}" 2>/dev/null || break
+		systemctl is-active --quiet "${unit}" || break
 		sleep 0.5
 	done
-	kill "${pid}" 2>/dev/null || true
-	wait "${pid}" 2>/dev/null || true
 	if [[ "${ok}" -ne 1 ]]; then
 		log "preflight failed; its log:"
-		tail -n 30 "${dir}/preflight.log" || true
+		journalctl _SYSTEMD_INVOCATION_ID="${inv}" -n 30 --no-pager -o cat || true
 	fi
+	systemctl stop "${unit}" 2>/dev/null || true
 	rm -rf "${dir}"
 	[[ "${ok}" -eq 1 ]]
 }

@@ -23,7 +23,7 @@ body="$(jq -nc --arg ref "${GITHUB_SHA}" --arg env "${ENVIRONMENT}" --arg rid "$
 	--argjson run "${GITHUB_RUN_ID}" --argjson arts "${artifacts}" \
 	'{ref:$ref, environment:$env, task:"pull-deploy", auto_merge:false, required_contexts:[],
 	  description:("deploy " + $rid), payload:{run_id:$run, release_id:$rid, artifacts:$arts}}')"
-id="$(gh api "repos/${GITHUB_REPOSITORY}/deployments" --input - <<<"${body}" --jq .id)"
+id="$(gh api "repos/${GITHUB_REPOSITORY}/deployments" --input - --jq .id <<<"${body}")"
 echo "deployment ${id} recorded for ${ENVIRONMENT}; waiting for the box to apply it"
 
 deadline=$(($(date +%s) + TIMEOUT_S))
