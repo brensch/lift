@@ -1,6 +1,6 @@
 # Bare-Metal Backend Deploy
 
-This deploy flow builds the backend on a GitHub-hosted ARM64 runner and uploads the `schlift` binary as an artifact. The server pulls it: a small agent on the box ([`puller/`](puller/)) checks for a new GitHub Deployment every 20 seconds, downloads the build with a read-only token, deploys it, and reports the result back to the deployment. There is no runner on the server, so nothing on GitHub can run a command there.
+This deploy flow builds the backend on a GitHub-hosted x86_64 runner and uploads the `schlift` binary as an artifact. The server pulls it: a small agent on the box ([`puller/`](puller/)) checks for a new GitHub Deployment every 20 seconds, downloads the build with a read-only token, deploys it, and reports the result back to the deployment. There is no runner on the server, so nothing on GitHub can run a command there.
 
 The dev instance (`dev.schlift.com`) on the same box is described in [`docs/dev-channel.md`](../docs/dev-channel.md).
 
@@ -40,13 +40,13 @@ sudo ./deploy/setup-prod-env.sh
 3. Install the deploy agent from your machine (it asks for the token):
 
 ```bash
-deploy/puller/install.sh opc@<box> --token
+deploy/puller/install.sh <ssh-host-of-the-box> --token
 ```
 
 4. Trigger the `Backend Deploy` workflow once.
 
 To change the agent or the scripts it runs, edit them here and re-run
-`deploy/puller/install.sh opc@<box>` (keeps the token). Fine-grained tokens expire;
+`deploy/puller/install.sh <ssh-host-of-the-box>` (keeps the token). Fine-grained tokens expire;
 the agent warns in its journal (`journalctl -u schlift-puller`) two weeks ahead, then
 re-run with `--token`.
 
@@ -68,12 +68,11 @@ Set `APPLE_TEAM_ID` for the default `TEAMID.com.brensch.schlift` app identifier,
 
 The production setup script installs Caddy and the checked-in `Caddyfile`. The build artifact carries the `Caddyfile` too: when it differs from `/etc/caddy/Caddyfile`, the agent validates it and reloads Caddy gracefully (open connections are not dropped); when it is unchanged, Caddy is not touched.
 
-Open OCI ingress for:
-
-```text
-tcp/80
-tcp/443
-```
+The server is the Google Cloud e2-micro `bsscrape` (project `snake2-338906`, us-central1-a,
+static IP `136.80.171.189`, Debian 13, x86_64), shared with the Battlesnake scraper. SSH is
+through IAP only (`gcloud compute ssh bsscrape --tunnel-through-iap`, or a `ProxyCommand`
+host alias); the firewall rule `allow-web` opens tcp/80, tcp/443 and udp/443 (snekgame's
+WebTransport) to the `web` tag.
 
 Do not expose `50051` publicly. Let Caddy proxy `schlift.com` to `127.0.0.1:50051`.
 
