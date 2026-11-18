@@ -1,0 +1,1 @@
+- Updating the server no longer cuts off something you were in the middle of.

@@ -153,16 +153,64 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Server listening on {} (gRPC-Web)", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
-    axum::serve(
+
+    // A deploy restarts this process with SIGTERM. Stop accepting (Caddy holds
+    // and retries new requests until the next process listens), let requests
+    // already running finish, then exit. A Sync stream lasts a whole workout,
+    // so the wait is capped: the app redials and resends anything pending.
+    let (stopping, mut stop) = tokio::sync::watch::channel(false);
+    tokio::spawn(async move {
+        shutdown_signal().await;
+        let _ = stopping.send(true);
+    });
+    let mut drain_stop = stop.clone();
+    let server = axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
     // Disable Nagle: without this every small RPC response can stall on the
     // ~40ms TCP delayed-ACK timer.
     .tcp_nodelay(true)
-    .await?;
+    .with_graceful_shutdown(async move {
+        let _ = stop.wait_for(|s| *s).await;
+    });
+    tokio::select! {
+        served = server => served?,
+        () = async move {
+            let _ = drain_stop.wait_for(|s| *s).await;
+            tokio::time::sleep(SHUTDOWN_DRAIN).await;
+        } => {
+            println!("Shutdown: open streams cut after {SHUTDOWN_DRAIN:?}");
+        }
+    }
 
     Ok(())
+}
+
+/// How long a stopping server waits for running requests before it exits anyway.
+const SHUTDOWN_DRAIN: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// SIGTERM (systemd stopping the unit) or Ctrl-C (a local run).
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+    #[cfg(unix)]
+    let terminate = async {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut s) => {
+                s.recv().await;
+            }
+            Err(_) => std::future::pending::<()>().await,
+        }
+    };
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+    tokio::select! {
+        () = ctrl_c => {},
+        () = terminate => {},
+    }
+    println!("Shutdown: stopped accepting, finishing running requests");
 }
 
 async fn assetlinks_handler() -> Json<serde_json::Value> {

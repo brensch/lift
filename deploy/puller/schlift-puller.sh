@@ -93,6 +93,9 @@ src.backup(dst)  # consistent snapshot even while the live server writes
 dst.close(); src.close()
 PY
 	fi
+	# The build sits in a root-only download folder; the preflight runs it as opc.
+	install -m 0755 "${bin}" "${dir}/schlift"
+	bin="${dir}/schlift"
 	chown -R opc:opc "${dir}"
 	# A transient unit with the live unit's user and EnvironmentFile: systemd reads the
 	# env file exactly as it does for the real service.
@@ -198,7 +201,16 @@ for env in ${ENVIRONMENTS}; do
 	status "${id}" in_progress "deploying ${sha:0:12} on $(hostname -s)"
 	work="$(mktemp -d /var/tmp/schlift-deploy.XXXXXX)"
 	out="${work}.log"
-	if deploy_one "${env}" "${dep}" "${work}" >"${out}" 2>&1; then
+	# A subshell outside any `if`, so `set -e` holds inside it: any failing step,
+	# the preflight included, stops the deploy (in an `if` condition bash ignores -e).
+	set +e
+	(
+		set -e
+		deploy_one "${env}" "${dep}" "${work}"
+	) >"${out}" 2>&1
+	rc=$?
+	set -e
+	if [[ "${rc}" -eq 0 ]]; then
 		status "${id}" success "deployed ${sha:0:12}" "$(env_url "${env}")"
 		log "${env}: deployed ${sha:0:12}"
 	else
