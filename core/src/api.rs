@@ -369,14 +369,31 @@ impl<'a> Call<'a> {
         })
     }
 
-    /// Back to the built-in rules, the workouts kept — and any exercise of
-    /// the program's own they or the history name, so nothing is lost.
+    /// Back to the built-in rules, or to an earlier program's (`to`), the
+    /// workouts as they are now kept — and any exercise of the program's own
+    /// they or the history name, so nothing is lost.
     pub fn reset_program(
         &mut self,
-        _req: ResetProgramRequest,
+        req: ResetProgramRequest,
     ) -> Result<ResetProgramResponse, CoreError> {
         let current = self.account.program.clone();
-        let mut program = Program::builtin().with_workouts(current.workouts.clone());
+        let (rules, note) = if req.to.is_empty() {
+            (Program::builtin(), String::new())
+        } else {
+            let version = self
+                .account
+                .programs
+                .iter()
+                .find(|v| v.id == req.to)
+                .ok_or_else(|| CoreError::NotFound("No such program".into()))?;
+            let name = if version.program.name.is_empty() {
+                "an earlier program".to_string()
+            } else {
+                version.program.name.clone()
+            };
+            (version.program.clone(), format!("Back to {name}"))
+        };
+        let mut program = rules.with_workouts(current.workouts.clone());
         let mut keep: BTreeSet<String> = self.account.exercises_used();
         keep.extend(current.workouts.iter().flat_map(|w| w.exercises.clone()));
         let fallback_class = program.classes.keys().next().cloned().unwrap_or_default();
@@ -386,14 +403,22 @@ impl<'a> Call<'a> {
             }
             if let Some(def) = current.exercise(&key) {
                 let mut def = def.clone();
-                def.progression = None;
+                // Its own progression only if the rules it goes back to
+                // have one by that name; otherwise its class's.
+                if def
+                    .progression
+                    .as_ref()
+                    .is_some_and(|p| !program.progressions.contains_key(p))
+                {
+                    def.progression = None;
+                }
                 if !program.classes.contains_key(&def.class) {
                     def.class = fallback_class.clone();
                 }
                 program.exercises.push(def);
             }
         }
-        let problems = self.record_program(program, AUTHOR_APP, "")?;
+        let problems = self.record_program(program, AUTHOR_APP, &note)?;
         if let Some(p) = problems.into_iter().find(|p| p.error) {
             return Err(CoreError::FailedPrecondition(problem_text(&p)));
         }

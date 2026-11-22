@@ -82,8 +82,9 @@ doesn't check out.
 **Who changes it.** The app's template editor, rotation drag, library
 adds and onboarding are edits to the program's workouts (`ProgramEdited`,
 applied to whatever program is current when it folds). Settings →
-Program resets it to the built-in rules, keeping the workouts and any of
-the program's own lifts they or the history name. An assistant sets a
+Program resets it to the built-in rules, or goes back to an earlier
+program's, keeping the workouts and any of the program's own lifts they or
+the history name. An assistant sets a
 whole document over MCP (`ProgramSet`, author `mcp:<client>`), usually
 after `simulate_program` (`core/src/simulate.rs`: the draft over each
 recorded workout as of just before it, and forward N sessions through the

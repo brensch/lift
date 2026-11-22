@@ -40,8 +40,8 @@ void main() {
       expect(before.programJson, contains('schlift.program/v1'));
       expect(before.summary.builtinRules, isTrue);
       await h.provider.refreshHome();
-    final workouts = h.provider.templates.length;
-    expect(workouts, 1);
+      final workouts = h.provider.templates.length;
+      expect(workouts, 1);
       await h.provider.resetProgram();
       final after = await h.provider.getProgram();
       expect(after.summary.builtinRules, isTrue);

@@ -239,8 +239,8 @@ Every screen shows the core's decisions, never its own numbers:
 | Home card menu | edit, in or out of the rotation, and remove (a library copy, which can be added again) or delete (the user's own) | `SaveTemplate`, `DeleteTemplate` |
 | Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
-| Progress, exercise detail | the estimated max over time beside the heaviest set each session | `GetExerciseProgress` |
-| Settings → Program | the program that plans: its name, who set it (you in the app, Schlift, or an assistant by name) and when, its note; the earlier programs; "Back to the built-in rules" (confirmed); the connected assistants, each with when it was last used and Revoke, or a line when the server is out of reach | `GetProgram`, `ResetProgram` (the core); `AssistantService.ListAssistants` / `RevokeAssistant` (the server) |
+| Progress, exercise detail | the program's description of the lift when it has one (the only guide for a lift a program adds), then the estimated max over time beside the heaviest set each session | `GetExerciseProgress`; the catalog's `description` |
+| Settings → Program | the program that plans: its name, who set it (you in the app, Schlift, or an assistant by name) and when, its note; the earlier programs; "Back to the built-in rules" (confirmed); the connected assistants, each with when it was last used and Revoke, or a line when the server is out of reach. Any program row opens it: who set it and why, its document (selectable, Copy), and for an earlier one "Go back to these rules" (confirmed), which takes its rules and keeps today's workouts | `GetProgram`, `GetProgramVersion`, `ResetProgram(to)` (the core); `AssistantService.ListAssistants` / `RevokeAssistant` (the server) |
 
 The weight sheet during a workout changes this workout only
 (`AdjustExerciseWeight`); a lasting change is an override, made in the

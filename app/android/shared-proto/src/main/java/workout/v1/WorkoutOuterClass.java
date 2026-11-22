@@ -61830,10 +61830,33 @@ public final class WorkoutOuterClass {
   public interface ResetProgramRequestOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.ResetProgramRequest)
       com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The to.
+     */
+    java.lang.String getTo();
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The bytes for to.
+     */
+    com.google.protobuf.ByteString
+        getToBytes();
   }
   /**
    * <pre>
-   * Back to the built-in rules, the workouts kept.
+   * Back to the built-in rules, or an earlier program's, the workouts as
+   * they are now kept.
    * </pre>
    *
    * Protobuf type {@code workout.v1.ResetProgramRequest}
@@ -61844,7 +61867,80 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.ResetProgramRequest)
       ResetProgramRequestOrBuilder {
     private ResetProgramRequest() {
+      to_ = "";
     }
+    public static final int TO_FIELD_NUMBER = 1;
+    private java.lang.String to_;
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The to.
+     */
+    @java.lang.Override
+    public java.lang.String getTo() {
+      return to_;
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The bytes for to.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getToBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(to_);
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @param value The to to set.
+     */
+    private void setTo(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      to_ = value;
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     */
+    private void clearTo() {
+      
+      to_ = getDefaultInstance().getTo();
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @param value The bytes for to to set.
+     */
+    private void setToBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      to_ = value.toStringUtf8();
+      
+    }
+
     public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -61928,7 +62024,8 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * Back to the built-in rules, the workouts kept.
+     * Back to the built-in rules, or an earlier program's, the workouts as
+     * they are now kept.
      * </pre>
      *
      * Protobuf type {@code workout.v1.ResetProgramRequest}
@@ -61943,6 +62040,80 @@ public final class WorkoutOuterClass {
         super(DEFAULT_INSTANCE);
       }
 
+
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @return The to.
+       */
+      @java.lang.Override
+      public java.lang.String getTo() {
+        return instance.getTo();
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @return The bytes for to.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getToBytes() {
+        return instance.getToBytes();
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @param value The to to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTo(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTo(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTo() {
+        copyOnWrite();
+        instance.clearTo();
+        return this;
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @param value The bytes for to to set.
+       * @return This builder for chaining.
+       */
+      public Builder setToBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setToBytes(value);
+        return this;
+      }
 
       // @@protoc_insertion_point(builder_scope:workout.v1.ResetProgramRequest)
     }
@@ -61959,8 +62130,11 @@ public final class WorkoutOuterClass {
           return new Builder();
         }
         case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = null;java.lang.String info =
-                "\u0000\u0000";
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "to_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

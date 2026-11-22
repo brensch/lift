@@ -1104,8 +1104,13 @@ message SetProgramResponse {
   ProgramSummary summary = 2;
 }
 
-// Back to the built-in rules, the workouts kept.
-message ResetProgramRequest {}
+// Back to the built-in rules, or an earlier program's, the workouts as
+// they are now kept.
+message ResetProgramRequest {
+  // An earlier program's id (from GetProgramResponse.history); empty for
+  // the built-in rules.
+  string to = 1;
+}
 message ResetProgramResponse {
   ProgramSummary summary = 1;
 }

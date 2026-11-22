@@ -17,6 +17,7 @@ import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/common/flat.dart';
 import '../widgets/dialogs/confirm_dialog.dart';
+import 'program_document_screen.dart';
 
 class ProgramScreen extends StatefulWidget {
   const ProgramScreen({super.key});
@@ -120,19 +121,39 @@ class _ProgramScreenState extends State<ProgramScreen> {
   static String _date(Int64 seconds) =>
       dayDate(DateTime.fromMillisecondsSinceEpoch(seconds.toInt() * 1000));
 
-  /// One program: its name, who set it and when, and its note.
-  Widget _summaryRow(ProgramSummary s, {required IconData icon}) {
+  /// Who set [s] and when.
+  static String _byline(ProgramSummary s) {
     final t = copy.program;
-    final by = s.id.isEmpty
-        ? t.builtin
-        : [
-            t.setBy.replaceAll('{author}', _author(s.author)),
-            if (s.setAt > 0) t.setOn.replaceAll('{date}', _date(s.setAt)),
-          ].join(' ');
+    if (s.id.isEmpty) return t.builtin;
+    return [
+      t.setBy.replaceAll('{author}', _author(s.author)),
+      if (s.setAt > 0) t.setOn.replaceAll('{date}', _date(s.setAt)),
+    ].join(' ');
+  }
+
+  /// One program: its name, who set it and when, and its note. Tapped, it
+  /// opens: the program in use with its document in hand, an earlier one
+  /// read, with a way back to it.
+  Widget _summaryRow(
+    ProgramSummary s, {
+    required IconData icon,
+    required bool current,
+  }) {
+    final by = _byline(s);
     return FlatRow(
       icon: icon,
-      label: s.name.isEmpty ? t.builtin : s.name,
+      label: s.name.isEmpty ? copy.program.builtin : s.name,
       subtitle: s.note.isEmpty ? by : '$by\n${s.note}',
+      onTap: () async {
+        final changed = await showProgramDocument(
+          context,
+          summary: s,
+          byline: by,
+          json: current ? _program?.programJson : null,
+          current: current,
+        );
+        if (changed) await _load();
+      },
     );
   }
 
@@ -173,7 +194,11 @@ class _ProgramScreenState extends State<ProgramScreen> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                _summaryRow(program.summary, icon: AppIcons.maths),
+                _summaryRow(
+                  program.summary,
+                  icon: AppIcons.maths,
+                  current: true,
+                ),
                 if (!program.summary.builtinRules)
                   FlatRow(
                     icon: AppIcons.refresh,
@@ -184,7 +209,11 @@ class _ProgramScreenState extends State<ProgramScreen> {
                 FlatHeading(t.historyHeading),
                 if (program.history.isEmpty) _note(context, t.historyEmpty),
                 for (final s in program.history)
-                  _summaryRow(s, icon: AppIcons.history),
+                  _summaryRow(
+                    s,
+                    icon: AppIcons.history,
+                    current: s.id == program.summary.id,
+                  ),
                 FlatHeading(t.assistantsHeading),
                 _note(context, t.assistantsBody),
                 if (_grantsFailed)
