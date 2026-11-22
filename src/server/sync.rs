@@ -211,17 +211,6 @@ impl Stream {
         if self.send_events(true).await?.is_err() {
             return Ok(());
         }
-        let library = ListTemplateLibraryResponse {
-            templates: schlift_core::template_library::library().to_vec(),
-            plans: Vec::new(),
-        };
-        if self
-            .send(sync_response::Kind::Library(library))
-            .await
-            .is_err()
-        {
-            return Ok(());
-        }
         if self.send_session().await?.is_err() || self.send_requests().await?.is_err() {
             return Ok(());
         }

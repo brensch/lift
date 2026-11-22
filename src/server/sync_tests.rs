@@ -50,7 +50,7 @@ impl Phone {
     fn start_squats(&mut self, now: i64) -> (StartWorkoutResponse, Vec<Event>) {
         self.write(now, |call| {
             call.start_workout(StartWorkoutRequest {
-                exercises: vec![Exercise::PullUp as i32],
+                exercises: vec!["pull_up".to_string()],
                 ..Default::default()
             })
             .unwrap()
@@ -180,9 +180,9 @@ mod store {
                 seq: 0,
                 id: format!("{:036}", n),
                 at: 1_000,
-                fact: schlift_core::events::Fact::TemplateDeleted(
-                    schlift_core::events::TemplateDeleted {
-                        template_id: "t".into(),
+                fact: schlift_core::events::Fact::WorkoutDiscarded(
+                    schlift_core::events::WorkoutDiscarded {
+                        workout_id: "w".into(),
                     },
                 ),
             })

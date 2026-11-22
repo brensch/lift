@@ -150,6 +150,9 @@ message TrainingDay {
 
 message ExerciseUse {
   string exercise = 5;
+  // The built-in program's name for it, or the key made readable for a
+  // lift of someone's own program.
+  string name = 6;
   int64 sets = 2;
   int64 lifters = 3;
   double volume_lb = 4;

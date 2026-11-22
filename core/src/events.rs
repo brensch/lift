@@ -119,7 +119,8 @@ impl Event {
         serde_json::to_string(self).is_ok_and(|json| serde_json::from_str::<Event>(&json).is_ok())
     }
 
-    /// Whether the plans it holds are ones an app could have made, by a wide
+    /// Whether the plans and programs it holds are ones an app could have
+    /// made (a program with no error in it), and for plans by a wide
     /// margin (a workout has each lift once; an override asks for at most 20
     /// sets; no history leads past a few thousand pounds). Folding costs grow
     /// with what a plan holds, and a pushed event is folded on the server and
@@ -134,6 +135,14 @@ impl Event {
         match &self.fact {
             Fact::WorkoutStarted(started) => sane(&started.decisions),
             Fact::ExercisesAdded(added) => sane(&added.decisions),
+            // A program is folded on every device: it must be one the core
+            // would set.
+            Fact::ProgramSet(set) => crate::program::check(&set.program).iter().all(|p| !p.error),
+            Fact::ProgramEdited(edited) => match &edited.edit {
+                WorkoutsEdit::Add { workouts } => workouts.len() <= 100,
+                WorkoutsEdit::Reorder { workout_ids, .. } => workout_ids.len() <= 1000,
+                _ => true,
+            },
             _ => true,
         }
     }
@@ -467,14 +476,16 @@ pub enum WorkoutsEdit {
     },
 }
 
-/// Sign-up's choices: the unit and a starting weight per lift. The
-/// workouts picked are the `ProgramEdited` recorded with it.
+/// Sign-up's choices: the unit, a starting weight per lift, and the
+/// workouts picked (library copies, the rotation), which join the program
+/// when it has none yet.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
 pub struct Onboarded {
     pub unit: i32,
     pub strength: Option<f32>,
     pub starting_weights: Vec<ExerciseWeight>,
+    pub workouts: Vec<WorkoutDef>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
