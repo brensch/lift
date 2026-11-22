@@ -328,6 +328,8 @@ message StartWorkoutResponse {
   ProposedSet next_up_set = 6;
   WorkoutStateSnapshot state_snapshot = 7;
   repeated ExerciseLog exercise_logs = 9;
+  // As GetWorkoutResponse.exercises.
+  repeated ExerciseInfo exercises = 10;
   reserved 8;
   reserved "user_messages";
 }
@@ -397,6 +399,9 @@ message GetWorkoutResponse {
   repeated string first_time_set_ids = 14;
   // Per exercise: the decision it started from and the changes since.
   repeated ExerciseLog exercise_logs = 11;
+  // The workout's lifts as the program it was planned under defines them:
+  // what to call a lift, whoever's program it came from.
+  repeated ExerciseInfo exercises = 15;
   reserved 6, 8;
   reserved "plan_change_stats", "user_messages";
 }

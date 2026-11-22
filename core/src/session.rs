@@ -66,6 +66,7 @@ pub fn partner_status(
         state_snapshot: workout.state_snapshot,
         passed_warmup_ids: workout.passed_warmup_ids,
         first_time_set_ids: workout.first_time_set_ids,
+        exercises: workout.exercises,
     })
 }
 

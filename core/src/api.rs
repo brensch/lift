@@ -799,6 +799,7 @@ impl<'a> View<'a> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
         response.rung_outcomes = self.rung_outcomes(record, &response.rung_question_set_id);
+
         // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
         response.proposed_sets.retain(|s| !s.cancelled);
@@ -1202,16 +1203,7 @@ impl<'a> View<'a> {
             exercises: program
                 .exercises
                 .iter()
-                .map(|e| ExerciseInfo {
-                    key: e.key.clone(),
-                    name: e.name.clone(),
-                    short_name: e.short_name.clone(),
-                    equipment: e.equipment.to_proto() as i32,
-                    muscles: e.muscles.iter().map(|m| m.to_proto() as i32).collect(),
-                    description: e.description.clone(),
-                    class_name: e.class.clone(),
-                    progression: program.progression_name(&e.key).to_string(),
-                })
+                .map(|e| exercise_info(program, e))
                 .collect(),
             lb: Some(PlateProfile {
                 bar: plates.bar.lb,
@@ -1222,6 +1214,20 @@ impl<'a> View<'a> {
                 plates: plates.kg.clone(),
             }),
         }
+    }
+}
+
+/// An exercise as every screen shows it.
+pub fn exercise_info(program: &Program, e: &crate::program::ExerciseDef) -> ExerciseInfo {
+    ExerciseInfo {
+        key: e.key.clone(),
+        name: e.name.clone(),
+        short_name: e.short_name.clone(),
+        equipment: e.equipment.to_proto() as i32,
+        muscles: e.muscles.iter().map(|m| m.to_proto() as i32).collect(),
+        description: e.description.clone(),
+        class_name: e.class.clone(),
+        progression: program.progression_name(&e.key).to_string(),
     }
 }
 
