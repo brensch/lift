@@ -6,7 +6,7 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { GetJoinRequestsResponse, Session } from "./group_pb";
 import { file_workout_v1_group } from "./group_pb";
-import type { CompletedSet, ExerciseLog, ExerciseWeight, ListTemplateLibraryResponse, ProposedSet, Workout, WorkoutHeartRatePoint } from "./workout_pb";
+import type { CompletedSet, ExerciseLog, ExerciseWeight, ProposedSet, Workout, WorkoutHeartRatePoint } from "./workout_pb";
 import { file_workout_v1_workout } from "./workout_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/account.proto.
  */
 export const file_workout_v1_account: GenFile = /*@__PURE__*/
-  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEihAEKDUltcG9ydEhpc3RvcnkSLQoId29ya291dHMYASADKAsyGy53b3Jrb3V0LnYxLkltcG9ydGVkV29ya291dBI0ChBzdGFydGluZ193ZWlnaHRzGAMgAygLMhoud29ya291dC52MS5FeGVyY2lzZVdlaWdodEoECAIQA1IIdHJhY2tlcnMiFwoVSW1wb3J0SGlzdG9yeVJlc3BvbnNlIoACCg9JbXBvcnRlZFdvcmtvdXQSJAoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgDIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EjUKCmhlYXJ0X3JhdGUYBCADKAsyIS53b3Jrb3V0LnYxLldvcmtvdXRIZWFydFJhdGVQb2ludBIuCg1leGVyY2lzZV9sb2dzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZUxvZyJuCgtTeW5jUmVxdWVzdBITCglhZnRlcl9zZXEYAyABKANIABIQCgZldmVudHMYBCABKAxIABIqCgloZWFydGJlYXQYAiABKAsyFS53b3Jrb3V0LnYxLkhlYXJ0YmVhdEgAQgYKBGtpbmRKBAgBEAIiCwoJSGVhcnRiZWF0IqkCCgxTeW5jUmVzcG9uc2USJAoGZXZlbnRzGAUgASgLMhIud29ya291dC52MS5FdmVudHNIABIOCgRoZWFkGAEgASgDSAASJgoHc2Vzc2lvbhgGIAEoCzITLndvcmtvdXQudjEuU2Vzc2lvbkgAEjMKDnBhcnRuZXJfZXZlbnRzGAcgASgLMhkud29ya291dC52MS5QYXJ0bmVyRXZlbnRzSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIABI6CgdsaWJyYXJ5GAQgASgLMicud29ya291dC52MS5MaXN0VGVtcGxhdGVMaWJyYXJ5UmVzcG9uc2VIAEIGCgRraW5kSgQIAhADIj8KDVBhcnRuZXJFdmVudHMSDwoHdXNlcl9pZBgBIAEoCRIOCgZwYWNrZWQYAiABKAwSDQoFd2hvbGUYAyABKAgiJgoGRXZlbnRzEg4KBnBhY2tlZBgBIAEoDBIMCgRoZWFkGAIgASgDMkwKC1N5bmNTZXJ2aWNlEj0KBFN5bmMSFy53b3Jrb3V0LnYxLlN5bmNSZXF1ZXN0Ghgud29ya291dC52MS5TeW5jUmVzcG9uc2UoATABYgZwcm90bzM", [file_workout_v1_group, file_workout_v1_workout]);
+  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEihAEKDUltcG9ydEhpc3RvcnkSLQoId29ya291dHMYASADKAsyGy53b3Jrb3V0LnYxLkltcG9ydGVkV29ya291dBI0ChBzdGFydGluZ193ZWlnaHRzGAMgAygLMhoud29ya291dC52MS5FeGVyY2lzZVdlaWdodEoECAIQA1IIdHJhY2tlcnMiFwoVSW1wb3J0SGlzdG9yeVJlc3BvbnNlIoACCg9JbXBvcnRlZFdvcmtvdXQSJAoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgDIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EjUKCmhlYXJ0X3JhdGUYBCADKAsyIS53b3Jrb3V0LnYxLldvcmtvdXRIZWFydFJhdGVQb2ludBIuCg1leGVyY2lzZV9sb2dzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZUxvZyJuCgtTeW5jUmVxdWVzdBITCglhZnRlcl9zZXEYAyABKANIABIQCgZldmVudHMYBCABKAxIABIqCgloZWFydGJlYXQYAiABKAsyFS53b3Jrb3V0LnYxLkhlYXJ0YmVhdEgAQgYKBGtpbmRKBAgBEAIiCwoJSGVhcnRiZWF0IvwBCgxTeW5jUmVzcG9uc2USJAoGZXZlbnRzGAUgASgLMhIud29ya291dC52MS5FdmVudHNIABIOCgRoZWFkGAEgASgDSAASJgoHc2Vzc2lvbhgGIAEoCzITLndvcmtvdXQudjEuU2Vzc2lvbkgAEjMKDnBhcnRuZXJfZXZlbnRzGAcgASgLMhkud29ya291dC52MS5QYXJ0bmVyRXZlbnRzSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIAEIGCgRraW5kSgQIAhADSgQIBBAFUgdsaWJyYXJ5Ij8KDVBhcnRuZXJFdmVudHMSDwoHdXNlcl9pZBgBIAEoCRIOCgZwYWNrZWQYAiABKAwSDQoFd2hvbGUYAyABKAgiJgoGRXZlbnRzEg4KBnBhY2tlZBgBIAEoDBIMCgRoZWFkGAIgASgDMkwKC1N5bmNTZXJ2aWNlEj0KBFN5bmMSFy53b3Jrb3V0LnYxLlN5bmNSZXF1ZXN0Ghgud29ya291dC52MS5TeW5jUmVzcG9uc2UoATABYgZwcm90bzM", [file_workout_v1_group, file_workout_v1_workout]);
 
 /**
  * History brought in from elsewhere, as it was: finished workouts, and the
@@ -198,15 +198,6 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
      */
     value: GetJoinRequestsResponse;
     case: "joinRequests";
-  } | {
-    /**
-     * The template library as the server has it: what coupled templates
-     * follow. Sent on connect.
-     *
-     * @generated from field: workout.v1.ListTemplateLibraryResponse library = 4;
-     */
-    value: ListTemplateLibraryResponse;
-    case: "library";
   } | { case: undefined; value?: undefined };
 };
 

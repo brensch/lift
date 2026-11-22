@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../gen/workout/v1/workout.pbenum.dart';
 import '../theme/theme_spec.dart';
 import 'exercise_art/registry.dart';
 import 'exercise_art/toolkit.dart';
@@ -16,7 +15,7 @@ import 'exercise_art/toolkit.dart';
 /// [RepaintBoundary] so an animating thumbnail only repaints its own layer —
 /// not the surrounding list row — every frame.
 class ExerciseGraphic extends StatefulWidget {
-  final Exercise exercise;
+  final String exercise;
   final double size;
 
   const ExerciseGraphic({

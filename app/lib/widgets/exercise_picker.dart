@@ -23,10 +23,10 @@ Color bodyPartColor(BuildContext context, BodyPart part) =>
 /// bottom bar. [onSave] receives the final selection.
 Future<void> showExercisePicker({
   required BuildContext context,
-  required Set<Exercise> initialSelected,
-  required void Function(Set<Exercise> selected) onSave,
+  required Set<String> initialSelected,
+  required void Function(Set<String> selected) onSave,
   List<ExercisePlan> plans = const [],
-  Set<Exercise> excluded = const {},
+  Set<String> excluded = const {},
 }) {
   return showModalBottomSheet(
     context: context,
@@ -49,13 +49,13 @@ Future<void> showExercisePicker({
 }
 
 class _ExercisePickerSheet extends StatefulWidget {
-  final Set<Exercise> initialSelected;
-  final void Function(Set<Exercise> selected) onSave;
+  final Set<String> initialSelected;
+  final void Function(Set<String> selected) onSave;
   final List<ExercisePlan> plans;
 
   /// Not offered at all: in a workout, the exercises already in it (one
   /// exercise appears once).
-  final Set<Exercise> excluded;
+  final Set<String> excluded;
 
   const _ExercisePickerSheet({
     required this.initialSelected,
@@ -72,22 +72,21 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
   static const _machinesPrefKey = 'picker_show_machines';
 
   final TextEditingController _searchController = TextEditingController();
-  final Set<Exercise> _selected = {};
+  final Set<String> _selected = {};
   String _query = '';
   BodyPart? _filter; // null = All
   // Default to rack-and-dumbbell exercises: at the squat rack you should
   // not have to scroll past machines you would have to go hunting for.
   // The toggle persists.
   bool _showMachines = false;
-  Map<int, EquipmentKind>? _equipment;
+  Map<String, EquipmentKind>? _equipment;
 
   @override
   void initState() {
     super.initState();
     if (widget.plans.isNotEmpty) {
       _equipment = {
-        for (final plan in widget.plans)
-          plan.decision.exercise.value: plan.equipment,
+        for (final plan in widget.plans) plan.decision.exercise: plan.equipment,
       };
     }
     unawaited(_loadMachinesPref());
@@ -118,23 +117,23 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     await prefs.setBool(_machinesPrefKey, value);
   }
 
-  bool _isMachineOrCable(Exercise exercise) {
-    final kind = _equipment?[exercise.value];
+  bool _isMachineOrCable(String exercise) {
+    final kind = _equipment?[exercise];
     return kind == EquipmentKind.EQUIPMENT_KIND_MACHINE ||
         kind == EquipmentKind.EQUIPMENT_KIND_CABLE;
   }
 
-  List<ExerciseInfo> get _filtered {
+  List<CatalogExercise> get _filtered {
     final q = _query.trim().toLowerCase();
     return exerciseCatalog.where((info) {
-      if (widget.excluded.contains(info.exercise)) return false;
+      if (widget.excluded.contains(info.key)) return false;
       if (_filter != null && !info.bodyParts.contains(_filter)) return false;
       // Searching overrides the equipment filter — a typed name always wins.
       if (_equipment != null &&
           !_showMachines &&
           q.isEmpty &&
-          _isMachineOrCable(info.exercise) &&
-          !_selected.contains(info.exercise)) {
+          _isMachineOrCable(info.key) &&
+          !_selected.contains(info.key)) {
         return false;
       }
       if (q.isEmpty) return true;
@@ -142,7 +141,7 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
     }).toList();
   }
 
-  void _toggle(Exercise exercise) {
+  void _toggle(String exercise) {
     setState(() {
       if (!_selected.remove(exercise)) {
         _selected.add(exercise);
@@ -331,8 +330,8 @@ class _ExercisePickerSheetState extends State<_ExercisePickerSheet> {
                               final info = filtered[i];
                               return _ExerciseRow(
                                 info: info,
-                                selected: _selected.contains(info.exercise),
-                                onTap: () => _toggle(info.exercise),
+                                selected: _selected.contains(info.key),
+                                onTap: () => _toggle(info.key),
                               );
                             },
                           ),
@@ -421,7 +420,7 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _ExerciseRow extends StatelessWidget {
-  final ExerciseInfo info;
+  final CatalogExercise info;
   final bool selected;
   final VoidCallback onTap;
 
@@ -452,7 +451,7 @@ class _ExerciseRow extends StatelessWidget {
                 borderRadius: context.tokens.brMd,
               ),
               alignment: Alignment.center,
-              child: ExerciseGraphic(exercise: info.exercise, size: 60),
+              child: ExerciseGraphic(exercise: info.key, size: 60),
             ),
             const SizedBox(width: 14),
             // name + tags

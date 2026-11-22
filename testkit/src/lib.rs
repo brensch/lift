@@ -16,13 +16,13 @@ use schlift_core::pb::{
     AnswerRungRequest, AppendWorkoutHeartRateRequest, AppendWorkoutMutationsRequest,
     AppendWorkoutMutationsResponse, ApplyLibraryPlanRequest, CompleteOnboardingRequest,
     CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest, DeleteTemplateRequest,
-    DiscardWorkoutRequest, EditCompletedSetRequest, EndWorkoutRequest, Exercise, ExerciseWeight,
-    GetHomeRequest, GetHomeResponse, GetWorkoutResponse, ImportHistory, ImportedWorkout,
-    PlateColor, PlateColorsConfig, ProposedSet, RemoveExerciseRequest, ReorderExercisesRequest,
-    ReorderTemplatesRequest, SaveTemplateRequest, SetOverrideRequest, SetWorkoutSessionRequest,
-    SkipWarmupsRequest, StartSetRequest, StartWorkoutRequest, StartWorkoutResponse,
-    UpdateSettingRequest, UserSetting, WeightUnit, WeightUnitConfig, Workout,
-    WorkoutHeartRatePoint, WorkoutMutation, WorkoutTemplate,
+    DiscardWorkoutRequest, EditCompletedSetRequest, EndWorkoutRequest, ExerciseWeight,
+    GetHomeRequest, GetHomeResponse, GetProgramRequest, GetProgramResponse, GetWorkoutResponse,
+    ImportHistory, ImportedWorkout, PlateColor, PlateColorsConfig, ProposedSet,
+    RemoveExerciseRequest, ReorderExercisesRequest, ReorderTemplatesRequest, SaveTemplateRequest,
+    SetOverrideRequest, SetProgramRequest, SetWorkoutSessionRequest, SkipWarmupsRequest,
+    StartSetRequest, StartWorkoutRequest, StartWorkoutResponse, UpdateSettingRequest, UserSetting,
+    WeightUnit, WeightUnitConfig, Workout, WorkoutHeartRatePoint, WorkoutMutation, WorkoutTemplate,
 };
 use schlift_native::store::Store;
 
@@ -301,7 +301,7 @@ fn imported(end: i64) -> ImportHistory {
             id: set_id.clone(),
             workout_id: id.clone(),
             workout_order: n,
-            exercise: Exercise::Squat as i32,
+            exercise: "squat".to_string(),
             target_reps: 5,
             target_weight: 135.0,
             rest_seconds: 180,
@@ -326,7 +326,7 @@ fn imported(end: i64) -> ImportHistory {
     ImportHistory {
         workouts: vec![workout],
         starting_weights: vec![ExerciseWeight {
-            exercise: Exercise::Deadlift as i32,
+            exercise: "deadlift".to_string(),
             weight_lb: 185.0,
         }],
     }
@@ -343,13 +343,12 @@ fn home(store: &mut Store, now: i64) -> Result<GetHomeResponse> {
     )
 }
 
-fn save(store: &mut Store, template: WorkoutTemplate, unlink: bool, now: i64) -> Result<()> {
+fn save(store: &mut Store, template: WorkoutTemplate, now: i64) -> Result<()> {
     write(
         store,
         "SaveTemplate",
         SaveTemplateRequest {
             template: Some(template),
-            unlink,
         },
         now,
     )
@@ -392,7 +391,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         "SetOverride",
         SetOverrideRequest {
-            exercise: Exercise::BenchPress as i32,
+            exercise: "bench_press".to_string(),
             weight: 115.0,
             reps: 6,
             sets: Some(4),
@@ -400,7 +399,42 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         start,
     )?;
 
-    // Their own template, a coupled one renamed, one made their own
+    // An assistant's program: the squat on linear progression, and a lift
+    // of its own.
+    let got = store.call("GetProgram", &GetProgramRequest {}.encode_to_vec(), start)?;
+    let current = GetProgramResponse::decode(got.as_slice()).map_err(|e| e.to_string())?;
+    let mut program: serde_json::Value =
+        serde_json::from_str(&current.program_json).map_err(|e| e.to_string())?;
+    program["progressions"]["lp"] = serde_json::json!({
+        "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 0.0,
+        "deload_after_fails": 3, "deload_factor": 0.9
+    });
+    for e in program["exercises"].as_array_mut().into_iter().flatten() {
+        if e["key"] == "squat" {
+            e["progression"] = "lp".into();
+        }
+    }
+    program["exercises"]
+        .as_array_mut()
+        .ok_or("a program has exercises")?
+        .push(serde_json::json!({
+            "key": "zercher_squat", "name": "Zercher Squat", "short_name": "Zercher",
+            "equipment": "barbell", "muscles": ["quads", "glutes", "core"],
+            "class": "heavy", "progression": "lp",
+            "description": "The bar in the crooks of the elbows."
+        }));
+    write(
+        store,
+        "SetProgram",
+        SetProgramRequest {
+            program_json: program.to_string(),
+            note: "Linear squats".into(),
+            author: "mcp:golden".into(),
+        },
+        start,
+    )?;
+
+    // Their own template, a library copy renamed, another saved
     // unchanged; a library entry, then a plan as the rotation, then their
     // own order.
     let shown = home(store, start)?;
@@ -408,16 +442,15 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         WorkoutTemplate {
             name: "Arms".into(),
-            exercises: vec![Exercise::BarbellCurl as i32, Exercise::SkullCrusher as i32],
+            exercises: vec!["barbell_curl".to_string(), "skull_crusher".to_string()],
             ..Default::default()
         },
-        false,
         start,
     )?;
     let mut renamed = shown.templates[0].clone();
     renamed.name = format!("{} (mine)", renamed.name);
-    save(store, renamed, false, start)?;
-    save(store, shown.templates[1].clone(), true, start)?;
+    save(store, renamed, start)?;
+    save(store, shown.templates[1].clone(), start)?;
     write(
         store,
         "AddLibraryTemplates",
@@ -458,9 +491,9 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         "StartWorkout",
         StartWorkoutRequest {
             exercises: vec![
-                Exercise::Squat as i32,
-                Exercise::BenchPress as i32,
-                Exercise::BarbellRow as i32,
+                "squat".to_string(),
+                "bench_press".to_string(),
+                "barbell_row".to_string(),
             ],
             budget_minutes: BUDGET_MINUTES,
             started_at: begin,
@@ -470,12 +503,12 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
     )?;
     let id = started.id;
     let mut now = begin + 120;
-    let squat = Exercise::Squat as i32;
+    let squat = "squat";
     mutate(
         store,
         Mutation::SkipWarmups(SkipWarmupsRequest {
             workout_id: id.clone(),
-            exercise: squat,
+            exercise: squat.to_string(),
             ..Default::default()
         }),
         now,
@@ -484,7 +517,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
             workout_id: id.clone(),
-            exercise: squat,
+            exercise: squat.to_string(),
             working_weight: 145.0,
             target_reps: 0,
             ..Default::default()
@@ -513,13 +546,12 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         }),
         now,
     )?;
-    let raise = Exercise::LateralRaise as i32;
+    let raise = "lateral_raise";
     mutate(
         store,
         Mutation::AddExercises(AddExercisesRequest {
             workout_id: id.clone(),
-            exercises: vec![raise, Exercise::DumbbellCurl as i32],
-            ..Default::default()
+            exercises: vec![raise.to_string(), "dumbbell_curl".to_string()],
         }),
         now,
     )?;
@@ -527,7 +559,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
             workout_id: id.clone(),
-            exercise: Exercise::DumbbellCurl as i32,
+            exercise: "dumbbell_curl".to_string(),
             working_weight: 25.0,
             target_reps: 12,
             ..Default::default()
@@ -538,7 +570,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         Mutation::RemoveExercise(RemoveExerciseRequest {
             workout_id: id.clone(),
-            exercise: Exercise::BarbellRow as i32,
+            exercise: "barbell_row".to_string(),
         }),
         now,
     )?;
@@ -546,7 +578,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         Mutation::ReorderExercises(ReorderExercisesRequest {
             workout_id: id.clone(),
-            exercises: vec![raise, squat],
+            exercises: vec![raise.to_string(), squat.to_string()],
         }),
         now,
     )?;
@@ -575,7 +607,7 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         store,
         "StartWorkout",
         StartWorkoutRequest {
-            exercises: vec![Exercise::Deadlift as i32],
+            exercises: vec!["deadlift".to_string()],
             started_at: begin,
             ..Default::default()
         },

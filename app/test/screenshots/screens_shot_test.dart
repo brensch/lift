@@ -155,14 +155,14 @@ void main() {
         name: 'StrongLifts 5×5 A',
         blurb: 'Squat, bench, row.',
         groupLabel: 'Programs',
-        exercises: [Exercise.EXERCISE_SQUAT, Exercise.EXERCISE_BENCH_PRESS],
+        exercises: ['squat', 'bench_press'],
       ),
       LibraryTemplate(
         id: 'butt_stuff',
         name: 'Butt Stuff',
         blurb: 'Hip thrusts and friends.',
         groupLabel: 'Body parts',
-        exercises: [Exercise.EXERCISE_HIP_THRUST],
+        exercises: ['hip_thrust'],
         isDefault: true,
       ),
     ];
@@ -320,8 +320,8 @@ void main() {
     // The core answers on real time, outside the test's fake clock.
     final h = (await tester.runAsync(() async {
       final h = await ProviderHarness.boot();
-      await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
-      await h.start([Exercise.EXERCISE_SQUAT]);
+      await h.seedHistory({'squat': (185, 5)});
+      await h.start(['squat']);
       return h;
     }))!;
 
@@ -373,19 +373,19 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );
       await tester.pump();
-      if (h.provider.logFor(Exercise.EXERCISE_SQUAT)!.changes.isNotEmpty) {
+      if (h.provider.logFor('squat')!.changes.isNotEmpty) {
         break;
       }
     }
-    final reps = h.provider.logFor(Exercise.EXERCISE_SQUAT)!.decision.reps;
+    final reps = h.provider.logFor('squat')!.decision.reps;
     expect(
       h
-          .working(Exercise.EXERCISE_SQUAT)
+          .working('squat')
           .every((s) => s.targetWeight == 195 && s.targetReps == reps),
       isTrue,
       reason: 'the pending working sets moved to 195 × $reps',
     );
-    final change = h.provider.logFor(Exercise.EXERCISE_SQUAT)!.changes.last;
+    final change = h.provider.logFor('squat')!.changes.last;
     expect(
       (change.cause, change.before, change.after),
       (WeightChangeCause.WEIGHT_CHANGE_CAUSE_USER_ADJUST, 185.0, 195.0),

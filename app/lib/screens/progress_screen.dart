@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../gen/workout/v1/workout.pb.dart';
-import '../gen/workout/v1/workout.pbenum.dart';
 import '../gen/workout/v1/settings.pbenum.dart';
 import '../logic/exercises.dart';
 import '../logic/utils.dart';
@@ -259,7 +257,7 @@ class _ExerciseCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => context.push('/exercise/${series.exercise.value}'),
+        onTap: () => context.push('/exercise/${series.exercise}'),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
@@ -522,7 +520,7 @@ class _Point {
 }
 
 class _ExerciseProgress {
-  final Exercise exercise;
+  final String exercise;
 
   /// A bodyweight lift, by its load style: its maxes are rep maxes, even
   /// with added weight.

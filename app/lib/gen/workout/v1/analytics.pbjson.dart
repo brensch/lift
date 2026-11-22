@@ -352,25 +352,22 @@ final $typed_data.Uint8List trainingDayDescriptor = $convert.base64Decode(
 const ExerciseUse$json = {
   '1': 'ExerciseUse',
   '2': [
-    {
-      '1': 'exercise',
-      '3': 1,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.Exercise',
-      '10': 'exercise'
-    },
+    {'1': 'exercise', '3': 5, '4': 1, '5': 9, '10': 'exercise'},
+    {'1': 'name', '3': 6, '4': 1, '5': 9, '10': 'name'},
     {'1': 'sets', '3': 2, '4': 1, '5': 3, '10': 'sets'},
     {'1': 'lifters', '3': 3, '4': 1, '5': 3, '10': 'lifters'},
     {'1': 'volume_lb', '3': 4, '4': 1, '5': 1, '10': 'volumeLb'},
+  ],
+  '9': [
+    {'1': 1, '2': 2},
   ],
 };
 
 /// Descriptor for `ExerciseUse`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List exerciseUseDescriptor = $convert.base64Decode(
-    'CgtFeGVyY2lzZVVzZRIwCghleGVyY2lzZRgBIAEoDjIULndvcmtvdXQudjEuRXhlcmNpc2VSCG'
-    'V4ZXJjaXNlEhIKBHNldHMYAiABKANSBHNldHMSGAoHbGlmdGVycxgDIAEoA1IHbGlmdGVycxIb'
-    'Cgl2b2x1bWVfbGIYBCABKAFSCHZvbHVtZUxi');
+    'CgtFeGVyY2lzZVVzZRIaCghleGVyY2lzZRgFIAEoCVIIZXhlcmNpc2USEgoEbmFtZRgGIAEoCV'
+    'IEbmFtZRISCgRzZXRzGAIgASgDUgRzZXRzEhgKB2xpZnRlcnMYAyABKANSB2xpZnRlcnMSGwoJ'
+    'dm9sdW1lX2xiGAQgASgBUgh2b2x1bWVMYkoECAEQAg==');
 
 @$core.Deprecated('Use getTrainingStatsResponseDescriptor instead')
 const GetTrainingStatsResponse$json = {

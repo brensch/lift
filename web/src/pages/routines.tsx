@@ -1,25 +1,14 @@
 import { WobblyText } from "@/components/wobbly-text";
 import { CONTENT } from "@/content";
 import type { LibraryTemplate } from "@/content";
-import { Exercise } from "@/gen/workout/v1/workout_pb";
 import { exerciseName } from "@/lib/exercises";
 
 // Rendered from templates/library.yaml at build time (see
 // scripts/sync-content.mjs). Nothing here is fetched from the backend.
 
-/** Enum name as written in the YAML → display name. Unknown keys (an
- *  exercise added to the YAML before the web protos were regenerated) fall
- *  back to title-casing the string so the page never shows "Unknown". */
+/** A key as written in the YAML → the built-in program's name for it. */
 function displayName(key: string): string {
-  const value = Exercise[key as keyof typeof Exercise];
-  if (typeof value === "number" && value !== Exercise.UNSPECIFIED) {
-    return exerciseName(value);
-  }
-  return key
-    .toLowerCase()
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  return exerciseName(key, CONTENT.exerciseNames[key]);
 }
 
 export function RoutinesPage() {

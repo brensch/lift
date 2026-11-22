@@ -163,7 +163,7 @@ function Dossier({ request, account }: { request: RecoveryRequest; account: Reco
             head={["Lift", "Sets", "Volume"]}
             numeric={[1, 2]}
             rows={account.lifts.map((e) => [
-              exerciseName(e.exercise),
+              exerciseName(e.exercise, e.name),
               formatNumber(Number(e.sets), 0),
               `${formatCompact(e.volumeLb)} lb`,
             ])}

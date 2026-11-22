@@ -63,7 +63,7 @@ void main() {
 
   setUp(() async {
     h = await ProviderHarness.boot();
-    await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
+    await h.seedHistory({'squat': (185, 5)});
     bridge = _FakeBridge();
     coordinator = coordinate(h.provider, bridge);
     await coordinator.init();
@@ -81,7 +81,7 @@ void main() {
       );
 
   test('signing out mid-workout ends it on the watch', () async {
-    await h.start([Exercise.EXERCISE_SQUAT]);
+    await h.start(['squat']);
     final workoutId = h.provider.workout!.id;
     expect(bridge.snapshots.last.workoutId, workoutId);
     expect(endsTheWatch(bridge.snapshots.last), isFalse);
@@ -97,7 +97,7 @@ void main() {
   });
 
   test('discarding a workout ends it on the watch, once', () async {
-    await h.start([Exercise.EXERCISE_SQUAT]);
+    await h.start(['squat']);
     final workoutId = h.provider.workout!.id;
     final before = bridge.snapshots.length;
 
@@ -112,7 +112,7 @@ void main() {
   });
 
   test('a finished workout left behind is not ended twice', () async {
-    await h.start([Exercise.EXERCISE_SQUAT]);
+    await h.start(['squat']);
     final workoutId = h.provider.workout!.id;
     await h.provider.endWorkout();
     await pumpEventQueue();
@@ -134,7 +134,7 @@ void main() {
   });
 
   test('a unit switched mid-workout reaches the watch', () async {
-    await h.start([Exercise.EXERCISE_SQUAT]);
+    await h.start(['squat']);
     expect(bridge.snapshots.last.youCard.unitText, 'lb');
     final before = bridge.snapshots.length;
     h.settings.applyWeightUnitLocally(WeightUnit.WEIGHT_UNIT_KG);
@@ -179,9 +179,9 @@ void main() {
       tapSet: TapSetIntent(workoutId: h.provider.workout!.id, setId: setId),
     );
 
-    setUp(() => h.start([Exercise.EXERCISE_SQUAT]));
+    setUp(() => h.start(['squat']));
 
-    String firstSet() => h.working(Exercise.EXERCISE_SQUAT).first.id;
+    String firstSet() => h.working('squat').first.id;
 
     test('a complete from the watch completes the set and is acked', () async {
       final setId = firstSet();
@@ -229,7 +229,7 @@ void main() {
     });
 
     test('a tap cycles start, done, then one rep off', () async {
-      final set = h.working(Exercise.EXERCISE_SQUAT).first;
+      final set = h.working('squat').first;
       await send(tap(set.id));
       expect(h.provider.workout!.liftingSetId, set.id);
       await send(tap(set.id));

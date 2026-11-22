@@ -180,7 +180,7 @@ export function Training({
             head={["Lift", "Sets", "Lifters", "Volume"]}
             numeric={[1, 2, 3]}
             rows={stats.exercises.map((e) => [
-              exerciseName(e.exercise),
+              exerciseName(e.exercise, e.name),
               formatNumber(Number(e.sets), 0),
               formatNumber(Number(e.lifters), 0),
               `${formatCompact(e.volumeLb)} lb`,

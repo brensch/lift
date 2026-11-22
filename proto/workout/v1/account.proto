@@ -78,11 +78,11 @@ message SyncResponse {
     PartnerEvents partner_events = 7;
     // Requests to join the caller, whole.
     GetJoinRequestsResponse join_requests = 3;
-    // The template library as the server has it: what coupled templates
-    // follow. Sent on connect.
-    ListTemplateLibraryResponse library = 4;
   }
   reserved 2;
+  // The library is built into the core; nothing follows the server's.
+  reserved 4;
+  reserved "library";
 }
 
 message PartnerEvents {

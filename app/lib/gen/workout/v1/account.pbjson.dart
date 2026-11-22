@@ -193,22 +193,15 @@ const SyncResponse$json = {
       '9': 0,
       '10': 'joinRequests'
     },
-    {
-      '1': 'library',
-      '3': 4,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.ListTemplateLibraryResponse',
-      '9': 0,
-      '10': 'library'
-    },
   ],
   '8': [
     {'1': 'kind'},
   ],
   '9': [
     {'1': 2, '2': 3},
+    {'1': 4, '2': 5},
   ],
+  '10': ['library'],
 };
 
 /// Descriptor for `SyncResponse`. Decode as a `google.protobuf.DescriptorProto`.
@@ -217,9 +210,8 @@ final $typed_data.Uint8List syncResponseDescriptor = $convert.base64Decode(
     'ZlbnRzEhQKBGhlYWQYASABKANIAFIEaGVhZBIvCgdzZXNzaW9uGAYgASgLMhMud29ya291dC52'
     'MS5TZXNzaW9uSABSB3Nlc3Npb24SQgoOcGFydG5lcl9ldmVudHMYByABKAsyGS53b3Jrb3V0Ln'
     'YxLlBhcnRuZXJFdmVudHNIAFINcGFydG5lckV2ZW50cxJKCg1qb2luX3JlcXVlc3RzGAMgASgL'
-    'MiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAUgxqb2luUmVxdWVzdHMSQw'
-    'oHbGlicmFyeRgEIAEoCzInLndvcmtvdXQudjEuTGlzdFRlbXBsYXRlTGlicmFyeVJlc3BvbnNl'
-    'SABSB2xpYnJhcnlCBgoEa2luZEoECAIQAw==');
+    'MiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAUgxqb2luUmVxdWVzdHNCBg'
+    'oEa2luZEoECAIQA0oECAQQBVIHbGlicmFyeQ==');
 
 @$core.Deprecated('Use partnerEventsDescriptor instead')
 const PartnerEvents$json = {

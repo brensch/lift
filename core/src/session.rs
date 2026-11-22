@@ -66,6 +66,7 @@ pub fn partner_status(
         state_snapshot: workout.state_snapshot,
         passed_warmup_ids: workout.passed_warmup_ids,
         first_time_set_ids: workout.first_time_set_ids,
+        exercises: workout.exercises,
     })
 }
 
@@ -94,7 +95,7 @@ mod tests {
         })
         .unwrap();
         events.append(&mut call.events);
-        let template_id = account.templates[0].id.clone();
+        let template_id = account.program.workouts[0].id.clone();
         let mut call = Call::new(&mut account, NOW - 300, "start");
         let started = call
             .start_workout(StartWorkoutRequest {
@@ -148,7 +149,10 @@ mod tests {
             assert_eq!(seen.completed_sets, own.completed_sets);
             assert_eq!(seen.next_up_set, own.next_up_set);
             assert_eq!(seen.state_snapshot, own.state_snapshot);
-            assert_eq!(seen.active_workout.unwrap().name, account.templates[0].name);
+            assert_eq!(
+                seen.active_workout.unwrap().name,
+                account.program.workouts[0].name
+            );
         }
     }
 

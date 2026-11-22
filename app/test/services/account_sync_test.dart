@@ -322,7 +322,7 @@ void main() {
     await _until(() => sync.isReady);
     await sync.core!.call(
       'StartWorkout',
-      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutRequest(name: 'Test', exercises: ['squat']),
       StartWorkoutResponse.fromBuffer,
     );
     await service.streams.first.close();
@@ -356,7 +356,7 @@ void main() {
     await _until(() => sync.isReady);
     await sync.core!.call(
       'StartWorkout',
-      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutRequest(name: 'Test', exercises: ['squat']),
       StartWorkoutResponse.fromBuffer,
     );
     final pending = await sync.core!.pendingCount();
@@ -397,7 +397,7 @@ void main() {
     final older = await (await sync.export('Me')).copy('${dir.path}/older.gz');
     await sync.core!.call(
       'StartWorkout',
-      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutRequest(name: 'Test', exercises: ['squat']),
       StartWorkoutResponse.fromBuffer,
     );
     final pending = await sync.core!.pendingCount();

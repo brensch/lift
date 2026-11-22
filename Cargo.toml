@@ -24,6 +24,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 
 [dev-dependencies]
+# Calls the HTTP routes (the MCP's) in tests without a socket.
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
 # A software passkey, to run the WebAuthn ceremonies in tests.
 webauthn-authenticator-rs = { version = "0.5", default-features = false, features = ["softpasskey"] }
 

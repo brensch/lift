@@ -47,264 +47,6 @@ class EquipmentKind extends $pb.ProtobufEnum {
   const EquipmentKind._(super.value, super.name);
 }
 
-class Exercise extends $pb.ProtobufEnum {
-  static const Exercise EXERCISE_UNSPECIFIED =
-      Exercise._(0, _omitEnumNames ? '' : 'EXERCISE_UNSPECIFIED');
-  static const Exercise EXERCISE_SQUAT =
-      Exercise._(1, _omitEnumNames ? '' : 'EXERCISE_SQUAT');
-  static const Exercise EXERCISE_BENCH_PRESS =
-      Exercise._(2, _omitEnumNames ? '' : 'EXERCISE_BENCH_PRESS');
-  static const Exercise EXERCISE_DEADLIFT =
-      Exercise._(3, _omitEnumNames ? '' : 'EXERCISE_DEADLIFT');
-  static const Exercise EXERCISE_OVERHEAD_PRESS =
-      Exercise._(4, _omitEnumNames ? '' : 'EXERCISE_OVERHEAD_PRESS');
-  static const Exercise EXERCISE_BARBELL_ROW =
-      Exercise._(5, _omitEnumNames ? '' : 'EXERCISE_BARBELL_ROW');
-  static const Exercise EXERCISE_HIP_THRUST =
-      Exercise._(6, _omitEnumNames ? '' : 'EXERCISE_HIP_THRUST');
-  static const Exercise EXERCISE_BULGARIAN_SPLIT_SQUAT =
-      Exercise._(7, _omitEnumNames ? '' : 'EXERCISE_BULGARIAN_SPLIT_SQUAT');
-  static const Exercise EXERCISE_ROMANIAN_DEADLIFT =
-      Exercise._(8, _omitEnumNames ? '' : 'EXERCISE_ROMANIAN_DEADLIFT');
-  static const Exercise EXERCISE_GLUTE_BRIDGE =
-      Exercise._(9, _omitEnumNames ? '' : 'EXERCISE_GLUTE_BRIDGE');
-  static const Exercise EXERCISE_LUNGE =
-      Exercise._(10, _omitEnumNames ? '' : 'EXERCISE_LUNGE');
-  static const Exercise EXERCISE_LEG_CURL =
-      Exercise._(11, _omitEnumNames ? '' : 'EXERCISE_LEG_CURL');
-
-  /// ── Chest ──
-  static const Exercise EXERCISE_INCLINE_BENCH_PRESS =
-      Exercise._(12, _omitEnumNames ? '' : 'EXERCISE_INCLINE_BENCH_PRESS');
-  static const Exercise EXERCISE_DUMBBELL_BENCH_PRESS =
-      Exercise._(13, _omitEnumNames ? '' : 'EXERCISE_DUMBBELL_BENCH_PRESS');
-  static const Exercise EXERCISE_INCLINE_DUMBBELL_PRESS =
-      Exercise._(14, _omitEnumNames ? '' : 'EXERCISE_INCLINE_DUMBBELL_PRESS');
-  static const Exercise EXERCISE_DUMBBELL_FLY =
-      Exercise._(15, _omitEnumNames ? '' : 'EXERCISE_DUMBBELL_FLY');
-  static const Exercise EXERCISE_CABLE_FLY =
-      Exercise._(16, _omitEnumNames ? '' : 'EXERCISE_CABLE_FLY');
-  static const Exercise EXERCISE_PUSH_UP =
-      Exercise._(17, _omitEnumNames ? '' : 'EXERCISE_PUSH_UP');
-  static const Exercise EXERCISE_CHEST_DIP =
-      Exercise._(18, _omitEnumNames ? '' : 'EXERCISE_CHEST_DIP');
-  static const Exercise EXERCISE_MACHINE_CHEST_PRESS =
-      Exercise._(19, _omitEnumNames ? '' : 'EXERCISE_MACHINE_CHEST_PRESS');
-  static const Exercise EXERCISE_PEC_DECK =
-      Exercise._(20, _omitEnumNames ? '' : 'EXERCISE_PEC_DECK');
-
-  /// ── Back ──
-  static const Exercise EXERCISE_PULL_UP =
-      Exercise._(21, _omitEnumNames ? '' : 'EXERCISE_PULL_UP');
-  static const Exercise EXERCISE_CHIN_UP =
-      Exercise._(22, _omitEnumNames ? '' : 'EXERCISE_CHIN_UP');
-  static const Exercise EXERCISE_LAT_PULLDOWN =
-      Exercise._(23, _omitEnumNames ? '' : 'EXERCISE_LAT_PULLDOWN');
-  static const Exercise EXERCISE_SEATED_CABLE_ROW =
-      Exercise._(24, _omitEnumNames ? '' : 'EXERCISE_SEATED_CABLE_ROW');
-  static const Exercise EXERCISE_DUMBBELL_ROW =
-      Exercise._(25, _omitEnumNames ? '' : 'EXERCISE_DUMBBELL_ROW');
-  static const Exercise EXERCISE_T_BAR_ROW =
-      Exercise._(26, _omitEnumNames ? '' : 'EXERCISE_T_BAR_ROW');
-  static const Exercise EXERCISE_PENDLAY_ROW =
-      Exercise._(27, _omitEnumNames ? '' : 'EXERCISE_PENDLAY_ROW');
-  static const Exercise EXERCISE_FACE_PULL =
-      Exercise._(28, _omitEnumNames ? '' : 'EXERCISE_FACE_PULL');
-  static const Exercise EXERCISE_SHRUG =
-      Exercise._(29, _omitEnumNames ? '' : 'EXERCISE_SHRUG');
-  static const Exercise EXERCISE_BACK_EXTENSION =
-      Exercise._(30, _omitEnumNames ? '' : 'EXERCISE_BACK_EXTENSION');
-
-  /// ── Shoulders ──
-  static const Exercise EXERCISE_DUMBBELL_SHOULDER_PRESS =
-      Exercise._(31, _omitEnumNames ? '' : 'EXERCISE_DUMBBELL_SHOULDER_PRESS');
-  static const Exercise EXERCISE_ARNOLD_PRESS =
-      Exercise._(32, _omitEnumNames ? '' : 'EXERCISE_ARNOLD_PRESS');
-  static const Exercise EXERCISE_LATERAL_RAISE =
-      Exercise._(33, _omitEnumNames ? '' : 'EXERCISE_LATERAL_RAISE');
-  static const Exercise EXERCISE_FRONT_RAISE =
-      Exercise._(34, _omitEnumNames ? '' : 'EXERCISE_FRONT_RAISE');
-  static const Exercise EXERCISE_REAR_DELT_FLY =
-      Exercise._(35, _omitEnumNames ? '' : 'EXERCISE_REAR_DELT_FLY');
-  static const Exercise EXERCISE_UPRIGHT_ROW =
-      Exercise._(36, _omitEnumNames ? '' : 'EXERCISE_UPRIGHT_ROW');
-
-  /// ── Arms ──
-  static const Exercise EXERCISE_BARBELL_CURL =
-      Exercise._(37, _omitEnumNames ? '' : 'EXERCISE_BARBELL_CURL');
-  static const Exercise EXERCISE_DUMBBELL_CURL =
-      Exercise._(38, _omitEnumNames ? '' : 'EXERCISE_DUMBBELL_CURL');
-  static const Exercise EXERCISE_HAMMER_CURL =
-      Exercise._(39, _omitEnumNames ? '' : 'EXERCISE_HAMMER_CURL');
-  static const Exercise EXERCISE_PREACHER_CURL =
-      Exercise._(40, _omitEnumNames ? '' : 'EXERCISE_PREACHER_CURL');
-  static const Exercise EXERCISE_CONCENTRATION_CURL =
-      Exercise._(41, _omitEnumNames ? '' : 'EXERCISE_CONCENTRATION_CURL');
-  static const Exercise EXERCISE_CABLE_CURL =
-      Exercise._(42, _omitEnumNames ? '' : 'EXERCISE_CABLE_CURL');
-  static const Exercise EXERCISE_TRICEP_PUSHDOWN =
-      Exercise._(43, _omitEnumNames ? '' : 'EXERCISE_TRICEP_PUSHDOWN');
-  static const Exercise EXERCISE_OVERHEAD_TRICEP_EXTENSION = Exercise._(
-      44, _omitEnumNames ? '' : 'EXERCISE_OVERHEAD_TRICEP_EXTENSION');
-  static const Exercise EXERCISE_SKULL_CRUSHER =
-      Exercise._(45, _omitEnumNames ? '' : 'EXERCISE_SKULL_CRUSHER');
-  static const Exercise EXERCISE_CLOSE_GRIP_BENCH_PRESS =
-      Exercise._(46, _omitEnumNames ? '' : 'EXERCISE_CLOSE_GRIP_BENCH_PRESS');
-  static const Exercise EXERCISE_TRICEP_DIP =
-      Exercise._(47, _omitEnumNames ? '' : 'EXERCISE_TRICEP_DIP');
-  static const Exercise EXERCISE_TRICEP_KICKBACK =
-      Exercise._(48, _omitEnumNames ? '' : 'EXERCISE_TRICEP_KICKBACK');
-
-  /// ── Legs ──
-  static const Exercise EXERCISE_FRONT_SQUAT =
-      Exercise._(49, _omitEnumNames ? '' : 'EXERCISE_FRONT_SQUAT');
-  static const Exercise EXERCISE_LEG_PRESS =
-      Exercise._(50, _omitEnumNames ? '' : 'EXERCISE_LEG_PRESS');
-  static const Exercise EXERCISE_LEG_EXTENSION =
-      Exercise._(51, _omitEnumNames ? '' : 'EXERCISE_LEG_EXTENSION');
-  static const Exercise EXERCISE_HACK_SQUAT =
-      Exercise._(52, _omitEnumNames ? '' : 'EXERCISE_HACK_SQUAT');
-  static const Exercise EXERCISE_GOBLET_SQUAT =
-      Exercise._(53, _omitEnumNames ? '' : 'EXERCISE_GOBLET_SQUAT');
-  static const Exercise EXERCISE_WALKING_LUNGE =
-      Exercise._(54, _omitEnumNames ? '' : 'EXERCISE_WALKING_LUNGE');
-  static const Exercise EXERCISE_STEP_UP =
-      Exercise._(55, _omitEnumNames ? '' : 'EXERCISE_STEP_UP');
-  static const Exercise EXERCISE_CALF_RAISE =
-      Exercise._(56, _omitEnumNames ? '' : 'EXERCISE_CALF_RAISE');
-  static const Exercise EXERCISE_SEATED_CALF_RAISE =
-      Exercise._(57, _omitEnumNames ? '' : 'EXERCISE_SEATED_CALF_RAISE');
-  static const Exercise EXERCISE_NORDIC_CURL =
-      Exercise._(58, _omitEnumNames ? '' : 'EXERCISE_NORDIC_CURL');
-  static const Exercise EXERCISE_GOOD_MORNING =
-      Exercise._(59, _omitEnumNames ? '' : 'EXERCISE_GOOD_MORNING');
-
-  /// ── Ass ──
-  static const Exercise EXERCISE_GLUTE_KICKBACK =
-      Exercise._(60, _omitEnumNames ? '' : 'EXERCISE_GLUTE_KICKBACK');
-  static const Exercise EXERCISE_SUMO_DEADLIFT =
-      Exercise._(61, _omitEnumNames ? '' : 'EXERCISE_SUMO_DEADLIFT');
-  static const Exercise EXERCISE_SUMO_SQUAT =
-      Exercise._(62, _omitEnumNames ? '' : 'EXERCISE_SUMO_SQUAT');
-  static const Exercise EXERCISE_CURTSY_LUNGE =
-      Exercise._(63, _omitEnumNames ? '' : 'EXERCISE_CURTSY_LUNGE');
-  static const Exercise EXERCISE_FROG_PUMP =
-      Exercise._(64, _omitEnumNames ? '' : 'EXERCISE_FROG_PUMP');
-  static const Exercise EXERCISE_SINGLE_LEG_HIP_THRUST =
-      Exercise._(65, _omitEnumNames ? '' : 'EXERCISE_SINGLE_LEG_HIP_THRUST');
-  static const Exercise EXERCISE_CABLE_PULL_THROUGH =
-      Exercise._(66, _omitEnumNames ? '' : 'EXERCISE_CABLE_PULL_THROUGH');
-  static const Exercise EXERCISE_HIP_ABDUCTION =
-      Exercise._(67, _omitEnumNames ? '' : 'EXERCISE_HIP_ABDUCTION');
-
-  /// ── Core ──
-  static const Exercise EXERCISE_PLANK =
-      Exercise._(68, _omitEnumNames ? '' : 'EXERCISE_PLANK');
-  static const Exercise EXERCISE_HANGING_LEG_RAISE =
-      Exercise._(69, _omitEnumNames ? '' : 'EXERCISE_HANGING_LEG_RAISE');
-  static const Exercise EXERCISE_CABLE_CRUNCH =
-      Exercise._(70, _omitEnumNames ? '' : 'EXERCISE_CABLE_CRUNCH');
-  static const Exercise EXERCISE_RUSSIAN_TWIST =
-      Exercise._(71, _omitEnumNames ? '' : 'EXERCISE_RUSSIAN_TWIST');
-  static const Exercise EXERCISE_AB_WHEEL_ROLLOUT =
-      Exercise._(72, _omitEnumNames ? '' : 'EXERCISE_AB_WHEEL_ROLLOUT');
-  static const Exercise EXERCISE_SIT_UP =
-      Exercise._(73, _omitEnumNames ? '' : 'EXERCISE_SIT_UP');
-  static const Exercise EXERCISE_CRUNCH =
-      Exercise._(74, _omitEnumNames ? '' : 'EXERCISE_CRUNCH');
-  static const Exercise EXERCISE_MOUNTAIN_CLIMBER =
-      Exercise._(75, _omitEnumNames ? '' : 'EXERCISE_MOUNTAIN_CLIMBER');
-  static const Exercise EXERCISE_HIP_ADDUCTION =
-      Exercise._(76, _omitEnumNames ? '' : 'EXERCISE_HIP_ADDUCTION');
-
-  static const $core.List<Exercise> values = <Exercise>[
-    EXERCISE_UNSPECIFIED,
-    EXERCISE_SQUAT,
-    EXERCISE_BENCH_PRESS,
-    EXERCISE_DEADLIFT,
-    EXERCISE_OVERHEAD_PRESS,
-    EXERCISE_BARBELL_ROW,
-    EXERCISE_HIP_THRUST,
-    EXERCISE_BULGARIAN_SPLIT_SQUAT,
-    EXERCISE_ROMANIAN_DEADLIFT,
-    EXERCISE_GLUTE_BRIDGE,
-    EXERCISE_LUNGE,
-    EXERCISE_LEG_CURL,
-    EXERCISE_INCLINE_BENCH_PRESS,
-    EXERCISE_DUMBBELL_BENCH_PRESS,
-    EXERCISE_INCLINE_DUMBBELL_PRESS,
-    EXERCISE_DUMBBELL_FLY,
-    EXERCISE_CABLE_FLY,
-    EXERCISE_PUSH_UP,
-    EXERCISE_CHEST_DIP,
-    EXERCISE_MACHINE_CHEST_PRESS,
-    EXERCISE_PEC_DECK,
-    EXERCISE_PULL_UP,
-    EXERCISE_CHIN_UP,
-    EXERCISE_LAT_PULLDOWN,
-    EXERCISE_SEATED_CABLE_ROW,
-    EXERCISE_DUMBBELL_ROW,
-    EXERCISE_T_BAR_ROW,
-    EXERCISE_PENDLAY_ROW,
-    EXERCISE_FACE_PULL,
-    EXERCISE_SHRUG,
-    EXERCISE_BACK_EXTENSION,
-    EXERCISE_DUMBBELL_SHOULDER_PRESS,
-    EXERCISE_ARNOLD_PRESS,
-    EXERCISE_LATERAL_RAISE,
-    EXERCISE_FRONT_RAISE,
-    EXERCISE_REAR_DELT_FLY,
-    EXERCISE_UPRIGHT_ROW,
-    EXERCISE_BARBELL_CURL,
-    EXERCISE_DUMBBELL_CURL,
-    EXERCISE_HAMMER_CURL,
-    EXERCISE_PREACHER_CURL,
-    EXERCISE_CONCENTRATION_CURL,
-    EXERCISE_CABLE_CURL,
-    EXERCISE_TRICEP_PUSHDOWN,
-    EXERCISE_OVERHEAD_TRICEP_EXTENSION,
-    EXERCISE_SKULL_CRUSHER,
-    EXERCISE_CLOSE_GRIP_BENCH_PRESS,
-    EXERCISE_TRICEP_DIP,
-    EXERCISE_TRICEP_KICKBACK,
-    EXERCISE_FRONT_SQUAT,
-    EXERCISE_LEG_PRESS,
-    EXERCISE_LEG_EXTENSION,
-    EXERCISE_HACK_SQUAT,
-    EXERCISE_GOBLET_SQUAT,
-    EXERCISE_WALKING_LUNGE,
-    EXERCISE_STEP_UP,
-    EXERCISE_CALF_RAISE,
-    EXERCISE_SEATED_CALF_RAISE,
-    EXERCISE_NORDIC_CURL,
-    EXERCISE_GOOD_MORNING,
-    EXERCISE_GLUTE_KICKBACK,
-    EXERCISE_SUMO_DEADLIFT,
-    EXERCISE_SUMO_SQUAT,
-    EXERCISE_CURTSY_LUNGE,
-    EXERCISE_FROG_PUMP,
-    EXERCISE_SINGLE_LEG_HIP_THRUST,
-    EXERCISE_CABLE_PULL_THROUGH,
-    EXERCISE_HIP_ABDUCTION,
-    EXERCISE_PLANK,
-    EXERCISE_HANGING_LEG_RAISE,
-    EXERCISE_CABLE_CRUNCH,
-    EXERCISE_RUSSIAN_TWIST,
-    EXERCISE_AB_WHEEL_ROLLOUT,
-    EXERCISE_SIT_UP,
-    EXERCISE_CRUNCH,
-    EXERCISE_MOUNTAIN_CLIMBER,
-    EXERCISE_HIP_ADDUCTION,
-  ];
-
-  static final $core.List<Exercise?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 76);
-  static Exercise? valueOf($core.int value) =>
-      value < 0 || value >= _byValue.length ? null : _byValue[value];
-
-  const Exercise._(super.value, super.name);
-}
-
 /// How many more reps a calibration rung done in full had left in it. Each
 /// answer counts as a reserve in the rung's shown max (core/src/plan.rs):
 /// 0–1 as 0.5, 2–4 as 3, 5+ as 8.
@@ -394,6 +136,25 @@ class PlanReasonKind extends $pb.ProtobufEnum {
   static const PlanReasonKind PLAN_REASON_KIND_SAME_AS_LAST = PlanReasonKind._(
       12, _omitEnumNames ? '' : 'PLAN_REASON_KIND_SAME_AS_LAST');
 
+  /// The lift follows a progression of the program's other than the
+  /// estimated max: `rule` names it, `text` is the program's note on it.
+  static const PlanReasonKind PLAN_REASON_KIND_RULE =
+      PlanReasonKind._(13, _omitEnumNames ? '' : 'PLAN_REASON_KIND_RULE');
+
+  /// `count` sessions in a row with a rep missed: the weight cut to
+  /// `after` from `before` (lb).
+  static const PlanReasonKind PLAN_REASON_KIND_DELOAD =
+      PlanReasonKind._(14, _omitEnumNames ? '' : 'PLAN_REASON_KIND_DELOAD');
+
+  /// The lift's rule could not plan it (`text` says why): planned from the
+  /// estimated max instead.
+  static const PlanReasonKind PLAN_REASON_KIND_FALLBACK =
+      PlanReasonKind._(15, _omitEnumNames ? '' : 'PLAN_REASON_KIND_FALLBACK');
+
+  /// A cycle's step `count` of `of`: `after` is the fraction of the max.
+  static const PlanReasonKind PLAN_REASON_KIND_CYCLE_STEP =
+      PlanReasonKind._(16, _omitEnumNames ? '' : 'PLAN_REASON_KIND_CYCLE_STEP');
+
   static const $core.List<PlanReasonKind> values = <PlanReasonKind>[
     PLAN_REASON_KIND_UNSPECIFIED,
     PLAN_REASON_KIND_MAX_UP,
@@ -408,10 +169,14 @@ class PlanReasonKind extends $pb.ProtobufEnum {
     PLAN_REASON_KIND_REPS_UP,
     PLAN_REASON_KIND_REPS_DOWN,
     PLAN_REASON_KIND_SAME_AS_LAST,
+    PLAN_REASON_KIND_RULE,
+    PLAN_REASON_KIND_DELOAD,
+    PLAN_REASON_KIND_FALLBACK,
+    PLAN_REASON_KIND_CYCLE_STEP,
   ];
 
   static final $core.List<PlanReasonKind?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 12);
+      $pb.ProtobufEnum.$_initByValueList(values, 16);
   static PlanReasonKind? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
@@ -576,6 +341,45 @@ class RotationWarningKind extends $pb.ProtobufEnum {
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
   const RotationWarningKind._(super.value, super.name);
+}
+
+/// How the simulated sessions go.
+class SimulatedEffort extends $pb.ProtobufEnum {
+  static const SimulatedEffort SIMULATED_EFFORT_UNSPECIFIED = SimulatedEffort._(
+      0, _omitEnumNames ? '' : 'SIMULATED_EFFORT_UNSPECIFIED');
+
+  /// Every rep of every set.
+  static const SimulatedEffort SIMULATED_EFFORT_ALL_HIT =
+      SimulatedEffort._(1, _omitEnumNames ? '' : 'SIMULATED_EFFORT_ALL_HIT');
+
+  /// The last set of each lift one rep short.
+  static const SimulatedEffort SIMULATED_EFFORT_LAST_SET_SHORT =
+      SimulatedEffort._(
+          2, _omitEnumNames ? '' : 'SIMULATED_EFFORT_LAST_SET_SHORT');
+
+  /// Every set one rep short.
+  static const SimulatedEffort SIMULATED_EFFORT_ALL_SHORT =
+      SimulatedEffort._(3, _omitEnumNames ? '' : 'SIMULATED_EFFORT_ALL_SHORT');
+
+  /// All hit, but every `miss_every`th session of a lift the last set one
+  /// rep short.
+  static const SimulatedEffort SIMULATED_EFFORT_MISS_EVERY =
+      SimulatedEffort._(4, _omitEnumNames ? '' : 'SIMULATED_EFFORT_MISS_EVERY');
+
+  static const $core.List<SimulatedEffort> values = <SimulatedEffort>[
+    SIMULATED_EFFORT_UNSPECIFIED,
+    SIMULATED_EFFORT_ALL_HIT,
+    SIMULATED_EFFORT_LAST_SET_SHORT,
+    SIMULATED_EFFORT_ALL_SHORT,
+    SIMULATED_EFFORT_MISS_EVERY,
+  ];
+
+  static final $core.List<SimulatedEffort?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static SimulatedEffort? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const SimulatedEffort._(super.value, super.name);
 }
 
 const $core.bool _omitEnumNames =

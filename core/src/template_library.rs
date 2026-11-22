@@ -1,12 +1,11 @@
-//! The template library: templates/library.yaml, embedded at build time.
-//! The server sends its copy to every phone on sync; a user's library
-//! templates follow it (coupled) until they clone one. The copy built into
-//! the app stands in before the first sync. The file is validated by
-//! `cargo test`. The file's ready-made rotations (`plans`) are read from
-//! the copy built in. See docs/architecture/data-model.md, "Template
-//! library".
+//! The template library: templates/library.yaml, embedded at build time —
+//! workouts anyone can copy into their program, and ready-made rotations
+//! (`plans`) of them. A copy is the user's own: nothing follows the
+//! library. Exercises are the built-in program's keys; the file is
+//! validated by `cargo test`.
 
-use crate::pb::{Exercise, LibraryPlan, LibraryTemplate};
+use crate::pb::{LibraryPlan, LibraryTemplate};
+use crate::program::Program;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::sync::OnceLock;
@@ -89,15 +88,16 @@ fn parse(text: &str) -> Result<(Vec<LibraryTemplate>, Vec<LibraryPlan>), String>
         if entry.exercises.is_empty() {
             return Err(format!("template {id}: no exercises"));
         }
-        let mut exercises = Vec::with_capacity(entry.exercises.len());
+        let builtin = Program::builtin();
+        let mut exercises: Vec<String> = Vec::with_capacity(entry.exercises.len());
         for name in &entry.exercises {
-            let exercise = Exercise::from_str_name(&format!("EXERCISE_{name}"))
-                .filter(|e| *e != Exercise::Unspecified)
-                .ok_or_else(|| format!("template {id}: unknown exercise {name:?}"))?;
-            if exercises.contains(&(exercise as i32)) {
+            if !builtin.knows(name) {
+                return Err(format!("template {id}: unknown exercise {name:?}"));
+            }
+            if exercises.contains(name) {
                 return Err(format!("template {id}: exercise {name:?} listed twice"));
             }
-            exercises.push(exercise as i32);
+            exercises.push(name.clone());
         }
         out.push(LibraryTemplate {
             id: id.to_string(),
@@ -198,11 +198,11 @@ mod tests {
 
     #[test]
     fn rejects_unknown_exercise_and_duplicate_id() {
-        let bad = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, exercises: [NOT_A_LIFT]}\n";
+        let bad = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, exercises: [not_a_lift]}\n";
         assert!(parse(bad).unwrap_err().contains("unknown exercise"));
-        let dup = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, default: true, exercises: [SQUAT]}\n  - {id: a, name: B, group: g, exercises: [SQUAT]}\n";
+        let dup = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, default: true, exercises: [squat]}\n  - {id: a, name: B, group: g, exercises: [squat]}\n";
         assert!(parse(dup).unwrap_err().contains("twice"));
-        let group = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: nope, exercises: [SQUAT]}\n";
+        let group = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: nope, exercises: [squat]}\n";
         assert!(parse(group).unwrap_err().contains("unknown group"));
     }
 
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     fn rejects_a_plan_naming_an_unknown_or_repeated_template() {
-        let head = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, default: true, exercises: [SQUAT]}\n";
+        let head = "groups: [{key: g, label: G}]\ntemplates:\n  - {id: a, name: A, group: g, default: true, exercises: [squat]}\n";
         let unknown = format!("{head}plans:\n  - {{id: p, name: P, templates: [a, nope]}}\n");
         assert!(parse(&unknown).unwrap_err().contains("unknown template"));
         let twice = format!("{head}plans:\n  - {{id: p, name: P, templates: [a, a]}}\n");

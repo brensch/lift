@@ -24,7 +24,10 @@ void main() {
       home: Scaffold(
         body: SingleChildScrollView(
           child: SelectedTemplateCard(
-            template: WorkoutTemplate(name: 'StrongLifts B', coupled: true),
+            template: WorkoutTemplate(
+              name: 'StrongLifts B',
+              originLibraryId: 'stronglifts_b',
+            ),
             plan: plan,
             budgetMinutes: budget,
             onBudgetStep: onStep ?? (_) {},
@@ -70,7 +73,7 @@ void main() {
         plans: [
           ExercisePlan(
             decision: ExerciseDecision(
-              exercise: Exercise.EXERCISE_DEADLIFT,
+              exercise: 'deadlift',
               calibration: true,
               weight: 135,
             ),
@@ -116,7 +119,7 @@ void main() {
     );
     await h.provider.loadActiveWorkout('test');
     final b = h.provider.home!.templates.firstWhere(
-      (t) => t.libraryId == 'stronglifts_b',
+      (t) => t.originLibraryId == 'stronglifts_b',
     );
     while (h.provider.budgetMinutes * 60 <
         h.provider.templatePlanFor(b.id)!.maxSeconds) {

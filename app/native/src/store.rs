@@ -14,8 +14,7 @@ use schlift_core::api::{self, Call};
 use schlift_core::events::Event;
 use schlift_core::pb::{
     AppendWorkoutHeartRateRequest, AppendWorkoutHeartRateResponse, GetWorkoutHeartRateRequest,
-    GetWorkoutHeartRateResponse, LibraryTemplate, ListTemplateLibraryResponse,
-    WorkoutHeartRatePoint,
+    GetWorkoutHeartRateResponse, WorkoutHeartRatePoint,
 };
 use schlift_core::projection::{
     account_export_statements, Statement, Value, ACCOUNT_SCHEMA, READABLE_TABLES, WORKOUT_SCHEMA,
@@ -43,14 +42,6 @@ CREATE TABLE IF NOT EXISTS pending (
     event TEXT NOT NULL
 );
 
--- The template library as the server last sent it (a
--- ListTemplateLibraryResponse): what coupled templates follow. Absent until
--- the first sync; the library built into the app stands in.
-CREATE TABLE IF NOT EXISTS library (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    blob BLOB NOT NULL
-);
-
 -- Heart rate heard during a workout under way, this device's alone and
 -- never synced: once the workout ends it is recorded whole, as one event,
 -- and cleared from here.
@@ -63,8 +54,9 @@ CREATE TABLE IF NOT EXISTS heart_rate (
 "#;
 
 /// What `PRAGMA user_version` says a file is. A file from before (its events
-/// in another form) has them dropped: they come back from the server.
-const FORMAT: i64 = 1;
+/// in another form) has them dropped, placed and pending alike: the server
+/// sends its moved copy (2: programs, exercises as keys).
+const FORMAT: i64 = 2;
 
 /// The most events in one push.
 pub const PUSH_EVENTS: i64 = 500;
@@ -81,7 +73,6 @@ pub struct Store {
     conn: Connection,
     user_id: String,
     account: Account,
-    library: Vec<LibraryTemplate>,
     /// Session partners' workouts, as the events the server forwarded:
     /// folded for what they're up to, held only while the app runs.
     partners: HashMap<String, Vec<Event>>,
@@ -101,8 +92,11 @@ impl Store {
             .map_err(storage)?;
         if format < FORMAT {
             // Everything but who the file is for is the server's to send.
-            conn.execute_batch("DROP TABLE IF EXISTS events;")
-                .map_err(storage)?;
+            conn.execute_batch(
+                "DROP TABLE IF EXISTS events; DROP TABLE IF EXISTS pending;
+                 DROP TABLE IF EXISTS library;",
+            )
+            .map_err(storage)?;
         }
         conn.execute_batch(SCHEMA).map_err(storage)?;
         if format < FORMAT {
@@ -144,20 +138,9 @@ impl Store {
             conn,
             user_id: user_id.to_string(),
             account: Account::default(),
-            library: schlift_core::template_library::library().to_vec(),
             partners: HashMap::new(),
             probe: None,
         };
-        let saved: Option<Vec<u8>> = store
-            .conn
-            .query_row("SELECT blob FROM library WHERE id = 1", [], |r| r.get(0))
-            .optional()
-            .map_err(storage)?;
-        if let Some(blob) = saved {
-            store.library = ListTemplateLibraryResponse::decode(blob.as_slice())
-                .map_err(storage)?
-                .templates;
-        }
         store.refold()?;
         Ok(store)
     }
@@ -205,7 +188,7 @@ impl Store {
     /// The core's answer, its events stored first.
     fn answer(&mut self, method: &str, request: &[u8], now: i64) -> StoreResult<Vec<u8>> {
         let event_id = uuid::Uuid::new_v4().to_string();
-        let mut call = Call::new(&mut self.account, now, event_id).with_library(&self.library);
+        let mut call = Call::new(&mut self.account, now, event_id);
         let answered = api::call(&mut call, method, request);
         let events = std::mem::take(&mut call.events);
         let response = match answered {
@@ -632,26 +615,6 @@ impl Store {
             .take_while(|e| e.seq <= confirmed)
             .find(|e| held.get(&e.seq) != Some(&e.id))
             .map(|e| e.seq))
-    }
-
-    /// Keep the library the server sent (a ListTemplateLibraryResponse).
-    /// Returns whether it differs from the one in use.
-    pub fn set_library(&mut self, packed: &[u8]) -> StoreResult<bool> {
-        let library = ListTemplateLibraryResponse::decode(packed)
-            .map_err(|e| format!("invalid_argument: {e}"))?
-            .templates;
-        if library == self.library {
-            return Ok(false);
-        }
-        self.conn
-            .execute(
-                "INSERT INTO library (id, blob) VALUES (1, ?)
-                 ON CONFLICT(id) DO UPDATE SET blob = excluded.blob",
-                [packed],
-            )
-            .map_err(storage)?;
-        self.library = library;
-        Ok(true)
     }
 
     /// A copy of the whole file at `dest`, with the readable tables
@@ -1249,48 +1212,6 @@ mod tests {
         let mut listed: Vec<String> = READABLE_TABLES.iter().map(|t| t.to_string()).collect();
         listed.sort();
         assert_eq!(created, listed);
-    }
-
-    fn home(store: &mut Store) -> GetHomeResponse {
-        let bytes = store
-            .call("GetHome", &GetHomeRequest::default().encode_to_vec(), 1_000)
-            .unwrap();
-        GetHomeResponse::decode(bytes.as_slice()).unwrap()
-    }
-
-    #[test]
-    fn the_servers_library_is_kept_and_coupled_templates_follow_it() {
-        let path = temp("library");
-        let mut store = Store::open(&path, U1, "").unwrap();
-        let coupled = onboard(&mut store)
-            .templates
-            .into_iter()
-            .find(|t| t.coupled)
-            .expect("a template that follows the library");
-        let mut library = schlift_core::template_library::library().to_vec();
-        let entry = library
-            .iter_mut()
-            .find(|e| e.id == coupled.library_id)
-            .unwrap();
-        entry.name = "Renamed by the server".into();
-        let packed = ListTemplateLibraryResponse {
-            templates: library.clone(),
-            ..Default::default()
-        }
-        .encode_to_vec();
-        assert!(store.set_library(&packed).unwrap(), "a change");
-        assert!(!store.set_library(&packed).unwrap(), "the same again");
-        drop(store);
-
-        // After a restart: the server's library, not the one built in.
-        let mut store = Store::open(&path, U1, "").unwrap();
-        assert_eq!(store.library, library);
-        let shown = home(&mut store)
-            .templates
-            .into_iter()
-            .find(|t| t.id == coupled.id)
-            .unwrap();
-        assert_eq!(shown.name, "Renamed by the server");
     }
 
     #[test]

@@ -12,11 +12,7 @@ import 'package:schlift/theme/app_theme.dart';
 import '../support/provider_harness.dart';
 
 /// The editor on [template] behind an OPEN button.
-Widget _opener(
-  ProviderHarness h,
-  WorkoutTemplate template, {
-  bool personalise = false,
-}) => MultiProvider(
+Widget _opener(ProviderHarness h, WorkoutTemplate template) => MultiProvider(
   providers: [
     ChangeNotifierProvider<WorkoutProvider>.value(value: h.provider),
     ChangeNotifierProvider.value(value: h.settings),
@@ -31,7 +27,6 @@ Widget _opener(
               context,
               template: template,
               provider: h.provider,
-              personalise: personalise,
             ),
             child: const Text('OPEN'),
           ),
@@ -53,7 +48,7 @@ Future<void> _settle(WidgetTester tester, bool Function() done) async {
 
 /// Dragging an exercise in the editor moves it, and SAVE keeps the order.
 void main() {
-  testWidgets('the rows read as Home, and Clone records nothing until Save', (
+  testWidgets('the rows read as Home, and nothing is recorded until Save', (
     tester,
   ) async {
     final h = (await tester.runAsync(() async {
@@ -63,9 +58,9 @@ void main() {
         libraryIds: ['stronglifts_a'],
       );
       await h.seedHistory({
-        Exercise.EXERCISE_SQUAT: (185, 5),
-        Exercise.EXERCISE_BENCH_PRESS: (135, 5),
-        Exercise.EXERCISE_BARBELL_ROW: (115, 5),
+        'squat': (185, 5),
+        'bench_press': (135, 5),
+        'barbell_row': (115, 5),
       });
       await h.provider.loadActiveWorkout('test');
       // Half an hour: three lifts share it, one alone gets all of it.
@@ -74,8 +69,7 @@ void main() {
     }))!;
     addTearDown(h.dispose);
     final template = h.provider.templates.single;
-    expect(template.coupled, isTrue);
-    await tester.pumpWidget(_opener(h, template, personalise: true));
+    await tester.pumpWidget(_opener(h, template));
     await tester.tap(find.text('OPEN'));
     await tester.pumpAndSettle();
 
@@ -90,24 +84,22 @@ void main() {
     expect(find.textContaining(line), findsOneWidget);
     // Not the squat on its own, which gets the whole half hour.
     final alone = planLine(
-      h.provider.planFor(Exercise.EXERCISE_SQUAT)!.decision,
+      h.provider.planFor('squat')!.decision,
       WeightUnit.WEIGHT_UNIT_LB,
     );
     expect(alone, isNot(line));
     expect(find.textContaining(alone), findsNothing);
 
-    // Backing out leaves it following the library.
+    // Backing out records nothing; Save, unchanged, keeps it as it was.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(h.provider.templates.single.coupled, isTrue);
-
-    // Save, unchanged, makes it the user's own.
+    expect(h.provider.templates.single, template);
     await tester.tap(find.text('OPEN'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
-    await _settle(tester, () => !h.provider.templates.single.coupled);
-    expect(h.provider.templates.single.coupled, isFalse);
+    await _settle(tester, () => find.text('Save').evaluate().isEmpty);
     expect(h.provider.templates.single.id, template.id);
+    expect(h.provider.templates.single.originLibraryId, 'stronglifts_a');
   });
 
   testWidgets('the override sheet needs a weight, and reads a comma', (
@@ -115,12 +107,12 @@ void main() {
   ) async {
     final h = (await tester.runAsync(() async {
       final h = await ProviderHarness.boot();
-      await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
+      await h.seedHistory({'squat': (185, 5)});
       await h.provider.loadActiveWorkout('test');
       return h;
     }))!;
     addTearDown(h.dispose);
-    final plan = h.provider.planFor(Exercise.EXERCISE_SQUAT)!;
+    final plan = h.provider.planFor('squat')!;
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -169,11 +161,8 @@ void main() {
     await tester.pump();
     expect(save().onPressed, isNotNull);
     await tester.tap(find.text('Save'));
-    await _settle(
-      tester,
-      () => h.provider.planFor(Exercise.EXERCISE_SQUAT)!.overridden,
-    );
-    final after = h.provider.planFor(Exercise.EXERCISE_SQUAT)!;
+    await _settle(tester, () => h.provider.planFor('squat')!.overridden);
+    final after = h.provider.planFor('squat')!;
     expect(after.overridden, isTrue);
     expect(after.decision.weight, closeTo(95, 0.01));
   });
@@ -183,11 +172,7 @@ void main() {
     addTearDown(h.dispose);
     final template = WorkoutTemplate(
       name: 'Mine',
-      exercises: [
-        Exercise.EXERCISE_SQUAT,
-        Exercise.EXERCISE_BENCH_PRESS,
-        Exercise.EXERCISE_BARBELL_ROW,
-      ],
+      exercises: ['squat', 'bench_press', 'barbell_row'],
     );
     await tester.pumpWidget(
       MultiProvider(
@@ -244,9 +229,9 @@ void main() {
       await tester.pump();
     }
     expect(h.provider.templates.single.exercises, [
-      Exercise.EXERCISE_BENCH_PRESS,
-      Exercise.EXERCISE_SQUAT,
-      Exercise.EXERCISE_BARBELL_ROW,
+      'bench_press',
+      'squat',
+      'barbell_row',
     ]);
   });
 }

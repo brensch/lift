@@ -34,14 +34,50 @@ use std::collections::HashMap;
 use schlift_core::account::{Account, CoreError};
 use schlift_core::api::{Call, View};
 use schlift_core::events::Event;
-use schlift_core::exercise_catalog::{
-    lift_class, progression_increment_lb, snap_weight_lb, LiftClass,
-};
 use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::*;
-use schlift_core::plan::{is_bodyweight, reps_covered, Planner, MAX_SETS, MIN_SETS};
+use schlift_core::plan::Planner;
+use schlift_core::program::{Program, ProgramRef};
 use schlift_core::weight_units::{kg_to_pounds, pounds_to_kg, AppWeightUnit};
-use schlift_core::workout::TOO_HEAVY_REPS;
+
+/// The program every scenario trains under: the built-in one.
+fn builtin() -> ProgramRef {
+    Program::builtin()
+}
+
+fn is_bodyweight(ex: &str) -> bool {
+    builtin().is_bodyweight(ex)
+}
+
+fn snap_weight_lb(ex: &str, weight: f32, unit: AppWeightUnit) -> f32 {
+    builtin().snap_lb(ex, weight, unit)
+}
+
+fn progression_increment_lb(ex: &str, unit: AppWeightUnit) -> f32 {
+    builtin().step_lb(ex, unit)
+}
+
+fn reps_covered(max: f32, weight: f32, sets: i32, bodyweight: bool) -> i32 {
+    builtin()
+        .estimate
+        .reps_covered(max, weight, sets, bodyweight)
+}
+
+fn starting_weight_lb(ex: &str, unit: AppWeightUnit) -> f32 {
+    builtin().opener_lb(ex, unit)
+}
+
+fn min_sets() -> i32 {
+    builtin().sets.min
+}
+
+fn max_sets() -> i32 {
+    builtin().sets.max
+}
+
+fn too_heavy_reps() -> i32 {
+    builtin().calibration.too_heavy_reps
+}
 
 const DAY: i64 = 24 * 3600;
 /// Monday 5 January 2026, 07:00 UTC: the first session of every scenario.
@@ -53,18 +89,8 @@ const UPDATE_ENV: &str = "UPDATE_SCENARIOS";
 /// Held this many sessions in a row with every rep hit is a stall.
 const STALL_SESSIONS: usize = 3;
 
-const A: [Exercise; 4] = [
-    Exercise::Squat,
-    Exercise::BarbellRow,
-    Exercise::BenchPress,
-    Exercise::LateralRaise,
-];
-const B: [Exercise; 4] = [
-    Exercise::Squat,
-    Exercise::OverheadPress,
-    Exercise::Deadlift,
-    Exercise::PullUp,
-];
+const A: [&str; 4] = ["squat", "barbell_row", "bench_press", "lateral_raise"];
+const B: [&str; 4] = ["squat", "overhead_press", "deadlift", "pull_up"];
 
 // ── The phone, minus storage ──
 
@@ -148,22 +174,22 @@ struct Session {
     gap_days: i64,
     note: String,
     /// Lifts removed before any set (the lifter skips them today).
-    skip: Vec<Exercise>,
+    skip: Vec<&'static str>,
     /// Each lift's last working set done this many reps short.
-    short: Vec<(Exercise, i32)>,
+    short: Vec<(&'static str, i32)>,
     /// Before this working set, the lifter lowers the weight by this
     /// fraction (snapped loadable) and does the rest at it.
-    lower: Option<(Exercise, usize, f32)>,
+    lower: Option<(&'static str, usize, f32)>,
     /// After this working set the lift is removed.
-    remove_after: Option<(Exercise, usize)>,
+    remove_after: Option<(&'static str, usize)>,
     /// After this working set the workout is ended.
-    end_after: Option<(Exercise, usize)>,
+    end_after: Option<(&'static str, usize)>,
     /// Overrides set in the template editor before the session.
     overrides: Vec<SetOverrideRequest>,
     /// Before a lift's first rung, the lifter types a weight to start the
     /// ramp from ("Test me from …"): this multiple of their true 5-rep max,
     /// snapped loadable.
-    open_at: Vec<(Exercise, f32)>,
+    open_at: Vec<(&'static str, f32)>,
 }
 
 struct Scenario {
@@ -175,7 +201,7 @@ struct Scenario {
     /// The lifter's true one-rep max per lift as a multiple of the starting
     /// weight the slider gave (or the catalog opener); it decides only how
     /// far up the calibration ramp the lifter gets.
-    strength_factor: fn(Exercise) -> f32,
+    strength_factor: fn(&str) -> f32,
     /// The lifter's rest after a working set, as a multiple of what the
     /// app asks for.
     rest_factor: f32,
@@ -204,8 +230,8 @@ fn alternating(n: usize, f: impl Fn(usize, &mut Session)) -> Vec<Session> {
 
 /// About as strong as the slider said; the lateral raise (no slider
 /// weight, a 20 lb opener) good for 30.
-fn even(ex: Exercise) -> f32 {
-    if ex == Exercise::LateralRaise {
+fn even(ex: &str) -> f32 {
+    if ex == "lateral_raise" {
         1.5
     } else {
         1.0
@@ -273,7 +299,7 @@ fn scenarios() -> Vec<Scenario> {
                     s.note = "back after seven weeks off".into();
                 }
                 if (6..12).contains(&i) && s.template_b {
-                    s.skip = vec![Exercise::Deadlift];
+                    s.skip = vec!["deadlift"];
                     s.note = if s.note.is_empty() {
                         "deadlift skipped".into()
                     } else {
@@ -293,9 +319,9 @@ fn scenarios() -> Vec<Scenario> {
             unit: WeightUnit::Lb,
             strength: 0.5,
             strength_factor: |ex| match ex {
-                Exercise::Squat => 1.6,
-                Exercise::BenchPress => 0.8,
-                Exercise::LateralRaise => 1.5,
+                "squat" => 1.6,
+                "bench_press" => 0.8,
+                "lateral_raise" => 1.5,
                 _ => 1.0,
             },
             rest_factor: 1.0,
@@ -319,7 +345,7 @@ fn scenarios() -> Vec<Scenario> {
             sessions: alternating(16, |i, s| {
                 if i == 6 {
                     s.overrides = vec![SetOverrideRequest {
-                        exercise: Exercise::BenchPress as i32,
+                        exercise: "bench_press".to_string(),
                         weight: 135.0,
                         reps: 8,
                         sets: None,
@@ -328,7 +354,7 @@ fn scenarios() -> Vec<Scenario> {
                 }
                 if i == 8 {
                     s.overrides = vec![SetOverrideRequest {
-                        exercise: Exercise::LateralRaise as i32,
+                        exercise: "lateral_raise".to_string(),
                         weight: 25.0,
                         reps: 12,
                         sets: Some(4),
@@ -352,7 +378,7 @@ fn scenarios() -> Vec<Scenario> {
             answers: Answers::Never,
             sessions: alternating(16, |i, s| {
                 if [4, 8, 12].contains(&i) {
-                    s.lower = Some((Exercise::Squat, 3, 0.15));
+                    s.lower = Some(("squat", 3, 0.15));
                     s.note = "squat lowered 15% after set 2".into();
                 }
             }),
@@ -372,15 +398,15 @@ fn scenarios() -> Vec<Scenario> {
             answers: Answers::Never,
             sessions: alternating(16, |i, s| match i {
                 3 => {
-                    s.end_after = Some((Exercise::OverheadPress, 1));
+                    s.end_after = Some(("overhead_press", 1));
                     s.note = "ended after one OHP set".into();
                 }
                 6 => {
-                    s.remove_after = Some((Exercise::BenchPress, 1));
+                    s.remove_after = Some(("bench_press", 1));
                     s.note = "bench removed after one set".into();
                 }
                 11 => {
-                    s.end_after = Some((Exercise::Squat, 99));
+                    s.end_after = Some(("squat", 99));
                     s.note = "ended after squat".into();
                 }
                 _ => {}
@@ -431,9 +457,9 @@ fn scenarios() -> Vec<Scenario> {
             unit: WeightUnit::Lb,
             strength: 0.5,
             strength_factor: |ex| match ex {
-                Exercise::Squat => 1.6,
-                Exercise::BenchPress => 0.8,
-                Exercise::LateralRaise => 1.5,
+                "squat" => 1.6,
+                "bench_press" => 0.8,
+                "lateral_raise" => 1.5,
                 _ => 1.0,
             },
             rest_factor: 1.0,
@@ -452,8 +478,8 @@ fn scenarios() -> Vec<Scenario> {
             unit: WeightUnit::Kg,
             strength: 0.5,
             strength_factor: |ex| match ex {
-                Exercise::Squat => 1.8,
-                Exercise::BenchPress => 1.3,
+                "squat" => 1.8,
+                "bench_press" => 1.3,
                 _ => 1.0,
             },
             rest_factor: 1.0,
@@ -477,11 +503,11 @@ fn scenarios() -> Vec<Scenario> {
             answers: Answers::Ranges,
             sessions: alternating(4, |i, s| {
                 if i == 0 {
-                    s.open_at = vec![(Exercise::Squat, 1.3), (Exercise::BenchPress, 1.15)];
+                    s.open_at = vec![("squat", 1.3), ("bench_press", 1.15)];
                     s.note = "ramp started too heavy: squat 130%, bench 115%".into();
                 }
                 if i == 1 {
-                    s.open_at = vec![(Exercise::OverheadPress, 1.45)];
+                    s.open_at = vec![("overhead_press", 1.45)];
                     s.note = "ramp started too heavy: OHP 145%".into();
                 }
             }),
@@ -610,19 +636,16 @@ impl J {
 
 // ── Running a scenario ──
 
-fn name(ex: Exercise) -> String {
-    ex.as_str_name()
-        .strip_prefix("EXERCISE_")
-        .unwrap_or(ex.as_str_name())
-        .to_string()
+/// The lift as the snapshot names it: its key in capitals.
+fn name(ex: &str) -> String {
+    ex.to_uppercase()
 }
 
-fn class_name(ex: Exercise) -> &'static str {
-    match lift_class(ex) {
-        LiftClass::Heavy => "heavy",
-        LiftClass::Standard => "standard",
-        LiftClass::Bodyweight => "bodyweight",
-    }
+fn class_name(ex: &str) -> String {
+    builtin()
+        .exercise(ex)
+        .map(|e| e.class.clone())
+        .unwrap_or_default()
 }
 
 fn reason_kind(kind: i32) -> PlanReasonKind {
@@ -647,15 +670,15 @@ fn reps_left_name(reps_left: i32) -> &'static str {
     }
 }
 
-/// Human name for an exercise, derived from the enum name — e.g.
-/// `EXERCISE_INCLINE_BENCH_PRESS` → `Incline Bench Press`. A few common
-/// lifts get their colloquial short forms.
-fn exercise_display_name(exercise: Exercise) -> String {
+/// Human name for an exercise, derived from its key — e.g.
+/// `incline_bench_press` → `Incline Bench Press`. A few common lifts get
+/// their colloquial short forms.
+fn exercise_display_name(exercise: &str) -> String {
     match exercise {
-        Exercise::OverheadPress => "OHP".to_string(),
-        Exercise::RomanianDeadlift => "RDL".to_string(),
-        Exercise::BulgarianSplitSquat => "BSS".to_string(),
-        other => prettify_exercise_name(other.as_str_name()),
+        "overhead_press" => "OHP".to_string(),
+        "romanian_deadlift" => "RDL".to_string(),
+        "bulgarian_split_squat" => "BSS".to_string(),
+        other => prettify_exercise_name(&other.to_uppercase()),
     }
 }
 
@@ -727,7 +750,7 @@ struct Flag {
     severity: Severity,
     kind: &'static str,
     session: usize,
-    exercise: Option<Exercise>,
+    exercise: Option<String>,
     detail: String,
 }
 
@@ -737,7 +760,10 @@ impl Flag {
             ("severity", s(self.severity.name())),
             ("kind", s(self.kind)),
             ("session", J::Int(self.session as i64)),
-            ("exercise", self.exercise.map_or(J::Null, |e| s(name(e)))),
+            (
+                "exercise",
+                self.exercise.as_ref().map_or(J::Null, |e| s(name(e))),
+            ),
             ("detail", s(self.detail.clone())),
         ])
     }
@@ -767,13 +793,13 @@ struct Runner<'a> {
     sc: &'a Scenario,
     app: App,
     templates: [String; 2],
-    starting: std::collections::BTreeMap<i32, f32>,
+    starting: std::collections::BTreeMap<String, f32>,
     /// Proposed set id → "session n, set k" for reasons that name a set.
     set_labels: HashMap<String, String>,
     workout_sessions: HashMap<String, usize>,
-    last: HashMap<i32, LastDone>,
+    last: HashMap<String, LastDone>,
     /// Sessions in a row each lift was held with every rep hit.
-    held: HashMap<i32, usize>,
+    held: HashMap<String, usize>,
     flags: Vec<Flag>,
 }
 
@@ -785,7 +811,6 @@ impl<'a> Runner<'a> {
                 unit: sc.unit as i32,
                 library_ids: vec!["stronglifts_a".into(), "stronglifts_b".into()],
                 strength: Some(sc.strength),
-                ..Default::default()
             })
         });
         let starting = app.account.starting_weights.clone();
@@ -794,20 +819,18 @@ impl<'a> Runner<'a> {
             .into_iter()
             .enumerate()
         {
-            let mut t = app
-                .account
-                .templates
-                .iter()
-                .find(|t| t.library_id == library_id)
-                .expect("onboarding copied it")
-                .clone();
-            t.exercises = lifts.iter().map(|e| *e as i32).collect();
+            let mut t = schlift_core::api::template_of(
+                app.account
+                    .program
+                    .workouts
+                    .iter()
+                    .find(|t| t.from_library == library_id)
+                    .expect("onboarding copied it"),
+            );
+            t.exercises = lifts.iter().map(|e| e.to_string()).collect();
             templates[slot] = t.id.clone();
             app.call(T0 - DAY + 60, |c| {
-                c.save_template(SaveTemplateRequest {
-                    template: Some(t),
-                    ..Default::default()
-                })
+                c.save_template(SaveTemplateRequest { template: Some(t) })
             });
         }
         Self {
@@ -836,7 +859,7 @@ impl<'a> Runner<'a> {
     }
 
     /// A max: a weight, or reps for a bodyweight lift.
-    fn m(&self, ex: Exercise, max: f32) -> J {
+    fn m(&self, ex: &str, max: f32) -> J {
         if is_bodyweight(ex) {
             num(max)
         } else {
@@ -844,7 +867,7 @@ impl<'a> Runner<'a> {
         }
     }
 
-    fn shown(&self, ex: Exercise, max: f32) -> String {
+    fn shown(&self, ex: &str, max: f32) -> String {
         match self.m(ex, max) {
             J::Num(x) if is_bodyweight(ex) => format!("{x} reps"),
             J::Num(x) => format!("{x} {}", self.unit_name()),
@@ -862,28 +885,29 @@ impl<'a> Runner<'a> {
     /// The reps the lifter manages on a calibration rung: what its true max
     /// allows at the weight (Epley), at most the rung's five, none at all
     /// when it is past the max.
-    fn rung_reps(&self, ex: Exercise, weight: f32, target: i32) -> i32 {
+    fn rung_reps(&self, ex: &str, weight: f32, target: i32) -> i32 {
         self.reps_possible(ex, weight).clamp(0, target)
     }
 
     /// The lifter's true one-rep max for `ex`, in pounds.
-    fn true_max(&self, ex: Exercise) -> f32 {
-        let base =
-            self.starting.get(&(ex as i32)).copied().unwrap_or_else(|| {
-                schlift_core::exercise_catalog::starting_weight_lb(ex, self.unit())
-            });
+    fn true_max(&self, ex: &str) -> f32 {
+        let base = self
+            .starting
+            .get(ex)
+            .copied()
+            .unwrap_or_else(|| starting_weight_lb(ex, self.unit()));
         base * (self.sc.strength_factor)(ex)
     }
 
     /// The most reps the lifter's true max allows at `weight` (Epley).
-    fn reps_possible(&self, ex: Exercise, weight: f32) -> i32 {
+    fn reps_possible(&self, ex: &str, weight: f32) -> i32 {
         (30.0 * (self.true_max(ex) / weight - 1.0) + 1e-3).floor() as i32
     }
 
     /// The specific jump the lifter types after a full rung at `weight`
     /// (`Answers::Jumps`), in pounds: none with 0–1 left, or when it
     /// rounds to nothing.
-    fn jump_lb(&self, ex: Exercise, weight: f32, reps: i32) -> Option<f32> {
+    fn jump_lb(&self, ex: &str, weight: f32, reps: i32) -> Option<f32> {
         if self.reps_possible(ex, weight) - reps <= 1 {
             return None;
         }
@@ -896,7 +920,7 @@ impl<'a> Runner<'a> {
     }
 
     /// What the lifter answers after a full rung of `reps` at `weight`.
-    fn reps_left(&self, ex: Exercise, weight: f32, reps: i32) -> RepsLeft {
+    fn reps_left(&self, ex: &str, weight: f32, reps: i32) -> RepsLeft {
         match self.reps_possible(ex, weight) - reps {
             ..=1 => RepsLeft::ZeroToOne,
             2..=4 => RepsLeft::TwoToFour,
@@ -923,7 +947,7 @@ impl<'a> Runner<'a> {
                 t = (t - (t - T0).rem_euclid(DAY)) + days * DAY;
             }
             for o in &session.overrides {
-                let o = *o;
+                let o = o.clone();
                 self.app.call(t - 3600, |c| c.set_override(o));
             }
             sessions_json.push(self.session(n, session, t));
@@ -936,11 +960,11 @@ impl<'a> Runner<'a> {
             self.sc.id
         );
         let lifts: Vec<J> = {
-            let mut all: Vec<Exercise> = A.to_vec();
+            let mut all: Vec<&str> = A.to_vec();
             all.extend(B.iter().filter(|e| !A.contains(e)));
             all.into_iter()
                 .map(|ex| {
-                    let r = schlift_core::exercise_catalog::rules(ex);
+                    let r = builtin().class_of(ex).clone();
                     J::Obj(vec![
                         ("exercise", s(name(ex))),
                         ("name", s(exercise_display_name(ex))),
@@ -950,9 +974,7 @@ impl<'a> Runner<'a> {
                         ("bodyweight", J::Bool(is_bodyweight(ex))),
                         (
                             "starting_weight",
-                            self.starting
-                                .get(&(ex as i32))
-                                .map_or(J::Null, |w| self.w(*w)),
+                            self.starting.get(ex).map_or(J::Null, |w| self.w(*w)),
                         ),
                     ])
                 })
@@ -997,19 +1019,19 @@ impl<'a> Runner<'a> {
                 t,
                 Mutation::RemoveExercise(RemoveExerciseRequest {
                     workout_id: id.clone(),
-                    exercise: ex as i32,
+                    exercise: ex.to_string(),
                 }),
             );
         }
-        let mut lowered: Option<Exercise> = None;
-        let mut opened: Vec<Exercise> = Vec::new();
+        let mut lowered: Option<String> = None;
+        let mut opened: Vec<String> = Vec::new();
         let mut ended = false;
         loop {
             let state = self.app.workout(t, &id);
             let Some(next) = state.next_up_set.clone() else {
                 break;
             };
-            let ex = Exercise::try_from(next.exercise).unwrap_or(Exercise::Unspecified);
+            let ex = next.exercise.as_str();
             let decision = decisions.iter().find(|d| d.exercise == next.exercise);
             let working = !next.warmup && !next.calibration;
             let done_working = state
@@ -1026,8 +1048,8 @@ impl<'a> Runner<'a> {
                 .count();
             let set_no = done_working + 1;
             let of = decision.map_or(0, |d| d.sets as usize);
-            if next.calibration && !opened.contains(&ex) {
-                opened.push(ex);
+            if next.calibration && !opened.iter().any(|o| o == ex) {
+                opened.push(ex.to_string());
                 if let Some((_, of_five)) = script.open_at.iter().find(|(e, _)| *e == ex) {
                     let five = self.true_max(ex) / (1.0 + 5.0 / 30.0);
                     let to = snap_weight_lb(ex, five * of_five, self.unit());
@@ -1036,7 +1058,7 @@ impl<'a> Runner<'a> {
                         t,
                         Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                             workout_id,
-                            exercise: ex as i32,
+                            exercise: ex.to_string(),
                             working_weight: to,
                             target_reps: 0,
                             ..Default::default()
@@ -1047,7 +1069,7 @@ impl<'a> Runner<'a> {
             }
             if working {
                 if let Some((lex, from, fraction)) = script.lower {
-                    if lex == ex && set_no == from && lowered != Some(ex) {
+                    if lex == ex && set_no == from && lowered.as_deref() != Some(ex) {
                         let to =
                             snap_weight_lb(ex, next.target_weight * (1.0 - fraction), self.unit());
                         let workout_id = id.clone();
@@ -1055,13 +1077,13 @@ impl<'a> Runner<'a> {
                             t,
                             Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                                 workout_id,
-                                exercise: ex as i32,
+                                exercise: ex.to_string(),
                                 working_weight: to,
                                 target_reps: 0,
                                 ..Default::default()
                             }),
                         );
-                        lowered = Some(ex);
+                        lowered = Some(ex.to_string());
                         continue;
                     }
                 }
@@ -1148,7 +1170,7 @@ impl<'a> Runner<'a> {
                         t + 10,
                         Mutation::RemoveExercise(RemoveExerciseRequest {
                             workout_id,
-                            exercise: ex as i32,
+                            exercise: ex.to_string(),
                         }),
                     );
                 }
@@ -1194,7 +1216,7 @@ impl<'a> Runner<'a> {
         let estimated: i32 = decisions.iter().map(|d| d.estimated_seconds).sum();
         let mut lifts = Vec::new();
         for d in decisions {
-            let ex = Exercise::try_from(d.exercise).unwrap_or(Exercise::Unspecified);
+            let ex = d.exercise.as_str();
             lifts.push(self.record_lift(ran, ex, d));
         }
         // The workout: over the budget only matters when the budget gave
@@ -1223,7 +1245,7 @@ impl<'a> Runner<'a> {
         }
         if over {
             let above_floor = decisions.iter().any(|d| {
-                d.sets > MIN_SETS && !self.app.account.overrides.contains_key(&d.exercise)
+                d.sets > min_sets() && !self.app.account.overrides.contains_key(&d.exercise)
             });
             self.flags.push(Flag {
                 severity: if above_floor {
@@ -1270,9 +1292,9 @@ impl<'a> Runner<'a> {
                 "costs",
                 J::Obj(vec![
                     ("set_seconds", num(costs.set_seconds)),
-                    ("rest_heavy", num(costs.rest_seconds[0])),
-                    ("rest_standard", num(costs.rest_seconds[1])),
-                    ("rest_bodyweight", num(costs.rest_seconds[2])),
+                    ("rest_heavy", num(costs.rest("heavy"))),
+                    ("rest_standard", num(costs.rest("standard"))),
+                    ("rest_bodyweight", num(costs.rest("bodyweight"))),
                     ("warmup_seconds", num(costs.warmup_seconds)),
                     ("between_seconds", num(costs.between_seconds)),
                 ]),
@@ -1281,7 +1303,7 @@ impl<'a> Runner<'a> {
         ])
     }
 
-    fn reason_json(&self, ex: Exercise, r: &PlanReason) -> J {
+    fn reason_json(&self, ex: &str, r: &PlanReason) -> J {
         let kind = reason_kind(r.kind);
         let versus = matches!(
             kind,
@@ -1359,7 +1381,7 @@ impl<'a> Runner<'a> {
         ])
     }
 
-    fn record_lift(&mut self, ran: &Ran, ex: Exercise, d: &ExerciseDecision) -> J {
+    fn record_lift(&mut self, ran: &Ran, ex: &str, d: &ExerciseDecision) -> J {
         let Ran {
             n,
             script,
@@ -1422,7 +1444,7 @@ impl<'a> Runner<'a> {
                         severity: Severity::Violation,
                         kind: "reps_out_of_range",
                         session: n,
-                        exercise: Some(ex),
+                        exercise: Some(ex.to_string()),
                         detail: format!(
                             "after the ramp: {} reps, outside {}–{}",
                             p.target_reps, d.rep_low, d.rep_high
@@ -1450,7 +1472,7 @@ impl<'a> Runner<'a> {
                 ("weight", self.w(c.actual_weight)),
                 ("hit", J::Bool(hit)),
             ];
-            if kind == "rung" && c.actual_reps < TOO_HEAVY_REPS {
+            if kind == "rung" && c.actual_reps < too_heavy_reps() {
                 fields.push(("too_heavy", J::Bool(true)));
             }
             if kind == "rung" && c.reps_left != RepsLeft::Unspecified as i32 {
@@ -1543,11 +1565,16 @@ impl<'a> Runner<'a> {
                 ),
             ));
         }
-        if !(MIN_SETS..=MAX_SETS).contains(&d.sets) && !fixed_sets {
+        if !(min_sets()..=max_sets()).contains(&d.sets) && !fixed_sets {
             found.push((
                 Severity::Violation,
                 "sets_out_of_range",
-                format!("{} sets planned, outside {MIN_SETS}–{MAX_SETS}", d.sets),
+                format!(
+                    "{} sets planned, outside {}–{}",
+                    d.sets,
+                    min_sets(),
+                    max_sets()
+                ),
             ));
         }
         let prev = self.last.get(&d.exercise).cloned().unwrap_or_default();
@@ -1626,7 +1653,7 @@ impl<'a> Runner<'a> {
                 severity,
                 kind,
                 session: n,
-                exercise: Some(ex),
+                exercise: Some(ex.to_string()),
                 detail,
             }));
         // Held with every rep done and nothing lowered: the max did not move
@@ -1642,14 +1669,14 @@ impl<'a> Runner<'a> {
             && undone == 0
             && !removed
             && !user_lowered;
-        let streak = self.held.entry(d.exercise).or_default();
+        let streak = self.held.entry(d.exercise.clone()).or_default();
         *streak = if held_clean { *streak + 1 } else { 0 };
         if *streak == STALL_SESSIONS {
             self.flags.push(Flag {
                 severity: Severity::Warning,
                 kind: "stalled",
                 session: n,
-                exercise: Some(ex),
+                exercise: Some(ex.to_string()),
                 detail: format!(
                     "{STALL_SESSIONS} sessions in a row of every rep hit, yet the max held at \
                      {} (this time {} × {} for {} sets): what the sets show never passes \
@@ -1663,7 +1690,7 @@ impl<'a> Runner<'a> {
         }
         if let Some(last) = working_weights.last() {
             self.last.insert(
-                d.exercise,
+                d.exercise.clone(),
                 LastDone {
                     weight: Some(*last),
                     lowered: user_lowered,
@@ -1742,7 +1769,7 @@ impl<'a> Runner<'a> {
                     .filter_map(|p| p.decision.as_ref())
                     .collect();
                 let over = plan.estimated_seconds > budget * 60;
-                if over && decisions.iter().any(|d| d.sets > MIN_SETS) {
+                if over && decisions.iter().any(|d| d.sets > min_sets()) {
                     self.flags.push(Flag {
                         severity: Severity::Violation,
                         kind: "over_budget",
@@ -1799,8 +1826,7 @@ impl<'a> Runner<'a> {
                             decisions
                                 .iter()
                                 .map(|d| {
-                                    let ex = Exercise::try_from(d.exercise)
-                                        .unwrap_or(Exercise::Unspecified);
+                                    let ex = d.exercise.as_str();
                                     J::Obj(vec![
                                         ("exercise", s(name(ex))),
                                         ("sets", J::Int(d.sets as i64)),
@@ -1949,7 +1975,7 @@ fn muscle(m: i32) -> String {
 /// the suggested template at 60 minutes and do every set as planned.
 fn rotation() -> RotationRun {
     use schlift_core::recovery::per_muscle_recovery;
-    use schlift_core::volume::{muscle_volume_7d, suggest_template};
+    use schlift_core::volume::{muscle_volume, suggest_template};
 
     let mut app = App::new("rotation");
     app.call(T0 - DAY, |c| {
@@ -1957,13 +1983,13 @@ fn rotation() -> RotationRun {
             unit: WeightUnit::Lb as i32,
             library_ids: ROTATION.iter().map(|s| s.to_string()).collect(),
             strength: Some(0.3),
-            ..Default::default()
         })
     });
     let starting = app.account.starting_weights.clone();
     let names: HashMap<String, String> = app
         .account
-        .templates
+        .program
+        .workouts
         .iter()
         .map(|t| (t.id.clone(), t.name.clone()))
         .collect();
@@ -1978,21 +2004,24 @@ fn rotation() -> RotationRun {
 
             // Each rotation template on its own: what it would score.
             let history = app.account.workouts.clone();
-            let volume = muscle_volume_7d(&history, at);
-            let recovery = per_muscle_recovery(&history);
+            let program = app.account.program.clone();
+            let volume = muscle_volume(&program, &history, at);
+            let recovery = per_muscle_recovery(&program, &history);
             let candidates = home
                 .templates
                 .iter()
                 .filter(|t| t.in_rotation)
                 .map(|t| {
-                    let alone = suggest_template(
-                        std::slice::from_ref(t),
-                        &volume,
-                        &recovery,
-                        at,
-                        &last_started,
-                    )
-                    .expect("a template in rotation is suggested alone");
+                    let only = program.with_workouts(
+                        program
+                            .workouts
+                            .iter()
+                            .filter(|w| w.id == t.id)
+                            .cloned()
+                            .collect(),
+                    );
+                    let alone = suggest_template(&only, &volume, &recovery, at, &last_started)
+                        .expect("a template in rotation is suggested alone");
                     let behind: Vec<MuscleGroup> = alone
                         .reason
                         .behind
@@ -2079,7 +2108,7 @@ fn lift_everything(
     app: &mut App,
     id: &str,
     start: i64,
-    starting: &std::collections::BTreeMap<i32, f32>,
+    starting: &std::collections::BTreeMap<String, f32>,
 ) -> (i64, usize) {
     let unit = app.unit();
     let mut t = start + 60;
@@ -2089,12 +2118,12 @@ fn lift_everything(
         let Some(next) = state.next_up_set.clone() else {
             break;
         };
-        let ex = Exercise::try_from(next.exercise).unwrap_or(Exercise::Unspecified);
+        let ex = next.exercise.as_str();
         let reps = if next.calibration {
             let base = starting
-                .get(&(ex as i32))
+                .get(ex)
                 .copied()
-                .unwrap_or_else(|| schlift_core::exercise_catalog::starting_weight_lb(ex, unit));
+                .unwrap_or_else(|| starting_weight_lb(ex, unit));
             ((30.0 * (base / next.target_weight - 1.0) + 1e-3).floor() as i32)
                 .clamp(1, next.target_reps)
         } else {

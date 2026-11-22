@@ -60,28 +60,11 @@ pub fn round_to_unit_increment(weight_lb: f32, unit: AppWeightUnit, step: f32) -
 // Generic plate math.
 //
 // Everything below is generic over a bar + plate *profile* expressed in a unit's
-// own scale. Adding a third unit tomorrow is a single new arm in `bar_weight`
-// and `plates` — no algorithm changes. Weights are stored canonically in pounds;
-// callers convert to the display unit (`AppWeightUnit::from_lb`) before snapping so the
-// result is a weight you can actually load in that unit, then convert back.
+// own scale: the program's (`program.equipment.plates`). Weights are stored
+// canonically in pounds; callers convert to the display unit
+// (`AppWeightUnit::from_lb`) before snapping so the result is a weight you can
+// actually load in that unit, then convert back.
 // ─────────────────────────────────────────────────────────────────────────────
-
-/// The empty-bar weight in the unit's own scale (45 lb / 20 kg).
-pub fn bar_weight(unit: AppWeightUnit) -> f32 {
-    match unit {
-        AppWeightUnit::Lb => 45.0,
-        AppWeightUnit::Kg => 20.0,
-    }
-}
-
-/// Available plate denominations, heaviest first, in the unit's own scale.
-/// Must mirror `standardPlates` in app/lib/logic/weight_units.dart.
-pub fn plates(unit: AppWeightUnit) -> &'static [f32] {
-    match unit {
-        AppWeightUnit::Lb => &[45.0, 35.0, 25.0, 10.0, 5.0, 2.5],
-        AppWeightUnit::Kg => &[25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 1.25],
-    }
-}
 
 /// The finest total weight you can add to the bar: two of the smallest plate
 /// (one per side). Loadable weights are exactly `bar + step * n`.
@@ -188,27 +171,29 @@ pub fn simplest_loadable_near(target: f32, bar: f32, plates: &[f32], min: f32, m
     best
 }
 
-/// Snap a stored pound weight to the nearest weight that is exactly loadable in
-/// the user's display unit, returned in pounds. This is the "snap to real
-/// values" primitive: display(this) is always a clean, loadable number.
-pub fn snap_loadable_lb(weight_lb: f32, unit: AppWeightUnit) -> f32 {
-    unit.to_lb(snap_loadable(
-        unit.from_lb(weight_lb),
-        bar_weight(unit),
-        plates(unit),
-    ))
-}
-
 #[cfg(test)]
 mod plate_math_tests {
     use super::*;
+    use crate::program::Program;
+
+    fn bar_weight(unit: AppWeightUnit) -> f32 {
+        Program::builtin().equipment.plates.bar(unit)
+    }
+
+    fn plates(unit: AppWeightUnit) -> Vec<f32> {
+        Program::builtin().equipment.plates.plates(unit).to_vec()
+    }
+
+    fn snap_loadable_lb(weight_lb: f32, unit: AppWeightUnit) -> f32 {
+        Program::builtin().snap_on_bar_lb(weight_lb, unit)
+    }
 
     const UNITS: [AppWeightUnit; 2] = [AppWeightUnit::Lb, AppWeightUnit::Kg];
 
     /// Display-unit sweep from the bar up to a heavy load, on the loadable grid.
     fn loadable_sweep(unit: AppWeightUnit) -> Vec<f32> {
         let bar = bar_weight(unit);
-        let step = loadable_step(plates(unit));
+        let step = loadable_step(&plates(unit));
         let mut out = Vec::new();
         let mut w = bar;
         while w <= bar + 300.0 {
@@ -220,14 +205,14 @@ mod plate_math_tests {
 
     #[test]
     fn loadable_step_is_two_smallest_plates() {
-        assert_eq!(loadable_step(plates(AppWeightUnit::Lb)), 5.0);
-        assert_eq!(loadable_step(plates(AppWeightUnit::Kg)), 2.5);
+        assert_eq!(loadable_step(&plates(AppWeightUnit::Lb)), 5.0);
+        assert_eq!(loadable_step(&plates(AppWeightUnit::Kg)), 2.5);
     }
 
     #[test]
     fn snap_lands_on_exactly_loadable_weights_in_both_units() {
         for unit in UNITS {
-            let (bar, pl) = (bar_weight(unit), plates(unit));
+            let (bar, pl) = (bar_weight(unit), &plates(unit)[..]);
             let step = loadable_step(pl);
             // Sweep off-grid targets; every snap must be exactly loadable.
             let mut t = bar;
@@ -248,7 +233,7 @@ mod plate_math_tests {
     #[test]
     fn plates_reconstruct_the_weight_minus_remainder() {
         for unit in UNITS {
-            let (bar, pl) = (bar_weight(unit), plates(unit));
+            let (bar, pl) = (bar_weight(unit), &plates(unit)[..]);
             for &w in &loadable_sweep(unit) {
                 let (used, rem) = plates_per_side(w, bar, pl);
                 let loaded = bar + used.iter().sum::<f32>() * 2.0;
@@ -272,7 +257,7 @@ mod plate_math_tests {
                 // Displaying the snapped pound value gives a clean loadable number.
                 let display = unit.from_lb(once);
                 assert!(
-                    plate_count_per_side(display, bar_weight(unit), plates(unit)).is_finite(),
+                    plate_count_per_side(display, bar_weight(unit), &plates(unit)).is_finite(),
                     "unit={unit:?} lb={lb} -> {once} lb displays as un-loadable {display}"
                 );
                 // Idempotent: snapping an already-snapped value is a no-op.
@@ -288,7 +273,7 @@ mod plate_math_tests {
     #[test]
     fn simplest_prefers_fewer_plates_and_stays_near_target() {
         for unit in UNITS {
-            let (bar, pl) = (bar_weight(unit), plates(unit));
+            let (bar, pl) = (bar_weight(unit), &plates(unit)[..]);
             let step = loadable_step(pl);
             let min = pl.last().copied().unwrap();
             let max = bar + 400.0;
@@ -319,14 +304,20 @@ mod plate_math_tests {
         // lb: 135 = bar + one 45/side (1 plate). A target of 137.5 (would snap to
         // 137.5 = 45+25+... no: 137.5-45=92.5/2=46.25 not loadable) — use a case
         // where the ±step neighbour is a single big plate.
-        let (bar, pl) = (bar_weight(AppWeightUnit::Lb), plates(AppWeightUnit::Lb));
+        let (bar, pl) = (
+            bar_weight(AppWeightUnit::Lb),
+            &plates(AppWeightUnit::Lb)[..],
+        );
         // 130 -> 45/side is 135 (one plate) vs 130 = 42.5/side (25+10+5+2.5 = 4).
         let simple = simplest_loadable_near(133.0, bar, pl, 5.0, 500.0);
         assert_eq!(simple, 135.0, "should prefer the single-45 load");
         assert_eq!(plate_count_per_side(135.0, bar, pl), 1.0);
 
         // kg: 22.5 -> one 1.25? no. 25 kg = bar+2.5/side (one 2.5) vs 22.5 = 1.25/side.
-        let (kbar, kpl) = (bar_weight(AppWeightUnit::Kg), plates(AppWeightUnit::Kg));
+        let (kbar, kpl) = (
+            bar_weight(AppWeightUnit::Kg),
+            &plates(AppWeightUnit::Kg)[..],
+        );
         let ks = simplest_loadable_near(24.0, kbar, kpl, 1.25, 300.0);
         assert_eq!(ks, 25.0);
         assert_eq!(plate_count_per_side(25.0, kbar, kpl), 1.0);

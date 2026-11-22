@@ -1,6 +1,8 @@
 //! Events already stored, on phones and the server, must keep reading the
 //! same. `testdata/stored_events.json` holds one of every fact, written by
-//! an earlier core; it is only ever added to. A field renamed or removed
+//! an earlier core; it is only ever added to. (It was made once from
+//! `stored_events_before_programs.json`, the facts from before programs,
+//! by `schlift_core::migrate`, which its own tests run on that file.) A field renamed or removed
 //! (in a fact, or in a message one holds) would be dropped on reading, and
 //! fails here; a field added is fine, taking its default.
 

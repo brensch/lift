@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package workout.v1;
+
+// ── Assistants: connected over MCP ──
+//
+// An assistant (an LLM client speaking MCP) reads the person's training and
+// sets their program at /api/mcp. It is connected the OAuth way: it
+// registers itself, sends the person to the website's /connect page with a
+// PKCE challenge, and the person, signed in with their passkey, allows it.
+// These RPCs are what that page and the app's "Connected assistants" use;
+// the OAuth endpoints themselves are plain HTTP (src/mcp).
+
+// A connection request, as /connect was opened with it.
+message ConnectRequest {
+  string client_id = 1;
+  string redirect_uri = 2;
+  // PKCE: base64url(SHA-256(verifier)). Only S256 is taken.
+  string code_challenge = 3;
+  string code_challenge_method = 4;
+  // Handed back on the redirect unchanged.
+  string state = 5;
+  string scope = 6;
+  // The resource the assistant asked for (RFC 8707); empty or this server's.
+  string resource = 7;
+}
+
+message DescribeConnectRequest {
+  ConnectRequest request = 1;
+}
+message DescribeConnectResponse {
+  // The name the assistant registered with: what the page shows.
+  string client_name = 1;
+  // Where it will be sent back to: the page shows its host.
+  string redirect_host = 2;
+  // What it may do once allowed, one line each.
+  repeated string can = 3;
+}
+
+// The signed-in person's answer.
+message AnswerConnectRequest {
+  ConnectRequest request = 1;
+  bool allow = 2;
+}
+message AnswerConnectResponse {
+  // Where the page sends the browser next: the assistant's redirect with a
+  // code (or, denied, access_denied) and the state.
+  string redirect_to = 1;
+}
+
+// One assistant the person has allowed.
+message AssistantGrant {
+  string grant_id = 1;
+  string client_name = 2;
+  int64 created_at = 3; // Unix seconds
+  // When it last used its access; 0 = never.
+  int64 last_used_at = 4;
+  string scope = 5;
+}
+
+message ListAssistantsRequest {}
+message ListAssistantsResponse {
+  repeated AssistantGrant grants = 1; // most recently used first
+}
+
+// Cut an assistant off: its tokens stop working at once.
+message RevokeAssistantRequest {
+  string grant_id = 1;
+}
+message RevokeAssistantResponse {}
+
+service AssistantService {
+  rpc DescribeConnect(DescribeConnectRequest) returns (DescribeConnectResponse);
+  rpc AnswerConnect(AnswerConnectRequest) returns (AnswerConnectResponse);
+  rpc ListAssistants(ListAssistantsRequest) returns (ListAssistantsResponse);
+  rpc RevokeAssistant(RevokeAssistantRequest) returns (RevokeAssistantResponse);
+}

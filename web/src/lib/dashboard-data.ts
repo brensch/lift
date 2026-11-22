@@ -64,8 +64,8 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
   }
 
   const exercises: ExerciseSeries[] = progress.exercises.map((ex) => ({
-    key: String(ex.exercise),
-    name: exerciseName(ex.exercise),
+    key: ex.exercise,
+    name: exerciseName(ex.exercise, ex.name),
     bodyweight: ex.bodyweight,
     points: ex.points.map((p) => ({
       dateS: Number(p.date),
@@ -90,7 +90,7 @@ export async function loadDashboardData(token: string): Promise<DashboardData> {
         durationS: Number(summary.durationSeconds),
         restingS: Number(summary.restingSeconds),
         volumeLb: summary.totalVolume,
-        topExercise: top ? exerciseName(top.exercise) : "—",
+        topExercise: top ? exerciseName(top.exercise, top.name) : "—",
         heaviestSetLb: top?.heaviestSetWeight ?? 0,
       };
     });

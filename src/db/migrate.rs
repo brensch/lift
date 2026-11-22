@@ -71,6 +71,22 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 6 {
+        let mut tx = pool.begin().await?;
+        v6(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 6")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
+    if version < 7 {
+        let mut tx = pool.begin().await?;
+        v7(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 7")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -412,6 +428,90 @@ async fn table_exists(tx: &mut Transaction<'_, Sqlite>, table: &str) -> DbResult
     Ok(found.is_some())
 }
 
+/// Programs: every account's events moved to the shapes they have now
+/// (`schlift_core::migrate`): exercises as the built-in program's keys, the
+/// template facts as one program, seqs from 1. Phones drop what they hold
+/// (the store's format moved on with it) and pull the moved log.
+async fn v6(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    let users: Vec<String> =
+        sqlx::query_scalar("SELECT DISTINCT user_id FROM account_events ORDER BY user_id")
+            .fetch_all(&mut **tx)
+            .await?;
+    for user_id in users {
+        let stored: Vec<String> =
+            sqlx::query_scalar("SELECT event FROM account_events WHERE user_id = ? ORDER BY seq")
+                .bind(&user_id)
+                .fetch_all(&mut **tx)
+                .await?;
+        let values: Vec<serde_json::Value> = stored
+            .iter()
+            .filter_map(|json| serde_json::from_str(json).ok())
+            .collect();
+        let moved = schlift_core::migrate::migrate(&values);
+        sqlx::query("DELETE FROM account_events WHERE user_id = ?")
+            .bind(&user_id)
+            .execute(&mut **tx)
+            .await?;
+        for event in &moved {
+            let json = serde_json::to_string(event).expect("an event serialises");
+            sqlx::query("INSERT INTO account_events (user_id, seq, id, event) VALUES (?, ?, ?, ?)")
+                .bind(&user_id)
+                .bind(event.seq)
+                .bind(&event.id)
+                .bind(json)
+                .execute(&mut **tx)
+                .await?;
+        }
+        tracing::info!(%user_id, before = stored.len(), after = moved.len(), "account moved to programs");
+    }
+    Ok(())
+}
+
+/// Assistants connected over MCP (`db/assistants.rs`): the clients that
+/// registered, the codes a consent issued, the grants made and their
+/// tokens, each code and token stored as its hash. (`IF NOT EXISTS`: a
+/// database rewound to an earlier version in a test runs it again.)
+async fn v7(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS assistant_clients (
+             client_id TEXT PRIMARY KEY,
+             client_name TEXT NOT NULL,
+             -- A JSON array of the exact redirect URIs it registered.
+             redirect_uris TEXT NOT NULL,
+             created_at INTEGER NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS assistant_codes (
+             code_hash TEXT PRIMARY KEY,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             client_id TEXT NOT NULL REFERENCES assistant_clients(client_id) ON DELETE CASCADE,
+             redirect_uri TEXT NOT NULL,
+             code_challenge TEXT NOT NULL,
+             scope TEXT NOT NULL,
+             expires_at INTEGER NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS assistant_grants (
+             grant_id TEXT PRIMARY KEY,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             client_id TEXT NOT NULL REFERENCES assistant_clients(client_id) ON DELETE CASCADE,
+             scope TEXT NOT NULL,
+             created_at INTEGER NOT NULL,
+             last_used_at INTEGER NOT NULL DEFAULT 0
+         );
+         CREATE INDEX IF NOT EXISTS assistant_grants_user ON assistant_grants(user_id);
+         CREATE TABLE IF NOT EXISTS assistant_tokens (
+             token_hash TEXT PRIMARY KEY,
+             grant_id TEXT NOT NULL REFERENCES assistant_grants(grant_id) ON DELETE CASCADE,
+             -- 'access' or 'refresh'.
+             kind TEXT NOT NULL,
+             expires_at INTEGER NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS assistant_tokens_grant ON assistant_tokens(grant_id);",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::ServerDb;
@@ -466,7 +566,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 5);
+        assert_eq!(version, 7);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();
@@ -651,5 +751,51 @@ mod tests {
                 .unwrap();
             assert_eq!(left, 0, "{gone} is still there");
         }
+    }
+
+    /// An account stored before programs moves: its events read as they
+    /// are now, its templates are its program's workouts, and its plans
+    /// come out of the fold.
+    #[tokio::test]
+    async fn accounts_move_to_programs() {
+        let dir = std::env::temp_dir().join(format!("lift-v6-{}", Uuid::new_v4()));
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        db.create_user_with_id("u1", "Lyss").await.unwrap();
+        let old: Vec<serde_json::Value> = serde_json::from_str(include_str!(
+            "../../core/tests/testdata/stored_events_before_programs.json"
+        ))
+        .unwrap();
+        for (n, event) in old.iter().enumerate() {
+            sqlx::query("INSERT INTO account_events (user_id, seq, id, event) VALUES (?, ?, ?, ?)")
+                .bind("u1")
+                .bind(n as i64 + 1)
+                .bind(event["id"].as_str().unwrap())
+                .bind(event.to_string())
+                .execute(&db.write_pool)
+                .await
+                .unwrap();
+        }
+        sqlx::query("PRAGMA user_version = 5")
+            .execute(&db.write_pool)
+            .await
+            .unwrap();
+        drop(db);
+
+        let db = ServerDb::new_in_dir(&dir).await.unwrap();
+        let account = db.read_account("u1", Clone::clone).await.unwrap();
+        assert!(!account.program.workouts.is_empty(), "the templates moved");
+        assert!(!account.workouts.is_empty());
+        let rows: Vec<(i64, String)> = sqlx::query_as(
+            "SELECT seq, event FROM account_events WHERE user_id = 'u1' ORDER BY seq",
+        )
+        .fetch_all(&db.read_pool)
+        .await
+        .unwrap();
+        assert!(rows
+            .iter()
+            .enumerate()
+            .all(|(n, (seq, _))| *seq == n as i64 + 1));
+        assert!(rows.iter().any(|(_, e)| e.contains("\"ProgramSet\"")));
+        assert!(!rows.iter().any(|(_, e)| e.contains("\"TemplateSaved\"")));
     }
 }

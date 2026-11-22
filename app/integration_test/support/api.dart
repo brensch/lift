@@ -166,7 +166,7 @@ class Peer {
       _read('GetHome', GetHomeRequest(), GetHomeResponse.fromBuffer);
 
   /// One exercise's plan (what the next workout gives it).
-  Future<ExercisePlan?> planFor(Exercise exercise) async {
+  Future<ExercisePlan?> planFor(String exercise) async {
     final response = await home();
     for (final plan in response.plans) {
       if (plan.decision.exercise == exercise) return plan;
@@ -177,7 +177,7 @@ class Peer {
   /// The user's own numbers for [exercise]: the next start gives it
   /// exactly these.
   Future<void> _setOverride(
-    Exercise exercise,
+    String exercise,
     double weight, {
     required int reps,
     required int sets,
@@ -197,7 +197,7 @@ class Peer {
   /// first.
   Future<void> startWorkout(
     String name,
-    Exercise exercise,
+    String exercise,
     double weight,
     int sets,
   ) async {
@@ -226,7 +226,7 @@ class Peer {
   /// to seed a peer's workout history.
   Future<void> doWorkout(
     String name,
-    List<MapEntry<Exercise, double>> lifts, {
+    List<MapEntry<String, double>> lifts, {
     int sets = 5,
     int reps = 5,
   }) async {
@@ -299,7 +299,7 @@ class Peer {
   /// Whether [exercise] has ever been performed (a session behind its
   /// plan). Before that, a loaded exercise opens with a calibration ramp
   /// instead of warmups + working sets.
-  Future<bool> hasPerformed(Exercise exercise) async {
+  Future<bool> hasPerformed(String exercise) async {
     final plan = await planFor(exercise);
     return plan != null && plan.lastPerformedAt > Int64.ZERO;
   }

@@ -1,9 +1,10 @@
 # Workout Lifecycle
 
 This is where most of the system's complexity lives. A workout goes from a
-*template* (an ordered exercise list) to an *active workout*, planned in
-full the moment it starts, to a *completed workout*, which the next plan
-reads.
+*template* (an ordered exercise list, one of the program's workouts) to an
+*active workout*, planned in full the moment it starts, to a *completed
+workout*, which the next plan reads. Every rule and number on this page is
+the account's program's; the figures given are the built-in program's.
 
 All of it runs in the core (`core/`) on the phone: each step is an event in
 the account's log, applied by `Account::apply` (`core/src/account.rs`), and
@@ -23,9 +24,77 @@ graph LR
 
 Nothing is stored between workouts but the workouts themselves (and the
 user's overrides). When a workout starts, `core/src/plan.rs` walks each
-lift's finished sessions to its estimated max and plans the lift from it,
-in the time the user has. The full rules, with their sources, are in
+lift's finished sessions to its estimated max and plans the lift from it
+by the lift's progression, in the time the user has. The estimated-max
+rules, with their sources, are in
 [`docs/plans/planned-at-start.md`](../plans/planned-at-start.md).
+
+## The program
+
+Every training rule is one JSON document the account holds, its
+**program** (schema `schlift.program/v1`; types in
+`core/src/program/mod.rs`):
+
+| Part | Holds |
+|---|---|
+| `exercises` | Each lift by its `key` (`squat`, `bench_press`, or one the program adds): names, equipment (one of five kinds), muscles (of the fixed ten, primary first), class, optionally its own progression, a description |
+| `workouts` | The templates, in the user's order: `id`, name, exercise keys, `rotation` (in the rotation or a reserve), notes, `from_library` |
+| `classes` | Per class: rep range, rest, warmups, the progression its lifts follow |
+| `progressions` | Named rules, each of a kind (below) |
+| `estimate`, `time_off`, `sets`, `costs`, `warmups`, `calibration`, `volume`, `recovery`, `rotation_check`, `end_of_exercise_rest_seconds`, `equipment` | Every number the planner reads: the Epley divisor and reserve, the time-off cuts, the budget's sets and costs, the warmup ladder, the ramp, weekly volume targets, recovery windows, the rotation check, steps, openers, bar and plates |
+
+What each field means is `core/programs/GUIDE.md`, written for whoever
+writes one (an assistant reads it with `read_guide`). The built-in program
+is `core/programs/default.json`, compiled in: every lift on
+`estimated_max`, no workouts. An account plans by it until a `ProgramSet`
+is recorded.
+
+**Progression kinds.** Every one is a pure function of the lift's finished
+sessions, its walked estimated max, the program and now; nothing is
+stored between workouts.
+
+| Kind | Sets | Reps and weight |
+|---|---|---|
+| `estimated_max` | the time budget | from the walked max in the class's rep range (below) |
+| `fixed` | given | given; never ramps |
+| `linear` | given, or the budget | fixed reps; a step (or `increment_lb`) heavier after every rep hit, the same after a miss, `deload_factor` of it after `deload_after_fails` misses in a row |
+| `double` | given, or the budget | reps climb one a session from `rep_low` to `rep_high` with every rep hit; past the top, a step heavier and back to `rep_low` |
+| `cycle` | per step | one step a session, round and round: sets × reps at a fraction of the max |
+| `formula` | an expression, or the budget | expressions over the last session, the max, days off and the like (`core/src/program/formula.rs`: deterministic f64, no loops, state, clock or I/O, limits on length and depth) |
+
+For every kind, a loaded lift never done runs the calibration ramp first
+(but `fixed`), a bodyweight one starts at the bottom of its range, and an
+override is the next session exactly, the rule carrying on from it. A
+rule that fails at plan time (a formula giving a non-finite or
+out-of-range number) falls back to `estimated_max` with a `FALLBACK`
+reason; a workout always starts.
+
+**Validation** (`core/src/program/validate.rs`). `check` takes the
+document alone: unknown fields are errors, names must resolve, numbers
+must be in range, formulas must parse and give sane results on sample
+histories. `validate_for_account` adds the account: a program may rename
+an exercise but not drop one the account has history, overrides or
+starting weights for. Each problem names its path
+(`progressions.squat_lp.reps`) and is an error or a warning; nothing with
+an error is recorded, and the server refuses a pushed `ProgramSet` that
+doesn't check out.
+
+**Who changes it.** The app's template editor, rotation drag, library
+adds and onboarding are edits to the program's workouts (`ProgramEdited`,
+applied to whatever program is current when it folds). Settings →
+Program resets it to the built-in rules, or goes back to an earlier
+program's, keeping the workouts and any of the program's own lifts they or
+the history name. An assistant sets a
+whole document over MCP (`ProgramSet`, author `mcp:<client>`), usually
+after `simulate_program` (`core/src/simulate.rs`: the draft over each
+recorded workout as of just before it, and forward N sessions through the
+same API the app uses, every set done as an assumed effort; nothing is
+recorded). See [local-first.md](local-first.md#the-program-in-the-log)
+and [backend.md](backend.md#mcp-assistants).
+
+**A workout keeps its program.** The start records `program_id` and the
+`rules` its sets are laid out by, so a program set later, or placed
+earlier by sync, never changes a workout already started.
 
 ## Objects
 
@@ -56,8 +125,10 @@ or a calibration ramp's first rung.
 ## Planning a workout
 
 `Planner` (`core/src/plan.rs`) gathers the account's history once and plans
-any number of lifts at one moment. It is pure: the same account, time and
-budget always give the same decisions.
+any number of lifts at one moment, by the account's current program. It is
+pure: the same program, history, time and budget always give the same
+decisions. Each decision names the progression it followed
+(`progression`, `progression_kind`).
 
 ### Each lift's estimated max
 
@@ -65,9 +136,10 @@ Every lift has an **estimated max**, the most the user could lift once (for
 a bodyweight lift a **rep max**, the most reps in one set). The **walk**
 works it out from the lift's finished sessions in order
 (`session_outcomes` in `core/src/exercise_progress.rs` reduces a workout to
-what each lift did). A set shows the Epley estimate with one rep in reserve
-when it hit its target (none when it fell short) and half a rep of fatigue
-for each set before it.
+what each lift did). A set shows the Epley estimate (`estimate`: divisor
+30) with one rep in reserve when it hit its target (none when it fell
+short) and half a rep of fatigue for each set before it. Every lift is
+walked, whatever its progression (`cycle` and `formula` read the max).
 
 | Session | The max after it |
 |---|---|
@@ -83,8 +155,8 @@ before the previous set's rest had run out is **rushed** (`rushed` on
 holds; every set was still done, so it is not stopping early. A lighter
 weight the user chose shows less than the max, so it holds it.
 
-**Time off** comes from the gap between sessions: 21 days or more since the
-lift was last done cuts the max to 90%, 42 or more to 80%. Inside the walk
+**Time off** comes from the gap between sessions (`time_off`): 21 days or
+more since the lift was last done cuts the max to 90%, 42 or more to 80%. Inside the walk
 it is the gap to the next session; at the start of a workout, the gap to
 now, recorded in the decision (`TIME_OFF`).
 
@@ -108,14 +180,15 @@ A bodyweight lift never done starts at the bottom of its range.
 | Standard | every other loaded lift | 8–12 | 2:00 | none |
 | Bodyweight | bodyweight lifts and core | 5–15 | 1:30 | none |
 
-(`lift_class` / `class_rules` in `core/src/exercise_catalog.rs`.)
+(The built-in program's `classes`; each exercise names its class.)
 
-**Sets come from the time budget** (60 minutes by default, changed in
-5-minute steps on Home before starting). Every lift gets 2 sets; then one
+**Sets come from the time budget** for a lift whose rule names none (the
+program's `sets`: 60 minutes by default, changed in 5-minute steps on Home
+before starting). Every lift gets 2 sets; then one
 set at a time, up to 5, to the lift whose primary muscle is furthest below
 10 hard sets this week counting the sets planned so far (ties to the
 earlier lift), until the lift that should get the next set doesn't fit
-(`allocate`). Sets an override names are kept as they are. If two sets
+(`allocate`). Sets a rule or an override names are kept as they are. If two sets
 each don't fit, Home says how long the workout needs instead.
 
 Each template plan also carries **the longest it gets** (`max_seconds`):
@@ -129,18 +202,20 @@ the card shows the calibration line (`copy.plan.calibration`) instead of
 the time control; the ramp is still costed as a lead-in for the other
 lifts' sets.
 
-What things cost (`Costs`): a working set 40 s plus its class's rest, a
+What things cost (`costs`, read into `Costs`): a working set 40 s plus its class's rest, a
 heavy lift's warmups 4 minutes, moving between lifts 2 minutes — or the
 user's own medians over the last four weeks once there are ten samples of a
 kind, learned from set timestamps. A lift's `estimated_seconds` is its own
 share: its sets, its warmups or ramp, and the move to it.
 
-**Reps and weight come from the max** (`choose`): stay at the last weight
+**Reps and weight**, under `estimated_max`, **come from the max** (`choose`): stay at the last weight
 for as many reps as the max covers there; past the top of the range, one
 weight step up; short of the bottom, the heaviest weight the max covers at
 the bottom; with no last weight (after the ramp, an override, time off),
-the heaviest weight the max covers at the bottom. Weights snap to what can
-be loaded (plate maths, the equipment's steps, never under the empty bar).
+the heaviest weight the max covers at the bottom. Other kinds give their
+own (above). Weights snap to what can be loaded (`core/src/program/loading.rs`:
+plate maths on the program's bar and plates, the equipment's steps, never
+under the empty bar).
 
 ### The decision and its reasons
 
@@ -173,13 +248,17 @@ applied:
 | `FIRST_TIME` | Never done: the ramp finds the max |
 | `USER_SET` | The user's own weight and reps, from when they set it |
 | `SETS_FROM_TIME` | This many sets: the budget, and which muscles are behind |
+| `RULE` | The lift follows a progression other than `estimated_max`: `rule` names it, `text` is its note |
+| `DELOAD` | `count` sessions in a row with a miss: the weight cut (`before`, `after`) |
+| `CYCLE_STEP` | A cycle's step `count` of `of`; `after` is the fraction of the max |
+| `FALLBACK` | The lift's rule couldn't plan it (`text` says why): planned from the estimated max instead |
 
 Screens lead with the comparison, so the line beside a weight says why
 that weight moved; a `HELD` max is not shown beside a weight that moved
 (`app/lib/logic/plan_text.dart`).
 
 Home, the template editor and the exercise page show the same decisions:
-`GetHome` plans every lift (`plans`, each lift on its own) and every
+`GetHome` plans every lift of the program (`plans`, each lift on its own) and every
 template (`template_plans`, with the workout's estimated length and the
 longest it gets) at now in
 the chosen budget, exactly as a start at that moment would record them.
@@ -188,8 +267,9 @@ The template editor plans the list on screen the same way
 
 ## Picking a workout: the rotation and the suggestion
 
-Every template is either in the **rotation**
-(`WorkoutTemplate.in_rotation`) or in the **reserves**.
+Every template (a workout of the program) is either in the **rotation**
+(`rotation` in the program, `WorkoutTemplate.in_rotation` in the API) or in
+the **reserves**.
 The workouts picked at onboarding start in rotation; a library template
 added from the Manage sheet goes into the rotation (`AddLibraryTemplates`
 with `in_rotation`; without it, in the reserves), and one the user makes
@@ -197,23 +277,24 @@ starts in the reserves. The template editor's switch and the Home card's
 menu move a template between the two through `SaveTemplate`; the Manage
 sheet's drag does it with the order in one `ReorderTemplates`
 (`rotation_count`: the first that many of the list are the rotation, the
-rest to the reserves). Either way a library template keeps following the
-library. Home shows the rotation's chips and the reserves', each in the
-user's order, under their own section labels.
+rest to the reserves). Each is recorded as a `ProgramEdited`. Home shows
+the rotation's chips and the reserves', each in the user's order, under
+their own section labels.
 
 `GetHome` suggests one rotation template (`core/src/volume.rs`,
 `suggest_template`), fresh each time from history, never stored:
 
 1. A muscle has **recovered** when its window has passed since the start
-   of the last workout that trained it (`core/src/recovery.rs`: 48 h for
+   of the last workout that trained it (`core/src/recovery.rs`, the
+   program's `recovery`: 48 h for
    chest, back, quads, hamstrings and glutes, 36 h for shoulders and arms,
    24 h for calves and core). Home's recovery chips read the same.
 2. A template whose first lift's primary muscle is still recovering is
    left out.
 3. A template's score is the sum, over its distinct primary muscles that
    have recovered, of how far each is below 10 hard
-   sets this week.
-4. Every template within 20% of the best score is tied. The tie goes to
+   sets this week (`volume.target_low`).
+4. Every template within 20% of the best score is tied (`volume.tie_fraction`). The tie goes to
    the template started least recently (never started first).
 5. When no template left in scores above 0, the suggestion is the one
    started least recently (the **fallback**). When every rotation
@@ -234,8 +315,9 @@ seldom comes within 20% of it and can go weeks unsuggested; the rotation
 check's overlap warning names a pair that shares most of its lifts.
 
 `GetHome` also checks the rotation (`core/src/rotation.rs`,
-`RotationCheck`): one lap of it, each template once at three working sets
-a lift, counted as the week is (primary 1.0, secondary 0.5). Three sets a
+`RotationCheck`, the program's `rotation_check`): one lap of it, each
+template once at three working sets a lift, counted as the week is
+(primary 1.0, secondary 0.5). Three sets a
 lift, not the planner's, so the check describes the rotation and not this
 week's history or budget. It warns of a **gap** (a muscle nothing in
 rotation trains) and an **overlap** (two templates sharing over 70% of the
@@ -262,7 +344,7 @@ sequenceDiagram
 
     App->>N: StartWorkout(template_id, budget_minutes)
     N->>N: Call::start_workout: exercises (the template's),<br/>Planner::workout → decisions
-    N->>A: record Event{start_workout + decisions}
+    N->>A: record Event{start_workout + decisions,<br/>program_id, rules}
     A->>A: apply: lay out each decision<br/>(warmup ladder, working sets, or a rung),<br/>start each lift's log, set active_workout_id
     N->>N: append the event to the file
     A-->>App: StartWorkoutResponse (sets, exercise_logs)
@@ -381,16 +463,20 @@ next (`FirstWorkout`, per account on the device).
 
 ### The calibration ramp
 
-A loaded lift never done is planned as a ramp (`decision.calibration`):
-one 5-rep rung (`ProposedSet.calibration = 1`) at 60% of its starting
-weight, never under the catalog opener. Its Done decides what is appended
+A loaded lift never done is planned as a ramp (`decision.calibration`),
+under any progression but `fixed`: one 5-rep rung
+(`ProposedSet.calibration = 1`) at 60% of its starting weight, never under
+the equipment's opener. The numbers are the program's `calibration`
+(`reps`, `start_fraction`, `rung_factor`, `max_rungs`, `too_heavy_reps`,
+`step_down`, `max_jump_fraction`, the three answers' reserves), as the
+workout's recorded `rules` have them. Its Done decides what is appended
 straight after it (`would_append`):
 
 - every rep → the next rung, about 10% heavier (at least one step),
   logged `CALIBRATION_STEP`;
-- too heavy, fewer than `TOO_HEAVY_REPS` (3) reps → not a max (0 reps
+- too heavy, fewer than `too_heavy_reps` (3) reps → not a max (0 reps
   would make the max the weight, 1–2 is a guess): the next rung
-  `CALIBRATION_STEP_DOWN` (0.8) of the weight lifted, snapped down to what
+  `step_down` (0.8) of the weight lifted, snapped down to what
   loads and at least one step lighter, never under the lightest load (the
   empty bar, or one step) and never back at or under the heaviest rung
   this ramp did in full (at least a step over it, so after a full rung it
@@ -429,7 +515,7 @@ counts as reps in reserve: 0–1 as 0.5, 2–4 as 3, 5+ as 8.
 - no answer (dismissed) → the usual rung stands.
 
 An answer carries exactly one of `reps_left` and `jump_lb`; both, neither,
-or a jump not over 0 or over twice the rung (`MAX_JUMP_FRACTION`) is a
+or a jump not over 0 or over twice the rung (`max_jump_fraction`) is a
 no-op, and the phone's button is off for those.
 
 An answer to any other set, or once the question is closed, is a no-op. A
@@ -556,15 +642,20 @@ reopens on the same set, synced or not.
 
 | Concern | File |
 |---|---|
-| The plan: the walk, time off, overrides, set allocation, reps and weight, reasons | `core/src/plan.rs` |
+| The program: its types, the built-in one, lookups (class, progression, muscles) | `core/src/program/mod.rs`, `core/programs/default.json` |
+| What a program means, field by field | `core/programs/GUIDE.md` |
+| Checking a program, with paths | `core/src/program/validate.rs` |
+| The formula language | `core/src/program/formula.rs` |
+| Plate snapping, steps, openers | `core/src/program/loading.rs` |
+| The plan: the walk, time off, overrides, each progression kind, set allocation, reasons | `core/src/plan.rs` |
+| A draft program over history and forward | `core/src/simulate.rs` |
 | What a session says about a lift (hit, missed, stopped early, rushed) | `core/src/exercise_progress.rs` |
-| Classes, muscles, plate snapping, steps | `core/src/exercise_catalog.rs` |
 | Laying out decisions, warmups, the ramp's appends, the per-exercise ops | `core/src/workout/planning.rs` |
 | State transitions, the weight log entries | `core/src/workout/reducer.rs` |
 | Next-up-set derivation | `core/src/progress.rs` |
 | Weekly hard sets per muscle, the suggestion | `core/src/volume.rs` |
 | Per-muscle recovery windows | `core/src/recovery.rs` |
 | The rotation check | `core/src/rotation.rs` |
-| Events, start, add, end, overrides | `core/src/account.rs` |
+| Events, start, add, end, overrides, programs set and edited | `core/src/account.rs` |
 | The RPCs the app calls; Home's plans | `core/src/api.rs` |
 | Showing it | `app/lib/providers/workout_provider.dart` (no rules) |
