@@ -425,6 +425,16 @@ class CopyProgram {
   final String neverUsed;
   final String revoke;
   final String revokeFailed;
+  final String documentHeading;
+  final String copy;
+  final String copied;
+  final String current;
+  final String use;
+  final String useTitle;
+  final String useBody;
+  final String useConfirm;
+  final String useFailed;
+  final String loadFailed;
   const CopyProgram({
     required this.title,
     required this.setBy,
@@ -448,6 +458,16 @@ class CopyProgram {
     required this.neverUsed,
     required this.revoke,
     required this.revokeFailed,
+    required this.documentHeading,
+    required this.copy,
+    required this.copied,
+    required this.current,
+    required this.use,
+    required this.useTitle,
+    required this.useBody,
+    required this.useConfirm,
+    required this.useFailed,
+    required this.loadFailed,
   });
 }
 
@@ -2329,6 +2349,17 @@ const copy = Copy(
     neverUsed: 'Not used yet',
     revoke: 'Revoke',
     revokeFailed: 'Couldn\'t revoke it.',
+    documentHeading: 'The document',
+    copy: 'Copy',
+    copied: 'Copied',
+    current: 'In use now',
+    use: 'Go back to these rules',
+    useTitle: 'Go back to these rules?',
+    useBody:
+        'Your workouts stay as they are. How each lift progresses goes back to this program\'s rules.',
+    useConfirm: 'Go back',
+    useFailed: 'Couldn\'t go back to it.',
+    loadFailed: 'Couldn\'t open it.',
   ),
   profileMarker: CopyProfileMarker(
     title: 'Profile Marker',

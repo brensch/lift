@@ -915,6 +915,18 @@ program:
   never_used: Not used yet
   revoke: Revoke
   revoke_failed: Couldn't revoke it.
+  # One program, opened: its note and the document itself.
+  document_heading: The document
+  copy: Copy
+  copied: Copied
+  current: In use now
+  # An earlier one: its rules again, the workouts as they are now.
+  use: Go back to these rules
+  use_title: Go back to these rules?
+  use_body: Your workouts stay as they are. How each lift progresses goes back to this program's rules.
+  use_confirm: Go back
+  use_failed: Couldn't go back to it.
+  load_failed: Couldn't open it.
 
 # Settings → Profile Marker: the emoji and colour that mark you in group
 # workouts. Placeholders.

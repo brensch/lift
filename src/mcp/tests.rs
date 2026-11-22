@@ -213,6 +213,7 @@ async fn an_assistant_connects_and_sets_a_program() {
         [
             "read_guide",
             "get_program",
+            "get_earlier_program",
             "get_profile",
             "get_history",
             "validate_program",
@@ -273,6 +274,26 @@ async fn an_assistant_connects_and_sets_a_program() {
     let account = mcp.db.read_account("u1", Clone::clone).await.unwrap();
     assert_eq!(account.program.name, "From Claude");
     assert_eq!(account.programs.last().unwrap().author, "mcp:Claude");
+    // Set again, the first is earlier, and opens by its id.
+    let (_, _, again) = send(
+        &mcp,
+        call(
+            "set_program",
+            json!({ "program": program, "note": "Again" }),
+        ),
+    )
+    .await;
+    assert_eq!(structured(&again)["set"], true, "{again}");
+    let (_, _, now) = send(&mcp, call("get_program", json!({}))).await;
+    let earlier = structured(&now)["earlier"][0]["id"].clone();
+    assert!(earlier.is_string(), "{now}");
+    let (_, _, opened) = send(&mcp, call("get_earlier_program", json!({ "id": earlier }))).await;
+    assert_eq!(
+        structured(&opened)["program"]["schema"],
+        "schlift.program/v1"
+    );
+    let (_, _, missing) = send(&mcp, call("get_earlier_program", json!({ "id": "nope" }))).await;
+    assert_eq!(missing["result"]["isError"], true);
     let (_, _, profile) = send(&mcp, call("get_profile", json!({}))).await;
     assert_eq!(structured(&profile)["program"]["name"], "From Claude");
     let (_, _, history) = send(&mcp, call("get_history", json!({ "limit": 5 }))).await;

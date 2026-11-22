@@ -2796,11 +2796,14 @@ final $typed_data.Uint8List setProgramResponseDescriptor = $convert.base64Decode
 @$core.Deprecated('Use resetProgramRequestDescriptor instead')
 const ResetProgramRequest$json = {
   '1': 'ResetProgramRequest',
+  '2': [
+    {'1': 'to', '3': 1, '4': 1, '5': 9, '10': 'to'},
+  ],
 };
 
 /// Descriptor for `ResetProgramRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List resetProgramRequestDescriptor =
-    $convert.base64Decode('ChNSZXNldFByb2dyYW1SZXF1ZXN0');
+final $typed_data.Uint8List resetProgramRequestDescriptor = $convert
+    .base64Decode('ChNSZXNldFByb2dyYW1SZXF1ZXN0Eg4KAnRvGAEgASgJUgJ0bw==');
 
 @$core.Deprecated('Use resetProgramResponseDescriptor instead')
 const ResetProgramResponse$json = {

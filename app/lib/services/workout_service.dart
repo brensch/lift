@@ -141,10 +141,18 @@ class WorkoutServiceWrapper {
   Future<GetProgramResponse> getProgram() =>
       _call('GetProgram', GetProgramRequest(), GetProgramResponse.fromBuffer);
 
-  /// Back to the built-in rules, the workouts kept.
-  Future<void> resetProgram() => _call(
+  /// One earlier program, its document included.
+  Future<GetProgramVersionResponse> getProgramVersion(String id) => _call(
+    'GetProgramVersion',
+    GetProgramVersionRequest(id: id),
+    GetProgramVersionResponse.fromBuffer,
+  );
+
+  /// Back to the built-in rules, or to the earlier program [to]'s, the
+  /// workouts as they are now kept.
+  Future<void> resetProgram({String to = ''}) => _call(
     'ResetProgram',
-    ResetProgramRequest(),
+    ResetProgramRequest(to: to),
     ResetProgramResponse.fromBuffer,
   );
 

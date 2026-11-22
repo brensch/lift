@@ -8133,9 +8133,16 @@ class SetProgramResponse extends $pb.GeneratedMessage {
   ProgramSummary ensureSummary() => $_ensure(1);
 }
 
-/// Back to the built-in rules, the workouts kept.
+/// Back to the built-in rules, or an earlier program's, the workouts as
+/// they are now kept.
 class ResetProgramRequest extends $pb.GeneratedMessage {
-  factory ResetProgramRequest() => create();
+  factory ResetProgramRequest({
+    $core.String? to,
+  }) {
+    final result = create();
+    if (to != null) result.to = to;
+    return result;
+  }
 
   ResetProgramRequest._();
 
@@ -8150,6 +8157,7 @@ class ResetProgramRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'ResetProgramRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'to')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -8170,6 +8178,17 @@ class ResetProgramRequest extends $pb.GeneratedMessage {
   static ResetProgramRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ResetProgramRequest>(create);
   static ResetProgramRequest? _defaultInstance;
+
+  /// An earlier program's id (from GetProgramResponse.history); empty for
+  /// the built-in rules.
+  @$pb.TagNumber(1)
+  $core.String get to => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set to($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTo() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTo() => $_clearField(1);
 }
 
 class ResetProgramResponse extends $pb.GeneratedMessage {

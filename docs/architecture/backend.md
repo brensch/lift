@@ -287,6 +287,7 @@ The tools (`mcp/tools.rs`):
 |---|---|
 | `read_guide` | `core/programs/GUIDE.md`: what a program is, every field |
 | `get_program` | The current document, who set it and why, the earlier ones |
+| `get_earlier_program` | One earlier program's document (`GetProgramVersion`) |
 | `get_profile` | Unit, the workouts and the rotation's suggestion, starting weights, overrides, this week's volume, what is recovering, and per lift its estimated max, last session and next plan |
 | `get_history` | Finished workouts, each lift's planned and done sets (by lift, since, limit) |
 | `validate_program` | A draft's problems, each with its path |

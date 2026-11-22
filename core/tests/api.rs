@@ -3862,7 +3862,9 @@ mod programs {
         assert_eq!(before.len(), 2);
         assert_eq!(before[0].1, 45);
         // Back to the built-in rules mid-workout.
-        app.call().reset_program(ResetProgramRequest {}).unwrap();
+        app.call()
+            .reset_program(ResetProgramRequest::default())
+            .unwrap();
         let after = app
             .view()
             .get_workout(GetWorkoutRequest {
@@ -3896,7 +3898,7 @@ mod programs {
         assert!(!app.view().program_summary().builtin_rules);
         let summary = app
             .call()
-            .reset_program(ResetProgramRequest {})
+            .reset_program(ResetProgramRequest::default())
             .unwrap()
             .summary
             .unwrap();
@@ -3911,6 +3913,45 @@ mod programs {
             plan(&app, "zercher_squat").progression_kind,
             "estimated_max"
         );
+    }
+
+    /// Back to an earlier program: its rules, today's workouts.
+    #[test]
+    fn going_back_to_an_earlier_program_keeps_todays_workouts() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let mut linear = with_linear(current(&app));
+        linear.name = "Linear".into();
+        set(&mut app, &linear, "mcp:test");
+        let earlier = app.view().program_summary().id;
+        let mut later = current(&app);
+        later.progressions.clear();
+        for e in later.exercises.iter_mut() {
+            e.progression = None;
+        }
+        later.warmups.rest_seconds = 45;
+        set(&mut app, &later, "mcp:test");
+        let workouts = app.account.program.workouts.clone();
+        let summary = app
+            .call()
+            .reset_program(ResetProgramRequest {
+                to: earlier.clone(),
+            })
+            .unwrap()
+            .summary
+            .unwrap();
+        assert_eq!(summary.author, "app");
+        assert_eq!(summary.note, "Back to Linear");
+        assert!(!summary.builtin_rules);
+        let program = &app.account.program;
+        assert_eq!(program.workouts, workouts);
+        assert!(program.progressions.contains_key("lp"));
+        assert_ne!(program.warmups.rest_seconds, 45);
+        assert!(matches!(
+            app.call()
+                .reset_program(ResetProgramRequest { to: "nope".into() }),
+            Err(CoreError::NotFound(_))
+        ));
     }
 
     /// The simulator: forward under linear, a step a session while every

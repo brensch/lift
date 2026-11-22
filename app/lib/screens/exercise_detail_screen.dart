@@ -101,6 +101,20 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     final cs = Theme.of(context).colorScheme;
     final unit = context.watch<SettingsProvider>().weightUnit;
     final name = exerciseName(widget.exercise);
+    // The program's words on how to do it: for a lift it adds, the only
+    // guide there is.
+    final description = ExerciseCatalog.of(widget.exercise)?.description ?? '';
+    final about = description.isEmpty
+        ? null
+        : FlatSection(
+            child: Text(
+              description,
+              style: TextStyle(
+                fontSize: context.tokens.size.body,
+                color: cs.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          );
 
     Widget scaffold(Widget body) => Scaffold(
       appBar: AppBar(title: PageTitle(name)),
@@ -112,13 +126,18 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     }
     final sessions = _sessions ?? [];
     if (sessions.isEmpty) {
+      final empty = Center(
+        child: Text(copy.exercise.empty, style: TextStyle(color: cs.tertiary)),
+      );
       return scaffold(
-        Center(
-          child: Text(
-            copy.exercise.empty,
-            style: TextStyle(color: cs.tertiary),
-          ),
-        ),
+        about == null
+            ? empty
+            : Column(
+                children: [
+                  about,
+                  Expanded(child: empty),
+                ],
+              ),
       );
     }
 
@@ -134,6 +153,7 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen>
     final totalSets = inSpan.fold<int>(0, (a, s) => a + s.sets);
 
     final header = <Widget>[
+      ?about,
       // Headline: the estimated max now, and the heaviest set last time,
       // in the chart's colours.
       FlatSection(

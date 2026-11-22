@@ -125,7 +125,7 @@ The program's RPCs are core-only (the phone and the server's MCP tools call
 them; no gRPC service exposes them): `GetProgram` (the current program's
 summary and JSON, the earlier ones, the guide), `GetProgramVersion` (one
 earlier document), `SetProgram` (validate against the account, then record
-`ProgramSet`), `ResetProgram` (the built-in rules with the current workouts
+`ProgramSet`), `ResetProgram` (the built-in rules, or with `to` an earlier program's, with the current workouts
 and any of the program's own lifts they or the history name),
 `ValidateProgram` (a draft's problems, each with its path),
 `SimulateProgram` (`core/src/simulate.rs`: a draft run over the recorded

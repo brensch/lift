@@ -10,8 +10,8 @@ use super::Mcp;
 use schlift_core::account::Account;
 use schlift_core::api::{Call, View};
 use schlift_core::pb::{
-    ExerciseDecision, MuscleGroup, PlanReasonKind, SetProgramRequest, SimulateProgramRequest,
-    SimulatedEffort, ValidateProgramRequest,
+    ExerciseDecision, GetProgramVersionRequest, MuscleGroup, PlanReasonKind, SetProgramRequest,
+    SimulateProgramRequest, SimulatedEffort, ValidateProgramRequest,
 };
 use schlift_core::plan::Planner;
 use schlift_core::program::GUIDE;
@@ -64,6 +64,15 @@ pub fn list() -> Vec<Value> {
             "title": "Get the program",
             "description": "The person's current program document, who set it and why, and the programs set before it.",
             "inputSchema": schema(json!({}), &[]),
+            "annotations": { "readOnlyHint": true },
+        }),
+        json!({
+            "name": "get_earlier_program",
+            "title": "Get an earlier program",
+            "description": "One of the programs set before the current one (an id from get_program's `earlier`): its document, who set it and why. To go back to it, set it again with set_program, keeping today's workouts.",
+            "inputSchema": schema(json!({
+                "id": { "type": "string", "description": "The earlier program's id" }
+            }), &["id"]),
             "annotations": { "readOnlyHint": true },
         }),
         json!({
@@ -215,6 +224,30 @@ pub async fn call(
             Ok(text(&json!({
                 "current": got.summary.as_ref().map(summary),
                 "earlier": got.history.iter().map(summary).collect::<Vec<_>>(),
+                "program": program,
+            })))
+        }
+        "get_earlier_program" => {
+            let id = arguments
+                .get("id")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let got = mcp
+                .db
+                .read_account(user_id, move |a| {
+                    View::new(a, now).get_program_version(GetProgramVersionRequest { id })
+                })
+                .await?
+                .map_err(|_| Failure::Tool("No earlier program has that id".into()))?;
+            let s = got.summary.unwrap_or_default();
+            let program: Value = serde_json::from_str(&got.program_json).unwrap_or(Value::Null);
+            Ok(text(&json!({
+                "id": s.id,
+                "name": s.name,
+                "author": s.author,
+                "note": s.note,
+                "set_on": date(s.set_at),
                 "program": program,
             })))
         }

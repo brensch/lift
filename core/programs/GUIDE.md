@@ -30,7 +30,8 @@ reverted.
    sessions under an assumption ("every rep hit", "the last set one rep
    short"). Read the numbers. Do they progress the way you meant?
 5. Set it (`set_program`) with a one-line `note` saying why. The person
-   sees the note.
+   sees the note. To go back to an earlier program, open it
+   (`get_earlier_program`) and set it again with today's `workouts`.
 
 All weights are in **pounds**, whatever unit the person lifts in. The app
 converts for display, and every planned weight is snapped to what their

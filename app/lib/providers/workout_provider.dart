@@ -683,9 +683,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The program: who set it and why, and the ones before it.
   Future<GetProgramResponse> getProgram() => _service.getProgram();
 
-  /// Back to the built-in rules, the workouts kept.
-  Future<void> resetProgram() async {
-    await _service.resetProgram();
+  /// One earlier program, its document included.
+  Future<GetProgramVersionResponse> getProgramVersion(String id) =>
+      _service.getProgramVersion(id);
+
+  /// Back to the built-in rules, or to the earlier program [to]'s, the
+  /// workouts as they are now kept.
+  Future<void> resetProgram({String to = ''}) async {
+    await _service.resetProgram(to: to);
     await refreshHome();
   }
 
