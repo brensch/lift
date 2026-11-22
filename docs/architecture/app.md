@@ -3,7 +3,7 @@
 `app/lib/` is a Provider-based Flutter app targeting iOS and Android, with
 companion apps for Wear OS and Apple Watch. The account lives on the phone:
 the Rust core runs inside the app (`app/native`) and answers every workout,
-template and settings call locally. See [local-first.md](local-first.md).
+template, program and settings call locally. See [local-first.md](local-first.md).
 
 ## Layers
 
@@ -32,8 +32,8 @@ graph TD
 The rules that matter:
 
 - **No domain rules in Dart.** The plan (every lift's sets, reps, weight
-  and reasons), the set state machine, summaries, volume and the home's
-  suggestion are the core's. A provider makes one call and shows the
+  and reasons), the set state machine, summaries, volume, the home's
+  suggestion and the exercises themselves (the program's) are the core's. A provider makes one call and shows the
   answer; Dart only words the reasons (`logic/plan_text.dart`) and the
   suggestion's reason, the rotation check's warnings and what a workout
   would add (`logic/rotation_text.dart`).
@@ -132,11 +132,11 @@ the next state itself.
 
 ## Transport
 
-The server is for sync, auth, multiplayer, the profile and analytics:
+The server is for sync, auth, multiplayer, the profile, connected assistants and analytics:
 
 ```mermaid
 graph LR
-    prov["AccountSync, MultiplayerProvider,<br/>AuthProvider, PageTracker"] --> wrap["SyncServiceClient, MultiplayerServiceWrapper,<br/>UserServiceWrapper, AuthService"]
+    prov["AccountSync, MultiplayerProvider,<br/>AuthProvider, PageTracker, ProgramScreen"] --> wrap["SyncServiceClient, MultiplayerServiceWrapper,<br/>UserServiceWrapper, AuthService, AssistantService"]
     wrap --> gc["GrpcClient"]
     gc --> ai["AuthInterceptor<br/>attaches bearer token"]
     gc --> li["LoggingInterceptor<br/>AppLogger"]
@@ -191,6 +191,7 @@ graph TD
     settings --> plates["PlateColorsScreen"]
     settings --> data["YourDataScreen<br/>export, import"]
     settings --> passkeys["PasskeysScreen"]
+    settings --> program["ProgramScreen<br/>the program, connected assistants"]
 ```
 
 **One stack.** Inside `MainLayout` there is one page at the bottom: `/`
@@ -205,11 +206,25 @@ bottom bar, so it stays under every pushed page.
 
 `OnboardingScreen` is five steps (marker, unit, the chick-to-gorilla
 strength slider, optional bodyweight for calories, templates) ending in
-`CompleteOnboarding`. The app sends the slider's strength; the core records
-the starting weights it picks on the event, with the chosen library
-templates. A lift never done calibrates from its starting weight. An
-account counts as onboarded once it has any templates or workouts
-(`GetHomeResponse.onboarded`).
+`CompleteOnboarding`. The app sends the slider's strength and the chosen
+library ids; the core records the starting weights it picks on the event,
+with copies of the chosen library workouts, which join the program when it
+has none yet. A lift never done calibrates from its starting weight. An
+account counts as onboarded once it has onboarded, or has any templates
+or workouts (`GetHomeResponse.onboarded`).
+
+### Exercises
+
+The app has no list of exercises: they are the program's, by key.
+`ExerciseCatalog` (`logic/exercises.dart`) is filled from the core's
+`ListExercises` each time Home is read (`WorkoutServiceWrapper.getHome`,
+so it follows a program set from anywhere), and learns any lift a workout
+response or a session partner's status names (`exercises`, the lifts as
+the program that workout was planned under defines them). A key nothing
+names is shown made readable (`zercher_squat` → "Zercher Squat"). The
+picker's body-part filters come from each lift's muscles. Pictures are
+keyed by the same string (`widgets/exercise_art/registry.dart`); a lift
+without one, such as one a program adds, gets a generic standing figure.
 
 ### Plans on screen
 
@@ -219,12 +234,13 @@ Every screen shows the core's decisions, never its own numbers:
 |---|---|---|
 | Home | the chips in three groups, each under a section label: the rotation (☆ on the suggestion; a one-line hint instead when it is empty), the reserves (its workouts, then the Empty workout), and a line with New and Manage; the weekly volume; under the suggested template's name, why (its rested muscles behind, what is still recovering, or that every workout opens on something recovering); the recovery chips; the time control (5-minute steps, 60 by default) with the workout's estimated length, how long it needs, or "the longest it gets" with + off — or, when a lift in it is never done, the calibration line in its place; each template's lifts as sets × reps @ weight with the reason (the plan against last time: "Down to 107.5 kg: 4 sets today, 3 last time.") | `GetHome(budget_minutes)`: `template_plans`, `suggestion_reason`, `recovery` |
 | Manage sheet | the rotation check: a line saying what it is ("Here's what an average rotation would work. …") above Home's bars drawn as shares of one lap (`VolumeCard(proportional: true)`: each muscle against the most-trained one, no target, no numbers), then a line for an overlap; then one `ReorderableListView` of the rotation and the reserves under their headings (an empty section shows a line to drop on), each row a drag handle, the name with its lifts, and delete, a reserve's with a muted line under its lifts of the muscles it would add that the rotation trains none of ("Trains calves and core, which you don't have."); a drag reorders within a section or moves a workout across; tapping a row opens the editor. Below it, Add: the ready-made plans first, each its name, workouts and line with + to make it the rotation (or Current when the rotation is those workouts already), then the library entries the user does not have, by group, each with its lifts, what it would add, and + into the rotation | `GetHome`: `rotation_check` (`volume`, `warnings`, `additions`); `ListTemplateLibrary` (`plans`); `ApplyLibraryPlan`; `ReorderTemplates(rotation_count)`; `AddLibraryTemplates(in_rotation)`; `DeleteTemplate` |
-| Template editor | the In the rotation switch | `SaveTemplate` |
+| Template editor | the name, the lifts and the In the rotation switch, saved as an edit to the program's workouts | `SaveTemplate` |
 | Template editor | each lift's next plan, the list on screen planned as one workout in Home's budget (so a saved template reads as Home's card does); the sheet that sets or removes an override | `GetTemplatePlan(exercises, budget_minutes)`, `SetOverride` |
-| Home card menu | Clone: the editor on the template, recording nothing until Save, which saves it as the user's own (`unlink`) | `SaveTemplate` |
+| Home card menu | edit, in or out of the rotation, and remove (a library copy, which can be added again) or delete (the user's own) | `SaveTemplate`, `DeleteTemplate` |
 | Live workout, watch | the set's weight and reps; the lift's reason when it comes up; weight changes | the workout's `exercise_logs` |
 | Workout summary | per lift: what was planned and why, the changes, the max after | the log, the walk |
 | Progress, exercise detail | the estimated max over time beside the heaviest set each session | `GetExerciseProgress` |
+| Settings → Program | the program that plans: its name, who set it (you in the app, Schlift, or an assistant by name) and when, its note; the earlier programs; "Back to the built-in rules" (confirmed); the connected assistants, each with when it was last used and Revoke, or a line when the server is out of reach | `GetProgram`, `ResetProgram` (the core); `AssistantService.ListAssistants` / `RevokeAssistant` (the server) |
 
 The weight sheet during a workout changes this workout only
 (`AdjustExerciseWeight`); a lasting change is an override, made in the
