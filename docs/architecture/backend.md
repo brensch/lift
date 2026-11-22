@@ -291,7 +291,7 @@ The tools (`mcp/tools.rs`):
 | `get_profile` | Unit, the workouts and the rotation's suggestion, starting weights, overrides, this week's volume, what is recovering, and per lift its estimated max, last session and next plan |
 | `get_history` | Finished workouts, each lift's planned and done sets (by lift, since, limit) |
 | `validate_program` | A draft's problems, each with its path |
-| `simulate_program` | A draft over the recorded history and forward (`SimulateProgram`) |
+| `simulate_program` | A draft over the recorded history and forward (`SimulateProgram`): the rotation's suggestion, a workout, or the lifts named; with no workout, the last one's lifts |
 | `set_program` | `SetProgram` with author `mcp:<client name>` and the assistant's note, then the event placed with `push_events` and streamed to the phones |
 
 Reads fold the account as the website's do. The only write is

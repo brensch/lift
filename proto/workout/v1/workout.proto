@@ -1145,6 +1145,10 @@ message SimulateProgramRequest {
   int32 budget_minutes = 7; // 0 = the program's default
   // At most this many past workouts, newest kept; 0 = none.
   int32 history = 8;
+  // Forward, these lifts in this order every time instead of a workout.
+  // With neither this nor template_id, and no workout in the program, the
+  // lifts of the last finished workout.
+  repeated string exercises = 9;
 }
 message SimulatedLift {
   string exercise = 1;

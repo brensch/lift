@@ -3,3 +3,4 @@
 - An AI assistant can set your program for you. Connect one at schlift.com/connect; it can read your training, try a program against your history, and set it. Revoke it any time from the same page or Settings → Program.
 - Programs can add their own exercises, and progress lifts on fixed, linear, double, cycle or custom-formula rules as well as Schlift's own.
 - Library workouts are now your own copies when you add them, so you can edit them freely.
+- An assistant can try a program on any lifts you name, even before you've saved a workout.

@@ -217,7 +217,10 @@ for env in ${ENVIRONMENTS}; do
 		status "${id}" success "deployed ${sha:0:12}" "$(env_url "${env}")"
 		log "${env}: deployed ${sha:0:12}"
 	else
-		reason="$(grep -v '^\s*$' "${out}" | tail -n 1)"
+		# `|| true`: with pipefail an empty log (grep finds nothing) would end
+		# the run here, unreported and not marked done, so the next run would
+		# try the same deployment again, for ever.
+		reason="$(grep -v '^\s*$' "${out}" | tail -n 1 || true)"
 		status "${id}" failure "${reason:-deploy failed} (journalctl -u schlift-puller)"
 		log "${env}: FAILED ${sha:0:12}"
 	fi

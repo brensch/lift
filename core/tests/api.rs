@@ -3915,6 +3915,38 @@ mod programs {
         );
     }
 
+    /// With no workout saved, a forward run repeats the last workout's
+    /// lifts; or does the lifts asked for.
+    #[test]
+    fn a_forward_run_needs_no_saved_workout() {
+        // History imported, never onboarded: no workouts in the program.
+        let mut app = App::new();
+        import_session(&mut app, "squat", 200.0, 5, &[5, 5, 5], NOW - 2 * DAY);
+        let p = with_linear(current(&app));
+        let run = |exercises: Vec<String>| {
+            app.view()
+                .simulate_program(SimulateProgramRequest {
+                    program_json: p.to_json(),
+                    sessions: 3,
+                    exercises,
+                    ..Default::default()
+                })
+                .unwrap()
+        };
+        let last = run(Vec::new());
+        assert_eq!(last.workouts.len(), 3);
+        assert!(last
+            .workouts
+            .iter()
+            .all(|w| !w.past && w.lifts.iter().map(|l| l.exercise.as_str()).eq(["squat"])));
+        let asked = run(vec!["bench_press".into(), "squat".into()]);
+        assert!(asked.workouts.iter().all(|w| w
+            .lifts
+            .iter()
+            .map(|l| l.exercise.as_str())
+            .eq(["bench_press", "squat"])));
+    }
+
     /// Back to an earlier program: its rules, today's workouts.
     #[test]
     fn going_back_to_an_earlier_program_keeps_todays_workouts() {
