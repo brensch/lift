@@ -2614,6 +2614,7 @@ const ProgramSummary$json = {
     {'1': 'author', '3': 3, '4': 1, '5': 9, '10': 'author'},
     {'1': 'note', '3': 4, '4': 1, '5': 9, '10': 'note'},
     {'1': 'set_at', '3': 5, '4': 1, '5': 3, '10': 'setAt'},
+    {'1': 'builtin_rules', '3': 6, '4': 1, '5': 8, '10': 'builtinRules'},
   ],
 };
 
@@ -2621,7 +2622,7 @@ const ProgramSummary$json = {
 final $typed_data.Uint8List programSummaryDescriptor = $convert.base64Decode(
     'Cg5Qcm9ncmFtU3VtbWFyeRIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRIWCg'
     'ZhdXRob3IYAyABKAlSBmF1dGhvchISCgRub3RlGAQgASgJUgRub3RlEhUKBnNldF9hdBgFIAEo'
-    'A1IFc2V0QXQ=');
+    'A1IFc2V0QXQSIwoNYnVpbHRpbl9ydWxlcxgGIAEoCFIMYnVpbHRpblJ1bGVz');
 
 @$core.Deprecated('Use getProgramRequestDescriptor instead')
 const GetProgramRequest$json = {

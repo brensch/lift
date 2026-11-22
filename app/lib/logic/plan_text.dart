@@ -120,6 +120,22 @@ String reasonText(PlanReason r, WeightUnit unit, {required bool bodyweight}) {
             );
       }
       return c.setsFloor.replaceAll('{sets}', sets);
+    case PlanReasonKind.PLAN_REASON_KIND_RULE:
+      return r.text.isEmpty ? '' : c.rule.replaceAll('{note}', r.text);
+    case PlanReasonKind.PLAN_REASON_KIND_DELOAD:
+      return c.deload
+          .replaceAll('{count}', '${r.count}')
+          .replaceAll(
+            '{after}',
+            formatWeight(r.after, unit, includeUnit: true),
+          );
+    case PlanReasonKind.PLAN_REASON_KIND_CYCLE_STEP:
+      return c.cycleStep
+          .replaceAll('{n}', '${r.count}')
+          .replaceAll('{of}', '${r.of}')
+          .replaceAll('{pct}', '${(r.after * 100).round()}');
+    case PlanReasonKind.PLAN_REASON_KIND_FALLBACK:
+      return c.fallback;
     default:
       return '';
   }

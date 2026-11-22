@@ -17,16 +17,13 @@ void main() {
 
   setUp(() async {
     h = await ProviderHarness.boot();
-    await h.seedHistory({
-      Exercise.EXERCISE_SQUAT: (185, 5),
-      Exercise.EXERCISE_LATERAL_RAISE: (20, 10),
-    });
+    await h.seedHistory({'squat': (185, 5), 'lateral_raise': (20, 10)});
   });
 
   tearDown(() => h.dispose());
 
-  const squat = Exercise.EXERCISE_SQUAT;
-  const raise = Exercise.EXERCISE_LATERAL_RAISE;
+  const squat = 'squat';
+  const raise = 'lateral_raise';
 
   test('a start lays out the planned blocks, warmups first', () async {
     await h.start([squat, raise]);
@@ -217,7 +214,7 @@ void main() {
 
   test('a ramp set done in full asks once; the answer is sent', () async {
     // Never done: a ramp. Squat and the raise have history, so no ramp.
-    const deadlift = Exercise.EXERCISE_DEADLIFT;
+    const deadlift = 'deadlift';
     final asked = <String>[];
     h.provider.onRungQuestion = asked.add;
     await h.start([raise, deadlift]);
@@ -257,7 +254,7 @@ void main() {
   });
 
   test('a question open before a reload is not asked again', () async {
-    const deadlift = Exercise.EXERCISE_DEADLIFT;
+    const deadlift = 'deadlift';
     await h.start([deadlift]);
     final first = h.provider.doneTargetSet!;
     expect(first.calibration, isTrue);
@@ -296,7 +293,7 @@ void main() {
   test('a missed ramp set never asks', () async {
     final asked = <String>[];
     h.provider.onRungQuestion = asked.add;
-    await h.start([Exercise.EXERCISE_DEADLIFT]);
+    await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
     expect(first.calibration, isTrue);
     await h.provider.completeSet(

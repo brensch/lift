@@ -1142,6 +1142,7 @@ impl<'a> View<'a> {
             None => ProgramSummary {
                 name: Program::builtin().name.clone(),
                 author: "builtin".into(),
+                builtin_rules: true,
                 ..Default::default()
             },
         }
@@ -1241,6 +1242,7 @@ fn version_summary(version: &ProgramVersion) -> ProgramSummary {
         author: version.author.clone(),
         note: version.note.clone(),
         set_at: version.at,
+        builtin_rules: version.program.uses_builtin_rules(),
     }
 }
 

@@ -3893,6 +3893,7 @@ mod programs {
         set(&mut app, &p, "mcp:test");
         import_session(&mut app, "zercher_squat", 135.0, 5, &[5, 5, 5], NOW - DAY);
         let workouts = app.account.program.workouts.clone();
+        assert!(!app.view().program_summary().builtin_rules);
         let summary = app
             .call()
             .reset_program(ResetProgramRequest {})
@@ -3900,6 +3901,7 @@ mod programs {
             .summary
             .unwrap();
         assert_eq!(summary.author, "app");
+        assert!(summary.builtin_rules, "nothing left to reset");
         let program = &app.account.program;
         assert_eq!(program.workouts, workouts);
         let kept = program.exercise("zercher_squat").expect("kept");

@@ -20,34 +20,26 @@ class TutorialAccount {
   static const _day = 86400;
 
   static const _pull = [
-    Exercise.EXERCISE_BARBELL_ROW,
-    Exercise.EXERCISE_PULL_UP,
-    Exercise.EXERCISE_DUMBBELL_ROW,
-    Exercise.EXERCISE_BARBELL_CURL,
+    'barbell_row',
+    'pull_up',
+    'dumbbell_row',
+    'barbell_curl',
   ];
-  static const _legs = [
-    Exercise.EXERCISE_SQUAT,
-    Exercise.EXERCISE_ROMANIAN_DEADLIFT,
-    Exercise.EXERCISE_CALF_RAISE,
-  ];
-  static const _push = [
-    Exercise.EXERCISE_BENCH_PRESS,
-    Exercise.EXERCISE_OVERHEAD_PRESS,
-    Exercise.EXERCISE_LATERAL_RAISE,
-  ];
+  static const _legs = ['squat', 'romanian_deadlift', 'calf_raise'];
+  static const _push = ['bench_press', 'overhead_press', 'lateral_raise'];
 
   /// Weights (lb) as someone a few months in lifts them.
   static const _weights = {
-    Exercise.EXERCISE_BARBELL_ROW: 115.0,
-    Exercise.EXERCISE_PULL_UP: 0.0,
-    Exercise.EXERCISE_DUMBBELL_ROW: 40.0,
-    Exercise.EXERCISE_BARBELL_CURL: 45.0,
-    Exercise.EXERCISE_SQUAT: 185.0,
-    Exercise.EXERCISE_ROMANIAN_DEADLIFT: 155.0,
-    Exercise.EXERCISE_CALF_RAISE: 25.0,
-    Exercise.EXERCISE_BENCH_PRESS: 135.0,
-    Exercise.EXERCISE_OVERHEAD_PRESS: 75.0,
-    Exercise.EXERCISE_LATERAL_RAISE: 15.0,
+    'barbell_row': 115.0,
+    'pull_up': 0.0,
+    'dumbbell_row': 40.0,
+    'barbell_curl': 45.0,
+    'squat': 185.0,
+    'romanian_deadlift': 155.0,
+    'calf_raise': 25.0,
+    'bench_press': 135.0,
+    'overhead_press': 75.0,
+    'lateral_raise': 15.0,
   };
 
   /// The account in the user's [unit], so its weights load on their plates.
@@ -87,7 +79,7 @@ class TutorialAccount {
   /// weight, every rep made.
   static ImportedWorkout _pastSession(
     String id,
-    List<Exercise> exercises,
+    List<String> exercises,
     int at,
   ) {
     final workoutId = 'tutorial-$id';

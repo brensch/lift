@@ -45,7 +45,6 @@ message Workout {
   string motivation = 9;
 }
 
-
 message ProposedSet {
   string id = 1;
   string workout_id = 2;
@@ -1034,7 +1033,6 @@ message AppendWorkoutMutationsResponse {
   reserved "applied_event_ids";
 }
 
-
 // ── The program ──
 //
 // Every training rule is one JSON document in the account (the program,
@@ -1053,6 +1051,8 @@ message ProgramSummary {
   string note = 4;
   // When it was set (Unix seconds); 0 for the built-in program.
   int64 set_at = 5;
+  // It plans by the built-in rules (its workouts aside): nothing to reset.
+  bool builtin_rules = 6;
 }
 
 message GetProgramRequest {}

@@ -26,25 +26,18 @@ import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
 import '../../widgets/dialogs/workout_sheet.dart';
 
-/// Edit [template] (null: a new one). [personalise] is for one from the
-/// library: Save makes a
-/// library template the user's own, changed or not; backing out leaves it
-/// following the library.
+/// Edit [template] (null: a new one): one of the program's workouts.
 Future<void> showTemplateEditor(
   BuildContext context, {
   required WorkoutTemplate? template,
   required WorkoutProvider provider,
-  bool personalise = false,
 }) {
   return Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<void>(
       settings: const RouteSettings(name: '/template-editor'),
       builder: (_) => ChangeNotifierProvider.value(
         value: provider,
-        child: _TemplateEditorSheet(
-          template: template,
-          personalise: personalise,
-        ),
+        child: _TemplateEditorSheet(template: template),
       ),
     ),
   );
@@ -52,11 +45,7 @@ Future<void> showTemplateEditor(
 
 class _TemplateEditorSheet extends StatefulWidget {
   final WorkoutTemplate? template;
-  final bool personalise;
-  const _TemplateEditorSheet({
-    required this.template,
-    required this.personalise,
-  });
+  const _TemplateEditorSheet({required this.template});
 
   @override
   State<_TemplateEditorSheet> createState() => _TemplateEditorSheetState();
@@ -64,7 +53,7 @@ class _TemplateEditorSheet extends StatefulWidget {
 
 class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   late final TextEditingController _nameController;
-  late List<Exercise> _exercises;
+  late List<String> _exercises;
   // A new workout starts as a reserve.
   late bool _inRotation;
   bool _isSaving = false;
@@ -78,7 +67,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.template?.name ?? '');
-    _exercises = List.of(widget.template?.exercises ?? const <Exercise>[]);
+    _exercises = List.of(widget.template?.exercises ?? const <String>[]);
     _inRotation = widget.template?.inRotation ?? false;
     // A new budget, an override or a finished workout changes the plan.
     _provider = context.read<WorkoutProvider>()..addListener(_replan);
@@ -111,7 +100,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   }
 
   /// [exercise]'s plan in this list; null until the list is planned.
-  ExercisePlan? _planFor(Exercise exercise) {
+  ExercisePlan? _planFor(String exercise) {
     for (final plan in _plan?.plans ?? const <ExercisePlan>[]) {
       if (plan.decision.exercise == exercise) return plan;
     }
@@ -119,7 +108,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
   }
 
   /// Change the list and plan it again.
-  void _setExercises(List<Exercise> exercises) {
+  void _setExercises(List<String> exercises) {
     setState(() => _exercises = exercises);
     _replan();
   }
@@ -133,11 +122,9 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         ..id = widget.template?.id ?? ''
         ..name = name
         ..inRotation = _inRotation
+        ..notes = widget.template?.notes ?? ''
         ..exercises.addAll(_exercises);
-      await context.read<WorkoutProvider>().saveTemplate(
-        template,
-        unlink: widget.personalise,
-      );
+      await context.read<WorkoutProvider>().saveTemplate(template);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -165,9 +152,8 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         _setExercises([
           ..._exercises.where(selected.contains),
           for (final info in exerciseCatalog)
-            if (selected.contains(info.exercise) &&
-                !_exercises.contains(info.exercise))
-              info.exercise,
+            if (selected.contains(info.key) && !_exercises.contains(info.key))
+              info.key,
         ]);
       },
     );
@@ -253,7 +239,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                         itemBuilder: (context, index) {
                           final exercise = _exercises[index];
                           return _ExerciseRow(
-                            key: ValueKey(exercise.value),
+                            key: ValueKey(exercise),
                             index: index,
                             exercise: exercise,
                             plan: _planFor(exercise),
@@ -305,7 +291,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
     );
   }
 
-  Future<void> _editOverride(Exercise exercise) async {
+  Future<void> _editOverride(String exercise) async {
     final wp = context.read<WorkoutProvider>();
     final unit = context.read<SettingsProvider>().weightUnit;
     final plan = _planFor(exercise) ?? wp.planFor(exercise);
@@ -317,7 +303,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
 
 class _ExerciseRow extends StatelessWidget {
   final int index;
-  final Exercise exercise;
+  final String exercise;
   final ExercisePlan? plan;
   final WeightUnit unit;
   final VoidCallback onRemove;

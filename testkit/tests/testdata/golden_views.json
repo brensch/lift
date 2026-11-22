@@ -5223,6 +5223,7 @@
     ],
     "program": {
       "author": "migration",
+      "builtin_rules": true,
       "id": "0592f2b2-c385-5fa5-a9a2-bec9bd529898",
       "name": "Schlift",
       "note": "",

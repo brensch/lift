@@ -5511,6 +5511,7 @@
       ],
       "program": {
         "author": "mcp:golden",
+        "builtin_rules": false,
         "id": "7f7638ad-d2e7-4a47-ba0f-ce6fa2be4db3",
         "name": "Schlift",
         "note": "Linear squats",

@@ -12,7 +12,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:schlift/gen/copy.dart';
-import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
 
@@ -37,7 +36,7 @@ void main() {
         for (final lift in Scenario.defaultTemplateLifts) MapEntry(lift, 95.0),
       ]);
       final api = await s.api.login(username);
-      if (!await api.hasPerformed(Exercise.EXERCISE_SQUAT)) {
+      if (!await api.hasPerformed('squat')) {
         throw StateError('the seeded session did not mark Squat performed');
       }
 

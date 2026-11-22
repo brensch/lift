@@ -7,6 +7,7 @@ import '../services/toast.dart';
 
 import '../gen/copy.dart';
 import '../gen/workout/v1/group.pb.dart';
+import '../logic/exercises.dart';
 import '../logic/utils.dart' show retryDelay;
 import '../services/grpc_client.dart';
 import '../services/account_sync.dart';
@@ -102,7 +103,10 @@ class MultiplayerProvider extends ChangeNotifier {
     final participants = <ParticipantStatus>[];
     for (final member in session.members) {
       final status = await feed.partnerStatus(member);
-      if (status != null) participants.add(status..user = member.user);
+      if (status == null) continue;
+      // A partner's own lifts are named by their program.
+      ExerciseCatalog.learn(status.exercises.map(CatalogExercise.from));
+      participants.add(status..user = member.user);
     }
     if (refresh != _refreshes || _disposed) return;
     final id = session.sessionId.isEmpty ? null : session.sessionId;

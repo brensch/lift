@@ -7,14 +7,14 @@ library;
 import '../gen/workout/v1/workout.pb.dart';
 
 class ExerciseBlock {
-  final Exercise exercise;
+  final String exercise;
 
   /// Visible (non-cancelled) sets, in workout order.
   final List<ProposedSet> sets;
 
   const ExerciseBlock({required this.exercise, required this.sets});
 
-  String get stableId => 'exercise-${exercise.value}';
+  String get stableId => 'exercise-$exercise';
 
   /// The sets that count: not warmups, not calibration rungs.
   Iterable<ProposedSet> get workingSets => sets.where(isWorkingSet);
@@ -35,8 +35,8 @@ extension WorkoutSummarySets on WorkoutSummary {
 /// Group visible sets by exercise, ordered by first appearance; a
 /// re-added exercise merges into one block.
 List<ExerciseBlock> blocksFromSets(Iterable<ProposedSet> sets) {
-  final order = <Exercise>[];
-  final byExercise = <Exercise, List<ProposedSet>>{};
+  final order = <String>[];
+  final byExercise = <String, List<ProposedSet>>{};
   for (final set in sets) {
     if (set.cancelled) continue;
     if (!byExercise.containsKey(set.exercise)) {

@@ -77,6 +77,12 @@ class SettingsScreen extends StatelessWidget {
             subtitle: c.soundSub,
             onTap: () => context.push('/sound-settings'),
           ),
+          FlatRow(
+            icon: AppIcons.maths,
+            label: c.program,
+            subtitle: c.programSub,
+            onTap: () => context.push('/program'),
+          ),
           FlatHeading(c.accountHeading),
           FlatRow(
             icon: AppIcons.cloud,

@@ -3,6 +3,7 @@ import 'package:protobuf/protobuf.dart' show GeneratedMessage;
 import '../gen/workout/v1/account.pb.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
+import '../logic/exercises.dart';
 import 'local_core.dart';
 
 /// Where the account is: the signed-in user's file once it's open, or a
@@ -38,7 +39,7 @@ class WorkoutServiceWrapper {
   Future<StartWorkoutResponse> startWorkout(
     String name, {
     String templateId = '',
-    List<Exercise> exercises = const [],
+    List<String> exercises = const [],
     int budgetMinutes = 0,
     String motivation = '',
   }) => _call(
@@ -124,29 +125,51 @@ class WorkoutServiceWrapper {
 
   /// Everything the home screen needs in one call, every lift planned in
   /// [budgetMinutes] (0 = the core's default).
-  Future<GetHomeResponse> getHome({int budgetMinutes = 0}) => _call(
-    'GetHome',
-    GetHomeRequest(budgetMinutes: budgetMinutes),
-    GetHomeResponse.fromBuffer,
+  /// Home, and the program's exercises with it: the catalog every screen
+  /// names lifts from follows the program as Home does.
+  Future<GetHomeResponse> getHome({int budgetMinutes = 0}) async {
+    final home = await _call(
+      'GetHome',
+      GetHomeRequest(budgetMinutes: budgetMinutes),
+      GetHomeResponse.fromBuffer,
+    );
+    await loadExercises();
+    return home;
+  }
+
+  /// The program: who set it and why, the document, the earlier ones.
+  Future<GetProgramResponse> getProgram() =>
+      _call('GetProgram', GetProgramRequest(), GetProgramResponse.fromBuffer);
+
+  /// Back to the built-in rules, the workouts kept.
+  Future<void> resetProgram() => _call(
+    'ResetProgram',
+    ResetProgramRequest(),
+    ResetProgramResponse.fromBuffer,
   );
 
-  /// Create or update [template]; [unlink] makes a library template the
-  /// user's own even when saved unchanged.
-  Future<WorkoutTemplate> saveTemplate(
-    WorkoutTemplate template, {
-    bool unlink = false,
-  }) async => (await _call(
-    'SaveTemplate',
-    SaveTemplateRequest()
-      ..template = template
-      ..unlink = unlink,
-    SaveTemplateResponse.fromBuffer,
-  )).template;
+  /// The program's exercises, into the catalog.
+  Future<void> loadExercises() async {
+    final listed = await _call(
+      'ListExercises',
+      ListExercisesRequest(),
+      ListExercisesResponse.fromBuffer,
+    );
+    ExerciseCatalog.setProgram(listed.exercises.map(CatalogExercise.from));
+  }
+
+  /// Create or update [template], one of the program's workouts.
+  Future<WorkoutTemplate> saveTemplate(WorkoutTemplate template) async =>
+      (await _call(
+        'SaveTemplate',
+        SaveTemplateRequest()..template = template,
+        SaveTemplateResponse.fromBuffer,
+      )).template;
 
   /// [exercises] planned as one workout in [budgetMinutes], as starting a
   /// template of them would plan it.
   Future<TemplatePlan> getTemplatePlan(
-    List<Exercise> exercises, {
+    List<String> exercises, {
     int budgetMinutes = 0,
   }) async => (await _call(
     'GetTemplatePlan',
@@ -159,7 +182,7 @@ class WorkoutServiceWrapper {
   /// sheet to show the warmup a working weight leads to before Save.
   Future<GetWorkoutResponse> previewAdjustExercise(
     String workoutId,
-    Exercise exercise,
+    String exercise,
     double weightLb, {
     int targetReps = 0,
     int sets = 0,
@@ -198,7 +221,7 @@ class WorkoutServiceWrapper {
   /// The user's own weight and reps (and optionally sets) for one lift:
   /// the plan carries on from it. Reps of 0 removes it.
   Future<ExercisePlan> setOverride({
-    required Exercise exercise,
+    required String exercise,
     required double weight,
     required int reps,
     int? sets,

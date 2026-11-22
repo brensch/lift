@@ -164,6 +164,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── State from the core ──
 
   void _applyWorkoutResponse(GetWorkoutResponse response) {
+    ExerciseCatalog.learn(response.exercises.map(CatalogExercise.from));
     _resetWearHeartRateBufferIfWorkoutChanged(response.workout.id);
     _workout = response.workout;
     _proposed = List.of(response.proposedSets)
@@ -449,7 +450,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// One exercise's plan. The home has one for every exercise, so this only
   /// misses before the first load.
-  ExercisePlan? planFor(Exercise exercise) {
+  ExercisePlan? planFor(String exercise) {
     for (final plan in plans) {
       if (plan.decision.exercise == exercise) return plan;
     }
@@ -457,11 +458,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// How [exercise] is loaded (barbell, dumbbell, bodyweight, …).
-  EquipmentKind equipmentOf(Exercise exercise) =>
+  EquipmentKind equipmentOf(String exercise) =>
       planFor(exercise)?.equipment ?? EquipmentKind.EQUIPMENT_KIND_UNSPECIFIED;
 
   /// One step of [exercise]'s weight (lb); 0 for bodyweight.
-  double weightStepOf(Exercise exercise) => planFor(exercise)?.step ?? 0;
+  double weightStepOf(String exercise) => planFor(exercise)?.step ?? 0;
 
   /// A template's lifts planned in the budget: what starting it records.
   TemplatePlan? templatePlanFor(String templateId) {
@@ -513,7 +514,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return null;
   }
 
-  ExerciseLog? logFor(Exercise exercise) {
+  ExerciseLog? logFor(String exercise) {
     for (final log in _logs) {
       if (log.decision.exercise == exercise) return log;
     }
@@ -679,19 +680,24 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Templates and plans ──
 
-  /// Create or update [template]. [unlink] makes a library template the
-  /// user's own, changed or not: the library one edited and saved.
-  Future<void> saveTemplate(
-    WorkoutTemplate template, {
-    bool unlink = false,
-  }) async {
-    await _service.saveTemplate(template, unlink: unlink);
+  /// The program: who set it and why, and the ones before it.
+  Future<GetProgramResponse> getProgram() => _service.getProgram();
+
+  /// Back to the built-in rules, the workouts kept.
+  Future<void> resetProgram() async {
+    await _service.resetProgram();
+    await refreshHome();
+  }
+
+  /// Create or update [template], one of the program's workouts.
+  Future<void> saveTemplate(WorkoutTemplate template) async {
+    await _service.saveTemplate(template);
     await refreshHome();
   }
 
   /// [exercises] planned as one workout in the budget, exactly as Home plans
   /// a template of them: the template editor's rows, saved or not.
-  Future<TemplatePlan> planTemplate(List<Exercise> exercises) =>
+  Future<TemplatePlan> planTemplate(List<String> exercises) =>
       _service.getTemplatePlan(exercises, budgetMinutes: _budgetMinutes);
 
   /// Put [template] in the rotation the suggestion picks from, or make it
@@ -735,7 +741,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// The user's own weight and reps (and optionally sets) for [exercise]:
   /// the plan carries on from it.
   Future<void> setOverride({
-    required Exercise exercise,
+    required String exercise,
     required double weightLb,
     required int reps,
     int? sets,
@@ -751,7 +757,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Drop the user's own weight for [exercise]; the plan goes back to
   /// what the history says.
-  Future<void> removeOverride(Exercise exercise) async {
+  Future<void> removeOverride(String exercise) async {
     await _service.setOverride(exercise: exercise, weight: 0, reps: 0);
     await refreshHome();
   }
@@ -761,7 +767,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<String?> startWorkout(
     String name, {
     String templateId = '',
-    List<Exercise> exercises = const [],
+    List<String> exercises = const [],
   }) async {
     try {
       if (!_sandbox) await NotificationService.cancelAll();
@@ -876,7 +882,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Skip all of [exercise]'s warmups: they're marked skipped — kept, out
   /// of the way, still doable.
-  Future<void> skipWarmups(Exercise exercise) async {
+  Future<void> skipWarmups(String exercise) async {
     if (_workout == null) return;
     await _mutate(
       WorkoutMutation()
@@ -900,7 +906,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Add exercises to the workout, each planned by the core in the
   /// workout's budget, exactly as a start would plan it.
-  Future<void> addPrescribedExercises(List<Exercise> exercises) async {
+  Future<void> addPrescribedExercises(List<String> exercises) async {
     if (_workout == null || exercises.isEmpty) return;
     await _mutate(
       WorkoutMutation()
@@ -914,7 +920,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// pending warmups are worked out again for it. [sets] is how many working
   /// sets it has in all from here on (0 leaves them).
   Future<void> adjustExerciseWeight(
-    Exercise exercise,
+    String exercise,
     double weightLb, {
     int targetReps = 0,
     int sets = 0,
@@ -935,7 +941,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// sets at [weightLb], asked of the core without changing anything: the
   /// warmup a working weight leads to. Null when it can't be said (no
   /// workout, or the set in hand isn't this exercise's).
-  Future<double?> previewSetInHand(Exercise exercise, double weightLb) async {
+  Future<double?> previewSetInHand(String exercise, double weightLb) async {
     final workout = _workout;
     if (workout == null) return null;
     try {
@@ -957,7 +963,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Cancel an exercise's remaining sets. Sets already done stay.
-  Future<void> removeExercise(Exercise exercise) async {
+  Future<void> removeExercise(String exercise) async {
     if (_workout == null) return;
     await _mutate(
       WorkoutMutation()
@@ -991,7 +997,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String? _sessionRecording;
 
-  Future<void> reorderExercises(List<Exercise> exercises) async {
+  Future<void> reorderExercises(List<String> exercises) async {
     if (_workout == null) return;
     // Show the new order now. The core answers a beat later, and until then
     // the list would draw the old order again, so names would flash back.

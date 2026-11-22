@@ -503,6 +503,27 @@ impl Program {
         self.exercise(key).unwrap_or_else(|| unknown_exercise())
     }
 
+    /// Whether this plans by the built-in rules: everything but the
+    /// workouts as the built-in program has it, its exercises included,
+    /// and any it adds on no progression of their own (what reset leaves).
+    pub fn uses_builtin_rules(&self) -> bool {
+        let builtin = Program::builtin();
+        let rules = |p: &Program| Program {
+            workouts: Vec::new(),
+            exercises: Vec::new(),
+            ..p.clone()
+        };
+        rules(self) == rules(&builtin)
+            && builtin
+                .exercises
+                .iter()
+                .all(|e| self.exercise(&e.key) == Some(e))
+            && self
+                .exercises
+                .iter()
+                .all(|e| builtin.knows(&e.key) || e.progression.is_none())
+    }
+
     pub fn knows(&self, key: &str) -> bool {
         self.exercise(key).is_some()
     }
