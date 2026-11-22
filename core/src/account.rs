@@ -144,6 +144,13 @@ impl Account {
                     self.starting_weights
                         .insert(w.exercise.clone(), w.weight_lb);
                 }
+                if self.program.workouts.is_empty() && !onboarded.workouts.is_empty() {
+                    self.edit_program(&ProgramEdited {
+                        edit: WorkoutsEdit::Add {
+                            workouts: onboarded.workouts.clone(),
+                        },
+                    })?;
+                }
                 self.onboarded = true;
             }
             Fact::SettingUpdated(updated) => self.set_setting(updated.setting.clone())?,

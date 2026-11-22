@@ -2080,11 +2080,7 @@ mod the_log {
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)));
         assert_eq!(app.account, before, "not even the valid half");
-        assert_eq!(
-            app.log.len(),
-            2,
-            "only the onboarding: its choices and its workouts"
-        );
+        assert_eq!(app.log.len(), 1, "only the onboarding");
     }
 
     /// The app's way in: method name and proto bytes, both ways.
@@ -2784,7 +2780,7 @@ mod refused_writes {
         .workout_state
         .unwrap();
         assert_eq!(state.completed_sets.len(), 1);
-        assert_eq!(app.log.len(), 4, "onboarding (two), the start and the set");
+        assert_eq!(app.log.len(), 3, "onboarding, the start and the set");
     }
 
     /// A done set with negative reps or a negative or non-finite weight

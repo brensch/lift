@@ -513,20 +513,22 @@ impl<'a> Call<'a> {
             (true, Some(strength)) => exercise_weights(&self.account.program, strength, unit),
             _ => Vec::new(),
         };
+        let event_id = self.next_event_id();
+        let workouts = if first {
+            entries
+                .iter()
+                .enumerate()
+                .map(|(n, entry)| library_copy(entry, true, &event_id, n))
+                .collect()
+        } else {
+            Vec::new()
+        };
         self.record(Fact::Onboarded(Onboarded {
             unit: req.unit,
             strength: req.strength,
             starting_weights,
+            workouts,
         }))?;
-        if first && !entries.is_empty() {
-            let event_id = self.next_event_id();
-            let workouts = entries
-                .iter()
-                .enumerate()
-                .map(|(n, entry)| library_copy(entry, true, &event_id, n))
-                .collect();
-            self.edit(WorkoutsEdit::Add { workouts })?;
-        }
         Ok(CompleteOnboardingResponse {})
     }
 
