@@ -62568,6 +62568,55 @@ public final class WorkoutOuterClass {
      * @return The history.
      */
     int getHistory();
+
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @return A list containing the exercises.
+     */
+    java.util.List<java.lang.String>
+        getExercisesList();
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @return The count of exercises.
+     */
+    int getExercisesCount();
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
+     */
+    java.lang.String getExercises(int index);
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
+     */
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
   }
   /**
    * <pre>
@@ -62588,6 +62637,7 @@ public final class WorkoutOuterClass {
     private SimulateProgramRequest() {
       programJson_ = "";
       templateId_ = "";
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     public static final int PROGRAM_JSON_FIELD_NUMBER = 1;
     private java.lang.String programJson_;
@@ -62921,6 +62971,153 @@ public final class WorkoutOuterClass {
     private void clearHistory() {
       
       history_ = 0;
+    }
+
+    public static final int EXERCISES_FIELD_NUMBER = 9;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @return A list containing the exercises.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @return The count of exercises.
+     */
+    @java.lang.Override
+    public int getExercisesCount() {
+      return exercises_.size();
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
+     */
+    @java.lang.Override
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the exercises at the given index.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
+    }
+    private void ensureExercisesIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
+        exercises_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param index The index to set the value at.
+     * @param value The exercises to set.
+     */
+    private void setExercises(
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.set(index, value);
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param value The exercises to add.
+     */
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(value);
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param values The exercises to add.
+     */
+    private void addAllExercises(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureExercisesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     */
+    private void clearExercises() {
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * Forward, these lifts in this order every time instead of a workout.
+     * With neither this nor template_id, and no workout in the program, the
+     * lifts of the last finished workout.
+     * </pre>
+     *
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
+     */
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      ensureExercisesIsMutable();
+      exercises_.add(value.toStringUtf8());
     }
 
     public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
@@ -63378,6 +63575,152 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @return A list containing the exercises.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @return The count of exercises.
+       */
+      @java.lang.Override
+      public int getExercisesCount() {
+        return instance.getExercisesCount();
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param index The index of the element to return.
+       * @return The exercises at the given index.
+       */
+      @java.lang.Override
+      public java.lang.String getExercises(int index) {
+        return instance.getExercises(index);
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param index The index to set the value at.
+       * @param value The exercises to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExercises(
+          int index, java.lang.String value) {
+        copyOnWrite();
+        instance.setExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param value The exercises to add.
+       * @return This builder for chaining.
+       */
+      public Builder addExercises(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.addExercises(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param values The exercises to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllExercises(
+          java.lang.Iterable<java.lang.String> values) {
+        copyOnWrite();
+        instance.addAllExercises(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearExercises() {
+        copyOnWrite();
+        instance.clearExercises();
+        return this;
+      }
+      /**
+       * <pre>
+       * Forward, these lifts in this order every time instead of a workout.
+       * With neither this nor template_id, and no workout in the program, the
+       * lifts of the last finished workout.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
+       * @return This builder for chaining.
+       */
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.addExercisesBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.SimulateProgramRequest)
     }
     @java.lang.Override
@@ -63402,10 +63745,11 @@ public final class WorkoutOuterClass {
               "templateId_",
               "budgetMinutes_",
               "history_",
+              "exercises_",
             };
             java.lang.String info =
-                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u0208\u0002\u0004\u0003\u0004" +
-                "\u0004\f\u0005\u0004\u0006\u0208\u0007\u0004\b\u0004";
+                "\u0000\t\u0000\u0000\u0001\t\t\u0000\u0001\u0000\u0001\u0208\u0002\u0004\u0003\u0004" +
+                "\u0004\f\u0005\u0004\u0006\u0208\u0007\u0004\b\u0004\t\u021a";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

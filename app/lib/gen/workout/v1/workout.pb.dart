@@ -8263,6 +8263,7 @@ class SimulateProgramRequest extends $pb.GeneratedMessage {
     $core.String? templateId,
     $core.int? budgetMinutes,
     $core.int? history,
+    $core.Iterable<$core.String>? exercises,
   }) {
     final result = create();
     if (programJson != null) result.programJson = programJson;
@@ -8273,6 +8274,7 @@ class SimulateProgramRequest extends $pb.GeneratedMessage {
     if (templateId != null) result.templateId = templateId;
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
     if (history != null) result.history = history;
+    if (exercises != null) result.exercises.addAll(exercises);
     return result;
   }
 
@@ -8298,6 +8300,7 @@ class SimulateProgramRequest extends $pb.GeneratedMessage {
     ..aOS(6, _omitFieldNames ? '' : 'templateId')
     ..aI(7, _omitFieldNames ? '' : 'budgetMinutes')
     ..aI(8, _omitFieldNames ? '' : 'history')
+    ..pPS(9, _omitFieldNames ? '' : 'exercises')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -8393,6 +8396,12 @@ class SimulateProgramRequest extends $pb.GeneratedMessage {
   $core.bool hasHistory() => $_has(7);
   @$pb.TagNumber(8)
   void clearHistory() => $_clearField(8);
+
+  /// Forward, these lifts in this order every time instead of a workout.
+  /// With neither this nor template_id, and no workout in the program, the
+  /// lifts of the last finished workout.
+  @$pb.TagNumber(9)
+  $pb.PbList<$core.String> get exercises => $_getList(8);
 }
 
 class SimulatedLift extends $pb.GeneratedMessage {
