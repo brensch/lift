@@ -19,7 +19,7 @@ use crate::ids::derived_id;
 use crate::pb::*;
 use crate::plan::Planner;
 use crate::program::{self, Problem, Program, ProgramRef, WorkoutDef, GUIDE};
-use crate::progress::{compute_exercise_progress, compute_workout_summary};
+use crate::progress::{compute_exercise_progress, compute_workout_summary, name_lifts};
 use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
 use crate::volume::{muscle_volume, suggest_template};
@@ -918,13 +918,14 @@ impl<'a> View<'a> {
             workouts: self
                 .finished()
                 .into_iter()
-                .map(|r| WorkoutWithSummary {
-                    summary: Some(compute_workout_summary(
-                        &r.workout,
-                        &r.proposed_sets,
-                        &r.completed_sets,
-                    )),
-                    workout: Some(r.workout.clone()),
+                .map(|r| {
+                    let mut summary =
+                        compute_workout_summary(&r.workout, &r.proposed_sets, &r.completed_sets);
+                    name_lifts(&mut summary, &r.program);
+                    WorkoutWithSummary {
+                        summary: Some(summary),
+                        workout: Some(r.workout.clone()),
+                    }
                 })
                 .collect(),
         }

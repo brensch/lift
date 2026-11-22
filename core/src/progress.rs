@@ -126,6 +126,16 @@ pub fn compute_workout_summary(
     }
 }
 
+/// The summary's lifts named as `program` calls them (a lift it doesn't
+/// know keeps its key).
+pub fn name_lifts(summary: &mut WorkoutSummary, program: &Program) {
+    for lift in &mut summary.exercises {
+        lift.name = program
+            .exercise(&lift.exercise)
+            .map_or_else(|| lift.exercise.clone(), |e| e.name.clone());
+    }
+}
+
 /// Per-exercise progress series built from every finished workout's working
 /// sets. Points are oldest-first per exercise; exercises are ordered
 /// most-improved first (by top-weight gain). One point per workout the exercise
@@ -189,6 +199,9 @@ pub fn compute_exercise_progress(
                     exercise: ex.to_string(),
                     points: Vec::new(),
                     bodyweight: program.is_bodyweight(ex),
+                    name: program
+                        .exercise(ex)
+                        .map_or_else(|| ex.to_string(), |e| e.name.clone()),
                 });
                 series.len() - 1
             });

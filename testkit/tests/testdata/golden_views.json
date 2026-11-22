@@ -6056,6 +6056,7 @@
       {
         "bodyweight": false,
         "exercise": "squat",
+        "name": "Squat",
         "points": [
           {
             "date": 1782669709,
@@ -6386,6 +6387,7 @@
       {
         "bodyweight": false,
         "exercise": "barbell_row",
+        "name": "Barbell Row",
         "points": [
           {
             "date": 1782669709,
@@ -6554,6 +6556,7 @@
       {
         "bodyweight": false,
         "exercise": "bench_press",
+        "name": "Bench Press",
         "points": [
           {
             "date": 1782669709,
@@ -6722,6 +6725,7 @@
       {
         "bodyweight": false,
         "exercise": "deadlift",
+        "name": "Deadlift",
         "points": [
           {
             "date": 1782845093,
@@ -6890,6 +6894,7 @@
       {
         "bodyweight": false,
         "exercise": "overhead_press",
+        "name": "Overhead Press",
         "points": [
           {
             "date": 1782845093,
@@ -7073,6 +7078,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 38,
               "total_sets": 5,
               "total_volume": 3610.0
@@ -7081,6 +7087,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 13,
               "total_sets": 2,
               "total_volume": 1105.0
@@ -7089,6 +7096,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1050.0
@@ -7119,6 +7127,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 26,
               "total_sets": 4,
               "total_volume": 2210.0
@@ -7127,6 +7136,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 90.0,
+              "name": "Barbell Row",
               "total_reps": 16,
               "total_sets": 2,
               "total_volume": 1440.0
@@ -7135,6 +7145,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 70.0,
+              "name": "Bench Press",
               "total_reps": 20,
               "total_sets": 4,
               "total_volume": 1400.0
@@ -7165,6 +7176,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 24,
               "total_sets": 3,
               "total_volume": 2280.0
@@ -7173,6 +7185,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 26,
               "total_sets": 4,
               "total_volume": 2210.0
@@ -7181,6 +7194,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 20,
               "total_sets": 3,
               "total_volume": 1000.0
@@ -7211,6 +7225,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 90.0,
+              "name": "Barbell Row",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1890.0
@@ -7219,6 +7234,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 70.0,
+              "name": "Bench Press",
               "total_reps": 23,
               "total_sets": 5,
               "total_volume": 1610.0
@@ -7227,6 +7243,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 1190.0
@@ -7257,6 +7274,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 28,
               "total_sets": 5,
               "total_volume": 2380.0
@@ -7265,6 +7283,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 16,
               "total_sets": 2,
               "total_volume": 1520.0
@@ -7273,6 +7292,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 900.0
@@ -7303,6 +7323,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 20,
               "total_sets": 3,
               "total_volume": 1700.0
@@ -7311,6 +7332,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 70.0,
+              "name": "Bench Press",
               "total_reps": 23,
               "total_sets": 5,
               "total_volume": 1610.0
@@ -7319,6 +7341,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 90.0,
+              "name": "Barbell Row",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 1260.0
@@ -7349,6 +7372,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 34,
               "total_sets": 5,
               "total_volume": 3230.0
@@ -7357,6 +7381,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 15,
               "total_sets": 2,
               "total_volume": 1275.0
@@ -7365,6 +7390,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 17,
               "total_sets": 3,
               "total_volume": 850.0
@@ -7395,6 +7421,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 70.0,
+              "name": "Bench Press",
               "total_reps": 28,
               "total_sets": 5,
               "total_volume": 1960.0
@@ -7403,6 +7430,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 23,
               "total_sets": 3,
               "total_volume": 1955.0
@@ -7411,6 +7439,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 90.0,
+              "name": "Barbell Row",
               "total_reps": 12,
               "total_sets": 2,
               "total_volume": 1080.0
@@ -7441,6 +7470,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 23,
               "total_sets": 3,
               "total_volume": 2185.0
@@ -7449,6 +7479,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1785.0
@@ -7457,6 +7488,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 22,
               "total_sets": 4,
               "total_volume": 1100.0
@@ -7487,6 +7519,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 26,
               "total_sets": 4,
               "total_volume": 2210.0
@@ -7495,6 +7528,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 70.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 4,
               "total_volume": 1680.0
@@ -7503,6 +7537,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 90.0,
+              "name": "Barbell Row",
               "total_reps": 13,
               "total_sets": 2,
               "total_volume": 1170.0
@@ -7533,6 +7568,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 30,
               "total_sets": 5,
               "total_volume": 2850.0
@@ -7541,6 +7577,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 85.0,
+              "name": "Squat",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 1190.0
@@ -7549,6 +7586,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 900.0
@@ -7579,6 +7617,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 40,
               "total_sets": 5,
               "total_volume": 2600.0
@@ -7587,6 +7626,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 80.0,
+              "name": "Squat",
               "total_reps": 24,
               "total_sets": 3,
               "total_volume": 1920.0
@@ -7595,6 +7635,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 90.0,
+              "name": "Barbell Row",
               "total_reps": 12,
               "total_sets": 2,
               "total_volume": 1080.0
@@ -7625,6 +7666,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 80.0,
+              "name": "Squat",
               "total_reps": 30,
               "total_sets": 5,
               "total_volume": 2400.0
@@ -7633,6 +7675,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 15,
               "total_sets": 2,
               "total_volume": 1425.0
@@ -7641,6 +7684,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 15,
               "total_sets": 3,
               "total_volume": 750.0
@@ -7671,6 +7715,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 39,
               "total_sets": 5,
               "total_volume": 2535.0
@@ -7679,6 +7724,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 80.0,
+              "name": "Squat",
               "total_reps": 20,
               "total_sets": 3,
               "total_volume": 1600.0
@@ -7687,6 +7733,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 85.0,
+              "name": "Barbell Row",
               "total_reps": 16,
               "total_sets": 2,
               "total_volume": 1360.0
@@ -7717,6 +7764,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 27,
               "total_sets": 4,
               "total_volume": 2565.0
@@ -7725,6 +7773,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 45.0,
+              "name": "Overhead Press",
               "total_reps": 32,
               "total_sets": 4,
               "total_volume": 1440.0
@@ -7733,6 +7782,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 80.0,
+              "name": "Squat",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 1120.0
@@ -7763,6 +7813,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 39,
               "total_sets": 5,
               "total_volume": 2535.0
@@ -7771,6 +7822,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 85.0,
+              "name": "Barbell Row",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1785.0
@@ -7779,6 +7831,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 80.0,
+              "name": "Squat",
               "total_reps": 12,
               "total_sets": 2,
               "total_volume": 960.0
@@ -7809,6 +7862,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 75.0,
+              "name": "Squat",
               "total_reps": 39,
               "total_sets": 5,
               "total_volume": 2925.0
@@ -7817,6 +7871,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 1330.0
@@ -7825,6 +7880,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 14,
               "total_sets": 3,
               "total_volume": 700.0
@@ -7855,6 +7911,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 35,
               "total_sets": 5,
               "total_volume": 2275.0
@@ -7863,6 +7920,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 75.0,
+              "name": "Squat",
               "total_reps": 24,
               "total_sets": 3,
               "total_volume": 1800.0
@@ -7871,6 +7929,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 85.0,
+              "name": "Barbell Row",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 1530.0
@@ -7901,6 +7960,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 90.0,
+              "name": "Deadlift",
               "total_reps": 32,
               "total_sets": 4,
               "total_volume": 2880.0
@@ -7909,6 +7969,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 75.0,
+              "name": "Squat",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1575.0
@@ -7917,6 +7978,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 45.0,
+              "name": "Overhead Press",
               "total_reps": 32,
               "total_sets": 4,
               "total_volume": 1440.0
@@ -7947,6 +8009,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 30,
               "total_sets": 5,
               "total_volume": 1950.0
@@ -7955,6 +8018,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 24,
               "total_sets": 3,
               "total_volume": 1920.0
@@ -7963,6 +8027,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 75.0,
+              "name": "Squat",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 1350.0
@@ -7993,6 +8058,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 39,
               "total_sets": 5,
               "total_volume": 2730.0
@@ -8001,6 +8067,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 90.0,
+              "name": "Deadlift",
               "total_reps": 24,
               "total_sets": 3,
               "total_volume": 2160.0
@@ -8009,6 +8076,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 45.0,
+              "name": "Overhead Press",
               "total_reps": 26,
               "total_sets": 3,
               "total_volume": 1170.0
@@ -8039,6 +8107,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 32,
               "total_sets": 4,
               "total_volume": 2240.0
@@ -8047,6 +8116,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 25,
               "total_sets": 5,
               "total_volume": 1625.0
@@ -8055,6 +8125,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 16,
               "total_sets": 2,
               "total_volume": 1280.0
@@ -8085,6 +8156,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 90.0,
+              "name": "Deadlift",
               "total_reps": 28,
               "total_sets": 4,
               "total_volume": 2520.0
@@ -8093,6 +8165,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 45.0,
+              "name": "Overhead Press",
               "total_reps": 39,
               "total_sets": 5,
               "total_volume": 1755.0
@@ -8101,6 +8174,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 16,
               "total_sets": 2,
               "total_volume": 1120.0
@@ -8131,6 +8205,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1680.0
@@ -8139,6 +8214,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8147,6 +8223,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 21,
               "total_sets": 3,
               "total_volume": 1470.0
@@ -8177,6 +8254,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 90.0,
+              "name": "Deadlift",
               "total_reps": 24,
               "total_sets": 4,
               "total_volume": 2160.0
@@ -8185,6 +8263,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 29,
               "total_sets": 5,
               "total_volume": 2030.0
@@ -8193,6 +8272,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 11,
               "total_sets": 2,
               "total_volume": 550.0
@@ -8223,6 +8303,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 25,
               "total_sets": 4,
               "total_volume": 1750.0
@@ -8231,6 +8312,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8239,6 +8321,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 1120.0
@@ -8269,6 +8352,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 19,
               "total_sets": 4,
               "total_volume": 1805.0
@@ -8277,6 +8361,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 45.0,
+              "name": "Overhead Press",
               "total_reps": 40,
               "total_sets": 5,
               "total_volume": 1800.0
@@ -8285,6 +8370,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 980.0
@@ -8315,6 +8401,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8323,6 +8410,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 1440.0
@@ -8331,6 +8419,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 1260.0
@@ -8361,6 +8450,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 65.0,
+              "name": "Squat",
               "total_reps": 35,
               "total_sets": 5,
               "total_volume": 2275.0
@@ -8369,6 +8459,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 23,
               "total_sets": 4,
               "total_volume": 2185.0
@@ -8377,6 +8468,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 11,
               "total_sets": 2,
               "total_volume": 550.0
@@ -8407,6 +8499,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 65.0,
+              "name": "Squat",
               "total_reps": 28,
               "total_sets": 4,
               "total_volume": 1820.0
@@ -8415,6 +8508,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8423,6 +8517,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 12,
               "total_sets": 2,
               "total_volume": 960.0
@@ -8453,6 +8548,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 23,
               "total_sets": 4,
               "total_volume": 2185.0
@@ -8461,6 +8557,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1200.0
@@ -8469,6 +8566,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 65.0,
+              "name": "Squat",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 910.0
@@ -8499,6 +8597,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8507,6 +8606,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 17,
               "total_sets": 3,
               "total_volume": 1360.0
@@ -8515,6 +8615,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 65.0,
+              "name": "Squat",
               "total_reps": 12,
               "total_sets": 2,
               "total_volume": 780.0
@@ -8545,6 +8646,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 1710.0
@@ -8553,6 +8655,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 65.0,
+              "name": "Squat",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8561,6 +8664,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 13,
               "total_sets": 2,
               "total_volume": 650.0
@@ -8591,6 +8695,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 5,
               "total_volume": 1560.0
@@ -8599,6 +8704,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 65.0,
+              "name": "Squat",
               "total_reps": 19,
               "total_sets": 3,
               "total_volume": 1235.0
@@ -8607,6 +8713,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 13,
               "total_sets": 2,
               "total_volume": 1040.0
@@ -8637,6 +8744,7 @@
               "estimated_max_after": 0.0,
               "exercise": "overhead_press",
               "heaviest_set_weight": 50.0,
+              "name": "Overhead Press",
               "total_reps": 29,
               "total_sets": 5,
               "total_volume": 1450.0
@@ -8645,6 +8753,7 @@
               "estimated_max_after": 0.0,
               "exercise": "deadlift",
               "heaviest_set_weight": 95.0,
+              "name": "Deadlift",
               "total_reps": 15,
               "total_sets": 3,
               "total_volume": 1425.0
@@ -8653,6 +8762,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 12,
               "total_sets": 2,
               "total_volume": 840.0
@@ -8683,6 +8793,7 @@
               "estimated_max_after": 0.0,
               "exercise": "barbell_row",
               "heaviest_set_weight": 80.0,
+              "name": "Barbell Row",
               "total_reps": 18,
               "total_sets": 3,
               "total_volume": 1440.0
@@ -8691,6 +8802,7 @@
               "estimated_max_after": 0.0,
               "exercise": "squat",
               "heaviest_set_weight": 70.0,
+              "name": "Squat",
               "total_reps": 20,
               "total_sets": 4,
               "total_volume": 1400.0
@@ -8699,6 +8811,7 @@
               "estimated_max_after": 0.0,
               "exercise": "bench_press",
               "heaviest_set_weight": 65.0,
+              "name": "Bench Press",
               "total_reps": 19,
               "total_sets": 3,
               "total_volume": 1235.0
