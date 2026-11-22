@@ -18,7 +18,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:provider/provider.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
-import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 import 'package:schlift/providers/workout_provider.dart';
 
 import 'support/api.dart';
@@ -68,7 +67,7 @@ Future<void> feedHeartRate(WidgetTester tester, {required int sinceMs}) async {
 /// calibration rung.
 /// Returns whether anything was seeded.
 Future<bool> seedThinHistoryIfNeeded(Peer peer, {int sessions = 3}) async {
-  if (await peer.hasPerformed(Exercise.EXERCISE_SQUAT)) return false;
+  if (await peer.hasPerformed('squat')) return false;
   for (var i = 0; i < sessions; i++) {
     await peer.doWorkout('StrongLifts', [
       for (final lift in Scenario.defaultTemplateLifts)
@@ -120,7 +119,7 @@ void main() {
         ),
       );
       await s.settle(seconds: 3);
-      await s.shot('Exercise detail');
+      await s.shot('String detail');
 
       // 03 — history.
       await s.openMenu();

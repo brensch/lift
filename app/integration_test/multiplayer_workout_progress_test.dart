@@ -4,7 +4,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
 
@@ -32,7 +31,7 @@ void main() {
         final invite = await me.inviteToken();
         final bob = await s.api.login('bob_$stamp');
         await bob.joinViaInvite(invite);
-        await bob.startWorkout('Squat', Exercise.EXERCISE_SQUAT, 60, 3);
+        await bob.startWorkout('Squat', 'squat', 60, 3);
         await bob.completeNextSet(5);
 
         // The app (mid-workout) should now reflect the 2-person session.

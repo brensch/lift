@@ -27,7 +27,7 @@ void main() {
     final first = (await tester.runAsync(() async {
       h = await ProviderHarness.boot();
       h.provider.onRungQuestion = asked.add;
-      await h.start([Exercise.EXERCISE_DEADLIFT]);
+      await h.start(['deadlift']);
       final first = h.provider.doneTargetSet!;
       await h.provider.completeSet(
         first.id,

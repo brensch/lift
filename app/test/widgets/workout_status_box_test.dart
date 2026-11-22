@@ -45,7 +45,7 @@ void main() {
                       upNext: true,
                       compact: compact,
                       set: ProposedSet(
-                        exercise: Exercise.EXERCISE_DUMBBELL_SHOULDER_PRESS,
+                        exercise: 'dumbbell_shoulder_press',
                         targetReps: 12,
                         targetWeight: 315,
                       ),

@@ -405,6 +405,16 @@ plan:
     # SETS_FROM_TIME: more than the two every lift gets.
     sets_extra: "{sets} sets. {muscle} is behind this week."
     sets_floor: "{sets} sets. That's what the time fits."
+    # A lift on a progression the program sets out (linear, double, a
+    # cycle, a formula), and the program's own note on it. Empty notes
+    # show nothing.
+    rule: "{note}"
+    # Linear: missed at the same weight this many sessions running.
+    deload: "{count} misses in a row. Weight down to {after}."
+    # A cycle's step: which of how many, at what share of the max.
+    cycle_step: "Step {n} of {of}: {pct}% of your max."
+    # The program's formula couldn't plan the lift today.
+    fallback: "Your program's rule didn't work here, so it's planned the usual way."
   # The first line about a lift: this plan against its last session, as
   # two sentences, "{change}. {why}.". {after} is the weight now, {n} a
   # number of reps.
@@ -863,6 +873,9 @@ settings:
   sync_offline_waiting: "Offline, {n} changes waiting"
   passkeys: Passkeys
   passkeys_sub: Manage your login credentials
+  # The program: every rule that plans your workouts.
+  program: Program
+  program_sub: What plans your workouts, and who set it
   personalise_heading: Personalise
   sound: Pick sound
   sound_sub: Choose notification sound
@@ -873,6 +886,35 @@ settings:
   logs_sub: View and share diagnostic logs
   build_info: Build info
   build_info_sub: Version, device, and watch details
+
+# Settings → Program: the document that plans every workout, set in the
+# app or by an assistant over MCP, and the assistants connected. All
+# placeholders.
+program:
+  title: Program
+  # {author}: who set it ("the app", or the assistant's name).
+  set_by: "Set by {author}"
+  set_on: "on {date}"
+  builtin: The built-in rules
+  author_app: you, in the app
+  author_builtin: Schlift
+  author_migration: Schlift
+  history_heading: Earlier programs
+  history_empty: None yet.
+  reset: Back to the built-in rules
+  reset_title: Back to the built-in rules?
+  reset_body: Your workouts stay. How each lift progresses goes back to Schlift's own rules.
+  reset_confirm: Reset
+  reset_failed: Couldn't reset the program.
+  assistants_heading: Connected assistants
+  assistants_body: An assistant you connect at schlift.com/connect can read your training and set your program.
+  assistants_empty: None connected.
+  assistants_offline: Can't reach the server to list them.
+  # {date}: when it last used its access.
+  last_used: "Last used {date}"
+  never_used: Not used yet
+  revoke: Revoke
+  revoke_failed: Couldn't revoke it.
 
 # Settings → Profile Marker: the emoji and colour that mark you in group
 # workouts. Placeholders.

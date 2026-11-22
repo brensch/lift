@@ -1,8 +1,6 @@
 syntax = "proto3";
 package workout.v1;
 
-import "workout/v1/workout.proto";
-
 // First-party usage analytics: which screens a signed-in user opened and for
 // how long, plus the admin-only read side. Nothing here leaves the server.
 

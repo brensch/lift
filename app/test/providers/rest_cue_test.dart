@@ -52,12 +52,12 @@ void main() {
     cancels = 0;
     vibrations = 0;
     h = await ProviderHarness.boot();
-    await h.seedHistory({Exercise.EXERCISE_LATERAL_RAISE: (20, 10)});
+    await h.seedHistory({'lateral_raise': (20, 10)});
     // The real kind, which schedules notifications; the harness's is a
     // sandbox.
     p = WorkoutProvider(h.service, h.settings)
       ..didChangeAppLifecycleState(AppLifecycleState.resumed);
-    await p.startWorkout('Test', exercises: [Exercise.EXERCISE_LATERAL_RAISE]);
+    await p.startWorkout('Test', exercises: ['lateral_raise']);
   });
 
   tearDown(() {

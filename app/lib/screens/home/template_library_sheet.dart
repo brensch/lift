@@ -144,13 +144,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
   void _edit(WorkoutTemplate template) {
     final wp = context.read<WorkoutProvider>();
     Navigator.pop(context);
-    // The same edit as Home's: a library workout becomes yours on Save.
-    showTemplateEditor(
-      context,
-      template: template,
-      provider: wp,
-      personalise: template.coupled,
-    );
+    showTemplateEditor(context, template: template, provider: wp);
   }
 
   /// A drag in the list: one reorder that also says where the rotation
@@ -187,11 +181,11 @@ class _LibrarySheetState extends State<_LibrarySheet> {
     return _run('plan:${plan.id}', () => wp.applyLibraryPlan(plan.id));
   }
 
-  /// A library workout goes straight (it can be added again); one of the
-  /// user's own is asked about first.
+  /// A library copy goes straight (it can be added again); one the user
+  /// made is asked about first.
   Future<void> _remove(WorkoutTemplate template) async {
     final wp = context.read<WorkoutProvider>();
-    if (!template.coupled) {
+    if (template.originLibraryId.isEmpty) {
       final t = copy.library;
       final sure = await showDialog<bool>(
         context: context,
@@ -230,7 +224,7 @@ class _LibrarySheetState extends State<_LibrarySheet> {
         key: item.key,
         name: template.name,
         exercises: template.exercises,
-        personal: !template.coupled,
+        personal: template.originLibraryId.isEmpty,
         showLifts: true,
         expandable: false,
         note: additionLine(adds[template.id] ?? const []),

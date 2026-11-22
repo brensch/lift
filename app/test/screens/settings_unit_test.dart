@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/settings.pb.dart';
-import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/logic/weight_units.dart';
 import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/screens/settings_screen.dart';
@@ -17,7 +16,7 @@ import '../support/provider_harness.dart';
 /// A unit picked in Settings replans home in it: the plans (and the weight
 /// steps the workout's selectors use) are on the new unit's grid at once.
 void main() {
-  const squat = Exercise.EXERCISE_SQUAT;
+  const squat = 'squat';
 
   testWidgets('picking kilograms replans home in kilograms', (tester) async {
     final h = (await tester.runAsync(() async {

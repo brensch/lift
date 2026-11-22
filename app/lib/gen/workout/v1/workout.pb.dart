@@ -7435,6 +7435,7 @@ class ProgramSummary extends $pb.GeneratedMessage {
     $core.String? author,
     $core.String? note,
     $fixnum.Int64? setAt,
+    $core.bool? builtinRules,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -7442,6 +7443,7 @@ class ProgramSummary extends $pb.GeneratedMessage {
     if (author != null) result.author = author;
     if (note != null) result.note = note;
     if (setAt != null) result.setAt = setAt;
+    if (builtinRules != null) result.builtinRules = builtinRules;
     return result;
   }
 
@@ -7463,6 +7465,7 @@ class ProgramSummary extends $pb.GeneratedMessage {
     ..aOS(3, _omitFieldNames ? '' : 'author')
     ..aOS(4, _omitFieldNames ? '' : 'note')
     ..aInt64(5, _omitFieldNames ? '' : 'setAt')
+    ..aOB(6, _omitFieldNames ? '' : 'builtinRules')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -7532,6 +7535,16 @@ class ProgramSummary extends $pb.GeneratedMessage {
   $core.bool hasSetAt() => $_has(4);
   @$pb.TagNumber(5)
   void clearSetAt() => $_clearField(5);
+
+  /// It plans by the built-in rules (its workouts aside): nothing to reset.
+  @$pb.TagNumber(6)
+  $core.bool get builtinRules => $_getBF(5);
+  @$pb.TagNumber(6)
+  set builtinRules($core.bool value) => $_setBool(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasBuiltinRules() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearBuiltinRules() => $_clearField(6);
 }
 
 class GetProgramRequest extends $pb.GeneratedMessage {

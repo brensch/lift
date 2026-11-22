@@ -8,7 +8,6 @@ library;
 import 'package:flutter/material.dart';
 
 import '../gen/copy.dart';
-import '../gen/workout/v1/workout.pb.dart';
 import '../logic/exercises.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
@@ -16,7 +15,7 @@ import '../theme/theme_spec.dart';
 class TemplateRow extends StatefulWidget {
   final String name;
   final String blurb;
-  final List<Exercise> exercises;
+  final List<String> exercises;
 
   /// Ticked or not; null for no tick box.
   final bool? selected;

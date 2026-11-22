@@ -299,7 +299,7 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
     }
   }
 
-  ExerciseLog? _logFor(Exercise exercise) {
+  ExerciseLog? _logFor(String exercise) {
     for (final log in _logs) {
       if (log.decision.exercise == exercise) return log;
     }
@@ -524,7 +524,7 @@ class ExerciseSummaryView {
   final WeightUnit unit;
   ExerciseSummaryView(this._e, this.unit);
 
-  Exercise get exercise => _e.exercise;
+  String get exercise => _e.exercise;
   int get totalSets => _e.totalSets;
   int get totalReps => _e.totalReps;
   String get name => exerciseName(_e.exercise);

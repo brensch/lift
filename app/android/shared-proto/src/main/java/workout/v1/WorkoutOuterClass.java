@@ -56869,6 +56869,16 @@ public final class WorkoutOuterClass {
      * @return The setAt.
      */
     long getSetAt();
+
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     * @return The builtinRules.
+     */
+    boolean getBuiltinRules();
   }
   /**
    * <pre>
@@ -57172,6 +57182,44 @@ public final class WorkoutOuterClass {
     private void clearSetAt() {
       
       setAt_ = 0L;
+    }
+
+    public static final int BUILTIN_RULES_FIELD_NUMBER = 6;
+    private boolean builtinRules_;
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     * @return The builtinRules.
+     */
+    @java.lang.Override
+    public boolean getBuiltinRules() {
+      return builtinRules_;
+    }
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     * @param value The builtinRules to set.
+     */
+    private void setBuiltinRules(boolean value) {
+      
+      builtinRules_ = value;
+    }
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     */
+    private void clearBuiltinRules() {
+      
+      builtinRules_ = false;
     }
 
     public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
@@ -57569,6 +57617,46 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * It plans by the built-in rules (its workouts aside): nothing to reset.
+       * </pre>
+       *
+       * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+       * @return The builtinRules.
+       */
+      @java.lang.Override
+      public boolean getBuiltinRules() {
+        return instance.getBuiltinRules();
+      }
+      /**
+       * <pre>
+       * It plans by the built-in rules (its workouts aside): nothing to reset.
+       * </pre>
+       *
+       * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+       * @param value The builtinRules to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBuiltinRules(boolean value) {
+        copyOnWrite();
+        instance.setBuiltinRules(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * It plans by the built-in rules (its workouts aside): nothing to reset.
+       * </pre>
+       *
+       * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBuiltinRules() {
+        copyOnWrite();
+        instance.clearBuiltinRules();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ProgramSummary)
     }
     @java.lang.Override
@@ -57590,10 +57678,11 @@ public final class WorkoutOuterClass {
               "author_",
               "note_",
               "setAt_",
+              "builtinRules_",
             };
             java.lang.String info =
-                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0208\u0004\u0208\u0005\u0002";
+                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0208\u0004\u0208\u0005\u0002\u0006\u0007";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

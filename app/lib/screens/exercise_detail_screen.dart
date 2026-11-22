@@ -22,7 +22,7 @@ import 'reload_on_account_change.dart';
 /// session by month. Progress shows the trend across lifts; this is the
 /// drill-down for a single one.
 class ExerciseDetailScreen extends StatefulWidget {
-  final Exercise exercise;
+  final String exercise;
   const ExerciseDetailScreen({super.key, required this.exercise});
 
   @override

@@ -59,7 +59,7 @@ class ProviderHarness {
   /// A finished session yesterday of each lift in [lifts]: three sets at
   /// its (weight lb, reps), every rep made — so a start plans from that
   /// history: no calibration ramp, no time off.
-  Future<void> seedHistory(Map<Exercise, (double, int)> lifts) async {
+  Future<void> seedHistory(Map<String, (double, int)> lifts) async {
     final start = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 86400;
     const id = 'seed';
     final proposed = <ProposedSet>[];
@@ -116,11 +116,11 @@ class ProviderHarness {
   }
 
   /// Start a workout of [exercises], as the app does.
-  Future<void> start(List<Exercise> exercises) async {
+  Future<void> start(List<String> exercises) async {
     await provider.startWorkout('Test', exercises: exercises);
   }
 
-  List<ProposedSet> working(Exercise exercise) => provider.proposedSets
+  List<ProposedSet> working(String exercise) => provider.proposedSets
       .where((s) => s.exercise == exercise && !s.warmup)
       .toList();
 }
