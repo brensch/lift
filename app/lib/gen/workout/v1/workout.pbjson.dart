@@ -2844,6 +2844,7 @@ const SimulateProgramRequest$json = {
     {'1': 'template_id', '3': 6, '4': 1, '5': 9, '10': 'templateId'},
     {'1': 'budget_minutes', '3': 7, '4': 1, '5': 5, '10': 'budgetMinutes'},
     {'1': 'history', '3': 8, '4': 1, '5': 5, '10': 'history'},
+    {'1': 'exercises', '3': 9, '4': 3, '5': 9, '10': 'exercises'},
   ],
 };
 
@@ -2854,7 +2855,7 @@ final $typed_data.Uint8List simulateProgramRequestDescriptor = $convert.base64De
     'ZXJ5RGF5cxIzCgZlZmZvcnQYBCABKA4yGy53b3Jrb3V0LnYxLlNpbXVsYXRlZEVmZm9ydFIGZW'
     'Zmb3J0Eh0KCm1pc3NfZXZlcnkYBSABKAVSCW1pc3NFdmVyeRIfCgt0ZW1wbGF0ZV9pZBgGIAEo'
     'CVIKdGVtcGxhdGVJZBIlCg5idWRnZXRfbWludXRlcxgHIAEoBVINYnVkZ2V0TWludXRlcxIYCg'
-    'doaXN0b3J5GAggASgFUgdoaXN0b3J5');
+    'doaXN0b3J5GAggASgFUgdoaXN0b3J5EhwKCWV4ZXJjaXNlcxgJIAMoCVIJZXhlcmNpc2Vz');
 
 @$core.Deprecated('Use simulatedLiftDescriptor instead')
 const SimulatedLift$json = {

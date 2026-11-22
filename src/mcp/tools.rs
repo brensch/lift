@@ -111,6 +111,7 @@ pub fn list() -> Vec<Value> {
                 "effort": { "type": "string", "enum": ["all_hit", "last_set_short", "all_short", "miss_every"], "description": "How each forward session goes (default all_hit)" },
                 "miss_every": { "type": "integer", "minimum": 1, "description": "With miss_every: every this many sessions, the last set one rep short" },
                 "template_id": { "type": "string", "description": "Do this workout every time; otherwise the rotation's suggestion" },
+                "exercises": { "type": "array", "items": { "type": "string" }, "description": "Instead of a workout, these exercise keys in this order every time. With no workout to pick, the lifts of their last workout are used" },
                 "budget_minutes": { "type": "integer", "minimum": 5, "maximum": 300 },
                 "history": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Past workouts to plan again (default 6)" }
             }), &[]),
@@ -310,6 +311,16 @@ pub async fn call(
                     .to_string(),
                 budget_minutes: int(arguments, "budget_minutes", 0, 0, 300),
                 history: int(arguments, "history", 6, 0, 60),
+                exercises: arguments
+                    .get("exercises")
+                    .and_then(Value::as_array)
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default(),
             };
             let run = mcp
                 .db

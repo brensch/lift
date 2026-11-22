@@ -8,7 +8,8 @@
 //!
 //! **Forward:** a copy of the account with the draft set, then `sessions`
 //! workouts, `every_days` apart from now: the suggested rotation workout
-//! each time (or `template_id`'s), started, every set done as the `effort`
+//! each time (or `template_id`'s, or the lifts `exercises` names; with no
+//! workout to pick, the lifts of the last one finished), started, every set done as the `effort`
 //! says and ended — through the same API the app uses, so the warmups, the
 //! calibration ramp and the time budget all run as they would. A lift never
 //! done ramps up: its first two rungs are done in full, the third one rep
@@ -233,13 +234,14 @@ fn forward(
     let mut out = Vec::new();
     for n in 0..sessions {
         let at = now + i64::from(n) * every;
-        let Some(template_id) = pick(&sim, at, &req.template_id) else {
+        let Some((template_id, exercises)) = pick(&sim, at, req) else {
             break;
         };
         let started = {
             let mut call = Call::new(&mut sim, at, next_id());
             call.start_workout(StartWorkoutRequest {
                 template_id: template_id.clone(),
+                exercises,
                 budget_minutes: req.budget_minutes,
                 started_at: at,
                 ..Default::default()
@@ -359,13 +361,48 @@ fn forward(
     out
 }
 
-/// The workout to do at `at`: the one asked for, or the rotation's
-/// suggestion, or the program's first workout.
-fn pick(account: &Account, at: i64, asked: &str) -> Option<String> {
+/// The workout to do at `at`, as a template and the lifts to start it
+/// with (none: the template's): the lifts asked for, the workout asked
+/// for, the rotation's suggestion, the program's first workout, or — with
+/// no workout at all — the lifts of the last one finished.
+fn pick(account: &Account, at: i64, req: &SimulateProgramRequest) -> Option<(String, Vec<String>)> {
     let program = &account.program;
-    if !asked.is_empty() {
-        return program.workout(asked).map(|w| w.id.clone());
+    if !req.exercises.is_empty() {
+        return Some((String::new(), req.exercises.clone()));
     }
+    if !req.template_id.is_empty() {
+        return program
+            .workout(&req.template_id)
+            .map(|w| (w.id.clone(), Vec::new()));
+    }
+    let template = suggestion(account, at);
+    if template.is_some() {
+        return template.map(|id| (id, Vec::new()));
+    }
+    let last = account
+        .workouts
+        .iter()
+        .filter(|r| r.workout.end_time > 0)
+        .max_by_key(|r| r.workout.start_time)?;
+    let mut lifts: Vec<String> = Vec::new();
+    for set in &last.completed_sets {
+        let Some(proposed) = last
+            .proposed_sets
+            .iter()
+            .find(|p| p.id == set.proposed_set_id)
+        else {
+            continue;
+        };
+        if program.knows(&proposed.exercise) && !lifts.contains(&proposed.exercise) {
+            lifts.push(proposed.exercise.clone());
+        }
+    }
+    (!lifts.is_empty()).then(|| (String::new(), lifts))
+}
+
+/// The rotation's suggestion at `at`, or the program's first workout.
+fn suggestion(account: &Account, at: i64) -> Option<String> {
+    let program = &account.program;
     let volume = muscle_volume(program, &account.workouts, at);
     let recovery = per_muscle_recovery(program, &account.workouts);
     let mut last_started: HashMap<String, i64> = HashMap::new();
