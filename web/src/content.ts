@@ -23,7 +23,7 @@ export type LibraryTemplate = {
   group: string;
   blurb: string;
   isDefault: boolean;
-  /** Exercise enum names without the EXERCISE_ prefix, as written in the YAML. */
+  /** Exercise keys of the built-in program, as written in the YAML. */
   exercises: string[];
 };
 
@@ -42,6 +42,8 @@ export type Content = {
   changelog: Release[];
   /** templates/library.yaml, for the /routines page. */
   library: { groups: LibraryGroup[]; templates: LibraryTemplate[] };
+  /** The built-in program's name for each exercise key. */
+  exerciseNames: Record<string, string>;
 };
 
 export const CONTENT = content as Content;

@@ -15,8 +15,6 @@ import 'dart:core' as $core;
 import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
-import 'workout.pbenum.dart' as $1;
-
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
 /// One screen visit. `page` is a stable slug — a go_router path template
@@ -1492,16 +1490,18 @@ class TrainingDay extends $pb.GeneratedMessage {
 
 class ExerciseUse extends $pb.GeneratedMessage {
   factory ExerciseUse({
-    $1.Exercise? exercise,
     $fixnum.Int64? sets,
     $fixnum.Int64? lifters,
     $core.double? volumeLb,
+    $core.String? exercise,
+    $core.String? name,
   }) {
     final result = create();
-    if (exercise != null) result.exercise = exercise;
     if (sets != null) result.sets = sets;
     if (lifters != null) result.lifters = lifters;
     if (volumeLb != null) result.volumeLb = volumeLb;
+    if (exercise != null) result.exercise = exercise;
+    if (name != null) result.name = name;
     return result;
   }
 
@@ -1518,11 +1518,11 @@ class ExerciseUse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'ExerciseUse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..aE<$1.Exercise>(1, _omitFieldNames ? '' : 'exercise',
-        enumValues: $1.Exercise.values)
     ..aInt64(2, _omitFieldNames ? '' : 'sets')
     ..aInt64(3, _omitFieldNames ? '' : 'lifters')
     ..aD(4, _omitFieldNames ? '' : 'volumeLb')
+    ..aOS(5, _omitFieldNames ? '' : 'exercise')
+    ..aOS(6, _omitFieldNames ? '' : 'name')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1544,41 +1544,52 @@ class ExerciseUse extends $pb.GeneratedMessage {
       $pb.GeneratedMessage.$_defaultFor<ExerciseUse>(create);
   static ExerciseUse? _defaultInstance;
 
-  @$pb.TagNumber(1)
-  $1.Exercise get exercise => $_getN(0);
-  @$pb.TagNumber(1)
-  set exercise($1.Exercise value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasExercise() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearExercise() => $_clearField(1);
-
   @$pb.TagNumber(2)
-  $fixnum.Int64 get sets => $_getI64(1);
+  $fixnum.Int64 get sets => $_getI64(0);
   @$pb.TagNumber(2)
-  set sets($fixnum.Int64 value) => $_setInt64(1, value);
+  set sets($fixnum.Int64 value) => $_setInt64(0, value);
   @$pb.TagNumber(2)
-  $core.bool hasSets() => $_has(1);
+  $core.bool hasSets() => $_has(0);
   @$pb.TagNumber(2)
   void clearSets() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  $fixnum.Int64 get lifters => $_getI64(2);
+  $fixnum.Int64 get lifters => $_getI64(1);
   @$pb.TagNumber(3)
-  set lifters($fixnum.Int64 value) => $_setInt64(2, value);
+  set lifters($fixnum.Int64 value) => $_setInt64(1, value);
   @$pb.TagNumber(3)
-  $core.bool hasLifters() => $_has(2);
+  $core.bool hasLifters() => $_has(1);
   @$pb.TagNumber(3)
   void clearLifters() => $_clearField(3);
 
   @$pb.TagNumber(4)
-  $core.double get volumeLb => $_getN(3);
+  $core.double get volumeLb => $_getN(2);
   @$pb.TagNumber(4)
-  set volumeLb($core.double value) => $_setDouble(3, value);
+  set volumeLb($core.double value) => $_setDouble(2, value);
   @$pb.TagNumber(4)
-  $core.bool hasVolumeLb() => $_has(3);
+  $core.bool hasVolumeLb() => $_has(2);
   @$pb.TagNumber(4)
   void clearVolumeLb() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get exercise => $_getSZ(3);
+  @$pb.TagNumber(5)
+  set exercise($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(5)
+  $core.bool hasExercise() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearExercise() => $_clearField(5);
+
+  /// The built-in program's name for it, or the key made readable for a
+  /// lift of someone's own program.
+  @$pb.TagNumber(6)
+  $core.String get name => $_getSZ(4);
+  @$pb.TagNumber(6)
+  set name($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(6)
+  $core.bool hasName() => $_has(4);
+  @$pb.TagNumber(6)
+  void clearName() => $_clearField(6);
 }
 
 class GetTrainingStatsResponse extends $pb.GeneratedMessage {

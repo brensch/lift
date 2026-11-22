@@ -137,11 +137,13 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
     ));
     let proposed_active = active_proposed_sets(&active.proposed_sets);
     let next_up_set = compute_next_up_set(&proposed_active, &active.completed_sets);
-    let summary = Some(crate::progress::compute_workout_summary(
+    let mut summary = crate::progress::compute_workout_summary(
         &active.workout,
         &active.proposed_sets,
         &active.completed_sets,
-    ));
+    );
+    crate::progress::name_lifts(&mut summary, &active.program);
+    let summary = Some(summary);
     let passed_warmup_ids = active
         .proposed_sets
         .iter()

@@ -3,6 +3,7 @@
 // prose: the YAML holds typed pieces and this passes them through.
 //   store/listing.yaml           -> src/generated/content.json
 //   templates/library.yaml       -> content.json (library, the /routines page)
+//   core/programs/default.json   -> content.json (exerciseNames, for the library)
 //   changes/<version>.md         -> content.json (changelog)
 //   store/screenshots/raw/*.png  -> public/generated/screens/
 //   marketing/schlift-square-512 -> public/generated/icon-512.png (apple-touch-icon)
@@ -20,8 +21,8 @@ const web = resolve(here, "..");
 
 const listing = parse(readFileSync(resolve(repo, "store/listing.yaml"), "utf8"));
 
-// The template library, as the backend embeds it. Exercises stay as the
-// enum names written in the YAML; the page maps them to display names.
+// The template library, as the core embeds it. Exercises are the built-in
+// program's keys; the page names them from core/programs/default.json.
 const libraryYaml = parse(readFileSync(resolve(repo, "templates/library.yaml"), "utf8"));
 const library = {
   groups: (libraryYaml.groups ?? []).map((g) => ({ key: String(g.key), label: String(g.label) })),
@@ -34,6 +35,8 @@ const library = {
     exercises: (t.exercises ?? []).map(String),
   })),
 };
+const builtin = JSON.parse(readFileSync(resolve(repo, "core/programs/default.json"), "utf8"));
+const exerciseNames = Object.fromEntries(builtin.exercises.map((e) => [e.key, e.name]));
 
 // The change log: every release and everything that changed in it, newest
 // first (changes/<version>.md: its date, then one `- ` line per change; see
@@ -93,6 +96,7 @@ const content = {
   })),
   changelog,
   library,
+  exerciseNames,
 };
 
 mkdirSync(resolve(web, "src/generated"), { recursive: true });

@@ -350,6 +350,8 @@ message ExerciseSummary {
   // The lift's estimated max after this session (lb); 0 = none. Filled
   // in a GetWorkoutResponse.
   float estimated_max_after = 7;
+  // What the person's program calls the lift.
+  string name = 9;
   // Exercises were enum numbers before they were keys.
   reserved 1;
 }
@@ -466,6 +468,8 @@ message ExerciseProgress {
   // A bodyweight lift: its estimated maxes are rep maxes, not pounds, even
   // when sets carry added weight.
   bool bodyweight = 3;
+  // What the person's program calls the lift.
+  string name = 5;
   // Exercises were enum numbers before they were keys.
   reserved 1;
 }

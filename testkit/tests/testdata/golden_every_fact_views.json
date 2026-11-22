@@ -7802,6 +7802,7 @@
         {
           "bodyweight": false,
           "exercise": "squat",
+          "name": "Squat",
           "points": [
             {
               "date": 1787231600,
@@ -7826,6 +7827,7 @@
         {
           "bodyweight": false,
           "exercise": "lateral_raise",
+          "name": "Lateral Raise",
           "points": [
             {
               "date": 1787580800,
@@ -7850,6 +7852,7 @@
         {
           "bodyweight": false,
           "exercise": "bench_press",
+          "name": "Bench Press",
           "points": [
             {
               "date": 1787580800,
@@ -7874,6 +7877,7 @@
         {
           "bodyweight": false,
           "exercise": "dumbbell_curl",
+          "name": "Dumbbell Curl",
           "points": [
             {
               "date": 1787580800,
@@ -7889,6 +7893,7 @@
         {
           "bodyweight": false,
           "exercise": "incline_dumbbell_press",
+          "name": "Incline Dumbbell Press",
           "points": [
             {
               "date": 1787757690,
@@ -7904,6 +7909,7 @@
         {
           "bodyweight": false,
           "exercise": "overhead_press",
+          "name": "Overhead Press",
           "points": [
             {
               "date": 1787757690,
@@ -7919,6 +7925,7 @@
         {
           "bodyweight": false,
           "exercise": "skull_crusher",
+          "name": "Skull Crusher",
           "points": [
             {
               "date": 1787757690,
@@ -7969,6 +7976,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "bench_press",
                 "heaviest_set_weight": 115.74269104003906,
+                "name": "Bench Press",
                 "total_reps": 24,
                 "total_sets": 4,
                 "total_volume": 2777.82470703125
@@ -7977,6 +7985,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "overhead_press",
                 "heaviest_set_weight": 49.60401153564453,
+                "name": "Overhead Press",
                 "total_reps": 14,
                 "total_sets": 2,
                 "total_volume": 694.4561767578125
@@ -7985,6 +7994,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "skull_crusher",
                 "heaviest_set_weight": 44.09245300292969,
+                "name": "Skull Crusher",
                 "total_reps": 15,
                 "total_sets": 2,
                 "total_volume": 661.3867797851562
@@ -7993,6 +8003,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "incline_dumbbell_press",
                 "heaviest_set_weight": 17.636981964111328,
+                "name": "Incline Dumbbell Press",
                 "total_reps": 22,
                 "total_sets": 2,
                 "total_volume": 388.01361083984375
@@ -8001,6 +8012,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "lateral_raise",
                 "heaviest_set_weight": 17.636981964111328,
+                "name": "Lateral Raise",
                 "total_reps": 16,
                 "total_sets": 2,
                 "total_volume": 282.19171142578125
@@ -8031,6 +8043,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "bench_press",
                 "heaviest_set_weight": 115.0,
+                "name": "Bench Press",
                 "total_reps": 24,
                 "total_sets": 4,
                 "total_volume": 2760.0
@@ -8039,6 +8052,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "squat",
                 "heaviest_set_weight": 145.0,
+                "name": "Squat",
                 "total_reps": 15,
                 "total_sets": 3,
                 "total_volume": 2175.0
@@ -8047,6 +8061,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "dumbbell_curl",
                 "heaviest_set_weight": 20.0,
+                "name": "Dumbbell Curl",
                 "total_reps": 24,
                 "total_sets": 2,
                 "total_volume": 480.0
@@ -8055,6 +8070,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "lateral_raise",
                 "heaviest_set_weight": 15.0,
+                "name": "Lateral Raise",
                 "total_reps": 24,
                 "total_sets": 2,
                 "total_volume": 360.0
@@ -8085,6 +8101,7 @@
                 "estimated_max_after": 0.0,
                 "exercise": "squat",
                 "heaviest_set_weight": 135.0,
+                "name": "Squat",
                 "total_reps": 15,
                 "total_sets": 3,
                 "total_volume": 2025.0
@@ -8350,6 +8367,7 @@
               "estimated_max_after": 171.0,
               "exercise": "squat",
               "heaviest_set_weight": 135.0,
+              "name": "Squat",
               "total_reps": 15,
               "total_sets": 3,
               "total_volume": 2025.0
@@ -16193,6 +16211,7 @@
               "estimated_max_after": 151.41665649414062,
               "exercise": "bench_press",
               "heaviest_set_weight": 115.0,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 4,
               "total_volume": 2760.0
@@ -16201,6 +16220,7 @@
               "estimated_max_after": 183.6666717529297,
               "exercise": "squat",
               "heaviest_set_weight": 145.0,
+              "name": "Squat",
               "total_reps": 15,
               "total_sets": 3,
               "total_volume": 2175.0
@@ -16209,6 +16229,7 @@
               "estimated_max_after": 29.666667938232422,
               "exercise": "dumbbell_curl",
               "heaviest_set_weight": 20.0,
+              "name": "Dumbbell Curl",
               "total_reps": 24,
               "total_sets": 2,
               "total_volume": 480.0
@@ -16217,6 +16238,7 @@
               "estimated_max_after": 23.666667938232422,
               "exercise": "lateral_raise",
               "heaviest_set_weight": 15.0,
+              "name": "Lateral Raise",
               "total_reps": 24,
               "total_sets": 2,
               "total_volume": 360.0
@@ -23656,6 +23678,7 @@
               "estimated_max_after": 152.39453125,
               "exercise": "bench_press",
               "heaviest_set_weight": 115.74269104003906,
+              "name": "Bench Press",
               "total_reps": 24,
               "total_sets": 4,
               "total_volume": 2777.82470703125
@@ -23664,6 +23687,7 @@
               "estimated_max_after": 65.31194305419922,
               "exercise": "overhead_press",
               "heaviest_set_weight": 49.60401153564453,
+              "name": "Overhead Press",
               "total_reps": 14,
               "total_sets": 2,
               "total_volume": 694.4561767578125
@@ -23672,6 +23696,7 @@
               "estimated_max_after": 52.17607116699219,
               "exercise": "skull_crusher",
               "heaviest_set_weight": 44.09245300292969,
+              "name": "Skull Crusher",
               "total_reps": 15,
               "total_sets": 2,
               "total_volume": 661.3867797851562
@@ -23680,6 +23705,7 @@
               "estimated_max_after": 25.573625564575195,
               "exercise": "incline_dumbbell_press",
               "heaviest_set_weight": 17.636981964111328,
+              "name": "Incline Dumbbell Press",
               "total_reps": 22,
               "total_sets": 2,
               "total_volume": 388.01361083984375
@@ -23688,6 +23714,7 @@
               "estimated_max_after": 23.809926986694336,
               "exercise": "lateral_raise",
               "heaviest_set_weight": 17.636981964111328,
+              "name": "Lateral Raise",
               "total_reps": 16,
               "total_sets": 2,
               "total_volume": 282.19171142578125
